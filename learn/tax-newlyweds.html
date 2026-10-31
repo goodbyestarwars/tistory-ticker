@@ -8,15 +8,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -24,10 +25,12 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/tax-story.html">← 절세 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>절세 이야기 특집 · 신혼부부</h1>
   <p class="legal-effective-date">결혼세액공제, 부모님 도움과 혼인 증여공제, 맞벌이 연말정산, 집과 공제, 부부 투자계좌, 신혼 1년 세금 달력</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>결혼하면 통장을 합칠지부터 고민한다. 세금은 반대다. 한국 소득세는 <b>부부를 한 사람으로 묶지 않는다.</b> 남편 소득은 남편 몫, 아내 소득은 아내 몫으로 따로 계산한다. 그래서 신혼부부에게는 공제 칸이 두 개 생긴다. 어느 칸에 무엇을 넣느냐에 따라 같은 돈을 쓰고도 돌려받는 금액이 달라진다.</p>
   <p>박형섭과 홍우준이라는 가상의 맞벌이 부부를 따라간다. 2026년 봄에 결혼했고, 형섭은 총급여 6,000만원, 우준은 3,000만원이다. 월세 신혼집에 살고, 둘 다 미국 주식을 조금씩 한다.</p>
 
@@ -79,7 +82,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     </div>
   </div>
 
-  <h2>1장. 혼인신고만 해도 100만원</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">1장. 혼인신고만 해도 100만원</h2>
   <p>2024년부터 2026년 사이에 혼인신고를 하면 부부가 <b>각자 50만원</b>씩 세액공제를 받는다. 생애 한 번이고, 초혼·재혼을 가리지 않는다. 기준은 결혼식 날짜가 아니라 <b>혼인신고 날짜</b>다.</p>
   <table class="learn-table">
     <thead><tr><th>항목</th><th>내용</th></tr></thead>
@@ -94,7 +99,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>날짜도 본다. 2026년 가을에 식을 올리고 혼인신고를 2027년으로 미루면, 지금 법으로는 대상에서 빠진다. 제도 연장은 연말 세법 개정에서 정해지니 그때 확인한다.</p>
   <div class="learn-note"><b>한 줄 요약</b> 결혼세액공제는 식 날짜가 아니라 혼인신고 날짜로 정해진다. 2026년 안에 신고해야 지금 법의 대상이다.</div>
 
-  <h2>2장. 부모님 도움은 신고하고 받는다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">2장. 부모님 도움은 신고하고 받는다</h2>
   <p>전세보증금이나 집값에 부모님 돈이 들어가는 일이 흔하다. 부모가 성인 자녀에게 주는 돈은 10년 동안 <b>5천만원</b>까지 증여세가 없다. 여기에 2024년부터 결혼할 때 <b>1억원</b>을 더 공제해 준다. 혼인신고일 앞뒤 2년, 모두 4년 안에 받은 돈이 대상이다.</p>
 
   <figure class="learn-fig">
@@ -123,7 +130,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>양가 부모가 각자 자녀에게 같은 방식으로 주면 부부가 받을 수 있는 금액은 최대 3억원이다. 단, 공제가 있어도 <b>신고는 해야 한다.</b> 집을 살 때 자금 출처를 물어보면 증여 신고가 증거가 된다. 말로만 빌린 돈이라고 하면 나중에 증여로 다시 계산될 수 있다.</p>
   <div class="learn-note"><b>한 줄 요약</b> 결혼 앞뒤 2년 안에 받은 부모님 돈은 1인 1억 5천만원까지 증여세가 없다. 세금이 0이어도 신고는 한다.</div>
 
-  <h2>3장. 맞벌이 연말정산은 어느 칸에 넣느냐다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">3장. 맞벌이 연말정산은 어느 칸에 넣느냐다</h2>
   <p>공제에는 문턱이 있는 것과 없는 것이 있다. 의료비는 총급여의 3%를 넘게 써야 그 넘는 부분부터 공제된다. 신용카드는 총급여의 25%를 넘게 써야 공제가 시작된다. 문턱이 급여에 비례하니 <b>급여가 적은 쪽이 문턱이 낮다.</b></p>
 
   <h3>의료비 200만원을 누구 앞으로 넣을까</h3>
@@ -171,7 +180,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <div class="learn-note"><b>한 줄 요약</b> 문턱이 있는 공제는 급여 적은 쪽, 문턱 없는 공제는 세율 높은 쪽. 단, 낼 세금이 있는 쪽이어야 한다.</div>
 
-  <h2>4장. 신혼집과 공제</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">4장. 신혼집과 공제</h2>
   <p>우준과 형섭은 월세 70만원짜리 집에 산다. 무주택 세대주이고 총급여가 8천만원 이하면 월세의 일부를 세액공제로 돌려받는다. 한도는 연 1,000만원, 공제율은 총급여 5,500만원 이하 17%, 그 위는 15%다.</p>
 
   <figure class="learn-fig">
@@ -200,7 +211,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <div class="learn-note"><b>한 줄 요약</b> 집 관련 공제는 대부분 세대주 요건이 붙는다. 누가 세대주가 될지를 세금까지 보고 정한다.</div>
 
-  <h2>5장. 투자 계좌는 둘로 나눠 둔다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">5장. 투자 계좌는 둘로 나눠 둔다</h2>
   <p>절세 이야기 3장에서 본 미국 주식 기본공제 250만원은 <b>한 사람당</b>이다. 한 해에 600만원을 벌었다고 하자.</p>
 
   <figure class="learn-fig">
@@ -242,7 +255,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <div class="learn-note"><b>한 줄 요약</b> 공제와 한도는 한 사람마다 있다. 계좌를 나누면 칸이 두 배가 되고, 돈을 옮기면 증여가 된다.</div>
 
-  <h2>6장. 아이가 생기면 칸이 또 바뀐다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">6장. 아이가 생기면 칸이 또 바뀐다</h2>
   <p>아이가 태어나면 출산·입양 세액공제, 자녀세액공제, 인적공제가 붙는다. 회사에서 받는 출산지원금은 일정 요건 안에서 비과세다. 아이 공제는 문턱이 없어서 보통 세율이 높은 쪽으로 넣는다. 부모님 증여도 다시 본다. 결혼 때 1억 공제를 다 썼다면 출산 때 추가 공제는 남아 있지 않다.</p>
   <table class="learn-table">
     <thead><tr><th>결혼 때 쓴 혼인 증여공제</th><th>출산 때 남는 공제</th></tr></thead>
@@ -254,7 +269,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <div class="learn-note"><b>한 줄 요약</b> 혼인·출산 증여공제는 합쳐서 1억원이다. 아이 계획까지 보고 나눠 쓴다.</div>
 
-  <h2>7장. 신혼 1년 세금 달력</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">7장. 신혼 1년 세금 달력</h2>
   <figure class="learn-fig">
     <svg viewBox="0 0 420 250" role="img" aria-label="신혼 1년 세금 달력: 1월 연말정산, 5월 종합소득세와 해외주식 양도세 신고, 10월 연말정산 미리보기, 12월 손익 점검과 연금 납입, 혼인신고 연도 확인">
       <text class="fig-sub" x="0" y="14">한 해에 챙길 때(가상의 부부 기준)</text>
@@ -289,7 +306,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     </tbody>
   </table>
 
-  <h2>마지막 장. 둘이라서 생기는 것</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-8">마지막 장. 둘이라서 생기는 것</h2>
   <ul>
     <li>세금은 한 사람 단위다. 부부는 공제 칸이 두 개다.</li>
     <li>결혼세액공제는 혼인신고 날짜로 정해진다.</li>
@@ -299,7 +318,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul>
   <p>통장은 합쳐도 되고 따로 써도 된다. 세금만큼은 따로 계산된다는 걸 알고 나누면, 같은 살림에서 한 해 수십만 원이 더 남는다.</p>
 
-  <h2>먼저 알아 둘 것</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-9">먼저 알아 둘 것</h2>
   <ul>
     <li>이 글은 <b>공부용 설명</b>이고 세무 상담이나 투자 권유가 아니다.</li>
     <li>우준과 형섭은 <b>가상 인물</b>이고 숫자는 계산을 보여 주기 위한 예시다. 실제 세액은 다른 공제와 소득에 따라 달라진다.</li>
@@ -313,6 +334,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="couple-tax-deep">
   <h2 id="couple-tax-deep">심화 연구실 · 부부의 세후 자산을 통합해 보되 과세 단위는 구별한다</h2>
   <p>가계 전체 지출을 함께 관리하더라도 세법상 소득 귀속과 공제 요건은 항목에 따라 달라진다. 자산을 무작정 한 사람 앞으로 몰면 <b>증여세, 명의신탁, 취득가액, 향후 양도, 부양가족 공제, 금융소득 합산</b> 문제를 만들 수 있다. 실제 의사결정은 부부 각자의 소득·계좌·명의와 적용 과세 연도를 함께 표로 정리한다.</p>
@@ -337,5 +359,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

@@ -8,15 +8,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -24,14 +25,18 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>1장 · 선택과 기회비용</h1>
   <p class="legal-effective-date">경제학은 결국 "무엇을 포기할 것인가"를 다루는 학문이다</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>경제학 강의 첫 시간에 교수들이 꼭 하는 말이 있다. "경제학은 부자가 되는 법을 가르치는 학문이
   아니다." 그럼 왜 배울까 - 돈 버는 법이 아니라 <b>잘 고르는 법</b>을 가르쳐 주기 때문이다.</p>
 
-  <h2>포기한 것의 값 = 기회비용</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">포기한 것의 값 = 기회비용</h2>
   <p>살면서 완전히 자유로운 선택은 없다. 시간도, 돈도, 체력도 한정돼 있어서 뭔가를 고르면 반드시 다른
   뭔가를 포기해야 한다. 이 <b>포기한 것의 가치</b>를 경제학에서는 기회비용이라 부른다.</p>
 
@@ -68,12 +73,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     더 아까워하는지의 문제다.
   </div>
 
-  <h2>회사도 똑같이 계산한다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">회사도 똑같이 계산한다</h2>
   <p>개인만이 아니다. 회사가 연구개발비 10억 원을 신제품 A에 쓰기로 했다면, 그 10억의 진짜 비용은
   회계장부상 10억이 아니라 <b>"신제품 B를 개발했다면 벌었을 이익"</b>이다. 실제로 지갑에서 나간 돈과,
   그 돈으로 할 수 있었던 다른 선택의 가치는 서로 다른 숫자라는 게 핵심이다.</p>
 
-  <h2>이미 쓴 돈은 잊어야 한다 - 매몰비용</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">이미 쓴 돈은 잊어야 한다 - 매몰비용</h2>
   <p>기회비용의 반대편에 있는 함정이 <b>매몰비용</b>이다. 이미 써버려서 어떤 선택을 해도 돌아오지 않는
   돈·시간을 말한다. 문제는 사람이 이 "이미 나간 돈"을 자꾸 다음 선택에 끌어들인다는 점이다.</p>
 
@@ -94,7 +103,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     '주식 이야기' 5장에서 "나만의 규칙"을 미리 정해 두라고 하는 것이다.
   </div>
 
-  <h2>한계적으로 생각한다는 것</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">한계적으로 생각한다는 것</h2>
   <p>경제적 판단은 대부분 "전체를 할까 말까"가 아니라 <b>"한 단위 더 할까 말까"</b>로 이루어진다.</p>
 
   <ul>
@@ -115,6 +126,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="econ-choice-deep"><h2 id="econ-choice-deep">심화 연구실 · 기회비용에서 비교우위까지</h2>
 <p>경제학에서 비용은 영수증에 찍힌 돈만이 아니라 <b>포기한 대안 중 가치가 가장 큰 것</b>까지 포함한다. 국가는 생산 기술이 앞서지 않아도 상대적으로 덜 포기하는 재화에 특화할 수 있다. 이것이 비교우위의 논리다.</p>
 <div class="learn-lab"><h3>숫자 실험 · 두 명의 생산자</h3><p>A는 한 시간에 빵 10개 또는 책 5권을 만들고, B는 빵 6개 또는 책 2권을 만든다고 가정하자. A가 빵 1개를 만들 때 포기하는 책은 0.5권, B는 약 0.33권이다. B가 빵 생산에 비교우위를 가진다.</p><p class="learn-math">빵 1개의 기회비용 = 같은 노동시간에 만들 수 있었던 책의 수 ÷ 빵의 수</p><p>A는 두 상품 모두 절대 생산량이 많아도 상대적 기회비용은 상품별로 다를 수 있다. 교역의 이익은 운송비, 거래비용, 계약 조건에 따라 달라진다.</p></div>
@@ -133,5 +145,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

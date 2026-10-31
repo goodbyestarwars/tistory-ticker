@@ -8,15 +8,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -24,16 +25,20 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>2장 · 보이지 않는 손</h1>
   <p class="legal-effective-date">명절 기차표는 왜 매진되고, 전통시장 흥정은 왜 되는가</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>명절만 되면 기차표 예매창이 열리자마자 매진된다. 표값은 그대로인데 사려는 사람이 훨씬 많아서
   생기는 일이다. 만약 표값을 자유롭게 올릴 수 있다면 어떨까 - 값이 오르는 만큼 "그 가격이면 버스
   타지" 하며 일부는 포기하고, 정말 급한 사람만 남는다. 이렇게 <b>가격이라는 신호 하나로 사려는 사람
   수와 팔 수 있는 양이 스스로 맞춰지는 것</b>을 애덤 스미스는 "보이지 않는 손"이라 불렀다.</p>
 
-  <h2>수요와 공급이 만나는 자리</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">수요와 공급이 만나는 자리</h2>
   <p>가격이 비싸지면 사려는 사람(수요)은 줄고, 팔려는 사람(공급)은 늘어난다. 반대로 가격이 싸지면
   사려는 사람은 늘고 팔려는 사람은 준다. 이 둘이 만나는 지점에서 가격과 거래량이 자연스럽게
   정해진다.</p>
@@ -68,13 +73,17 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     조정되는 살아있는 예다.
   </div>
 
-  <h2>거래는 양쪽 모두를 이롭게 한다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">거래는 양쪽 모두를 이롭게 한다</h2>
   <p>시장에서 거래가 이루어졌다는 건 파는 사람도 사는 사람도 그 거래가 자신에게 이득이라고 판단했다는
   뜻이다. 만 원짜리 물건이 만 원에 팔렸다면, 파는 사람은 "물건보다 만 원이 낫다"고, 사는 사람은
   "만 원보다 물건이 낫다"고 생각한 것이다. 강요 없이 자발적으로 이루어지는 거래는 이렇게 양쪽 모두를
   더 낫게 만든다.</p>
 
-  <h2>전제조건은 '경쟁'이다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">전제조건은 '경쟁'이다</h2>
   <p>이 자율 조정이 제대로 작동하려면 파는 사람도 사는 사람도 여럿이어야 한다.</p>
 
   <div class="learn-note">
@@ -85,7 +94,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     작동하려면 '경쟁'이라는 전제가 꼭 필요한 이유가 여기 있다.
   </div>
 
-  <h2>가격을 억지로 묶으면 무슨 일이 생길까</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">가격을 억지로 묶으면 무슨 일이 생길까</h2>
   <p>정부가 "너무 비싸다"며 가격에 상한선을 그으면 어떻게 될까. 시장가격보다 낮게 <b>가격상한제</b>를
   두면, 그 가격에 팔겠다는 공급자는 줄고 사겠다는 사람은 늘어 <b>공급 부족</b>이 생긴다. 반대로
   시장가격보다 높게 <b>가격하한제</b>(최저임금이 대표적)를 두면, 그 가격에 사겠다는 쪽(일자리라면
@@ -105,7 +116,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     어려움"이 어딘가에서 나타난다.
   </div>
 
-  <h2>시장을 움직이는 네 주체</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">시장을 움직이는 네 주체</h2>
   <table class="learn-table">
     <thead><tr><th>주체</th><th>역할</th><th>예시</th></tr></thead>
     <tbody>
@@ -117,6 +130,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="econ-market-deep"><h2 id="econ-market-deep">심화 연구실 · 수요의 탄력성이 세금을 누가 내는지 바꾼다</h2>
 <p>시장가격은 수요량과 공급량이 맞는 지점에서 결정되지만 실제 경제에는 세금, 보조금, 시장지배력, 정보비대칭, 외부효과가 있다. 정부가 판매자에게 세금을 부과했다고 해서 판매자만 최종 부담하는 것은 아니다.</p>
 <div class="learn-lab"><h3>가상 사례 · 세금 1,000원을 어떻게 나눠 부담할까</h3><p>어떤 상품에 1,000원 세금을 붙인 뒤 구매자 지불 가격이 700원 오르고 생산자가 받는 세후 가격이 300원 낮아졌다고 가정하자. 이때 부담은 구매자 700원, 생산자 300원이다. 이는 세금 부과 주체가 아니라 수요·공급의 가격 탄력성이 결정한다.</p><p class="learn-math">구매자 부담 700원 + 판매자 부담 300원 = 거래 1단위당 세금 1,000원</p><p>탄력성이 매우 낮은 쪽이 상대적으로 더 많이 부담하는 경향이 있다. 실제 시장에서는 경쟁 구조와 계약 관행도 작용한다.</p></div>
@@ -134,5 +148,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

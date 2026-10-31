@@ -8,54 +8,54 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 <style>
-.gl-search { width: 100%; box-sizing: border-box; padding: 12px 16px; border: 1px solid rgba(17,17,17,.14); border-radius: 14px; font-size: 16px; background: transparent; color: inherit; }
-.gl-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 18px; }
-.gl-chip { border: 0; padding: 6px 14px; border-radius: 999px; background: rgba(17,17,17,.06); color: inherit; font-size: 13.5px; cursor: pointer; }
-.gl-chip.on { background: #111827; color: #fff; }
-.gl-count { color: #6b7280; font-size: 13px; margin-bottom: 10px; }
-.gl-card { padding: 16px 18px; margin: 0 0 12px; border-radius: 16px; background: rgba(17,17,17,.04); scroll-margin-top: 16px; }
-.gl-card.flash { box-shadow: 0 0 0 2px #d24f45 inset; }
+.gl-search { width: 100%; box-sizing: border-box; padding: 12px 18px; border: 1px solid var(--learn-box-border, #c9daf2); border-radius: 999px; font: inherit; font-size: 16px; background: #fff; color: inherit; }
+.gl-search:focus { outline: 2px solid var(--learn-down, #1261c4); outline-offset: 1px; }
+.gl-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 14px; }
+.gl-chip { border: 0; padding: 6px 14px; border-radius: 999px; background: var(--learn-box, #f2f7fe); color: var(--learn-case-label, #1d4f91); font: inherit; font-size: 13.5px; cursor: pointer; }
+.gl-chip.on { background: var(--learn-down, #1261c4); color: #fff; }
+.gl-count { color: var(--learn-sub, #35507a); font-size: 13px; margin-bottom: 0; }
+.gl-card { padding: 20px 24px; margin: 0 0 var(--ui-section-gap, 16px); border: 1px solid var(--learn-line, #d9e5f6); border-radius: 22px; background: #fff; box-shadow: 0 1px 2px rgba(18, 97, 196, .05), 0 12px 30px -14px rgba(18, 97, 196, .18); scroll-margin-top: 16px; }
+.gl-card.flash { box-shadow: 0 0 0 2px var(--learn-up, #d24f45) inset; }
 .gl-card h3 { margin: 0 0 4px; font-size: 18px; }
-.gl-card h3 small { margin-left: 8px; font-size: 12.5px; font-weight: 400; color: #6b7280; }
-.gl-cat { display: inline-block; margin-bottom: 8px; padding: 1px 9px; border-radius: 999px; font-size: 11.5px; background: rgba(17,17,17,.08); color: #475569; }
+.gl-card h3 small { margin-left: 8px; font-size: 12.5px; font-weight: 400; color: var(--learn-sub, #35507a); font-family: "MaruBuri", "Maru Buri", Georgia, serif; }
+.gl-cat { display: inline-block; margin-bottom: 8px; padding: 1px 10px; border-radius: 999px; font-size: 11.5px; background: var(--learn-case-good-bg, #e8f1fd); color: var(--learn-case-label, #1d4f91); }
 .gl-card p { margin: 6px 0; line-height: 1.7; }
-.gl-ex { color: #374151; }
-.gl-meta { color: #6b7280; font-size: 13.5px; }
-.gl-rel a { margin-right: 8px; color: #1261c4; text-decoration: none; }
-.gl-empty { padding: 30px 0; text-align: center; color: #6b7280; }
+.gl-ex { color: var(--learn-ink, #14213d); }
+.gl-meta { color: var(--learn-sub, #35507a); font-size: 13.5px; }
+.gl-rel a { margin-right: 8px; color: var(--learn-down, #1261c4); text-decoration: none; }
+.gl-empty { padding: 30px 0; text-align: center; color: var(--learn-sub, #35507a); }
 @media (prefers-color-scheme: dark) {
-  .gl-search { border-color: rgba(255,255,255,.18); }
-  .gl-chip { background: rgba(255,255,255,.1); }
-  .gl-chip.on { background: #e5e7eb; color: #111827; }
-  .gl-card { background: rgba(255,255,255,.06); }
-  .gl-cat { background: rgba(255,255,255,.12); color: #cbd5e1; }
-  .gl-ex { color: #d1d5db; }
-  .gl-rel a { color: #7db4f5; }
+  .gl-search { background: #161d2c; border-color: #34415b; }
+  .gl-card { background: #161d2c; box-shadow: none; }
 }
 </style>
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>금융용어사전</h1>
   <p class="legal-effective-date">차트 · 수급 · 재무 · 보조지표</p>
+  <section class="learn-sec learn-sec--intro">
   <p>차트와 종목 화면에서 자주 만나는 용어를 한 줄 정의, 예시, 쓰임새로 정리했다. 예시 숫자는 이해를 돕기 위한 가상의 값이며,
   투자 판단의 근거가 아니라 용어를 이해하기 위한 참고 자료다. 관련용어를 누르면 해당 용어로 이동한다.</p>
 
   <input class="gl-search" id="glSearch" type="search" placeholder="용어 검색 (예: ATR, 지지선, 순매수)" autocomplete="off" />
   <div class="gl-chips" id="glChips"></div>
   <div class="gl-count" id="glCount"></div>
+  </section>
   <div id="glList"></div>
   <section class="learn-deep" aria-labelledby="glossary-deep">
     <h2 id="glossary-deep">전문가의 용어 읽기 · 정의보다 측정법부터</h2>
@@ -123,5 +123,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 })();
 </script>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

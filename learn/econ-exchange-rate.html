@@ -8,15 +8,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -24,10 +25,12 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>6장 · 국제수지와 환율</h1>
   <p class="legal-effective-date">해외직구는 왜 갑자기 비싸졌을까</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>한국은 반도체를 잘 만들고, 어떤 나라는 원유를 잘 캔다. 각자 잘하는 것에 집중하고 서로 교환하면
   양쪽 모두 더 풍요로워진다. 여기서 중요한 건 절대적으로 뭘 더 잘 만드느냐가 아니라 <b>상대적으로
   무엇을 더 효율적으로 만드느냐</b>다 - 이게 비교우위의 원리다.</p>
@@ -39,13 +42,17 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     게 합리적이라는 게 비교우위다. 나라 간 무역도 같은 원리다.
   </div>
 
-  <h2>국제수지와 경상수지</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">국제수지와 경상수지</h2>
   <p><b>국제수지표</b>란 한 나라가 외국과 거래한 모든 내역을 기록한 장부다. 그중에서 수출입의 차이를
   나타내는 게 <b>경상수지</b>다. 수출이 수입보다 많으면 경상수지 흑자, 반대면 적자다. 그런데 흑자가
   항상 좋은 건 아니다. 지나친 흑자는 상대국과의 무역마찰을 부르고, 자국 통화 절상 압력을 키워 다음
   해 수출을 오히려 어렵게 만들 수도 있다.</p>
 
-  <h2>환율은 어떻게 정해지나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">환율은 어떻게 정해지나</h2>
   <p>우리 돈과 외국 돈을 교환하는 비율인 환율도 다른 상품처럼 외환시장에서 <b>수요·공급</b>으로
   결정된다.</p>
 
@@ -87,7 +94,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     유학 가라"는 말이 나오는 이유다 - 여기서 "싸다"는 원화 강세(환율 하락) 시기를 뜻한다.
   </div>
 
-  <h2>빅맥으로 환율이 맞는지 가늠해 본다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">빅맥으로 환율이 맞는지 가늠해 본다</h2>
   <p>환율이 "적정 수준"인지 어떻게 알까. 재미있는 방법 하나가 <b>빅맥지수</b>다. 같은 빅맥 하나가
   한국에서 5,000원, 미국에서 5달러라면, 이론적으로는 원/달러 환율이 1,000원이어야 두 나라 물가가
   같은 셈이다(가상값). 그런데 실제 환율이 1,300원이라면, 원화가 이론보다 "저평가"돼 있다고 어림잡아
@@ -100,13 +109,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     직관을 햄버거 하나로 단순화한 것뿐이다(임대료·인건비 차이 등은 반영 못 하는 한계가 있다).
   </div>
 
-  <h2>외환보유액도 공짜가 아니다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">외환보유액도 공짜가 아니다</h2>
   <p>한국은행이 달러를 쌓아두는 이유는 외환위기 같은 급격한 자본 유출에 대비하기 위해서다. 그런데 이
   돈을 그냥 쌓아만 두면, 그만큼을 국내 투자나 다른 고수익 자산에 썼을 때 얻었을 수익을 포기하는
   셈이다. 이것 역시 1장에서 배운 <b>기회비용</b>의 한 예다 - 안전을 위해 수익을 일부 포기하는 선택인
   셈이다.</p>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="econ-bop-deep"><h2 id="econ-bop-deep">심화 연구실 · 국제수지와 환율을 구분해 해석하기</h2>
 <p>해외 수출로 들어오는 돈만 환율을 움직이는 것은 아니다. 기업의 해외투자, 외국인의 국내 채권 매입, 금융기관의 달러 조달이 동시에 발생한다. 국제수지는 복식부기 기록이므로 각 계정과 오차·누락을 포함해 구조적으로 균형을 이룬다.</p>
 <div class="learn-lab"><h3>수입업체 사례 · 환율 10% 상승</h3><p>수입품 가격이 1,000달러로 고정돼 있다고 하자. 원/달러가 1,300원에서 1,430원으로 오르면 수입업체의 원화 결제액은 130만 원에서 143만 원으로 <b>13만 원</b> 증가한다. 수입 수량과 계약 통화가 고정됐다는 가정이다.</p><p class="learn-math">수입 원화 비용 = 달러 계약금액 × 원/달러 환율</p></div>
@@ -124,5 +136,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

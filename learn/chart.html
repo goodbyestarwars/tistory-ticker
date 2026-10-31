@@ -7,15 +7,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -23,14 +24,18 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>3장 · 차트 읽기</h1>
   <p class="legal-effective-date">캔들, 이동평균선, 거래량, 매물대. 예측이 아니라 기록을 읽는 법</p>
 
-  <h2>차트는 예언서가 아니라 일기장이다</h2>
+  <section class="learn-sec">
+  <h2 id="sec-1">차트는 예언서가 아니라 일기장이다</h2>
   <p>차트는 "앞으로 오를 것"을 알려 주지 않는다. 지금까지 사람들이 어느 가격에서 얼마나 사고팔았는지 적어 둔 <b>일기장</b>이다. 일기를 읽으면 그 사람 성격은 알 수 있어도 내일 뭘 할지는 모른다. 차트도 같다.</p>
 
-  <h2>캔들 한 개 해부하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">캔들 한 개 해부하기</h2>
   <p>캔들 하나에는 그 기간(일봉이면 하루)의 네 가격이 들어 있다.</p>
 
   <figure class="learn-fig">
@@ -57,7 +62,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <p>위꼬리가 몸통보다 두세 배 긴 캔들은 "장중에 크게 올랐다가 결국 되밀렸다"는 기록이다. 그날 뉴스에 흥분해 샀던 사람들이 <b>고점에 물렸다</b>는 뜻이기도 하다.</p>
 
-  <h2>이름 붙은 캔들 모양들</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">이름 붙은 캔들 모양들</h2>
   <p>캔들 한두 개가 만드는 모양에는 이름이 붙어 있다. 외울 건 없다. <b>그 모양이 무슨 일이 있었다는 기록인지</b>만 알면 된다.</p>
 
   <figure class="learn-fig">
@@ -137,7 +144,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>모양보다 위치와 거래량</b> 같은 망치형이라도 <b>바닥에서 거래량과 함께</b> 나오면 뜻이 있고, 고점 근처에서 거래량 없이 나오면 그냥 흔한 하루다. 캔들 모양은 "어디에서 나왔는가"와 "사람이 몰렸는가"를 같이 봐야 뜻이 생긴다.
   </div>
 
-  <h2>이동평균선은 '평균 매수가'의 근사치다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">이동평균선은 '평균 매수가'의 근사치다</h2>
   <p>20일선은 최근 20일 종가의 평균이다. 거칠게 말하면 <b>최근 한 달 동안 산 사람들의 평균 가격</b>에 가깝다. 주가가 20일선 위면 그 사람들이 대체로 이익 구간, 아래면 손실 구간이다.</p>
 
   <figure class="learn-fig">
@@ -164,7 +173,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>주의</b> "20일선을 뚫으면 오른다" 같은 규칙은 늘 맞지 않는다. 평균선은 지나간 값의 평균이라 <b>언제나 가격보다 늦다.</b> 방향을 확인하는 참고선이지 신호등이 아니다.
   </div>
 
-  <h2>거래량 — 말보다 발자국</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">거래량 — 말보다 발자국</h2>
   <p>가격은 말이고 거래량은 발자국이다. 아무리 좋은 소문이 돌아도 사람이 안 몰리면 발자국이 안 남는다.</p>
   <ul>
     <li><b>거래량이 늘며 오른다</b> 많은 사람이 그 가격을 인정했다는 뜻. 되돌림이 얕은 편이다.</li>
@@ -172,7 +183,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li><b>조용하다가 갑자기 폭증</b> 무슨 일이 생긴 것이다. 공시와 뉴스부터 확인한다(4장).</li>
   </ul>
 
-  <h2>매물대 — 사람들이 묶여 있는 지도</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">매물대 — 사람들이 묶여 있는 지도</h2>
   <p>매물대는 가격대별로 거래가 얼마나 쌓였는지를 옆으로 눕힌 막대다. 막대가 길수록 그 가격 근처에서 산 사람이 많다는 뜻이다.</p>
 
   <figure class="learn-fig">
@@ -202,7 +215,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <p>이 사이트의 매물대는 최근 120거래일 일봉으로 계산한 <b>추정치</b>다. 체결 하나하나가 아니라 "대략 이 구간에 거래가 몰렸다"는 지도로 본다.</p>
 
-  <h2>지지와 저항 — 왜 하필 그 가격에서 멈추나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">지지와 저항 — 왜 하필 그 가격에서 멈추나</h2>
   <p>차트를 보면 이상하게 <b>같은 가격에서 몇 번씩 멈춘다.</b> 누가 정해 준 것도 아닌데 그렇다.
   선이 신비한 힘을 가진 게 아니다. 그 가격에 <b>사람이 묶여 있어서</b>다. 바로 앞에서 본 매물대가
   그 사람들의 지도다.</p>
@@ -249,10 +264,14 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     아니다</b> - 거래량 없이 살짝 넘었다가 되돌아오는 일이 흔하다(3장 거래량 참고).
   </div>
 
-  <h2>보조지표는 거들 뿐</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-8">보조지표는 거들 뿐</h2>
   <p>RSI는 최근 상승과 하락의 힘을 0~100으로 바꾼 값이다. 흔히 70 위를 과열, 30 아래를 침체로 본다. 다만 <b>강한 상승장에서는 70 위에 몇 주씩 머물기도</b> 한다. "70 넘었으니 판다"로 쓰면 제일 좋은 구간을 놓친다.</p>
 
-  <h2>세 가지를 겹쳐 보는 연습</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-9">세 가지를 겹쳐 보는 연습</h2>
   <ol>
     <li>캔들: 오늘 어떤 하루였나(위꼬리인가, 장대양봉인가)</li>
     <li>거래량: 그 하루에 사람이 몰렸나</li>
@@ -260,7 +279,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ol>
   <p>이 셋이 같은 이야기를 하면(예: 거래량 늘며 매물대 두꺼운 층을 뚫은 장대양봉) 믿을 만해진다. 하나만 보고 정하지 않는다.</p>
 
-  <h2>차트 모양이 말하는 것 — 에너지가 쌓이는가, 빠지는가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-10">차트 모양이 말하는 것 — 에너지가 쌓이는가, 빠지는가</h2>
   <p>차트검색에 나오는 이름들(저점상승형, 쌍바닥, 눌림목…)은 어려워 보여도 묻는 건 하나다. <b>사려는 힘이 쌓이고 있는가, 빠지고 있는가.</b> 스프링을 누르면 눌린 만큼 튀어 오를 힘이 쌓이는 것과 같다.</p>
 
   <h3>"에너지가 응축된다"는 말의 실체</h3>
@@ -373,7 +394,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>에너지 비유를 조심해서 쓰기</b> "저점상승 = 에너지 폭발"은 <b>터졌을 때</b> 이야기다. 쌓인 에너지가 위로 터질지 아래로 터질지는 모양만으로 알 수 없다. 그래서 모양을 볼 때는 늘 <b>무너지는 조건</b>을 같이 정해 둬야 한다. "직전 저점을 깨면 내 생각이 틀린 것"처럼. 이게 5장에서 말하는 손절 기준의 출발점이다.
   </div>
 
-  <h2>모멘텀 — 오르는 것과 빨라지는 것은 다르다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-11">모멘텀 — 오르는 것과 빨라지는 것은 다르다</h2>
   <p>모멘텀은 <b>속도</b>다. 가격이 오르고 있다는 것과, 오르는 속도가 붙고 있다는 것은 다른 말이다.
   차를 생각하면 쉽다. 시속 60km로 달리는 차와, 60km에서 80km로 올라가는 중인 차는 지금 속도가
   같아도 상태가 다르다.</p>
@@ -436,7 +459,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>쉬운 예</b> 어떤 회사가 새 공장 소식을 냈다고 하자. 사람들이 몰려 오늘 10,000원에서 11,000원으로 오르고 거래량도 세 배가 되면 <b>모멘텀이 붙은 것</b>이다. 그런데 다음 날부터 10,900원·10,950원처럼 조금씩만 오르면 아직 상승 중이어도 속도는 식는 중이다. 이때는 "오르고 있다"와 "계속 빨라지고 있다"를 나눠 봐야 한다.
   </div>
 
-  <h2>검색기는 왜 있나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-12">검색기는 왜 있나</h2>
   <p>국내 상장 종목은 <b>약 3,900개</b>다. 한 종목을 1분씩만 봐도 65시간이 걸린다. 직장 다니면서 전부 보는 건 불가능하다. 그래서 조건을 정해 두고 기계가 대신 훑게 하는 게 <b>검색기</b>다.</p>
 
   <figure class="learn-fig">
@@ -463,13 +488,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>검색 결과를 쓰는 순서</b> ① 후보 목록을 받는다 → ② 3장 도구(캔들·거래량·매물대)로 직접 확인한다 → ③ 4장으로 이유(수급·공시)를 본다 → ④ 5장 기준(살 이유·수량·팔 시점)을 정하고 나서 결정한다. ①에서 바로 매수 버튼으로 가는 게 제일 흔한 실수다.
   </div>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-13">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/page/foreign-flow">종목 &gt; 종목분석</a>에서 캔들·이동평균선·매물대를 한 화면에서 본다.</li>
     <li><a href="https://ghlee.tistory.com/page/pattern-scan">종목 &gt; 차트검색</a>과 <a href="https://ghlee.tistory.com/page/strategy-search">전략검색</a>에서 후보를 받는다. 결과는 정답이 아니라 <b>관찰 후보</b>다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="advanced-chart">
   <h2 id="advanced-chart">심화 연구실 · 차트 패턴을 검증 가능한 가설로 바꾸기</h2>
   <p>그림이 그럴듯한 것과 통계적으로 유효한 전략은 다르다. “거래량이 늘어난 망치형 이후 상승한다”는 관찰을 연구하려면 <b>진입 조건, 관찰 가능 시점, 보유기간, 비교 집단, 거래비용, 위험</b>을 먼저 고정해야 한다. 과거를 다 보고 나서 규칙을 고르면 우연한 모양도 실력처럼 보일 수 있다.</p>
@@ -515,9 +543,11 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-14">한 줄 정리</h2>
   <p>캔들은 하루의 기록, 이동평균선은 최근 산 사람들의 평균, 거래량은 발자국, 매물대는 사람들이 묶인 지도다.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/order.html">← 2장 주문과 체결</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/company.html">4장 수급과 회사 →</a>
@@ -526,5 +556,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

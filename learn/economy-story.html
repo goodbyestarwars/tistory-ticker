@@ -8,23 +8,26 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>경제 이야기</h1>
   <p class="legal-effective-date">개미·아줌마·학생 눈높이로 풀어 쓰는 경제학 기초 6장</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>주식·채권·코인 이야기가 "시장 안에서 무슨 일이 벌어지는가"를 다뤘다면, 이 글은 그 시장을 둘러싼
   <b>더 큰 틀 - 경제학의 기본 개념</b>을 다룬다. "왜 장바구니 물가는 뉴스보다 더 비싸게 느껴질까",
   "환율이 오르면 우리 집 살림엔 뭐가 달라질까" 같은, 매일 마주치지만 막상 설명하려면 막막한 질문들이다.
@@ -72,7 +75,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>1~3장은 개인의 선택과 시장가격, 4~6장은 경제 전체(고용·화폐·환율)로 시야를 넓혀 간다.</figcaption>
   </figure>
 
-  <h2>차례</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">차례</h2>
   <ol class="learn-toc">
     <li>
       <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-choice.html">선택과 기회비용</a>
@@ -100,7 +105,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     </li>
   </ol>
 
-  <h2>먼저 알아 둘 것</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">먼저 알아 둘 것</h2>
   <ul>
     <li>이 글은 <b>공부용 설명</b>이다. 투자·소비를 특정 방향으로 권하지 않는다.</li>
     <li>숫자·예시는 이해를 돕기 위한 <b>가상값</b>이다. 실제 통계와 다를 수 있다.</li>
@@ -114,6 +121,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="econ-roadmap-deep">
   <h2 id="econ-roadmap-deep">학술 심화 과정 · 6장의 이야기를 하나의 모형으로 읽기</h2>
   <p>이 시리즈는 쉬운 생활 예시로 시작하지만, 심화 과정에서는 <b>개인의 선택(미시경제) → 시장 가격과 유인 → 생산과 물가 → 경기와 고용 → 은행의 신용·통화 → 국제거래와 환율</b>을 하나의 시스템으로 연결한다. 중요한 질문은 변수 두 개가 같이 움직였을 때 <b>어느 쪽이 원인인가</b>이다.</p>
@@ -141,5 +149,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

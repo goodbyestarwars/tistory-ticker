@@ -8,28 +8,33 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>코인 이야기</h1>
   <p class="legal-effective-date">거래소 종류, 비트코인의 발행량과 반감기, 알트코인, 스테이블코인과 페깅</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>가상자산(코인)은 주식과 거래 방식부터 다르다. 어디서 사는지(거래소), 무엇을 사는지(비트코인·알트코인·
   스테이블코인)가 저마다 성격이 달라서, 뉴스에 나오는 말을 그대로 따라가면 헷갈리기 쉽다. 이 글은 코인시장에
   들어가기 전에 알아야 할 기본 구조를 정리한다.</p>
 
-  <h2>거래소부터 알아야 한다 - 어디서, 누구를 거쳐 사는가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">거래소부터 알아야 한다 - 어디서, 누구를 거쳐 사는가</h2>
   <p>주식은 증권사를 거쳐 거래소(KRX)에서 체결되지만, 코인은 <b>거래소 자체의 성격이 크게 둘로 나뉜다</b>.</p>
 
   <figure class="learn-fig">
@@ -61,7 +66,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     원화마켓 인가를 받았는지 먼저 확인하는 게 첫걸음이다.
   </div>
 
-  <h2>비트코인 - 발행량이 정해진 첫 코인</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">비트코인 - 발행량이 정해진 첫 코인</h2>
   <p>비트코인의 가장 큰 특징은 <b>총발행량이 2,100만 개로 고정</b>돼 있다는 것이다. 새 비트코인은
   "채굴"(연산 문제를 풀어 거래를 검증하는 대가)로만 생기는데, 그 보상은 <b>약 4년마다 절반으로
   줄어든다("반감기")</b>.</p>
@@ -92,7 +99,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     따라와야 가격에 반영된다.
   </div>
 
-  <h2>알트코인 - 비트코인이 아닌 나머지 전부</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">알트코인 - 비트코인이 아닌 나머지 전부</h2>
   <p>"알트코인(alt-coin)"은 비트코인을 뺀 모든 코인을 뭉뚱그려 부르는 말이다. 성격이 저마다 다르다.</p>
 
   <table class="learn-table">
@@ -110,7 +119,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     시기엔 자금이 비트코인으로 다시 쏠린다고 해석한다 - 다만 이것도 사후 해석용 표현이지 매매 신호는 아니다.
   </div>
 
-  <h2>스테이블코인 - 가격이 고정되도록 설계한 코인</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">스테이블코인 - 가격이 고정되도록 설계한 코인</h2>
   <p>비트코인·알트코인이 하루에도 몇 %씩 흔들리는 것과 반대로, <b>스테이블코인은 특정 자산(대부분 미국
   달러) 가격에 묶이도록("페깅") 설계된 코인</b>이다. 대표적으로 테더(USDT), USDC 같은 코인이 1개당
   1달러 근처를 유지하도록 운영된다.</p>
@@ -130,7 +141,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     설계 결함 등으로 디페깅이 일어난 적이 있다 - "스테이블"이라는 이름이 위험이 0이라는 뜻은 아니다.
   </div>
 
-  <h2>코인은 얼마나 빠질 수 있나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">코인은 얼마나 빠질 수 있나</h2>
   <p>비트코인은 코인 중에서 가장 덩치가 크다. 그런데도 고점에서 70~80%씩 빠진 해가 여러 번 있었다. 대략의 숫자로 보면 이렇다.</p>
   <figure class="learn-fig">
     <svg viewBox="0 0 420 190" role="img" aria-label="비트코인 고점 대비 하락: 2018년 약 -84%, 2022년 약 -77%. -77%에서 본전까지 약 +335%가 필요하다">
@@ -151,7 +164,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </figure>
   <p>100만원이 23만원이 되면, 다시 100만원이 되려면 네 배 넘게 올라야 한다. 주식 이야기 5장에서 본 회복 계산이 코인에서는 더 자주, 더 깊게 일어난다. 그래서 코인은 <b>다 잃어도 생활이 흔들리지 않는 금액</b>부터 정하고 들어간다.</p>
 
-  <h2>김치 프리미엄 - 같은 코인, 다른 가격</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">김치 프리미엄 - 같은 코인, 다른 가격</h2>
   <p>국내 거래소의 비트코인이 해외 거래소보다 비싸게 거래될 때가 있다. 이 차이를 김치 프리미엄(김프)이라고 부른다. 국내에서 사려는 사람이 몰리는데, 해외에서 싸게 사 와서 국내에서 파는 길이 외환 규제로 좁아서 생긴다.</p>
   <table class="learn-table">
     <thead><tr><th></th><th>가상 예시</th></tr></thead>
@@ -165,17 +180,22 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <p>김프 5%일 때 국내에서 사면, 해외 가격이 그대로여도 김프가 0%로 줄어드는 순간 5%를 잃는다. 과열 때 벌어지고 식을 때 좁혀지는 일이 잦아서, 김프가 크게 벌어졌다는 뉴스는 <b>국내 쏠림이 심하다</b>는 신호로 읽는다.</p>
 
-  <h2>코인시장은 왜 24시간 도는가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">코인시장은 왜 24시간 도는가</h2>
   <p>7장(환율·금리·비트코인)에서 다룬 것처럼, 코인시장은 주식과 달리 개장·마감 시간이 없다. 정해진 거래소나
   결제 시스템의 영업시간에 묶이지 않고 전 세계 참여자가 언제든 사고팔 수 있게 설계됐기 때문이다. 그래서
   주말·새벽에도 가격이 움직이며, 위험 선호 심리를 실시간으로 보여주는 "위험 온도계"로 자주 언급된다.</p>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-8">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 비트코인(BTC)·이더리움(ETH) 시세와 52주·6개월 평균선을 확인한다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="crypto-advanced">
   <h2 id="crypto-advanced">심화 연구실 · 공급량이 줄어도 가격은 자동으로 오르지 않는다</h2>
   <p>비트코인 반감기는 신규 발행 보상의 속도를 낮춘다. 그러나 발행량이 절반으로 줄었다는 이유만으로 가격이 반드시 오르지는 않는다. <b>기존 보유자의 매도, 수요 변화, 거래소 유동성, 현물·선물 포지션, 채굴 비용</b>도 균형가격에 영향을 준다.</p>
@@ -198,11 +218,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-sources"><strong>원문 확인</strong><ul><li><a href="https://bitcoin.org/bitcoin.pdf" target="_blank" rel="noopener noreferrer">Bitcoin 백서 · 분산 합의 설계</a></li><li><a href="https://www.bis.org/" target="_blank" rel="noopener noreferrer">BIS · 스테이블코인 및 지급결제 연구</a></li></ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-9">한 줄 정리</h2>
   <p>거래소는 중앙화(CEX)와 탈중앙화(DEX)로 성격이 다르고, 비트코인은 발행량 상한과 반감기로 공급이
   정해져 있으며, 알트코인은 저마다 다른 목적으로 만들어진다. 스테이블코인은 가격이 고정되도록 설계됐을
   뿐 위험이 없는 것은 아니다.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">← 채권 이야기</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/fx-market.html">환율 이야기 →</a>
@@ -211,5 +233,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

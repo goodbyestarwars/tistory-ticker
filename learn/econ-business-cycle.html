@@ -8,15 +8,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -24,10 +25,12 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>4장 · 경기변동과 실업</h1>
   <p class="legal-effective-date">완전고용은 실업률 0%가 아니다</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>아줌마 남편의 회사 상여금이 어느 해엔 두둑했다가, 어느 해엔 아예 안 나올 때가 있다. 학생들이
   체감하는 취업 문도 어느 해엔 넓었다가 어느 해엔 좁아진다. 경기는 늘 일정하지 않고 호황과 불황을
   오가는데, 이 흐름을 <b>경기순환</b>이라 부른다. 이건 자본주의의 결함이 아니라 자연스러운 리듬에
@@ -47,7 +50,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>회복 → 호황 → 후퇴 → 불황이 반복되는 게 경기순환이다. 점선은 장기 성장 추세선이다.</figcaption>
   </figure>
 
-  <h2>실업률 0%는 목표가 아니다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">실업률 0%는 목표가 아니다</h2>
   <p>"완전고용"이라고 하면 실업자가 아예 없는 상태를 떠올리기 쉽지만, 실제로는 그렇지 않다.</p>
 
   <ul>
@@ -65,7 +70,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     아니다.
   </div>
 
-  <h2>실업률은 어떻게 계산할까</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">실업률은 어떻게 계산할까</h2>
   <p>여기서 흔히 오해하는 부분이 있다. 실업률의 분모는 '전체 국민'이 아니라 <b>경제활동인구</b>(일할
   의사와 능력이 있는 사람)다. 즉, 취업을 아예 포기하고 구직활동도 안 하는 '구직단념자'는 실업자로
   잡히지 않고 통계에서 빠진다. 그래서 실제 체감 고용 상황보다 공식 실업률이 낮게 나오는 경우가 종종
@@ -78,7 +85,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     보고 "요즘 취업 잘되나 보다"고 단정하면 안 되는 이유다.
   </div>
 
-  <h2>명목임금 vs 실질임금</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">명목임금 vs 실질임금</h2>
   <p>임금은 노동생산성, 생계비, 노동시장의 수요·공급이 함께 작용해 결정된다. 여기서 꼭 구분해야 할
   게 있다.</p>
 
@@ -101,7 +110,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     판단(사후 확인이 아니라 참고 정도로만)이 업종을 고를 때 참고 정보가 되는 이유다.
   </div>
 
-  <h2>정부와 한국은행은 그냥 지켜보지 않는다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">정부와 한국은행은 그냥 지켜보지 않는다</h2>
   <p>경기가 너무 뜨겁거나(과열) 너무 차가우면(불황) 정부와 한국은행이 개입한다. 크게 두 가지 도구를
   쓴다.</p>
 
@@ -128,6 +139,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="econ-cycle-deep"><h2 id="econ-cycle-deep">심화 연구실 · 경기 순환은 정해진 시계처럼 반복되지 않는다</h2>
 <p>경기는 잠재 생산능력과 실제 생산의 차이, 기업 투자와 재고 순환, 소비·고용·신용 여건의 변화를 통해 연구한다. GDP 성장률이 양수여도 잠재 성장률보다 낮으면 생산 갭이 악화할 수 있다.</p>
 <div class="learn-lab"><h3>가상 사례 · 명목과 실질 성장의 차이</h3><p>한 경제의 상품 생산량이 전년보다 2% 늘고 평균 가격이 5% 상승했다고 하자. 단순 단일 상품 가정에서는 명목 생산액이 1.02 × 1.05 − 1 = <b>7.1%</b> 상승한다. 실질 생산 증가 2%와 혼동하지 않는다.</p><p class="learn-math">명목 성장률 = (1 + 실질 성장률) × (1 + 가격 변화율) − 1</p></div>
@@ -145,5 +157,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

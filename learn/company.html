@@ -7,15 +7,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -23,11 +24,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>4장 · 누가 사고 있나, 회사는 괜찮나</h1>
   <p class="legal-effective-date">외국인·기관·개인 수급, PER·PBR·ROE, 공시와 뉴스 읽는 순서</p>
 
-  <h2>주식 거래는 항상 반반이다</h2>
+  <section class="learn-sec">
+  <h2 id="sec-1">주식 거래는 항상 반반이다</h2>
   <p>누군가 100만 원어치를 샀다면 반드시 누군가 100만 원어치를 판 것이다. 거래는 언제나 <b>시소</b>처럼 양쪽이 맞물린다. "오늘 개인이 많이 샀다"는 말은 곧 "외국인이나 기관이 그만큼 팔았다"는 뜻이다.</p>
 
   <figure class="learn-fig">
@@ -46,7 +49,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>이날 개인이 800억 원어치 순매수했다면, 외국인·기관이 합쳐 800억 원어치를 판 것이다.</figcaption>
   </figure>
 
-  <h2>세 주체의 성격</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">세 주체의 성격</h2>
   <table class="learn-table">
     <thead><tr><th>주체</th><th>돈의 성격</th><th>움직임</th></tr></thead>
     <tbody>
@@ -59,7 +64,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>흔한 착각</b> "외국인이 샀으니 오른다"가 아니다. 하루치 순매수에는 환헤지, 지수 편입, 배당 노림수까지 온갖 이유가 섞여 있다. 하루가 아니라 <b>며칠~몇 주 같은 방향인지</b>를 본다.
   </div>
 
-  <h2>"외국인"이란 정확히 누구인가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">"외국인"이란 정확히 누구인가</h2>
   <p>화면에 뜨는 "외국인 순매수"는 한 명이 아니라, <b>한국 증권사 창구에 등록된 해외 투자자 전부를
   하나로 합친 집계값</b>이다. 그 안에는 성격이 전혀 다른 참가자들이 섞여 있다.</p>
 
@@ -79,7 +86,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     뭉뚱그리지 말고, 뉴스에 어떤 종류의 외국인 자금인지 언급이 있는지부터 확인하는 습관이 필요하다.
   </div>
 
-  <h2>프로그램 매매 - 외국인 매매가 시장을 크게 흔드는 이유</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">프로그램 매매 - 외국인 매매가 시장을 크게 흔드는 이유</h2>
   <p>프로그램 매매는 사람이 한 종목씩 주문을 내는 게 아니라, <b>미리 짜 둔 규칙(알고리즘)에 따라
   컴퓨터가 수십~수백 종목을 한꺼번에 자동으로 사고파는 방식</b>이다. 외국인 매매가 유독 시장 전체를
   세게 흔드는 이유가 여기 있다.</p>
@@ -102,7 +111,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     외면했다"고 단정하기보다, 지수 편입·제외나 리밸런싱 시점과 겹치지 않는지부터 확인해 본다.
   </div>
 
-  <h2>공매도는 '빌려서 먼저 파는 것'</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">공매도는 '빌려서 먼저 파는 것'</h2>
   <p>공매도는 남의 주식을 빌려 먼저 팔고, 나중에 싸게 사서 갚는 거래다. 친구 자전거를 빌려 10만 원에 팔고, 나중에 8만 원에 같은 자전거를 사서 돌려주면 2만 원이 남는 식이다.</p>
   <ul>
     <li><b>대차잔고</b>는 "빌려 간 주식이 아직 얼마나 남아 있는지"다. 공매도가 늘어날 여지를 가늠하는 참고 자료다.</li>
@@ -127,7 +138,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     비교적 쉬운 편으로 꼽힌다.
   </div>
 
-  <h2>붕어빵 장사로 배우는 PER·PBR·ROE</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">붕어빵 장사로 배우는 PER·PBR·ROE</h2>
   <p>세 지표 모두 영어 줄임말이라 이름부터 낯설다. 뜻을 먼저 풀어 두면 숫자가 훨씬 편해진다.</p>
   <table class="learn-table">
     <thead><tr><th>줄임말</th><th>원래 이름</th><th>한 줄로 하면</th></tr></thead>
@@ -198,7 +211,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     완전히 다른 이야기다.
   </div>
 
-  <h2>이익에도 층이 있다 — 매출·영업이익·순이익</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">이익에도 층이 있다 — 매출·영업이익·순이익</h2>
   <p>"이익이 났다"는 말은 너무 뭉뚱그린 말이다. 같은 붕어빵 가게로 이어서 보면 돈이 어디서
   새는지가 보인다.</p>
 
@@ -236,7 +251,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     도로 내려온다.</li>
   </ul>
 
-  <h2>펀더멘탈은 '얼마 버냐'보다 '얼마나 달라졌냐'</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-8">펀더멘탈은 '얼마 버냐'보다 '얼마나 달라졌냐'</h2>
   <p>주가는 회사의 절대 실적이 아니라 <b>기대와의 차이</b>에 반응한다. 이게 초보가 제일 자주
   당하는 부분이다. "실적이 사상 최대인데 왜 빠지지?"</p>
 
@@ -277,7 +294,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     "앞으로는 어렵다"고 하면 주가는 그쪽을 본다.</li>
   </ul>
 
-  <h2>망하지 않을 회사인가 — 안정성</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-9">망하지 않을 회사인가 — 안정성</h2>
   <p>아무리 잘 벌어도 빚에 눌리면 버티지 못한다. 특히 금리가 오르는 시기에는 이 숫자가 실적보다
   먼저 주가를 흔든다(7장 금리).</p>
 
@@ -301,7 +320,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     3장(차트·수급)이 맡는다.
   </div>
 
-  <h2>배당주는 왜 사나 — 개미에게 의미가 있을까</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-10">배당주는 왜 사나 — 개미에게 의미가 있을까</h2>
   <p>배당은 회사가 번 돈의 일부를 주주에게 나눠 주는 것이다. 1장 붕어빵 가게에서 "이익을 조각 수대로 나눠 받는" 그 부분이다.</p>
   <p>솔직히 보자. 1,000만 원을 배당수익률 4% 종목에 넣으면 <b>1년에 40만 원</b>이다. 세금 빼면 손에 쥐는 건 더 적다. 한 달로 나누면 3만 원 남짓. "이걸로 뭘 하나" 싶은 게 당연하다.</p>
 
@@ -354,27 +375,34 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>배당 받을 권리는 정해진 날짜(배당기준일)에 주식을 갖고 있는 사람에게 생긴다. 그 권리가 사라지는 다음 날, 주가는 대체로 <b>배당금만큼 떨어진 상태로 시작</b>한다. 이걸 배당락이라고 한다.</p>
   <p>그래서 "배당 받으려고 하루 전에 사서 다음 날 파는" 수는 생각처럼 공짜가 아니다. 배당 1,000원을 받고 주가가 1,000원 빠지면 남는 게 없고, 세금과 수수료를 빼면 오히려 손해다. 배당은 <b>오래 들고 있을 회사</b>에서 뜻이 생긴다.</p>
 
-  <h2>공시가 뉴스보다 먼저다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-11">공시가 뉴스보다 먼저다</h2>
   <p>공시는 회사가 의무로 올리는 공식 발표다. 뉴스 기사는 대부분 이 공시를 받아 쓴 것이라, <b>원문을 보는 쪽이 빠르고 정확하다.</b></p>
   <ul>
     <li><b>DART</b>(금융감독원 전자공시) 실적·재무·유상증자 같은 내용</li>
     <li><b>KIND</b>(한국거래소 상장공시) 거래정지, 관리종목 지정 같은 시장 조치</li>
   </ul>
 
-  <h2>뉴스를 읽는 순서 세 가지</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-12">뉴스를 읽는 순서 세 가지</h2>
   <ol>
     <li><b>언제 나온 기사인가</b> 어제 뉴스에 오늘 반응하면 이미 늦다.</li>
     <li><b>사실인가 의견인가</b> "수주했다"는 사실, "수혜가 예상된다"는 의견이다. 기사 한 줄에 둘이 섞여 있다.</li>
     <li><b>이미 가격에 있나</b> 좋은 뉴스에 주가가 빠지면 그 소식은 이미 다 알려져 있었던 것이다. 이걸 "소문에 사서 뉴스에 판다"고 한다.</li>
   </ol>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-13">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/page/foreign-flow">종목 &gt; 종목분석</a>에서 개인·외국인·기관 수급, 공매도·대차, 재무 지표를 한 종목 기준으로 본다.</li>
     <li><a href="https://ghlee.tistory.com/pages/main-news">시장 &gt; 주요 뉴스</a>와 <a href="https://ghlee.tistory.com/page/stock-calendar">캘린더</a>에서 실적 발표 일정을 확인한다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="advanced-company">
   <h2 id="advanced-company">심화 연구실 · 재무제표에서 기업가치까지</h2>
   <p>PER이 낮다는 사실만으로 싼 회사라고 판단할 수 없다. 기업이 장기간 창출할 수 있는 현금흐름, 자본비용, 재투자 필요액을 추정해야 한다. 전문 분석은 <b>매출 성장의 질 → 투자자본수익률(ROIC) → 잉여현금흐름(FCFF) → 기업가치(EV) → 주주가치</b>를 연결한다.</p>
@@ -418,9 +446,11 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-14">한 줄 정리</h2>
   <p>거래는 시소라 누군가 산 만큼 누군가 팔았다. 하루치 수급보다 <b>이어지는 방향</b>, 뉴스보다 <b>공시 원문</b>, 숫자 하나보다 <b>같은 업종과의 비교</b>.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart.html">← 3장 차트 읽기</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/risk.html">5장 위험 관리 →</a>
@@ -429,5 +459,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

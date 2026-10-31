@@ -7,15 +7,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -23,11 +24,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>2장 · 주문과 체결</h1>
   <p class="legal-effective-date">호가창 읽는 법, 지정가와 시장가, 체결 순서, 거래에 붙는 비용</p>
 
-  <h2>호가창은 중고 거래 게시판이다</h2>
+  <section class="learn-sec">
+  <h2 id="sec-1">호가창은 중고 거래 게시판이다</h2>
   <p>호가창은 "이 가격에 사겠다"와 "이 가격에 팔겠다"가 가격별로 줄 서 있는 표다. 중고 거래로 치면 <b>팝니다 글</b>과 <b>삽니다 글</b>이 가격순으로 정리된 게시판이다.</p>
 
   <figure class="learn-fig">
@@ -100,7 +103,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>움직임이 중요하다</b> 매도호가가 줄어도 매수 체결이 아니라 주문 취소일 수 있다. 매수 잔량도 언제든 사라진다. 호가창 한 장만 보지 말고 <b>체결·거래량·시간에 따른 잔량 변화</b>를 함께 살핀다.
   </div>
 
-  <h2>지정가와 시장가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">지정가와 시장가</h2>
   <p>주문에는 크게 두 가지가 있다.</p>
   <ul>
     <li><b>지정가</b> "12,200원에 10주 사겠다"처럼 가격을 정한다. 그 가격까지 오지 않으면 체결이 안 되지만, 생각보다 비싸게 사는 일도 없다.</li>
@@ -143,7 +148,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>처음에는 지정가</b> 급할수록 시장가를 쓰게 되는데, 급한 날은 대개 가격이 크게 흔들리는 날이다. 하필 그런 날 시장가를 쓰면 제일 비싼 값에 체결된다. 사고 싶은 가격을 정해 두고 기다리는 게 첫 습관이다.
   </div>
 
-  <h2>체결에는 순서가 있다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">체결에는 순서가 있다</h2>
   <p>같은 종목에 여러 사람이 주문을 냈다면 순서는 단 두 가지 규칙으로 정해진다.</p>
   <ol>
     <li><b>가격 우선</b> 더 비싸게 사겠다는 주문, 더 싸게 팔겠다는 주문이 먼저다.</li>
@@ -151,7 +158,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ol>
   <p>12,200원에 매수 주문이 총 11,900주 걸려 있고 내 주문이 그중 뒤쪽 100주라면, 앞의 11,800주가 다 체결된 뒤에야 내 차례가 온다. <b>"같은 가격인데 나만 체결이 안 된다"</b>는 대부분 이 때문이다.</p>
 
-  <h2>거래에는 비용이 붙는다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">거래에는 비용이 붙는다</h2>
   <p>주식을 사고팔면 증권사 수수료와 세금이 붙는다. 한 번은 작아 보여도 자주 거래하면 쌓인다.</p>
   <table class="learn-table">
     <thead><tr><th>거래 습관</th><th>1년 뒤 비용 감각</th></tr></thead>
@@ -180,7 +189,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <p>정확한 수수료율과 세율은 증권사와 제도에 따라 다르고 바뀐다. 거래 전에 내 증권사 화면에서 확인한다. 기억할 건 하나다 - <b>거래는 공짜가 아니다.</b></p>
 
-  <h2>체결되지 않는 흔한 이유</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">체결되지 않는 흔한 이유</h2>
   <ul>
     <li>정규장이 아닌 시간에 주문을 냈다</li>
     <li>호가단위에 맞지 않는 가격을 넣었다(1장의 계단 그림)</li>
@@ -188,13 +199,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li>현재가에서 먼 가격이라 아직 차례가 오지 않았다</li>
   </ul>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/page/stock-search">종목 검색</a>에서 종목을 열어 현재가가 어떻게 바뀌는지, 거래가 많은 종목과 적은 종목이 어떻게 다른지 본다.</li>
     <li><a href="https://ghlee.tistory.com/page/foreign-flow">종목 &gt; 종목분석</a>의 매물대를 보면 어느 가격대에 주문이 쌓이기 쉬운지 감이 온다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="advanced-order">
   <h2 id="advanced-order">심화 연구실 · 실제 체결비용은 주문가격보다 복잡하다</h2>
   <p>전문 거래 분석에서는 주문을 넣은 순간의 가격과 최종 체결가격을 구별한다. 주문이 여러 호가 단계에 걸쳐 체결되면 <b>평균체결가격(VWAP)</b>이 달라진다. 최우선호가만 보고 매수금액을 계산하면 시장 충격과 <b>실행손실(implementation shortfall)</b>을 놓치기 쉽다.</p>
@@ -233,9 +247,11 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-7">한 줄 정리</h2>
   <p>호가창은 줄 선 주문이고, 체결은 <b>가격 → 시간</b> 순서로 이뤄지며, 시장가는 편한 대신 <b>미끄러진 값</b>을 낸다.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/market.html">← 1장 시장이 돌아가는 구조</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart.html">3장 차트 읽기 →</a>
@@ -244,5 +260,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

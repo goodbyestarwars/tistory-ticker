@@ -1,3 +1,7 @@
+**2026-11-01 이야기 시리즈 디자인 통일 · 헤지펀드 이야기 · 전체 검색**
+
+요청: 이야기 25개 문서의 디자인이 제각각이라 통일(단락=흰 둥근 상자, 마루부리·제목만 Bold, 빨강/파랑만 사용), 헤지펀드 이야기 추가, 전체 검색창(가능할 때만). 변경: `learn/*.html` 단락을 `learn-sec` 상자로 묶고 h2 id 부여, `css/legal.css` 이야기 구간에 통일 토큰·상자·검색 스타일 추가(`?v=20261031-story-unify-1`), 신규 `learn/hedge-fund.html`(그림 5개·가상 계산·심화 연구실)과 ETF/기업분석 이전·다음 연결·푸터 카드(12개), `js/learn-search.js` + `scripts/build_learn_search.js` → `data/learn-search.js`(단락 단위+용어사전, 외부 요청 없음), 용어사전 3개 추가. 검증: test_learn_search/first_paint/plain_style/orderbook 14 passed, 이야기 24쪽 SVG 라벨 잘림 점검(1건 수정), 420px 가로 넘침 없음, 검색 동작 확인(공매도·헤지 펀드 띄어쓰기). test_ui_ia 기존 실패 51건은 변경 전과 동일. 배포: 미반영(PR 전).
+
 2026-10-31 | learn/chart-patterns | 차트가 작동하는 심리·통계적 한계 섹션과 그림 9개 추가 | 신규 CSS 없음, 라이트/다크/모바일 렌더 확인 | master push(Pages)
 
 **2026-10-31 Oracle 서버 syslog 로깅·5일 보관**

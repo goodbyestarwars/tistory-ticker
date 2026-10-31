@@ -8,15 +8,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -24,14 +25,18 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>3장 · 물가와 인플레이션</h1>
   <p class="legal-effective-date">장바구니 물가는 왜 항상 뉴스보다 더 비싸게 느껴질까</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>뉴스에서는 "지난달 소비자물가 상승률 2%대"라는데, 아줌마가 마트에서 체감하는 물가는 그보다 훨씬
   높게 느껴진다. 이건 착각이 아니라 두 가지 구조적인 이유가 있다.</p>
 
-  <h2>① 자주 사는 것에 더 민감하다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">① 자주 사는 것에 더 민감하다</h2>
   <p>소비자물가지수는 수백 개 품목의 평균이다. 그런데 사람은 달걀·채소·커피처럼 매주 사는 품목의 가격
   변화에는 민감하지만, 1년에 한 번 살까 말까 한 TV·냉장고 값이 내렸다는 건 체감하지 못한다.</p>
 
@@ -55,7 +60,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>계란값이 30% 오르고 TV값이 10% 내렸다면 평균은 별로 안 움직여도, 매주 계란을 사는 사람은 "물가가 확 올랐다"고 느낀다.</figcaption>
   </figure>
 
-  <h2>② 지수 작성 방식의 한계</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">② 지수 작성 방식의 한계</h2>
   <p>물가지수는 몇 년 전에 정한 "표준 장바구니(가중치)"를 기준으로 계산한다. 그런데 실제 소비 패턴은
   계속 바뀐다. 배달음식 소비가 크게 늘었는데 지수의 가중치가 아직 이를 충분히 반영하지 못했다면, 실제
   체감 지출 증가와 공식 지수 사이에 괴리가 생긴다.</p>
@@ -67,7 +74,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     것들이지, 몇 년에 한 번 사는 스마트폰이 아니다.
   </div>
 
-  <h2>인플레이션은 부를 재분배한다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">인플레이션은 부를 재분배한다</h2>
   <p>물가가 계속 오르면 월급이 늘어도 그 돈으로 살 수 있는 물건의 양(실질 구매력)은 그대로거나 오히려
   줄어든다. 특히 손해를 보는 사람들이 있다.</p>
 
@@ -89,7 +98,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     나온다(단, 금리·상환 부담까지 같이 봐야 한다).
   </div>
 
-  <h2>인플레이션도 원인이 다 다르다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">인플레이션도 원인이 다 다르다</h2>
   <p>"물가가 오른다"고 다 같은 인플레이션이 아니다. 크게 두 갈래로 나뉜다.</p>
 
   <table class="learn-table">
@@ -112,6 +123,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="econ-inflation-deep"><h2 id="econ-inflation-deep">심화 연구실 · 물가상승률과 실질 구매력을 분리하기</h2>
 <p>소비자물가지수(CPI)는 대표적인 소비 바구니의 평균 가격 변화를 측정한다. 가계별 소비 구성이 다르므로 CPI 상승률과 실제 체감물가는 달라질 수 있다. 연구에서는 <b>기준년, 품목 가중치, 계절조정, 기저효과</b>를 구분한다.</p>
 <div class="learn-lab"><h3>숫자 실험 · 연봉 4% 상승, 물가 6% 상승</h3><p>월급이 100만 원에서 104만 원으로 올랐지만 물가 지수가 100에서 106이 됐다고 가정하자. 실질 구매력 변화는 약 −1.89%다. 명목임금이 올랐다고 생활이 개선됐다고 단정할 수 없다.</p><p class="learn-math">실질임금 변화 = (1.04 ÷ 1.06) − 1 ≈ −1.89%</p></div>
@@ -130,5 +142,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

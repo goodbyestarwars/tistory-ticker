@@ -8,15 +8,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 <style>
 .fig-bar { fill: #8fa0b8; }
 .learn-fig text.fig-sub { font-size: 13.5px; }
@@ -27,17 +28,21 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <body class="learn-page">
 <div class="legal-wrap">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>ETF 이야기</h1>
   <p class="legal-effective-date">바구니·NAV와 괴리율·추적오차·보수·스프레드, 레버리지와 인버스, 배당 ETF</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>삼성전자도 사고 싶고 SK하이닉스도 사고 싶고 현대차도 사고 싶다. 그런데 돈은 300만원이다. 한 종목에 몰아넣자니
   불안하고, 세 종목에 나누자니 한 주 값도 모자란다. 종목을 100개 사려면 아예 불가능하다.</p>
   <p>이 여러 종목을 미리 한 바구니에 담아 놓고, 바구니 자체를 주식처럼 사고팔게 만든 것이
   <b>ETF(Exchange Traded Fund, 상장지수펀드)</b>다. 이 글은 개인 투자자가 ETF를 살 때 실제로 돈이 새는 자리와
   함정을 중심으로 정리한다. 그림 속 숫자는 이해를 돕는 예시이고 실제 시세가 아니다.</p>
 
-  <h2>ETF는 무엇인가 - 여러 종목이 든 바구니를 한 종목처럼 산다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">ETF는 무엇인가 - 여러 종목이 든 바구니를 한 종목처럼 산다</h2>
   <p>과일 가게에서 사과·배·귤을 따로 사는 대신, 가게가 정해진 비율로 담아 둔 <b>과일 바구니</b> 하나를 사는 것과
   같다. 바구니 안 내용은 정해져 있고, 우리는 바구니를 산다.</p>
 
@@ -71,7 +76,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     없애는 도구가 아니라 <b>한 종목에 걸었던 위험을 여러 곳으로 나누는 도구</b>다. 무엇을 담았는지가 위험을 정한다.
   </div>
 
-  <h2>일반 펀드와 뭐가 다른가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">일반 펀드와 뭐가 다른가</h2>
   <p>ETF도 본질은 펀드다. 차이는 <b>사고파는 방법</b>이다.</p>
   <table class="learn-table">
     <thead><tr><th></th><th>일반 펀드</th><th>ETF</th></tr></thead>
@@ -84,14 +91,18 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>주식처럼 거래한다는 말은 편하다는 뜻이면서, <b>주식처럼 잘못 사고 잘못 팔 수도 있다</b>는 뜻이다. 아래 괴리율과
   스프레드가 그 이야기다.</p>
 
-  <h2>지수를 산다는 말 - 종목을 고르는 대신 시장을 산다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">지수를 산다는 말 - 종목을 고르는 대신 시장을 산다</h2>
   <p>코스피200, S&amp;P 500, 나스닥100 같은 <b>지수</b>는 여러 주식의 움직임을 숫자 하나로 줄인 것이다. 지수를
   따라가는 ETF는 그 지수와 비슷하게 움직이도록 실제 주식을 담는다.</p>
   <p>어느 반도체 회사가 승자가 될지 모르겠다면 반도체 전체를 사면 된다. 미국에서 어느 대형주가 오를지 모르겠다면
   시장 전체를 사면 된다. 종목 하나를 맞히는 게임에서, 방향 하나를 고르는 게임으로 바뀐다. 개인이 테마주 한 종목에서
   하루에 -20%를 맞는 일은 흔하지만, 지수 ETF가 하루에 그렇게 빠지는 일은 시장 전체가 무너질 때뿐이다.</p>
 
-  <h2>ETF 가격은 누가 정하나 - NAV와 시장가격</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">ETF 가격은 누가 정하나 - NAV와 시장가격</h2>
   <p>ETF 한 주 안에 든 주식들의 값을 다 합친 <b>진짜 가치</b>를 <b>NAV(순자산가치)</b>라고 한다. 한편 ETF는 호가창에서
   거래되니 <b>내가 실제로 내는 값(시장가격)</b>은 사려는 사람과 팔려는 사람이 정한다. 둘은 대체로 붙어 다니지만 항상
   같지는 않다.</p>
@@ -124,7 +135,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>시장가격이 NAV보다 높으면 비싸게 사는 것이고(괴리율 플러스), 낮으면 싸게 사는 것이다(괴리율 마이너스). 정상적인 ETF는 둘이 다시 가까워지는 힘이 작동한다.</figcaption>
   </figure>
 
-  <h2>괴리율 - 10,000원짜리를 10,500원에 사고 있지 않은가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">괴리율 - 10,000원짜리를 10,500원에 사고 있지 않은가</h2>
   <p>평소엔 시장가격과 NAV 차이가 거의 없다. 문제는 개미가 몰릴 때다. 한 테마가 뜨거워져 매수세가 쏟아지거나, 해외
   시장이 닫혀 있어 진짜 가치를 가늠하기 어려운 시간대에 가격이 NAV에서 멀리 벗어날 수 있다.</p>
 
@@ -153,7 +166,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     주문한다. 장 시작 직후와 마감 직전에는 가격이 거칠어서 시장가로 던지면 NAV보다 비싼 값에 체결될 수 있다.
   </div>
 
-  <h2>추적오차 - 같은 지수를 따라가는데 왜 내 수익률이 모자랄까</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">추적오차 - 같은 지수를 따라가는데 왜 내 수익률이 모자랄까</h2>
   <p>지수가 12% 올랐으면 ETF도 12% 올라야 할 것 같지만 조금 모자란다. 운용 비용이 들고, 모든 종목을 매 순간 정확한
   비율로 맞추기 어렵고, 배당이 들어오는 시점도 다르기 때문이다. 이 차이를 <b>추적오차</b>라고 한다.</p>
 
@@ -179,7 +194,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>방향은 같은데 끝에 가서 0.5가 모자라다. 같은 지수를 따라가는 ETF가 여러 개라면, 최근 수익률보다 이 차이가 작은 쪽이 지수에 충실하다.</figcaption>
   </figure>
 
-  <h2>보수 - 작아 보이는 숫자가 20년 뒤엔 크다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">보수 - 작아 보이는 숫자가 20년 뒤엔 크다</h2>
   <p>ETF는 공짜로 굴러가지 않는다. 운용사가 가져가는 비용이 <b>총보수</b>인데, 가격에서 매일 조금씩 빠지기 때문에
   통장에 찍히는 돈은 없고 수익률만 조용히 낮아진다. 연 0.1%와 1%는 100만원 기준으로 1년에 1,000원과 10,000원이다.
   별것 아니다. 문제는 복리로 20년을 가면서 쌓이는 격차다.</p>
@@ -214,7 +231,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>그렇다고 보수가 낮은 ETF가 늘 정답은 아니다. 보수가 낮아도 거래가 거의 없으면 다음 장의 스프레드에서 다 까먹는다.
   오래 들고 갈 ETF는 보수를, 자주 사고팔 ETF는 보수와 스프레드를 같이 본다.</p>
 
-  <h2>거래가 적은 ETF는 사자마자 손해다 - 스프레드</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-8">거래가 적은 ETF는 사자마자 손해다 - 스프레드</h2>
   <p>ETF도 호가창에서 거래된다. 사려는 가격과 팔려는 가격 사이의 간격이 <b>스프레드</b>다. 거래가 활발한 ETF는 간격이
   촘촘하고, 거래가 한산한 ETF는 벌어져 있다.</p>
 
@@ -245,12 +264,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>그래서 ETF를 볼 때는 거래량보다 <b>거래대금</b>과 <b>호가 간격</b>을 같이 본다. 호가에 올라 있는 물량이 얇으면 시장가로
   많이 사는 순간 값이 밀려 올라간다. 주식의 호가창 읽는 법은 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/order.html">2장 주문과 체결</a>과 같다.</p>
 
-  <h2>ETF는 주식만 담지 않는다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-9">ETF는 주식만 담지 않는다</h2>
   <p>주식을 담은 ETF 말고도 미국 국채, 회사채, 금, 원유, 환율, 특정 산업만 모은 ETF가 있다. 주식 ETF에서는 지수와 기업을,
   채권 ETF에서는 금리를, 금 ETF에서는 달러와 실질금리를 배운다. ETF는 자산 하나가 아니라 <b>여러 시장으로 들어가는
   문</b>에 가깝다. 채권 ETF의 움직임이 궁금하면 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">채권 이야기</a>를 먼저 본다.</p>
 
-  <h2>레버리지 ETF - 두 배 오른다는 말의 함정</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-10">레버리지 ETF - 두 배 오른다는 말의 함정</h2>
   <p>개미가 가장 많이 다치는 곳이 여기다. 2배 레버리지 ETF는 <b>하루</b> 지수 등락의 두 배를 따라가도록 설계됐다. 여기서
   중요한 단어는 하루다. 오늘 1% 오르면 약 2%, 내일 1% 내리면 약 2% 내린다. 매일 새로 계산한다.</p>
   <p>그래서 지수가 제자리로 돌아와도 레버리지는 제자리로 오지 않는다.</p>
@@ -311,13 +334,17 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     나오는 도구</b>로 설계됐고, 오래 들고 가는 도구가 아니다. 이 흔들림 때문에 깎이는 현상을 변동성 손실(변동성 끌림)이라고 한다.
   </div>
 
-  <h2>인버스 ETF - 시장이 떨어지면 오르는 상품</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-11">인버스 ETF - 시장이 떨어지면 오르는 상품</h2>
   <p>기초지수가 하루 1% 내리면 약 1% 오르도록 설계된 ETF다. 시장이 무너질 때 손실을 줄이는 방어용으로 쓰이기도 한다.
   다만 인버스도 <b>하루 단위</b>로 계산하기 때문에 오래 들고 있으면 지수의 정확한 반대가 되지 않는다. 지수가 한 달 동안
   -5%였다고 인버스가 +5%인 것이 아니다. 하락한 뒤 반등하는 시장에서 인버스를 오래 들고 있던 사람이 지수가 본전이 됐는데도
   손해를 보는 이유가 이것이다.</p>
 
-  <h2>배당 ETF - 분배금이 많다고 이득이 아니다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-12">배당 ETF - 분배금이 많다고 이득이 아니다</h2>
   <p>ETF가 보유 종목의 배당 등으로 번 돈을 나눠 주는 것이 <b>분배금</b>이다. 분배금이 나가면 그만큼 ETF 안의 돈이 줄어
   <b>ETF 가격도 그만큼 내려간다</b>. 내 돈이 다른 주머니에서 같은 주머니로 옮겨 간 셈이다. 분배금만 높은 것을 쫓다가
   가격이 더 크게 빠지면 손해다.</p>
@@ -343,7 +370,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>분배금 4%를 받았어도 가격이 -6%면 총수익은 -2%. 분배금이 1%여도 가격이 2% 오르면 +3%다. 분배금과 가격 변화를 합친 총수익으로 비교한다.</figcaption>
   </figure>
 
-  <h2>ETF 이름부터 읽는다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-13">ETF 이름부터 읽는다</h2>
   <p>이름에 많은 정보가 들어 있다. 한국 상장 ETF 이름에는 보통 운용사 브랜드, 추종 지수, 구조를 알려 주는 말이 붙는다.</p>
   <table class="learn-table">
     <thead><tr><th>이름에 붙는 말</th><th>뜻</th></tr></thead>
@@ -358,7 +387,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>표기 방식은 운용사마다 조금씩 다르다. 이름만 믿지 말고 증권사 앱의 ETF 상세 화면이나 운용사 설명서에서
   구조를 확인한다.</p>
 
-  <h2>ETF를 사기 전에 확인할 것</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-14">ETF를 사기 전에 확인할 것</h2>
   <table class="learn-table">
     <thead><tr><th>확인 항목</th><th>왜 보나</th></tr></thead>
     <tbody>
@@ -373,13 +404,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <p>차트는 이 표를 다 본 뒤에 본다. 차트에서 모양이 좋아 보이는 ETF가 괴리율이 크게 벌어져 있거나 거래가 없는 ETF인 경우가 있다.</p>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-15">이 사이트에서 확인하기</h2>
   <ul>
     <li>ETF로 돈이 얼마나 들어오고 나가는지는 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/money.html">6장 돈이 들어오는 구조</a>의 다섯 수도꼭지 가운데 하나로 다룬다.</li>
     <li>NAV·괴리율·총보수는 증권사 앱의 ETF 상세 화면과 운용사 홈페이지에서 확인한다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="etf-advanced">
   <h2 id="etf-advanced">심화 연구실 · ETF가 지수를 따라가는 메커니즘</h2>
   <p>ETF 가격이 순자산가치(NAV) 근처에 머무는 이유 중 하나는 지정참가회사(AP) 등의 <b>설정·환매</b>과 시장조성 활동이다. 하지만 해외 기초자산 시장이 닫혔거나 변동성이 커진 날은 추정 NAV 자체가 불확실하므로 괴리율만으로 반드시 차익거래가 가능하다고 판단할 수 없다.</p>
@@ -405,7 +439,8 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-sources"><strong>확인 자료</strong><ul><li><a href="https://www.investor.gov/" target="_blank" rel="noopener noreferrer">SEC Investor.gov · ETF 구조와 투자자 위험</a></li><li><a href="https://www.krx.co.kr/" target="_blank" rel="noopener noreferrer">KRX · 국내 ETF 상품·시장 제도</a></li></ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-16">한 줄 정리</h2>
   <p>ETF는 여러 자산을 한 바구니에 담아 주식처럼 거래하는 구조일 뿐이고, 위험은 안에 든 자산과 상품 구조가 정한다.
   살 때는 <b>무엇을 따라가는지 → 괴리율 → 보수 → 거래대금과 호가 간격</b> 순으로 본다. 레버리지와 인버스는 장기 수익률의
   두 배·반대가 아니라 <b>하루 등락</b>을 따라가는 별개 구조라서, 오래 들고 있으면 지수가 본전이어도 내 돈은 깎인다.</p>
@@ -415,13 +450,15 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     시기에 따라 다르므로 중요한 결정 전에는 증권사와 운용사 공지를 확인한다.
   </div>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/fx-market.html">← 환율 이야기</a>
-    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/company-analysis.html">기업분석 이야기 →</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/hedge-fund.html">헤지펀드 이야기 →</a>
   </div>
 
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

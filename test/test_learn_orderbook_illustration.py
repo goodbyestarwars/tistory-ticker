@@ -11,7 +11,7 @@ class OrderbookImageTest(unittest.TestCase):
         self.assertIn('loading="lazy"', content)
         self.assertIn('alt="호가창 상승 시도 사례.', content)
         self.assertIn('체결·거래량·시간에 따른 잔량 변화', content)
-        self.assertLess(content.index('id="orderbook-rising-pattern"'), content.index("<h2>지정가와 시장가</h2>"))
+        self.assertLess(content.index('id="orderbook-rising-pattern"'), content.index("지정가와 시장가</h2>"))
         self.assertIn(".learn-fig--wide img", (ROOT / "css/legal.css").read_text(encoding="utf-8"))
     def test_svg_and_example_totals(self):
         root = ET.parse(ROOT / "img/learn-orderbook-pattern.svg").getroot()

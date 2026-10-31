@@ -98,17 +98,24 @@ a { color: #d24f45; }
 .learn-toc a { font-size: 16px; font-weight: 700; text-decoration: none; }
 .learn-toc small { display: block; margin-top: 2px; color: #6b7280; font-size: 13px; line-height: 1.6; }
 
-/* 이야기 시리즈 전체: body.learn-page 표식으로 /legal/ 공통문서와 스타일을 격리한다. */
+/* 이야기 시리즈 전체: body.learn-page 표식으로 /legal/ 공통문서와 스타일을 격리한다.
+   2026-10-31 통일 디자인: 단락(.learn-sec)은 흰색 둥근 상자, 글꼴은 마루부리(제목만 MaruBuriBold),
+   색은 상승 빨강/하락 파랑과 남색 글자만 쓴다(회색·갈색·금색 금지). */
 body.learn-page .legal-wrap {
-  --learn-box: var(--ui-glass-surface);
-  --learn-box-deep: #dfe9f3;
-  --learn-box-inset: var(--ui-glass-surface);
-  --learn-box-border: #cbd8e5;
-  --learn-case-bg: var(--ui-glass-surface);
-  --learn-case-label: #475569;
-  --learn-case-good-bg: #e8f1f9;
-  --learn-case-good-line: #a9bfd4;
-  --learn-case-good-text: #3b607e;
+  --learn-box: #f2f7fe;
+  --learn-box-deep: #e3edfb;
+  --learn-box-inset: #fff;
+  --learn-box-border: #c9daf2;
+  --learn-case-bg: #f2f7fe;
+  --learn-case-label: #1d4f91;
+  --learn-case-good-bg: #e8f1fd;
+  --learn-case-good-line: #8db4e8;
+  --learn-case-good-text: #1261c4;
+  --learn-ink: #14213d;
+  --learn-sub: #35507a;
+  --learn-line: #d9e5f6;
+  --learn-up: #d24f45;
+  --learn-down: #1261c4;
 }
 
 /* 이야기 시리즈: 읽기 폭과 실험·심화 학습용 공통 디자인. 이용약관/이용안내와 격리. */
@@ -161,6 +168,140 @@ body.learn-page .legal-wrap .legal-contact {
 .learn-sources ul { margin: 8px 0 0; }
 .learn-sources a { color: #205d8e; }
 .learn-deep .learn-fig svg { max-width: 620px; }
+
+/* ── 이야기 시리즈 통일 디자인 (2026-10-31) ── */
+body.learn-page,
+body.learn-page .legal-wrap { font-family: "MaruBuri", "Maru Buri", Georgia, serif; color: var(--learn-ink, #14213d); }
+body.learn-page .legal-wrap h1,
+body.learn-page .legal-wrap h2,
+body.learn-page .legal-wrap h3,
+body.learn-page .legal-wrap h4,
+body.learn-page .legal-wrap .learn-toc a,
+body.learn-page .legal-wrap .learn-table th,
+body.learn-page .legal-wrap .learn-case-no,
+body.learn-page .legal-wrap .fig-ink,
+body.learn-page .legal-wrap .fig-on-strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 400; }
+body.learn-page .legal-wrap h1 { color: var(--learn-ink); }
+body.learn-page .legal-wrap h2,
+body.learn-page .legal-wrap h3,
+body.learn-page .legal-wrap h4 { color: var(--learn-ink); }
+/* 제목만 굵게: 본문 강조는 굵기 대신 남색 글자로 구분한다. */
+body.learn-page .legal-wrap b,
+body.learn-page .legal-wrap strong { font-weight: 400; color: var(--learn-case-label); }
+body.learn-page .legal-wrap .learn-fig text { font-family: "MaruBuri", "Maru Buri", Georgia, serif; }
+body.learn-page .legal-wrap .fig-ink,
+body.learn-page .legal-wrap .fig-on-strong,
+body.learn-page .legal-wrap .fig-on-accent { font-weight: 400; }
+body.learn-page .legal-wrap .fig-ink { fill: var(--learn-ink); }
+body.learn-page .legal-wrap .fig-sub,
+body.learn-page .legal-wrap .learn-fig figcaption,
+body.learn-page .legal-wrap .learn-toc small,
+body.learn-page .legal-wrap .learn-table th,
+body.learn-page .legal-wrap .legal-effective-date,
+body.learn-page .legal-wrap .legal-back,
+body.learn-page .legal-wrap .learn-case-who,
+body.learn-page .legal-wrap .learn-case-vs div { color: var(--learn-sub); fill: var(--learn-sub); }
+body.learn-page .legal-wrap .legal-back:hover { color: var(--learn-up); }
+body.learn-page .legal-wrap a { color: var(--learn-down); }
+body.learn-page .legal-wrap .learn-nav a,
+body.learn-page .legal-wrap .learn-toc a { color: var(--learn-down); }
+body.learn-page .legal-wrap .fig-acc { fill: var(--learn-down); }
+body.learn-page .legal-wrap .fig-acc-line { stroke: var(--learn-down); }
+body.learn-page .legal-wrap .fig-bar { fill: #8db4e8; }
+body.learn-page .legal-wrap .fig-ink-line { stroke: var(--learn-ink); }
+body.learn-page .legal-wrap .fig-marker { fill: var(--learn-ink); }
+body.learn-page .legal-wrap .fig-up { fill: var(--learn-up); }
+body.learn-page .legal-wrap .fig-down { fill: var(--learn-down); }
+body.learn-page .legal-wrap .fig-line,
+body.learn-page .legal-wrap .fig-dash { stroke: var(--learn-box-border); }
+
+/* 단락 상자: 흰 바탕, 끝이 둥근 애플 스타일. 상자 안의 보조 상자(노트·표·카드)는 옅은 파랑. */
+body.learn-page .legal-wrap .learn-sec,
+body.learn-page .legal-wrap .learn-deep {
+  margin: 0 0 var(--ui-section-gap);
+  padding: 26px 28px;
+  background: #fff;
+  border: 1px solid var(--learn-line);
+  border-radius: 22px;
+  box-shadow: 0 1px 2px rgba(18, 97, 196, .05), 0 12px 30px -14px rgba(18, 97, 196, .18);
+}
+body.learn-page .legal-wrap .learn-sec > :last-child,
+body.learn-page .legal-wrap .learn-deep > :last-child { margin-bottom: 0; }
+body.learn-page .legal-wrap .learn-sec > h2,
+body.learn-page .legal-wrap .learn-deep > h2 { margin: 0 0 12px; padding: 0; border-top: 0; }
+body.learn-page .legal-wrap .learn-sec--intro > :first-child { margin-top: 0; }
+body.learn-page .legal-wrap .learn-note { border-radius: 16px; border: 1px solid var(--learn-line); background-image: none; }
+body.learn-page .legal-wrap .learn-lab,
+body.learn-page .legal-wrap .learn-grid > div,
+body.learn-page .legal-wrap .learn-case { border: 1px solid var(--learn-line); border-radius: 16px; background: var(--learn-box); background-image: none; }
+body.learn-page .legal-wrap .learn-math,
+body.learn-page .legal-wrap .learn-sources,
+body.learn-page .legal-wrap .learn-case-how { border-radius: 14px; background: var(--learn-box); background-image: none; color: var(--learn-ink); font-weight: 400; }
+body.learn-page .legal-wrap .learn-sources > strong { color: var(--learn-ink); }
+body.learn-page .legal-wrap .learn-sources a { color: var(--learn-down); }
+body.learn-page .legal-wrap .learn-case-tag { background: var(--learn-case-good-bg); color: var(--learn-case-label); }
+body.learn-page .legal-wrap .learn-case-no { border-color: var(--learn-down); color: var(--learn-down); }
+body.learn-page .legal-wrap .learn-case-vs div { border-color: var(--learn-line); border-radius: 12px; }
+body.learn-page .legal-wrap .learn-case-vs strong { color: var(--learn-ink); }
+body.learn-page .legal-wrap .learn-case-vs .is-good strong,
+body.learn-page .legal-wrap .learn-case-end { color: var(--learn-down); }
+body.learn-page .legal-wrap .learn-table { border-collapse: separate; border-spacing: 0; border: 1px solid var(--learn-line); border-radius: 14px; overflow: hidden; }
+body.learn-page .legal-wrap .learn-table th { background: var(--learn-box); }
+body.learn-page .legal-wrap .learn-table th,
+body.learn-page .legal-wrap .learn-table td { border-bottom: 1px solid var(--learn-line); }
+body.learn-page .legal-wrap .learn-table tr:last-child td { border-bottom: 0; }
+body.learn-page .legal-wrap .learn-nav,
+body.learn-page .legal-wrap .legal-contact { border: 1px solid var(--learn-line); border-radius: 18px; background: #fff; background-image: none; }
+body.learn-page .legal-wrap .learn-nav { margin-top: 0; }
+body.learn-page .legal-wrap .legal-contact { color: var(--learn-sub); }
+body.learn-page .legal-wrap .learn-fig--wide img { border-color: var(--learn-line); border-radius: 14px; }
+
+/* 이야기 전체 검색창(js/learn-search.js) */
+body.learn-page .legal-wrap .learn-search { margin: 0 0 var(--ui-section-gap); }
+body.learn-page .legal-wrap .ls-input { width: 100%; box-sizing: border-box; padding: 13px 20px; border: 1px solid var(--learn-box-border); border-radius: 999px; background: #fff; color: var(--learn-ink); font-family: inherit; font-size: 16px; box-shadow: 0 1px 2px rgba(18, 97, 196, .05), 0 12px 30px -14px rgba(18, 97, 196, .18); }
+body.learn-page .legal-wrap .ls-input:focus { outline: 2px solid var(--learn-down); outline-offset: 1px; }
+body.learn-page .legal-wrap .ls-results { margin-top: 10px; padding: 8px 12px 12px; border: 1px solid var(--learn-line); border-radius: 22px; background: #fff; box-shadow: 0 1px 2px rgba(18, 97, 196, .05), 0 12px 30px -14px rgba(18, 97, 196, .18); }
+body.learn-page .legal-wrap .ls-results[hidden] { display: none; }
+body.learn-page .legal-wrap .ls-count,
+body.learn-page .legal-wrap .ls-empty { margin: 6px 8px; color: var(--learn-sub); font-size: 13px; }
+body.learn-page .legal-wrap .ls-list { margin: 0; padding: 0; list-style: none; max-height: 60vh; overflow-y: auto; }
+body.learn-page .legal-wrap .ls-list li { margin: 0; }
+body.learn-page .legal-wrap .ls-item { display: block; padding: 10px 12px; border-radius: 14px; color: var(--learn-ink); text-decoration: none; }
+body.learn-page .legal-wrap .ls-item:hover,
+body.learn-page .legal-wrap .ls-item:focus-visible { background: var(--learn-box); }
+body.learn-page .legal-wrap .ls-head { display: block; font-family: "MaruBuriBold", "MaruBuri", serif; font-size: 15px; color: var(--learn-ink); }
+body.learn-page .legal-wrap .ls-snippet { display: block; margin-top: 2px; color: var(--learn-sub); font-size: 13.5px; line-height: 1.6; }
+body.learn-page .legal-wrap .ls-snippet mark { padding: 0 2px; border-radius: 4px; background: var(--learn-case-good-bg); color: var(--learn-up); }
+
+@media (prefers-color-scheme: dark) {
+  body.learn-page .legal-wrap {
+    --learn-box: #1b2433;
+    --learn-box-deep: #223049;
+    --learn-box-inset: #0f1420;
+    --learn-box-border: #34415b;
+    --learn-case-bg: #1b2433;
+    --learn-case-label: #9acfff;
+    --learn-case-good-bg: #1c2b44;
+    --learn-case-good-line: #4f7fc0;
+    --learn-case-good-text: #7fb3ff;
+    --learn-ink: #e8eef7;
+    --learn-sub: #a9c2e6;
+    --learn-line: #2a3750;
+    --learn-up: #ff8a80;
+    --learn-down: #7fb3ff;
+  }
+  body.learn-page .legal-wrap .learn-sec,
+  body.learn-page .legal-wrap .learn-deep { background: #161d2c; box-shadow: none; }
+  body.learn-page .legal-wrap .learn-nav,
+  body.learn-page .legal-wrap .legal-contact { background: #161d2c; }
+  body.learn-page .legal-wrap .fig-bar { fill: #4f7fc0; }
+  body.learn-page .legal-wrap .ls-input,
+  body.learn-page .legal-wrap .ls-results { background: #161d2c; box-shadow: none; }
+}
+@media (max-width: 640px) {
+  body.learn-page .legal-wrap .learn-sec,
+  body.learn-page .legal-wrap .learn-deep { padding: 20px 18px; border-radius: 20px; }
+}
 
 @media (prefers-color-scheme: dark) {
   body.learn-page .legal-wrap .fig-on-accent { fill: #16202f; }

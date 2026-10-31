@@ -8,28 +8,33 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>환율 이야기</h1>
   <p class="legal-effective-date">환전 스프레드, 외화예금·달러ETF·FX마진거래, 환율을 움직이는 요인, 레버리지 리스크 관리</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>환율은 24시간 거래되고 상한가·하한가도 없어서, 주식과는 결이 다른 시장이다. 최근 원/달러 환율이
   크게 출렁이면서 직접 환전하거나 FX마진거래로 환율에 베팅하는 사람도 늘었다. 여기서는 세 가지를 본다.
   환전은 어떻게 해야 덜 새는지, 환율은 무엇을 보고 움직이는지, 레버리지는 왜 위험한지.</p>
 
-  <h2>환전할 때 실제로 무슨 일이 벌어지나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">환전할 때 실제로 무슨 일이 벌어지나</h2>
   <p>은행 창구나 앱에서 "환율"이라고 뜨는 숫자는 하나가 아니다. 기준이 되는 매매기준율에, 사고팔 때마다
   은행이 붙이는 스프레드(수수료)가 더해진다.</p>
 
@@ -74,7 +79,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <p>살 때 한 번, 팔 때 한 번 붙는다. 미국 주식을 사려고 바꿨다가 다시 원화로 돌리면 이 비용을 두 번 낸다. 환율이 1% 올라 벌었다고 생각했는데 왕복 스프레드가 2%면 손해다.</p>
 
-  <h2>달러를 들고 있는 방법도 여러 가지다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">달러를 들고 있는 방법도 여러 가지다</h2>
   <p>"환율에 투자한다"고 해도 방법이 하나가 아니다. 각각 수수료·세금·유동성이 다르다.</p>
 
   <table class="learn-table">
@@ -87,7 +94,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     </tbody>
   </table>
 
-  <h2>FX마진거래 - 레버리지가 양날의 검인 이유</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">FX마진거래 - 레버리지가 양날의 검인 이유</h2>
   <p>FX마진거래는 실제 달러를 다 갖고 있지 않아도, 증거금의 몇 배(레버리지)만큼 거래 규모를 키울 수
   있다. 똑같이 환율이 1% 움직여도, 레버리지 10배라면 내 증거금 기준으로는 약 10%가 움직인다 - 수익도
   손실도 그만큼 커진다.</p>
@@ -122,7 +131,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>레버리지 10배면 환율 1%가 내 돈 10%다.</figcaption>
   </figure>
 
-  <h2>환율은 무엇을 보고 움직이나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">환율은 무엇을 보고 움직이나</h2>
   <p>원/달러 환율에 영향을 주는 요인은 여러 개가 동시에 작용하지만, 자주 언급되는 것들은 이렇다.</p>
 
   <ul>
@@ -143,7 +154,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     같이 살핀다.
   </div>
 
-  <h2>리스크 관리 - 레버리지를 다룰 때 지켜야 할 원칙</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">리스크 관리 - 레버리지를 다룰 때 지켜야 할 원칙</h2>
   <p>'주식 이야기' 5장(위험 관리)에서 다룬 원칙은 환율 매매에도 그대로, 오히려 더 엄격하게 적용된다.</p>
 
   <ul>
@@ -154,6 +167,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="fx-advanced">
   <h2 id="fx-advanced">심화 연구실 · 환율에는 현물환과 선물환이 있다</h2>
   <p>원/달러 현물환율은 지금 달러 1단위를 원화로 교환하는 가격이다. 만기가 정해진 선물환은 두 통화의 금리, 유동성, 신용·담보 조건 등의 영향을 받는다. 전문 연구에서는 <b>현물(S), 선물환(F), 통화별 금리, 헤지 비용, 실제 거래 스프레드</b>를 구분한다.</p>
@@ -180,11 +194,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-sources"><strong>원문과 데이터</strong><ul><li><a href="https://ecos.bok.or.kr/" target="_blank" rel="noopener noreferrer">한국은행 ECOS · 환율과 금리 데이터</a></li><li><a href="https://www.bis.org/" target="_blank" rel="noopener noreferrer">BIS · 외환시장·통화스와프 연구</a></li></ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-6">한 줄 정리</h2>
   <p>환전은 매매기준율이 아니라 스프레드·우대율까지 봐야 실제 비용을 알 수 있고, 달러 노출 방법은
   외화예금·ETF·FX마진거래마다 수수료·세금·위험이 다르다. 특히 레버리지가 걸린 FX마진거래는 작은 환율
   움직임도 증거금 기준으로 크게 증폭되므로, 손절선과 레버리지 크기를 매매 전에 정한다.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/crypto-market.html">← 코인 이야기</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/etf-market.html">ETF 이야기 →</a>
@@ -193,5 +209,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>
