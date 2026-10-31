@@ -26,15 +26,6 @@ html:has(body#tt-body-index)::view-transition-old(root) {
   }
 }
 
-/* 외부 제공처 표기(NineUI.sourceNote). 보조 문구 12px, 색은 공통 보조 글자색 토큰이라 다크에서 자동 전환된다. */
-.ui-source-note {
-  display: inline-block;
-  margin-left: 6px;
-  font: 500 12px/1.4 var(--font-ui);
-  color: var(--text-sub);
-  vertical-align: baseline;
-}
-
 /* 2026-08-22 요청: "'불러오는 중' 나오면 전부 심장박동 표시 위에 넣어, 공통으로" -
    foreign-flow/order-book/pattern-scan/stock-search 4개 페이지가 각자 만든 XX-spinner
    (원형 회전 -> 심장박동 ECG 파형)와 같은 패턴을 사이트 전체가 재사용할 수 있게 여기

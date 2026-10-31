@@ -159,13 +159,10 @@
     return '<div class="' + escape(className || 'ui-state') + '" role="' + (kind === 'error' ? 'alert' : 'status')
       + '"' + (pending ? ' aria-busy="true"' : '') + '>' + (pending && !(options && options.spinner === false) ? spinner() : '') + escape(message) + '</div>';
   }
-  // 외부 제공처 표기 라벨. 네이버 검색 API 약관의 출처 표기를 한 곳에서 맞추려고 문구와 모양을 공유한다.
+  // 외부 제공처 표기 문구. 네이버 검색 API 약관의 출처 표기를 한 곳에서 맞추려고 문구를 공유한다.
+  // 모양은 각 화면의 보조 문구 스타일을 그대로 쓰도록 요소 없이 텍스트만 돌려준다(HTML에 넣을 땐 escape).
   var SOURCE_NOTES = { naver: '네이버 검색결과' };
-  function sourceNote(kind, prefix) {
-    var text = SOURCE_NOTES[kind];
-    if (!text) return '';
-    return '<span class="ui-source-note">' + (prefix ? escape(prefix) + ' · ' : '') + escape(text) + '</span>';
-  }
+  function sourceNote(kind) { return SOURCE_NOTES[kind] || ''; }
   // Await stylesheet readiness before mounting components containing SVG/canvas.
   var styleLoads = {};
   function loadStyle(url) {

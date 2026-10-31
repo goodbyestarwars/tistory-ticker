@@ -11,23 +11,23 @@ def read(path):
 
 
 class NaverSourceNoteTests(unittest.TestCase):
-    def test_common_helper_and_global_style_exist(self):
+    def test_common_helper_provides_the_text_without_a_new_element(self):
         shell = read('js/skin-shell.js')
         self.assertIn("naver: '네이버 검색결과'", shell)
         self.assertRegex(shell, r'global\.NineUI = \{[^}]*sourceNote: sourceNote')
-        css = read('style.css')
-        rule = re.search(r'\.ui-source-note\s*\{([^}]*)\}', css)
-        self.assertIsNotNone(rule)
-        self.assertIn('var(--text-sub)', rule.group(1))
-        self.assertNotIn('!important', rule.group(1))
+        # 헤더 span 규칙(.hen-head span 등)에 걸려 줄이 어긋나지 않도록 별도 요소·전용 스타일을 두지 않는다.
+        self.assertNotIn('ui-source-note', shell)
+        self.assertNotIn('ui-source-note', read('style.css'))
 
     def test_every_naver_news_surface_uses_the_shared_helper(self):
         for path in ('js/main-news.js', 'js/home-economic-news.js', 'js/foreign-flow.js'):
-            self.assertIn("sourceNote('naver'", read(path), path)
+            self.assertIn("sourceNote('naver')", read(path), path)
 
-    def test_home_widget_labels_only_the_domestic_market(self):
+    def test_home_widget_appends_the_note_to_the_existing_session_line_for_domestic_only(self):
         source = read('js/home-economic-news.js')
         self.assertRegex(source, r"market !== 'us' && global\.NineUI && global\.NineUI\.sourceNote")
+        self.assertIn("' · ' + sourceNote", source)
+        self.assertNotIn('insertAdjacentHTML', source[source.index('function render('):source.index('function render(') + 900])
 
     def test_news_rows_keep_original_article_links(self):
         # 서버는 네이버 응답의 originallink(언론사 원문)를 우선 link로 내려준다.
