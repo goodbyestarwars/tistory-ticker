@@ -96,7 +96,8 @@ import watchlist
 from google_auth import GoogleAuthError, GoogleAuthService
 from naver_auth import NaverAuthError, NaverAuthService
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
+import log_setup
+log_setup.configure('kiwoom-api')
 
 try:
     import night_futures_ws
@@ -909,7 +910,9 @@ def google_auth_callback(request: Request, code: str = None, state: str = None, 
         user = GOOGLE_AUTH.authenticate_code(code, saved_nonce)
     except GoogleAuthError:
         logging.getLogger('main').warning('Google OAuth callback verification failed')
+        log_setup.event('login_fail', '-', p='google')
         return _google_auth_error_redirect('login_failed')
+    log_setup.event('login', log_setup.user_ref(user.get('sub'), GOOGLE_AUTH.session_secret), p='google')
     return_to = _safe_google_return_url(request.cookies.get(GOOGLE_AUTH.RETURN_COOKIE))
     response = RedirectResponse(return_to, status_code=303)
     response.set_cookie(
@@ -956,7 +959,9 @@ def naver_auth_callback(request: Request, code: str = None, state: str = None, e
         user = NAVER_AUTH.authenticate_code(code, state)
     except NaverAuthError:
         logging.getLogger('main').warning('Naver OAuth callback verification failed')
+        log_setup.event('login_fail', '-', p='naver')
         return _google_auth_error_redirect('naver_login_failed')
+    log_setup.event('login', log_setup.user_ref(user.get('sub'), GOOGLE_AUTH.session_secret), p='naver')
     return_to = _safe_google_return_url(request.cookies.get(NAVER_AUTH.RETURN_COOKIE))
     response = RedirectResponse(return_to, status_code=303)
     response.set_cookie(
@@ -1053,10 +1058,12 @@ async def update_watchlist(request: Request):
             raise HTTPException(status_code=400, detail='revision must be an integer') from exc
         except RuntimeError as exc:
             if str(exc) == 'WATCHLIST_REVISION_CONFLICT':
+                log_setup.event('watchlist_conflict', log_setup.user_ref(session.get('sub'), GOOGLE_AUTH.session_secret))
                 raise HTTPException(status_code=409, detail='watchlist changed; reload and try again') from exc
             raise
     finally:
         conn.close()
+    log_setup.event('watchlist_save', log_setup.user_ref(session.get('sub'), GOOGLE_AUTH.session_secret))
     return envelope(saved)
 
 

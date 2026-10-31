@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime, timedelta
 import json
+import logging
 import os
 from pathlib import Path
 import signal
@@ -154,6 +155,8 @@ def run(job, command, folder, contract=None, grace=30, now=None):
     def record(state, **extra):
         write_status(folder, job, state=state, dataDate=basis, finishedAt=stamp(), **extra)
         print('[schedule] ' + json.dumps(dict(job=job, state=state, dataDate=basis, **extra)), flush=True)
+        level = logging.INFO if state in ('success', 'holiday', 'outside_window') else logging.WARNING
+        logging.getLogger('schedule').log(level, json.dumps(dict(job=job, state=state, dataDate=basis, **extra)))
     if deadline is None:
         record('outside_window', exitCode=75)
         return 75
@@ -200,6 +203,7 @@ def run(job, command, folder, contract=None, grace=30, now=None):
             env['NINEPAY_PROGRESS_JOB'] = job
             env['NINEPAY_PROGRESS_STARTED'] = run_started
             write_status(folder, job, state='running', startedAt=run_started, waitSec=wait, dataDate=basis)
+            logging.getLogger('schedule').info(json.dumps(dict(job=job, state='running', dataDate=basis, waitSec=wait)))
             process = None
             started = time.monotonic()
             previous = {}
@@ -234,6 +238,8 @@ def main():
     args = parser.parse_args()
     if not args.command:
         parser.error('command required')
+    import log_setup
+    log_setup.configure('scheduled_job')
     return run(args.job, args.command, Path(__file__).resolve().parent)
 
 

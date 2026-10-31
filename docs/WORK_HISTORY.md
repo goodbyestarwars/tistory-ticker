@@ -1,3 +1,7 @@
+**2026-10-31 Oracle 서버 syslog 로깅·5일 보관**
+
+앱 로깅을 기존 `logging` 루트에 SysLogHandler(/dev/log, local1 INFO+, 512자 자르기, 실패 시 stderr)로 연결하는 `log_setup.py`를 추가했다(공통 로깅 모듈이 없어 신규, 큐·버퍼 없음). 사용자 이벤트는 `log_setup.event()`(local0 JSON, u=HMAC 12자): login·login_fail(google/naver)·watchlist_save·watchlist_conflict. `scheduled_job.py` 시작/종료/소요 기록, `schedule_health.py`는 `scheduled_jobs.json` finishedAt을 하트비트로 써서 오래되면 '멈춤'. 서버: rsyslog `30-9pay.conf`·imuxsock 속도제한, logrotate 5일, nginx 오류·1초 이상만 slim 로그, uvicorn `--no-access-log`. scheduler/health 테스트 통과.
+
 **2026-10-31 미국 서머타임 종료(11/1) 해외 거래시간 전환 점검·폴백 정정**
 
 증권사 공지(미국 11/1, 유럽 10/25 서머타임 종료)의 KST 시간표를 전역 규칙 `MarketHours.us()`(js/skin-shell.js)와 대조했다. 이 규칙은 뉴욕 시각을 Intl에 물어 서머타임을 자동 판정하므로 11/1 15:00 KST(뉴욕 02:00)에 프리 18:00~23:30·정규장 23:30~06:00·애프터 06:00~10:00(거래소 16~20시 ET 기준)으로 저절로 바뀐다(경계 14:59/15:01 모의로 확인). 홈 미국 전환 18:00·토요일 주말 휴장 시작 10:00, VM `market_board.us_session_label`(zoneinfo)도 같은 기준. 공지의 애프터마켓 종료 08:00은 증권사 서비스 시간이며 거래소 기준 표시와 다르다. 주간거래(10:00~17:45)·유럽(17:00~01:30)은 사이트에 표시하는 곳이 없어 규칙에 넣지 않았다. 구형 WebView용 `usDstFallback`이 월·일자 어림값이라 3/8~13·11/2~7에 틀리던 것을 정확한 일요일 계산(3월 둘째·11월 첫째 일요일 02:00)으로 고쳐, Intl 결과와 2025~2030 30분 간격 105,168건 불일치 0건(수정 전 2,028건).

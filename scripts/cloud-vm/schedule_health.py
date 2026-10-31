@@ -27,6 +27,8 @@ _TIME = re.compile(r'\b(\d{4}-\d\d-\d\d) (\d\d:\d\d:\d\d) UTC\b')
 _SLOW_SEC = {'dailyscan': 2 * 3600, 'etfstrategyscan': 3600,
              'anglemomentumscan': 3600, 'gongpasanscan': 3600,
              'week52': 3600, 'batch': 2 * 3600, 'strategyscan': 2 * 3600}
+# Heartbeat age limits: daily jobs record even on holidays; weekly/weekday timers get their gap.
+_STALE_SEC = {'deploy': 10**9, 'strategyscan': 8 * 86400, 'volumebreakout': 4 * 86400}
 
 
 def _kst_stamp(value):
@@ -75,6 +77,11 @@ def collect(app_dir=None, now=None, units=None):
         if state == '정상' and duration is not None and duration > _SLOW_SEC.get(key, 10**9):
             state = '지연'
         execution = executions.get(key) or {}
+        # scheduled_jobs.json is the heartbeat: every terminal record overwrites finishedAt.
+        beat = execution.get('finishedAt')
+        if (active and beat and service.get('ActiveState') != 'activating'
+                and (now - datetime.fromisoformat(beat)).total_seconds() > _STALE_SEC.get(key, 26 * 3600)):
+            state = '멈춤'
         progress = None
         try:
             with open(os.path.join(app_dir or os.path.dirname(__file__), 'scan_progress_' + key + '.json'), encoding='utf-8') as stream:
