@@ -485,7 +485,7 @@ html.dark .dmi-section-collapse {
   font-size: 13px;
   color: #111;
 }
-.dmi-spot-table thead th { color: #777; font-size: 12px; font-weight: 600; }
+.dmi-spot-table thead th { color: var(--text-sub); font-size: 12px; font-weight: 600; }
 .dmi-spot-table tbody tr:last-child th,
 .dmi-spot-table tbody tr:last-child td { border-bottom: 0; }
 .dmi-spot-table th:first-child,
