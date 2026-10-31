@@ -157,7 +157,7 @@ html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow 
   --surface: #fff;
   --text-main: #4b5563; /* 2026-10-23 본문 회색(흰 바탕 7.6:1). 굵은 글자는 --text-strong */
   --text-strong: #1f2937;
-  --text-sub: #6F7480;
+  --text-sub: #656a75;
   --rule: #D8D8D8;
   --up: #B42318;
   --down: #245B9E;

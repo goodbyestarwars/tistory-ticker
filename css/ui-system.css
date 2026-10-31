@@ -10,8 +10,8 @@
   --ui-rule: var(--rule);
   --ui-surface: var(--ui-card-surface, var(--surface));
   --ui-page: var(--page-bg);
-  --ui-accent-soft: #eef2ff;
-  --ui-accent-ink: #4338ca;
+  --ui-accent-soft: #f8f7f4;
+  --ui-accent-ink: #1f2937;
   --ui-focus: #1261c4;
   --ui-radius-control: 999px;
   --ui-radius-module: var(--ui-radius-card);
@@ -68,7 +68,7 @@
   color: var(--ui-accent-ink);
 }
 .ui-btn-c:hover,
-.ui-btn-soft:hover { background: #e0e7ff; }
+.ui-btn-soft:hover { background: #ebe9e3; }
 
 /* D: 가벼운 링크형 */
 .ui-btn-d,
@@ -250,6 +250,6 @@ html.dark body .nt-stamp { color: var(--dk-sub) !important; }
 
 /* 오르내림 숫자 글자색 단일 기준(2026-10-23 사용자 지시: "관측 고점/저점 색으로 모든 붉은·파란 숫자 통일").
    기준은 홈 관측 고점(#ad706b)·저점(#6386b2). 글자색(color)에만 쓴다 - 막대·선·배경 채움은 각자의 기존 색을 유지한다. */
-:root { --num-up: #ad706b; --num-down: #6386b2; }
+:root { --num-up: #c8372d; --num-down: #1261c4; }
 html.dark { --num-up: var(--dk-up); --num-down: var(--dk-down); }
 html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-hover); }
