@@ -1,7 +1,7 @@
 /* 홈 업종 로테이션 (2026-10-04, 3차): 국내 시장·경제 뉴스 아래 전체 폭 영역. Apple Stocks/News 식 정돈감.
    외곽 카드·그림자·그라데이션·아이콘 박스 없음. 상태는 7px 점 + 이름, 업종명 왼쪽 / 순위 변화 오른쪽 끝(tabular-nums).
    상승 빨강·하락 파랑은 사이트 기존 색 유지, 유입 초록·둔화 주황은 채도를 낮춘다. */
-.home-sector-rotation { margin: 0; padding: 28px 0 24px; border-bottom: 1px solid var(--rule, #d8d8d8); }
+/* 카드 면·테두리·모서리·안쪽 여백은 아래 2026-10-04 블록에서 공통 토큰으로 한 번만 정한다. */
 .home-sector-rotation[hidden] { display: none; }  /* 2026-10-05: 미국 모드도 표시(/us-sector-rotation) */
 .home-editorial-page.is-market-closed .home-sector-rotation { display: none !important; }
 .hsr-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 22px; }
@@ -82,17 +82,16 @@ html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: var(--num-
 
 /* ── 2026-10-04: 큰 네모박스 + 국내 시장·경제 종합뉴스와 같은 제목 서체(마루부리 = var(--font-title)) ── */
 .home-sector-rotation {
-  margin: 24px 0 8px; padding: 30px 36px 26px;
-  border: 1px solid rgba(17, 17, 17, .09); border-radius: 22px; background: var(--ui-card-surface, #fff);
+  margin: 24px 0 8px; padding: var(--ui-card-padding);
+  border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); background: var(--ui-card-surface, #fff);
 }
 html.dark .home-sector-rotation { border-color: var(--dk-line); background: var(--dk-card); }
 html body .home-sector-rotation, html body .home-sector-rotation button { font-family: var(--font-ui) !important; }
-html body .home-sector-rotation .hsr-title-row strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-size: 29px; font-weight: 700; letter-spacing: -.8px; }
-html body .home-sector-rotation .hsr-phase { font-size: 17px; }
+html body .home-sector-rotation .hsr-title-row strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-size: var(--ui-title-size); font-weight: 700; letter-spacing: -.8px; }
+html body .home-sector-rotation .hsr-phase { font-size: var(--ui-section-size); }
 html body .home-sector-rotation .hsr-name { font-size: 15px; }
 @media (max-width: 720px) {
-  .home-sector-rotation { padding: 22px 18px 16px; border-radius: 18px; }
-  html body .home-sector-rotation .hsr-title-row strong { font-size: 24px; }
+  html body .home-sector-rotation .hsr-title-row strong { font-size: 22px; }
 }
 /* 미국 업종(섹터 ETF): 업종명 옆 티커는 작게 */
 .hsr-name .hsr-ticker { margin-left: 4px; font-size: 11px; font-weight: 500; color: var(--text-sub, #8a94a3); letter-spacing: 0; }
