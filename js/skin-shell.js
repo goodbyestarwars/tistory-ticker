@@ -159,6 +159,13 @@
     return '<div class="' + escape(className || 'ui-state') + '" role="' + (kind === 'error' ? 'alert' : 'status')
       + '"' + (pending ? ' aria-busy="true"' : '') + '>' + (pending && !(options && options.spinner === false) ? spinner() : '') + escape(message) + '</div>';
   }
+  // 외부 제공처 표기 라벨. 네이버 검색 API 약관의 출처 표기를 한 곳에서 맞추려고 문구와 모양을 공유한다.
+  var SOURCE_NOTES = { naver: '네이버 검색결과' };
+  function sourceNote(kind, prefix) {
+    var text = SOURCE_NOTES[kind];
+    if (!text) return '';
+    return '<span class="ui-source-note">' + (prefix ? escape(prefix) + ' · ' : '') + escape(text) + '</span>';
+  }
   // Await stylesheet readiness before mounting components containing SVG/canvas.
   var styleLoads = {};
   function loadStyle(url) {
@@ -184,7 +191,7 @@
     job.catch(function () { if (styleLoads[url] === job) delete styleLoads[url]; });
     return job;
   }
-  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, loadStyle: loadStyle };
+  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 

@@ -190,7 +190,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>최근 24시간 뉴스를 최신순으로 봅니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.</p>'
+      + '<p>최근 24시간 뉴스를 최신순으로 봅니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + (global.NineUI && global.NineUI.sourceNote ? global.NineUI.sourceNote('naver', '국내 뉴스') : '') + '</p>'
       + '<div class="mn-tabbar"><div class="mn-tabs" role="tablist" aria-label="주요 뉴스 구분">'
       + VIEWS.map(function (view) {
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key

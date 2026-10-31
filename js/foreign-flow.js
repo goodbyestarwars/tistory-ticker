@@ -1947,7 +1947,7 @@
       : '데이터 기준일 준비 중 · 최근 30일 뉴스 백필 여부 확인 중';
     var intro = '<div class="ff-momentum-intro"><b>이슈·재료 지속성 분석</b>'
       + '<span>가격 변동이 아니라 뉴스 반복성·최근성·통합검색 관심도를 배치 집계한 결과입니다.</span>'
-      + '<span class="ff-momentum-coverage">' + coverageText + '</span></div>';
+      + '<span class="ff-momentum-coverage">' + coverageText + (global.NineUI && global.NineUI.sourceNote ? global.NineUI.sourceNote('naver', '이슈·대표 기사') : '') + '</span></div>';
     if (!topics.length) {
       // 2026-08-02: 예전에는 "수집 대상이 아직 아님"과 "수집했지만 반복 이슈가 없음"이
       // 같은 문구로 나와서, 사용자 눈에는 모멘텀 탭이 그냥 안 나오는 것처럼 보였다.
