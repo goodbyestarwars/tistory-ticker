@@ -1,3 +1,5 @@
+2026-10-31 | learn/chart-patterns | 차트가 작동하는 심리·통계적 한계 섹션과 그림 9개 추가 | 신규 CSS 없음, 라이트/다크/모바일 렌더 확인 | master push(Pages)
+
 **2026-10-31 Oracle 서버 syslog 로깅·5일 보관**
 
 앱 로깅을 기존 `logging` 루트에 SysLogHandler(/dev/log, local1 INFO+, 512자 자르기, 실패 시 stderr)로 연결하는 `log_setup.py`를 추가했다(공통 로깅 모듈이 없어 신규, 큐·버퍼 없음). 사용자 이벤트는 `log_setup.event()`(local0 JSON, u=HMAC 12자): login·login_fail(google/naver)·watchlist_save·watchlist_conflict. `scheduled_job.py` 시작/종료/소요 기록, `schedule_health.py`는 `scheduled_jobs.json` finishedAt을 하트비트로 써서 오래되면 '멈춤'. 서버: rsyslog `30-9pay.conf`·imuxsock 속도제한, logrotate 5일, nginx 오류·1초 이상만 slim 로그, uvicorn `--no-access-log`. scheduler/health 테스트 통과.
