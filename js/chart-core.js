@@ -585,6 +585,12 @@
       // the page's vertical scroll, never to desktop-only vertical price pan.
       if (event.pointerType === 'touch' || event.button !== 0 || (opts.isDrawing && opts.isDrawing())) return;
       if (event.target.closest && event.target.closest('button,input,select,textarea')) return;
+      // 오른쪽 가격축 위의 드래그는 라이브러리의 축 늘이기·줄이기(axisPressedMouseMove)에 맡긴다.
+      try {
+        var axisWidth = chart.priceScale('right').width();
+        var box = container.getBoundingClientRect();
+        if (axisWidth > 0 && event.clientX >= box.right - axisWidth) return;
+      } catch (e) { /* 축 폭을 못 읽으면 기존 동작 */ }
       pointer = { id: event.pointerId, y: event.clientY };
     }
     function move(event) {
@@ -606,6 +612,7 @@
     function up(event) { if (pointer && pointer.id === event.pointerId) pointer = null; }
     function reset(event) {
       if (opts.isDrawing && opts.isDrawing()) return;
+      // 축을 더블클릭하면(라이브러리 기본) 자동 맞춤으로 돌아간다. 아래 코드가 본문 더블클릭도 같은 동작을 맡는다.
       offset = 0;
       chart.priceScale('right').applyOptions({ autoScale: true });
       requestRefresh();
