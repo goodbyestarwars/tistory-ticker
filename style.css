@@ -4780,7 +4780,18 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
+    /* 2026-10-31 사용자 요청("모바일에선 저렇게 보여"): 줄 전체(block)에 음영이 칠해져 칸 왼쪽으로
+       길게 늘어나고 위 현재가와 겹쳤다. 글자 폭만큼만 오른쪽에 붙이고 확산도 줄인다.
+       PC는 이 줄을 감추고 상승률·하락률 컬럼의 글자 폭 음영을 쓴다. */
+    width: fit-content;
+    margin-left: auto;
+    margin-right: -3px;
+    padding: 1px 3px;
   }
+  .home-realtime-board .hrt-table-wrap .hrt-price-rate.hrt-pill-up { box-shadow: 0 0 0 1px rgba(227, 77, 75, .18); }
+  .home-realtime-board .hrt-table-wrap .hrt-price-rate.hrt-pill-down { box-shadow: 0 0 0 1px rgba(38, 116, 217, .18); }
+  html.dark .home-realtime-board .hrt-table-wrap .hrt-price-rate.hrt-pill-up { box-shadow: 0 0 0 1px rgba(227, 77, 75, .28); }
+  html.dark .home-realtime-board .hrt-table-wrap .hrt-price-rate.hrt-pill-down { box-shadow: 0 0 0 1px rgba(38, 116, 217, .28); }
 }
 
 /* ============ iframe 모드 (모달 안에서 열릴 때) ============ */
