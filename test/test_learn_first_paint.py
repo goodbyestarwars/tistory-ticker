@@ -10,7 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 LEARN = ROOT / "learn"
 CSS = ROOT / "css" / "legal.css"
-STYLE_LINK = '../css/legal.css?v=20261026-story-stable-1'
+STYLE_LINK = '../css/legal.css?v=20261031-story-unify-1'
 PRELOAD = (
     'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/'
     'dist/web/variable/pretendardvariable-dynamic-subset.css'
@@ -39,8 +39,11 @@ class LearnFirstPaintContract(unittest.TestCase):
     def test_common_css_keeps_learning_styles_isolated(self):
         self.assertIn('body.learn-page .legal-wrap {', self.css)
         self.assertIn('max-width: 920px;', self.css)
-        self.assertIn('--learn-box: #edf3f8;', self.css)
-        self.assertIn('background: #e3edf6;', self.css)
+        # 2026-10-31 통일 디자인: 단락 흰 상자·둥근 모서리·마루부리(제목만 Bold)
+        self.assertIn('--learn-box: #f2f7fe;', self.css)
+        self.assertIn('body.learn-page .legal-wrap .learn-sec,', self.css)
+        self.assertIn('border-radius: 22px;', self.css)
+        self.assertIn('"MaruBuriBold"', self.css)
         self.assertIn('.fig-on-strong { fill: #fff;', self.css)
         self.assertIn('.fig-on-accent { fill: #263445;', self.css)
         self.assertIn('.gd-toc { display: grid;', self.css)
@@ -59,7 +62,7 @@ class LearnFirstPaintContract(unittest.TestCase):
 
     def test_footer_story_palette_preserves_original_pastel_tones(self):
         footer = (ROOT / "js" / "skin-shell.js").read_text(encoding="utf-8")
-        self.assertEqual(footer.count('style="--lc-a:#'), 11)
+        self.assertEqual(footer.count('style="--lc-a:#'), 12)
         self.assertIn('--lc-a:#ffe6c2;--lc-b:#f7bf78', footer)
         self.assertNotIn('--lc-a:#e6f1f5;--lc-b:#d1e2ea', footer)
 

@@ -80,8 +80,10 @@
 - `learn/*.html`은 `<body class="learn-page">`로 명시적으로 범위를 구분한다. 공유 CSS `css/legal.css`의 이야기 전용 스타일은 `body.learn-page .legal-wrap` 아래에서만 적용하며 법적 고지 및 `legal/guide.html`을 건드리지 않는다.
 - 본문 최대 폭은 920px, 기존 본문 SVG는 520px, 심화 연구실 SVG는 620px까지 사용한다. 모바일 480px 이하에서는 기존 글자 크기·여백·그림 폭 조절을 유지한다. 심화 학습에 `learn-deep`/`learn-lab`/`learn-grid`/`learn-math`/`learn-sources`를 재사용한다.
 - 밝은 그림 바탕 `fig-soft`/`fig-soft2`/`fig-white`는 블루그레이를 사용하고 도표 텍스트 `fig-ink`는 진한 색, `fig-on-strong`은 진한 상승/하락 막대 안의 밝은 텍스트, `fig-on-accent`는 금색 계열 막대 위의 진한 텍스트다. 코인 반감기 '50개' 라벨은 `fig-ink`를 쓴다. 상승/하락의 의미색은 변경하지 않는다.
-- 이야기 페이지의 `<head>`에서는 **동일한 초기 종이색·본문 폭을 최소한의 인라인 CSS로 먼저 제공**하고 CDN preconnect/font CSS preload 후 동일 오리진 `../css/legal.css?v=20261026-story-stable-1`을 로드한다. 외부 Pretendard 가변 폰트의 CSS `@import`에 따른 발견 지연을 줄인다. 추가하는 페이지는 초기 스타일과 폰트 preload를 함께 복제하되 로직/본문 스타일은 공유 CSS를 단일 출처로 사용한다.
+- 이야기 페이지의 `<head>`에서는 **동일한 초기 종이색·본문 폭을 최소한의 인라인 CSS로 먼저 제공**하고 CDN preconnect/font CSS preload 후 동일 오리진 `../css/legal.css?v=20261031-story-unify-1`을 로드한다. 외부 Pretendard 가변 폰트의 CSS `@import`에 따른 발견 지연을 줄인다. 추가하는 페이지는 초기 스타일과 폰트 preload를 함께 복제하되 로직/본문 스타일은 공유 CSS를 단일 출처로 사용한다.
 - 티스토리 홈페이지·휴장 푸터의 이야기 카드 11개는 `js/skin-shell.js`에 이미 있는 `--lc-a/--lc-b` 값을 차분한 블루그레이로 변경한다. 레이아웃·링크·카드 개수는 유지한다.
+- **통일 디자인 (2026-10-31)**: 단락(`h2` 구간)은 `<section class="learn-sec">` 흰색 둥근 상자(반경 22px), 심화 연구실은 `.learn-deep`가 같은 상자다. 글꼴은 마루부리(`MaruBuri`, 본문 크기 유지), 제목(h1~h4·목차 링크·표 머리글)만 `MaruBuriBold`이며 본문 `<b>`는 굵기 대신 남색 글자로 구분한다. 색은 상승 빨강 `--learn-up`/하락 파랑 `--learn-down`/남색 글자만 쓰고 회색·갈색·금색은 쓰지 않는다. 마루부리 CSS는 각 페이지 `<head>`의 `hangeul.pstatic.net/.../maru-buri.css`로 불러온다. 새 이야기 페이지는 이 구조(`learn-sec`·검색창 `#learn-search`)를 따른다.
+- **이야기 전체 검색**: 모든 `learn/*.html`이 `#learn-search`와 `js/learn-search.js` 하나를 공유한다. 색인 `data/learn-search.js`는 `node scripts/build_learn_search.js`가 `learn/` 본문과 `data/glossary.js`에서 만들며, 본문·용어를 고친 뒤 반드시 다시 실행한다(`test/test_learn_search.py`가 최신 여부를 검사).
 - 이야기 본문은 정적 HTML이므로 JavaScript가 화면을 재작성하지 않는다. `site-interactions.js`는 DOMContentLoaded 이후 숨겨진 포인터 효과를 연결한다. `learn/glossary.html`의 검색 결과는 예외적으로 사전 데이터 스크립트로 동적 렌더링한다. 실제 첫 페인트·네트워크 타이밍은 브라우저 별도 측정 대상이다.
 - 정적 회귀 계약은 `test/test_learn_first_paint.py`에 둔다.
 

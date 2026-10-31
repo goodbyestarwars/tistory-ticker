@@ -7,15 +7,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -23,11 +24,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>5장 · 위험 관리와 나의 규칙</h1>
   <p class="legal-effective-date">잃지 않는 것이 먼저인 이유, 빚투, 상승장·하락장 대처, 사기 전에 정해 둘 것</p>
 
-  <h2>회복은 하락보다 가파르다</h2>
+  <section class="learn-sec">
+  <h2 id="sec-1">회복은 하락보다 가파르다</h2>
   <p>반 토막이 나면 "50%만 오르면 본전"이 아니다. <b>100%가 올라야</b> 제자리다. 내려갈 때는 남은 돈에서 빠지고, 올라올 때는 줄어든 돈에서 불어나기 때문이다.</p>
 
   <figure class="learn-fig">
@@ -62,7 +65,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <p><b>예시</b> 1,000만 원이 -50%면 500만 원이다. 여기서 50%가 올라도 750만 원이다. 1,000만 원으로 돌아오려면 500만 원이 두 배가 돼야 한다.</p>
 
-  <h2>빚으로 사면 시간이 내 편이 아니다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">빚으로 사면 시간이 내 편이 아니다</h2>
   <p>신용융자·미수는 증권사에서 돈을 빌려 주식을 사는 것이다. 오를 때 수익이 커지는 대신 <b>버틸 수 없게 된다.</b> 그게 진짜 문제다.</p>
 
   <figure class="learn-fig">
@@ -94,7 +99,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <p>시장 전체에 빚이 많이 쌓여 있으면 하락이 시작될 때 반대매매가 반대매매를 부른다. 이 사이트 증시온도에 <b>빚투 위험도</b>가 들어 있는 이유다.</p>
 
-  <h2>상승장·하락장·박스권, 이렇게 다르게 움직인다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">상승장·하락장·박스권, 이렇게 다르게 움직인다</h2>
   <p>같은 종목, 같은 차트라도 시장 분위기에 따라 통하는 행동이 다르다. 장세를 먼저 구분하고 나서 행동을 정한다.</p>
 
   <figure class="learn-fig">
@@ -142,7 +149,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li>박스 위쪽에서 사면 곧 아래쪽으로 밀린다. 차라리 <b>아무것도 하지 않는 날</b>을 정해 둔다.</li>
   </ul>
 
-  <h2>사기 전에 정해 둘 세 가지</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">사기 전에 정해 둘 세 가지</h2>
   <ol>
     <li><b>왜 사는가</b>를 한 문장으로 적는다. 안 적히면 근거가 없는 것이다.</li>
     <li><b>얼마나 살 것인가.</b> 이 돈을 다 잃어도 생활이 흔들리지 않는 금액인지 본다.</li>
@@ -152,7 +161,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>기록이 실력을 만든다</b> 산 이유와 판 이유를 한 줄씩만 남겨도 두세 달 뒤 반복되는 실수가 눈에 보인다. 손실은 대개 새로운 실수가 아니라 <b>같은 실수의 반복</b>이다.
   </div>
 
-  <h2>한 종목에 얼마를 넣었나가 손실을 정한다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">한 종목에 얼마를 넣었나가 손실을 정한다</h2>
   <p>같은 종목이 똑같이 -20% 빠져도 계좌가 받는 충격은 그 종목에 넣은 돈만큼이다. 계좌 1,000만원으로 계산하면 이렇다.</p>
   <table class="learn-table">
     <thead><tr><th>그 종목에 넣은 돈</th><th>종목 -20%</th><th>계좌 전체</th></tr></thead>
@@ -164,7 +175,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <p>-2%는 하루 기분이 나쁜 정도이고, -20%는 회복에 +25%가 필요한 상처다. 종목을 고르는 실력보다 <b>얼마나 넣을지 정하는 습관</b>이 계좌를 더 오래 지킨다. 확신이 클수록 많이 넣고 싶어지는데, 확신은 틀릴 때도 똑같이 크다.</p>
 
-  <h2>초보가 자주 밟는 지뢰</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">초보가 자주 밟는 지뢰</h2>
   <ul>
     <li><b>추격 매수</b> 이미 크게 오른 종목을 "더 갈 것 같아서" 산다.</li>
     <li><b>물타기 반복</b> 이유가 무너졌는데 평단가만 낮추면 손실 금액은 계속 커진다.</li>
@@ -172,13 +185,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li><b>잦은 매매</b> 비용이 쌓이고 판단이 급해진다.</li>
   </ul>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/page/market-temp">시장 &gt; 증시온도</a>에서 오늘 점수와 개미 체크리스트를 본다. 점수는 사고팔라는 신호가 아니라 <b>오늘 조심할 날인지</b> 알려 주는 온도계다.</li>
     <li><a href="https://ghlee.tistory.com/page/watchlist">MY</a>에 평단가를 넣으면 평가손익과 물타기 계산을 볼 수 있다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="advanced-risk">
   <h2 id="advanced-risk">심화 연구실 · 종목이 아니라 포트폴리오가 살아남아야 한다</h2>
   <p>위험관리는 손절 퍼센트 하나가 아니라 <b>포지션 크기, 자산 간 상관관계, 유동성, 동시에 손실이 발생하는 꼬리 위험</b>을 함께 관리하는 분야다. 위험 지표는 과거 자료에서 추정하므로 미래 손실의 상한선을 보증하지 않는다.</p>
@@ -216,13 +232,17 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-sources"><strong>더 깊게 읽기</strong><ul><li><a href="https://www.bis.org/bcbs/" target="_blank" rel="noopener noreferrer">국제결제은행(BIS) · 시장 위험과 금융 안정 관련 자료</a></li><li><a href="https://www.cfainstitute.org/" target="_blank" rel="noopener noreferrer">CFA Institute · 포트폴리오 위험관리 학습자료</a></li></ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-8">한 줄 정리</h2>
   <p>크게 잃지 않으면 기회는 다시 온다. 빚내지 않고, 장세에 맞는 행동을 정하고, 기록을 남긴다.</p>
 
-  <h2>여기까지가 종목을 보는 법</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-9">여기까지가 종목을 보는 법</h2>
   <p>1~5장은 종목 하나를 보는 눈이었다. 다음 <b>6~7장</b>에서는 한 걸음 물러나 시장 전체에 돈이 들어오고 빠지는 구조, 그리고 환율·금리·비트코인이 그 흐름을 어떻게 알려 주는지 본다.</p>
   <p>이 글은 공부용 설명이고 투자 권유가 아니다. 투자 판단과 책임은 본인에게 있다.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/company.html">← 4장 수급과 회사</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/money.html">6장 돈이 들어오는 구조 →</a>
@@ -231,5 +251,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

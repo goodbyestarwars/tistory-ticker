@@ -7,15 +7,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -23,13 +24,17 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>6장 · 돈이 들어오는 구조</h1>
   <p class="legal-effective-date">시장이라는 물탱크에 물은 어디서 들어오고 어디로 빠지는가</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>"좋은 회사인데 왜 빠지지?" 이 물음의 답은 종목이 아니라 시장 전체에 있다. 이 장은 돈이 들어오고 빠지는 길을 그림 한 장으로 본다.</p>
 
-  <h2>시장은 물탱크다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">시장은 물탱크다</h2>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 268" role="img" aria-label="시장 물탱크 그림: 예탁금, 신용융자, 외국인, 기관, ETF가 물을 붓고 유상증자와 매도, 비용이 물을 뺀다">
@@ -72,7 +77,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>먼저 깨야 할 오해</b> "내가 100만 원어치 샀으니 그 회사에 100만 원이 들어갔다"고 여기기 쉬운데 아니다. 이미 상장된 주식을 사는 건 <b>다른 주주에게서 사는 것</b>이라 회사 금고에는 한 푼도 안 들어간다. 회사에 돈이 들어가는 건 상장(IPO)이나 유상증자처럼 <b>새 주식을 찍을 때</b>뿐이다.
   </div>
 
-  <h2>수도꼭지 다섯 개</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">수도꼭지 다섯 개</h2>
 
   <h3>① 개인 예탁금 — 로비에 서 있는 사람들</h3>
   <p>증권사 계좌에 들어와 있지만 아직 주식을 사지 않은 돈이다. 영화관 로비에 서 있는 관객이라고 보면 된다. 로비에 사람이 많으면 언제든 상영관(시장)으로 들어올 수 있고, 로비가 비면 새로 들어올 사람이 없다는 뜻이다.</p>
@@ -89,7 +96,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h3>⑤ ETF·펀드 — 장바구니째 사는 돈</h3>
   <p>ETF에 돈이 들어오면 그 안에 담긴 종목이 <b>한꺼번에</b> 매수된다. 개별 호재가 없는데 대형주가 같이 오르내리는 날은 이것 때문일 때가 있다.</p>
 
-  <h2>ETF와 ETN, 뭐가 다른가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">ETF와 ETN, 뭐가 다른가</h2>
   <p>둘 다 이름·거래 방식이 비슷해 헷갈리지만, <b>안에 실제로 뭘 들고 있는지</b>가 결정적으로 다르다.</p>
 
   <table class="learn-table">
@@ -126,7 +135,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     벌어져 있지 않은지 확인하는 게 좋다.
   </div>
 
-  <h2>수도꼭지를 여닫는 손잡이 = 금리</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">수도꼭지를 여닫는 손잡이 = 금리</h2>
   <table class="learn-table">
     <thead><tr><th>상황</th><th>사람들 생각</th><th>돈의 방향</th></tr></thead>
     <tbody>
@@ -136,7 +147,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <p>같은 회사, 같은 실적인데 금리가 높은 시기엔 싸게, 낮은 시기엔 비싸게 거래되는 이유가 이것이다. 회사가 변한 게 아니라 <b>돈의 값</b>이 변한 것이다(자세한 계산은 7장).</p>
 
-  <h2>오늘 흐른 물의 양 = 거래대금</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">오늘 흐른 물의 양 = 거래대금</h2>
   <p>거래대금은 그날 사고판 금액의 합이다. 가게로 치면 매출이다.</p>
   <ul>
     <li><b>많다</b> 관심이 몰렸다는 뜻. 오르든 내리든 그 방향에 힘이 실린다.</li>
@@ -146,7 +159,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>거래대금 = 탈출구의 넓이</b> 하루 거래대금이 3억 원인 종목에 3,000만 원을 넣으면, 파는 순간 내 주문이 가격을 끌어내린다. 살 때는 몰라도 <b>팔 때 반드시 겪는다.</b> 종목을 고를 때 거래대금부터 보는 습관을 들이는 게 좋다.
   </div>
 
-  <h2>선물과 옵션 — 돈이 먼저 움직이는 곳</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">선물과 옵션 — 돈이 먼저 움직이는 곳</h2>
   <p>뉴스에서 "선물이 빠지니 현물도 밀렸다"는 말이 나온다. 선물·옵션은 <b>미리 정한 가격으로 나중에 사고팔기로 한 약속</b>을 거래하는 시장이다.</p>
 
   <figure class="learn-fig">
@@ -221,7 +236,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>처음에는 직접 거래보다 신호로 본다</b> 선물이 현물보다 먼저 약해지고 풋옵션 쪽 거래가 갑자기 늘면, 큰돈이 하락 위험을 신경 쓰는지 살펴볼 단서가 된다. 단서 하나로 내일을 맞힐 수는 없다. <b>선물·옵션은 시장의 온도계이지 정답지가 아니다.</b> 실제 거래 전에는 증권사의 교육·거래 요건과 계약 크기, 증거금을 반드시 확인한다.
   </div>
 
-  <h2>돈의 흐름을 읽는 순서</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">돈의 흐름을 읽는 순서</h2>
   <ol>
     <li><b>금리</b>가 어느 쪽인가 → 돈이 위험자산으로 오는 계절인가, 떠나는 계절인가</li>
     <li><b>외국인 수급</b>이 며칠째 같은 방향인가</li>
@@ -229,7 +246,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li>그다음에 <b>내 종목</b>을 본다.</li>
   </ol>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-8">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/page/market-temp">시장 &gt; 증시온도</a>의 <b>돈</b> 축이 이 장의 요약이다. 거래대금과 수급을 묶어 0~100으로 보여 준다.</li>
     <li><a href="https://ghlee.tistory.com/pages/kospi-futures">시장 &gt; 시장지표</a>에서 코스피200 선물과 옵션 수급, 금리·환율을 함께 본다.</li>
@@ -239,6 +258,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="advanced-money">
   <h2 id="advanced-money">심화 연구실 · 거래대금과 실제 자금 유입은 다르다</h2>
   <p>시장의 거래대금이 20조 원이었다고 해서 새로운 현금 20조 원이 시장으로 들어온 것은 아니다. 거래대금은 매수자와 매도자 사이에서 성사된 <b>거래가격 × 수량의 합</b>이고, 신규 자금 유입은 발행시장·펀드 설정/환매·투자자 예탁금·기관별 포지션 변화를 별도로 봐야 한다.</p>
@@ -266,9 +286,11 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-sources"><strong>자료를 확인하는 곳</strong><ul><li><a href="https://data.krx.co.kr/" target="_blank" rel="noopener noreferrer">KRX 정보데이터시스템 · 거래대금과 시장통계</a></li><li><a href="https://www.kofia.or.kr/" target="_blank" rel="noopener noreferrer">금융투자협회 · 금융투자시장 통계</a></li></ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-9">한 줄 정리</h2>
   <p>주가는 회사만으로 정해지지 않는다. <b>금리가 수도꼭지를 열고, 큰손이 양동이로 붓고, 거래대금이 오늘 흐른 물의 양</b>이다.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/risk.html">← 5장 위험 관리</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/macro.html">7장 환율·금리·비트코인 →</a>
@@ -277,5 +299,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

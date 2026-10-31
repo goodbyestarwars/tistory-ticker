@@ -8,28 +8,33 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>채권 이야기</h1>
   <p class="legal-effective-date">단기채·장기채, 금리 역전, 듀레이션과 주식시장 · 설명 업데이트 2026-10-07</p>
 
+  <section class="learn-sec learn-sec--intro">
   <p>뉴스에서 "국채금리가 올랐다"는 말이 나오면 주식시장이 같이 흔들리는 걸 자주 본다. 그런데 채권이 정확히
   뭘 사고파는 건지, 금리가 오르면 왜 채권 가격은 내려가는지는 막상 설명하기 어렵다. 이 글은 채권의 기본
   개념부터 시작해, 금리와 주식시장이 왜 그렇게 자주 같이 언급되는지까지 정리한다.</p>
 
-  <h2>채권은 무엇인가 - 나라·회사에 돈을 빌려주는 증서</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-1">채권은 무엇인가 - 나라·회사에 돈을 빌려주는 증서</h2>
   <p>주식이 회사의 지분(소유권)이라면, 채권은 <b>빌려준 돈에 대한 차용증</b>이다. 정해진 기간(만기) 뒤
   원금(액면가)을 돌려받고, 그 사이 정해진 이자(표면금리·쿠폰)를 주기적으로 받는다.</p>
 
@@ -43,7 +48,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     </tbody>
   </table>
 
-  <h2>채권시장이 주식시장보다 훨씬 크다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">채권시장이 주식시장보다 훨씬 크다</h2>
   <p>개미 투자자에게는 낯설게 들리지만, <b>전 세계 채권시장의 발행 잔액 합계는 전 세계 주식시장의
   시가총액 합계보다 크다</b>고 알려져 있다(정확한 배수는 집계 시점·기관마다 달라 여기서는 순서만
   본다). 뉴스·커뮤니티에서 "주식 이야기"만 압도적으로 많이 들리는 것과는 딴판이다.</p>
@@ -85,7 +92,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     있는 셈이다.
   </div>
 
-  <h2>채권가격과 금리는 왜 반대로 움직이나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">채권가격과 금리는 왜 반대로 움직이나</h2>
   <p>이게 채권을 이해하는 데 가장 중요한 한 가지다. <b>시장금리가 오르면 이미 발행된 채권의 가격은
   내려가고, 시장금리가 내리면 그 채권의 가격은 올라간다</b> - 방향이 정확히 반대다.</p>
 
@@ -124,7 +133,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     내리면, 내 채권(3%)이 새 채권보다 유리해져 웃돈을 주고서라도 사려는 사람이 생긴다.
   </div>
 
-  <h2>단기채와 장기채 - 돈을 얼마나 오래 빌려주나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">단기채와 장기채 - 돈을 얼마나 오래 빌려주나</h2>
   <table class="learn-table">
     <thead><tr><th>구분</th><th>단기채</th><th>장기채</th></tr></thead>
     <tbody>
@@ -140,7 +151,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   개별 채권은 발행자가 약속대로 갚으면 만기에 액면가를 받지만, 만기가 정해지지 않은 일반 채권 ETF는
   특정 날짜에 내 매수가를 돌려주는 상품이 아니다.</div>
 
-  <h2>듀레이션 - 만기가 길수록 금리에 더 민감하다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">듀레이션 - 만기가 길수록 금리에 더 민감하다</h2>
   <p>같은 크기의 금리 변화라도 <b>만기가 긴 채권일수록 가격이 더 크게 움직인다</b>. 남은 이자를 받을 기간이
   길수록, 그 사이 금리 변화가 누적으로 영향을 주기 때문이다. 이 민감도를 "듀레이션"이라 부른다.</p>
 
@@ -164,7 +177,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     오를 여지가 있다 - 같은 방향을 예상해도 만기에 따라 베팅의 크기가 달라진다.
   </div>
 
-  <h2>신용등급과 신용스프레드 - 이 채권, 정말 떼일 일 없나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">신용등급과 신용스프레드 - 이 채권, 정말 떼일 일 없나</h2>
   <p>국채(나라가 발행)는 원금을 못 갚을 위험이 거의 없다고 본다. 하지만 회사채(기업이 발행)는 그 회사가
   망하면 이자도, 원금도 못 받을 수 있다 - 이 위험을 등급으로 매긴 것이 신용등급이다.</p>
 
@@ -184,7 +199,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     경기 둔화 경고 신호로도 자주 언급된다.
   </div>
 
-  <h2>국채 종류 - 한국 국고채와 미국 국채</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">국채 종류 - 한국 국고채와 미국 국채</h2>
   <p>같은 국채라도 만기별로 성격이 다르고, 나라마다 가리키는 이름도 다르다. 이 사이트의 "글로벌 시장지표"가
   보여주는 채권 네 종류를 정리하면 이렇다.</p>
 
@@ -198,6 +215,8 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     </tbody>
   </table>
 
+  </section>
+  <section class="learn-sec">
   <h2 id="yield-curve">장단기 금리 역전 - 짧게 빌려주는 이자가 더 높다</h2>
   <figure class="learn-fig">
     <svg viewBox="0 0 420 290" role="img" aria-label="가상 예시: 정상은 2년물 3%, 10년물 4%이고 역전은 2년물 5%, 10년물 4%다">
@@ -222,7 +241,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   4% − 5% = <b>−1%p(−100bp)</b>면 역전이다. 같은 나라·통화·비슷한 기준시각의 값을 비교한다.
   뉴욕 연준의 침체 확률 모델은 10년물 − <b>3개월물</b>을 쓰므로, 10년물 − 2년물과 같은 지표로 보면 안 된다.</div>
 
-  <h2>역전이 되면 어떤 문제가 있나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-9">역전이 되면 어떤 문제가 있나</h2>
   <ul>
     <li><b>대출받는 사람과 회사가 힘들어진다</b> 높은 단기금리가 대출금리에 반영되면 이자 부담이 커져
     소비·투자를 줄일 수 있다. 역전 자체보다 높은 금리와 경기 둔화가 핵심 부담이다.</li>
@@ -235,7 +256,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   그래도 침체를 확정하거나 다음 날 주가 방향을 알려주지는 않는다. 역전의 지속 기간과 함께
   고용·소비·회사채 스프레드가 나빠지는지 확인한다. 미국의 경험을 한국에 그대로 적용할 수도 없다.</div>
 
-  <h2>역전이 풀리면 좋은 소식인가</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-10">역전이 풀리면 좋은 소식인가</h2>
   <table class="learn-table">
     <thead><tr><th>풀리는 이유</th><th>읽어야 할 점</th></tr></thead>
     <tbody>
@@ -245,7 +268,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
   <p><b>역전 해소 = 주식 매수 신호</b>로 외우지 말자. 어느 쪽 금리가 왜 움직였는지 함께 본다.</p>
 
-  <h2>금리와 주식시장 - 왜 항상 같이 언급되나</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-11">금리와 주식시장 - 왜 항상 같이 언급되나</h2>
   <p>6장(돈이 들어오는 구조)에서 "금리는 돈의 임대료"라고 배웠다. 금리가 오르면 이 임대료가 비싸지는
   셈이라, 주식시장에는 크게 두 방향으로 영향을 준다.</p>
 
@@ -262,12 +287,15 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     대안)의 매력이 올라가는 동시에, 주식(위험자산)의 계산상 가치는 내려가는 두 가지 효과가 겹친다.
   </div>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-12">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 한국 국고채 3년물과 미국 국채 10·2·30년물 금리를 확인한다. 지표별 갱신 시각도 함께 본다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="bond-advanced">
   <h2 id="bond-advanced">심화 연구실 · 채권의 가격은 금리 하나로 결정되지 않는다</h2>
   <p>채권의 가격은 약속된 현금흐름을 시점별 할인율로 나눈 합이다. 실무에서는 <b>듀레이션, 볼록성(convexity), 만기별 금리 민감도, 신용 스프레드, 유동성 프리미엄</b>을 구분한다. 쿠폰이 같은 채권도 만기와 수익률곡선 모양에 따라 금리 변화에 다른 반응을 보인다.</p>
@@ -293,12 +321,15 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-sources"><strong>자료 확인</strong><ul><li><a href="https://www.bok.or.kr/" target="_blank" rel="noopener noreferrer">한국은행 · 통화정책과 채권시장 설명</a></li><li><a href="https://home.treasury.gov/" target="_blank" rel="noopener noreferrer">미국 재무부 · 국채 발행과 수익률 자료</a></li></ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-13">한 줄 정리</h2>
   <p>채권가격과 금리는 반대로 움직이고, 만기가 길수록 그 움직임이 더 크며(듀레이션), 신용등급이 낮을수록
   더 높은 금리(신용스프레드)를 요구한다. 금리가 오르면 안전한 대안의 매력이 커지는 동시에 주식의 계산상
   가치는 내려가서, 채권시장 뉴스가 주식시장에도 늘 함께 영향을 준다.</p>
 
-  <h2>설명 근거</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-14">설명 근거</h2>
   <p>2026-10-07 확인. 현재 금리나 침체 확률을 제시하는 실시간 데이터가 아니라 개념 설명이다.</p>
   <ul>
     <li><a href="https://www.sec.gov/files/ib_interestraterisk.pdf" target="_blank" rel="noopener">SEC: 금리 변화와 채권의 만기 위험</a></li>
@@ -306,6 +337,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li><a href="https://www.federalreserve.gov/econres/notes/feds-notes/predicting-recession-probabilities-using-the-slope-of-the-yield-curve-20180301.html" target="_blank" rel="noopener">연준: 금리차 해석과 예측의 한계</a></li>
   </ul>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">← 차트 이야기</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/crypto-market.html">코인 이야기 →</a>
@@ -314,5 +346,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

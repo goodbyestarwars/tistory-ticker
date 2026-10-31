@@ -7,15 +7,16 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
 </style>
-<link rel="stylesheet" href="../css/legal.css?v=20261026-story-stable-1" />
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
 <div class="legal-wrap">
@@ -23,11 +24,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
   </div>
+  <div class="learn-search" id="learn-search"></div>
 
   <h1>1장 · 시장이 돌아가는 구조</h1>
   <p class="legal-effective-date">주식이 무엇인지, 언제 거래되는지, 가격이 어떤 단위로 움직이는지</p>
 
-  <h2>주식은 회사를 조각낸 것이다</h2>
+  <section class="learn-sec">
+  <h2 id="sec-1">주식은 회사를 조각낸 것이다</h2>
   <p>치킨집을 차리는 데 1억 원이 든다고 하자. 혼자 낼 돈이 없어 친구 열 명에게서 1,000만 원씩 받고, 대신 <b>가게를 10조각으로 나눠 한 조각씩</b> 줬다면 그 조각이 주식이다.</p>
   <ul>
     <li>가게가 잘돼 이익이 나면 조각 수대로 나눠 받는다 → <b>배당</b></li>
@@ -36,7 +39,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul>
   <p>그래서 주식 계좌는 은행 계좌와 다르다. 증권사에 계좌를 만들고 돈을 넣어 두면, 그 돈으로 장터에 "이 조각을 얼마에 사겠다"는 주문을 낼 수 있다.</p>
 
-  <h2>코스피와 코스닥</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-2">코스피와 코스닥</h2>
   <p>국내 장터는 크게 두 곳이다.</p>
   <ul>
     <li><b>코스피</b>는 크고 오래된 회사가 모인 곳이다. 삼성전자·현대차 같은 이름이 여기 있다. 배가 커서 파도에 덜 흔들린다.</li>
@@ -44,7 +49,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul>
   <p>같은 뉴스에도 두 시장이 다르게 움직인다. "오늘 시장 좋다"는 말도 어느 쪽인지 구분해서 들어야 한다.</p>
 
-  <h2>하루 거래 시간표 — 이제 저녁 8시까지</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-3">하루 거래 시간표 — 이제 저녁 8시까지</h2>
   <p>예전에는 "주식은 오후 3시 30분이면 끝"이었다. 지금은 다르다. 대체거래소(NXT)가 생기고 <b>애프터마켓</b>이 도입되면서, 아침 8시부터 저녁 8시까지 거래할 수 있는 시간이 크게 늘었다.</p>
 
   <figure class="learn-fig">
@@ -88,7 +95,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
   <p>처음에는 <b>정규장 안에서만 거래하는 습관</b>을 들이는 게 낫다. 프리마켓·애프터마켓은 급한 일이 생겼을 때 쓰는 비상구로 알아 두면 된다. 거래 가능 시간과 방식은 증권사·거래소마다 다를 수 있으니, 실제로 쓰기 전에 내 증권사 화면에서 확인한다.</p>
 
-  <h2>하루에 움직일 수 있는 한계, ±30%</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-4">하루에 움직일 수 있는 한계, ±30%</h2>
   <p>국내 주식은 하루에 오르내릴 수 있는 폭이 정해져 있다. 전날 종가에서 <b>위로 30%, 아래로 30%</b>까지다. 위쪽 끝이 상한가, 아래쪽 끝이 하한가다.</p>
 
   <figure class="learn-fig">
@@ -115,7 +124,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <p>이 제도 덕분에 하루 만에 재산이 반 토막 나는 일은 막는다. 하지만 <b>며칠에 걸친 하락은 못 막는다.</b> 이틀 연속 하한가면 1만 원짜리가 4,900원이 된다.</p>
 
-  <h2>시장의 브레이크 3종 — VI, 사이드카, 서킷브레이커</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-5">시장의 브레이크 3종 — VI, 사이드카, 서킷브레이커</h2>
   <p>가격이 너무 빠르게 움직이면 거래소가 <b>잠깐 멈춰 세운다.</b> 놀이기구가 심하게 흔들리면 안전장치가 걸리는 것과 같다. 크기 순서로 세 가지가 있다.</p>
 
   <figure class="learn-fig">
@@ -154,7 +165,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </div>
   <p>이런 날은 호가가 얇아져 시장가 주문이 크게 미끄러진다(2장). 브레이크가 걸린 날일수록 <b>서두르지 않는 쪽</b>이 낫다.</p>
 
-  <h2>가격은 정해진 계단으로만 움직인다</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-6">가격은 정해진 계단으로만 움직인다</h2>
   <p>주식 가격은 아무 숫자나 될 수 없다. 가격대마다 <b>한 칸의 크기(호가단위)</b>가 정해져 있다. 3만 원짜리 주식은 10원 단위로만 움직여서 30,005원이라는 가격은 아예 없다.</p>
 
   <figure class="learn-fig">
@@ -203,13 +216,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>왜 알아야 하나</b> 25만 원짜리 주식을 253,200원에 사겠다고 주문하면 <b>주문 자체가 안 들어간다.</b> 그런 가격이 없기 때문이다(253,000원이나 253,500원만 된다). 처음 주문을 넣었는데 계속 거부당하면 대개 이 때문이다.
   </div>
 
-  <h2>이 사이트에서 확인하기</h2>
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-7">이 사이트에서 확인하기</h2>
   <ul>
     <li><a href="https://ghlee.tistory.com/pages/kospi-futures">시장 &gt; 시장지표</a>에서 코스피·코스닥이 지금 어떤지 본다.</li>
     <li><a href="https://ghlee.tistory.com/page/stock-search">종목 검색</a>에서 비싼 종목과 싼 종목을 하나씩 열어, 현재가가 몇 원 단위로 바뀌는지 직접 견줘 본다.</li>
   </ul>
 
 
+  </section>
 <section class="learn-deep" aria-labelledby="advanced-market">
   <h2 id="advanced-market">심화 연구실 · 시장은 어떻게 가격을 발견할까</h2>
   <p>가격은 기업의 가치를 바로 읽어 내는 숫자가 아니라, <b>지금 거래하려는 투자자들의 주문이 만나는 가격</b>이다. 이를 연구하는 분야가 <b>시장미시구조(market microstructure)</b>다. 체결 규칙, 주문 정보의 비대칭, 시장조성자의 재고 부담, 거래소 사이의 주문 분산을 함께 살펴본다.</p>
@@ -246,9 +262,11 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </ul></div>
 </section>
 
-  <h2>한 줄 정리</h2>
+  <section class="learn-sec">
+  <h2 id="sec-8">한 줄 정리</h2>
   <p>주식은 회사를 조각낸 것이고, 거래는 <b>정해진 시간</b>에 <b>정해진 계단</b>으로만 이뤄지며, 하루 변동에는 ±30% 한계가 있다.</p>
 
+  </section>
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 차례</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/order.html">2장 주문과 체결 →</a>
@@ -257,5 +275,6 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
 </div>
 <script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
 </body>
 </html>

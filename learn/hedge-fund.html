@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>헤지펀드 이야기</title>
+<meta name="description" content="헤지펀드가 무엇인지, 롱숏과 레버리지는 어떻게 작동하는지, 2와 20 수수료 구조, 소로스의 파운드 공격·LTCM·게임스톱 사태, 한국의 사모펀드 제도와 뉴스 읽는 법을 그림과 가상 계산으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+</head>
+<body class="learn-page">
+<div class="legal-wrap">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>헤지펀드 이야기</h1>
+  <p class="legal-effective-date">공모펀드와의 차이, 롱숏과 레버리지, 2와 20 수수료, 세 번의 역사적 장면, 한국의 사모펀드와 뉴스 읽는 법</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>"헤지펀드가 이 종목을 대량 매도했다", "헤지펀드가 한국 시장을 공매도로 흔든다." 뉴스에는 이런 말이 자주 나오지만 정작 헤지펀드가 누구이고 무슨 돈으로 어떻게 거래하는지는 잘 나오지 않는다. 정체를 모르면 이 말은 공포를 키우는 배경음악으로만 남는다.</p>
+  <p>이 글은 헤지펀드를 <b>악당도 천재도 아닌 하나의 직업</b>으로 보고 풀어 쓴다. 어떤 돈을 모아서, 어떤 방식으로 벌고, 어떻게 망하는지, 그리고 개인 투자자가 뉴스 속 헤지펀드를 어디까지 믿고 어디서부터 걸러야 하는지를 다룬다. 그림 속 숫자는 이해를 돕는 <b>가상값</b>이고, 역사적 사건의 금액은 보도된 대략치다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 196" role="img" aria-label="헤지펀드의 돈의 흐름: 소수의 투자자가 돈을 맡기면 운용사가 매수(롱)와 공매도(숏)를 함께 운용하고 수수료를 받는다">
+      <text class="fig-sub" x="0" y="12">헤지펀드의 돈이 흐르는 길</text>
+      <rect class="fig-soft" x="0" y="22" width="120" height="76" rx="12" />
+      <text class="fig-ink" x="60" y="54" text-anchor="middle">소수의 투자자</text>
+      <text class="fig-sub" x="60" y="76" text-anchor="middle">큰손 · 기관</text>
+      <path class="fig-ink-line" d="M124 60 L152 60" />
+      <path class="fig-ink-line" d="M146 54 L153 60 L146 66" />
+      <rect class="fig-soft2" x="156" y="22" width="112" height="76" rx="12" />
+      <text class="fig-ink" x="212" y="54" text-anchor="middle">헤지펀드</text>
+      <text class="fig-sub" x="212" y="76" text-anchor="middle">운용사가 운용</text>
+      <path class="fig-ink-line" d="M272 48 L294 38" />
+      <path class="fig-ink-line" d="M272 72 L294 84" />
+      <rect class="fig-up" x="298" y="22" width="122" height="38" rx="10" />
+      <text class="fig-on-strong" x="359" y="46" text-anchor="middle">매수 (롱)</text>
+      <rect class="fig-down" x="298" y="66" width="122" height="38" rx="10" />
+      <text class="fig-on-strong" x="359" y="90" text-anchor="middle">공매도 (숏)</text>
+      <rect class="fig-soft" x="0" y="122" width="420" height="62" rx="12" />
+      <text class="fig-ink" x="16" y="146">수수료 = 관리보수 + 성과보수</text>
+      <text class="fig-sub" x="16" y="168">가입 문턱이 높고 돈을 빼는 때도 정해져 있다</text>
+    </svg>
+    <figcaption>개미가 사는 공모펀드와 달리 소수의 큰 돈을 모아 롱·숏·차입을 자유롭게 섞는다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>읽는 법</b> 이 글은 공부용 설명이다. 특정 펀드나 종목을 권하지 않는다. 제도와 수수료 조건은 바뀌므로 실제 가입이나 투자 판단에는 금융감독원·한국거래소·증권사의 최신 공지를 확인한다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-what">헤지펀드는 무엇인가</h2>
+  <p>펀드는 여러 사람의 돈을 모아 전문가가 대신 굴려 주는 그릇이다. 그중 <b>헤지펀드</b>는 소수의 투자자에게만 돈을 받아 비공개로 운용하는 사모펀드를 가리키는 말이다. 이름의 hedge는 '울타리·방어'라는 뜻으로, 시장이 떨어져도 버티도록 위험을 막는다는 발상에서 나왔다. 1949년 미국의 앨프리드 윈슬로 존스가 주식을 사는 동시에 다른 주식을 빌려 파는 방식으로 시장 방향의 위험을 줄이는 펀드를 만든 것이 시초로 알려져 있다.</p>
+  <p>지금은 이름과 달리 '방어'만 하는 펀드가 아니다. 위험을 줄이는 곳도 있고 오히려 크게 키우는 곳도 있다. 공통점은 <b>규제가 느슨한 대신 투자자를 가려 받는다</b>는 점이다.</p>
+  <table class="learn-table">
+    <thead><tr><th>구분</th><th>공모펀드 (일반 펀드)</th><th>헤지펀드 (사모)</th></tr></thead>
+    <tbody>
+      <tr><td>투자자</td><td>누구나 소액으로 가입</td><td>일정 금액 이상을 내는 투자자 위주</td></tr>
+      <tr><td>투자 방식 제한</td><td>종목 비중·차입·공매도에 제한이 큼</td><td>공매도·차입·파생상품을 폭넓게 쓴다</td></tr>
+      <tr><td>목표</td><td>지수보다 잘하기 (상대 수익)</td><td>시장이 어떻든 돈 벌기 (절대 수익)</td></tr>
+      <tr><td>수수료</td><td>주로 운용·판매 보수</td><td>관리보수 + 성과보수</td></tr>
+      <tr><td>공개</td><td>보유 종목·성과를 자세히 공시</td><td>공개 범위가 좁다</td></tr>
+      <tr><td>돈 빼기</td><td>보통 며칠 안에 환매</td><td>분기·연 단위 등 정해진 때만</td></tr>
+    </tbody>
+  </table>
+  <p>"절대 수익"이라는 말은 약속이 아니라 목표다. 시장이 내려도 벌겠다고 내건 펀드가 시장보다 더 크게 잃는 일은 흔하다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-longshort">롱숏 - 오르는 것도 내리는 것도 번다</h2>
+  <p>헤지펀드의 기본기는 <b>롱숏(long/short)</b>이다. 오를 것 같은 종목은 사고(롱), 내릴 것 같은 종목은 빌려서 먼저 팔았다가 싸게 되사서 갚는다(숏, 공매도). 같은 업종의 두 종목을 한 쌍으로 묶으면 시장 전체의 오르내림은 서로 상쇄되고 <b>종목 선택이 맞았는지 틀렸는지</b>만 남는다.</p>
+  <p>가상의 반도체 두 종목으로 계산해 본다. A반도체는 100만원어치 사고, B반도체는 100만원어치 공매도한다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 300" role="img" aria-label="롱숏 가상 계산: 시장이 오른 날은 롱 +12와 숏 -8로 합계 +4, 시장이 내린 날은 롱 -8과 숏 +12로 합계 +4, 종목 선택이 틀린 날은 롱 +4와 숏 -14로 합계 -10">
+      <text class="fig-ink" x="0" y="16">같은 롱숏, 세 가지 결과 (가상 사례, 단위 %)</text>
+      <text class="fig-sub" x="0" y="36">왼쪽 막대 = 산 종목(롱), 오른쪽 막대 = 판 종목(숏)</text>
+      <path class="fig-ink-line" d="M0 150 L420 150" />
+      <!-- 시장이 오른 날: 롱 +12, 숏 -8 -->
+      <rect class="fig-up" x="36" y="78" width="28" height="72" rx="4" />
+      <text class="fig-sub" x="50" y="72" text-anchor="middle">+12</text>
+      <rect class="fig-down" x="76" y="150" width="28" height="48" rx="4" />
+      <text class="fig-sub" x="90" y="214" text-anchor="middle">-8</text>
+      <text class="fig-sub" x="70" y="268" text-anchor="middle">시장이 오른 날</text>
+      <!-- 시장이 내린 날: 롱 -8, 숏 +12 -->
+      <rect class="fig-down" x="176" y="150" width="28" height="48" rx="4" />
+      <text class="fig-sub" x="190" y="214" text-anchor="middle">-8</text>
+      <rect class="fig-up" x="216" y="78" width="28" height="72" rx="4" />
+      <text class="fig-sub" x="230" y="72" text-anchor="middle">+12</text>
+      <text class="fig-sub" x="210" y="268" text-anchor="middle">시장이 내린 날</text>
+      <!-- 선택이 틀린 날: 롱 +4, 숏 -14 -->
+      <rect class="fig-up" x="316" y="126" width="28" height="24" rx="4" />
+      <text class="fig-sub" x="330" y="120" text-anchor="middle">+4</text>
+      <rect class="fig-down" x="356" y="150" width="28" height="84" rx="4" />
+      <text class="fig-sub" x="370" y="250" text-anchor="middle">-14</text>
+      <text class="fig-sub" x="350" y="268" text-anchor="middle">선택이 틀린 날</text>
+      <text class="fig-ink" x="70" y="290" text-anchor="middle">합계 +4</text>
+      <text class="fig-ink" x="210" y="290" text-anchor="middle">합계 +4</text>
+      <text class="fig-ink" x="350" y="290" text-anchor="middle">합계 -10</text>
+    </svg>
+    <figcaption>앞의 두 날은 시장 방향과 상관없이 +4, 세 번째 날은 시장이 올랐는데도 -10이다. 롱숏이 지키는 것은 시장 위험이지 판단 실수가 아니다.</figcaption>
+  </figure>
+  <p>정리하면 롱숏은 <b>시장의 방향을 맞히는 게임에서 종목을 고르는 게임으로 바꾸는 장치</b>다. 대신 숏은 뒤의 '레버리지와 공매도' 절에서 보듯 손실에 위쪽 한도가 없다는 약점이 있다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-strategy">전략 지도 - 헤지펀드라고 다 같은 펀드가 아니다</h2>
+  <p>헤지펀드는 직업군에 가깝다. 같은 이름 아래 돈 버는 방식이 전혀 다른 펀드가 섞여 있다. 뉴스에서 "헤지펀드가 샀다"는 말을 봤다면 <b>어느 유형인지</b>부터 물어야 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>유형</th><th>돈 버는 방식</th><th>약점</th></tr></thead>
+    <tbody>
+      <tr><td>주식 롱숏</td><td>저평가 종목은 사고 고평가 종목은 공매도한다</td><td>숏 종목이 급등하는 숏스퀴즈</td></tr>
+      <tr><td>글로벌 매크로</td><td>금리·환율·원자재 방향을 보고 나라 단위로 베팅한다</td><td>거시 전망이 빗나가면 손실이 크다</td></tr>
+      <tr><td>이벤트 드리븐</td><td>인수합병·부실기업 정리처럼 사건의 결과에 베팅한다</td><td>사건이 무산되면 가격이 한꺼번에 무너진다</td></tr>
+      <tr><td>차익거래(상대가치)</td><td>같은 것의 두 가격 차이(예: 전환사채와 주식)를 노린다</td><td>이익이 작아 큰 레버리지를 쓰게 된다</td></tr>
+      <tr><td>퀀트</td><td>통계 모형과 알고리즘이 수많은 종목을 짧게 사고판다</td><td>시장 환경이 바뀌면 모형이 한꺼번에 틀린다</td></tr>
+    </tbody>
+  </table>
+  <p>눈여겨볼 점은 약점 칸이다. 거의 모든 유형이 <b>작은 이익을 레버리지로 키우다가 한 번의 사고로 크게 잃는</b> 구조를 갖는다. 뒤의 두 절이 바로 그 이야기다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-fee">운용사는 어떻게 버나 - 2와 20</h2>
+  <p>헤지펀드의 전통적인 수수료는 <b>"2와 20"</b>이다. 맡긴 돈의 2%를 해마다 <b>관리보수</b>로 떼고, 번 이익의 20%를 <b>성과보수</b>로 가져간다. 요즘은 낮추는 곳이 많지만 구조는 같다. 가상의 펀드로 계산한다. 운용 규모 1,000억, 한 해 총수익 150억(15%)이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 168" role="img" aria-label="총수익 150억의 분배: 관리보수 20억, 성과보수 26억, 투자자 몫 104억으로 순수익률은 10.4%">
+      <text class="fig-ink" x="0" y="16">수익 150억이 나뉘는 모습 (가상, 운용 1,000억)</text>
+      <rect class="fig-up" x="0" y="30" width="262" height="38" rx="8" />
+      <text class="fig-on-strong" x="131" y="54" text-anchor="middle">투자자 104억</text>
+      <rect class="fig-down" x="266" y="30" width="48" height="38" rx="8" />
+      <rect class="fig-acc" x="318" y="30" width="62" height="38" rx="8" />
+      <rect class="fig-up" x="0" y="90" width="12" height="12" rx="3" />
+      <text class="fig-sub" x="22" y="101">투자자 몫 104억 (순수익률 10.4%)</text>
+      <rect class="fig-down" x="0" y="112" width="12" height="12" rx="3" />
+      <text class="fig-sub" x="22" y="123">관리보수 20억 (운용액 1,000억의 2%)</text>
+      <rect class="fig-acc" x="0" y="134" width="12" height="12" rx="3" />
+      <text class="fig-sub" x="22" y="145">성과보수 26억 (보수 뺀 이익 130억의 20%)</text>
+    </svg>
+    <figcaption>총수익률 15%가 투자자 손에서는 10.4%로 줄어든다. 성과보수 계산 방식은 약정마다 다르며 여기서는 가장 단순한 형태로 계산했다.</figcaption>
+  </figure>
+  <p>수수료를 이해할 때 놓치기 쉬운 장치가 두 가지 있다.</p>
+  <ul>
+    <li><b>고수위선(high-water mark)</b> 이미 낸 성과보수를 돌려받지는 않으므로, 손실이 난 해 뒤에는 이전 최고 금액을 다시 넘어야 성과보수를 받도록 정한다.</li>
+    <li><b>기준수익률(hurdle)</b> 정해 둔 수익률을 넘는 부분에만 성과보수를 붙이는 조건이다.</li>
+  </ul>
+  <p>구조의 함정도 있다. 운용사는 이익이 나면 20%를 가져가지만 손실이 나도 그만큼을 토해 내지는 않는다. 그래서 위험을 더 크게 가져가려는 유인이 생긴다. 운용사가 <b>자기 돈을 얼마나 같이 넣었는지</b>가 신뢰의 첫 번째 확인 항목인 이유다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-leverage">레버리지와 공매도 - 힘이 센 만큼 위험하다</h2>
+  <p>헤지펀드가 크게 벌고 크게 잃는 이유는 대부분 <b>빌린 돈(레버리지)</b>에 있다. 자기 돈 100에 400을 빌려 500어치를 사면 5배 레버리지다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 226" role="img" aria-label="레버리지 비교: 원금 100에서 자산이 10% 내리면 자기 돈만 쓴 경우 손실 10, 5배 레버리지는 손실 50">
+      <text class="fig-ink" x="0" y="16">투자한 자산이 10% 내려가면 (원금 100 기준)</text>
+      <text class="fig-sub" x="60" y="44" text-anchor="middle">자기 돈만 100</text>
+      <text class="fig-sub" x="300" y="44" text-anchor="middle">빌려서 500 (5배)</text>
+      <path class="fig-ink-line" d="M0 58 L420 58" />
+      <rect class="fig-down" x="30" y="58" width="60" height="20" rx="4" />
+      <text class="fig-ink" x="60" y="100" text-anchor="middle">-10</text>
+      <rect class="fig-down" x="270" y="58" width="60" height="100" rx="4" />
+      <text class="fig-ink" x="300" y="180" text-anchor="middle">-50</text>
+      <text class="fig-sub" x="60" y="120" text-anchor="middle">원금의 10%</text>
+      <text class="fig-sub" x="300" y="200" text-anchor="middle">원금의 50%</text>
+      <text class="fig-sub" x="0" y="222">자산이 20% 내리면 5배 레버리지의 원금은 모두 사라진다</text>
+    </svg>
+    <figcaption>같은 10% 하락이라도 레버리지가 5배면 원금 손실은 5배가 된다. 오를 때 이익도 똑같이 5배가 되어 매력적으로 보인다.</figcaption>
+  </figure>
+  <p>빌려준 쪽(증권사·은행)은 담보 가치가 일정 선 아래로 내려가면 추가 담보를 요구하거나 강제로 정리한다. 이때 팔려는 물량이 한꺼번에 쏟아지면 가격이 더 떨어지고, 그러면 또 다른 곳의 담보도 부족해진다. 큰 손실이 연쇄로 번지는 통로가 이것이다.</p>
+  <p>공매도에는 다른 종류의 함정이 있다. 100원에 산 주식은 아무리 망해도 100원만 잃지만, 100원에 빌려 판 주식이 300원이 되면 <b>200원을 잃고</b> 거기서 더 올라도 한도가 없다. 많은 투자자가 같은 종목을 공매도했는데 주가가 오르면 서둘러 되사는 수요가 가격을 다시 밀어 올리는데, 이것이 <b>숏스퀴즈</b>다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-history">역사 속 세 장면</h2>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 150" role="img" aria-label="헤지펀드 역사 연표: 1992년 소로스의 파운드 공격, 1998년 LTCM 위기, 2021년 게임스톱 사태">
+      <path class="fig-ink-line" d="M20 46 L400 46" />
+      <circle class="fig-marker" cx="70" cy="46" r="7" />
+      <circle class="fig-marker" cx="210" cy="46" r="7" />
+      <circle class="fig-marker" cx="350" cy="46" r="7" />
+      <text class="fig-ink" x="70" y="28" text-anchor="middle">1992</text>
+      <text class="fig-ink" x="210" y="28" text-anchor="middle">1998</text>
+      <text class="fig-ink" x="350" y="28" text-anchor="middle">2021</text>
+      <text class="fig-ink" x="70" y="78" text-anchor="middle">파운드 공격</text>
+      <text class="fig-sub" x="70" y="98" text-anchor="middle">소로스의 퀀텀펀드</text>
+      <text class="fig-sub" x="70" y="116" text-anchor="middle">영국이 환율제 이탈</text>
+      <text class="fig-ink" x="210" y="78" text-anchor="middle">LTCM 위기</text>
+      <text class="fig-sub" x="210" y="98" text-anchor="middle">레버리지가 부른 붕괴</text>
+      <text class="fig-sub" x="210" y="116" text-anchor="middle">민간 은행이 구제</text>
+      <text class="fig-ink" x="350" y="78" text-anchor="middle">게임스톱 사태</text>
+      <text class="fig-sub" x="350" y="98" text-anchor="middle">공매도 세력의 패배</text>
+      <text class="fig-sub" x="350" y="116" text-anchor="middle">숏스퀴즈로 큰 손실</text>
+    </svg>
+    <figcaption>같은 도구(레버리지·공매도)가 한 번은 큰 승리, 두 번은 큰 사고로 이어졌다.</figcaption>
+  </figure>
+  <h3>1992 · 영국 파운드를 공격하다</h3>
+  <p>당시 영국은 환율을 일정 범위 안에 묶는 유럽 환율제도(ERM)에 속해 있었다. 조지 소로스의 퀀텀펀드는 영국의 경제 사정에 비해 파운드가 지나치게 비싸다고 보고 파운드를 대규모로 공매도했다. 영국은 금리를 올리고 외환을 팔아 방어했지만 1992년 9월 16일 결국 제도에서 빠졌고 파운드는 급락했다. 이 베팅으로 약 10억 달러를 벌었다고 알려져 있다. <b>한 나라의 환율 정책이 가격과 어긋날 때</b> 그 틈을 노린 사례다.</p>
+  <h3>1998 · 천재들의 펀드가 무너지다</h3>
+  <p>롱텀캐피털매니지먼트(LTCM)에는 노벨경제학상 수상자들이 참여했다. 비슷한 채권 둘의 아주 작은 가격 차이를 노리는 차익거래였고, 이익이 작으니 자기 자본의 25배 안팎까지 빌려 규모를 키웠다. 1998년 러시아가 국채 지급을 사실상 멈추자 모형이 상정하지 못한 방향으로 가격이 움직였고 손실이 수 주 만에 자본을 거의 날렸다. 거래 상대방이 너무 많아 한꺼번에 무너지면 금융시장 전체가 흔들릴 수 있다고 본 뉴욕 연준이 주선해 14개 금융회사가 약 36억 달러를 넣는 민간 구제가 이루어졌다. <b>모형이 아무리 정교해도 레버리지가 크면 한 번의 예외가 치명적</b>이라는 교훈을 남겼다.</p>
+  <h3>2021 · 게임스톱 사태</h3>
+  <p>미국 게임 유통업체 게임스톱은 일부 헤지펀드가 주식 수보다 많은 규모로 공매도를 걸어 둔 종목이었다. 개인 투자자들이 온라인 커뮤니티에서 함께 사들이자 주가가 한 달도 안 되어 20배 넘게 뛰었고, 공매도 쪽은 손실을 막으려 되사는 과정에서 가격을 더 밀어 올렸다. 숏을 크게 쥐고 있던 멜빈 캐피털은 큰 손실을 입고 이후 운용을 접었다. 이 사건은 <b>공매도 잔고가 많은 종목은 오히려 위험하다</b>는 점을 보여 줬지만, 개인에게도 같은 방식이 안전하다는 뜻은 아니다. 급등 뒤 가격이 다시 빠르게 내린 사례가 많다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-korea">한국에서는 - 사모펀드 제도와 공매도</h2>
+  <p>한국에는 2011년 말 헤지펀드 제도가 도입되어 사모 방식으로 공매도와 차입을 쓰는 운용사가 생겼다. 이후 제도가 여러 번 바뀌었고, 현재 법 용어로는 헤지펀드가 <b>일반 사모펀드</b>, 기업 경영에 참여하는 사모펀드(PEF)는 <b>기관전용 사모펀드</b>로 나뉜다. 세부 가입 조건은 개정될 수 있으므로 가입을 고려한다면 금융감독원의 최신 안내를 확인한다.</p>
+  <p>한국에서 사모펀드의 이미지를 크게 흔든 일이 있었다. 2019년 라임자산운용의 환매 중단과 2020년 옵티머스 사태에서는 펀드가 무엇을 담았는지 투자자가 제대로 알 수 없는 구조가 문제가 되었고 규제와 판매 관행이 강화되었다. 사모의 '비공개'가 투자자 보호의 사각지대가 될 수 있음을 보여 준 사례다.</p>
+  <p>공매도는 한국에서 별도의 논쟁거리다. 2023년 11월부터 전면 금지되었다가 2025년 3월 말 재개되었다. 찬성하는 쪽은 가격 발견과 유동성 공급을, 반대하는 쪽은 개인과 기관의 거래 조건 차이와 불법 무차입 공매도를 근거로 든다. 이 글은 어느 쪽 편도 들지 않는다. 다만 <b>공매도 = 헤지펀드</b>로 등치하는 것은 정확하지 않다. 공매도는 기관 일반과 개인도 일정 조건에서 쓸 수 있는 거래 방식이다.</p>
+  <p>뉴스의 "외국인 순매도"도 같다. 외국인 안에는 연기금·장기 자산운용사·헤지펀드가 함께 섞여 있고, 그중 단기 매매를 하는 쪽이 헤지펀드에 가깝다. 이 구분은 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/company.html">누가 사고 있나, 회사는 괜찮나</a>에서 이어서 볼 수 있다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="hf-news">뉴스 속 헤지펀드, 이렇게 걸러 읽는다</h2>
+  <table class="learn-table">
+    <thead><tr><th>뉴스 문구</th><th>실제로 확인할 것</th></tr></thead>
+    <tbody>
+      <tr><td>"유명 헤지펀드가 이 종목을 샀다"</td><td>미국은 분기 말 기준 보유 내역을 45일 안에 공시(13F)한다. <b>이미 지난 정보</b>이고 매수(롱)만 나오며 공매도 포지션은 나오지 않는다.</td></tr>
+      <tr><td>"헤지펀드가 시장을 흔든다"</td><td>실제 거래대금에서 차지하는 비중을 본다. 거대한 펀드 몇 곳 말고는 시장 전체를 움직일 힘이 크지 않다.</td></tr>
+      <tr><td>"공매도 잔고가 급증했다"</td><td>하락 베팅이 늘었다는 신호일 뿐 곧 하락한다는 예고는 아니다. 일정 비율을 넘으면 잔고가 공시되므로 <b>추이</b>를 본다.</td></tr>
+      <tr><td>"연 수익률 20%를 낸 펀드"</td><td>몇 년간의 성적인지, 손실이 난 해의 낙폭은 얼마였는지, 수수료를 뺀 값인지 확인한다.</td></tr>
+    </tbody>
+  </table>
+  <p>유명 펀드의 포트폴리오를 그대로 따라 사는 일은 가장 흔한 함정이다. 그들은 손실이 커질 때를 대비한 숏과 파생상품을 함께 들고 있을 수 있는데 우리는 겉으로 드러난 롱만 본다. <b>정보가 늦고 절반만 보이는 상태</b>에서의 모방은 같은 결과를 내지 못한다.</p>
+  </section>
+
+<section class="learn-deep" aria-labelledby="hf-advanced">
+  <h2 id="hf-advanced">심화 연구실 · 알파·베타와 샤프비율, 그리고 통계의 함정</h2>
+  <p>헤지펀드 성적을 평가할 때는 수익률 하나로 판단하지 않는다. 시장을 따라 움직여서 번 몫(<b>베타</b>)과 운용 능력으로 번 몫(<b>알파</b>)을 가르고, 같은 수익을 얼마나 흔들리며 얻었는지(<b>샤프비율</b>)를 본다.</p>
+  <div class="learn-lab">
+    <h3>계산 실험 · 연 10%는 좋은 성적인가</h3>
+    <p>가상의 펀드가 연 10% 수익을 냈고 무위험 수익률은 3%, 수익률의 연간 변동성(표준편차)은 14%였다.</p>
+    <p class="learn-math">샤프비율 = (수익률 − 무위험수익률) ÷ 변동성 = (10 − 3) ÷ 14 = 0.5</p>
+    <p>같은 기간 시장지수가 연 9%에 변동성 15%였다면 시장의 샤프비율은 (9 − 3) ÷ 15 = 0.4다. 수치로는 앞서지만 한 해의 표본일 뿐이다. 시장과 같은 방향으로 움직여서 번 몫(베타)을 빼고도 남는 이익이 있는지는 <b>더 긴 기간과 여러 국면</b>에서 확인해야 한다.</p>
+  </div>
+  <div class="learn-grid">
+    <div><h3>생존 편향</h3><p>문을 닫은 펀드는 지수에서 빠진다. 남은 펀드만 평균을 내면 성적이 실제보다 좋아 보인다.</p></div>
+    <div><h3>자발적 보고 편향</h3><p>성과가 좋은 펀드가 데이터 제공 업체에 보고하는 경향이 있다. 공개된 평균이 실제 평균이 아닐 수 있다.</p></div>
+    <div><h3>꼬리 위험</h3><p>평소 안정적인 수익을 내다 드물게 크게 잃는 펀드는 샤프비율이 좋아 보인다. 평균·표준편차로는 한 번의 사고가 가려진다.</p></div>
+    <div><h3>용량의 한계</h3><p>운용 규모가 커질수록 같은 전략의 이익은 줄어든다. 과거 성적이 좋았다고 앞으로도 같은 수익이 나온다는 뜻은 아니다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>확인 자료</strong><ul><li><a href="https://www.investor.gov/" target="_blank" rel="noopener noreferrer">SEC Investor.gov · 헤지펀드와 사모펀드 투자자 유의사항</a></li><li><a href="https://www.sec.gov/" target="_blank" rel="noopener noreferrer">SEC · 기관투자자 보유 공시(Form 13F)</a></li><li><a href="https://www.fss.or.kr/" target="_blank" rel="noopener noreferrer">금융감독원 · 사모펀드 제도와 투자자 유의사항</a></li></ul></div>
+</section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/etf-market.html">← ETF 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/company-analysis.html">기업분석 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>
