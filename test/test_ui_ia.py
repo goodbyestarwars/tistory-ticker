@@ -550,7 +550,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         skin = self.read("skin.html")
 
-        for token in ('--font-ui: "Pretendard"', '--font-data: "Pretendard"', '--text-sub: #656a75', '--rule: #D8D8D8', '--up: #B42318', '--down: #245B9E', '--neutral: #777777', '--accent-dark: #26364A', 'font-variant-numeric: tabular-nums', 'box-shadow: none !important', 'background: transparent !important', '.app-news-type'):
+        for token in ('--font-ui: "Pretendard Variable"', '--font-data: "Pretendard Variable"', '--text-sub: #656a75', '--rule: #D8D8D8', '--up: #B42318', '--down: #245B9E', '--neutral: #777777', '--accent-dark: #26364A', 'font-variant-numeric: tabular-nums', 'box-shadow: none !important', 'background: transparent !important', '.app-news-type'):
             self.assertIn(token, style)
 
         # The New newspaper system has one fixed UI font and no header toggle.
@@ -2361,7 +2361,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ff-volume-study-label", style)
         self.assertIn(".ff-chart-candle::after", style)
         self.assertNotIn(".ff-chart-news-detail", style)
-        self.assertIn('.ff-chart-row .ff-chart-title { font-family: "Pretendard", "Malgun Gothic", sans-serif; }', style)
+        self.assertIn('.ff-chart-row .ff-chart-title { font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; }', style)
 
     @unittest.skipUnless(shutil.which('node'), 'node 필요')
     def test_stock_analysis_flow_axis_formats_signed_share_counts_compactly(self):
