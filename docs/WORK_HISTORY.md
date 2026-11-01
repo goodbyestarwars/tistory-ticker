@@ -1,3 +1,7 @@
+**2026-11-01 큰 카드 안쪽 여백 전역 토큰화(한국·미국 시장 적용)**
+
+요청: 휴장 화면 큰 카드 여백을 전역 디자인으로 두고 한국·미국 시장에도 적용(여백·글자 크기). 측정(1440px): 한국·미국 탭 큰 카드(`.ui-content-block`·실시간 종목판·마켓브리핑)는 18px, 카드 제목 17px MaruBuriBold 700·설명 12px은 휴장 화면과 이미 같음. 변경: `css/ui-spacing.css`에 `--ui-card-padding-lg`(28px 32px, 760px 이하는 `--ui-card-padding`) 추가 — 여백의 유일한 기준; `css/home-weekly-report.css` `--closed-card-pad`가 이를 참조; `style.css` 공통 카드 padding 규칙이 `--card-pad-override`를 읽고 `.home-editorial-page` 안 `.ui-content-block`·`.home-realtime-board`에서만 큰 값으로 지정, 마켓브리핑 카드(홈 캐러셀) padding 값 교체(새 `!important` 없음). 제외: 지수 카드(`home-index-card`, 폭 336px)·이야기 카드. 글자 크기는 제목·설명이 이미 동일해 변경 없음. 검증: 실사이트에 변경 CSS를 덮어 한국·미국 탭 측정(큰 카드 28·32 확인)·한국 탭 캡처 확인, 모바일 미확인. 배포: PR 병합 후 Pages 반영.
+
 **2026-11-01 종목 스토리: 가로 흰 카드 2장(판정·차트) 한 장씩 넘김**
 
 요청: 판정 카드를 스토리 있게, 차트 카드 추가, 가로로 긴 흰 카드 2장을 T world처럼 가장자리 화살표·점 표시로 넘김, 영역은 보이지 않는 가는 선으로 구분. 변경: `js/foreign-flow.js` 판정 값을 `swingViewModel_`로 분리(요약 박스와 공유), `buildVerdictCard`·`buildTrendChartCard`(이미 받은 일봉의 종가·20/60/224일선 SVG, 새 API 없음) 추가, 기존 스윙 요약 박스는 스토리 종목에서 숨김(`.is-in-story`), 이동은 공통 `SiteInteractions.carousel` 재사용. `css/foreign-flow.css` 가로 카드·다크·모바일(≤820px 화살표 숨김, 밀어서 넘김). 검증: `test_stock_stories.py` 확장(카드 2장·번호 03부터·자료 부족 시 차트 생략), 로컬 PC/모바일 렌더 확인, 가로 넘침 없음. 배포: master 병합 후 Pages(라이브 확인 전).

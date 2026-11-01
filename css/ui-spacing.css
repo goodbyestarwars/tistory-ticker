@@ -6,10 +6,13 @@
   --ui-section-gap: 20px;
   --ui-paragraph-gap: 14px;
   --ui-card-gap: var(--ui-section-gap);
+  /* 큰 카드(휴장 화면 배너·패널, 한국·미국 시장 블록, 마켓브리핑 카드)의 안쪽 여백. 폭이 좁은 지수 카드는 쓰지 않는다. */
+  --ui-card-padding-lg: 28px 32px;
 }
 @media (max-width: 760px) {
   :root {
     --ui-card-padding: 14px;
+    --ui-card-padding-lg: var(--ui-card-padding);
     --ui-section-gap: 16px;
     --ui-paragraph-gap: 12px;
   }
