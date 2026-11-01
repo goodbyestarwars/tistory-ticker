@@ -191,8 +191,8 @@ class FrontendTests(unittest.TestCase):
         self.assertEqual(r['halts'], [])
         self.assertEqual((r['vi']['count'], r['vi']['time'], r['vi']['market']), (15, '16:30', '코스닥'))
         self.assertIn('is-vi', r['viCard'])
-        self.assertIn('변동성완화장치 · VI', r['viCard'])
-        self.assertIn('class="vol-count">15<small>', r['viCard'])
+        # 2026-11: VI 카드는 한 줄 칩('변동성완화장치 VI N건 발동중')으로 바뀌어 건수 블록이 없다.
+        self.assertIn('변동성완화장치 VI 15건 발동중', r['viCard'])
 
     def test_scenario_sidecar_only_and_cb_only_and_both(self):
         def halt(*evs):

@@ -116,13 +116,13 @@ class SourceSafetyTests(unittest.TestCase):
     def test_page_has_no_order_endpoint_or_buy_sell_buttons(self):
         for text in ("'/api/order'", 'sell_market', 'buy_limit', '/api/sell', '/api/buy'):
             self.assertNotIn(text, self.src)
-        # 허용된 POST는 정지·재개·감시·분석 전용·규칙 확인뿐
+        # 주문 계열 경로는 없다. 허용 목록은 정지·재개·감시·분석·규칙 확인 + 읽기 전용 일정(/api/schedules)
         posts = set()
         import re
         for m in re.finditer(r"['\"](/api/[a-z-]+)['\"]", self.src):
             posts.add(m.group(1))
         self.assertTrue(posts <= {'/api/status', '/api/watch', '/api/holdings', '/api/orders', '/api/events', '/api/analysis', '/api/stop',
-                                  '/api/resume', '/api/unwatch', '/api/watch-confirm', '/api/analysis-remove'}, posts)
+                                  '/api/resume', '/api/schedules', '/api/unwatch', '/api/watch-confirm', '/api/analysis-remove'}, posts)
 
     def test_fill_is_never_claimed_complete(self):
         self.assertNotIn('체결 완료', self.src)

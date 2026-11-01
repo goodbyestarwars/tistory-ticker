@@ -19,7 +19,7 @@ source = source.replace('global.MarketTemp = MarketTemp;',
 const window = {KRX_MAP: {정상주: '000001'}, KRX_ETF_NAMES: ['테스트상품'],
   WICS_MAP: fixture.wics, location: {href: ''}};
 const context = {window, console, setTimeout, clearTimeout,
-  document: {readyState: 'loading', addEventListener() {}},
+  document: {readyState: 'loading', addEventListener() {}, getElementById() {return null;}},
   fetch(url) {
     requests.push(url);
     if (fixture.failBoard && url.includes('/market-board')) return Promise.reject(new Error('offline'));
@@ -28,7 +28,12 @@ const context = {window, console, setTimeout, clearTimeout,
       : url.includes('bubble=1') ? (fixture.bubble || {}) : fixture.scan;
     return Promise.resolve({ok: true, json: () => Promise.resolve(body)});
   }};
-vm.runInNewContext(source, context);
+vm.createContext(context);
+context.window.fetch = context.fetch;
+// 공통 전송·포맷·API 경로(skin-shell.js의 NineHttp~NineAPI 구간)는 실제 코드를 그대로 싣는다.
+const shell = fs.readFileSync('js/skin-shell.js', 'utf8');
+vm.runInContext(shell.slice(shell.indexOf('/* NineHttp:'), shell.indexOf('/* End NineAPI */')), context);
+vm.runInContext(source, context);
 let html = '';
 let focusCount = 0;
 let panelWrites = 0;

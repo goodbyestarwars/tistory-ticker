@@ -14,18 +14,19 @@ def read(rel):
 class AutoTraderMenuEndTests(unittest.TestCase):
     def test_item_is_admin_only_and_marked_end(self):
         menu = read('js/skin-menu.js')
-        self.assertIn("if (isBlogAdmin()) NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });", menu)
+        self.assertIn("if (isBlogAdmin()) {", menu)
+        self.assertIn("NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });", menu)
         self.assertIn("(item.end ? ' nav-item-end' : '')", menu)
         self.assertNotIn("label: '자동매매' }", menu)                                     # 이전 형태(MY 옆 배치)가 남지 않았다
 
     def test_rule_is_pc_only_and_in_np_layer(self):
         css = read('style.css')
-        tail = css[css.rindex('자동매매 메뉴(관리자 전용)'):]
+        tail = css[css.rindex('관리자 도구는 한 묶음'):]
         self.assertIn('@layer np', tail)
-        self.assertIn('@media (min-width: 721px)', tail)
-        self.assertIn('.nav-primary-item.nav-item-end', tail)
-        self.assertIn('position: absolute !important', tail)
-        self.assertIn('right: 16px !important', tail)
+        self.assertIn('@media (min-width: 1100px)', tail)
+        self.assertIn('.sidebar-left .nav-end-group', tail)
+        self.assertIn('position: absolute;', tail)
+        self.assertIn('right: 16px;', tail)
 
     def test_other_menu_items_unchanged(self):
         menu = read('js/skin-menu.js')

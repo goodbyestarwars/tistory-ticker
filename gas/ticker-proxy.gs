@@ -670,18 +670,6 @@ function getStockNews(code, name) {
   return result;
 }
 
-// 종목뉴스 AI 요약: 최근 뉴스 제목/스니펫을 묶어 Groq에 3문장 요약 요청.
-// (톤은 사용자 요청대로 "투자자 참고 의견 포함" - 사실-only로 되돌리라는 요청 없는 한 유지)
-function summarizeStockNews(name, items) {
-  var lines = items.slice(0, 10).map(function (it, i) {
-    return (i + 1) + '. ' + it.title + (it.body ? ' - ' + it.body : '');
-  });
-  var prompt = '다음은 "' + name + '" 종목 관련 최근 뉴스야:\n' + lines.join('\n') + '\n\n' +
-    '이 뉴스들을 종합해서 단기 주가 흐름에 미칠 영향과 투자자 입장에서 참고할 만한 의견·주의할 점까지 ' +
-    '포함해 3~4문장으로 한국어로 요약해줘. ' + GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
-  return callGroq(prompt);
-}
-
 // ---------------------------------------------------------------------------
 // 증시검색: 선택 종목의 "오늘 등락 이유" 한 줄 AI 요약 (?action=priceReason&code=&name=&changeRate=)
 // 종목뉴스(getStockNews)의 3문장 종합 요약과 달리 오늘 발행된 뉴스만 추려 "오늘 왜 이렇게
@@ -702,34 +690,14 @@ function getPriceMoveReason(code, name, changeRate) {
     if (parsedCache_ !== null) return parsedCache_;
   }
 
-  var items;
-  try { items = fetchStockNews(code); } catch (err) { items = []; }
-
-  var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd');
-  var todayItems = items.filter(function (it) { return it.datetime && it.datetime.slice(0, 8) === today; });
-
-  var reason = todayItems.length
-    ? safeCall(function () { return summarizePriceMoveReason(name || code, changeRate, todayItems); })
-    : null;
+  // 2026-11-01: 네이버 뉴스를 LLM 프롬프트로 만들던 요약 함수를 삭제했다(외부 LLM 호출은 이미 폐기).
+  // 응답 계약({reason})은 유지하고 항상 null을 돌려준다. 프런트는 이 경로를 쓰지 않는다.
+  var reason = null;
 
   var result = { reason: reason };
   var ttl = reason ? PRICE_REASON_CACHE_TTL : PRICE_REASON_FAIL_TTL;
   cache.put(cacheKey, JSON.stringify(result), ttl);
   return result;
-}
-
-function summarizePriceMoveReason(name, changeRate, items) {
-  var rate = parseFloat(changeRate);
-  var dirText = !isNaN(rate)
-    ? (rate > 0 ? (rate.toFixed(2) + '% 상승') : rate < 0 ? (Math.abs(rate).toFixed(2) + '% 하락') : '보합')
-    : '등락';
-  var lines = items.slice(0, 8).map(function (it, i) {
-    return (i + 1) + '. ' + it.title + (it.body ? ' - ' + it.body : '');
-  });
-  var prompt = '"' + name + '" 종목이 오늘 ' + dirText + '했어. 다음은 오늘 나온 이 종목 관련 뉴스야:\n' + lines.join('\n') +
-    '\n\n이 뉴스들을 참고해서 오늘 주가가 왜 이렇게 움직였는지 핵심 이유만 한국어 한 문장(50자 이내)으로 요약해줘. ' +
-    '뉴스에 뚜렷한 이유가 안 보이면 "특별한 이슈 없이 시장 전반 흐름을 따라간 것으로 보입니다" 같은 문장으로 답해. 문장 외 다른 말은 붙이지 마.';
-  return callGroq(prompt, 0.3);
 }
 
 // Groq API (OpenAI 호환). 키는 PropertiesService에 저장(코드에 노출 안 함):
@@ -748,7 +716,7 @@ var GROQ_MODEL = 'openai/gpt-oss-120b';
 // 지키는 것과 같은 이유, 2210번째 줄 부근 주석 참고), 해석·주의점까지만 가고 "사라/팔아라"
 // 같은 직접 권유는 못 하게 막는 공통 문구. 이 문구를 넣은 프롬프트에서만 사용(전부는 아님 -
 // getFlowAiSummary처럼 이미 확정된 결론의 근거만 인용하는 프롬프트나, 50자 단문형 사유
-// 설명(summarizePriceMoveReason)처럼 성격이 다른 프롬프트는 대상이 아니다).
+// 설명처럼 성격이 다른 프롬프트는 대상이 아니다).
 var GROQ_NO_ADVICE_GUARD_ = '다만 특정 종목·업종·상품을 지금 매수하거나 매도하라고 직접 권유하는 표현은 쓰지 말고, 해석과 참고 포인트까지만 이야기해줘.';
 
 // Groq chat completions 공용 호출. 429(레이트리밋)면 1.5초 쉬고 1번 더 시도

@@ -68,7 +68,12 @@
   }
   window.__isBlogAdmin = isBlogAdmin;
   // end:true = PC(721px 이상)에서 메뉴바 오른쪽 끝에 붙인다(2026-10-11 요청: MY 옆이 아니라 오른쪽 끝). 모바일은 가로 스크롤 줄의 맨 끝 그대로.
-  if (isBlogAdmin()) NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });
+  if (isBlogAdmin()) {
+    NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });
+    // Same display gate and group as auto-trader. Actual KIS access still requires
+    // the verified Google administrator session at the server gateway.
+    NAV_ITEMS.push({href:'https://goodbyestar.cloud/kis-tool/', label:'KIS Trading Tool', end:true});
+  }
 
 
   // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
@@ -240,7 +245,12 @@
   }
 
   function renderMenu(mount) {
-    var primary = NAV_ITEMS.map(primaryHtml).join('');
+    var primary = '', end = '';
+    NAV_ITEMS.forEach(function (item, index) {
+      if (item.end) end += primaryHtml(item, index);
+      else primary += primaryHtml(item, index);
+    });
+    if (end) primary += '<div class="nav-end-group">' + end + '</div>';
     var secondary = secondaryHtml();
     mount.innerHTML = '<div class="nav-primary-row">' + primary + '</div>' + secondary;
     syncSecondaryHeight(Boolean(secondary));
@@ -370,6 +380,7 @@
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
     wireBigSearch();
   }
+
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
   else render();

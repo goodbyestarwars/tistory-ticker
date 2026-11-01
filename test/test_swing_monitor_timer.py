@@ -53,8 +53,10 @@ class DailyScanIsNoLongerBlockedTest(unittest.TestCase):
 
     def test_daily_scan_still_takes_the_serial_lock(self):
         """스캔 본체의 직렬화는 그대로다 - 1코어 VM에서 여러 스캔이 겹치면 안 된다."""
-        self.assertIn('/usr/bin/flock $HOME_DIR/.scan_serial.lock', self.dailyscan)
+        # 잠금은 run_after_daily.sh -> scheduled_job.py가 잡는다(.scan_serial.lock + 작업별 잠금).
+        self.assertIn('run_after_daily.sh dailyscan', self.dailyscan)
         self.assertIn('daily_scan.py', self.dailyscan)
+        self.assertIn('.scan_serial.lock', read('scheduled_job.py'))
 
 
 class SwingMonitorUnitTest(unittest.TestCase):
@@ -66,16 +68,19 @@ class SwingMonitorUnitTest(unittest.TestCase):
 
     def test_it_still_holds_the_serial_lock(self):
         """2026-09-17 OOM의 교훈. 잠금 밖으로 내보내면 안 된다."""
-        self.assertIn('.scan_serial.lock', self.setup)
+        self.assertIn('run_after_daily.sh swingmonitor', self.setup)
+        self.assertIn('.scan_serial.lock', read('scheduled_job.py'))
 
     def test_the_wait_is_bounded(self):
         """무한 대기는 유닛을 몇 시간씩 activating으로 잡아 둔다 - 그게 원래 문제였다."""
-        match = re.search(r'flock -w (\d+) -E (\d+) ', self.setup)
-        self.assertIsNotNone(match, 'flock에 -w(대기 상한)와 -E(건너뜀 종료코드)가 있어야 한다')
-        wait_seconds, exit_code = int(match.group(1)), int(match.group(2))
+        # 대기 상한과 건너뜀 종료코드는 scheduled_job.CONTRACTS / wait_timeout(76)이 소유한다.
+        job = read('scheduled_job.py')
+        match = re.search(r"'swingmonitor': dict\(maxWait=(\d+)", job)
+        self.assertIsNotNone(match, 'scheduled_job.CONTRACTS에 swingmonitor 대기 상한이 있어야 한다')
+        wait_seconds = int(match.group(1))
         self.assertLessEqual(wait_seconds, 3600, '한 시간 넘게 기다리면 뗀 의미가 없다')
         self.assertGreater(wait_seconds, 0)
-        self.assertEqual(exit_code, 76, 'deploy_check.sh와 같은 "잠금 바빠서 건너뜀" 코드')
+        self.assertIn('exitCode=76', job, 'deploy_check.sh와 같은 "잠금 바빠서 건너뜀" 코드')
 
     def test_skipping_is_not_reported_as_a_failure(self):
         """건너뛴 날을 failed로 남기면 진짜 실패를 못 알아본다. 이 작업은 내일 또 돈다."""

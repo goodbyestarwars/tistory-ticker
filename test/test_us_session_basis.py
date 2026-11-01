@@ -106,6 +106,8 @@ class YahooExtendedHoursQuoteTest(unittest.TestCase):
             return dict(row, symbol=symbol, provider=provider, exchange=exchange)
 
         namespace['_normalize_quote'] = fake_normalize_quote
+        # 세션 비교 보강은 test_us_session_comparison이 따로 검증한다. 여기서는 통과시킨다.
+        namespace['_with_session_comparison'] = lambda data, metadata=None: data
 
         class Unavailable(Exception):
             pass

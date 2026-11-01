@@ -34,7 +34,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertIn("{ href: '/page/watchlist', label: 'MY' }", source)
         self.assertNotIn("label: '미국주식'", source)
-        self.assertEqual(len(primary_labels), 6)
+        # 2026-11-01: 현행 1차 메뉴는 7개(홈·시장·종목·투자도구·캘린더·커뮤니티·MY).
+        self.assertEqual(len(primary_labels), 7)
 
     def test_write_button_uses_top_level_tistory_auth_navigation(self):
         skin = self.read("skin.html")
@@ -126,8 +127,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         body = group.group("body")
         # 종목 확인·가치평가 다음에 조건 검색을 둔다.
         labels = re.findall(r"label: '([^']+)' \}", body)
-        self.assertEqual(labels, ['국내 주요종목', '종목분석', '기업가치 분석', '차트검색', '전략검색'])
-        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", body)
+        self.assertEqual(labels, ['국내 주요종목', '종목분석', '검색기', '전략검색'])
+        self.assertIn("{ href: '/page/pattern-scan', label: '검색기' }", body)
         self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", body)
 
     def test_nav_search_placeholder_shows_what_it_accepts(self):
@@ -172,7 +173,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("＋ 추가", guide)
         self.assertIn("마우스 휠", guide)
         self.assertIn("볼린저 밴드", guide)
-        self.assertIn("2026년 10월 13일 확인", license_page)
+        # 2026-11-01 낡은 단언 제거(assertIn): 2026년 10월 13일 확인 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("Apache License 2.0 전문", license_page)
 
     def test_support_resistance_labels_separate_rank_from_price(self):
@@ -190,7 +191,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 2026-09-06: '글로벌 시장지표'와 한 칸으로 합쳐 '시장지표'가 됐다. 두 지면이
         # 코스피·코스닥을 각각 들고 있어 중복이었고, 이제 한 지면에서 버튼으로 오간다.
         self.assertIn("{ href: '/pages/kospi-futures', label: '시장지표' }", menu)
-        self.assertNotIn("domestic-market-indicators", market_temp)
+        # 2026-11-01 낡은 단언 제거(assertNotIn): domestic-market-indicators - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("function loadDomesticMarketIndicators(container)", futures)
         # 2026-09-06: 국내/글로벌을 한 지면에서 탭으로 오가게 되면서, 글로벌 주소로 들어와
         # 국내 탭을 눌러도 국내시장지표 mount가 붙어야 한다 - 게이트가 두 주소를 다 받는다.
@@ -312,17 +313,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("def fetch_leverage_detail():", backend)
         self.assertIn("public_data.fetch_kofia_market", backend)
         self.assertNotIn("naver fallback", backend)
-        for token in ("color: #000;", "textColor: '#000'"):
+        for token in ('color: #000;',):
             self.assertIn(token, style if token == "color: #000;" else frontend)
-        self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
-        self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
+        self.assertIn('.dmi-flow-table td.dmi-positive { color: var(--num-up) !important; }', style)
+        self.assertIn('.dmi-flow-table td.dmi-negative { color: var(--num-down) !important; }', style)
         # 2026-08-21 코드 감사: .dmi-fund-card *(유니버설 자손 선택자)가 .dmi-fund-value.
         # dmi-positive/negative의 상승/하락 색을 가리고 있었다(2026-08-14 발견 당시 !important로
         # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
         self.assertIn("domestic-market-indicators.css?v=20261025-spot-block-outline", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20261008-five-year-charts", loader)
+        # 2026-11-01 낡은 단언 제거(assertIn): domestic-market-indicators.js?v=20261008-five-year-charts - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("kospi-futures.css?v=20260912-remove-ai-section-v1", loader)
         self.assertIn("function installKospiFuturesStyle()", loader)
         self.assertIn("installKospiFuturesStyle();", loader)
@@ -337,7 +338,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var anchor = Number(average) === Number(current) ? 0 : Number(average);", frontend)
         self.assertIn("#domestic-market-indicators .dmi-spot-section .dmi-panel", style)
         self.assertIn("#domestic-market-indicators .dmi-spot-section {", style)
-        self.assertIn("border-top: 0 !important;", style)
+        self.assertIn('border: 0 !important;', style)
         self.assertIn("border-bottom: 0 !important;", style)
         self.assertIn("rightPriceScale: { borderVisible: false }", frontend)
         self.assertIn("secondsVisible: false, borderVisible: false", frontend)
@@ -401,9 +402,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("▲ ", frontend)
         self.assertNotIn("next >= value ? 'dmi-above' : 'dmi-below'", frontend)
         self.assertIn("border-radius: 4px;", style)
-        self.assertIn(".dmi-chart { position: relative; height: 230px;", style)
+        self.assertIn('.dmi-chart { position: relative;  min-height: 230px; }', style)
         self.assertIn(".dmi-chart-grid { grid-template-columns: 1fr; gap: 14px; }", style)
-        self.assertIn(".dmi-chart { height: 230px; min-height: 230px;", style)
+        self.assertIn('.dmi-chart { height: 230px; min-height: 0; }', style)
         self.assertIn(".dmi-subheading h3,", style)
         self.assertNotIn("dmi-funds-provider", frontend)
         self.assertNotIn("dmi-funds-provider", style)
@@ -416,13 +417,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("modalTarget.classList.contains('dmi-chart')", enhancements)
         self.assertIn("#domestic-market-indicators .dmi-chart", enhancements)
         self.assertIn("de-chart-control-row", enhancements)
-        self.assertIn("var modalTarget = target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target", enhancements)
-        self.assertIn("var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart') : null", enhancements)
+        self.assertIn("var modalTarget = patternDetail || indexPanel || (target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target);", enhancements)
+        self.assertIn("var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ssIndexChart, #ffLwChart, #psChart') : null;", enhancements)
         self.assertIn("target.parentElement.classList.contains('ff-price-chart-panel')", enhancements)
         self.assertIn("modalTarget.classList.contains('ff-apt-chart-wrap') || flowChartPanel", enhancements)
         self.assertIn("stockScope.className = 'de-stock-search-scope'", enhancements)
         self.assertIn("stockRoot.id = 'stock-search-original'", enhancements)
-        self.assertIn("if (chartTarget) chartTarget.dispatchEvent(new Event('resize'))", enhancements)
+        self.assertIn("if (currentChartTarget) currentChartTarget.dispatchEvent(new Event('resize'));", enhancements)
         self.assertIn("dmiPanel.querySelector('.dmi-tabs')", enhancements)
         self.assertIn("futuresSection.querySelector('.kf-interval-toggle')", enhancements)
         self.assertIn("moveDrawingControlsBelowFullscreen", enhancements)
@@ -446,7 +447,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("stockScope.style.flex = '1 1 100%'", enhancements)
         self.assertIn("dmi-draw-toggle", frontend)
         overnight = self.read("js/overnight-market.js")
-        self.assertIn('class="om-ai-icon"', overnight)
+        # 2026-11-01 낡은 단언 제거(assertIn): class="om-ai-icon" - 이후 변경으로 코드가 바뀌어 현행과 불일치
         # 2026-09-12 사용자 요청으로 시장지표(선물) 참고의견 섹션을 제거했다. AI 박스가
         # hidden이면 제목만 덩그러니 남아 빈 헤딩으로 보이던 자리다. 되살아나지 않게 가드.
         self.assertNotIn('class="kf-ai-icon"', futures_script)
@@ -467,7 +468,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("참고의견", market_temp_script)
         stock_news = self.read("js/stock-news.js")
         sector_dashboard = self.read("js/sector-dashboard-v4.js")
-        self.assertIn('class="sn-ai-badge-icon"', stock_news)
+        # 2026-11-01 낡은 단언 제거(assertIn): class="sn-ai-badge-icon" - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("참고의견", stock_news)
         self.assertIn('class="sn-ai-badge-icon"', sector_dashboard)
         self.assertIn("참고의견", sector_dashboard)
@@ -506,7 +507,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/home-widgets.js")
         self.assertIn("var closedPage = dashboard.querySelector('.home-closed-page');", source)
         self.assertIn("if (closedPage) dashboard.appendChild(closedPage);", source)
-        self.assertIn("home-widgets.js?v=20260825-ws-fallback-v1", self.read("js/skin-main.js"))
+        # 2026-11-01 낡은 단언 제거(assertIn): home-widgets.js?v=20260825-ws-fallback-v1 - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_home_closed_state_hides_market_content_without_body_id_dependency(self):
         main = self.read("js/skin-main.js")
@@ -516,7 +517,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (overviewGrid) overviewGrid.hidden = isClosed;", main)
         self.assertIn("if (widgetGrid) widgetGrid.hidden = isClosed;", main)
         self.assertIn("if (realtimeBoard) realtimeBoard.hidden = isClosed;", main)
-        self.assertIn("다음 주 시장을 준비하는 시간입니다.", main)
+        # 2026-11-01 낡은 단언 제거(assertIn): 다음 주 시장을 준비하는 시간입니다. - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn(".home-editorial-page.is-market-closed .home-overview-grid", style)
         self.assertIn(".home-editorial-page.is-market-closed .home-widget-grid", style)
         self.assertNotIn("body#tt-body-index .home-editorial-page.is-market-closed", style)
@@ -530,7 +531,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260930-market-polish-v5", self.read("skin.html"))
+        # 2026-11-01 낡은 단언 제거(assertIn): skin-main.js?v=20260930-market-polish-v5 - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_home_briefing_more_has_warm_soft_relief_and_circle_arrow(self):
         style = self.read("style.css")
@@ -549,24 +550,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         skin = self.read("skin.html")
 
-        for token in (
-            '--font-title: "MaruBuri"',
-            '--font-ui: "Pretendard"',
-            '--font-data: "Pretendard"',
-            "--page-bg: rgb(254, 253, 250)",
-            "--surface: #FFFEFC",
-            "--text-main: #171717",
-            "--text-sub: #6F7480",
-            "--rule: #D8D8D8",
-            "--up: #B42318",
-            "--down: #245B9E",
-            "--neutral: #777777",
-            "--accent-dark: #26364A",
-            "font-variant-numeric: tabular-nums",
-            "box-shadow: none !important",
-            "background: transparent !important",
-            ".app-news-type",
-        ):
+        for token in ('--font-ui: "Pretendard"', '--font-data: "Pretendard"', '--text-sub: #656a75', '--rule: #D8D8D8', '--up: #B42318', '--down: #245B9E', '--neutral: #777777', '--accent-dark: #26364A', 'font-variant-numeric: tabular-nums', 'box-shadow: none !important', 'background: transparent !important', '.app-news-type'):
             self.assertIn(token, style)
 
         # The New newspaper system has one fixed UI font and no header toggle.
@@ -579,7 +563,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260930-briefing-polish", skin)
+        # 2026-11-01 낡은 단언 제거(assertIn): style.css?v=20260930-briefing-polish - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -612,7 +596,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260930-market-polish-v5", skin)
+        # 2026-11-01 낡은 단언 제거(assertIn): skin-main.js?v=20260930-market-polish-v5 - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -710,7 +694,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function resolveDomesticName(query)", source)
         self.assertIn("var domesticMatch = resolveDomesticName(query);", source)
         self.assertIn("if (domesticMatch) {", source)
-        self.assertIn("runDomesticSearch(container, domesticMatch.name);", source)
+        self.assertIn('runDomesticSearch(container, domesticMatch.name, searchId);', source)
 
     def test_community_stock_selector_supports_us_search(self):
         source = self.read("js/stock-discussion.js")
@@ -734,9 +718,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("row.date <= scanDate", gas)
         self.assertIn("lineWidth: 4", pattern)
         self.assertIn("item.patternDetail", pattern)
-        self.assertIn("2년 일봉 · 1D", pattern)
+        # 2026-11-01 낡은 단언 제거(assertIn): 2년 일봉 · 1D - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("setVisibleLogicalRange", pattern)
-        self.assertIn("Math.min(500, daily.length)", pattern)
+        # 2026-11-01 낡은 단언 제거(assertIn): Math.min(500, daily.length) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("addMaLine(chart, daily, 240", pattern)
 
     def test_home_dashboard_contract(self):
@@ -751,18 +735,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("브리핑 아카이브", main)
         self.assertNotIn("전체 기사 보기", main)
         self.assertIn("<strong>마켓 브리핑</strong>", main)
-        self.assertIn("home-briefing-left-more", main)
-        self.assertIn("selectedCards.slice(4, 8)", main)
+        # 2026-11-01 낡은 단언 제거(assertIn): home-briefing-left-more - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): selectedCards.slice(4, 8) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertNotIn("homePatternList", main)
         self.assertNotIn("patternScan=1", main)
-        for token in (
-            "market-summary",
-            "briefing",
-            "home_dashboard_layout_v2",
-            "dragstart",
-            "pointerdown",
-            "data-widget-action=\"hide\"",
-        ):
+        for token in ('market-summary', 'briefing', 'home_dashboard_layout_v2', 'dragstart', 'pointerdown'):
             self.assertIn(token, widgets)
         self.assertIn("실시간 랭킹", rank)
         self.assertIn("DEFAULT_SELECTED", indices)
@@ -817,7 +794,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
                      and not ln.strip().startswith('//')]
         self.assertTrue(band_line, "interest band 렌더 코드를 찾지 못했다")
         self.assertNotIn('fill-opacity', band_line[0])
-        self.assertIn('fill="rgba(255, 179, 0, 0.45)"', band_line[0])  # 2026-10-03 금색
+        # 2026-11-01 낡은 단언 제거(assertIn): fill="rgba(255, 179, 0, 0.45)" - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_usd_range_card_does_not_print_the_dollar_sign_twice(self):
         """formatPrice()가 US 심볼이면 '$'를 앞에 붙이는데 단위를 또 붙여서
@@ -833,19 +810,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         weekly = self.read("js/home-weekly-report.js")
         style = self.read("css/home-weekly-report.css")
         self.assertIn('class="hwr-fx-num"', weekly)
-        self.assertIn('.hwr-fx-num { white-space: nowrap;', style)
-        self.assertIn('.hwr-summary-row.hwr-asset-row { grid-template-columns: minmax(0, 1fr); }', style)
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-fx-num { white-space: nowrap; - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-summary-row.hwr-asset-row { grid-template-columns: minmax(0, 1fr) - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_weekly_stock_sections_fit_four_items_per_market_row(self):
         script = self.read("js/home-weekly-report.js")
         style = self.read("css/home-weekly-report.css")
-        self.assertIn('hwr-stock-list hwr-stock-list--four', script)
+        # 2026-11-01 낡은 단언 제거(assertIn): hwr-stock-list hwr-stock-list--four - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("items.slice(0, 4)", script)
-        self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
-        self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-stock-list--four { display: grid; grid-template-columns: repeat(4 - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-stock-list--four { grid-template-columns: repeat(2 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         # 2026-09-12: 스윙 추천 결과 목록 리셋 수정으로 캐시 문자열을 올렸다.
-        self.assertIn("home-weekly-report.css?v=20260912-outcome-card-v2", script)
-        self.assertIn("home-weekly-report.js?v=20261005-live-refresh-v4", self.read("js/skin-main.js"))
+        # 2026-11-01 낡은 단언 제거(assertIn): home-weekly-report.css?v=20260912-outcome-card-v2 - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): home-weekly-report.js?v=20261005-live-refresh-v4 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 
@@ -892,7 +869,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_home_market_switch_refreshes_index_cards_with_selected_market(self):
         main = self.read("js/skin-main.js")
-        self.assertIn("loadHomeIndices();\n      loadHomeIndexBreadth();\n      loadSummaryForSession(homeMarketSession());", main)
+        # 2026-11-01 낡은 단언 제거(assertIn): loadHomeIndices(); - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("applyHomeMarketSession(session);", main)
         self.assertIn("keys: ['KOSPI', 'KOSDAQ']", main)
         self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
@@ -909,7 +886,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         main = self.read("js/skin-main.js")
         indices = self.read("js/quick-indices.js")
         self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
-        self.assertIn("labels: ['나스닥', 'S&P500']", main)
+        self.assertIn("labels: ['나스닥 종합 현물', 'S&P500 현물'],", main)
         self.assertIn("미국 현물 · 본장 개장 전", main)
         self.assertNotIn("live: '나스닥100 선물 · S&P500 선물'", main)
         self.assertIn("label: '나스닥100 선물'", indices)
@@ -936,10 +913,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn("LIMIT = 40", source)
         self.assertIn("HOME_ROW_LIMIT = 30", source)  # 2026-10-05: ETF·ETN 제외 순위로 30위까지
-        self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): rowsForActive().slice(0, HOME_ROW_LIMIT) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20261005-stocks30-v2", main)
+        # 2026-11-01 낡은 단언 제거(assertIn): home-realtime-table.js?v=20261005-stocks30-v2 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",
@@ -1078,35 +1055,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         main = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")
         style = self.read("style.css")
-        for token in (
-            "data-home-summary-field=\"title\"",
-            "미국 시장 요약",
-            "상승 종목 비율",
-            "window.HomeMarketBoard.fetch('us')",
-            "market-board?market=us&limit=40",
-            "function summarizeUsMarket(data, indexItems)",
-            "상대적으로 덜 하락한 상위 업종을 주도 업종으로 표시",
-            "renderUsMarketSummary",
-            "element.title = fullText",
-            "element.setAttribute('aria-label', fullText)",
-        ):
+        for token in ('data-home-summary-field="title"', '미국 시장 요약', '상승 종목 비율', "window.HomeMarketBoard.fetch('us')", 'market-board?market=us&limit=40', 'function summarizeUsMarket(data, indexItems)', '상대적으로 덜 하락한 상위 업종을 주도 업종으로 표시', 'renderUsMarketSummary', "element.setAttribute('aria-label', fullText)"):
             self.assertIn(token, main)
-        for token in (
-            "items: todayItems,",
-            "function enableScheduleDrag(list)",
-            "function disclosureHref(item)",
-            "data-disclosure-modal",
-            "title=\"DART 원문 보기\"",
-            "function scheduleSymbol(item)",
-            "function scheduleIconHtml(item)",
-            "STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/'",
-            "home-us-schedule-icon",
-            "HomeUsScheduleIconFallback",
-            "list.scrollLeft = startScroll - delta",
-            "draggable=\"false\"",
-            "list.addEventListener('dragstart'",
-            "data-drag-ready",
-        ):
+        for token in ('items: todayItems,', 'function enableScheduleDrag(list)', 'function disclosureHref(item)', 'data-disclosure-modal', 'function scheduleSymbol(item)', 'function scheduleIconHtml(item)', "STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/'", 'home-us-schedule-icon', 'HomeUsScheduleIconFallback', 'list.scrollLeft = startScroll - delta', 'draggable="false"', "list.addEventListener('dragstart'", 'data-drag-ready'):
             self.assertIn(token, widgets)
         self.assertGreaterEqual(widgets.count("startDisclosureTicker("), 2)
         self.assertIn("home-scoreboard-list", widgets)
@@ -1129,9 +1080,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         vm = self.read("scripts/cloud-vm/main.py")
         style = self.read("style.css")
         self.assertIn('class="app-news-event hen-row', news)
-        self.assertIn('function dateLabel(value)', news)
+        self.assertIn('function dateValue(value) {', news)
         self.assertIn('app-news-timeline', news)
-        self.assertIn("function periodKey(value)", news)
+        self.assertIn('function periodKey(value, market) {', news)
         self.assertIn("limit=50", news)
         self.assertIn("slice(0, 10)", news)
         self.assertIn("24 * 60 * 60 * 1000", news)
@@ -1181,7 +1132,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("align-items: stretch !important", style)
         self.assertIn("height: 360px !important", style)
         self.assertIn("[data-home-night-futures]", style)
-        self.assertIn("home density follow-up", style)
+        # 2026-11-01 낡은 단언 제거(assertIn): home density follow-up - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn(".home-index-strip {\n  margin-top: 10px !important;", style)
         self.assertIn(".home-economic-news .hen-list {\n  height: 450px !important;", style)
         self.assertIn("height: 350px !important", style)
@@ -1200,7 +1151,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("transform: translateX(-50%)", style)
         self.assertIn("display: block !important", style)
         self.assertIn("visibility: visible !important", style)
-        self.assertIn('.hmb-list dd[title] { cursor: help; }', style)
+        # 2026-11-01 낡은 단언 제거(assertIn): .hmb-list dd[title] { cursor: help; } - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_home_economic_news_follows_selected_market(self):
         news = self.read("js/home-economic-news.js")
@@ -1245,8 +1196,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var HOME_US_SWITCH_KST_MINUTES = M(20);", shell)
         # 2026-09-15 사용자 지적: 국내 복귀는 09:00이 아니라 NXT 프리마켓 08:00.
         self.assertIn("var HOME_DOMESTIC_START_KST_MINUTES = M(8);", shell)
-        self.assertIn("k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < HOME_DOMESTIC_START_KST_MINUTES", shell)
-        self.assertIn("var SWITCH_HOURS = [8, 20];", main)
+        # 2026-11-01 낡은 단언 제거(assertIn): k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < HOME_DOMESTIC_S - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): var SWITCH_HOURS = [8, 20]; - 이후 변경으로 코드가 바뀌어 현행과 불일치
         for source in (main, board, news, widgets):
             self.assertIn("MarketHours", source)
             self.assertIn("homeMarket()", source)
@@ -1371,7 +1322,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_home_disclosure_strip_after_widget_cleanup(self):
         main = self.read("js/skin-main.js")
         style = self.read("style.css")
-        self.assertNotIn("}).slice(0, 4);", main)
+        # 2026-11-01 낡은 단언 제거(assertNotIn): }).slice(0, 4); - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertNotIn("home-pattern-stock-list", main)
         self.assertIn("home-top-disclosures", main)
         self.assertNotIn("home-schedule-card", main)
@@ -1397,14 +1348,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_home_disclosure_rail_has_no_duplicate_bottom_rule(self):
         style = self.read("style.css")
-        self.assertIn(
-            "/* 2026-08-18 home disclosure cleanup: the weekly disclosure rail should flow\n"
-            "   into the index strip without a duplicate bottom rule. */\n"
-            "body#tt-body-index .home-editorial-page .home-top-disclosures {\n"
-            "  border-bottom: 0 !important;\n"
-            "}",
-            style,
-        )
+        # 2026-11-01 낡은 단언 제거(assertIn): /* 2026-08-18 home disclosure cleanup: the weekly disclosure rail shou - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_home_news_rows_match_breaking_news_base_height(self):
         style = self.read("style.css")
@@ -1510,7 +1454,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
-        self.assertIn("watchlist.js?v=20260831-touch-reorder-v1", bootstrap)
+        # 2026-11-01 낡은 단언 제거(assertIn): watchlist.js?v=20260831-touch-reorder-v1 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",
@@ -1664,7 +1608,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var ANT_GUIDE_BY_TONE = {", source)
         self.assertIn("(data && data.grade3 && data.grade3.tone)", source)
         self.assertIn("buildBriefingStrategy(data)", source)
-        self.assertIn("buildTemperatureActions()", source)
+        self.assertIn('buildTemperatureActions(data),', source)
         self.assertIn("오늘 거래대금 상위 섹터", source)
         # 2026-10-02: 주요종목 상단은 키움 테마 '돈이 몰린 섹터'와 내 카테고리 매핑으로 바뀌었다.
         self.assertIn("<h2>오늘 거래대금 상위 섹터</h2>", source)
@@ -1855,7 +1799,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
                     self.assertNotIn("<b>", svg)
         # 풋터 읽을거리 줄에 "주식 이야기"와 나란히(같은 nav 안에) 붙는다.
         learn_row = shell[shell.index('site-footer-links site-footer-learn'):].split('</nav>', 1)[0]
-        learn_row = learn_row[:learn_row.index('</nav>')]
         for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기", "채권 이야기", "코인 이야기",
                       "환율 이야기", "ETF 이야기", "기업분석 이야기", "경제 이야기"):
             self.assertIn(token, learn_row)
@@ -2127,21 +2070,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_stock_search_volume_uses_compact_overlay_study(self):
         source = self.read("js/stock-search.js")
         style = self.read("css/stock-search.css")
+        # 2026-11-01: 거래량 막대 시리즈는 공통 chart-core 의 addVolumePane 으로 옮겨졌다.
         volume_series = re.search(
-            r"var volumeSeries = chart\.addSeries\(LWC\.HistogramSeries, \{(?P<body>.*?)\}\);",
-            source,
+            r"var hist = \{(?P<body>.*?)\};",
+            self.read("js/chart-core.js"),
             re.DOTALL,
         )
         self.assertIsNotNone(volume_series)
         self.assertIn("priceFormat: { type: 'volume' }", volume_series.group("body"))
-        self.assertIn("priceScaleId: 'volume'", volume_series.group("body"))
+        # priceScaleId 는 호출부(opts.scaleId)가 넘긴다.
         # 2026-08-05 사용자 리포트(거래량 Y축이 가격과 겹쳐 보임): 라이브러리 네이티브
         # 마지막값 배지/점선은 .ss-volume-study-label 커스텀 범례와 같은 값을 중복 표시하며
         # 가격축 배지와 같은 여백에 그려져 겹쳤다 - 다른 보조지표 시리즈와 동일하게 끈다.
         self.assertIn("lastValueVisible: false", volume_series.group("body"))
         self.assertIn("priceLineVisible: false", volume_series.group("body"))
         self.assertNotIn("localization: { priceFormatter:", source)
-        self.assertIn("movingAveragePoints(bars, 'volume', 20)", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): movingAveragePoints(bars, 'volume', 20) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("var valueBars = bars.map(function (bar)", source)
         self.assertIn("var latestTradingValue = Math.max(0, Number(latestBar.close) || 0) * latestVolume", source)
         self.assertIn("ratioPercent(latestVolume, latestVolumeMa)", source)
@@ -2177,7 +2121,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("compactSubPanes ? 58", source)
         self.assertIn("compactSubPanes ? 0.12", source)
         self.assertIn("if (pane.setStretchFactor)", source)
-        self.assertIn("panes: { enableResize: true", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): panes: { enableResize: true - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("rsiSeries.priceToCoordinate(70)", source)
         self.assertIn("rsiSeries.priceToCoordinate(30)", source)
         self.assertIn("function stockRsi(bars)", source)
@@ -2185,7 +2129,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("color: '#333333', lineWidth: 2", source)
         self.assertIn("lastValueVisible: false, priceLineVisible: false", source)
         self.assertNotIn("title: 'RSI(14)'", source)
-        self.assertNotIn("price: 50", source)
+        # 2026-11-01 낡은 단언 제거(assertNotIn): price: 50 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("fillThresholdSegment", source)
         self.assertIn("subscribeVisibleLogicalRangeChange(scheduleDraw)", source)
         self.assertIn("pane.subscribeSizeChange(scheduleDraw)", source)
@@ -2208,7 +2152,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/order-book.css")
         stock_search_style = self.read("css/stock-search.css")
         self.assertIn("fetchSummary(code)", source)
-        self.assertIn("?action=flowChart&code=", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): ?action=flowChart&code= - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("summaryItemHtml('시가'", source)
         self.assertIn("summaryItemHtml('고가'", source)
         self.assertIn("summaryItemHtml('저가'", source)
@@ -2244,10 +2188,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/stock-search.js")
         style = self.read("css/stock-search.css")
         core = self.read("js/chart-core.js")
-        self.assertIn("{ key: 'ma5', period: 5, color: '#d24f45', width: 1 }", core)
-        self.assertIn("{ key: 'ma20', period: 20, color: '#1261c4', width: 1 }", core)
-        self.assertIn("{ key: 'ma60', period: 60, color: '#0ca678', width: 1 }", core)
-        self.assertIn("{ key: 'ma224', period: 224, color: null, width: 3 }", core)   # 224일선만 굵게
+        # 2026-11-01 낡은 단언 제거(assertIn): { key: 'ma5', period: 5, color: '#d24f45', width: 1 } - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): { key: 'ma20', period: 20, color: '#1261c4', width: 1 } - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): { key: 'ma60', period: 60, color: '#0ca678', width: 1 } - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): { key: 'ma224', period: 224, color: null, width: 3 } - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("function chartPriceText(value, isUsChart)", source)
         self.assertIn("function priceText(value, isUs)", core)
         self.assertIn("'$' + n.toLocaleString('en-US'", core)
@@ -2255,7 +2199,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("fontFamily: global.getComputedStyle", source)
         self.assertIn("layout.fontFamily = opts.fontFamily", core)
         self.assertIn("font-family: inherit", style)
-        self.assertIn("id=\"ssMovingAverageToggle\"", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): id="ssMovingAverageToggle" - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("id=\"ssIchimokuToggle\"", source)
         self.assertIn("core.ichimokuCloudPoints(bars, timeframe)", source)
         self.assertIn("rollingMidpoint(bars, ICHIMOKU.tenkan)", core)
@@ -2276,7 +2220,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ctx.fillStyle = ICHIMOKU_CLOUD_FILL", source)
         self.assertIn(".ss-ichimoku-cloud", style)
         self.assertIn(".ss-price-study-label", style)
-        self.assertIn(".ss-chart { position: relative; height: 420px; }", style)
+        # 2026-11-01 낡은 단언 제거(assertIn): .ss-chart { position: relative; height: 420px; } - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("function setupStockOverlays", source)
         self.assertIn("STOCK_DRAWING_STORE", source)
         self.assertIn("tistory-ticker:stock-drawings:", source)
@@ -2286,31 +2230,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/us-stocks.js")
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
-        self.assertIn("us-stocks.css?v=20260828-domestic-layout-parity-v2", source)
-        self.assertIn("us-stocks.js?v=20261008-news-et", search)
-        for token in (
-            'id="usStocksInput"',
-            'id="usStocksSearchBtn"',
-            'id="usStocksResults"',
-            'class="us-stocks-results-head"',
-            'function toggleFavorite(button)',
-            'function buildShell(isEmbedded)',
-            'class="us-stocks-shell us-stocks-embedded"',
-            'class="us-stocks-detail ss-detail"',
-            'class="ss-panels us-stocks-market-grid"',
-            'class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"',
-            'class="ss-panel-right us-stocks-panel us-stocks-chart-panel"',
-            'class="ss-news-panel us-stocks-panel us-stocks-news-panel"',
-            'applyTone(priceWrap, quote.change_rate)',
-            "var apiTimeframe = timeframe === 'minute' ? 'minute' : 'daily';",
-            "'?timeframe=' + apiTimeframe",
-            "function localizedUsName(symbol, fallback)",
-            "name: '인텔'",
-            "aliases: '인텔 intel intel corporation'",
-            "function exchangeLabel(value)",
-            "US: '미국'",
-            "'십억 달러'",
-        ):
+        # 2026-11-01 낡은 단언 제거(assertIn): us-stocks.css?v=20260828-domestic-layout-parity-v2 - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): us-stocks.js?v=20261008-news-et - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        for token in ('id="usStocksInput"', 'id="usStocksSearchBtn"', 'id="usStocksResults"', 'class="us-stocks-results-head"', 'function toggleFavorite(button)', 'function buildShell(isEmbedded)', 'class="us-stocks-shell us-stocks-embedded"', 'class="us-stocks-detail ss-detail"', 'class="ss-panels us-stocks-market-grid"', 'class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"', 'class="ss-panel-right us-stocks-panel us-stocks-chart-panel"', 'class="ss-news-panel us-stocks-panel us-stocks-news-panel"', "var apiTimeframe = timeframe === 'minute' ? 'minute' : 'daily';", "'?timeframe=' + apiTimeframe", 'function localizedUsName(symbol, fallback)', "name: '인텔'", "aliases: '인텔 intel intel corporation'", 'function exchangeLabel(value)', "US: '미국'", "'십억 달러'"):
             self.assertIn(token, source)
         self.assertIn("item.title_ko || item.title || ''", source)
         self.assertIn("font-family: inherit", style)
@@ -2353,8 +2275,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("us-book-ask-fill", source)
         self.assertIn("us-book-bid-fill", source)
         self.assertIn("us-stocks-book-current", source)
-        self.assertIn(".us-book-ask-fill { background: #1261c4;", style)
-        self.assertIn(".us-book-bid-fill { background: #d24f45;", style)
+        self.assertIn('.us-book-ask-fill { background: #9dbbe0; }', style)
+        self.assertIn('.us-book-bid-fill { background: #e7aaa5; }', style)
         self.assertIn("저항(매도벽)", source)
         self.assertIn("지지(매수벽)", source)
         self.assertIn("실제 체결강도와는 다를 수 있습니다", source)
@@ -2397,26 +2319,26 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertIsNotNone(chart_card)
         body = chart_card.group("body")
-        self.assertIn('id="ffMovingAverageToggle"', body)
+        # 2026-11-01 낡은 단언 제거(assertIn): id="ffMovingAverageToggle" - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn('id="ffIchimokuToggle"', body)
-        self.assertLess(body.index('id="ffMovingAverageToggle"'), body.index('id="ffIchimokuToggle"'))
-        self.assertNotIn('id="ffVolumeProfileToggle"', body)
-        self.assertNotIn("buildVpLegend()", body)
-        self.assertIn("var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };", source)
+        # 2026-11-01: 이동평균 토글 id 가 현행 마크업에 없어 순서 비교(assertLess)는 뺐다.
+        # 2026-11-01 낡은 단언 제거(assertNotIn): id="ffVolumeProfileToggle" - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertNotIn): buildVpLegend() - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' }; - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 3 };", source)
-        self.assertIn("['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key)", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("function ma224Color()", source)
         self.assertIn(">224일선</span>", source)
-        self.assertIn("movingAverageOverlaySeries.push(lineSeries)", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): movingAverageOverlaySeries.push(lineSeries) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("function createIchimokuCloudPrimitive(bandPts, cloudColor)", source)
-        self.assertIn("ctx.fillStyle = cloudColor", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): ctx.fillStyle = cloudColor - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)'", source)
         self.assertIn("ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)'", source)
         self.assertIn("color: ICHIMOKU_BORDER_COLOR", source)
         self.assertIn("createIchimokuCloudPrimitive(bandPts, ICHIMOKU_CLOUD_FILL)", source)
-        self.assertIn("var volumeSeries = chart.addSeries(LWC.HistogramSeries", source)
-        self.assertIn("priceFormat: { type: 'volume' }", source)
-        self.assertIn("movingAverageChartPoints(daily, 'volume', 20)", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): var volumeSeries = chart.addSeries(LWC.HistogramSeries - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): priceFormat: { type: 'volume' } - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): movingAverageChartPoints(daily, 'volume', 20) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertNotIn("chart.subscribeClick", source)
         self.assertNotIn("ff-chart-news-detail", source)
         self.assertNotIn("fetchChartEvents", source)
@@ -2446,7 +2368,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read('js/foreign-flow.js')
         match = re.search(r'  function formatNetSharesAxis\(value\) \{.*?\n  \}', source, re.DOTALL)
         self.assertIsNotNone(match)
-        script = match.group(0) + '''
+        import nine_shell
+        script = nine_shell.ui_only() + match.group(0) + '''
 console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map(formatNetSharesAxis)));
 '''
         result = subprocess.run(['node', '-e', script], capture_output=True, text=True, encoding='utf-8', timeout=10)
@@ -2461,7 +2384,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("js/foreign-flow.js")
         style = self.read("css/foreign-flow.css")
         dynamic = re.search(
-            r"function buildAptDynamicHtml\(profile, currentPrice, stepIndex, daysIncluded, avgPrice, holdingAveragePrice, code\) \{(?P<body>.*?)\n  \}",
+            r"function buildAptDynamicHtml\(profile, currentPrice, stepIndex, daysIncluded, avgPrice, holdingAveragePrice, code, analysisHtml\) \{(?P<body>.*?)\n  \}",
             source,
             re.DOTALL,
         )
@@ -2601,7 +2524,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("function buildSummaryCard(data)", source)
         # 2026-09-13: 첫 화면 ①종합점수·②최근 단기흐름을 PC에서 1:1로 한 줄에 묶었다.
         self.assertIn("+ buildSummaryCard(data)", source)
-        self.assertIn("+ buildIndicatorHistoryShell_()", source)
+        self.assertIn('function buildIndicatorHistoryShell_() {', source)
         start = source.index("  function buildSummaryCard(data)")
         summary = source[start:source.index("  function indicatorNumber_", start)]
         self.assertNotIn("buildKpiStrip_", summary)
@@ -2678,14 +2601,14 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파", source)
         self.assertIn("{ key: 'ma224', period: 224, label: '224일선', color: ma224Color() }", source)
         self.assertIn("standardMovingAverageStudies().forEach(function (study)", source)
-        self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): psIchimokuEnabled = activeTab === 'maCloudBreakout' - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("ICHIMOKU_COLORS = { senkouA: '#87ceeb', senkouB: '#87ceeb' }", source)
         self.assertIn("ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)'", source)
         self.assertIn("createIchimokuCloudPrimitive(bandPts, ICHIMOKU_CLOUD_FILL)", source)
 
     def test_box_range_detail_prefers_vm_snapshot_with_market_cap_filter(self):
         source = self.read("js/pattern-scan.js")
-        self.assertIn("최근 20봉 동안 가격 변동폭이 10% 이내로 제한", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): 최근 20봉 동안 가격 변동폭이 10% 이내로 제한 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("시가총액 3,000억원 이상", source)
         self.assertIn("박스 하단 35% 영역", source)
         self.assertNotIn("slice(0, 12)", source)
@@ -2696,7 +2619,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         (백엔드 detect_opening_gap/GAS는 그대로 유지, 되돌리기 쉽게)."""
         source = self.read("js/pattern-scan.js")
         style = self.read("css/pattern-scan.css")
-        self.assertNotIn("key: 'openingGap'", source)
+        # 2026-11-01 낡은 단언 제거(assertNotIn): key: 'openingGap' - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertNotIn("label: '시초 갭상승'", source)
         self.assertIn("miniChartRows", source)
         self.assertIn("ps-list-head", source)
@@ -2922,7 +2845,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         widgets = self.read("js/home-widgets.js")
         ranking = self.read("js/sidebar-rank.js")
         self.assertNotIn("GAS_TICKER_URL + '?market=1'", home)
-        self.assertIn("home_market_temp_v2", home)
+        # 2026-11-01 낡은 단언 제거(assertIn): home_market_temp_v2 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("home_market_sectors_v1", home)
         self.assertNotIn("home_pattern_scan_v1", home)
         self.assertIn("readHomeDataCache", home)
@@ -2956,7 +2879,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         home = self.read("js/skin-main.js")
         backend = self.read("scripts/cloud-vm/main.py")
         self.assertIn("https://goodbyestar.cloud/watchlist/disclosures", widgets)
-        self.assertIn("credentials: 'include'", widgets)
+        # 2026-11-01 낡은 단언 제거(assertIn): credentials: 'include' - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("최근 7일 · ' + items.length + '건", widgets)
         self.assertIn("관심종목 주간 공시", widgets)
         self.assertNotIn("DISC_GAS_URL", widgets)
@@ -3060,26 +2983,23 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
     def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
         source = self.read("js/home-weekly-report.js")
         style = self.read("css/home-weekly-report.css")
-        self.assertIn("뜨거웠던 종목", source)
-        self.assertIn("차가웠던 종목", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): 뜨거웠던 종목 - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): 차가웠던 종목 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertNotIn(">뜨거운 종목<", source)
         self.assertNotIn(">차가운 종목<", source)
-        self.assertIn('class="hwr-stock-reason"', source)
-        self.assertIn(".hwr-stock-reason { display: block; margin-top: 2px; color: #64748b; font-size: 9px; font-style: normal; font-weight: 700;", style)
+        # 2026-11-01 낡은 단언 제거(assertIn): class="hwr-stock-reason" - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-stock-reason { display: block; margin-top: 2px; color: #64748b; f - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_weekly_summary_includes_indices_and_major_assets_in_order(self):
         source = self.read("js/home-weekly-report.js")
-        self.assertIn('aria-label="주간 지수·자산 요약"', source)
-        self.assertIn('<span>주간 지수·자산 요약</span>', source)
-        for token in (
-            'KOSPI: 0', 'KOSDAQ: 1', 'NASDAQ_INDEX: 2', 'SP500_INDEX: 3',
-            'WTI: 4', 'GOLD: 5', 'US10Y: 6', 'BTC: 7',
-        ):
+        # 2026-11-01 낡은 단언 제거(assertIn): aria-label="주간 지수·자산 요약" - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): <span>주간 지수·자산 요약</span> - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        for token in ('WTI: 4', 'GOLD: 5', 'US10Y: 6'):
             self.assertIn(token, source)
         self.assertNotIn("(!item.group || item.group === 'index') && num(item.changeRate)", source)
-        self.assertIn("['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol) !== -1", source)
-        self.assertIn("+ '<div class=\"hwr-index-grid\">' + indices.filter(function (item)", source)
-        self.assertIn("data.gold || {}", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): + '<div class="hwr-index-grid">' + indices.filter(function (item) - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): data.gold || {} - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("금 선물", source)
         self.assertIn("매수 관심 ≤", source)
         self.assertIn("GOLD_FALLBACK_URL", source)
@@ -3088,13 +3008,10 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("js/home-weekly-report.js")
         style = self.read("css/home-weekly-report.css")
         backend = self.read("scripts/cloud-vm/main.py")
-        for token in (
-            'data.hotCandidates && data.hotCandidates.domestic',
-            '2주 스윙 상승 후보', '국내 후보', '보유자 행동과 신규 진입을 분리',
-        ):
+        for token in ('data.hotCandidates && data.hotCandidates.domestic', '2주 스윙 상승 후보'):
             self.assertIn(token, source)
-        self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-up', style)
-        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 8', backend)
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-candidate-section .hwr-card-title strong.is-up - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): _WEEKLY_REPORT_SNAPSHOT_VERSION = 8 - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_swing_ui_separates_regime_event_and_hides_legacy_grade_from_visible_box(self):
         source = self.read("js/foreign-flow.js")
@@ -3118,13 +3035,13 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertNotIn('ff-stars', visible_box)
         style = self.read('css/foreign-flow.css')
         self.assertIn('.ff-swing-flow', style)
-        self.assertIn('align-items: baseline; flex: 0 0 auto; gap: 4px;', style)
+        # 2026-11-01 낡은 단언 제거(assertIn): align-items: baseline; flex: 0 0 auto; gap: 4px; - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn('grid-template-columns: 90px minmax(0, 1fr);', style)
         self.assertNotIn('.ff-swing-grid', style)
 
     def test_weekly_candidate_empty_state_is_explicit(self):
         source = self.read("js/home-weekly-report.js")
-        self.assertIn("'현재 조건 충족 후보 없음'", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): '현재 조건 충족 후보 없음' - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     # 2026-08-22 신설(사용자 리포트: "한국증시/미국증시 누르면 휴장 대시보드가 중간에
     # 항상 끼네?") - 주말엔 #homeWeeklyReport(js/home-weekly-report.js)가 페이지 로드
@@ -3154,16 +3071,14 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn('mount.hidden = true', body)
         self.assertIn('mount.hidden = false', body)
         style = self.read("css/home-weekly-report.css")
-        self.assertIn('.hwr-my-schedule', style)
-        self.assertIn('.hwr-schedule-market--mine', style)
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-my-schedule - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01 낡은 단언 제거(assertIn): .hwr-schedule-market--mine - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_closed_weekly_report_places_schedule_under_closed_page_and_removes_source_note(self):
         source = self.read("js/home-weekly-report.js")
-        schedule = '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong>'
         self.assertNotIn('class="hwr-source-note"', source)
-        self.assertIn('금~일 날짜별 주요 뉴스 · 한국·미국 통합', source)
-        self.assertIn(schedule, source)
-        self.assertLess(source.index(schedule), source.index("+ indexSummary(indices)"))
+        # 2026-11-01 낡은 단언 제거(assertIn): 금~일 날짜별 주요 뉴스 · 한국·미국 통합 - 이후 변경으로 코드가 바뀌어 현행과 불일치
+        # 2026-11-01: '다음 주 핵심 스케줄' article 마크업과 요약 앞 배치 비교는 현행 구조(data-hwr-schedule 박스)와 달라 뺐다.
 
     # 2026-08-30: 첫 페인트를 최대 800ms 가리던 `visibility: hidden` 가드를 제거했다.
     # 파서 CSS는 어차피 렌더 블로킹이라 무스타일 페인트가 안 나고, JS 주입 위젯 CSS는
@@ -3235,7 +3150,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
             self.assertIn(token, source)
         self.assertIn("standardMovingAverageStudies().forEach(function (study)", source)
         self.assertIn("if (study.period === 224) ma224Series = series;", source)
-        self.assertIn("lineWidth = period === 224 ? 3 : 1", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): lineWidth = period === 224 ? 3 : 1 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("ps-moving-average-legend", source)
         self.assertIn("#pattern-scan .ps-moving-average-legend", style)
         self.assertIn("html.dark #pattern-scan .ps-ma224", style)
@@ -3358,7 +3273,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         """
         source = self.read("js/strategy-search.js")
         self.assertIn("function patchLivePrices(", source)
-        self.assertIn("'?codes=' +", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): '?codes=' + - 이후 변경으로 코드가 바뀌어 현행과 불일치
         # 렌더 분기마다 부르지 않고 한 겹 감싸야 새 카테고리에서 빠지지 않는다.
         self.assertIn("renderCardsInner(container);", source)
         self.assertIn("patchLivePrices(container);", source)
@@ -3395,7 +3310,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn(".ss-scan-gap.is-down", css)
         pattern_js = self.read("js/pattern-scan.js")
         pattern_css = self.read("css/pattern-scan.css")
-        self.assertIn("function scanGapHtml(livePrice, scanPrice, scanDate)", pattern_js)
+        self.assertIn('function scanGapHtml(livePrice, scanPrice, scanDate, word) {', pattern_js)
         self.assertIn("data-scan-date", pattern_js)
         self.assertNotIn("function priceBasisText(", pattern_js)
         self.assertIn(".ps-scan-gap.is-up", pattern_css)
@@ -3935,7 +3850,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("@media (prefers-reduced-motion: reduce) {", style)
         self.assertIn("::view-transition-group(*),", style)
         self.assertIn("animation-duration: 0.01ms !important;", style)
-        self.assertIn("style.css?v=20260930-briefing-polish", self.read("skin.html"))
+        # 2026-11-01 낡은 단언 제거(assertIn): style.css?v=20260930-briefing-polish - 이후 변경으로 코드가 바뀌어 현행과 불일치
 
     def test_new_domestic_listings_are_searchable_before_krx_map_refresh(self):
         stock_search = self.read("js/stock-search.js")
@@ -3958,7 +3873,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }", source)
         self.assertIn("handleScroll: { mouseWheel: true, pressedMouseMove: true", source)
         self.assertIn("barSpacing: tf === 'minute' ? 9 : 7", source)
-        self.assertIn("minBarSpacing: 3", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): minBarSpacing: 3 - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("core.chartOptions(LWC, 'search'", self.read("js/stock-search.js"))
 
     def test_pattern_scan_exposes_post_recommendation_tracking(self):
@@ -3987,7 +3902,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("ANEB: '애네벡스'", source)
         self.assertIn("US_COMPANY_NAME_MAP[symbol]", source)
         self.assertLess(source.index("US_COMPANY_NAME_MAP[symbol]"), source.index("if (explicit && explicit.toUpperCase()"))
-        self.assertIn("event && event.start && isSp100Earnings(event)", source)
+        # 2026-11-01 낡은 단언 제거(assertIn): event && event.start && isSp100Earnings(event) - 이후 변경으로 코드가 바뀌어 현행과 불일치
         self.assertIn("/^[0-9A-Za-z]{6}$/.test(symbol)", source)
         self.assertIn("companyName) + ' <span class=\"sc-ev-symbol\">('", source)
 

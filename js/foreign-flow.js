@@ -1940,14 +1940,14 @@
     var coverage = data && data.coverage;
     var coverageText = coverage
       ? '데이터 기준일 ' + escapeHtml(data.dataAsOf || coverage.actualEndDate || '-')
-        + ' · 최근 ' + Number(coverage.backfillDays || 90) + '일 뉴스 백필 '
+        + ' · 최근 ' + Number(coverage.backfillDays || 30) + '일 뉴스 백필 '
         + (coverage.backfillComplete ? '완료' : '부분')
         + ' (' + escapeHtml(coverage.actualStartDate || '-') + ' ~ '
         + escapeHtml(coverage.actualEndDate || '-') + ')'
-      : '데이터 기준일 준비 중 · 최근 90일 뉴스 백필 여부 확인 중';
+      : '데이터 기준일 준비 중 · 최근 30일 뉴스 백필 여부 확인 중';
     var intro = '<div class="ff-momentum-intro"><b>이슈·재료 지속성 분석</b>'
       + '<span>가격 변동이 아니라 뉴스 반복성·최근성·통합검색 관심도를 배치 집계한 결과입니다.</span>'
-      + '<span class="ff-momentum-coverage">' + coverageText + '</span></div>';
+      + '<span class="ff-momentum-coverage">' + coverageText + (global.NineUI && global.NineUI.sourceNote ? ' · ' + escapeHtml(global.NineUI.sourceNote('naver')) : '') + '</span></div>';
     if (!topics.length) {
       // 2026-08-02: 예전에는 "수집 대상이 아직 아님"과 "수집했지만 반복 이슈가 없음"이
       // 같은 문구로 나와서, 사용자 눈에는 모멘텀 탭이 그냥 안 나오는 것처럼 보였다.
@@ -1961,7 +1961,7 @@
         emptyDesc = '전 종목을 순서대로 수집하고 있어 아직 이 종목 차례가 오지 않았습니다. 수집이 끝나면 자동으로 표시됩니다.';
       } else {
         emptyTitle = escapeHtml(stockName) + ' 반복 이슈 없음';
-        emptyDesc = '최근 90일 뉴스를 수집했지만 서로 다른 기사에서 2회 이상 반복된 이슈가 없습니다.';
+        emptyDesc = '최근 30일 뉴스를 수집했지만 서로 다른 기사에서 2회 이상 반복된 이슈가 없습니다.';
       }
       return intro + '<div class="ff-momentum-empty"><b>' + emptyTitle + '</b>'
         + '<span>' + escapeHtml(emptyDesc) + '</span></div>';

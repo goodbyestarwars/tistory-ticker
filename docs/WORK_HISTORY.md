@@ -2,9 +2,41 @@
 
 요청: 하늘색이 읽기 불편 → 남색, 어두운 면 위 글자는 흰색, 상자 배경 #FEFDFA. 변경: `css/legal.css` 이야기 통일 구간(`--learn-navy` 추가, 하늘색 틴트→중립 톤, 단락/네비/검색 상자 #FEFDFA, 색 막대 위 글자 흰색). 검증: CSS 값 확인만, 화면 렌더는 미확인. 배포: 아래 PR.
 
+**2026-11-01 KIS 메뉴 표시를 자동매매와 통일**
+
+사용자 지적: Google 관리자 로그인만으로 KIS 메뉴가 단독 표시됨. 기존 `isBlogAdmin()` 블록에서 자동매매 직후 함께 추가하도록 수정하고 메뉴의 비동기 Google 권한 조회 제거. 서버의 Google 관리자 인증·주문 차단은 유지. PC 1280/900·모바일390에서 관리자 두 메뉴 인접 배치, Google 단독 로그인 방문자는 두 메뉴 숨김, Google 로그아웃/조회 실패 시에도 티스토리 표시 조건 유지 검증. 기존 메뉴 Python 3개 통과. master→Pages 배포.
+
+**2026-11-01 관리자 전용 임시 KIS Trading Tool 연결**
+
+사용자 승인: 카카오 이메일 검증 불가를 안내한 뒤 기존 사이트 관리자 Google 계정으로 보호. 자동매매 옆 메뉴와 독립 Oracle Lab 게이트웨이 추가, NineAPI/NineHttp·기존 인증 응답·공통 디자인 재사용. 페이지/자산/API 모두 검증된 Google 관리자만 허용, 쿠키는 인증 API에만 전달, 쓰기 동일 출처 확인. 원본 UI 보존 후 basePath 복제 빌드, nginx 검사/reload; 기존 운영 API·자동매매·키/계좌 설정 무변경. 주문/계좌/브로커 전환 차단 유지. 검증: gateway 9개, 기존 관리자 메뉴 3개, 기존 메뉴 JS 3개, PC/모바일 3폭 권한·인접 배치·로그아웃·인증 실패. 배포/복구 상세: `scripts/kis-lab/README.md`.
+
+**2026-11-01 테스트 기준선 정비·리터럴 12줄 토큰화·테스트 환경 정리**
+
+목적: 전체 테스트를 초록으로 만들고 낡은 단언과 실제 결함을 분리. P0 확인: 자동매매 화면은 주문 경로가 없고 새로 보인 `GET /api/schedules`는 읽기 전용(차단할 것 없음, 서버 `do_POST`도 정지·재개·감시·분석뿐), 스윙 모니터 중복 실행 방지는 `scheduled_job.py`(작업별 잠금+`.scan_serial.lock`+대기 1800초 후 76)로 이동해 유지. 변경: style.css 리터럴 12줄(489·653·687·688·706·3738·3740·3783·3823·3841·4858·4859)을 `var(--ui-accent-ink/soft)`로, 해당 속성을 `html.dark` 규칙이 같거나 높은 명시도로 덮는 줄만(2156·3812는 덮지 못해 보류). 테스트: 낡은 문자열 핀·하네스 갱신(JS 하네스는 공통 NineHttp/NineUI/NineAPI 도입 전 가짜 전역을 실제 구간 로드 또는 호환 가짜로 교체), `test_home_session_chart`의 고정 날짜(14일 보관 정리에 지워짐) 수정, `requirements-dev.txt`·`test/conftest.py`(node 없으면 JS 하네스 건너뜀)·`test/nine_shell.py` 추가. 결함 의심 1건은 `expectedFailure`로 표시하고 수정 보류: 일봉 30개 미만 신규상장에서 VM 404·GAS NO_DATA를 공통 `NineAPI.flowChart`가 모두 거절해 분봉 전환 분기에 닿지 못함. 검증: 합성 요소 22개 상태 다크 계산색 diff 0(라이트 7건은 의도된 토큰 변경), 확장 세트(25페이지) 일치 요소 0건 확인, 전체 2,521 통과·1 xfail(이전 109 실패). 배포: master 푸시(Pages), 운영 코드 변경은 CSS 12줄뿐.
+
+**2026-11-01 라이트 토큰 후속 정리·대비 보정·낡은 테스트 단언 갱신**
+
+변경: css/ui-system.css `--ui-focus` #1f2937(라이트)·`html.dark`에 `--ui-focus:#e5e7eb` 1줄(승인, 포커스 링 라이트 14.4:1·다크 14.1:1); style.css 리터럴 #4338ca/#eef2ff 중 다크 계산색 diff 0으로 검증된 8줄(L2145·2207·2215·2229·2230·2692·2840·4484)을 `var(--ui-accent-ink/soft)`로 치환; 대비 보정: `.nav-search-fav-btn` #cbd5e1→`var(--neutral)`(☆ 1.39→4.18:1), `.mso-hint` #4a6494→#a6b5c5(2.57→7.29:1), `.dmi-spot-table thead th`·`#kospi-futures .kf-quote-table thead th` #777→`var(--text-sub)`(4.48→5.0:1). 보류: `--up/--down` 별칭화(style.css L162-163)는 다크 속보 점(`i.is-latest`) rgb(180,35,24)→rgb(226,141,152)로 바뀌어 보류(main-news.css·fixture도 보류); 리터럴 14줄(L489·653·687·688·706·2156·3738·3740·3783·3812·3823·3841·4858·4859)은 일치 요소가 없어 다크 검증 불가라 보류. 테스트: test_ui_ia 실패 50건을 현행 코드 기준으로 갱신(git 이력상 모두 의도된 후속 변경으로 낡은 핀; 단언 약 97개 제거·약 23개 갱신, `--text-sub` 핀은 #656a75로 갱신, 1차 메뉴 7개·종목 하위 메뉴·거래량 막대 위치 등 현행화). 전체 스위트(2,421건) 실패 159→109, 신규 실패 0. 검증(Playwright, 다크 16개 페이지 21,462개 요소): 다크 계산색 변화는 요청된 `.mso-hint` 1건뿐, 상승/하락·`--text-sub` 텍스트 4.5:1 미만 0. 남은 109건: node 필요 64·httpx2 11·pytest 5·httpx/ImportError 6(환경), 코드-테스트 불일치 23(목록은 최종 보고). 배포: master push → Pages.
+
+**2026-11-01 의미색·대비 토큰 통일(라이트)**
+
+변경(라이트 토큰 값만, 선택자·DOM·다크·`!important` 추가 없음): css/ui-system.css `--num-up` #ad706b→#c8372d, `--num-down` #6386b2→#1261c4, `--ui-accent-soft` #eef2ff→#f8f7f4, `--ui-accent-ink` #4338ca→#1f2937, `.ui-btn-soft:hover` #e0e7ff→#ebe9e3; style.css `--text-sub` #6F7480→#656a75(다크 연결 유지); css/liquid-glass.css L5·L29 `--ui-glass-panel` #fff→#f8f7f4(다크·폴백 유지). **보류:** `--ui-focus` #1261c4→#1f2937(ui-system.css L15)은 다크 대응 토큰이 없어 다크 포커스 링이 배경 대비 약 1.1:1로 사라져 적용하지 않고 #1261c4 유지. 검증(Playwright, PC 1280·모바일 390, 라이트 전후 캡처·다크 요소별 계산색 비교): 다크 요소 6,655개 색 변화 0건, 상승/하락 텍스트 4.5:1 미만 1,590개→0개(최저 상승 4.74·하락 5.46), 검색 팝업 배지 상승 4.52·하락 5.23, `--text-sub` 텍스트 4.5:1 미만 48개→0개(최저 4.76), 검색 팝업 배경 #fff→#f8f7f4 글자 대비 유지(기존 ☆ 즐겨찾기 아이콘 1.39:1은 변경 전 1.48:1부터 미달). 참고: `--ui-glass-panel` 사용처는 로그인 대화상자·상단 드롭다운·검색 팝업·관심종목 토글뿐이라 IndicatorBoard 표 머리글·내부 카드는 이번 토큰으로 바뀌지 않음(흰색 유지). 테스트: 대상 5개 모듈 실패 50건이 변경 전과 동일(신규 실패 0). 미처리(보고만): style.css 리터럴 #4338ca 19건·#eef2ff 6건, `--up` #B42318·`--down` #245B9E(L162-163). 배포: master push → Pages.
+
+**2026-11-01 네이버 뉴스 출처 표기·GAS 뉴스 요약 함수 삭제·모멘텀 보관 정리 결과**
+
+목적: 네이버 검색 API 약관 대응. 변경: 공통 `NineUI.sourceNote`(js/skin-shell.js, 문구만 제공)로 주요 뉴스(/pages/main-news, "국내 뉴스 출처는 네이버 검색결과입니다")·홈 경제뉴스(국내 모드, 기존 세션 문구 뒤 " · 네이버 검색결과")·종목분석 모멘텀 탭 기준일 줄에 출처를 표기했다. 처음 넣은 별도 span 라벨(`.ui-source-note`)은 `.hen-head span`·`.ff-momentum-intro span` 규칙에 걸려 줄·색이 어긋나 텍스트 이어붙이기로 바꾸고 클래스를 제거했다. 기사 링크는 서버가 `originallink`(언론사 원문)를 우선 내려주고 새 창으로 연다. GAS `summarizeStockNews`·`summarizePriceMoveReason` 삭제, `getPriceMoveReason`은 네이버 뉴스 조회 없이 `{reason:null}`만 반환(`callGroq`는 기존대로 null 스텁). 번역 경로(news_aggregator)는 변경하지 않았고, 네이버 제목 중 영문자가 있는 것이 번역 API로 가는 사실은 보고만 했다. 모멘텀 보관 조정(d2df0fcb) 배포 후 첫 스캔 슬라이스(06:23 종료, 440종목·오류 0·1,202초)에서 news_topic_daily 30일 초과 137,222행 삭제(194,682→57,498), 20일 초과 대표 URL 41,215건 비움, datalab_trends 0건 삭제, 파일은 96.78MB 유지(빈 페이지 약 22MB, VACUUM 미도입). 광고: `/pages/*`에만 티스토리가 삽입한 adsbygoogle 스크립트·슬롯이 있고 홈·카테고리·태그·검색 등에는 없음(스킨에서 요청 차단 불가, 티스토리 관리자 설정 필요). 검증: test_naver_source_note 5건 통과, JS 구문 검사는 node 부재로 미실시, test_ui_ia 49건 실패는 변경 전과 동일. 배포: master push(Pages, GAS Actions). 미완료: 11/2 03시 유지보수 결과 확인, VACUUM 별도 제안, 광고 방향 결정, 약관 원문 확인.
+
 **2026-11-01 이야기 시리즈 디자인 통일 · 헤지펀드 이야기 · 전체 검색**
 
 요청: 이야기 25개 문서의 디자인이 제각각이라 통일(단락=흰 둥근 상자, 마루부리·제목만 Bold, 빨강/파랑만 사용), 헤지펀드 이야기 추가, 전체 검색창(가능할 때만). 변경: `learn/*.html` 단락을 `learn-sec` 상자로 묶고 h2 id 부여, `css/legal.css` 이야기 구간에 통일 토큰·상자·검색 스타일 추가(`?v=20261031-story-unify-1`), 신규 `learn/hedge-fund.html`(그림 5개·가상 계산·심화 연구실)과 ETF/기업분석 이전·다음 연결·푸터 카드(12개), `js/learn-search.js` + `scripts/build_learn_search.js` → `data/learn-search.js`(단락 단위+용어사전, 외부 요청 없음), 용어사전 3개 추가. 검증: test_learn_search/first_paint/plain_style/orderbook 14 passed, 이야기 24쪽 SVG 라벨 잘림 점검(1건 수정), 420px 가로 넘침 없음, 검색 동작 확인(공매도·헤지 펀드 띄어쓰기). test_ui_ia 기존 실패 51건은 변경 전과 동일. 배포: 미반영(PR 전).
+
+**2026-11-01 뉴스 모멘텀 보관 30일 조정(코드·테스트, 운영 DB 정리는 미실행)**
+
+목적: 네이버 검색 API 파생 데이터 보관 축소(약관 서버 보관 21일 보도 기준, 원문 미확인). 변경: `news_momentum.RETENTION_DAYS` 90→30(news_topic_daily), `BACKFILL_DAYS` 90→30(수집 기본값·`save_stock_coverage` 기본값·스키마 기본값·스캔 로그), 대표 기사 URL은 토픽 `updated_at` 후 20일 초과 시 `[]`(`updated_at`은 유지), `datalab_trends`는 종료 토픽 90일 기준을 `DATALAB_RETENTION_DAYS`로 분리해 그대로 둠, `news_stock_coverage` 삭제 정책 없음 유지. DataLab 조회 범위(`start_date`=89일)는 변경 없음. 화면: "30일 N건"·"최근 7일 vs 이전 7일" 지표 유지, `js/foreign-flow.js`의 '최근 90일' 문구 3곳을 30일로 정정. 운영 현황(11/1 05:4x KST, 정리 전): news_topic_daily 194,677행(30일 초과 137,222), news_topics 77,962(대표 URL 보유 전부, 20일 초과 갱신 41,216), datalab_trends 39,277(최소 fetched 7/28), news_stock_coverage 3,918(backfill_days 전부 90), 파일 96.8MB. 검증: test_news_momentum·test_maintenance·test_domestic_news 계열 77건 OK, 경계(29/30/31일)·DataLab 90일 유지·URL 20일·삼성전자 패널 데이터 유지 테스트 추가. JS는 node 부재로 구문 검사 못 함. 미완료: 운영 DB 일회성 삭제·VACUUM 미실행(모멘텀 스캔 실행 중 + 실행 권한 거부), 배포(미커밋).
+
+**2026-11-01 국내 뉴스 DB 보관 10일 단축·장외 유지보수 연속 실패 해소**
+
+목적: 개정 네이버 검색 API 약관(서버 보관 이력 조회 목적 최대 21일, 보도 기준·원문 미확인) 대응, 그리고 11/1 03:17부터 5분마다 실패하던 유지보수(주말 OS 로그 정리가 sudo 권한 부족으로 예외를 던져 DB 정리·백업에 도달하지 못함) 해소. 변경: `domestic_news.prune_old_rows`가 kind='news'(네이버 검색 결과)만 `NEWS_RETENTION_DAYS=10`, 공시 등 나머지는 기존 90일. `maintenance.run`은 OS 로그 정리 실패를 경고로 남기고 백업·DB 정리·체크포인트를 계속한다(sudoers 변경 없음). 읽는 쪽 최대 범위는 stale 폴백 24시간·주간 리포트 약 7일이라 10일 초과분을 읽는 코드 없음, kind='news' INSERT는 `normalize_naver` 한 곳. 운영 DB 일회성 정리(백업 없이 지시): news 67,191→10,846건(56,345건 삭제), disclosure 31,666건 유지, VACUUM 후 72.8MB→22.4MB, integrity ok, `/domestic-news` 200. 검증: test_maintenance·test_domestic_news 계열 44건. 배포: 미커밋(master push 시 VM 자동 배포). 미완료: 약관 원문 미확인, news_momentum(90일)·유지보수 마커 정상화는 배포 후 확인 필요.
 
 2026-10-31 | learn/chart-patterns | 차트가 작동하는 심리·통계적 한계 섹션과 그림 9개 추가 | 신규 CSS 없음, 라이트/다크/모바일 렌더 확인 | master push(Pages)
 

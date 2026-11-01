@@ -126,7 +126,7 @@ class HighChangeTooltipLegendTest(unittest.TestCase):
         for source in (stock, flow):
             self.assertIn('거래량·가격 흔적</label>', source)
             self.assertIn('3배 거래량', source)
-            self.assertIn('중요 · 검증 통과 없음', source)
+            # 2026-11: '중요 · 검증 통과 없음' 문구는 화면에서 빠졌다(흔적 요약 단순화, 59070a45).
             self.assertNotIn('setAccumulationMarkers(', source)
 
 

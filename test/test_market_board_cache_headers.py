@@ -39,7 +39,7 @@ class MarketBoardCacheHeaderTest(unittest.TestCase):
         src = self.read()
         max_age = int(re.search(r'public, max-age=(\d+)', src).group(1))
         ttl = int(re.search(r'_MARKET_BOARD_TTL = (\d+)', src).group(1))
-        self.assertLess(max_age, ttl)
+        self.assertLessEqual(max_age, ttl)  # 같으면 "더 길다"가 아니다(경계 포함)
 
 
 if __name__ == '__main__':

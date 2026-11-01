@@ -281,7 +281,10 @@ def run(force=False):
         'reason': '주말 OS 로그 정리 일정이 아닙니다.',
     }
     if system_logs.get('ok') is False:
-        raise RuntimeError('VM OS 로그 정리에 실패했습니다: %s' % system_logs)
+        # OS 로그 정리는 sudo 권한이 필요해 실패할 수 있다. 백업·DB 정리를 막지 않도록
+        # 경고만 남기고 계속한다(결과의 systemLogs에 실패 내용이 그대로 남는다).
+        print('[maintenance] WARNING VM OS 로그 정리에 실패했습니다(계속 진행): %s' % system_logs,
+              flush=True)
     result = {
         'dateKst': _kst_now().date().isoformat(),
         'logsTrimmed': trimmed,

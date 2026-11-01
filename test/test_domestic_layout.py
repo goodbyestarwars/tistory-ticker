@@ -17,7 +17,7 @@ class DomesticLayoutTests(unittest.TestCase):
         futures = read('js/kospi-futures.js')
         for number, name in (('01', '국내 주요 지수'), ('02', '증시자금')):
             self.assertIn("blockHead('%s', '%s'" % (number, name), domestic)
-        self.assertIn("buildBlockHead('03', 'KOSPI200 선물지표')", futures)
+        self.assertIn("buildBlockHead('03', 'KOSPI200 선물지표',", futures)
         self.assertIn("buildBlockHead('04', '옵션 수급'", futures)
         # 번호는 .mi-block-no, 제목은 .mi-block-title, 한 줄 설명은 .mi-block-desc 로 모든 블록이 같다
         self.assertEqual(domestic.split('function init()')[1].count('mi-block-no'), 1)
@@ -66,10 +66,10 @@ class DomesticLayoutTests(unittest.TestCase):
 
     def test_section_spacing_divider_and_dark_overrides(self):
         css = read('css/market-indicators.css')
-        self.assertRegex(css, r'\.mi-wrap \.mi-block \{[^}]*margin: var\(--ui-section-gap\) 0 0;[^}]*border-top: 1px solid var\(--mi-rule\)')
-        self.assertRegex(css, r'\.mi-wrap \.mi-block\.mi-block--first \{[^}]*border-top: 0')
-        self.assertRegex(css, r'@media \(max-width: 760px\) \{\s*\.mi-wrap \.mi-block \{ margin-top: var\(--ui-section-gap\); \}')
-        self.assertNotRegex(css, r'\.mi-block \{[^}]*(box-shadow:(?!\s*none)|gradient|border-radius:\s*[1-9])', '블록은 카드·그림자·그라데이션·둥근 테두리가 없다')
+        # 2026-11: 블록은 윤곽선 카드(1px 테두리·8px 둥근 모서리, 그림자 없음)로 바뀌었다. 위 구분선은 없다.
+        self.assertRegex(css, r'\.mi-wrap \.mi-block \{[^}]*margin: var\(--ui-section-gap\) 0 0;[^}]*border: 1px solid var\(--mi-rule-soft\)')
+        self.assertRegex(css, r'\.mi-wrap \.mi-block\.mi-block--first \{[^}]*margin-top: 26px')
+        self.assertNotRegex(css, r'\.mi-block \{[^}]*(box-shadow:(?!\s*none)|gradient)', '블록은 그림자·그라데이션이 없다')
         self.assertIn('html.dark .mi-wrap .mi-block-no', css)
         # 사이트 공통 제목 규칙(@layer np)이 번호 블록 제목을 명조로 바꾸지 않도록 같은 레이어에서 되돌린다
         self.assertIn('@layer np', css)

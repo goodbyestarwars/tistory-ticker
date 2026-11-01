@@ -33,7 +33,7 @@
   color: #94a3b8;
 }
 
-#kospi-futures .kf-quote-table thead th { color: #777; font-size: 12px; font-weight: 600; }
+#kospi-futures .kf-quote-table thead th { color: var(--text-sub); font-size: 12px; font-weight: 600; }
 #kospi-futures .kf-quote-table tbody tr:last-child th,
 #kospi-futures .kf-quote-table tbody tr:last-child td { border-bottom: 0; }
 #kospi-futures .kf-quote-table th:first-child,

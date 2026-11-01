@@ -17,7 +17,14 @@ from email.utils import parsedate_to_datetime
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'news_momentum.db')
 DATALAB_URL = 'https://naverapihub.apigw.ntruss.com/search-trend/v1/search'
-RETENTION_DAYS = 90
+# 네이버 검색 API 약관(서버 보관 이력 조회 목적 최대 21일, 보도 기준) 대응으로 기사 파생 집계는
+# 30일만 둔다. 화면의 "30일 N건"과 "최근 7일 vs 이전 7일"이 읽는 범위가 모두 이 안이다.
+RETENTION_DAYS = 30
+BACKFILL_DAYS = 30
+# 검색 트렌드(DataLab) 응답은 이번 조정 대상이 아니라 기존 90일 기준을 그대로 둔다.
+DATALAB_RETENTION_DAYS = 90
+# 대표 기사 URL은 토픽이 마지막으로 갱신된 뒤 이 기간이 지나면 비운다.
+REPRESENTATIVE_URL_RETENTION_DAYS = 20
 KST = timezone(timedelta(hours=9))
 
 SCHEMA = '''
@@ -80,7 +87,7 @@ CREATE TABLE IF NOT EXISTS news_stock_coverage (
     requested_start_date TEXT NOT NULL,
     actual_start_date TEXT,
     actual_end_date TEXT,
-    backfill_days INTEGER NOT NULL DEFAULT 90,
+    backfill_days INTEGER NOT NULL DEFAULT 30,
     backfill_complete INTEGER NOT NULL DEFAULT 0,
     fetched_articles INTEGER NOT NULL DEFAULT 0,
     news_api_calls INTEGER NOT NULL DEFAULT 0,
@@ -652,7 +659,7 @@ def datalab_topics_due(conn, stock_code, today=None, limit=5):
 
 def save_stock_coverage(conn, stock_code, stock_name, requested_start_date,
                         actual_start_date, actual_end_date, backfill_complete,
-                        fetched_articles, news_api_calls, backfill_days=90, now=None):
+                        fetched_articles, news_api_calls, backfill_days=BACKFILL_DAYS, now=None):
     now_iso = _iso_now(now)
     with conn:
         conn.execute(
@@ -738,10 +745,20 @@ def save_datalab_trends(conn, topic_rows, trends_by_group, start_date, end_date,
             )
 
 
-def prune_old_details(conn, today=None, retention_days=RETENTION_DAYS):
-    """서비스 중 VACUUM 없이 90일 초과 상세 행만 transaction으로 삭제한다."""
+def prune_old_details(conn, today=None, retention_days=RETENTION_DAYS,
+                      datalab_retention_days=DATALAB_RETENTION_DAYS,
+                      url_retention_days=REPRESENTATIVE_URL_RETENTION_DAYS):
+    """서비스 중 VACUUM 없이 보관 기간이 지난 상세 행만 transaction으로 삭제한다.
+
+    - news_topic_daily(건수·감성 집계): `retention_days` 초과 행 삭제
+    - datalab_trends: 종료된 토픽의 `datalab_retention_days` 초과분만 삭제(기존 기준 유지)
+    - 대표 기사 URL: 토픽 `updated_at` 이후 `url_retention_days`가 지나면 비운다.
+      updated_at은 건드리지 않는다(건드리면 다음 회차에 기간이 다시 시작된다).
+    """
     today_value = today or date.today()
     cutoff = (today_value - timedelta(days=retention_days)).isoformat()
+    datalab_cutoff = (today_value - timedelta(days=datalab_retention_days)).isoformat()
+    url_cutoff = (today_value - timedelta(days=url_retention_days)).isoformat()
     with conn:
         daily_deleted = conn.execute(
             'DELETE FROM news_topic_daily WHERE date<?', (cutoff,)
@@ -749,9 +766,15 @@ def prune_old_details(conn, today=None, retention_days=RETENTION_DAYS):
         trends_deleted = conn.execute(
             '''DELETE FROM datalab_trends WHERE topic_id IN
                (SELECT id FROM news_topics WHERE status='ended' AND last_seen_at<?)''',
-            (cutoff,),
+            (datalab_cutoff,),
         ).rowcount
-    return {'dailyDeleted': daily_deleted, 'trendsDeleted': trends_deleted, 'cutoff': cutoff}
+        urls_cleared = conn.execute(
+            "UPDATE news_topics SET representative_urls_json='[]' "
+            "WHERE representative_urls_json!='[]' AND substr(updated_at,1,10)<?",
+            (url_cutoff,),
+        ).rowcount
+    return {'dailyDeleted': daily_deleted, 'trendsDeleted': trends_deleted,
+            'urlsCleared': urls_cleared, 'cutoff': cutoff}
 
 
 def load_coverage_dates(conn):

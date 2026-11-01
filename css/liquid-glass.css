@@ -2,7 +2,7 @@
    belong to their existing components. Opaque material is the default fallback. */
 :root {
   --ui-glass-surface: #fff;
-  --ui-glass-panel: #fff;
+  --ui-glass-panel: #f8f7f4;
   --ui-glass-filter: none;
   --ui-glass-duration: .2s;
   --ui-glass-hover-lift: -3px;
@@ -26,7 +26,7 @@ html.dark {
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root {
     --ui-glass-surface: #fff;
-    --ui-glass-panel: #fff;
+    --ui-glass-panel: #f8f7f4;
     --ui-glass-filter: blur(12px) saturate(118%);
   }
   @supports (background: color-mix(in srgb, black, transparent)) {

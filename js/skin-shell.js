@@ -159,6 +159,10 @@
     return '<div class="' + escape(className || 'ui-state') + '" role="' + (kind === 'error' ? 'alert' : 'status')
       + '"' + (pending ? ' aria-busy="true"' : '') + '>' + (pending && !(options && options.spinner === false) ? spinner() : '') + escape(message) + '</div>';
   }
+  // 외부 제공처 표기 문구. 네이버 검색 API 약관의 출처 표기를 한 곳에서 맞추려고 문구를 공유한다.
+  // 모양은 각 화면의 보조 문구 스타일을 그대로 쓰도록 요소 없이 텍스트만 돌려준다(HTML에 넣을 땐 escape).
+  var SOURCE_NOTES = { naver: '네이버 검색결과' };
+  function sourceNote(kind) { return SOURCE_NOTES[kind] || ''; }
   // Await stylesheet readiness before mounting components containing SVG/canvas.
   var styleLoads = {};
   function loadStyle(url) {
@@ -184,7 +188,7 @@
     job.catch(function () { if (styleLoads[url] === job) delete styleLoads[url]; });
     return job;
   }
-  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, loadStyle: loadStyle };
+  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 
@@ -267,7 +271,8 @@
   }
   function usMarketBreadth() { return data(VM + '/us-market-breadth', {timeoutMs: 25000}); }
   function marketParticipation(market) { return data(VM + '/market-participation?market=' + (market === 'us' ? 'us' : 'domestic'), {timeoutMs: 25000}); }
-  global.NineAPI = { marketParticipation: marketParticipation, usMarketBreadth: usMarketBreadth, vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
+  function kisToolAccess() { return data(VM + '/kis-tool/access', {private:true, timeoutMs:8000, fetchOptions:{credentials:'include', cache:'no-store'}}); }
+  global.NineAPI = { kisToolAccess:kisToolAccess, marketParticipation: marketParticipation, usMarketBreadth: usMarketBreadth, vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
     contracts:{domesticQuotes:{price:'KRW',volume:'shares',changeRate:'percent',time:'retrieval',maxBatch:300}} };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineAPI */

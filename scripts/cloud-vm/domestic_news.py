@@ -104,24 +104,37 @@ def _connect():
 
 # 2026-08-31: 이 테이블은 지금까지 삭제 정책이 아예 없어 수집한 기사가 영구 누적됐다
 # (7차에서 /domestic-news가 6~13초였던 근본 원인). 읽는 쪽의 최대 조회 범위는
-# `_load_cached`의 stale 폴백 24시간과 `get_weekly_news`의 주간 창(약 7일)이라
-# 90일은 그보다 13배 이상 여유가 있다. news_momentum의 RETENTION_DAYS와 값을 맞춘다.
+# `_load_cached`의 stale 폴백 24시간과 `get_weekly_news`의 주간 창(약 7일)이다.
+# 공시(disclosure) 등 뉴스가 아닌 행은 90일, news_momentum의 RETENTION_DAYS와 같은 값이다.
 RETENTION_DAYS = 90
+# 네이버 검색 API 결과(kind='news')만 별도로 짧게 보관한다. 개정 약관이 서버 보관을
+# 이력 조회 목적 최대 21일로 제한한다고 보도돼 10일로 둔다(주간 리포트 약 7일 + 여유).
+NEWS_RETENTION_DAYS = 10
 
 
-def prune_old_rows(retention_days=RETENTION_DAYS, now=None):
+def prune_old_rows(retention_days=RETENTION_DAYS, now=None, news_retention_days=NEWS_RETENTION_DAYS):
     """보존 기간이 지난 뉴스·공시 행을 지운다(장외 유지보수에서 호출).
 
-    지우는 기준은 수집 시각(`fetched_at`)이다. 발행일(`pub_date`)은 형식이 제각각이라
-    비교가 불안정하고, 오래된 기사가 뒤늦게 수집되는 경우까지 잘못 지울 수 있다.
+    kind='news'(네이버 검색 API)는 `news_retention_days`, 그 밖의 행(공시 등)은
+    `retention_days`를 적용한다. 지우는 기준은 수집 시각(`fetched_at`)이다. 발행일
+    (`pub_date`)은 형식이 제각각이라 비교가 불안정하고, 오래된 기사가 뒤늦게
+    수집되는 경우까지 잘못 지울 수 있다.
     """
-    cutoff = (now if now is not None else time.time()) - max(1, int(retention_days)) * 86400
+    current = now if now is not None else time.time()
+    cutoff = current - max(1, int(retention_days)) * 86400
+    news_cutoff = current - max(1, int(news_retention_days)) * 86400
     conn = _connect()
     try:
         before = conn.total_changes
-        conn.execute('DELETE FROM domestic_news WHERE fetched_at < ?', (cutoff,))
+        news_deleted = conn.execute(
+            "DELETE FROM domestic_news WHERE kind = 'news' AND fetched_at < ?", (news_cutoff,)
+        ).rowcount
+        conn.execute(
+            "DELETE FROM domestic_news WHERE kind IS NOT 'news' AND fetched_at < ?", (cutoff,)
+        )
         conn.commit()
-        return {'deleted': conn.total_changes - before, 'retentionDays': int(retention_days)}
+        return {'deleted': conn.total_changes - before, 'newsDeleted': news_deleted,
+                'retentionDays': int(retention_days), 'newsRetentionDays': int(news_retention_days)}
     finally:
         conn.close()
 

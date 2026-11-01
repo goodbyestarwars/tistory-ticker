@@ -94,6 +94,80 @@ class RetentionCoverageTests(unittest.TestCase):
         self.assertEqual(result['retentionDays'], 90)
         self.assertEqual(left, {'keep'}, '보존 기간 안의 행은 남아야 한다')
 
+    def test_domestic_news_prune_applies_short_retention_to_news_kind_only(self):
+        import time as _time
+        import domestic_news
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, 'domestic.db')
+            with mock.patch.object(domestic_news, 'CACHE_DB_FILE', db_path):
+                now = _time.time()
+                conn = domestic_news._connect()
+                try:
+                    rows = [
+                        ('news-old', 'news', now - 11 * 86400),
+                        ('news-keep', 'news', now - 9 * 86400),
+                        ('disc-mid', 'disclosure', now - 60 * 86400),
+                        ('disc-old', 'disclosure', now - 91 * 86400),
+                        ('legacy-null', None, now - 60 * 86400),
+                    ]
+                    for key, kind, fetched in rows:
+                        conn.execute(
+                            'INSERT INTO domestic_news(item_key, title, kind, fetched_at) VALUES (?,?,?,?)',
+                            (key, key, kind, fetched))
+                    conn.commit()
+                finally:
+                    conn.close()
+                result = domestic_news.prune_old_rows(now=now)
+                conn = domestic_news._connect()
+                try:
+                    left = {r[0] for r in conn.execute('SELECT item_key FROM domestic_news')}
+                finally:
+                    conn.close()
+        self.assertEqual(left, {'news-keep', 'disc-mid', 'legacy-null'})
+        self.assertEqual(result['deleted'], 2)
+        self.assertEqual(result['newsDeleted'], 1)
+        self.assertEqual(result['newsRetentionDays'], 10)
+        self.assertEqual(result['retentionDays'], 90)
+
+    def test_news_retention_covers_weekly_report_read_window(self):
+        """주간 리포트가 읽는 가장 오래된 기사(약 7일)보다 길어야 한다."""
+        import domestic_news
+        self.assertGreater(domestic_news.NEWS_RETENTION_DAYS, 7)
+        self.assertLessEqual(domestic_news.NEWS_RETENTION_DAYS, 21)
+
+    def test_system_log_failure_warns_and_does_not_block_database_maintenance(self):
+        import io
+        from contextlib import redirect_stdout
+        from unittest import mock
+        failure = {'ok': False, 'truncated': {'syslog': {'ok': False, 'error': 'CalledProcessError'}}}
+        calls = []
+
+        def recorded(name):
+            def inner(*args, **kwargs):
+                calls.append(name)
+                return {'ok': True}
+            return inner
+
+        with mock.patch.object(maintenance, 'is_off_hours', return_value=True), \
+                mock.patch.object(maintenance, 'is_weekend', return_value=True), \
+                mock.patch.object(maintenance, 'trim_log', return_value={}), \
+                mock.patch.object(maintenance, 'cleanup_system_logs', return_value=failure), \
+                mock.patch.object(maintenance, '_maintenance_news_momentum', recorded('news_momentum')), \
+                mock.patch.object(maintenance, '_maintenance_volume_profile', recorded('volume_profile')), \
+                mock.patch.object(maintenance, '_maintenance_domestic_news', recorded('domestic_news')), \
+                mock.patch.object(maintenance, '_maintenance_us_caches', recorded('us_caches')), \
+                mock.patch.object(maintenance.hour_validation, 'backup_store', recorded('hour_backup')), \
+                mock.patch.object(maintenance, '_checkpoint_sqlite', recorded('checkpoint')):
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = maintenance.run()
+        self.assertIsNotNone(result)
+        self.assertEqual(result['systemLogs'], failure)
+        self.assertIn('domestic_news', calls)
+        self.assertEqual(calls.count('checkpoint'), 5)
+        self.assertIn('WARNING', output.getvalue())
+
     def test_domestic_news_retention_is_far_longer_than_any_read_window(self):
         """읽는 쪽 최대 조회 범위(_load_cached stale 24시간, 주간 리포트 약 7일)보다
         훨씬 길어야 안전하다."""

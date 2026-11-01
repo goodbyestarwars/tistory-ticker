@@ -25,12 +25,15 @@ class AutoTraderResearchUiTests(unittest.TestCase):
         render = self.js.split('function render(d) {', 1)[1].split('var lastData', 1)[0]
         for call in ('journalHtml(', 'candidatesHtml(', 'liveHtml(', 'paperHtml(', 'backtestHtml(', 'engineHtml(', 'paperOverviewHtml(', 'ensureBacktest('):
             self.assertNotIn(call, render)
-        self.assertIn('holdingsHtml(d.holdings)', render)
-        self.assertIn('ordersHtml(d.orders)', render)
+        # 2026-10-16: 보유 표에 잔고 상태·봇 상태를 함께 넘기고, 주문 기록은 전체 폭 구역(월 요약 포함)으로 올렸다.
+        self.assertIn('holdingsHtml(d.holdings,', render)
+        self.assertIn('d.orders', render)
 
     def test_policy_does_not_claim_orders_are_active(self):
         self.assertIn('실주문 비활성', self.js)
-        self.assertIn('자동매수와 새 정책의 실주문 연결은 아직 없습니다', self.js)
+        # 고정 문구 대신 봇이 알려 준 상태로 보여 주며, 승인·설정 전에는 '불가'가 기본이다.
+        self.assertIn('불가(승인·설정 전)', self.js)
+        self.assertIn('var armed = !!s.live_scheduled;', self.js)
 
     def test_simulated_sections_are_removed(self):
         for title in ('통합 시간순 거래 일지', 'B 일봉 사후 모의매매', 'C 장중 실시간 가상매매', 'A 검색기별 백테스트 성과'):

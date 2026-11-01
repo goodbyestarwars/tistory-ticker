@@ -209,7 +209,11 @@
     var list = state.mount.querySelector('[data-hen-list]');
     var updated = state.mount.querySelector('[data-hen-updated]');
     var session = state.mount.querySelector('[data-hen-session]');
-    if (session) session.textContent = market === 'us' ? '미국 · 최근 24시간 · 동부시간(ET)' : '국내 · 최근 24시간 · 한국시간(KST)';
+    if (session) {
+      var sourceNote = market !== 'us' && global.NineUI && global.NineUI.sourceNote ? global.NineUI.sourceNote('naver') : '';
+      session.textContent = market === 'us' ? '미국 · 최근 24시간 · 동부시간(ET)'
+        : '국내 · 최근 24시간 · 한국시간(KST)' + (sourceNote ? ' · ' + sourceNote : '');
+    }
     renderFlash(flash || state.flash);
     var cutoff = Date.now() - 24 * 60 * 60 * 1000;
     var rows = (items || []).filter(function (item) {

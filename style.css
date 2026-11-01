@@ -157,7 +157,7 @@ html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow 
   --surface: #fff;
   --text-main: #4b5563; /* 2026-10-23 본문 회색(흰 바탕 7.6:1). 굵은 글자는 --text-strong */
   --text-strong: #1f2937;
-  --text-sub: #6F7480;
+  --text-sub: #656a75;
   --rule: #D8D8D8;
   --up: #B42318;
   --down: #245B9E;
@@ -486,7 +486,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
 /* 2026-07-17: 아이콘 원형 배경(회색/연보라)이 흰 페이지 배경과 도드라져 보여서
    흰색으로 통일(사용자 요청 - "토스처럼", 배경 대신 텍스트 색으로만 강조). */
 .nav-item-home { background: rgb(255, 254, 252); }
-.nav-item-home .nav-item-label { color: #4338ca; }
+.nav-item-home .nav-item-label { color: var(--ui-accent-ink); }
 .nav-item-home .nav-item-icon { background: rgb(255, 254, 252); }
 .nav-item-icon {
   width: 32px; height: 32px;
@@ -614,7 +614,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
   flex-shrink: 0;
   border: none;
   background: transparent;
-  color: #cbd5e1;
+  color: var(--neutral);
   font-size: 15px;
   line-height: 1;
   padding: 2px 4px;
@@ -650,7 +650,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
   text-decoration: none;
   transition: background .15s;
 }
-.cat-section ul li > a:hover { background: #f8faff; color: #4338ca; }
+.cat-section ul li > a:hover { background: #f8faff; color: var(--ui-accent-ink); }
 
 /* 글 수 뱃지 */
 .cat-section ul li > a span:not(.cat-dot) {
@@ -684,8 +684,8 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
   text-align: left; width: 100%;
 }
 .cat-custom-list li > a:visited { color: #374151; }
-.cat-custom-list li > a:hover { background: #f8faff; color: #4338ca; }
-.cat-custom-list li > a.active { background: #eef2ff; color: #4338ca; font-weight: 700; }
+.cat-custom-list li > a:hover { background: #f8faff; color: var(--ui-accent-ink); }
+.cat-custom-list li > a.active { background: var(--ui-accent-soft); color: var(--ui-accent-ink); font-weight: 700; }
 .cat-section .cat-custom-list li > a::before { display: none !important; } /* 이중 점 방지 */
 .cat-icon { flex-shrink: 0; stroke: #374151; } /* 왼쪽 페이지 메뉴 아이콘과 동일 색상(무지개 대신 단색) */
 .cat-cnt { margin-left: auto; font-size: 10.5px; background: #f1f5f9; color: #94a3b8; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
@@ -703,7 +703,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
   text-decoration: none; font-weight: 500;
   transition: background .15s, color .15s; white-space: nowrap;
 }
-.sub-filter-tab:hover { background: #e0e7ff; color: #4338ca; }
+.sub-filter-tab:hover { background: #e0e7ff; color: var(--ui-accent-ink); }
 .sub-filter-tab.active { background: #6366f1; color: #fff; font-weight: 700; }
 
 /* ============ CENTER FEED ============ */
@@ -2142,7 +2142,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   border-radius: 20px;
   letter-spacing: 0.2px;
   background: #e0e7ff;
-  color: #4338ca;
+  color: var(--ui-accent-ink);
   text-decoration: none;
   transition: background .15s;
 }
@@ -2204,7 +2204,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
 }
 .post-tags a {
   font-size: 11px;
-  background: #eef2ff; color: #4361a8;
+  background: var(--ui-accent-soft); color: #4361a8;
   padding: 4px 12px;
   border-radius: 20px;
   font-weight: 500;
@@ -2212,7 +2212,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   transition: background .15s;
   display: inline-block;
 }
-.post-tags a:hover { background: #e0e7ff; color: #4338ca; }
+.post-tags a:hover { background: #e0e7ff; color: var(--ui-accent-ink); }
 
 .post-footer {
   display: flex; align-items: center; justify-content: space-between;
@@ -2226,8 +2226,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
    a와 같은 옅은 인디고 톤(배경 #eef2ff/글자 #4338ca)으로 톤다운 - "더 보기"가 CTA처럼
    튀지 않고 카드 안 보조 액션 정도의 무게감이 되도록. */
 .btn-read {
-  font-size: 12.5px; color: #4338ca;
-  background: #eef2ff;
+  font-size: 12.5px; color: var(--ui-accent-ink);
+  background: var(--ui-accent-soft);
   border: none;
   padding: 7px 18px;
   border-radius: 20px;
@@ -2689,7 +2689,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
   margin-bottom: 0;
 }
 .post-single-body h2 { font-size: 20px; margin: 28px 0 12px; color: #0d1b40; }
-.post-single-body h3 { font-size: 17px; margin: 22px 0 10px; color: #4338ca; }
+.post-single-body h3 { font-size: 17px; margin: 22px 0 10px; color: var(--ui-accent-ink); }
 /* 전역 리셋(* padding:0)이 리스트 들여쓰기를 없애 글머리표가 본문 밖으로 튀는 것 복원 */
 .post-single-body ul, .post-single-body ol,
 .post-expand-body ul, .post-expand-body ol {
@@ -2837,7 +2837,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 .related-item:last-child { border-bottom: none; }
 .related-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
 .related-item-title { font-size: 13px; color: #374151; flex: 1; line-height: 1.4; }
-.related-item-title:hover { color: #4338ca; }
+.related-item-title:hover { color: var(--ui-accent-ink); }
 .related-item-date { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
 
 /* ============ 댓글 섹션 (티스토리 s_t3 — s_rp 기반) ============ */
@@ -3735,9 +3735,9 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 /* Tistory가 현재 페이지에 class="active" 또는 style 추가함 */
 .page-btn.active,
 .page-btn[class~="on"] {
-  background: #4338ca;
+  background: var(--ui-accent-ink);
   color: #fff;
-  border-color: #4338ca;
+  border-color: var(--ui-accent-ink);
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(29,78,216,0.3);
 }
@@ -3780,7 +3780,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 /* 방문자 통계 */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .stat-item { border-radius: 11px; padding: 11px 8px; text-align: center; }
-.stat-item.today  { background: #eef2ff; }
+.stat-item.today  { background: var(--ui-accent-soft); }
 .stat-item.others { background: #f8faff; }
 .stat-item-label { font-size: 10px; color: #64748b; font-weight: 500; margin-bottom: 5px; }
 .stat-item-num { font-size: 22px; font-weight: 700; color: #0d1b40; letter-spacing: -0.5px; line-height: 1; }
@@ -3820,7 +3820,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
   -webkit-box-orient: vertical;
 }
 .pop-title a { text-decoration: none; color: #374151; }
-.pop-title a:hover { color: #4338ca; }
+.pop-title a:hover { color: var(--ui-accent-ink); }
 .pop-date { font-size: 11px; color: #94a3b8; margin-top: 3px; }
 
 /* 태그 클라우드 (s_random_tags) */
@@ -3838,7 +3838,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
   text-decoration: none;
   display: inline-block;
 }
-.tag-pill:hover { background: #e0e7ff; color: #4338ca; }
+.tag-pill:hover { background: #e0e7ff; color: var(--ui-accent-ink); }
 
 /* ============ SITE FOOTER ============ */
 /* 2026-09-17 요청("주식이야기를 맨밑으로 빼고, 사이트 이용방법을 위로 올리자").
@@ -4393,7 +4393,7 @@ html body .copyright { font-family: var(--font-ui) !important; }
 .mso-hint {
   margin-top: 14px;
   font-size: 12px;
-  color: #4a6494;
+  color: #a6b5c5;
   text-align: center;
 }
 .mso-close-btn {
@@ -4481,7 +4481,7 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   right: 18px;
   width: 40px;
   height: 40px;
-  background: #4338ca;
+  background: var(--ui-accent-ink);
   border: none;
   border-radius: 50%;
   display: none;
@@ -4855,8 +4855,8 @@ body.iframe-mode .notice-card { border-radius: 0; }
 }
 .nm-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .nm-ext {
-  font-size: 11.5px; color: #4338ca; text-decoration: none;
-  background: #eef2ff; padding: 5px 12px; border-radius: 20px;
+  font-size: 11.5px; color: var(--ui-accent-ink); text-decoration: none;
+  background: var(--ui-accent-soft); padding: 5px 12px; border-radius: 20px;
   font-weight: 600; transition: background .15s; white-space: nowrap;
 }
 .nm-ext:hover { background: #e0e7ff; }
@@ -8782,12 +8782,14 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   }
 }
 
-/* 자동매매 메뉴(관리자 전용)는 PC에서 메뉴바 오른쪽 끝에 둔다(2026-10-11 요청). 1차 메뉴 줄이 내용 폭(fit-content)이라 auto margin 이 먹지 않아,
-   고정 위치 메뉴바(.sidebar-left)를 기준으로 절대 위치를 준다. 줄 폭은 그대로이고 관심종목 드로어가 열려 메뉴바 right 가 줄어도 같이 따라간다.
-   모바일(720px 이하)은 가로 스크롤 줄의 맨 끝에 그대로 둔다. */
+/* 관리자 도구는 한 묶음으로 둔다. 좁은 화면은 기존 메뉴 줄에서 가로로 이동한다. */
 @layer np {
-  @media (min-width: 721px) {
-    html body .sidebar-left .nav-primary-item.nav-item-end { position: absolute !important; right: 16px !important; top: 50% !important; transform: translateY(-50%) !important; }
+  .nav-end-group { display: flex; flex: 0 0 auto; align-items: center; }
+  @media (min-width: 1100px) {
+    .sidebar-left .nav-end-group { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
+  }
+  @media (min-width: 721px) and (max-width: 1099px) {
+    .sidebar-left #nav-menu-mount { overflow-x: auto; }
   }
 }
 
