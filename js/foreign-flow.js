@@ -1735,7 +1735,7 @@
       + '<div class="ff-wide-stage" data-wide-stage><div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
       + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
-        + '<div class="ff-wide-dots" data-wide-dots>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
+        + '<div class="ff-wide-dots" data-wide-dots><button type="button" class="ff-wide-pause" data-wide-pause aria-label="자동 넘김 일시정지"></button>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
       + '</div>'
       + '<small class="ff-story-note">작성 시점 값이며 실시간으로 갱신되지 않습니다(판정·차트 카드만 실시간 계산). 투자 권유가 아닙니다.</small>';
   }
@@ -1761,13 +1761,26 @@
         if (!stage || !stage.querySelector('[data-wide-prev]')) return;
         // 모든 카드를 한 장씩 넘긴다. 이동·드래그는 공통 캐러셀, 아래 점은 현재 장 표시와 바로가기만 맡는다.
         module.carousel(stage, { track: '.ff-wide-track', card: '.ff-wide', previous: '[data-wide-prev]', next: '[data-wide-next]' });
-        var wideTrack = stage.querySelector('.ff-wide-track'), dots = Array.prototype.slice.call(stage.querySelectorAll('[data-wide-dots] button'));
+        var wideTrack = stage.querySelector('.ff-wide-track'), dots = Array.prototype.slice.call(stage.querySelectorAll('[data-wide-dots] button:not([data-wide-pause])'));
         function wideStep() { var c = wideTrack.querySelector('.ff-wide'); return c ? c.getBoundingClientRect().width + (parseFloat(getComputedStyle(wideTrack).columnGap) || 0) : 1; }
         wideTrack.addEventListener('scroll', function () {
           var on = Math.round(wideTrack.scrollLeft / wideStep());
           dots.forEach(function (d, i) { d.classList.toggle('is-on', i === on); });
         }, { passive: true });
         dots.forEach(function (d, i) { d.addEventListener('click', function () { wideTrack.scrollTo({ left: wideStep() * i, behavior: 'smooth' }); }); });
+        // 자동 넘김: 6초마다 다음 장(마지막 다음은 처음). 일시정지 버튼·마우스를 올림·키보드 포커스·움직임 줄이기 설정이면 멈춘다.
+        var pauseBtn = stage.querySelector('[data-wide-pause]'), userPaused = !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches), hold = false;
+        function syncPause() { if (!pauseBtn) return; pauseBtn.classList.toggle('is-paused', userPaused); pauseBtn.setAttribute('aria-label', userPaused ? '자동 넘김 재생' : '자동 넘김 일시정지'); }
+        if (pauseBtn) pauseBtn.addEventListener('click', function () { userPaused = !userPaused; syncPause(); });
+        syncPause();
+        ['mouseenter', 'focusin', 'pointerdown'].forEach(function (ev) { stage.addEventListener(ev, function () { hold = true; }); });
+        ['mouseleave', 'focusout', 'pointerup'].forEach(function (ev) { stage.addEventListener(ev, function () { hold = false; }); });
+        var autoTimer = setInterval(function () {
+          if (!document.body.contains(stage)) { clearInterval(autoTimer); return; }
+          if (userPaused || hold || document.hidden || dots.length < 2) return;
+          var on = Math.round(wideTrack.scrollLeft / wideStep());
+          wideTrack.scrollTo({ left: wideStep() * ((on + 1) % dots.length), behavior: 'smooth' });
+        }, 6000);
       }).catch(function () {});
     }).catch(function () {});
   }
