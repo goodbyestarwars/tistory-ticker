@@ -1,0 +1,26 @@
+/* KIS Trading Tool 셸 — 전역 토큰만 사용 (style.css / liquid-glass.css) */
+.kis-shell{--kis-side:208px;display:grid;grid-template-columns:var(--kis-side) 1fr;gap:var(--ui-section-gap,20px);
+  max-width:var(--home-content-max,1440px);margin:0 auto;padding:var(--ui-section-gap,20px) 16px;min-height:100dvh;box-sizing:border-box;
+  background:var(--page-bg,#FEFDFA);font-family:var(--font-ui,"Pretendard Variable",sans-serif)}
+.kis-side{position:sticky;top:var(--ui-section-gap,20px);align-self:start;display:flex;flex-direction:column;gap:var(--ui-paragraph-gap,14px);
+  background:var(--ui-card-surface,#fff);border:1px solid var(--ui-border,#e7e5e0);border-radius:var(--ui-radius-card,14px);
+  box-shadow:var(--ui-glass-shadow);padding:var(--ui-card-padding,18px)}
+.kis-brand{font-family:var(--font-title,MaruBuriBold,serif);font-size:var(--ui-section-size,17px);font-weight:700;margin:0}
+.kis-chip{display:inline-block;margin-top:6px;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--ui-panel-surface,#f8f7f4);border:1px solid var(--ui-border,#e7e5e0)}
+.kis-group{display:flex;flex-direction:column;gap:4px}
+.kis-group h2{font-size:11px;font-weight:600;letter-spacing:.04em;margin:0 0 2px 8px;opacity:.6}
+.kis-nav a{display:block;padding:9px 12px;border-radius:var(--ui-radius-inner,9px);color:inherit;text-decoration:none;font-size:14px}
+.kis-nav a:hover{background:var(--ui-panel-surface,#f8f7f4)}
+.kis-nav a[aria-current="page"]{background:var(--ui-panel-surface,#f8f7f4);font-weight:700;box-shadow:inset 3px 0 0 currentColor}
+.kis-back{margin-top:auto;font-size:13px;color:inherit}
+.kis-main{display:flex;flex-direction:column;min-width:0;background:var(--ui-card-surface,#fff);border:1px solid var(--ui-border,#e7e5e0);
+  border-radius:var(--ui-radius-card,14px);box-shadow:var(--ui-glass-shadow);overflow:hidden}
+.kis-note{margin:0;padding:10px var(--ui-card-padding,18px);font-size:12.5px;border-bottom:1px solid var(--ui-border,#e7e5e0);opacity:.8}
+.kis-main iframe{display:block;width:100%;height:calc(100dvh - 120px);min-height:600px;border:0}
+@media (max-width:760px){
+  .kis-shell{grid-template-columns:1fr;padding:12px}
+  .kis-side{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px 14px}
+  .kis-group{flex-direction:row;flex-wrap:wrap;align-items:center}.kis-group h2,.kis-back{display:none}
+  .kis-nav a[aria-current="page"]{box-shadow:none}
+  .kis-main iframe{height:calc(100dvh - 190px)}
+}

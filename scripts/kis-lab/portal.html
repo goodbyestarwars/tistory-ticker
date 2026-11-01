@@ -1,7 +1,32 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KIS Trading Tool · 9Pay</title>
-<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css"><link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css">
-<style>body{margin:0;max-width:none;padding:0}header{padding:var(--ui-card-padding,18px);display:flex;flex-wrap:wrap;align-items:center;gap:var(--ui-paragraph-gap,14px)}h1{font-family:MaruBuriBold,serif;font-size:var(--ui-title-size,24px);margin:0}nav{display:flex;gap:12px;flex-wrap:wrap}p{margin:0;padding:0 var(--ui-card-padding,18px) var(--ui-paragraph-gap,14px)}iframe{display:block;width:100%;height:calc(100dvh - 150px);min-height:600px;border:0}a{color:inherit}</style></head><body>
-<header><h1>KIS Trading Tool</h1><nav aria-label="KIS 도구"><a href="https://ghlee.tistory.com/">9Pay로 돌아가기</a><a href="/kis-tool/backtest/backtest" target="kis-workspace">백테스터</a><a href="/kis-tool/builder/builder" target="kis-workspace">전략 빌더</a></nav></header>
-<p>과거 데이터 분석 전용 · 실제 주문 차단 · 종목마다 데이터 보유 기간이 다릅니다.</p>
-<iframe name="kis-workspace" title="KIS 과거 데이터 분석" src="/kis-tool/backtest/backtest"></iframe>
-</body></html>
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css"><link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css"><link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/kis-tool.css"></head>
+<body style="margin:0;max-width:none;padding:0">
+<div class="kis-shell">
+  <aside class="kis-side">
+    <div><h1 class="kis-brand">KIS Trading Tool</h1><span class="kis-chip">백데이터 · 주문 차단</span></div>
+    <nav class="kis-nav" id="nav" aria-label="KIS 도구"></nav>
+    <a class="kis-back" href="https://ghlee.tistory.com/">← 9Pay로 돌아가기</a>
+  </aside>
+  <main class="kis-main">
+    <p class="kis-note">과거 데이터 분석 전용 · 종목마다 데이터 보유 기간이 다릅니다.</p>
+    <iframe id="ws" name="kis-workspace" title="KIS 과거 데이터 분석"></iframe>
+  </main>
+</div>
+<script>
+/* 메뉴 추가는 이 배열에 한 줄만 */
+var MENU=[
+ {g:'1. 전략',id:'builder',t:'전략 빌더',src:'/kis-tool/builder/builder'},
+ {g:'2. 검증',id:'backtest',t:'백테스트',src:'/kis-tool/backtest/backtest'}
+];
+var nav=document.getElementById('nav'),ws=document.getElementById('ws');
+function render(){
+  var cur=(location.hash||'#backtest').slice(1);if(!MENU.some(function(m){return m.id===cur}))cur='backtest';
+  nav.textContent='';var last='',box;
+  MENU.forEach(function(m){
+    if(m.g!==last){box=document.createElement('div');box.className='kis-group';var h=document.createElement('h2');h.textContent=m.g;box.appendChild(h);nav.appendChild(box);last=m.g}
+    var a=document.createElement('a');a.href='#'+m.id;a.textContent=m.t;if(m.id===cur){a.setAttribute('aria-current','page');if(ws.getAttribute('src')!==m.src)ws.src=m.src}
+    box.appendChild(a);
+  });
+}
+addEventListener('hashchange',render);render();
+</script></body></html>
