@@ -3265,3 +3265,5 @@ html.dark #foreign-flow .ff-story-headline, html.dark #foreign-flow .ff-story-ju
 html.dark #foreign-flow .ff-story-judgment p, html.dark #foreign-flow .ff-story-chapter p, html.dark #foreign-flow .ff-story-table td, html.dark #foreign-flow .ff-story ul { color: var(--dk-text); }
 html.dark #foreign-flow .ff-story-judgment em, html.dark #foreign-flow .ff-story-table th, html.dark #foreign-flow .ff-story-head small, html.dark #foreign-flow .ff-story-src { color: var(--dk-sub); }
 html.dark #foreign-flow .ff-story-chapter, html.dark #foreign-flow .ff-story-table th, html.dark #foreign-flow .ff-story-table td { border-color: var(--dk-line); }
+#foreign-flow .ff-story-risk th:nth-child(2), #foreign-flow .ff-story-risk td:nth-child(2),
+#foreign-flow .ff-story-risk th:nth-child(3), #foreign-flow .ff-story-risk td:nth-child(3) { white-space: nowrap; }
