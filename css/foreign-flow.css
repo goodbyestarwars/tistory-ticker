@@ -3275,7 +3275,12 @@ html.dark #foreign-flow .ff-wide-dots button { background: rgba(255, 255, 255, .
 html.dark #foreign-flow .ff-wide-dots button.is-on { background: var(--dk-text); }
 #foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 26px 64px 14px; border: 1px solid #d2d2d7; border-radius: 28px; background: #fff; box-sizing: border-box; }
 #foreign-flow .ff-wide-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 44px; align-items: start; }
-#foreign-flow .ff-wide-lead { position: relative; z-index: 1; padding-right: 44px; border-right: 1px solid rgba(0, 0, 0, .07); }
+#foreign-flow .ff-wide-lead { position: relative; z-index: 1; padding-right: 44px; }
+/* 가로 구분선은 카드 왼쪽 끝에서 오른쪽 끝까지(카드 overflow:hidden이 넘친 부분을 잘라 준다), 세로 구분선은 쓰지 않는다. 오른쪽 칸 안의 줄(row)은 왼쪽 글을 가르지 않도록 칸 폭만 긋는다. */
+#foreign-flow .ff-wide :is(.ff-wide-foot, .ff-wide-tiles, .ff-wide-detail) { position: relative; }
+#foreign-flow .ff-wide :is(.ff-wide-foot, .ff-wide-tiles, .ff-wide-detail)::after { content: ""; position: absolute; left: -200vw; right: -200vw; height: 1px; background: rgba(0, 0, 0, .07); pointer-events: none; }
+#foreign-flow .ff-wide :is(.ff-wide-foot, .ff-wide-tiles, .ff-wide-detail)::after { top: 0; }
+html.dark #foreign-flow .ff-wide :is(.ff-wide-foot, .ff-wide-tiles, .ff-wide-detail)::after { background: rgba(255, 255, 255, .09); }
 #foreign-flow .ff-wide-lead > small, #foreign-flow .ff-wide small { display: block; color: #6e6e73; font-size: 12px; }
 #foreign-flow .ff-wide strong { display: block; color: #1d1d1f; font-size: 17px; font-weight: 700; line-height: 1.4; }
 #foreign-flow .ff-wide strong.is-big { margin: 6px 0 14px; font-family: "MaruBuriBold", "MaruBuri", serif; font-size: 40px; font-weight: 400; line-height: 1.2; letter-spacing: -.02em; }
@@ -3287,15 +3292,15 @@ html.dark #foreign-flow .ff-wide-dots button.is-on { background: var(--dk-text);
 #foreign-flow .ff-wide-row { display: grid; gap: 0 24px; padding: 0 0 18px; margin-bottom: 18px; border-bottom: 1px solid rgba(0, 0, 0, .07); }
 #foreign-flow .ff-wide-row.is-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #foreign-flow .ff-wide-row.is-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-#foreign-flow .ff-wide-row > div + div { padding-left: 24px; border-left: 1px solid rgba(0, 0, 0, .07); }
+#foreign-flow .ff-wide-row > div + div { padding-left: 24px; }
 #foreign-flow .ff-wide-facts { display: flex; flex-wrap: wrap; gap: 10px 24px; }
 #foreign-flow .ff-wide-facts b { color: #1d1d1f; font-size: 13px; font-weight: 600; }
-#foreign-flow .ff-wide-foot { position: relative; z-index: 1; margin-top: 16px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, .07); }
+#foreign-flow .ff-wide-foot { position: relative; z-index: 1; margin-top: 16px; padding-top: 10px; }
 #foreign-flow .ff-wide-foot p { margin: 0 0 6px; color: #6e6e73; font-size: 13px; line-height: 1.65; }
 #foreign-flow .ff-wide-foot b { color: #1d1d1f; }
 #foreign-flow .ff-wide-foot small { color: #86868b; font-size: 11px; }
-#foreign-flow .ff-wide-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(0, 0, 0, .07); }
-#foreign-flow .ff-wide-tiles > div + div { padding-left: 14px; border-left: 1px solid rgba(0, 0, 0, .07); }
+#foreign-flow .ff-wide-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 18px; padding-top: 16px; }
+#foreign-flow .ff-wide-tiles > div + div { padding-left: 14px; }
 #foreign-flow .ff-wide-tiles strong { font-size: 18px; }
 #foreign-flow .ff-wide-tiles small, #foreign-flow .ff-wide-axis > span:not(.ff-wide-legend) { white-space: nowrap; }
 #foreign-flow .ff-wide-grid.is-chart { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
@@ -3348,7 +3353,7 @@ html.dark #foreign-flow .ff-story-nav { background: var(--dk-card); color: var(-
 #foreign-flow .ff-wide-grid.is-solo { grid-template-columns: 1fr; }
 #foreign-flow .ff-wide-grid.is-solo .ff-wide-lead { padding-right: 0; border-right: 0; }
 #foreign-flow .ff-wide strong.is-num { margin: 4px 0 0; font-family: "MaruBuriBold", "MaruBuri", serif; font-size: 44px; font-weight: 400; line-height: 1.15; }
-#foreign-flow .ff-wide-detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0, 0, 0, .07); }
+#foreign-flow .ff-wide-detail { margin-top: 12px; padding-top: 12px; }
 #foreign-flow .ff-wide-detail p { margin: 0 0 6px; font-size: 13.5px; }
 #foreign-flow .ff-wide-body .ff-story-rows { display: grid; gap: 14px; }
 html.dark #foreign-flow .ff-wide-detail { border-color: rgba(255, 255, 255, .09); }
