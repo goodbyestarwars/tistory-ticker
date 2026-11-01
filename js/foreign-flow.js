@@ -1619,29 +1619,140 @@
     return html + '<footer><small>' + escapeHtml(c.src || '') + '</small></footer></article>';
   }
 
-  function buildStockStoryHtml(st, hasSwing) {
-    var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
-    var offset = hasSwing ? 1 : 0;
-    return '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 · ' + escapeHtml(st.name) + '</span>'
-      + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small></div>'
-      + '<div class="ff-story-stage"><div class="ff-story-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">'
-      + (hasSwing ? '<article class="ff-story-card ff-story-card--swing" data-story-number="01" data-story-swing></article>' : '')
-      + (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, offset); }).join('') + '</div>'
-      + '<button type="button" class="ff-story-nav is-prev" data-story-prev aria-label="이전 카드">‹</button>'
-      + '<button type="button" class="ff-story-nav is-next" data-story-next aria-label="다음 카드">›</button></div>'
-      + '<small class="ff-story-note">작성 시점 값이며 실시간으로 갱신되지 않습니다(1번 카드만 실시간 계산). 투자 권유가 아닙니다.</small>';
+  // 가로로 긴 흰 카드 2장(판정 · 차트). 영역은 눈에 띄지 않는 가는 선으로만 나눈다.
+  function wideTone_(text) {
+    var t = swingTone_(text);
+    return t === 'ff-tone-up' ? 'is-up' : t === 'ff-tone-down' ? 'is-dn' : '';
+  }
+  function wideValue_(text, big) {
+    return '<strong class="' + wideTone_(text) + (big ? ' is-big' : '') + '">' + escapeHtml(text) + '</strong>';
   }
 
-  function loadStockStory(box, code) {
+  function buildVerdictCard(vm) {
+    var a = vm.assessment, label = vm.currentRegime.label;
+    var story = '장기는 ' + vm.bigWave.label + ', 중기는 ' + vm.midWave.label + ', 단기는 ' + vm.smallWave.label + ' 흐름이에요. '
+      + '그래서 지금은 ‘' + (a.diagnosis || vm.waves.diagnosis || '-') + '’으로 봅니다.';
+    return '<article class="ff-wide ff-wide--verdict" data-story-number="01">'
+      + '<div class="ff-wide-grid">'
+      + '<div class="ff-wide-lead"><small>2주 스윙 판정</small>' + wideValue_(label, true)
+      + '<p>' + escapeHtml(story) + '</p><em>최근 이벤트 · ' + escapeHtml(vm.recentEvent.label) + '</em></div>'
+      + '<div class="ff-wide-body">'
+      + '<div class="ff-wide-row is-three">'
+      + '<div><small>장기 · 맥락</small>' + wideValue_(vm.bigWave.label) + '</div>'
+      + '<div><small>중기 · 방향</small>' + wideValue_(vm.midWave.label) + '</div>'
+      + '<div><small>단기 · 진입 시점</small>' + wideValue_(vm.smallWave.label) + '</div></div>'
+      + '<div class="ff-wide-row is-two">'
+      + '<div><small>보유자 행동</small>' + wideValue_(a.holderAction) + '</div>'
+      + '<div><small>신규 진입</small>' + wideValue_(a.entryOpinion) + '</div></div>'
+      + '<div class="ff-wide-facts">'
+      + '<span><small>5일선 신호</small><b>' + escapeHtml(vm.shortSignal.label || '없음') + '</b></span>'
+      + '<span><small>전환 단계</small><b>' + escapeHtml(vm.transitionLabel) + '</b></span>'
+      + '<span><small>보조 상태</small><b>' + escapeHtml(vm.auxiliary) + '</b></span>'
+      + '<span><small>모멘텀</small><b>' + escapeHtml(a.momentum.state) + '</b></span>'
+      + '<span><small>펀더멘털</small><b>' + escapeHtml(a.fundamental.state) + '</b></span>'
+      + '<span><small>위험</small><b>' + escapeHtml(vm.risk.state) + '</b></span></div>'
+      + '</div></div>'
+      + '<footer class="ff-wide-foot"><p><b>판정 근거</b> ' + escapeHtml(vm.reasons || '차트 데이터 확인 중') + '</p>'
+      + '<p><b>무효화 조건</b> ' + escapeHtml(vm.chart.invalidation || '-') + '</p>'
+      + (vm.risk.flags && vm.risk.flags.length ? '<p><b>위험 근거</b> ' + escapeHtml(vm.risk.flags.join(' · ')) + '</p>' : '')
+      + '</footer></article>';
+  }
+
+  // 판정의 근거가 된 가격과 이동평균선을 한 장에 그린다(종가 · 20/60/224일선). 별도 API 없이 이미 받은 일봉만 쓴다.
+  function buildTrendChartCard(chartData) {
+    var daily = chartData && chartData.daily;
+    if (!daily || daily.length < 30) return '';
+    var closes = daily.map(function (d) { return Number(d.close); });
+    function sma(period) {
+      var out = new Array(closes.length).fill(null), sum = 0;
+      closes.forEach(function (v, i) {
+        sum += v;
+        if (i >= period) sum -= closes[i - period];
+        if (i >= period - 1) out[i] = sum / period;
+      });
+      return out;
+    }
+    var span = Math.min(closes.length, 250), from = closes.length - span;
+    var lines = [
+      { key: 'ma224', label: '224일선', vals: sma(224) },
+      { key: 'ma60', label: '60일선', vals: sma(60) },
+      { key: 'ma20', label: '20일선', vals: sma(20) }
+    ];
+    var W = 640, H = 250, padY = 14, all = closes.slice(from);
+    lines.forEach(function (l) { l.vals.slice(from).forEach(function (v) { if (v != null) all.push(v); }); });
+    var min = Math.min.apply(null, all), max = Math.max.apply(null, all), range = (max - min) || 1;
+    function px(i) { return (i / (span - 1)) * W; }
+    function py(v) { return padY + (1 - (v - min) / range) * (H - padY * 2); }
+    function path(vals) {
+      var d = '';
+      for (var i = 0; i < span; i++) {
+        var v = vals[from + i];
+        if (v == null) continue;
+        d += (d ? 'L' : 'M') + px(i).toFixed(1) + ' ' + py(v).toFixed(1);
+      }
+      return d;
+    }
+    var last = closes[closes.length - 1];
+    var svg = '<svg class="ff-wide-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="종가와 이동평균선" preserveAspectRatio="none">';
+    lines.forEach(function (l) {
+      var d = path(l.vals);
+      if (d) svg += '<path class="ff-wide-ma is-' + l.key + '" d="' + d + '"/>';
+    });
+    svg += '<path class="ff-wide-close" d="' + path(closes) + '"/></svg>';
+    function gap(l) {
+      var m = l.vals[closes.length - 1];
+      return m ? (last / m - 1) * 100 : null;
+    }
+    var tiles = lines.slice().reverse().map(function (l) {
+      var g = gap(l);
+      if (g == null) return '<div><small>' + l.label + ' 대비</small><strong>-</strong></div>';
+      return '<div><small>' + l.label + ' 대비</small><strong class="' + (g >= 0 ? 'is-up' : 'is-dn') + '">' + (g >= 0 ? '+' : '') + g.toFixed(1) + '%</strong></div>';
+    }).join('');
+    var g20 = gap(lines[2]), g60 = gap(lines[1]);
+    var head = g20 == null || g60 == null ? '이동평균선 위치' : (g20 < 0 ? '20일선 아래' : '20일선 위') + ' · ' + (g60 < 0 ? '60일선 아래' : '60일선 위');
+    var story = g20 == null || g60 == null ? '이동평균을 계산할 만큼의 일봉이 아직 부족해요.'
+      : '종가 ' + Math.round(last).toLocaleString() + '원은 20일선보다 ' + Math.abs(g20).toFixed(1) + '% ' + (g20 < 0 ? '낮고' : '높고') + ', 60일선보다 '
+        + Math.abs(g60).toFixed(1) + '% ' + (g60 < 0 ? '낮아요.' : '높아요.') + ' 판정은 이 선들과의 위치에서 시작합니다.';
+    var legend = lines.slice().reverse().map(function (l) { return '<span class="is-' + l.key + '">' + l.label + '</span>'; }).join('') + '<span class="is-close">종가</span>';
+    return '<article class="ff-wide ff-wide--chart" data-story-number="02">'
+      + '<div class="ff-wide-grid is-chart">'
+      + '<div class="ff-wide-lead"><small>차트로 보면</small><strong class="is-big">' + escapeHtml(head) + '</strong>'
+      + '<p>' + escapeHtml(story) + '</p><div class="ff-wide-tiles">' + tiles + '</div></div>'
+      + '<div class="ff-wide-body"><div class="ff-wide-plot">' + svg + '</div>'
+      + '<div class="ff-wide-axis"><span>' + escapeHtml(String(daily[from].date || '')) + '</span><span class="ff-wide-legend">' + legend + '</span><span>' + escapeHtml(String(daily[daily.length - 1].date || '')) + '</span></div></div>'
+      + '</div><footer class="ff-wide-foot"><small>일봉 종가 기준 · 최근 ' + span + '거래일</small></footer></article>';
+  }
+
+  function buildStockStoryHtml(st, wideHtml, wideCount) {
+    var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
+    return '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 · ' + escapeHtml(st.name) + '</span>'
+      + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small></div>'
+      + (wideHtml ? '<div class="ff-wide-stage" data-wide-stage><div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 판정과 차트">' + wideHtml + '</div>'
+        + (wideCount > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
+          + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
+          + '<div class="ff-wide-dots" data-wide-dots>' + Array.apply(null, Array(wideCount)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
+        + '</div>' : '')
+      + '<div class="ff-story-stage"><div class="ff-story-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">'
+      + (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('') + '</div>'
+      + '<button type="button" class="ff-story-nav is-prev" data-story-prev aria-label="이전 카드">‹</button>'
+      + '<button type="button" class="ff-story-nav is-next" data-story-next aria-label="다음 카드">›</button></div>'
+      + '<small class="ff-story-note">작성 시점 값이며 실시간으로 갱신되지 않습니다(판정·차트 카드만 실시간 계산). 투자 권유가 아닙니다.</small>';
+  }
+
+  function loadStockStory(box, code, swingVm, chartData) {
     var mount = box.querySelector('[data-ff-story]');
     if (!mount) return;
     ensureStockStories().then(function (all) {
       var st = all && all[code];
       if (!st || !box.contains(mount)) return; // 자료가 없거나 종목을 바꾼 뒤 도착한 응답은 버린다.
-      // 2주 스윙 판정은 새로 만들지 않고 기존 요약 박스를 1번 카드로 옮겨 담는다(다른 종목은 그대로 둔다).
+      // 판정 카드가 기존 2주 스윙 요약 박스를 대신하므로 같은 내용이 두 번 보이지 않게 박스는 숨긴다(DOM은 유지).
+      var wide = '', count = 0;
+      if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
+      var chartCard = buildTrendChartCard(chartData);
+      if (chartCard) { wide += chartCard; count++; }
       var swing = box.querySelector('.ff-swing-summary');
-      mount.innerHTML = buildStockStoryHtml(st, !!swing);
-      if (swing) mount.querySelector('[data-story-swing]').appendChild(swing);
+      if (swing && swingVm) swing.classList.add('is-in-story');
+      mount.innerHTML = buildStockStoryHtml(st, wide, count);
       mount.hidden = false;
       mount.addEventListener('click', function (event) {
         var btn = event.target.closest('[data-story-more]');
@@ -1654,6 +1765,17 @@
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         module.carousel(mount, { track: '.ff-story-track', card: '.ff-story-card', previous: '[data-story-prev]', next: '[data-story-next]' });
+        var stage = mount.querySelector('[data-wide-stage]');
+        if (!stage || !stage.querySelector('[data-wide-prev]')) return;
+        // 판정·차트 카드는 한 장씩 넘긴다. 이동·드래그는 공통 캐러셀, 아래 점은 현재 장 표시와 바로가기만 맡는다.
+        module.carousel(stage, { track: '.ff-wide-track', card: '.ff-wide', previous: '[data-wide-prev]', next: '[data-wide-next]' });
+        var wideTrack = stage.querySelector('.ff-wide-track'), dots = Array.prototype.slice.call(stage.querySelectorAll('[data-wide-dots] button'));
+        function wideStep() { var c = wideTrack.querySelector('.ff-wide'); return c ? c.getBoundingClientRect().width + (parseFloat(getComputedStyle(wideTrack).columnGap) || 0) : 1; }
+        wideTrack.addEventListener('scroll', function () {
+          var on = Math.round(wideTrack.scrollLeft / wideStep());
+          dots.forEach(function (d, i) { d.classList.toggle('is-on', i === on); });
+        }, { passive: true });
+        dots.forEach(function (d, i) { d.addEventListener('click', function () { wideTrack.scrollTo({ left: wideStep() * i, behavior: 'smooth' }); }); });
       }).catch(function () {});
     }).catch(function () {});
   }
@@ -1764,7 +1886,7 @@
     html += '<div class="ff-view" id="ffViewSim" hidden></div>';
 
     box.innerHTML = html;
-    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code); }
+    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData); }
     loadStockMembers_(box, data.code);
 
     // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)
@@ -3439,22 +3561,34 @@
     return '<strong class="' + swingTone_(text) + '">' + escapeHtml(text) + '</strong>';
   }
 
-  function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
+  // 2주 스윙 판정에 보이는 값(요약 박스와 종목 스토리 카드가 같은 값을 쓴다).
+  function swingViewModel_(data, entry, techScore, fundamentals, chartData) {
     var assessment = buildSwingAssessment(data, entry, chartData, computeFundamentalScore(fundamentals));
     var chart = assessment.chartRegime, risk = assessment.risk;
-    var reasons = (chart.reasons || []).join(' · ');
-    var currentRegime = assessment.currentRegime || chart.currentRegime || { label: chart.label };
-    var recentEvent = assessment.recentEvent || chart.recentEvent || { label: '이벤트 없음' };
-    var auxiliary = (assessment.auxiliaryStates || chart.auxiliaryStates || []).map(function (item) { return item.label; }).join(' · ') || '없음';
     var waves = assessment.waves || {};
-    var bigWave = waves.big || { label: '장기 데이터 부족' };
-    var midWave = waves.mid || { label: '데이터 부족' };
-    var smallWave = waves.small || { label: '데이터 부족' };
-    var shortSignal = assessment.shortSignal || waves.shortSignal || { label: '없음' };
     var transition = waves.transitions || assessment.transitions || {};
-    var transitionLabel = transition.long && transition.long.active ? transition.long.label
-      : transition.mid && transition.mid.active ? transition.mid.label
-      : transition.short && transition.short.active ? transition.short.label : '전환 신호 없음';
+    return {
+      assessment: assessment, chart: chart, risk: risk, waves: waves,
+      reasons: (chart.reasons || []).join(' · '),
+      currentRegime: assessment.currentRegime || chart.currentRegime || { label: chart.label },
+      recentEvent: assessment.recentEvent || chart.recentEvent || { label: '이벤트 없음' },
+      auxiliary: (assessment.auxiliaryStates || chart.auxiliaryStates || []).map(function (item) { return item.label; }).join(' · ') || '없음',
+      bigWave: waves.big || { label: '장기 데이터 부족' },
+      midWave: waves.mid || { label: '데이터 부족' },
+      smallWave: waves.small || { label: '데이터 부족' },
+      shortSignal: assessment.shortSignal || waves.shortSignal || { label: '없음' },
+      transitionLabel: transition.long && transition.long.active ? transition.long.label
+        : transition.mid && transition.mid.active ? transition.mid.label
+        : transition.short && transition.short.active ? transition.short.label : '전환 신호 없음'
+    };
+  }
+
+  function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
+    var vm = swingViewModel_(data, entry, techScore, fundamentals, chartData);
+    var assessment = vm.assessment, chart = vm.chart, risk = vm.risk, reasons = vm.reasons;
+    var currentRegime = vm.currentRegime, recentEvent = vm.recentEvent, auxiliary = vm.auxiliary;
+    var waves = vm.waves, bigWave = vm.bigWave, midWave = vm.midWave, smallWave = vm.smallWave;
+    var shortSignal = vm.shortSignal, transitionLabel = vm.transitionLabel;
     return '<div class="ff-summary ff-swing-summary">'
       + '<div class="ff-swing-regime"><span class="ff-panel-title">2주 스윙 판정</span>' + toneStrong_(currentRegime.label) + '<small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
       + '<div class="ff-swing-flow" aria-label="장기·중기·단기 추세 국면">'

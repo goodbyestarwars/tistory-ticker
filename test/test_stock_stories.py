@@ -30,6 +30,25 @@ assert(appended.length===0);
  assert(mount.innerHTML.includes('한화오션'));
  assert(mount.innerHTML.includes('틀렸다면'));
  assert(!mount.innerHTML.includes('<script'));
+ const lbl=t=>({label:t});
+ const vm0={assessment:{diagnosis:'중기 하락',holderAction:'보유 주의',entryOpinion:'신규 진입 금지',momentum:{state:'중립'},fundamental:{state:'지지'}},
+  chart:{invalidation:'20일선 회복'},risk:{state:'주의',flags:[]},waves:{},reasons:'근거',currentRegime:lbl('하락 추세'),recentEvent:lbl('이벤트 없음'),
+  auxiliary:'없음',bigWave:lbl('하락 추세'),midWave:lbl('하락 추세'),smallWave:lbl('상승 추세'),shortSignal:lbl('없음'),transitionLabel:'없음'};
+ const daily=[];for(let i=0;i<260;i++)daily.push({date:'2026-01-'+i,close:1000-i});
+ const mw={hidden:true,innerHTML:''};
+ const swingEl={classList:{add(c){mw.cls=c;}}};
+ api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?mw:/ff-swing-summary/.test(sel)?swingEl:null;},contains(){return true;},closest(){return null;}},'042660',vm0,{daily});
+ await new Promise(setImmediate);
+ assert(mw.innerHTML.includes('ff-wide--verdict'));
+ assert(mw.innerHTML.includes('ff-wide--chart'));
+ assert(mw.innerHTML.includes('<path class="ff-wide-close"'));
+ assert(mw.innerHTML.includes('data-story-number="03"'));
+ assert.equal(mw.cls,'is-in-story');
+ const mx={hidden:true,innerHTML:''};
+ api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?mx:null;},contains(){return true;},closest(){return null;}},'042660',null,{daily:daily.slice(0,10)});
+ await new Promise(setImmediate);
+ assert(!mx.innerHTML.includes('ff-wide--'));
+ assert(mx.innerHTML.includes('data-story-number="01"'));
  const m2={hidden:true,innerHTML:''};
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?m2:null;},contains(){return true;},closest(){return null;}},'005930');
  await new Promise(setImmediate);
