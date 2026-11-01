@@ -8321,7 +8321,7 @@ html.search-open body .nav-search-suggest {
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
     box-sizing: border-box;
     width: 100%;
-    max-width: calc(var(--home-content-max) + 32px);
+    max-width: none; /* 푸터는 화면 가로폭을 다 쓴다 */
     margin-inline: auto !important;
     padding-inline: 16px !important;
   }
