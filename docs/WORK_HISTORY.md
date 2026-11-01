@@ -1,3 +1,7 @@
+**2026-11-01 차트 지표 구성 기억 · 전체화면 차트 바깥 클릭 닫힘 제거**
+
+요청: 지표 구성 저장, 독립(전체화면) 차트가 바깥 영역 클릭으로 닫히는 문제를 ✕로만 닫게. 변경: `js/skin-shell.js` NineUI에 `persistPrefs`(localStorage, 종류가 다른 저장값 무시·값이 바뀔 때만 기록) 추가, `js/stock-search.js`(`nine.chart.studies.search.v1`)·`js/foreign-flow.js`(`nine.chart.studies.flow.v1`)가 이동평균·일목·볼린저·지지저항·RSI·파동·매물대·거래량 배수 등 켬/끔과 범례 강조를 기억. `js/dashboard-enhancements.js` 오버레이 바깥 클릭 닫힘 제거(✕·줄이기·Esc 유지). 검증: 저장 함수 단위 시험(복원·타입 불일치 무시·무변경 시 미기록) 통과, 4개 파일 구문 확인. 실사이트 화면 확인은 못 함. 배포: PR 병합 후 Pages 반영.
+
 **2026-11-01 종목 스토리 모바일 표 보정**
 
 실사이트 확인(PC 다크·모바일 375px 라이트/다크, 가로 넘침 없음): 리스크표 가능성·영향 칸이 한 글자씩 줄바꿈되어 `css/foreign-flow.css`에서 두 칸을 줄바꿈 금지로 보정. 배포: PR 병합 후 Pages 반영.
