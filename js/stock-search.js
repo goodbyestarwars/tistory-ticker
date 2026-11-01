@@ -1883,14 +1883,31 @@
   }
 
   // 호가창과 차트가 서로 다른 시점의 가격을 보여주지 않도록, 같은 WebSocket 체결가를
-  // 현재 분봉의 종가·고가·저가에도 즉시 반영한다. 새 분봉 생성은 다음 분봉 API 갱신이
-  // 담당하고, 현재 캔들 안의 틱은 setData 전체 재렌더 없이 Lightweight Charts update로
-  // 갱신해 화면 흔들림을 줄인다.
+  // 현재 봉의 종가·고가·저가에도 즉시 반영한다. 봉 안의 틱은 setData 전체 재렌더 없이
+  // Lightweight Charts update로 갱신해 화면 흔들림을 줄인다.
+  //  - 분봉: 분이 바뀌면 새 봉을 바로 만든다(국내 종목, 장중 09:00~15:20, 분 단위는 1·3·5·10·15·30·60이라 시각 정렬이 같다).
+  //    거래량·이동평균은 다음 60초 재조회가 채운다.
+  //  - 일·주·월봉: 마지막 봉의 날짜가 오늘(KST)일 때만 갱신한다(어제 봉을 오늘 가격으로 덮어쓰지 않는다). 시가는 그대로 둔다.
   function updateLiveChartQuote(code, quote) {
-    if (!lwcCandleSeries || lwcLiveTimeframe !== 'minute' || state.selectedCode !== code) return;
+    if (!lwcCandleSeries || !lwcLiveTimeframe || state.selectedCode !== code) return;
     var price = Number(quote && quote.price);
     var last = lwcLiveBars.length ? lwcLiveBars[lwcLiveBars.length - 1] : null;
-    if (!last || !Number.isFinite(price)) return;
+    if (!last || !Number.isFinite(price) || !(price > 0)) return;
+    if (/^US:/i.test(String(code))) { if (lwcLiveTimeframe !== 'minute') return; }
+    if (lwcLiveTimeframe === 'minute') {
+      if (!/^US:/i.test(String(code))) {
+        var scopeMinutes = Number(state.minuteScope) || 1;
+        var nowSec = Math.floor(Date.now() / 1000) + 9 * 3600;   // 분봉 시각은 한국 시계를 UTC처럼 담는다(minuteRowsToBars)
+        var secOfDay = nowSec % 86400;
+        var bucket = Math.floor(nowSec / (60 * scopeMinutes)) * 60 * scopeMinutes;
+        if (bucket > last.date && Math.floor(last.date / 86400) === Math.floor(nowSec / 86400) && secOfDay >= 9 * 3600 && secOfDay <= 15 * 3600 + 20 * 60) {
+          last = { date: bucket, open: price, high: price, low: price, close: price, volume: 0 };
+          lwcLiveBars.push(last);
+        }
+      }
+    } else if (last.date !== kstToday()) {
+      return;
+    }
     last.close = price;
     last.high = Math.max(Number(last.high) || price, price);
     last.low = Math.min(Number(last.low) || price, price);
