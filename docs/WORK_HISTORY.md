@@ -1,3 +1,7 @@
+**2026-11-01 종목 스토리 모바일 표 보정**
+
+실사이트 확인(PC 다크·모바일 375px 라이트/다크, 가로 넘침 없음): 리스크표 가능성·영향 칸이 한 글자씩 줄바꿈되어 `css/foreign-flow.css`에서 두 칸을 줄바꿈 금지로 보정. 배포: PR 병합 후 Pages 반영.
+
 **2026-11-01 종목분석 스토리 카드(한화오션 시범)**
 
 요청: 종목분석을 스토리형으로 개편, 우선 한화오션. 변경: 신규 `data/stock-stories.js`(`window.STOCK_STORIES`, 한 줄 논지·판정 3개와 틀릴 조건·5개 장·리스크표·감시표, 작성 시점 값), `js/foreign-flow.js`에 회사소개와 같은 지연 로드 방식의 `ensureStockStories/loadStockStory`(자료 없는 종목은 영역 미생성, 종목 전환 후 늦은 응답 폐기), `css/foreign-flow.css` 라이트/다크. 투자등급·목표가는 넣지 않음. 검증: test_stock_stories 신규 + company_profiles/foreign_flow_compute 14 passed. 화면 렌더(PC/모바일)는 Pages 반영 후 확인 필요. 후속: 전 종목 자동 요약 층은 미착수.
