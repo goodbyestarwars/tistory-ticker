@@ -102,18 +102,18 @@ a { color: #d24f45; }
    2026-10-31 통일 디자인: 단락(.learn-sec)은 흰색 둥근 상자, 글꼴은 마루부리(제목만 MaruBuriBold),
    색은 상승 빨강/하락 파랑과 남색 글자만 쓴다(회색·갈색·금색 금지). */
 body.learn-page .legal-wrap {
-  --learn-box: #f4f1e8;
-  --learn-box-deep: #e6e1d2;
-  --learn-box-inset: #FBF8EC;
-  --learn-box-border: #d6d9e2;
-  --learn-case-bg: #FBF8EC;
+  --learn-box: #f5f5f7;
+  --learn-box-deep: #e8e8ed;
+  --learn-box-inset: #fff;
+  --learn-box-border: #d2d2d7;
+  --learn-case-bg: #f5f5f7;
   --learn-case-label: #1b2f5e;
-  --learn-case-good-bg: #eceef5;
+  --learn-case-good-bg: #eaeef7;
   --learn-case-good-line: #1b2f5e;
   --learn-case-good-text: #1b2f5e;
-  --learn-ink: #14213d;
-  --learn-sub: #3d4a66;
-  --learn-line: #dcdde4;
+  --learn-ink: #1d1d1f;
+  --learn-sub: #515154;
+  --learn-line: #e5e5ea;
   --learn-navy: #1b2f5e;
   --learn-up: #d24f45;
   --learn-down: #1261c4;
