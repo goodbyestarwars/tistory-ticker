@@ -1565,6 +1565,87 @@
     });
   }
 
+  // 종목 스토리(선별 종목 심화 글): data/stock-stories.js를 지연 로드하고, 없는 종목은 영역을 만들지 않는다.
+  var stockStoriesPromise = null;
+  var STOCK_STORIES_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/stock-stories.js';
+
+  function ensureStockStories() {
+    if (global.STOCK_STORIES) return Promise.resolve(global.STOCK_STORIES);
+    if (stockStoriesPromise) return stockStoriesPromise;
+    stockStoriesPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = STOCK_STORIES_JS;
+      script.onload = function () {
+        if (!global.STOCK_STORIES) { stockStoriesPromise = null; reject(new Error('스토리 자료 없음')); return; }
+        resolve(global.STOCK_STORIES);
+      };
+      script.onerror = function () { stockStoriesPromise = null; reject(new Error('스토리 자료 로드 실패')); };
+      document.head.appendChild(script);
+    });
+    return stockStoriesPromise;
+  }
+
+  function buildStockStoryPlaceholder(code) {
+    if (!/^[0-9A-Z]{6}$/.test(String(code || ''))) return '';
+    return '<section class="ff-story" data-ff-story hidden></section>';
+  }
+
+  function storyParas_(list) {
+    return (list || []).map(function (t) { return '<p>' + escapeHtml(t) + '</p>'; }).join('');
+  }
+
+  function buildStockStoryHtml(st) {
+    var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
+    var html = '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 · ' + escapeHtml(st.name) + '</span>'
+      + '<small>' + escapeHtml(st.sector) + ' · 작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small></div>'
+      + '<p class="ff-story-headline">' + escapeHtml(st.headline) + '</p><div class="ff-story-judgments">';
+    (st.judgments || []).forEach(function (j, i) {
+      html += '<div class="ff-story-judgment"><b>' + (i + 1) + '. ' + escapeHtml(j.title) + '</b><p>' + escapeHtml(j.body) + '</p>'
+        + '<em>틀렸다면 · ' + escapeHtml(j.wrong) + '</em></div>';
+    });
+    html += '</div>';
+    (st.chapters || []).forEach(function (c, i) {
+      html += '<details class="ff-story-chapter"' + (i === 0 ? ' open' : '') + '><summary>' + escapeHtml(c.title) + '</summary>';
+      if (c.table) {
+        html += '<table class="ff-story-table">' + c.table.map(function (r) {
+          return '<tr><th>' + escapeHtml(r[0]) + '</th><td>' + escapeHtml(r[1]) + '</td></tr>';
+        }).join('') + '</table>';
+      }
+      html += storyParas_(c.body)
+        + (c.read ? '<p class="ff-story-read"><b>해석</b> ' + escapeHtml(c.read) + '</p>' : '')
+        + (c.caveat ? '<p class="ff-story-caveat">맹점 · ' + escapeHtml(c.caveat) + '</p>' : '')
+        + '</details>';
+    });
+    html += '<details class="ff-story-chapter"><summary>6. 리스크와 감시할 것</summary>'
+      + '<table class="ff-story-table ff-story-risk"><tr><th>리스크</th><th>가능성</th><th>영향</th><th>전달 경로 · 확인할 것</th></tr>'
+      + (st.risks || []).map(function (r) {
+        return '<tr><td>' + escapeHtml(r.name) + '</td><td>' + escapeHtml(r.p) + '</td><td>' + escapeHtml(r.i)
+          + '</td><td>' + escapeHtml(r.path) + ' · ' + escapeHtml(r.watch) + '</td></tr>';
+      }).join('') + '</table>'
+      + '<table class="ff-story-table ff-story-monitor"><tr><th>지표</th><th>작성 시점 값</th><th>논지가 흔들리는 조건</th><th>주기</th></tr>'
+      + (st.monitors || []).map(function (m) {
+        return '<tr><td>' + escapeHtml(m.metric) + '</td><td>' + escapeHtml(m.now) + '</td><td>' + escapeHtml(m.trigger)
+          + '</td><td>' + escapeHtml(m.freq) + '</td></tr>';
+      }).join('') + '</table>'
+      + '<p class="ff-story-read"><b>이 중 하나라도 일어나면 논지를 다시 써야 합니다</b></p><ul>'
+      + (st.invalid || []).map(function (t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('') + '</ul></details>'
+      + '<small class="ff-story-src">출처 · ' + escapeHtml(st.sources) + '. 작성 시점의 값이며 실시간으로 갱신되지 않습니다. 투자 권유가 아닙니다.</small>';
+    return html;
+  }
+
+  function loadStockStory(box, code) {
+    var mount = box.querySelector('[data-ff-story]');
+    if (!mount) return;
+    ensureStockStories().then(function (all) {
+      var st = all && all[code];
+      if (!st || !box.contains(mount)) return; // 자료가 없거나 종목을 바꾼 뒤 도착한 응답은 버린다.
+      mount.innerHTML = buildStockStoryHtml(st);
+      mount.hidden = false;
+      var root = box.closest('#foreign-flow');
+      if (root) syncSignalPanelHeight(root);
+    }).catch(function () {});
+  }
+
   function buildCompanyProfilePlaceholder(code) {
     if (!/^[0-9A-Z]{6}$/.test(String(code || ''))) return '';
     var url = 'https://navercomp.wisereport.co.kr/v2/company/c1010001.aspx?cmp_cd=' + code;
@@ -1636,7 +1717,7 @@
 
     // 2주 스윙 판정은 탭 밖에 항상 노출한다. 별점/구 등급은 화면 최종의견에서 제거하고
     // 국면·보유자 행동·신규 진입을 분리해 보여준다.
-    if (!selectedIsEtf) html += buildCompanyProfilePlaceholder(data.code);
+    if (!selectedIsEtf) html += buildCompanyProfilePlaceholder(data.code) + buildStockStoryPlaceholder(data.code);
     html += buildSummaryBox(data, entry, techScore, fundamentals, chartData);
 
     // 2026-08-23: "펀더멘탈 탭에 있으면 안되겠어, 요약에 넣어" 요청으로 여기(탭 밖,
@@ -1671,7 +1752,7 @@
     html += '<div class="ff-view" id="ffViewSim" hidden></div>';
 
     box.innerHTML = html;
-    if (!selectedIsEtf) loadCompanyProfile(box, data.code);
+    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code); }
     loadStockMembers_(box, data.code);
 
     // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)
