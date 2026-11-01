@@ -8332,6 +8332,8 @@ html.search-open body .nav-search-suggest {
     max-width: calc(var(--home-content-max) + 32px);
     margin-inline: auto !important;
     padding-inline: 16px !important;
+    /* 마켓브리핑과 이야기 시리즈 사이는 홈 공통 카드 간격(--ui-section-gap, 페이지 아래 여백이 이미 포함)만 둔다(휴장 화면과 동일). 푸터 위 구분선·윗여백은 이 구간에서 쓰지 않는다. */
+    margin-top: 0 !important; padding-top: 0 !important; background-image: none !important;
   }
   html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > nav.site-footer-links:not(.site-footer-learn) { order: 2 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
   html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > *.copyright { order: 3 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
@@ -8349,7 +8351,7 @@ html body#tt-body-index nav.site-footer-learn {
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn {
   display: grid !important; grid-template-columns: minmax(240px, .85fr) minmax(0, 2.15fr) !important;
   gap: 48px !important; width: 100% !important; max-width: var(--home-content-max) !important; min-width: 0 !important;
-  margin: 48px auto 16px !important; padding: var(--ui-card-padding) !important; overflow: visible !important; align-items: start !important; text-align: left !important;
+  margin: 0 auto 16px !important; padding: var(--ui-card-padding) !important; overflow: visible !important; align-items: start !important; text-align: left !important;
 }
 html body .learn-intro { padding: 24px 0 !important; min-width: 0; }
 html body .learn-eyebrow { display:block; font-size:13px!important; color:rgba(var(--np-ink),.55)!important; }
@@ -8945,7 +8947,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body#tt-body-index .briefing-carousel-controls button { width: 41px; height: 41px; font-size: 20px; }
 
   /* 이야기 시리즈 */
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.8fr) !important; gap: 43px !important; margin: 43px auto 14px !important; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.8fr) !important; gap: 43px !important; margin: 0 auto 14px !important; }
   html body .learn-intro { padding: 4px 0 0 !important; } /* 카드 묶음 위 여백(4px)과 맞춰 소개 글 윗선을 첫 카드 윗선에 정렬 */
   html body .learn-eyebrow { font-size: 12px !important; }
   html body .learn-intro h2 { margin: 29px 0 22px !important; font-size: var(--ui-title-size) !important; }
@@ -8980,7 +8982,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
     html body#tt-body-index .briefing-carousel-controls { gap: 16px; }
     /* 이야기 시리즈(모바일) */
-    html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { margin-top: 29px !important; gap: 22px !important; }
+    html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { margin-top: 0 !important; gap: 22px !important; }
     html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - var(--ui-section-gap)) / 2) !important; column-gap:var(--ui-section-gap)!important; row-gap:var(--ui-section-gap)!important; }
     html body .learn-intro h2 { margin: 14px 0 !important; font-size: var(--ui-title-size) !important; }
     html body .learn-intro p { font-size: 13.5px !important; }
