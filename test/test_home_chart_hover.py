@@ -35,7 +35,8 @@ class HomeChartHoverTest(unittest.TestCase):
     def test_weekly_report_index_cards_have_hover(self):
         src = read('js/home-weekly-report.js')
         self.assertIn('function indexHoverAttr(item)', src)
-        self.assertIn("'<div class=\"hwr-spark\"' + indexHoverAttr(item)", src)
+        # 2026-10-24 휴장 대시보드 재구성(#962)으로 지수 카드의 미니 차트(.hwr-spark)가 빠져 호출부가 없다.
+        # 호버 좌표 생성기는 남아 있고, 환율·금 1년 차트가 같은 data-hover-points 계약을 쓴다.
         self.assertIn("' 종가 '", src)
 
     def test_fx_and_gold_year_charts_have_hover_and_lighter_band(self):
@@ -46,7 +47,8 @@ class HomeChartHoverTest(unittest.TestCase):
         self.assertIn("' 종가 ' + value", src)
         # 매수 관심 구간 색: 예전 rgba(255,179,0,.45)보다 연하게(사용자 요청 2026-10-18)
         self.assertNotIn('255, 179, 0', src)
-        self.assertIn('.hwr-fx-interest-band { fill: rgba(255, 205, 90, .24); }', css)
+        # 색은 CSS가 아니라 FOUC 방지용 프레젠테이션 속성(fill 하나)으로 들어간다.
+        self.assertIn('fill="rgba(255, 205, 90, 0.24)"', src)
         self.assertNotIn('rgba(255, 179, 0, .45)', css)
 
 

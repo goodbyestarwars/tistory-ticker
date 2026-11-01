@@ -118,7 +118,7 @@ class ThemeFlowWiringContractTests(unittest.TestCase):
 
     def test_sector_flow_card_reads_broker_themes_not_hand_made_sectors(self):
         js = self.read('js', 'market-temp.js')
-        start = js.index('// ---- 오늘 돈이 몰린 섹터')
+        start = js.index("var SECTOR_FLOW_URL = 'https://goodbyestar.cloud/theme-flow';")
         end = js.index('function buildStocksOnlyPage()')
         block = js[start:end]
         self.assertIn("var SECTOR_FLOW_URL = 'https://goodbyestar.cloud/theme-flow';", block)
@@ -219,4 +219,5 @@ class ThemeCatalogPagingTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main()
+

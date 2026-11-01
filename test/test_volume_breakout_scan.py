@@ -183,7 +183,8 @@ class VolumeBreakoutWiringTests(unittest.TestCase):
 
     def test_vm_route_serves_the_section(self):
         source = self.read('scripts/cloud-vm/main.py')
-        self.assertIn("'volumeBreakout': patterns.get('volumeBreakout') or [],", source)
+        # 2026-11: 거래량 돌파 탭은 매집봉 결과와 병합해 내려준다(volume_accumulation.merge_lists).
+        self.assertIn("patterns.get('volumeBreakout') or []", source)
         self.assertIn("'volumeBreakoutScannedAt': data.get('volumeBreakoutScannedAt'),", source)
 
     def test_gas_fallback_has_the_same_shape(self):
@@ -200,8 +201,8 @@ class VolumeBreakoutWiringTests(unittest.TestCase):
 
     def test_frontend_tab_exists(self):
         source = self.read('js/pattern-scan.js')
-        self.assertIn("{ key: 'volumeBreakout', label: '거래량 돌파(5분)'", source)
-        self.assertIn("if (patternKey === 'volumeBreakout') {", source)
+        self.assertIn("{ key: 'volumeBreakout', label: '장중 거래량 급증'", source)
+        self.assertIn("volumeBreakout: {", source)
         # 이 탭은 일봉 재판정 대상이 아니다 - 상세는 스냅샷을 그대로 쓴다.
         self.assertNotIn('volumeBreakout: true', source)
 

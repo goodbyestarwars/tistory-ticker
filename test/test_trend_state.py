@@ -70,15 +70,12 @@ class TrendStateTest(unittest.TestCase):
     def test_both_screens_wire_the_same_option(self):
         stock = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
         flow = open(os.path.join(ROOT, 'js', 'foreign-flow.js'), encoding='utf-8').read()
-        self.assertIn('ssTrendToggle', stock)
-        self.assertIn('ffTrendToggle', flow)
-        self.assertIn('core.setTrendMarkers(', stock)
-        self.assertIn('core.setTrendMarkers(', flow)
+        # 2026-11: 화면별 추세 토글(ssTrendToggle/ffTrendToggle)은 주요 파동 분석에 통합돼 사라졌다
+        # (fdf1a3c9). 공통 코어의 추세 표식 API가 남아 있고 화면이 코어 밖에서 직접 그리지 않는지만 본다.
+        core = open(os.path.join(ROOT, 'js', 'chart-core.js'), encoding='utf-8').read()
+        self.assertIn('function setTrendMarkers(', core)
         self.assertNotIn('core.trendMarkers(', stock)
         self.assertNotIn('core.trendMarkers(', flow)
-        sentence = '1개월/3개월/6개월/1년 전 대비 종가 변화'
-        self.assertIn(sentence, stock)
-        self.assertIn(sentence, flow)
 
 
 if __name__ == '__main__':

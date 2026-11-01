@@ -2368,7 +2368,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read('js/foreign-flow.js')
         match = re.search(r'  function formatNetSharesAxis\(value\) \{.*?\n  \}', source, re.DOTALL)
         self.assertIsNotNone(match)
-        script = match.group(0) + '''
+        import nine_shell
+        script = nine_shell.ui_only() + match.group(0) + '''
 console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map(formatNetSharesAxis)));
 '''
         result = subprocess.run(['node', '-e', script], capture_output=True, text=True, encoding='utf-8', timeout=10)

@@ -38,6 +38,8 @@ const code = `
 `;
 const kstDay = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 const DOC = { hidden: false };
+// 코드가 쓰는 전역(window.NineTime/NineUI)은 비워 둔다: 시각은 원문 문구로 물러나고 숫자는 기본 포맷이다.
+globalThis.window = {};
 const api = new Function('FakeWS', 'panel', 'updates', 'timers', 'TODAY', 'DOC', code)(FakeWS, panel, updates, timers, kstDay, DOC);
 const out = {};
 api.connect(panel, { code: 'KOSPI' });

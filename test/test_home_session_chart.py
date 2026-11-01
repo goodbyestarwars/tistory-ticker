@@ -188,6 +188,7 @@ class SessionCharts(unittest.TestCase):
         import domestic_futures
         import market_clock
         stamp = datetime.now(timezone.utc).astimezone(charts.KST).isoformat()
+        # 세션 날짜는 오늘이어야 한다. 고정 날짜는 14일 보관 정리에 바로 지워져 시간이 지나면 깨진다.
         quote = dict(price=5600.0, change=1.0, change_rate=0.1, high=5610.0, low=5590.0,
                      traded_at=stamp, market_status='OPEN')
 
@@ -199,7 +200,7 @@ class SessionCharts(unittest.TestCase):
                 mock.patch.object(domestic_futures, 'refresh_history_all', side_effect=Stop), \
                 mock.patch.object(domestic_futures, 'refresh_realtime_all'), \
                 mock.patch.object(charts, 'session', return_value=dict(
-                    date='2026-10-16', start='x', end='y', slotCount=14, slot=1, timeZone='Asia/Seoul')):
+                    date=stamp[:10], start='x', end='y', slotCount=14, slot=1, timeZone='Asia/Seoul')):
             with self.assertRaises(Stop):
                 domestic_futures._poll_loop(use_kis_realtime=True)
         symbols = {r[0] for r in self.conn.execute('SELECT symbol FROM home_session_prices')}

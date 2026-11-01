@@ -9,33 +9,40 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 HARNESS = r"""
 const fs = require('fs'), vm = require('vm');
 let source = fs.readFileSync('js/us-stocks.js', 'utf8').replace(
-  'global.UsStocks = { init: init, select: select, pause: pause };',
-  'global.UsStocks = { init, select, pause, state, loadOrderbook, startRefresh, stopRefresh, updateOrderbookCurrent };');
+  'global.UsStocks = { init: init, select: select, pause: pause,',
+  'global.UsStocks = { init, select, pause, state, loadOrderbook, startRefresh, stopRefresh, updateOrderbookCurrent,');
 let now=0, nextId=0;
 const timers=new Map(), intervals=new Map(), requests=[], events={};
 const status={textContent:''}, price={textContent:''}, change={textContent:''};
 const current={querySelector(s){return s==='strong'?price:change;}};
-const mount={innerHTML:'',querySelector(){return this.innerHTML.includes('us-stocks-book-current')?current:null;}};
+const mount={innerHTML:'',querySelector(s){return s==='.us-ob-table'?null:this.innerHTML.includes('us-stocks-book-current')?current:null;}};
 const container={hidden:false,innerHTML:''};
 const document={hidden:false,querySelector(s){
   return s==='#usStocksOrderbook'?mount:s==='[data-us-book-status]'?status:
     s==='link[data-us-stocks-css]'?{sheet:true}:null;
 },querySelectorAll(){return [];},addEventListener(k,cb){events[k]=cb;}};
-const window={AbortController,StockSearchChart:{updateQuote(){}},setTimeout:timeout};
+const window={AbortController,StockSearchChart:{updateQuote(){}},setTimeout:timeout,addEventListener(){}};
 function timeout(cb,delay){const id=++nextId;timers.set(id,{cb,at:now+delay,delay});return id;}
 function clear(id){timers.delete(id);}
 function fetch(url,options){return new Promise((resolve,reject)=>{
   const req={url,resolve,reject,signal:options&&options.signal};requests.push(req);
   // abort가 반영되지 않는 응답도 남겨, 늦은 성공이 새 종목을 덮지 않는지 확인한다.
 });}
-vm.runInNewContext(source,{window,document,console,fetch,URLSearchParams,location:{search:''},
+const ctx={window,document,console,fetch,URLSearchParams,location:{search:''},
   setTimeout:timeout,clearTimeout:clear,setInterval(cb,delay){const id=++nextId;intervals.set(id,{cb,delay});return id;},
-  clearInterval(id){intervals.delete(id);}});
+  clearInterval(id){intervals.delete(id);}};
+vm.createContext(ctx);
+window.fetch=fetch;
+// 공통 전송(NineHttp)은 실제 모듈이 microtask·재시도 타이머를 끼워 가짜 시계 검증과 맞지 않는다.
+// 이 테스트는 호출부의 갱신 정책만 보므로 요청을 즉시 fetch로 넘기는 가짜로 둔다.
+window.NineHttp={json:(url,o)=>fetch(url,o&&o.fetchOptions).then((r)=>r.json())};
+window.NineUI={spinner:()=>'',number:(n)=>String(n)};
+vm.runInContext(source,ctx);
 const api=window.UsStocks, state=api.state;
 function book(symbol='NVDA',p=101){return {symbol,updated_at:1790862571,
   asks:[{price:p,size:90}],bids:[{price:p-1,size:70}]};}
 function respond(req,body){req.resolve({ok:true,json:()=>Promise.resolve({success:true,data:body})});}
-async function flush(){for(let i=0;i<12;i++)await Promise.resolve();}
+async function flush(){for(let i=0;i<60;i++)await Promise.resolve();}
 async function advance(ms){now+=ms;for(const [id,t] of [...timers])if(t.at<=now){timers.delete(id);t.cb();}await flush();}
 function delays(){return [...timers.values()].map(x=>x.delay);}
 function setup(symbol='NVDA'){state.symbol=symbol;state.container=container;state.embedded=true;

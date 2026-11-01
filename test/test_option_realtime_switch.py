@@ -53,10 +53,11 @@ class SwitchTest(unittest.TestCase):
         os.environ.pop('OPTION_REALTIME_WS', None)
         self.assertFalse(self.mod['realtime_ws_enabled']())
 
-    def test_can_be_turned_back_on(self):
+    def test_env_cannot_turn_it_back_on(self):
+        """2026-11: 400종목 체결 확대를 위해 옵션은 항상 REST 스냅샷이다. 환경변수로도 켜지지 않는다."""
         for value in ('1', 'true', 'TRUE', 'yes', 'on'):
             os.environ['OPTION_REALTIME_WS'] = value
-            self.assertTrue(self.mod['realtime_ws_enabled'](), value)
+            self.assertFalse(self.mod['realtime_ws_enabled'](), value)
 
     def test_other_values_stay_off(self):
         for value in ('', '0', 'false', 'no', 'off', 'maybe'):

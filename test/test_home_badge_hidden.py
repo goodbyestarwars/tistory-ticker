@@ -43,10 +43,11 @@ class VolMonitorContractTest(unittest.TestCase):
         self.assertIn('.vol-alert.is-cb { border-color: #f3b4ae; background: #fdecea; color: #b42318; }', self.css)       # 연한 빨강
         self.assertIn('.vol-alert.is-side { border-color: #f5c98a; background: #fff4e5; color: #b45309; }', self.css)     # 연한 주황
         self.assertIn('.vol-alert.is-vi {', self.css)
-        self.assertIn('background: var(--np-paper, #fffefc)', self.css)                                                  # VI는 바탕색(크림) 박스
+        # 2026-11: VI는 한 줄 칩(row, min-height 0)으로 줄었고 바탕은 --np-paper(#fff)다. CB·사이드카 카드 높이만 통일한다.
+        self.assertIn('background: var(--np-paper, #fff)', self.css)
         self.assertIn('min-height: 88px', self.css)                                                                       # 카드 높이 통일
         self.assertIn('padding: 10px 12px', self.css[self.css.index('.vol-alert {'):self.css.index('.vol-alert strong')])
-        self.assertIn('800 22px', self.css)                                                                               # VI 건수 20~24px 강조
+        self.assertIn('800 22px', self.css)                                                                               # 건수 강조
         for sel in ('html.dark .vol-alert.is-cb', 'html.dark .vol-alert.is-side', 'html.dark .vol-alert.is-vi', 'html.dark .vol-panel'):
             self.assertIn(sel, self.css)
         mobile = self.css[self.css.index('@media (max-width: 720px) { .vol-monitor'):]

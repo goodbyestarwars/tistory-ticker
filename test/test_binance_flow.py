@@ -200,7 +200,7 @@ class WiringTests(unittest.TestCase):
         self.assertIn('binance_flow.start_background()', main)
         js = self.read('js', 'overnight-market.js')
         self.assertIn("var BINANCE_API = 'https://goodbyestar.cloud/binance-kr-equity';", js)
-        self.assertIn('참고 지표 · 무기한선물 가격(실제 주식 수급 아님)', js)
+        self.assertIn('휴장 홈과 같은 8종목 · 30초마다 갱신 · 무기한선물 참고 가격', js)
         self.assertIn('loadBinance(container);', js)
         # 운영 VM(미국)은 451로 막히므로 방문자 브라우저가 바이낸스를 직접 조회하고(CORS 허용 실측),
         # 실패하면 서버 수집 결과로 물러난다(2026-09-15).

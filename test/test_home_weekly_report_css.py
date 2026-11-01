@@ -34,9 +34,9 @@ class HomeWeeklyReportListStyleTest(unittest.TestCase):
 
     def test_stock_list_resets_itself_not_via_an_ancestor(self):
         css = self.css()
-        self.assertIn('.wd-list { list-style: none; margin: 0; padding: 0; }', css)
+        self.assertRegex(css, r'\.wd-list \{\s*list-style: none;\s*margin: 0;\s*padding: 0;\s*\}')
         self.assertIn('.wd-list > li {', css)
-        self.assertIn('.wd-list > li:last-child { border-bottom: 0; }', css)
+        self.assertRegex(css, r'\.wd-list > li:last-child \{\s*border-bottom: 0;\s*\}')
 
     def test_row_layout_does_not_depend_on_hwr_columns(self):
         """행이 좌우로 갈리는 건 .hwr-columns li에만 있던 display:flex였다."""
@@ -59,8 +59,8 @@ class HomeWeeklyReportListStyleTest(unittest.TestCase):
         2026-10-04 리디자인으로 종목 목록은 hwr2-rows(한 줄 행)가 됐고, 이 리셋은 옛 목록 변형용으로 남는다."""
         css = self.css()
         # 2026-10-24: old mover/outcome sections retired; new compact lists own resets.
-        self.assertIn('.wd-list { list-style: none; margin: 0; padding: 0; }', css)
-        self.assertIn('.hwr-schedule-list { margin: 0; padding: 0; list-style: none; }', css)
+        self.assertRegex(css, r'\.wd-list \{\s*list-style: none;\s*margin: 0;\s*padding: 0;\s*\}')
+        self.assertRegex(css, r'\.hwr-schedule-list \{\s*margin: 0;\s*padding: 0;\s*list-style: none;\s*\}')
 
     def test_outcome_list_is_a_row_list_not_a_card_grid(self):
         """2026-10-04: 종목 하나 = 카드 하나를 금지했다. 지난 신호 성과도 한 줄 행(hwr2-rows--outcome)이다."""

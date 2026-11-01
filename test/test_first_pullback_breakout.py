@@ -128,7 +128,7 @@ const fs = require('fs'), vm = require('vm'), assert = require('assert');
 let source = fs.readFileSync('js/pattern-scan.js', 'utf8');
 source = source.replace('global.PatternScan =',
   'global.__test = {tabs:TABS, overlay:addPatternOverlay, pending(c){activeTab="firstPullbackBreakout";scanData={firstPullbackBreakoutReady:false};renderList(c);}}; global.PatternScan =');
-const context = {window:{}, document:{readyState:'loading', addEventListener(){}}, console};
+const context = {window:{}, document:{readyState:'loading', addEventListener(){}, getElementById(){return null;}, querySelector(){return null;}, querySelectorAll(){return [];}}, console};
 vm.runInNewContext(source, context);
 const api = context.window.__test;
 assert.equal(api.tabs.find(t => t.key === 'pullback').label, '이동평균 눌림목');
@@ -145,7 +145,7 @@ assert.equal(lines[1][0].value, p.detail.resistance);
 assert.equal(lines[2][0].value, p.detail.support);
 assert.equal(markers.length, 3);
 const list = {innerHTML:''};
-api.pending({querySelector(){return list;}});
+api.pending({querySelector(s){return s.includes('de-chart-placeholder') ? null : list;}, querySelectorAll(){return [];}, contains(){return false;}});
 assert(list.innerHTML.includes('첫 검색 결과를 준비 중'));
 assert(!list.innerHTML.includes('해당하는 종목이 없어요'));
 '''

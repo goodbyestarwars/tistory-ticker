@@ -24,7 +24,11 @@ const ctx = {
 };
 ctx.window.IndicatorBoard = {util: {series: () => []}};
 ctx.window.fetch = ctx.fetch;
-vm.runInNewContext(src, ctx);
+vm.createContext(ctx);
+// 공통 전송·포맷(skin-shell.js의 NineHttp~NineAPI 구간)은 실제 코드를 그대로 싣는다.
+const shell = fs.readFileSync('js/skin-shell.js', 'utf8');
+vm.runInContext(shell.slice(shell.indexOf('/* NineHttp:'), shell.indexOf('/* End NineAPI */')), ctx);
+vm.runInContext(src, ctx);
 const api = ctx.window.UsMacroIndicators;
 const t = api._test;
 (async () => {

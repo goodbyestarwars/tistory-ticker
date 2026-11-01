@@ -149,8 +149,9 @@ class OverseasQuoteDiagnosticTest(unittest.TestCase):
         # EXCD는 알려진 미국 거래소만, 티커는 문자와 점만 받는다.
         self.assertIn("if exchange not in ('NAS', 'NYS', 'AMS'):", self.source)
         self.assertIn("allowed = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ.')", self.source)
-        # main.py는 re를 import하지 않으므로 정규식을 쓰면 런타임에 NameError가 난다.
-        self.assertNotIn('\nimport re\n', self.source)
+        # main.py가 re를 import하게 된 뒤(2026-10)로는 NameError 걱정이 없다. 이 경로는 여전히 정규식을 쓰지 않는다.
+        start = self.source.index("@app.get('/health/overseas-quote')")
+        self.assertNotIn('re.fullmatch(', self.source[start:start + 2500])
 
     def test_missing_credentials_do_not_raise(self):
         self.assertIn("'configured': False, 'message': 'KIS 인증정보 미설정'", self.source)
