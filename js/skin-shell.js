@@ -271,7 +271,8 @@
   }
   function usMarketBreadth() { return data(VM + '/us-market-breadth', {timeoutMs: 25000}); }
   function marketParticipation(market) { return data(VM + '/market-participation?market=' + (market === 'us' ? 'us' : 'domestic'), {timeoutMs: 25000}); }
-  global.NineAPI = { marketParticipation: marketParticipation, usMarketBreadth: usMarketBreadth, vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
+  function kisToolAccess() { return data(VM + '/kis-tool/access', {private:true, timeoutMs:8000, fetchOptions:{credentials:'include', cache:'no-store'}}); }
+  global.NineAPI = { kisToolAccess:kisToolAccess, marketParticipation: marketParticipation, usMarketBreadth: usMarketBreadth, vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
     contracts:{domesticQuotes:{price:'KRW',volume:'shares',changeRate:'percent',time:'retrieval',maxBatch:300}} };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineAPI */

@@ -20,12 +20,12 @@ class AutoTraderMenuEndTests(unittest.TestCase):
 
     def test_rule_is_pc_only_and_in_np_layer(self):
         css = read('style.css')
-        tail = css[css.rindex('자동매매 메뉴(관리자 전용)'):]
+        tail = css[css.rindex('관리자 도구는 한 묶음'):]
         self.assertIn('@layer np', tail)
-        self.assertIn('@media (min-width: 721px)', tail)
-        self.assertIn('.nav-primary-item.nav-item-end', tail)
-        self.assertIn('position: absolute !important', tail)
-        self.assertIn('right: 16px !important', tail)
+        self.assertIn('@media (min-width: 1100px)', tail)
+        self.assertIn('.sidebar-left .nav-end-group', tail)
+        self.assertIn('position: absolute;', tail)
+        self.assertIn('right: 16px;', tail)
 
     def test_other_menu_items_unchanged(self):
         menu = read('js/skin-menu.js')
