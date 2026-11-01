@@ -8321,7 +8321,7 @@ html.search-open body .nav-search-suggest {
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
     box-sizing: border-box;
     width: 100%;
-    max-width: calc(var(--home-content-max) + 32px);
+    max-width: none; /* 푸터는 화면 가로폭을 다 쓴다 */
     margin-inline: auto !important;
     padding-inline: 16px !important;
   }
@@ -8340,7 +8340,7 @@ html body#tt-body-index nav.site-footer-learn {
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn {
   display: grid !important; grid-template-columns: minmax(240px, .85fr) minmax(0, 2.15fr) !important;
-  gap: 48px !important; width: 100% !important; max-width: var(--home-content-max) !important; min-width: 0 !important;
+  gap: 48px !important; width: 100% !important; max-width: none !important; min-width: 0 !important;
   margin: 48px auto 16px !important; padding: var(--ui-card-padding) !important; overflow: visible !important; align-items: start !important; text-align: left !important;
 }
 html body .learn-intro { padding: 24px 0 !important; min-width: 0; }
