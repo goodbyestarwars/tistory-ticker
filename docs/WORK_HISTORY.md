@@ -1,3 +1,7 @@
+**2026-11-01 페이지 바탕색 #FEFDFA → #FBF8EC**
+
+요청: 바탕색을 살짝 더 누리끼리하게. 변경: `style.css --page-bg`, `css/watchlist.css` 폴백, `css/legal.css`와 `learn/*.html`의 하드코딩 값, `docs/UI_GUIDE.md` 표기를 같은 값으로 통일. 검증: 잔여 `#FEFDFA` 없음(grep), 화면 확인은 병합 후 Pages 반영 뒤. 되돌릴 때는 `#FBF8EC`를 `#FEFDFA`로 일괄 치환.
+
 **2026-11-01 종목분석 스토리 카드(한화오션 샘플)**
 
 요청: 글 위주 스토리를 원복하고 홈 브리핑처럼 넘겨 보는 카드로. 변경: `data/stock-stories.js`(`window.STOCK_STORIES`, 카드 5장: 제목·숫자 대비·막대·한 줄 해설·더 보기 상세), `js/foreign-flow.js` 지연 로드 + 공통 `SiteInteractions.carousel` 재사용(자료 없는 종목은 영역 미생성, 종목 전환 후 늦은 응답 폐기), `css/foreign-flow.css` `#foreign-flow .ff-story-*` 라이트/다크. 상세 접기는 hidden 속성 대신 클래스 사용(공통 캐러셀이 hidden 변화를 스크롤 초기화로 처리). 검증: test_stock_stories 신규 + company_profiles 9 passed, 로컬 하니스 PC/모바일 375px 넘김·펼침·가로 넘침 없음. 실사이트 렌더는 병합·Pages 반영 후 확인. 투자등급·목표가 없음, 작성 시점 값 표기.
