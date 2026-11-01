@@ -7728,7 +7728,9 @@ html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: 
    '장 마감'·'업데이트'·'ETF 제외' 같은 오른쪽 글자와 겹치므로 버튼 줄(25px, 모바일 40px)만큼 위 여백을 둔다. */
 html body :where(.home-widget, .home-realtime-board, .home-economic-news, .home-mini-card, .mt-card, .mt-section,
   .sector-card, #strategy-search .ss-card, #foreign-flow .ff-card, .mi-block,
-  .ss-methodology, .ss-nearmiss, .ps-tab-desc, .it-results article, .ui-content-block) { padding: var(--ui-card-padding) !important; }
+  .ss-methodology, .ss-nearmiss, .ps-tab-desc, .it-results article, .ui-content-block) { padding: var(--card-pad-override, var(--ui-card-padding)) !important; }
+/* 홈의 큰 카드(시장 블록·실시간 종목판)는 휴장 화면 큰 카드와 같은 안쪽 여백을 쓴다(위 규칙이 이 값을 읽는다). */
+html body#tt-body-index .home-editorial-page :is(.ui-content-block, .home-realtime-board) { --card-pad-override: var(--ui-card-padding-lg); }
 html body .home-widget-actions { top: 10px !important; right: 12px !important; }
 html body .home-widget-grid { gap: var(--ui-card-gap) !important; }
 /* 홈 리드 두 칸은 배치만 담당한다. 개별 ui-content-block이 공통 카드 면을 소유한다. */
@@ -8923,7 +8925,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body#tt-body-index .briefing-intro .home-briefing-more { min-width: 225px !important; padding: 16px 22px !important; gap: 11px !important; border-radius: 13px !important; font: 700 14.4px/1.5 var(--font-ui) !important; }
   html body#tt-body-index .briefing-intro .briefing-archive-icon { width: 20px; height: 20px; }
   html body#tt-body-index .home-editorial-page .briefing-carousel-track { gap: var(--ui-card-gap) !important; padding: 0 0 var(--ui-section-gap) !important; }
-  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: auto !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: auto !important; padding: var(--ui-card-padding-lg) !important; border-radius: var(--ui-radius-card) !important; }
   html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { bottom: 54px; right: 23px; font-size: 99px; }
   html body#tt-body-index .briefing-carousel-track .post-header { margin: 0 0 var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-track .post-date { font-size: 11px !important; }

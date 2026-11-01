@@ -79,8 +79,7 @@ html.dark .weekend-dashboard {
 
 /* 휴장 화면 큰 카드(배너·패널·주요뉴스·마켓브리핑)의 안쪽 여백은 맨 위 배너 값 하나로 통일한다(2026-11-01).
    작은 지수 카드(.wd-index)는 폭이 좁아 제외한다. 마켓브리핑은 .weekend-dashboard 밖에 있어 body 조건으로 둔다. */
-body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-card-pad: 28px 32px; }
-@media (max-width: 767px) { body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-card-pad: var(--ui-card-padding); } }
+body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-card-pad: var(--ui-card-padding-lg); }
 
 /* ==========================================================================
    02. 휴장 헤더 · 배지 · 요약 수치
