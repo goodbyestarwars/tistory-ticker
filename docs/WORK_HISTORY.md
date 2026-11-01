@@ -1,6 +1,9 @@
 **2026-11-01 종목 스토리: 이야기 5장도 가로 full 카드로 통합**
 
 요청: 이야기 카드도 판정·차트처럼 가로로 크게, 더 보기 없이, 회색 테두리. 변경: `js/foreign-flow.js` 이야기 카드를 가로 카드로 바꿔 판정·차트와 한 캐러셀(점 7개)로 합치고 세부 설명은 항상 표시, 기존 더 보기·별도 트랙 제거. `css/foreign-flow.css` 가로 카드 회색 테두리(`#d2d2d7`, 다크 `--dk-line`)·여백 축소, 쓰지 않는 구형 카드 규칙 삭제. 검증: `test_stock_stories.py` 통과, 로컬 PC 렌더 확인(라이브·모바일·다크 미확인). 배포: master 병합 후 Pages.
+**2026-11-01 큰 카드 안쪽 여백 전역 토큰화(한국·미국 시장 적용)**
+
+요청: 휴장 화면 큰 카드 여백을 전역 디자인으로 두고 한국·미국 시장에도 적용(여백·글자 크기). 측정(1440px): 한국·미국 탭 큰 카드(`.ui-content-block`·실시간 종목판·마켓브리핑)는 18px, 카드 제목 17px MaruBuriBold 700·설명 12px은 휴장 화면과 이미 같음. 변경: `css/ui-spacing.css`에 `--ui-card-padding-lg`(28px 32px, 760px 이하는 `--ui-card-padding`) 추가 — 여백의 유일한 기준; `css/home-weekly-report.css` `--closed-card-pad`가 이를 참조; `style.css` 공통 카드 padding 규칙이 `--card-pad-override`를 읽고 `.home-editorial-page` 안 `.ui-content-block`·`.home-realtime-board`에서만 큰 값으로 지정, 마켓브리핑 카드(홈 캐러셀) padding 값 교체(새 `!important` 없음). 제외: 지수 카드(`home-index-card`, 폭 336px)·이야기 카드. 글자 크기는 제목·설명이 이미 동일해 변경 없음. 검증: 실사이트에 변경 CSS를 덮어 한국·미국 탭 측정(큰 카드 28·32 확인)·한국 탭 캡처 확인, 모바일 미확인. 배포: PR 병합 후 Pages 반영.
 
 **2026-11-01 종목 스토리: 가로 흰 카드 2장(판정·차트) 한 장씩 넘김**
 
