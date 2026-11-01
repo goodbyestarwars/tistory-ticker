@@ -11,8 +11,8 @@
 .kis-group h2{font-size:11px;font-weight:600;letter-spacing:.04em;margin:0 0 2px 8px;opacity:.6}
 .kis-nav a{display:block;padding:9px 12px;border-radius:var(--ui-radius-inner,9px);color:inherit;text-decoration:none;font-size:14px}
 .kis-nav a:hover{background:var(--ui-panel-surface,#f8f7f4)}
-.kis-nav a[aria-current="page"]{background:var(--ui-panel-surface,#f8f7f4);font-weight:700;box-shadow:inset 3px 0 0 currentColor}
-.kis-back{margin-top:auto;font-size:13px;color:inherit}
+.kis-nav a[aria-current="page"]{background:var(--ui-panel-surface,#f8f7f4);font-weight:700}
+.kis-back{margin-top:auto;font-size:13px;color:inherit;text-decoration:none}
 .kis-main{display:flex;flex-direction:column;min-width:0;background:var(--ui-card-surface,#fff);border:1px solid var(--ui-border,#e7e5e0);
   border-radius:var(--ui-radius-card,14px);box-shadow:var(--ui-glass-shadow);overflow:hidden}
 .kis-note{margin:0;padding:10px var(--ui-card-padding,18px);font-size:12.5px;border-bottom:1px solid var(--ui-border,#e7e5e0);opacity:.8}
@@ -21,6 +21,5 @@
   .kis-shell{grid-template-columns:1fr;padding:12px}
   .kis-side{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px 14px}
   .kis-group{flex-direction:row;flex-wrap:wrap;align-items:center}.kis-group h2,.kis-back{display:none}
-  .kis-nav a[aria-current="page"]{box-shadow:none}
   .kis-main iframe{height:calc(100dvh - 190px)}
 }
