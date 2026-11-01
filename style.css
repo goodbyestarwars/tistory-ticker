@@ -7796,6 +7796,9 @@ html body :is(.dmi-heading h2, .mt-page-title, .ps-title, .ss-title, .sc-title) 
   font-size: var(--ui-title-size) !important;
 }
 html body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: var(--ui-title-size) !important; }
+/* 2026-11-02: 장중 홈도 휴장 화면처럼 블록 제목(국내 시장·경제 종합뉴스·실시간 종목판 등)은 같은 제목 크기 */
+html body#tt-body-index .home-editorial-page :is(.ui-content-block .ui-section-title, .home-realtime-board .hrt-head > div > strong),
+html body#tt-body-index #homeEconomicNews .hen-head > div > strong { font-size: var(--ui-title-size) !important; }
 html body :where(.ibd, .ui-data-table, .hrt-table, .wl-price, .hmb-etf-card) {
   font-variant-numeric: tabular-nums;
 }
@@ -8326,7 +8329,7 @@ html.search-open body .nav-search-suggest {
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
     box-sizing: border-box;
     width: 100%;
-    max-width: none; /* 푸터는 화면 가로폭을 다 쓴다 */
+    max-width: calc(var(--home-content-max) + 32px);
     margin-inline: auto !important;
     padding-inline: 16px !important;
   }
@@ -8345,7 +8348,7 @@ html body#tt-body-index nav.site-footer-learn {
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn {
   display: grid !important; grid-template-columns: minmax(240px, .85fr) minmax(0, 2.15fr) !important;
-  gap: 48px !important; width: 100% !important; max-width: none !important; min-width: 0 !important;
+  gap: 48px !important; width: 100% !important; max-width: var(--home-content-max) !important; min-width: 0 !important;
   margin: 48px auto 16px !important; padding: var(--ui-card-padding) !important; overflow: visible !important; align-items: start !important; text-align: left !important;
 }
 html body .learn-intro { padding: 24px 0 !important; min-width: 0; }
@@ -8924,7 +8927,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   /* 마켓브리핑 */
   html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-card-padding) !important; }
   html body#tt-body-index .home-editorial-page .briefing-intro { gap: var(--ui-section-gap); padding: 0 0 var(--ui-section-gap) !important; }
-  html body#tt-body-index .briefing-intro strong { margin: 11px 0 !important; font-size: 36px !important; }
+  html body#tt-body-index .briefing-intro strong { margin: 11px 0 !important; font-size: var(--ui-title-size) !important; }
   html body#tt-body-index .briefing-intro p { font-size: 14.4px !important; }
   html body#tt-body-index .briefing-intro .learn-eyebrow { font-size: 12px !important; }
   html body#tt-body-index .briefing-intro .home-briefing-more { min-width: 225px !important; padding: 16px 22px !important; gap: 11px !important; border-radius: 13px !important; font: 700 14.4px/1.5 var(--font-ui) !important; }
@@ -8945,7 +8948,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.8fr) !important; gap: 43px !important; margin: 43px auto 14px !important; }
   html body .learn-intro { padding: 4px 0 0 !important; } /* 카드 묶음 위 여백(4px)과 맞춰 소개 글 윗선을 첫 카드 윗선에 정렬 */
   html body .learn-eyebrow { font-size: 12px !important; }
-  html body .learn-intro h2 { margin: 29px 0 22px !important; font-size: 36px !important; }
+  html body .learn-intro h2 { margin: 29px 0 22px !important; font-size: var(--ui-title-size) !important; }
   html body .learn-intro p { font-size: 15.3px !important; }
   html body .learn-intro-note { margin-top: 43px; font-size: 11px !important; }
   html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - (var(--learn-columns) - 1) * var(--ui-section-gap)) / var(--learn-columns)) !important; column-gap:var(--ui-section-gap)!important; row-gap:var(--ui-section-gap)!important; }
@@ -8961,7 +8964,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   @layer np { @layer np {
     html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns: minmax(0, 1fr) !important; gap: 22px !important; }
     html body .learn-intro { padding: 0 !important; }
-    html body .learn-intro h2 { margin: 14px 0 !important; font-size: 36px !important; }
+    html body .learn-intro h2 { margin: 14px 0 !important; font-size: var(--ui-title-size) !important; }
   } }
 }
 @media (max-width: 720px) {
@@ -8969,7 +8972,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     /* 마켓브리핑(모바일): 카드 폭 calc(100vw - 72px) → 90% */
     html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-card-padding) !important; }
     html body#tt-body-index .home-editorial-page.home-editorial-page .home-section-heading strong,
-    html body#tt-body-index .briefing-intro strong { font-size: 20px !important; }
+    html body#tt-body-index .briefing-intro strong { font-size: var(--ui-title-size) !important; }
     html body#tt-body-index .briefing-intro p { font-size: 13.5px !important; }
     html body#tt-body-index .briefing-intro .home-briefing-more { margin-top: 18px !important; font-size: 13.5px !important; padding: 16px 22px !important; }
     html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: auto !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
@@ -8979,7 +8982,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     /* 이야기 시리즈(모바일) */
     html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { margin-top: 29px !important; gap: 22px !important; }
     html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - var(--ui-section-gap)) / 2) !important; column-gap:var(--ui-section-gap)!important; row-gap:var(--ui-section-gap)!important; }
-    html body .learn-intro h2 { margin: 14px 0 !important; font-size: 21.6px !important; }
+    html body .learn-intro h2 { margin: 14px 0 !important; font-size: var(--ui-title-size) !important; }
     html body .learn-intro p { font-size: 13.5px !important; }
     html body .site-footer-learn a.learn-card { grid-template-rows: 36px auto minmax(0, 1fr) auto !important; height: 216px !important; padding: 20px 14px !important; gap: 7px !important; border-radius: 20px !important; }
     html body .site-footer-learn a.learn-card svg { top: 18px !important; left: 14px !important; width: 36px !important; height: 36px !important; padding: 7px !important; }
