@@ -492,14 +492,26 @@
       .then(function (data) {
         if (selectedCode !== requestCode) return; // 그 사이 다른 종목을 선택했으면 버림
         var items = data && data.data && Array.isArray(data.data.items) ? data.data.items : [];
-        if (items.length) {
-          renderNews(resultBox, stock, { items: items.map(normalizeDomesticNewsItem) });
+        var vmItems = items.map(normalizeDomesticNewsItem);
+        // 공시만 있고 뉴스가 0건이면(셀트리온처럼) 네이버 증권 종목뉴스(GAS)로 보충한다. 예전에는 항목이 하나도 없을 때만 보충해서
+        // 공시 1건이 있으면 뉴스가 통째로 빠졌다(2026-11-01).
+        if (items.some(function (item) { return item.kind !== 'disclosure'; })) {
+          renderNews(resultBox, stock, { items: vmItems });
           return;
         }
         return fetchJson(GAS_TICKER_URL + '?news=1&code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name))
+          .catch(function () { return null; })
           .then(function (legacy) {
             if (selectedCode !== requestCode) return;
-            renderNews(resultBox, stock, legacy);
+            var legacyItems = Array.isArray(legacy) ? legacy : ((legacy && legacy.items) || []);
+            var seen = {};
+            var merged = vmItems.concat(legacyItems).filter(function (item) {
+              var key = item.link || item.title;
+              if (!key || seen[key]) return false;
+              seen[key] = true;
+              return true;
+            }).sort(function (a, b) { return String(b.datetime || '').localeCompare(String(a.datetime || '')); });
+            renderNews(resultBox, stock, { items: merged });
           });
       })
       .catch(function () {
