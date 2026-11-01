@@ -3296,3 +3296,7 @@ html.dark #foreign-flow .ff-story-card--swing :is(.ff-swing-flow-track, .ff-swin
 html.dark #foreign-flow .ff-story-nav { background: var(--dk-card); color: var(--dk-text); }
 @media (max-width: 640px) { #foreign-flow .ff-story-card { flex-basis: 88%; padding: 20px 18px 16px; } #foreign-flow .ff-story-title { font-size: 22px; } #foreign-flow .ff-story-pair strong { font-size: 40px; } }
 @media (prefers-reduced-motion: reduce) { #foreign-flow .ff-story-track { scroll-behavior: auto; } }
+/* 스윙 판정 카드(다크): 기존 어두운 글자 !important 규칙(style.css)이 다크 바탕에서 글자를 지우므로 카드 안에서만 다크 토큰을 지정한다. */
+html.dark body #foreign-flow .ff-story-card--swing .ff-swing-summary strong.ff-tone-up { color: var(--dk-up) !important; }
+html.dark body #foreign-flow .ff-story-card--swing .ff-swing-summary strong.ff-tone-down { color: var(--dk-down) !important; }
+html.dark body #foreign-flow .ff-story-card--swing .ff-swing-summary strong.ff-tone-flat { color: var(--dk-text) !important; }
