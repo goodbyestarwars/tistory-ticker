@@ -3259,7 +3259,7 @@ html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-
 #foreign-flow .ff-swing-summary.is-in-story { display: none !important; }
 #foreign-flow .ff-wide-stage { position: relative; margin-bottom: 22px; }
 /* 데스크톱: 판정 카드 영역을 본문 폭 밖으로 넓혀 화면 가로 끝까지 쓴다(좌우 16px만 비움 - 세로 스크롤바 폭 보호). 플로팅 버튼은 카드 위에 겹쳐 뜬다. */
-/* 2026-11-02: 띠 배너형 - 카드마다 색이 다른 띠가 화면 가로 전체를 채우고, 글은 가운데 고정 폭 안에 둔다(--ff-band-side). */
+/* 2026-11-02: 띠 배너형 - 사이트 카드면(흰색)과 가는 위아래 선의 띠가 화면 가로 전체를 채우고, 글은 가운데 고정 폭 안에 둔다(--ff-band-side). */
 html:has(#foreign-flow .ff-wide-stage) { overflow-x: clip; }
 #foreign-flow .ff-wide-stage { --ff-band-side: max(64px, calc((100% - 1180px) / 2)); width: 100vw; margin-left: calc(50% - 50vw); box-sizing: border-box; }
 #foreign-flow .ff-wide-track { display: flex; align-items: stretch; gap: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: grab; }
@@ -3278,14 +3278,7 @@ html.dark #foreign-flow .ff-wide-dots button { background: rgba(255, 255, 255, .
 html.dark #foreign-flow .ff-wide-dots button.is-on { background: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-pause::before { border-color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-pause.is-paused::before { background: var(--dk-text); }
-#foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 40px var(--ff-band-side) 64px; border: 0; border-radius: 0; background: var(--ff-band, #f4f5f7); box-sizing: border-box; }
-#foreign-flow .ff-wide--verdict { --ff-band: #f1f2f4; }
-#foreign-flow .ff-wide--verdict:has(.is-dn) { --ff-band: #e8f1fc; }
-#foreign-flow .ff-wide--verdict:has(.is-up) { --ff-band: #fdecea; }
-#foreign-flow .ff-wide--chart { --ff-band: #eef6f1; }
-#foreign-flow .ff-wide--story:nth-of-type(3n) { --ff-band: #fbf3e4; }
-#foreign-flow .ff-wide--story:nth-of-type(3n+1) { --ff-band: #eef0fb; }
-#foreign-flow .ff-wide--story:nth-of-type(3n+2) { --ff-band: #f3eefb; }
+#foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 40px var(--ff-band-side) 64px; border: 0; border-radius: 0; background: var(--ui-card-surface, #fff); border-block: 1px solid var(--ui-border, #e5e5ea); box-sizing: border-box; }
 #foreign-flow .ff-wide-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 44px; align-items: start; }
 #foreign-flow .ff-wide-lead { position: relative; z-index: 1; padding-right: 44px; }
 /* 가로 구분선은 카드 왼쪽 끝에서 오른쪽 끝까지(카드 overflow:hidden이 넘친 부분을 잘라 준다), 세로 구분선은 쓰지 않는다. 오른쪽 칸 안의 줄(row)은 왼쪽 글을 가르지 않도록 칸 폭만 긋는다. */
@@ -3339,7 +3332,7 @@ html.dark #foreign-flow .ff-story-bar b.is-up { background: #ff8a80; }
 html.dark #foreign-flow .ff-story-bar b.is-dn { background: #7fb3ff; }
 html.dark #foreign-flow .ff-story-row em, html.dark #foreign-flow .ff-story-head small, html.dark #foreign-flow .ff-story-note { color: var(--dk-sub); }
 html.dark #foreign-flow .ff-story-bar { background: var(--dk-bg); }
-html.dark #foreign-flow .ff-wide { --ff-band: var(--dk-card); background: var(--dk-card); }
+html.dark #foreign-flow .ff-wide { background: var(--dk-card); border-color: var(--dk-line); }
 html.dark #foreign-flow .ff-wide :is(.ff-wide-lead, .ff-wide-row, .ff-wide-row > div + div, .ff-wide-foot, .ff-wide-tiles, .ff-wide-tiles > div + div) { border-color: rgba(255, 255, 255, .09); }
 html.dark #foreign-flow .ff-wide strong, html.dark #foreign-flow .ff-wide-facts b, html.dark #foreign-flow .ff-wide-foot b { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide strong.is-up { color: var(--dk-up); }
