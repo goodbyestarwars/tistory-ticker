@@ -3253,10 +3253,8 @@ html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-
   #foreign-flow .ff-story-head { position: absolute; z-index: 2; top: 40px; left: 24px; width: calc(var(--ff-band-side) - 48px); padding: 0; background: none; border: 0; }
   #foreign-flow .ff-wide-stage > .ff-wide-track .ff-wide { padding-top: 40px; border-top: 1px solid var(--ui-border, #e5e5ea); }
 }
-/* 관심종목 서랍이 열리면 본문이 줄어 전체 폭 띠가 잘리므로, 본문 폭 안에서 제목을 카드 위에 둔다 */
-html body:has(.global-watchlist-drawer.is-open) #foreign-flow .ff-wide-stage, html.wl-open body #foreign-flow .ff-wide-stage { --ff-band-side: 24px; width: auto; margin-left: 0; }
-html body:has(.global-watchlist-drawer.is-open) #foreign-flow .ff-story-head, html.wl-open body #foreign-flow .ff-story-head { position: static; width: auto; padding: 24px var(--ff-band-side) 0; background: var(--ui-card-surface, #fff); border-top: 1px solid var(--ui-border, #e5e5ea); }
-html body:has(.global-watchlist-drawer.is-open) #foreign-flow .ff-wide-stage > .ff-wide-track .ff-wide, html.wl-open body #foreign-flow .ff-wide-stage > .ff-wide-track .ff-wide { padding-top: 16px; border-top: 0; }
+/* 관심종목 서랍이 열려 본문이 줄면 전체 폭 띠가 잘리므로 종목 스토리를 숨긴다(서랍을 닫으면 다시 보인다) */
+html body:has(.global-watchlist-drawer.is-open) #foreign-flow .ff-story, html.wl-open body #foreign-flow .ff-story { display: none; }
 
 #foreign-flow .ff-story-head small, #foreign-flow .ff-story-note { color: #86868b; font-size: 11px; }
 #foreign-flow .ff-story-head .ff-panel-title { color: #0d1b40; font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-size: 18px; font-weight: 700; line-height: 1.3; letter-spacing: 0; }
@@ -3305,6 +3303,11 @@ html.dark #foreign-flow .ff-wide-pause.is-paused::before { background: var(--dk-
 #foreign-flow .ff-wide strong.is-up { color: #d24f45; }
 #foreign-flow .ff-wide strong.is-dn { color: #1261c4; }
 #foreign-flow .ff-wide-lead p { margin: 0 0 12px; color: #424245; font-size: 16px; line-height: 1.75; }
+#foreign-flow .ff-wide-table { width: 100%; margin: 0 0 16px; border-collapse: collapse; table-layout: fixed; }
+#foreign-flow .ff-wide-table th { padding: 8px 12px; background: var(--ui-table-head, #eef2f9); color: #5b6678; font-size: 12.5px; text-align: left; }
+#foreign-flow .ff-wide-table td { padding: 10px 12px; vertical-align: top; }
+#foreign-flow .ff-wide-table td strong, #foreign-flow .ff-wide-table td b { font-size: 15px; }
+html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk-sub); }
 #foreign-flow .ff-wide-lead em { color: #6e6e73; font-size: 13px; font-style: normal; }
 #foreign-flow .ff-wide-body { position: relative; z-index: 1; min-width: 0; }
 #foreign-flow .ff-wide-row { display: grid; gap: 0 24px; padding: 0 0 22px; margin-bottom: 0; }
@@ -3329,17 +3332,19 @@ html.dark #foreign-flow .ff-wide-pause.is-paused::before { background: var(--dk-
 #foreign-flow .ff-wide-ma { stroke-width: 1.4; }
 #foreign-flow .ff-wide-ma.is-ma20 { stroke: #1261c4; }
 #foreign-flow .ff-wide-ma.is-ma60 { stroke: #0ca678; }
-#foreign-flow .ff-wide-ma.is-ma224 { stroke: #9ca3af; stroke-width: 2.6; }
+#foreign-flow .ff-wide-ma.is-ma224 { stroke: #d24f45; stroke-width: 2.6; }
 #foreign-flow .ff-wide-axis { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; color: #86868b; font-size: 12px; }
 #foreign-flow .ff-wide-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; }
 #foreign-flow .ff-wide-legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin: 0 5px 2px 0; border-radius: 2px; background: currentColor; }
 #foreign-flow .ff-wide-legend .is-ma20 { color: #1261c4; }
 #foreign-flow .ff-wide-legend .is-ma60 { color: #0ca678; }
-#foreign-flow .ff-wide-legend .is-ma224 { color: #9ca3af; }
+#foreign-flow .ff-wide-legend .is-ma224 { color: #d24f45; }
 #foreign-flow .ff-wide-legend .is-close { color: #1d1d1f; }
 #foreign-flow .ff-story-nav { position: absolute; top: 50%; z-index: 3; display: grid; place-items: center; width: 42px; height: 42px; margin-top: -26px; padding: 0 0 3px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .94); box-shadow: 0 2px 10px rgba(0, 0, 0, .2); color: #1d1d1f; font-size: 26px; line-height: 1; cursor: pointer; transition: opacity .15s ease; }
 #foreign-flow .ff-story-nav.is-prev { left: 16px; }
+#foreign-flow .ff-wide-stage .ff-story-nav.is-prev { left: max(8px, calc(var(--ff-band-side) - 56px)); }
 #foreign-flow .ff-story-nav.is-next { right: 16px; }
+#foreign-flow .ff-wide-stage .ff-story-nav.is-next { right: max(56px, calc(var(--ff-band-side) - 56px)); } /* 오른쪽 끝 관심종목 손잡이와 겹치지 않게 */
 #foreign-flow .ff-story-nav:disabled { opacity: 0; pointer-events: none; }
 html.dark #foreign-flow .ff-story-bar b.is-up { background: #ff8a80; }
 html.dark #foreign-flow .ff-story-bar b.is-dn { background: #7fb3ff; }
@@ -3384,3 +3389,6 @@ html.dark #foreign-flow .ff-wide-detail { border-color: rgba(255, 255, 255, .09)
 html.dark #foreign-flow .ff-wide strong.is-num.is-up { color: #ff8a80; }
 html.dark #foreign-flow .ff-wide strong.is-num.is-dn { color: #7fb3ff; }
 html.dark #foreign-flow .ff-story-row, html.dark #foreign-flow .ff-story-row span { color: var(--dk-text); }
+/* 카드 안 글자는 모두 굵게(제목 서체는 그대로) */
+#foreign-flow .ff-wide :is(p, em, td, b) { font-weight: 700; }
+#foreign-flow .ff-wide :is(small, th) { font-weight: 600; }
