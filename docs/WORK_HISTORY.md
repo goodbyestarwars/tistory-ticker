@@ -1,3 +1,7 @@
+**2026-11-01 종목분석 스토리 카드(한화오션 샘플)**
+
+요청: 글 위주 스토리를 원복하고 홈 브리핑처럼 넘겨 보는 카드로. 변경: `data/stock-stories.js`(`window.STOCK_STORIES`, 카드 5장: 제목·숫자 대비·막대·한 줄 해설·더 보기 상세), `js/foreign-flow.js` 지연 로드 + 공통 `SiteInteractions.carousel` 재사용(자료 없는 종목은 영역 미생성, 종목 전환 후 늦은 응답 폐기), `css/foreign-flow.css` `#foreign-flow .ff-story-*` 라이트/다크. 상세 접기는 hidden 속성 대신 클래스 사용(공통 캐러셀이 hidden 변화를 스크롤 초기화로 처리). 검증: test_stock_stories 신규 + company_profiles 9 passed, 로컬 하니스 PC/모바일 375px 넘김·펼침·가로 넘침 없음. 실사이트 렌더는 병합·Pages 반영 후 확인. 투자등급·목표가 없음, 작성 시점 값 표기.
+
 **2026-11-01 서버 종목뉴스: 네이버 증권 종목뉴스 공급자 추가**
 
 원인: `/domestic-news?code=`가 네이버 뉴스 검색 API(질의 '종목명 주식', 20건)에서 제목에 종목명이 든 기사만 쓰고 24시간 창을 적용해, 셀트리온은 뉴스 0건(공시 1건)이 됐다(SK하이닉스 3건, NAVER·삼성바이오로직스는 본문 일치 1~2건뿐). 변경: `scripts/cloud-vm/domestic_news.py` `_naver_stock_news_items` — 사용자가 네이버 증권에서 보는 `m.stock.naver.com/api/news/stock/{code}`(GAS fetchStockNews와 같은 출처)의 묶음 대표 기사를 정규화(KST→오프셋 ISO, relevance=direct)해 `get_news`의 신규 수집에 추가, 실패 시 빈 목록으로 기존 경로 유지. 기존 5분 캐시·저장 경로 그대로. 검증: `test/test_domestic_news.py` 2건 추가 포함 관련 264 passed, 실응답 확인(24시간 창 통과: 셀트리온 3·NAVER 18·삼성바이오로직스 2). 배포: master → VM 자동 배포(장외 일요일에 반영), 반영 후 라이브 응답 확인 필요. 앞선 프런트 보충(PR 1089)은 안전망으로 유지.
