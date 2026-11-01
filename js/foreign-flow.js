@@ -1593,30 +1593,33 @@
 
   function storyTone_(t) { return t === 'up' || t === 'dn' ? ' is-' + t : ''; }
 
+  // 선별 종목의 이야기 카드도 판정·차트와 같은 가로 흰 카드로 만든다. 더 보기 없이 자세한 설명까지 한 번에 보여준다.
   function buildStockStoryCard(c, i, offset) {
-    var num = i + 1 + offset;
-    var hasDetail = c.detail && c.detail.length;
-    var html = '<article class="ff-story-card" data-story-number="' + (num < 10 ? '0' : '') + num + '">'
-      + '<div class="ff-story-top"><h3 class="ff-story-title">' + escapeHtml(c.title) + '</h3>'
-      + (hasDetail ? '<button type="button" class="ff-story-more" data-story-more aria-expanded="false">더 보기</button>' : '') + '</div>';
-    if (c.pair) {
-      html += '<div class="ff-story-pair">' + c.pair.map(function (p) {
-        return '<div><small>' + escapeHtml(p.k) + '</small><strong class="' + storyTone_(p.t).trim() + '">' + escapeHtml(p.v) + '</strong></div>';
-      }).join('') + '</div>';
+    var hasBody = (c.pair && c.pair.length) || (c.rows && c.rows.length);
+    var html = '<article class="ff-wide ff-wide--story"><div class="ff-wide-grid' + (hasBody ? '' : ' is-solo') + '">'
+      + '<div class="ff-wide-lead"><small>' + (i + 1 + offset < 10 ? '0' : '') + (i + 1 + offset) + '</small>'
+      + '<strong class="is-big">' + escapeHtml(c.title) + '</strong>'
+      + '<p>' + escapeHtml(c.sub) + '</p>'
+      + (c.detail && c.detail.length ? '<div class="ff-wide-detail">' + c.detail.map(function (t) { return '<p>' + escapeHtml(t) + '</p>'; }).join('') + '</div>' : '')
+      + '</div>';
+    if (hasBody) {
+      html += '<div class="ff-wide-body">';
+      if (c.pair) {
+        html += '<div class="ff-wide-row is-two">' + c.pair.map(function (p) {
+          return '<div><small>' + escapeHtml(p.k) + '</small><strong class="is-num ' + (p.t === 'up' ? 'is-up' : p.t === 'dn' ? 'is-dn' : '') + '">' + escapeHtml(p.v) + '</strong></div>';
+        }).join('') + '</div>';
+      }
+      if (c.rows) {
+        html += '<div class="ff-story-rows">' + c.rows.map(function (r) {
+          var left = Number(r.l) || 0, width = Math.max(2, Math.min(100, Number(r.w) || 0));
+          return '<div class="ff-story-row"><span>' + escapeHtml(r.label) + '</span><em>' + escapeHtml(r.val) + '</em>'
+            + '<i class="ff-story-bar"><b class="' + storyTone_(r.t).trim() + '" style="left:' + left + '%;width:' + width + '%"></b>'
+            + (r.m ? '<u style="left:' + Number(r.m) + '%"></u>' : '') + '</i></div>';
+        }).join('') + '</div>';
+      }
+      html += '</div>';
     }
-    if (c.rows) {
-      html += '<div class="ff-story-rows">' + c.rows.map(function (r) {
-        var left = Number(r.l) || 0, width = Math.max(2, Math.min(100, Number(r.w) || 0));
-        return '<div class="ff-story-row"><span>' + escapeHtml(r.label) + '</span><em>' + escapeHtml(r.val) + '</em>'
-          + '<i class="ff-story-bar"><b class="' + storyTone_(r.t).trim() + '" style="left:' + left + '%;width:' + width + '%"></b>'
-          + (r.m ? '<u style="left:' + Number(r.m) + '%"></u>' : '') + '</i></div>';
-      }).join('') + '</div>';
-    }
-    html += '<p class="ff-story-sub">' + escapeHtml(c.sub) + '</p>';
-    if (hasDetail) {
-      html += '<div class="ff-story-detail">' + c.detail.map(function (t) { return '<p>' + escapeHtml(t) + '</p>'; }).join('') + '</div>';
-    }
-    return html + '<footer><small>' + escapeHtml(c.src || '') + '</small></footer></article>';
+    return html + '</div><footer class="ff-wide-foot"><small>' + escapeHtml(c.src || '') + '</small></footer></article>';
   }
 
   // 가로로 긴 흰 카드 2장(판정 · 차트). 영역은 눈에 띄지 않는 가는 선으로만 나눈다.
@@ -1725,17 +1728,15 @@
 
   function buildStockStoryHtml(st, wideHtml, wideCount) {
     var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
+    var cards = (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
+    var total = wideCount + (st.cards || []).length;
     return '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 · ' + escapeHtml(st.name) + '</span>'
       + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small></div>'
-      + (wideHtml ? '<div class="ff-wide-stage" data-wide-stage><div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 판정과 차트">' + wideHtml + '</div>'
-        + (wideCount > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
-          + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
-          + '<div class="ff-wide-dots" data-wide-dots>' + Array.apply(null, Array(wideCount)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
-        + '</div>' : '')
-      + '<div class="ff-story-stage"><div class="ff-story-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">'
-      + (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('') + '</div>'
-      + '<button type="button" class="ff-story-nav is-prev" data-story-prev aria-label="이전 카드">‹</button>'
-      + '<button type="button" class="ff-story-nav is-next" data-story-next aria-label="다음 카드">›</button></div>'
+      + '<div class="ff-wide-stage" data-wide-stage><div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
+      + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
+        + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
+        + '<div class="ff-wide-dots" data-wide-dots>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
+      + '</div>'
       + '<small class="ff-story-note">작성 시점 값이며 실시간으로 갱신되지 않습니다(판정·차트 카드만 실시간 계산). 투자 권유가 아닙니다.</small>';
   }
 
@@ -1754,20 +1755,11 @@
       if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count);
       mount.hidden = false;
-      mount.addEventListener('click', function (event) {
-        var btn = event.target.closest('[data-story-more]');
-        if (!btn) return;
-        var card = btn.closest('.ff-story-card');
-        var open = card.classList.toggle('is-open'); // hidden 속성은 공통 캐러셀이 스크롤 초기화로 해석하므로 클래스로만 접는다.
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        btn.textContent = open ? '접기' : '더 보기';
-      });
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
-        module.carousel(mount, { track: '.ff-story-track', card: '.ff-story-card', previous: '[data-story-prev]', next: '[data-story-next]' });
         var stage = mount.querySelector('[data-wide-stage]');
         if (!stage || !stage.querySelector('[data-wide-prev]')) return;
-        // 판정·차트 카드는 한 장씩 넘긴다. 이동·드래그는 공통 캐러셀, 아래 점은 현재 장 표시와 바로가기만 맡는다.
+        // 모든 카드를 한 장씩 넘긴다. 이동·드래그는 공통 캐러셀, 아래 점은 현재 장 표시와 바로가기만 맡는다.
         module.carousel(stage, { track: '.ff-wide-track', card: '.ff-wide', previous: '[data-wide-prev]', next: '[data-wide-next]' });
         var wideTrack = stage.querySelector('.ff-wide-track'), dots = Array.prototype.slice.call(stage.querySelectorAll('[data-wide-dots] button'));
         function wideStep() { var c = wideTrack.querySelector('.ff-wide'); return c ? c.getBoundingClientRect().width + (parseFloat(getComputedStyle(wideTrack).columnGap) || 0) : 1; }
