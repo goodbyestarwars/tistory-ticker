@@ -3258,6 +3258,11 @@ html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-
 /* 가로로 긴 흰 카드(판정 · 차트): 영역은 눈에 띄지 않는 가는 선으로만 나눈다 */
 #foreign-flow .ff-swing-summary.is-in-story { display: none !important; }
 #foreign-flow .ff-wide-stage { position: relative; margin-bottom: 22px; }
+/* 데스크톱: 판정 카드 영역을 본문 폭 밖으로 넓혀 화면 가로 전체를 쓴다. 좌우 72px은 플로팅 버튼 자리로 비운다. */
+@media (min-width: 821px) {
+  html:has(#foreign-flow .ff-wide-stage) { overflow-x: clip; }
+  #foreign-flow .ff-wide-stage { width: 100vw; margin-left: calc(50% - 50vw); padding: 0 72px; box-sizing: border-box; }
+}
 #foreign-flow .ff-wide-track { display: flex; align-items: flex-start; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: grab; }
 #foreign-flow .ff-wide-track::-webkit-scrollbar { display: none; }
 #foreign-flow .ff-wide-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
