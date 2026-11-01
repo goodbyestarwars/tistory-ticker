@@ -1726,11 +1726,11 @@
       + '</div><footer class="ff-wide-foot"><small>일봉 종가 기준 · 최근 ' + span + '거래일</small></footer></article>';
   }
 
-  function buildStockStoryHtml(st, wideHtml, wideCount) {
+  function buildStockStoryHtml(st, wideHtml, wideCount, code) {
     var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
     var cards = (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
     var total = wideCount + (st.cards || []).length;
-    return '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 · ' + escapeHtml(st.name) + '</span>'
+    return '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 : ' + escapeHtml(st.name) + (code ? ' (' + escapeHtml(code) + ')' : '') + '</span>'
       + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small></div>'
       + '<div class="ff-wide-stage" data-wide-stage><div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
       + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
@@ -1753,7 +1753,7 @@
       if (chartCard) { wide += chartCard; count++; }
       var swing = box.querySelector('.ff-swing-summary');
       if (swing && swingVm) swing.classList.add('is-in-story');
-      mount.innerHTML = buildStockStoryHtml(st, wide, count);
+      mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
