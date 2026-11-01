@@ -419,7 +419,7 @@ html.dark #pattern-scan .ps-chart-tools [aria-pressed="true"] { background:var(-
   border-radius: 8px;
   background: #fffefc;
   color: #20242b;
-  font: 600 12.5px/1 Pretendard, "Malgun Gothic", sans-serif;
+  font: 600 12.5px/1 "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif;
 }
 #pattern-scan .ps-chart-switcher select { width: 100%; padding: 0 30px 0 10px; }
 #pattern-scan .ps-chart-nav { flex: 0 0 auto; padding: 0 11px; cursor: pointer; }
@@ -452,7 +452,7 @@ html.dark #pattern-scan .ps-chart-tools [aria-pressed="true"] { background:var(-
   border-radius: 999px;
   background: #eef2ff;
   color: #4338ca;
-  font-family: Pretendard, "Malgun Gothic", sans-serif;
+  font-family: "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif;
   font-size: 10px;
   font-weight: 800;
   vertical-align: 2px;

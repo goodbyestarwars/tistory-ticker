@@ -161,7 +161,7 @@
 }
 
 :is(#overnight-market, #crypto-market) .om-title {
-  font-family: "Pretendard", "Malgun Gothic", sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: #666;

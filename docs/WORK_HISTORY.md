@@ -1,3 +1,7 @@
+**2026-11-02 글꼴 목록을 Pretendard Variable로 통일**
+
+요청: 전역 글꼴은 마루부리와 Pretendard Variable이며 단독 Pretendard가 아님. 원인: 일부 CSS가 `"Pretendard"`만 앞에 두어 가변 폰트(패밀리명 `Pretendard Variable`)가 적용되지 않고 맑은 고딕으로 떨어짐. 변경: css 15개 파일과 `style.css`의 글꼴 목록 54곳 앞에 `"Pretendard Variable"` 추가(foreign-flow·market-temp·home-market-board·mobile-market·marketcap-bubble·fx-rates·indicator-board 등). `docs/UI_GUIDE.md`에 규칙 등록. 검증: 문자열 치환만 확인, 화면 확인 안 함. 배포: master 병합 → Pages 약 10분.
+
 **2026-11-02 이야기 시리즈 전역 디자인 토큰 정리(흰 박스·표 머리글만 옅은 남색·남색 계열 그림)**
 
 요청: 배경 #FEFDFA, 단락·박스 흰색, 표는 첫 줄만 아주 옅은 남색, 등락 외 그래프 색은 어색한 황갈색 없이, 이를 전역 디자인에 등록. 변경: `css/legal.css` `body.learn-page .legal-wrap`에 `--learn-surface`(#fff)·`--learn-head`(#eef2f9) 추가(다크 포함), `.learn-sec/.learn-deep/.learn-nav/.learn-note/.learn-case/.learn-case-how/.legal-contact` 면을 흰색으로(기존 #FEFDFA·회색), 표 머리글만 `--learn-head`, 그림 면 `--learn-box`·`--learn-box-deep`을 회색 → 남색 계열 옅은 톤으로. `docs/UI_GUIDE.md`에 규칙 등록. 검증: order.html에 CSS 주입해 확인. 25개 전 페이지·모바일·다크는 미확인(그림 안 줄무늬 행은 SVG라 그대로). 배포: master 병합 → Pages 약 10분.

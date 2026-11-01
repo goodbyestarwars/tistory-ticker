@@ -1,7 +1,7 @@
 /* 시장지표 > 환율 탭 (2026-10-11). 표 중심 레이아웃 - 카드·둥근 상자·그림자 없이 선과 면으로 구분한다(신문 스타일).
    상승 = 빨강, 하락 = 파랑(사이트 공통). 다크모드는 html.dark 방식. 모든 선택자는 #fx-rates 아래로 한정해 다른 탭에 영향을 주지 않는다. */
 #fx-rates { min-width:0; --fxr-ink:13,27,64; --fxr-line:rgba(17,17,17,.13); --fxr-line-strong:rgba(17,17,17,.85); --fxr-tint:rgba(17,17,17,.045);
-  --fxr-sub:#64748b; --fxr-num:#374151; --fxr-up:#d24f45; --fxr-down:#1261c4; color:rgb(var(--fxr-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
+  --fxr-sub:#64748b; --fxr-num:#374151; --fxr-up:#d24f45; --fxr-down:#1261c4; color:rgb(var(--fxr-ink)); font-family:"Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; }
 html.dark #fx-rates { --fxr-ink: var(--dk-ink-rgb); --fxr-line:var(--dk-line); --fxr-line-strong:var(--dk-text); --fxr-tint:var(--dk-inner);
   --fxr-sub:var(--dk-sub); --fxr-num:var(--dk-text); --fxr-up:var(--dk-up); --fxr-down:var(--dk-down); }
 
@@ -48,7 +48,7 @@ html.dark #fx-rates .fxr-state.is-warn { color:#fbbf24; }
 #fx-rates .fxr-chartsec { margin-top:30px; border-top:2px solid var(--fxr-line-strong); padding-top:14px; }
 #fx-rates .fxr-charthead { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 12px; margin-bottom:8px; }
 #fx-rates .fxr-range { display:flex; gap:0; }
-#fx-rates .fxr-range-btn { appearance:none; margin:0; padding:5px 12px; border:1px solid var(--fxr-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--fxr-ink)); font:700 12px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
+#fx-rates .fxr-range-btn { appearance:none; margin:0; padding:5px 12px; border:1px solid var(--fxr-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--fxr-ink)); font:700 12px/1.2 "Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 #fx-rates .fxr-range-btn:last-child { border-right-width:1px; }
 #fx-rates .fxr-range-btn.is-active { background:rgb(var(--fxr-ink)); color:#fff; }
 html.dark #fx-rates .fxr-range-btn.is-active { color:var(--dk-bg); }
@@ -56,7 +56,7 @@ html.dark #fx-rates .fxr-range-btn.is-active { color:var(--dk-bg); }
 #fx-rates .fxr-chart .fxr-empty { padding-top:90px; }
 #fx-rates .fxr-svg { display:block; width:100%; height:230px; overflow:visible; touch-action:pan-y; }
 #fx-rates .fxr-grid { stroke:var(--fxr-line); stroke-width:1; }
-#fx-rates .fxr-axis { fill:var(--fxr-sub); font-size:11px; font-family:Pretendard,"Malgun Gothic",sans-serif; }
+#fx-rates .fxr-axis { fill:var(--fxr-sub); font-size:11px; font-family:"Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; }
 #fx-rates .fxr-line { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
 #fx-rates .fxr-area { opacity:.08; stroke:none; }
 #fx-rates .fxr-cross { stroke:var(--fxr-sub); stroke-width:1; stroke-dasharray:3 3; }

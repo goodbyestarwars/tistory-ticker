@@ -29,16 +29,16 @@
   .mm-nav { align-items: center; gap: 6px; margin: 8px 0 10px; }
   .mm-tabs { display: flex; flex: 1 1 auto; min-width: 0; gap: 6px; overflow-x: auto; scrollbar-width: none; }
   .mm-tabs::-webkit-scrollbar { display: none; }
-  .mm-tab { flex: 0 0 auto; appearance: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--mm-line); border-radius: 999px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; white-space: nowrap; }
+  .mm-tab { flex: 0 0 auto; appearance: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--mm-line); border-radius: 999px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; white-space: nowrap; }
   .mm-tab.is-active { background: var(--mm-act-bg); border-color: var(--mm-act-bg); color: var(--mm-act-ink); }
-  .mm-count { flex: 0 0 auto; color: var(--mm-sub); font: 600 12px/1 Pretendard, "Malgun Gothic", sans-serif; font-variant-numeric: tabular-nums; }
-  .mm-arrow { flex: 0 0 44px; appearance: none; width: 44px; height: 44px; border: 1px solid var(--mm-line); border-radius: 50%; background: transparent; color: var(--mm-ink); font: 700 22px/1 Pretendard, sans-serif; cursor: pointer; padding: 0; }
+  .mm-count { flex: 0 0 auto; color: var(--mm-sub); font: 600 12px/1 "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif; font-variant-numeric: tabular-nums; }
+  .mm-arrow { flex: 0 0 44px; appearance: none; width: 44px; height: 44px; border: 1px solid var(--mm-line); border-radius: 50%; background: transparent; color: var(--mm-ink); font: 700 22px/1 "Pretendard Variable", Pretendard, sans-serif; cursor: pointer; padding: 0; }
   .mm-arrow:disabled { opacity: .3; cursor: default; }
 
   /* ---- 요약 카드 ---- */
   .mm-cards { gap: 10px; margin: 0 0 12px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
   .mm-cards::-webkit-scrollbar { display: none; }
-  .mm-card { appearance: none; flex: 1 0 calc(50% - 5px); min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; border: 1px solid var(--mm-line); border-radius: 12px; background: var(--mm-bg); color: var(--mm-ink); text-align: left; cursor: pointer; scroll-snap-align: start; font-family: Pretendard, "Malgun Gothic", sans-serif; }
+  .mm-card { appearance: none; flex: 1 0 calc(50% - 5px); min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; border: 1px solid var(--mm-line); border-radius: 12px; background: var(--mm-bg); color: var(--mm-ink); text-align: left; cursor: pointer; scroll-snap-align: start; font-family: "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif; }
   .mm-cards[data-mm-cards="global"] .mm-card { flex-basis: 46%; }
   .mm-card.is-on { border-color: var(--mm-ink); box-shadow: inset 0 0 0 1px var(--mm-ink); }
   .mm-card-name { font-size: 12.5px; font-weight: 700; color: var(--mm-sub); }
@@ -48,7 +48,7 @@
 
   /* ---- 국내 투자자 수급 ---- */
   .mm-invpick { gap: 6px; margin: 0 0 8px; }
-  .mm-invbtn { appearance: none; flex: 1 1 0; min-height: 44px; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
+  .mm-invbtn { appearance: none; flex: 1 1 0; min-height: 44px; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
   .mm-invbtn.is-active { background: var(--mm-act-bg); border-color: var(--mm-act-bg); color: var(--mm-act-ink); }
   .ifl .ibd-leg-btn { min-height: 36px; }
 
@@ -73,11 +73,11 @@
   .dmi-rank-table td:nth-child(3) { grid-area: code; font-size: 11.5px; color: var(--mm-sub); }
   .dmi-rank-table td:nth-child(4) { grid-area: qty; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
   .dmi-rank-table tr.mm-row-hidden { display: none; }
-  .mm-more { width: 100%; min-height: 44px; margin: 8px 0 0; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
+  .mm-more { width: 100%; min-height: 44px; margin: 8px 0 0; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
 
   /* ---- 증시온도 ---- */
   .mt-kpi-strip.mm-deck > .mt-kpi { border-left: 0 !important; }
-  .mm-toggle { width: 100%; min-height: 44px; margin: 6px 0; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
+  .mm-toggle { width: 100%; min-height: 44px; margin: 6px 0; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
   .mm-collapsed { display: none !important; }
 
   /* ================= 슬림 밀도(2026-10-16): 글자·여백·카드·표를 한 단계 줄여 앱처럼 ================= */
