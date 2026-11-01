@@ -1,3 +1,7 @@
+**2026-11-02 종목 스토리 제목을 왼쪽 열로**
+
+종목 스토리 띠 안 왼쪽에 "종목 스토리 : 이름 (코드)" 제목과 작성 시점을 고정하고 카드 내용은 오른쪽에 배치(모바일은 카드 위 한 줄). js/foreign-flow.js 제목 마크업을 stage 안으로 이동, css/foreign-flow.css 배치. 배포 후 실화면 확인 예정.
+
 **2026-11-02 글꼴 목록을 Pretendard Variable로 통일**
 
 요청: 전역 글꼴은 마루부리와 Pretendard Variable이며 단독 Pretendard가 아님. 원인: 일부 CSS가 `"Pretendard"`만 앞에 두어 가변 폰트(패밀리명 `Pretendard Variable`)가 적용되지 않고 맑은 고딕으로 떨어짐. 변경: css 15개 파일과 `style.css`의 글꼴 목록 54곳 앞에 `"Pretendard Variable"` 추가(foreign-flow·market-temp·home-market-board·mobile-market·marketcap-bubble·fx-rates·indicator-board 등). `docs/UI_GUIDE.md`에 규칙 등록. 검증: 문자열 치환만 확인, 화면 확인 안 함. 배포: master 병합 → Pages 약 10분.
