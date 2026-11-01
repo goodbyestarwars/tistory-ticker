@@ -15,7 +15,7 @@ body {
   font-size: 15px;
   line-height: 1.8;
   color: #374151;
-  background: #FBF8EC;
+  background: #FEFDFA;
 }
 
 .legal-wrap {
@@ -221,7 +221,7 @@ body.learn-page .legal-wrap .learn-sec,
 body.learn-page .legal-wrap .learn-deep {
   margin: 0 0 var(--ui-section-gap);
   padding: 26px 28px;
-  background: #FBF8EC;
+  background: #FEFDFA;
   border: 1px solid var(--learn-line);
   border-radius: 22px;
   box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16);
@@ -252,16 +252,16 @@ body.learn-page .legal-wrap .learn-table th,
 body.learn-page .legal-wrap .learn-table td { border-bottom: 1px solid var(--learn-line); }
 body.learn-page .legal-wrap .learn-table tr:last-child td { border-bottom: 0; }
 body.learn-page .legal-wrap .learn-nav,
-body.learn-page .legal-wrap .legal-contact { border: 1px solid var(--learn-line); border-radius: 18px; background: #FBF8EC; background-image: none; }
+body.learn-page .legal-wrap .legal-contact { border: 1px solid var(--learn-line); border-radius: 18px; background: #FEFDFA; background-image: none; }
 body.learn-page .legal-wrap .learn-nav { margin-top: 0; }
 body.learn-page .legal-wrap .legal-contact { color: var(--learn-sub); }
 body.learn-page .legal-wrap .learn-fig--wide img { border-color: var(--learn-line); border-radius: 14px; }
 
 /* 이야기 전체 검색창(js/learn-search.js) */
 body.learn-page .legal-wrap .learn-search { margin: 0 0 var(--ui-section-gap); }
-body.learn-page .legal-wrap .ls-input { width: 100%; box-sizing: border-box; padding: 13px 20px; border: 1px solid var(--learn-box-border); border-radius: 999px; background: #FBF8EC; color: var(--learn-ink); font-family: inherit; font-size: 16px; box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16); }
+body.learn-page .legal-wrap .ls-input { width: 100%; box-sizing: border-box; padding: 13px 20px; border: 1px solid var(--learn-box-border); border-radius: 999px; background: #FEFDFA; color: var(--learn-ink); font-family: inherit; font-size: 16px; box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16); }
 body.learn-page .legal-wrap .ls-input:focus { outline: 2px solid var(--learn-navy); outline-offset: 1px; }
-body.learn-page .legal-wrap .ls-results { margin-top: 10px; padding: 8px 12px 12px; border: 1px solid var(--learn-line); border-radius: 22px; background: #FBF8EC; box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16); }
+body.learn-page .legal-wrap .ls-results { margin-top: 10px; padding: 8px 12px 12px; border: 1px solid var(--learn-line); border-radius: 22px; background: #FEFDFA; box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16); }
 body.learn-page .legal-wrap .ls-results[hidden] { display: none; }
 body.learn-page .legal-wrap .ls-count,
 body.learn-page .legal-wrap .ls-empty { margin: 6px 8px; color: var(--learn-sub); font-size: 13px; }
@@ -368,7 +368,7 @@ body.learn-page .legal-wrap .ls-snippet mark { padding: 0 2px; border-radius: 4p
 .learn-fig figcaption { margin-top: 6px; color: #6b7280; font-size: 13px; line-height: 1.6; }
 /* 2장 호가창 교육 그림: PC는 선명한 벡터 원본, 모바일은 확대 링크 제공 */
 .learn-fig--wide a { display:block; width:100%; text-decoration:none; }
-.learn-fig--wide img { display:block; width:100%; max-width:790px; height:auto; margin:0 auto; border:1px solid #dce2e9; border-radius:8px; background:#FBF8EC; }
+.learn-fig--wide img { display:block; width:100%; max-width:790px; height:auto; margin:0 auto; border:1px solid #dce2e9; border-radius:8px; background:#FEFDFA; }
 .learn-fig--wide a:focus-visible { outline:2px solid #1261c4; outline-offset:4px; border-radius:8px; }
 .learn-fig text { font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; }
 .fig-soft { fill: var(--learn-box, #ebe0c4); }
