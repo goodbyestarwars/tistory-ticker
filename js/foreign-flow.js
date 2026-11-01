@@ -5478,6 +5478,22 @@
   // 사용자 피드백으로 26%->16% 축소 - 막대가 왼쪽으로 너무 많이 뻗어 보인다는 지적)
   var VP_MAX_WIDTH_RATIO = 0.16;
   var vpEnabled = false;
+  // 지표 구성을 기억해 다시 열어도 그대로 보이게 한다(2026-11-01). 위에서 선언된 값이 모두 초기화된 뒤에 불러온다.
+  if (global.NineUI && global.NineUI.persistPrefs) {
+    global.NineUI.persistPrefs('nine.chart.studies.flow.v1', {
+      movingAverageShortEnabled: { get: function () { return movingAverageShortEnabled; }, set: function (v) { movingAverageShortEnabled = v; } },
+      movingAverageLongEnabled: { get: function () { return movingAverageLongEnabled; }, set: function (v) { movingAverageLongEnabled = v; } },
+      ichimokuEnabled: { get: function () { return ichimokuEnabled; }, set: function (v) { ichimokuEnabled = v; } },
+      bollingerEnabled: { get: function () { return bollingerEnabled; }, set: function (v) { bollingerEnabled = v; } },
+      accumulationEnabled: { get: function () { return accumulationEnabled; }, set: function (v) { accumulationEnabled = v; } },
+      supplyDisplayMode: { get: function () { return supplyDisplayMode; }, set: function (v) { supplyDisplayMode = v; } },
+      supportResistanceEnabled: { get: function () { return supportResistanceEnabled; }, set: function (v) { supportResistanceEnabled = v; } },
+      volumeMultipleEnabled: { get: function () { return volumeMultipleEnabled; }, set: function (v) { volumeMultipleEnabled = v; } },
+      vpEnabled: { get: function () { return vpEnabled; }, set: function (v) { vpEnabled = v; } },
+      waveState: { get: function () { return waveState; }, set: function (v) { Object.assign(waveState, v); } },
+      flowLineHighlight: { get: function () { return flowLineHighlight; }, set: function (v) { Object.assign(flowLineHighlight, v); } }
+    });
+  }
   var vpPrimitive = null; // { series, primitive }
   var lwcCandleSeries = null;
 

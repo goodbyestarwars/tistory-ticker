@@ -135,6 +135,20 @@
     externalMinuteLoader: null,
     liveQuotes: {}
   };
+  // 지표 구성(이동평균·일목·볼린저·지지저항·RSI·파동 등)을 기억해 다시 열어도 그대로 보이게 한다(2026-11-01).
+  if (global.NineUI && global.NineUI.persistPrefs) {
+    var prefAccessors = {};
+    ['studyOrder', 'lineHighlight', 'movingAverageShortEnabled', 'movingAverageLongEnabled', 'ichimokuEnabled', 'bollingerEnabled',
+     'accumulationEnabled', 'supplyMode', 'volumeProfileEnabled', 'supportResistanceEnabled', 'rsiEnabled', 'rsiDivergenceEnabled',
+     'volumeMultipleEnabled', 'wave'].forEach(function (key) {
+      prefAccessors[key] = { get: function () { return state[key]; }, set: function (value) {
+        // 객체는 이미 다른 곳이 쥐고 있을 수 있어 내용만 덮어쓴다.
+        if (value && typeof value === 'object' && !Array.isArray(value) && state[key]) Object.assign(state[key], value);
+        else state[key] = value;
+      } };
+    });
+    global.NineUI.persistPrefs('nine.chart.studies.search.v1', prefAccessors);
+  }
   var lwcChart = null;
   var lwcChartContainer = null;
   var lwcCandleSeries = null;

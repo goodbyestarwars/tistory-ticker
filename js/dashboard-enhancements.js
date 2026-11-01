@@ -428,7 +428,7 @@
     function onKeydown(event) { if (event.key === 'Escape') close(); }
     overlay.querySelector('.de-chart-restore').addEventListener('click', close);
     overlay.querySelector('.de-chart-close').addEventListener('click', close);
-    overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
+    // 바깥 영역을 눌러도 닫지 않는다(차트를 끌다 바깥에서 놓을 때 닫히던 문제). 닫기는 ✕·줄이기·Esc로만 한다.
     document.addEventListener('keydown', onKeydown);
     requestAnimationFrame(function () {
       global.dispatchEvent(new Event('resize'));

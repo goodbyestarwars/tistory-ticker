@@ -188,7 +188,34 @@
     job.catch(function () { if (styleLoads[url] === job) delete styleLoads[url]; });
     return job;
   }
-  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle };
+  /* 화면 설정(차트 지표 켬/끔 등)을 브라우저에 기억한다. accessors: { 이름: { get: fn, set: fn } }.
+     불러올 때는 저장된 값의 종류(불리언·문자열·객체·배열)가 현재 기본값과 같을 때만 쓴다. 체크 상자·버튼을 누른 뒤
+     값이 바뀌었으면 한 틱 뒤에 저장한다(핸들러가 먼저 값을 바꾼 다음 저장되도록). 저장소를 못 쓰면 기억만 하지 않는다. */
+  function persistPrefs(storageKey, accessors) {
+    var names = Object.keys(accessors), last = null;
+    function kind(v) { return Array.isArray(v) ? 'array' : typeof v; }
+    function snapshot() { var o = {}; names.forEach(function (n) { o[n] = accessors[n].get(); }); return JSON.stringify(o); }
+    try {
+      var saved = JSON.parse(global.localStorage.getItem(storageKey) || 'null');
+      if (saved && typeof saved === 'object') names.forEach(function (n) {
+        if (n in saved && kind(saved[n]) === kind(accessors[n].get())) accessors[n].set(saved[n]);
+      });
+    } catch (e) { /* 저장값이 깨졌으면 기본값 */ }
+    last = snapshot();
+    function save() {
+      try {
+        var now = snapshot();
+        if (now === last) return;
+        last = now;
+        global.localStorage.setItem(storageKey, now);
+      } catch (e) { /* 저장소를 못 쓰는 환경 */ }
+    }
+    function later() { global.setTimeout(save, 0); }
+    global.document.addEventListener('change', later, true);
+    global.document.addEventListener('click', later, true);
+    return save;
+  }
+  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle, persistPrefs: persistPrefs };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 
