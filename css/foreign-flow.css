@@ -3238,30 +3238,3 @@ html.dark .ff-vp-an-table tr.on { background: #2b2620; }
 
 html.dark #foreign-flow .ff-swing-summary strong.ff-tone-down { color: var(--dk-down) !important; }
 html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-flat) !important; }
-
-/* 종목 스토리(선별 종목 심화 글) */
-#foreign-flow .ff-story { margin: 0 0 16px; padding: 16px 16px 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; }
-#foreign-flow .ff-story[hidden] { display: none; }
-#foreign-flow .ff-story-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
-#foreign-flow .ff-story-head small, #foreign-flow .ff-story-src { color: #94a3b8; font-size: 11px; }
-#foreign-flow .ff-story-headline { margin: 8px 0 12px; color: #0f172a; font-size: 16px; line-height: 1.6; }
-#foreign-flow .ff-story-judgments { display: grid; gap: 8px; margin-bottom: 10px; }
-#foreign-flow .ff-story-judgment { padding: 12px 14px; border-radius: 10px; background: #f8fafc; }
-#foreign-flow .ff-story-judgment b { color: #0f172a; font-size: 14px; }
-#foreign-flow .ff-story-judgment p, #foreign-flow .ff-story-chapter p { margin: 5px 0 0; color: #334155; font-size: 13px; line-height: 1.75; }
-#foreign-flow .ff-story-judgment em { display: block; margin-top: 6px; color: #64748b; font-size: 12px; font-style: normal; }
-#foreign-flow .ff-story-chapter { border-top: 1px solid #e8ebef; padding: 10px 0; }
-#foreign-flow .ff-story-chapter summary { cursor: pointer; color: #0f172a; font-size: 14px; font-weight: 700; }
-#foreign-flow .ff-story-chapter .ff-story-read { padding: 8px 10px; border-radius: 8px; background: #f8fafc; }
-#foreign-flow .ff-story-chapter .ff-story-caveat { color: #94a3b8; font-size: 12px; }
-#foreign-flow .ff-story-table { width: 100%; margin: 8px 0; border-collapse: collapse; font-size: 12.5px; }
-#foreign-flow .ff-story-table th, #foreign-flow .ff-story-table td { padding: 6px 8px; border-bottom: 1px solid #e8ebef; text-align: left; vertical-align: top; color: #334155; line-height: 1.55; overflow-wrap: anywhere; }
-#foreign-flow .ff-story-table th { color: #64748b; font-weight: 600; }
-#foreign-flow .ff-story ul { margin: 6px 0 0; padding-left: 18px; color: #334155; font-size: 13px; line-height: 1.7; }
-#foreign-flow .ff-story-src { display: block; margin-top: 8px; }
-html.dark #foreign-flow .ff-story { background: var(--dk-card); border-color: var(--dk-line); }
-html.dark #foreign-flow .ff-story-judgment, html.dark #foreign-flow .ff-story-chapter .ff-story-read { background: var(--dk-bg); }
-html.dark #foreign-flow .ff-story-headline, html.dark #foreign-flow .ff-story-judgment b, html.dark #foreign-flow .ff-story-chapter summary { color: var(--dk-text); }
-html.dark #foreign-flow .ff-story-judgment p, html.dark #foreign-flow .ff-story-chapter p, html.dark #foreign-flow .ff-story-table td, html.dark #foreign-flow .ff-story ul { color: var(--dk-text); }
-html.dark #foreign-flow .ff-story-judgment em, html.dark #foreign-flow .ff-story-table th, html.dark #foreign-flow .ff-story-head small, html.dark #foreign-flow .ff-story-src { color: var(--dk-sub); }
-html.dark #foreign-flow .ff-story-chapter, html.dark #foreign-flow .ff-story-table th, html.dark #foreign-flow .ff-story-table td { border-color: var(--dk-line); }
