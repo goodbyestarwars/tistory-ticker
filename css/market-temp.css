@@ -3048,9 +3048,9 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-sf-card .mt-sf-item.mt-sf-item { min-height: 0 !important; }
   /* 업종 로테이션: 위 카드들과 같은 형식 */
   html body #market-temp .mt-rot-wrap .home-sector-rotation, html body #market-temp .mt-rot-wrap .home-sector-rotation :is(*, *::before) { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; }
-  html body #market-temp .mt-rot-wrap .home-sector-rotation .hsr-title-row strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp .mt-rot-wrap .home-sector-rotation .hsr-title-row strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important; font-weight: 700 !important; }
   html body #market-temp .mt-rot-wrap .hsr-head { align-items: flex-start; margin-bottom: 8px; }
-  html body #market-temp .mt-rot-wrap.mt-rot-wrap .hsr-title-row strong { font-size: 21px !important; letter-spacing: -.02em; color: #666 !important; }
+  html body #market-temp .mt-rot-wrap.mt-rot-wrap .hsr-title-row strong { font-size: 17px !important; letter-spacing: -.02em; color: #666 !important; }
   html.dark body #market-temp .mt-rot-wrap .hsr-title-row strong { color: var(--dk-sub) !important; }
   html body #market-temp .mt-rot-wrap.mt-rot-wrap .hsr-desc { margin-top: 8px; font-size: 13px !important; line-height: 1.7; color: #778396; }
   html body #market-temp .mt-rot-wrap .hsr-meta { padding-top: 4px; font-size: 12px; color: #64748b; }
