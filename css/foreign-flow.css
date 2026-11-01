@@ -3064,14 +3064,15 @@ html body #foreign-flow .ff-swing-summary :is(strong,b) { font-family:var(--font
   #foreign-flow .ff-swing-regime > strong { font-size: calc(22.7px - 2pt); }
 }
 
-#foreign-flow .ff-company-profile { margin-bottom: 16px; padding: 0 0 14px; border-bottom: 1px solid #e8ebef; }
+/* 회사 소개: 사이트 공통 큰 카드(흰색 면·테두리·모서리·큰 카드 여백) */
+#foreign-flow .ff-company-profile { margin-bottom: var(--ui-section-gap, 20px); padding: var(--ui-card-padding-lg, 28px 32px); border: 1px solid var(--ui-border, #e5e5ea); border-radius: var(--ui-radius-card, 14px); background: var(--ui-card-surface, #fff); }
 #foreign-flow .ff-company-profile-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #64748b; font-size: 12px; }
 #foreign-flow .ff-company-profile-head a { display: inline-flex; align-items: center; padding: 5px 9px; border: 1px solid #e5e7eb; border-radius: 8px; color: #64748b; font-size: 11px; white-space: nowrap; text-decoration: none; transition: background-color .15s ease, border-color .15s ease; }
 #foreign-flow .ff-company-profile-head a:hover,
 #foreign-flow .ff-company-profile-head a:focus-visible { background: #f8fafc; border-color: #cbd5e1; text-decoration: none; }
 #foreign-flow .ff-company-profile p { margin: 7px 0 5px; color: #334155; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 #foreign-flow .ff-company-profile small { color: #94a3b8; font-size: 10px; }
-html.dark #foreign-flow .ff-company-profile { border-color: var(--dk-line); }
+html.dark #foreign-flow .ff-company-profile { border-color: var(--dk-line); background: var(--dk-card); }
 html.dark #foreign-flow .ff-company-profile p { color: var(--dk-text); }
 html.dark #foreign-flow .ff-company-profile-head, html.dark #foreign-flow .ff-company-profile-head a { color: var(--dk-sub); }
 html.dark #foreign-flow .ff-company-profile-head a { border-color: var(--dk-line); }
