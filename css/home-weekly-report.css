@@ -77,6 +77,11 @@ html.dark .weekend-dashboard {
   scroll-margin-top: 140px;
 }
 
+/* 휴장 화면 큰 카드(배너·패널·주요뉴스·마켓브리핑)의 안쪽 여백은 맨 위 배너 값 하나로 통일한다(2026-11-01).
+   작은 지수 카드(.wd-index)는 폭이 좁아 제외한다. 마켓브리핑은 .weekend-dashboard 밖에 있어 body 조건으로 둔다. */
+body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-card-pad: 28px 32px; }
+@media (max-width: 767px) { body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-card-pad: var(--ui-card-padding); } }
+
 /* ==========================================================================
    02. 휴장 헤더 · 배지 · 요약 수치
    ========================================================================== */
@@ -303,7 +308,7 @@ html.dark .weekend-dashboard {
 
 .weekend-dashboard .wd-panel {
   min-width: 0;
-  padding: 14px;
+  padding: var(--closed-card-pad);
   border: 1px solid var(--wd-line);
   border-radius: var(--ui-radius-card);
   background: var(--wd-surface);
@@ -880,7 +885,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   position: relative;
   overflow: hidden;
   min-height: 210px;
-  padding: 28px 32px;
+  padding: var(--closed-card-pad);
   display: grid;
   grid-template-columns: minmax(0,1fr) auto;
   column-gap: 36px;
@@ -1035,7 +1040,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-track { box-sizing: border-box; display: flex; width: 100%; max-width: 100%; min-width: 0; gap: var(--ui-section-gap); overflow-x: auto; padding: 12px 4px 24px; scroll-snap-type: x proximity; scroll-padding-inline: 4px; scrollbar-width: none; cursor: grab; touch-action: pan-x pan-y; }
 .weekend-dashboard .wd-news-track::-webkit-scrollbar { display: none; }
 .weekend-dashboard .wd-news-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
-.weekend-dashboard .wd-news-card { box-sizing: border-box; display: flex; flex-direction: column; flex: 0 0 320px; min-width: 0; min-height: 420px; padding: 24px; border: 1px solid var(--wd-line); border-radius: 18px; background: var(--wd-surface); background: var(--wd-glass); color: var(--wd-text); box-shadow: var(--wd-glass-shadow); scroll-snap-align: start; transition: transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
+.weekend-dashboard .wd-news-card { box-sizing: border-box; display: flex; flex-direction: column; flex: 0 0 320px; min-width: 0; min-height: 420px; padding: var(--closed-card-pad); border: 1px solid var(--wd-line); border-radius: 18px; background: var(--wd-surface); background: var(--wd-glass); color: var(--wd-text); box-shadow: var(--wd-glass-shadow); scroll-snap-align: start; transition: transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
 .weekend-dashboard .wd-news-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(var(--np-ink),.14); }
 .weekend-dashboard .wd-news-card .wd-news-title { color: var(--wd-text); font-size: 20px; line-height: 1.45; font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 700; }
 .weekend-dashboard .wd-news-rule { width: 100%; flex: 0 0 auto; margin: 14px 0; border: 0; border-top: 1px solid var(--wd-line); }
@@ -1054,7 +1059,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-controls button { display: grid; place-items: center; width: 48px; height: 48px; padding: 0 0 3px; border: 0; border-radius: 50%; background: rgba(255,255,255,.82); color: #666; box-shadow: 0 3px 14px rgba(0,0,0,.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font: 400 34px/1 Arial,sans-serif; cursor: pointer; pointer-events: auto; transition: background .18s ease, box-shadow .18s ease, opacity .18s ease; }
 .weekend-dashboard .wd-news-controls button:hover:not(:disabled) { background: rgba(255,255,255,.96); box-shadow: 0 4px 16px rgba(0,0,0,.22); }
 .weekend-dashboard .wd-news-controls button:disabled { opacity: .5; cursor: default; }
-@media (max-width: 767px) { .weekend-dashboard .wd-news-card { flex-basis: min(320px,calc(100vw - 76px)); padding: 22px; } }
+@media (max-width: 767px) { .weekend-dashboard .wd-news-card { flex-basis: min(320px,calc(100vw - 76px)); padding: var(--closed-card-pad); } }
 @media (max-width: 760px) {
   html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-section-head h3,
   html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-news-section .wd-panel-head h3,

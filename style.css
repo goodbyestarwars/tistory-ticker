@@ -9048,7 +9048,7 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
    휴장일 때만(.is-market-closed) 적용하고 2열 배치와 글 내용은 그대로 둔다. */
 @layer np.np {
   html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card {
-    box-sizing: border-box; padding: var(--ui-card-padding) !important; border: 1px solid var(--ui-border) !important; border-radius: var(--ui-radius-card) !important;
+    box-sizing: border-box; padding: var(--closed-card-pad, var(--ui-card-padding)) !important; border: 1px solid var(--ui-border) !important; border-radius: var(--ui-radius-card) !important;
     background: var(--np-paper) !important; box-shadow: none !important;
   }
   html.dark body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card { background: var(--wd-glass,var(--dk-card)) !important; border-color: var(--dk-line) !important; box-shadow: var(--wd-glass-shadow,none) !important; }
