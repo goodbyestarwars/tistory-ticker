@@ -153,7 +153,7 @@ html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow 
   --font-title: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; /* Shared title font; explicit serif exceptions live in np.np. */
   --font-ui: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
   --font-data: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
-  --page-bg: #FEFDFA; /* 2026-10-04 최종: 페이지 바탕만 거의 흰색(254,253,250). 카드·상자는 --surface/흰색 계열 */
+  --page-bg: #FBF8EC; /* 2026-10-04 최종: 페이지 바탕만 거의 흰색(254,253,250). 카드·상자는 --surface/흰색 계열 */
   --surface: #fff;
   --text-main: #4b5563; /* 2026-10-23 본문 회색(흰 바탕 7.6:1). 굵은 글자는 --text-strong */
   --text-strong: #1f2937;
