@@ -8943,7 +8943,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 
   /* 이야기 시리즈 */
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.8fr) !important; gap: 43px !important; margin: 43px auto 14px !important; }
-  html body .learn-intro { padding: 22px 0 !important; }
+  html body .learn-intro { padding: 4px 0 0 !important; } /* 카드 묶음 위 여백(4px)과 맞춰 소개 글 윗선을 첫 카드 윗선에 정렬 */
   html body .learn-eyebrow { font-size: 12px !important; }
   html body .learn-intro h2 { margin: 29px 0 22px !important; font-size: 36px !important; }
   html body .learn-intro p { font-size: 15.3px !important; }
