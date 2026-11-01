@@ -15,6 +15,8 @@
 
 - Lab: `/home/ubuntu/ninepay-lab/`, 서비스 `ninepay-kis-web.service`(ubuntu 사용자, 127.0.0.1:18870).
 - 원본 UI를 보존하고 `frontend-web` 복제에 Next basePath와 `NEXT_PUBLIC_API_URL`을 적용해 빌드했다. 기존 Lab UI 서비스 18300/18301이 새 빌드를 사용한다. API 18800/18802는 그대로다.
+- `oracle_guard.py`는 기존 Lab 어댑터의 추적 가능한 원본이다(서버 `app-20261101/lab_guard.py`). 원래 종목 검색 함수를 재사용하며 과거 목록에 `exchange=krx`/`exchange_name=KRX` 계약을 보충한다. 거래소 세부 분류는 확인되지 않아 추정하지 않고 상태에 `exchangeBreakdownAvailable=false`를 명시한다. 저장된 3,917개 종목을 표시하며 신규 마스터 수집은 차단한다.
+- `patch_ui.py`는 원본을 보존한 `frontend-web`에서만 미인증 배지를 백데이터로 바꾸고 브로커 설정 버튼을 제거한다. 실제 증권 인증 상태를 참으로 위장하지 않는다.
 - nginx `/kis-tool/`만 게이트웨이로 전달한다. 기존 운영 API 서비스/인증/자동매매 설정 변경·재시작 없음. nginx는 검사 후 reload.
 - 이번 변경 전 UI 서비스 파일·nginx 설정·기존 게이트웨이(있는 경우)를 Lab `backups/web-*`에 보관했다. 원본 데이터와 기존 UI 빌드 보존.
 - PC SSH 터널 없이 HTTPS로 사용. Google 로그인 후 9Pay를 새로고침하면 자동매매 옆에 메뉴가 표시된다(티스토리 관리자 로그인이 없으면 KIS 메뉴만 표시 가능).

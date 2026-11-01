@@ -61,7 +61,7 @@ async def gateway(request: Request, path: str):
     if part not in UPSTREAMS:
         return Response(status_code=404)
     tail = path[len(part):] or '/'
-    if tail.startswith(('/api/orders', '/api/account', '/api/auth/login', '/api/auth/switch-mode', '/api/auth/logout')):
+    if tail.startswith(('/api/orders', '/api/account', '/api/auth/login', '/api/auth/switch-mode', '/api/auth/logout', '/api/symbols/collect')):
         return JSONResponse({'detail': '백데이터 전용: 주문·계좌·브로커 설정 차단'}, status_code=403)
     if request.headers.get('content-length', '').isdigit() and int(request.headers['content-length']) > 20 * 1024 * 1024:
         return Response(status_code=413)

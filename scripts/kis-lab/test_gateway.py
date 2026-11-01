@@ -77,7 +77,7 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(str(self.calls[-1].url),'http://127.0.0.1:18802/api/strategies')
 
     def test_orders_and_broker_mutations_blocked(self):
-        for path in ('builder/api/orders/execute','builder/api/orders/cancel','backtest/api/account/info','builder/api/auth/login'):
+        for path in ('builder/api/orders/execute','builder/api/orders/cancel','backtest/api/account/info','builder/api/auth/login','backtest/api/symbols/collect'):
             with self.subTest(path=path):
                 r = self.client.post('/kis-tool/'+path, headers={**self.headers,'Origin':gateway.SITE_ORIGIN},json={})
                 self.assertEqual(r.status_code,403)
