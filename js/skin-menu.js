@@ -68,28 +68,11 @@
   }
   window.__isBlogAdmin = isBlogAdmin;
   // end:true = PC(721px 이상)에서 메뉴바 오른쪽 끝에 붙인다(2026-10-11 요청: MY 옆이 아니라 오른쪽 끝). 모바일은 가로 스크롤 줄의 맨 끝 그대로.
-  if (isBlogAdmin()) NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });
-
-  var kisHref = 'https://goodbyestar.cloud/kis-tool/';
-  var kisAccessPending = false;
-  function refreshKisAccess() {
-    if (kisAccessPending || !window.NineAPI || !window.NineAPI.kisToolAccess) return;
-    kisAccessPending = true;
-    // The server checks the existing verified Google administrator session.
-    // Tistory's client-side ROLE and email strings are never access credentials.
-    window.NineAPI.kisToolAccess().then(function (result) {
-      syncKisMenu(!!(result && result.allowed));
-    }).catch(function () { syncKisMenu(false); }).then(function () { kisAccessPending = false; });
-  }
-
-  function syncKisMenu(allowed) {
-    var index = NAV_ITEMS.findIndex(function (item) { return item.href === kisHref; });
-    if (allowed === (index !== -1)) return;
-    if (allowed) {
-      NAV_ITEMS.push({href:kisHref, label:'KIS Trading Tool', end:true});
-    } else NAV_ITEMS.splice(index, 1);
-    var mount = document.getElementById('nav-menu-mount');
-    if (mount) renderMenu(mount);
+  if (isBlogAdmin()) {
+    NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });
+    // Same display gate and group as auto-trader. Actual KIS access still requires
+    // the verified Google administrator session at the server gateway.
+    NAV_ITEMS.push({href:'https://goodbyestar.cloud/kis-tool/', label:'KIS Trading Tool', end:true});
   }
 
 
@@ -396,11 +379,8 @@
     }
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
     wireBigSearch();
-    refreshKisAccess();
   }
 
-  window.addEventListener('focus', refreshKisAccess);
-  window.addEventListener('pageshow', function (event) { if (event.persisted) refreshKisAccess(); });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
   else render();

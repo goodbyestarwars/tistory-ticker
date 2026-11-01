@@ -16,7 +16,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     });
     await page.addScriptTag({content:fs.readFileSync('js/skin-menu.js','utf8')});
     await page.waitForTimeout(50);
-    assert.equal(await page.getByRole('link',{name:'KIS Trading Tool',exact:true}).count(),0);
+    assert.equal(await page.getByRole('link',{name:'KIS Trading Tool',exact:true}).count(),1,'Tistory owner sees both links before Google login');
     await page.evaluate(()=>{window.kisAllowed=true;window.dispatchEvent(new Event('focus'));});
     const kis=page.getByRole('link',{name:'KIS Trading Tool',exact:true});
     await kis.waitFor();
@@ -31,12 +31,25 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     }
     await page.evaluate(()=>{window.kisAllowed=false;window.dispatchEvent(new Event('focus'));});
     await page.waitForTimeout(50);
-    assert.equal(await kis.count(),0,'logout must remove private menu');
+    assert.equal(await kis.count(),1,'Google logout must not separate KIS from auto-trader');
     await page.evaluate(()=>{window.NineAPI.kisToolAccess=async()=>{throw Error('offline')};window.dispatchEvent(new Event('focus'));});
     await page.waitForTimeout(30);
-    assert.equal(await kis.count(),0,'auth outage must keep menu hidden');
-    console.log('PASS menu visibility, adjacency, logout, auth failure:',width);
+    assert.equal(await kis.count(),1,'server access gate is independent from menu display');
+    console.log('PASS owner links stay adjacent regardless of Google state:',width);
     await page.close();
+    for (const googleAdmin of [false,true]) {
+      const guest=await browser.newPage({viewport:{width,height:850}});
+      await guest.setContent('<div id="nav-menu-mount"></div>');
+      await guest.evaluate(allowed=>{
+        window.T={config:{IS_LOGIN:false,ROLE:'guest'}};
+        window.NineAPI={kisToolAccess:async()=>({allowed})};
+      },googleAdmin);
+      await guest.addScriptTag({content:fs.readFileSync('js/skin-menu.js','utf8')});
+      await guest.waitForTimeout(50);
+      assert.equal(await guest.getByRole('link',{name:'자동매매',exact:true}).count(),0);
+      assert.equal(await guest.getByRole('link',{name:'KIS Trading Tool',exact:true}).count(),0,'Google admin alone must not reveal KIS');
+      await guest.close();
+    }
   }
   await browser.close();
 })().catch(error=>{console.error(error);process.exitCode=1;});
