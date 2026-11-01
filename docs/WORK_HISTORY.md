@@ -1,3 +1,7 @@
+**2026-11-01 종목 스토리: 이야기 5장도 가로 full 카드로 통합**
+
+요청: 이야기 카드도 판정·차트처럼 가로로 크게, 더 보기 없이, 회색 테두리. 변경: `js/foreign-flow.js` 이야기 카드를 가로 카드로 바꿔 판정·차트와 한 캐러셀(점 7개)로 합치고 세부 설명은 항상 표시, 기존 더 보기·별도 트랙 제거. `css/foreign-flow.css` 가로 카드 회색 테두리(`#d2d2d7`, 다크 `--dk-line`)·여백 축소, 쓰지 않는 구형 카드 규칙 삭제. 검증: `test_stock_stories.py` 통과, 로컬 PC 렌더 확인(라이브·모바일·다크 미확인). 배포: master 병합 후 Pages.
+
 **2026-11-01 종목 스토리: 가로 흰 카드 2장(판정·차트) 한 장씩 넘김**
 
 요청: 판정 카드를 스토리 있게, 차트 카드 추가, 가로로 긴 흰 카드 2장을 T world처럼 가장자리 화살표·점 표시로 넘김, 영역은 보이지 않는 가는 선으로 구분. 변경: `js/foreign-flow.js` 판정 값을 `swingViewModel_`로 분리(요약 박스와 공유), `buildVerdictCard`·`buildTrendChartCard`(이미 받은 일봉의 종가·20/60/224일선 SVG, 새 API 없음) 추가, 기존 스윙 요약 박스는 스토리 종목에서 숨김(`.is-in-story`), 이동은 공통 `SiteInteractions.carousel` 재사용. `css/foreign-flow.css` 가로 카드·다크·모바일(≤820px 화살표 숨김, 밀어서 넘김). 검증: `test_stock_stories.py` 확장(카드 2장·번호 03부터·자료 부족 시 차트 생략), 로컬 PC/모바일 렌더 확인, 가로 넘침 없음. 배포: master 병합 후 Pages(라이브 확인 전).
