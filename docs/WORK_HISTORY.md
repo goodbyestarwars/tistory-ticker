@@ -1,3 +1,7 @@
+**2026-11-01 종목분석 요약카드 가로 full · 판정 문구 MaruBuriBold**
+
+요청: 요약카드 가로 full, 큰 판정 문구 마루부리 Bold. 측정(1280px): 요약카드는 이미 콘텐츠 폭(1184px), 판정 문구는 전역 글꼴 규칙으로 Pretendard. 변경: `css/foreign-flow.css` 국면·행동 그리드를 `auto-fit minmax(220px,1fr)`·간격 `--ui-paragraph-gap`, 요약카드·배너 `width:100%`; `style.css` np.np 레이어 제목 글꼴 규칙 옆에 국면·단계·진단·배지·스토리 헤드라인 MaruBuriBold 지정(숫자·칩·본문 유지); `skin-main.js` foreign-flow.css `?v=`. 검증: 실사이트에 변경 CSS를 덮어 PC 1280/모바일 390/다크 측정·캡처, 색 계산값 동일, 가로 넘침 없음, test_stock_stories 통과. 콘솔 에러는 변경 전과 같은 기존 3건(`$ is not a function` 등). 배포: master → Pages.
+
 **2026-11-01 KIS Trading Tool 메뉴 분리·리디자인**
 
 요청: 상단 링크형 포털을 사이드 메뉴(전략/검증)로 분리. 변경: `css/kis-tool.css` 신규(전역 토큰만, 새 `!important` 없음), `scripts/kis-lab/portal.html` 교체(MENU 배열·해시 직접 링크·aria-current·모바일 가로 메뉴). 전략 실행(`/execute`)은 계좌·주문 화면이라 게이트웨이 차단 정책과 충돌해 메뉴 미추가. 검증: 아래 최종 보고 참조. 배포: master → Pages, 서버 portal.html 파일 교체(게이트웨이는 요청마다 읽음, 재시작 없음).

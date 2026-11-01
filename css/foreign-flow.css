@@ -1934,6 +1934,8 @@ html.dark #foreign-flow .ff-flow-row { border-color: var(--dk-line); }
    등급 텍스트를 pill 뱃지로, 점수를 18px 숫자+서브텍스트로 분리(2026-07-20 4차 개편). */
 #foreign-flow .ff-sig-banner {
   display: flex;
+  width: 100%;
+  box-sizing: border-box;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
@@ -3030,8 +3032,9 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
 
 /* ── 종목분석 2주 스윙 판정 재디자인 + 방향 글자색 (2026-10-04) ──
    국면·진단·행동은 둥근 타일로, 상승 문구는 빨강·하락 문구는 파랑. 줄 구분선은 걷는다. */
-#foreign-flow .ff-swing-summary { display: grid; gap: 14px; }
+#foreign-flow .ff-swing-summary { display: grid; gap: var(--ui-paragraph-gap); width: 100%; box-sizing: border-box; }
 /* 스킨의 html body * { font-family: var(--font-ui) !important }보다 우선한다.
+   판정 문구(국면·진단)는 style.css np.np 레이어의 제목 글꼴 규칙이 MaruBuriBold로 지정한다.
    MaruBuriBold는 별도 굵은 글꼴 파일이므로 가짜 볼드 대신 기본 weight로 쓴다. */
 html body #foreign-flow .ff-swing-summary strong,
 html body #foreign-flow .ff-swing-summary b,
@@ -3041,14 +3044,14 @@ html body #foreign-flow .ff-swing-summary :is(strong,b) { font-family:var(--font
 #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: #111827; }
 #foreign-flow .ff-swing-regime { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border: 0 !important; padding: 0 0 2px !important; }
 #foreign-flow .ff-swing-regime > strong { font-size: calc(28.7px - 2pt); line-height: 1.1; letter-spacing: -.02em; }
-#foreign-flow .ff-swing-flow-track { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border: 0 !important; }
+#foreign-flow .ff-swing-flow-track { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--ui-paragraph-gap); border: 0 !important; }
 #foreign-flow .ff-swing-step { display: flex !important; flex-direction: column; gap: 6px; padding: 14px 16px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .04); }
 #foreign-flow .ff-swing-step-label { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: #64748b; }
 #foreign-flow .ff-swing-step > strong { font-size: calc(17.7px - 1pt); letter-spacing: -.01em; }
 #foreign-flow .ff-swing-diagnosis { display: flex; align-items: baseline; gap: 12px; padding: 14px 18px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .05); }
 #foreign-flow .ff-swing-diagnosis > span { font-size: 12px; color: #64748b; }
 #foreign-flow .ff-swing-diagnosis > strong { font-size: calc(18.7px - 1pt); letter-spacing: -.01em; }
-#foreign-flow .ff-swing-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0 !important; }
+#foreign-flow .ff-swing-actions { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--ui-paragraph-gap); border: 0 !important; }
 #foreign-flow .ff-swing-action { display: flex !important; flex-direction: column; gap: 4px; padding: 14px 16px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .04); }
 #foreign-flow .ff-swing-action > span { font-size: 12px; color: #64748b; }
 #foreign-flow .ff-swing-action > strong { font-size: calc(15.7px - 1pt); }

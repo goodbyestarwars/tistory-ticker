@@ -2394,6 +2394,11 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-size: var(--ui-section-size) !important;
     line-height: 1.4 !important;
   }
+  /* Stock analysis verdict phrases share the heading font; numbers, chips and body stay on the UI font. */
+  html body #foreign-flow :is(.ff-swing-regime > strong, .ff-swing-step > strong, .ff-swing-diagnosis > strong, .ff-sig-badge, .ff-wide strong.is-big) {
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
+  }
   html body .feed:has(> .briefing-search) > .category-masthead > div > span {
     font-family: var(--font-ui, "Pretendard Variable", Pretendard, sans-serif) !important;
     font-weight: 400 !important;
