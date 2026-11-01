@@ -1,3 +1,7 @@
+**2026-11-02 이야기 시리즈 전역 디자인 토큰 정리(흰 박스·표 머리글만 옅은 남색·남색 계열 그림)**
+
+요청: 배경 #FEFDFA, 단락·박스 흰색, 표는 첫 줄만 아주 옅은 남색, 등락 외 그래프 색은 어색한 황갈색 없이, 이를 전역 디자인에 등록. 변경: `css/legal.css` `body.learn-page .legal-wrap`에 `--learn-surface`(#fff)·`--learn-head`(#eef2f9) 추가(다크 포함), `.learn-sec/.learn-deep/.learn-nav/.learn-note/.learn-case/.learn-case-how/.legal-contact` 면을 흰색으로(기존 #FEFDFA·회색), 표 머리글만 `--learn-head`, 그림 면 `--learn-box`·`--learn-box-deep`을 회색 → 남색 계열 옅은 톤으로. `docs/UI_GUIDE.md`에 규칙 등록. 검증: order.html에 CSS 주입해 확인. 25개 전 페이지·모바일·다크는 미확인(그림 안 줄무늬 행은 SVG라 그대로). 배포: master 병합 → Pages 약 10분.
+
 **2026-11-02 종목 스토리: 글자 크기를 제목 이하로, 줄 전부 제거, 제목 형식 변경**
 
 요청: 카드 안 줄 제거, 카드 제목을 페이지 제목과 같은 크기·색으로, 모든 글자는 제목보다 크지 않게, 헤더를 "종목 스토리 : 한화오션 (042660)"로, 모바일은 줄여서. 변경: `css/foreign-flow.css` 카드 큰 제목·숫자 52/56px → `--ui-title-size`(24px)·페이지 제목색 #0d1b40, 본문 16px·라벨 13px·값 17px·타일 20px·근거 14px(앞서 키운 값 환원), 카드 안 가로선(하단 전폭선·모바일 리드 밑줄) 전부 제거, 모바일 별도 축소(본문 15·값 16·타일 18·근거 13.5). `js/foreign-flow.js` 헤더 문구를 `종목 스토리 : 이름 (코드)`로. 검증: 운영 페이지 CSS 주입으로 PC 1643px 판정·이야기 카드 확인. 모바일 실화면·다크 미확인. 배포: master 병합 → Pages 약 10분.

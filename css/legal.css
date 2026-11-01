@@ -102,18 +102,23 @@ a { color: #d24f45; }
    2026-10-31 통일 디자인: 단락(.learn-sec)은 흰색 둥근 상자, 글꼴은 마루부리(제목만 MaruBuriBold),
    색은 상승 빨강/하락 파랑과 남색 글자만 쓴다(회색·갈색·금색 금지). */
 body.learn-page .legal-wrap {
-  --learn-box: #f5f5f7;
-  --learn-box-deep: #e8e8ed;
+  /* 이야기 시리즈 전역 디자인(2026-11-02): 페이지 배경 #FEFDFA, 단락·네모 박스 흰색(--learn-surface),
+     표는 머리글 한 줄만 아주 옅은 남색(--learn-head), 그림 면(--learn-box/-deep)은 남색 계열 옅은 톤.
+     상승 빨강/하락 파랑 외 그래프 색은 남색 계열만 쓴다(황갈색·금색·회색 금지). */
+  --learn-surface: #fff;
+  --learn-head: #eef2f9;
+  --learn-box: #eef2f9;
+  --learn-box-deep: #d9e2f1;
   --learn-box-inset: #fff;
-  --learn-box-border: #d2d2d7;
-  --learn-case-bg: #f5f5f7;
+  --learn-box-border: #cbd5e6;
+  --learn-case-bg: #fff;
   --learn-case-label: #1b2f5e;
   --learn-case-good-bg: #eaeef7;
   --learn-case-good-line: #1b2f5e;
   --learn-case-good-text: #1b2f5e;
   --learn-ink: #1d1d1f;
   --learn-sub: #515154;
-  --learn-line: #e5e5ea;
+  --learn-line: #e3e8f1;
   --learn-navy: #1b2f5e;
   --learn-up: #d24f45;
   --learn-down: #1261c4;
@@ -221,7 +226,7 @@ body.learn-page .legal-wrap .learn-sec,
 body.learn-page .legal-wrap .learn-deep {
   margin: 0 0 var(--ui-section-gap);
   padding: 26px 28px;
-  background: #FEFDFA;
+  background: var(--learn-surface);
   border: 1px solid var(--learn-line);
   border-radius: 22px;
   box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16);
@@ -231,13 +236,13 @@ body.learn-page .legal-wrap .learn-deep > :last-child { margin-bottom: 0; }
 body.learn-page .legal-wrap .learn-sec > h2,
 body.learn-page .legal-wrap .learn-deep > h2 { margin: 0 0 12px; padding: 0; border-top: 0; }
 body.learn-page .legal-wrap .learn-sec--intro > :first-child { margin-top: 0; }
-body.learn-page .legal-wrap .learn-note { border-radius: 16px; border: 1px solid var(--learn-line); background-image: none; }
+body.learn-page .legal-wrap .learn-note { border-radius: 16px; border: 1px solid var(--learn-line); background: var(--learn-surface); background-image: none; }
 body.learn-page .legal-wrap .learn-lab,
 body.learn-page .legal-wrap .learn-grid > div,
-body.learn-page .legal-wrap .learn-case { border: 1px solid var(--learn-line); border-radius: 16px; background: var(--learn-box); background-image: none; }
+body.learn-page .legal-wrap .learn-case { border: 1px solid var(--learn-line); border-radius: 16px; background: var(--learn-surface); background-image: none; }
 body.learn-page .legal-wrap .learn-math,
 body.learn-page .legal-wrap .learn-sources,
-body.learn-page .legal-wrap .learn-case-how { border-radius: 14px; background: var(--learn-box); background-image: none; color: var(--learn-ink); font-weight: 400; }
+body.learn-page .legal-wrap .learn-case-how { border-radius: 14px; background: var(--learn-surface); border: 1px solid var(--learn-line); background-image: none; color: var(--learn-ink); font-weight: 400; }
 body.learn-page .legal-wrap .learn-sources > strong { color: var(--learn-ink); }
 body.learn-page .legal-wrap .learn-sources a { color: var(--learn-navy); }
 body.learn-page .legal-wrap .learn-case-tag { background: var(--learn-case-good-bg); color: var(--learn-case-label); }
@@ -247,12 +252,13 @@ body.learn-page .legal-wrap .learn-case-vs strong { color: var(--learn-ink); }
 body.learn-page .legal-wrap .learn-case-vs .is-good strong,
 body.learn-page .legal-wrap .learn-case-end { color: var(--learn-navy); }
 body.learn-page .legal-wrap .learn-table { border-collapse: separate; border-spacing: 0; border: 1px solid var(--learn-line); border-radius: 14px; overflow: hidden; }
-body.learn-page .legal-wrap .learn-table th { background: var(--learn-box); }
+body.learn-page .legal-wrap .learn-table th { background: var(--learn-head); }
+body.learn-page .legal-wrap .learn-table td { background: transparent; }
 body.learn-page .legal-wrap .learn-table th,
 body.learn-page .legal-wrap .learn-table td { border-bottom: 1px solid var(--learn-line); }
 body.learn-page .legal-wrap .learn-table tr:last-child td { border-bottom: 0; }
 body.learn-page .legal-wrap .learn-nav,
-body.learn-page .legal-wrap .legal-contact { border: 1px solid var(--learn-line); border-radius: 18px; background: #FEFDFA; background-image: none; }
+body.learn-page .legal-wrap .legal-contact { border: 1px solid var(--learn-line); border-radius: 18px; background: var(--learn-surface); background-image: none; }
 body.learn-page .legal-wrap .learn-nav { margin-top: 0; }
 body.learn-page .legal-wrap .legal-contact { color: var(--learn-sub); }
 body.learn-page .legal-wrap .learn-fig--wide img { border-color: var(--learn-line); border-radius: 14px; }
@@ -276,6 +282,8 @@ body.learn-page .legal-wrap .ls-snippet mark { padding: 0 2px; border-radius: 4p
 
 @media (prefers-color-scheme: dark) {
   body.learn-page .legal-wrap {
+    --learn-surface: #161d2c;
+    --learn-head: #1c2b44;
     --learn-box: #1b2433;
     --learn-box-deep: #223049;
     --learn-box-inset: #0f1420;
