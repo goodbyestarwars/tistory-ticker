@@ -374,5 +374,45 @@ class DomesticNewsTests(unittest.TestCase):
         self.assertIn('kind-only', [item['sourceStatus'] for item in result])
 
 
+class NaverStockNewsTests(unittest.TestCase):
+    def _fake_response(self, payload):
+        class Response:
+            def __enter__(self_inner):
+                return self_inner
+            def __exit__(self_inner, *args):
+                return False
+            def read(self_inner):
+                return json.dumps(payload).encode('utf-8')
+        return Response()
+
+    def test_representative_article_per_group_is_normalized_with_kst_offset(self):
+        payload = [
+            {'total': 2, 'items': [
+                {'titleFull': ' 셀트리온 신제품 허가 ', 'title': '셀트리온 신제품...', 'body': '본문 요약',
+                 'officeName': '부산일보', 'datetime': '202611011443',
+                 'mobileNewsUrl': 'https://n.news.naver.com/mnews/article/082/0001405005'},
+                {'titleFull': '같은 묶음의 두 번째 기사', 'datetime': '202611011440', 'mobileNewsUrl': 'https://n.news.naver.com/x'},
+            ]},
+            {'items': []},
+            {'items': [{'title': '링크 없음', 'datetime': '202611011000'}]},
+        ]
+        with mock.patch.object(domestic_news.urllib.request, 'urlopen', return_value=self._fake_response(payload)):
+            items = domestic_news._naver_stock_news_items('068270', '셀트리온')
+        self.assertEqual(len(items), 1)
+        item = items[0]
+        self.assertEqual(item['title'], '셀트리온 신제품 허가')
+        self.assertEqual(item['pubDate'], '2026-11-01T14:43:00+09:00')
+        self.assertEqual((item['kind'], item['relevance'], item['stockCode']), ('news', 'direct', '068270'))
+        self.assertEqual(item['source'], '부산일보')
+
+    def test_invalid_code_and_failures_return_empty_without_raising(self):
+        self.assertEqual(domestic_news._naver_stock_news_items('', '셀트리온'), [])
+        self.assertEqual(domestic_news._naver_stock_news_items('ABC123', '셀트리온'), [])
+        with mock.patch.object(domestic_news.urllib.request, 'urlopen', side_effect=OSError('down')):
+            self.assertEqual(domestic_news._naver_stock_news_items('068270', '셀트리온'), [])
+        with mock.patch.object(domestic_news.urllib.request, 'urlopen', return_value=self._fake_response({'unexpected': 1})):
+            self.assertEqual(domestic_news._naver_stock_news_items('068270', '셀트리온'), [])
+
+
 if __name__ == '__main__':
     unittest.main()

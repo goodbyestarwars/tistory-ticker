@@ -391,6 +391,66 @@ def normalize_naver(item, code='', name=''):
     }
 
 
+NAVER_STOCK_NEWS_URL = 'https://m.stock.naver.com/api/news/stock/'
+
+
+def _naver_stock_datetime(value):
+    """네이버 증권의 'yyyyMMddHHmm'(KST)을 오프셋이 있는 ISO 문자열로 바꾼다. 형식이 다르면 빈 문자열."""
+    text = _strip(value)
+    if not re.fullmatch(r'\d{12,14}', text):
+        return ''
+    return '%s-%s-%sT%s:%s:00+09:00' % (text[:4], text[4:6], text[6:8], text[8:10], text[10:12])
+
+
+def _naver_stock_news_items(code, name=''):
+    """네이버 증권 종목뉴스(사용자가 네이버 증권에서 보는 목록과 같은 출처)를 정규화한다.
+
+    네이버 뉴스 검색 API는 '종목명 주식'을 제목에서만 걸러 쓰기 때문에 셀트리온처럼 기사가 많은 종목도
+    최근 24시간 항목이 0건이 될 수 있었다(2026-11-01). 이 목록은 종목에 이미 묶여 있어 제목 일치 필터가 필요 없다.
+    유사 기사 묶음마다 대표 1건만 쓴다(GAS fetchStockNews와 같은 규칙). 실패하면 빈 목록 - 기존 경로는 그대로 간다.
+    """
+    code = _strip(code)
+    if not (len(code) == 6 and code.isdigit()):
+        return []
+    request = urllib.request.Request(
+        NAVER_STOCK_NEWS_URL + urllib.parse.quote(code) + '?pageSize=20&page=1',
+        headers={'User-Agent': 'Mozilla/5.0'},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            groups = json.loads(response.read().decode('utf-8'))
+    except Exception:
+        LOGGER.warning('naver stock news fetch failed: %s', code)
+        return []
+    items = []
+    for group in groups if isinstance(groups, list) else []:
+        rows = group.get('items') if isinstance(group, dict) else None
+        row = rows[0] if isinstance(rows, list) and rows and isinstance(rows[0], dict) else None
+        if not row:
+            continue
+        title = _strip(row.get('titleFull') or row.get('title'))
+        link = _canonical_url(row.get('mobileNewsUrl')) or _strip(row.get('mobileNewsUrl'))
+        pub_date = _naver_stock_datetime(row.get('datetime'))
+        if not title or not link or not pub_date:
+            continue
+        description = _strip(row.get('body'))
+        items.append({
+            'id': _item_key({'title': title, 'link': link}),
+            'title': title,
+            'link': link,
+            'description': description,
+            'pubDate': pub_date,
+            'source': _strip(row.get('officeName')) or 'Naver 증권',
+            'provider': 'Naver',
+            'category': classify(title, description),
+            'kind': 'news',
+            'stockCode': code,
+            'stockName': _strip(name),
+            'relevance': 'direct',
+        })
+    return items
+
+
 def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
                 corp_code='', max_pages=1, fresh=False):
     api_key = os.environ.get('DART_API_KEY', '').strip()
@@ -828,6 +888,7 @@ def get_news(code='', name='', query='', limit=10, item_kind='all'):
         raw = naver_news.search_news(search_query, client_id, client_secret,
                                      display=min(max(int(limit or 10) * 2, 10), 100))
         fresh.extend(item for item in (normalize_naver(raw_item, code, name) for raw_item in raw) if item)
+    fresh.extend(_naver_stock_news_items(code, name))
     fresh.extend(_disclosure_items(code, name))
     fresh = _select_stock_news(fresh, code, name)
     _save(fresh)
