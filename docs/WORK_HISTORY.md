@@ -1,3 +1,7 @@
+**2026-11-01 자동매매 운영센터: 로컬 토큰 제거 + 웹 시작/중지(서버 중계)**
+
+요청: `.token`·127.0.0.1 폐지, 관리자 Google 세션으로 웹 실행 제어, 안전장치·감사로그, 플로팅 메뉴 겹침 수정. 변경: `scripts/cloud-vm/autotrader_control.py`·`main.py`에 `/autotrader/status|command|agent/sync`(관리자 세션 403·Origin 검사·VM 에이전트는 HMAC, start는 휴장일·UNKNOWN 주문·이중 실행·텔레그램 충돌·상태 미수신 시 거부, stop은 항상 허용, 감사로그), `js/auto-trader.js` 제어 카드(NineAPI, 실계좌 확인 대화상자, 미수신 표기; PC 안내·토큰·localStorage 제거)와 `css/auto-trader.css`(`--home-content-max`·좌우 72px 여백). VM 에이전트는 autotrader-private `control-agent` 브랜치(주문 코드 무변경, 미설치). 검증: 단위 10개, 라우트(익명/비관리자/네이버/Origin 403·서명 401·start 거부·stop 접수), 화면 PC 1280·모바일 390·다크, 확인창 취소 시 미전송. 미검증: 실제 VM 연동·stop→start 왕복(VM 설치·비밀값 설정 전). 제외: 보유·주문 표(로컬 봇 데이터 원본 없음, 표시 함수만 보존). 배포: master → Oracle(kiwoom-api 재시작, 평일 08:00~20:00 보호창 밖)·Pages.
+
 **2026-11-01 종목분석 요약카드 가로 full · 판정 문구 MaruBuriBold**
 
 요청: 요약카드 가로 full, 큰 판정 문구 마루부리 Bold. 측정(1280px): 요약카드는 이미 콘텐츠 폭(1184px), 판정 문구는 전역 글꼴 규칙으로 Pretendard. 변경: `css/foreign-flow.css` 국면·행동 그리드를 `auto-fit minmax(220px,1fr)`·간격 `--ui-paragraph-gap`, 요약카드·배너 `width:100%`; `style.css` np.np 레이어 제목 글꼴 규칙 옆에 국면·단계·진단·배지·스토리 헤드라인 MaruBuriBold 지정(숫자·칩·본문 유지); `skin-main.js` foreign-flow.css `?v=`. 검증: 실사이트에 변경 CSS를 덮어 PC 1280/모바일 390/다크 측정·캡처, 색 계산값 동일, 가로 넘침 없음, test_stock_stories 통과. 콘솔 에러는 변경 전과 같은 기존 3건(`$ is not a function` 등). 배포: master → Pages.

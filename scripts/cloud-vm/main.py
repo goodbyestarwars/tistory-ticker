@@ -28,6 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse, Response
 
+import autotrader_control
 import bond_yield
 import commodity_kis
 import fx_koreaexim
@@ -300,7 +301,7 @@ ALLOWED_BROWSER_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_BROWSER_ORIGINS,
-    allow_methods=['GET', 'PUT', 'DELETE', 'OPTIONS'],
+    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
     allow_credentials=True,
 )
@@ -980,6 +981,55 @@ def google_auth_me(request: Request):
     # 로그인 선택창이 네이버 버튼을 보일지 정한다(키 미설정이면 숨김).
     data['naverConfigured'] = bool(NAVER_AUTH.configured and GOOGLE_AUTH.session_secret)
     return envelope(data)
+
+
+def _autotrader_admin(request: Request, write=False):
+    """운영센터 제어는 서버가 확인한 Google 관리자 세션만 허용한다. 익명·비관리자·네이버 세션은 403."""
+    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
+    if not (session and GOOGLE_AUTH.is_admin(session)):
+        raise HTTPException(status_code=403, detail='관리자 Google 로그인이 필요합니다.')
+    if write and request.headers.get('origin') not in ALLOWED_BROWSER_ORIGINS:
+        raise HTTPException(status_code=403, detail='허용되지 않은 요청 출처입니다.')
+    return session
+
+
+@app.get('/autotrader/status')
+def autotrader_status(request: Request):
+    _autotrader_admin(request)
+    _check_rate_limit('autotrader_status', request, max_per_window=60)
+    return envelope(autotrader_control.public_status())
+
+
+@app.post('/autotrader/command')
+async def autotrader_command(request: Request):
+    session = _autotrader_admin(request, write=True)
+    _check_rate_limit('autotrader_command', request, max_per_window=10)
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
+    action = body.get('action') if isinstance(body, dict) else None
+    try:
+        return envelope(autotrader_control.queue_command(action, session.get('email')))
+    except autotrader_control.ControlError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail) from None
+
+
+@app.post('/autotrader/agent/sync')
+async def autotrader_agent_sync(request: Request):
+    """Google VM 에이전트 전용(서버 간 HMAC). 브라우저 세션은 받지 않는다."""
+    _check_rate_limit('autotrader_agent', request, max_per_window=30)
+    raw = await request.body()
+    if len(raw) > 64 * 1024:
+        raise HTTPException(status_code=413, detail='payload too large')
+    try:
+        autotrader_control.verify_agent(request.headers.get('x-ts'), request.headers.get('x-sig'), raw)
+        payload = json.loads(raw.decode('utf-8'))
+        return envelope(autotrader_control.agent_sync(payload if isinstance(payload, dict) else {}))
+    except autotrader_control.ControlError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail) from None
+    except ValueError:
+        raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
 
 
 @app.get('/auth/google/logout')

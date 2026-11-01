@@ -21,13 +21,27 @@ class AutoTraderResearchUiTests(unittest.TestCase):
     def test_research_api_is_not_requested(self):
         self.assertNotIn("api('/api/research')", self.js)
 
-    def test_render_only_uses_real_account_sections(self):
-        render = self.js.split('function render(d) {', 1)[1].split('var lastData', 1)[0]
-        for call in ('journalHtml(', 'candidatesHtml(', 'liveHtml(', 'paperHtml(', 'backtestHtml(', 'engineHtml(', 'paperOverviewHtml(', 'ensureBacktest('):
-            self.assertNotIn(call, render)
-        # 2026-10-16: 보유 표에 잔고 상태·봇 상태를 함께 넘기고, 주문 기록은 전체 폭 구역(월 요약 포함)으로 올렸다.
-        self.assertIn('holdingsHtml(d.holdings,', render)
-        self.assertIn('d.orders', render)
+    def test_control_card_uses_server_api_not_local_pc(self):
+        # 2026-11-01: 로컬 PC 봇(127.0.0.1)·접속 토큰을 걷고 사이트 서버의 관리자 세션 API만 쓴다.
+        for gone in ('127.0.0.1', 'X-AutoTrader-Token', 'autotrader_token_v1', '.token', 'run.bat', 'shellDisconnected', 'data-token'):
+            self.assertNotIn(gone, self.js)
+        self.assertIn("controlRequest('/autotrader/status')", self.js)
+        self.assertIn("controlRequest('/autotrader/command', { action: action })", self.js)
+        self.assertIn("credentials: 'include'", self.js)
+        self.assertIn('global.NineAPI.data(', self.js)
+        self.assertNotRegex(self.js, r"\bfetch\(")      # 전송은 NineHttp/NineAPI 공통 모듈만 쓴다
+
+    def test_control_actions_are_confirmed_and_limited(self):
+        self.assertEqual(sorted(re.findall(r'data-ctl="(\w+)"', self.js)), ['start', 'stop'])
+        self.assertIn('global.confirm(CONFIRM[action])', self.js)
+        self.assertIn('실계좌', self.js.split('var CONFIRM', 1)[1].split('};', 1)[0])
+        # 시작은 서버가 허용(canStart)할 때만 누를 수 있고, 중지는 상태와 무관하게 누를 수 있다.
+        self.assertIn("data-ctl=\"start\"' + (c.canStart && !busy", self.js)
+        self.assertIn("data-ctl=\"stop\"' + (c.configured && !busy", self.js)
+
+    def test_missing_values_are_shown_as_unreceived_not_zero(self):
+        for text in ("미수신", "ledger.unknownOrders == null ? '미수신'", "ledger.openPositions == null ? '미수신'"):
+            self.assertIn(text, self.js)
 
     def test_policy_does_not_claim_orders_are_active(self):
         self.assertIn('실주문 비활성', self.js)
@@ -42,8 +56,7 @@ class AutoTraderResearchUiTests(unittest.TestCase):
     def test_no_live_switch_or_secrets_in_front_end(self):
         self.assertNotIn('LIVE_SELL=true', self.js)
         self.assertNotRegex(self.js, r"(appkey|secretkey|password)\s*[:=]\s*['\"][A-Za-z0-9]{12,}")
-        # 토큰은 기존대로 localStorage 한 곳(사용자가 붙여 넣은 로컬 봇 접속 토큰)만 쓴다
-        self.assertEqual(len(re.findall(r'localStorage\.(?:setItem|getItem|removeItem)', self.js)), 3)
+        self.assertNotIn('localStorage', self.js)
 
     def test_backtest_data_file_is_window_global_with_real_fields(self):
         text = read('data/quant-backtest.js')

@@ -1,21 +1,17 @@
-/* 자동매매(소유자 전용) 운영센터 - 이 PC의 로컬 봇(http://127.0.0.1:8765)만 읽는다.
+/* 자동매매(소유자 전용) 운영센터 - 사이트 서버(VM)의 제어 API(/autotrader/*)만 읽는다. 로컬 PC·접속 토큰은 쓰지 않는다.
  *
- * 사이트 서버(VM)로 계좌·주문 정보를 보내지 않는다. 접속 토큰은 봇 폴더의 .token 값을 한 번 붙여 넣으면 이 브라우저(localStorage)에만 저장된다.
- * 화면에는 주문 버튼이 없다. 조작은 정지/재개, 감시 등록·해제, 분석 전용 등록·해제, "규칙 확인" 표시뿐이며
- * 규칙 확인과 실주문 활성은 별개다(로컬 감시 봇은 기록 전용, 실계좌 엔진은 PC에서 별도 승인·실행).
+ * 인증은 서버가 /auth/google/me 와 같은 세션으로 판정한다(관리자 Google 계정만). 이 화면의 로그인 확인은 표시용일 뿐이다.
+ * 이 화면의 조작은 [시작]=autotrader-live 타이머 켜기, [중지]=타이머 끄기와 실행 중 서비스 중지뿐이다. 주문 버튼은 없다.
+ * 값은 VM 에이전트가 올린 것만 쓴다. 오래됐거나 읽지 못한 값은 '미수신'으로 두며 0·정상으로 바꾸지 않는다.
  *
- * 2026-10-15 개편: 장전 잔고 조회 상태(조회 전/확인 불가/오래됨)를 0개와 구분해 표시하고, 기존 수동 보유·엔진 보유를 나누며,
- * 분석 전용 종목(LG유플러스 등)은 고정 손절·익절 대신 분석 상태(보유 유지/매도 주의/매도 검토)만 보여 준다. 자동 매도는 없다.
- * 정책 문구는 PC 엔진(live_engine.py)에서 읽은 값만 쓰고, 읽지 못하면 고정값을 현재 설정처럼 표시하지 않는다.
- * 가상·모의매매 데이터나 백테스트는 이 화면이 요청하지 않는다.
+ * 아래쪽 보유·주문·분석 표시 함수(holdingsHtml, ordersHtml 등)는 로컬 봇 연결을 걷어낸 뒤 데이터 원본이 없어 호출되지 않는다.
+ * 테스트가 직접 쓰는 순수 표시 함수라 남겨 두었고, VM이 해당 데이터를 제공하면 다시 연결한다.
  */
 (function (global) {
   'use strict';
 
   var ROOT_ID = 'auto-trader';
-  var API = 'http://127.0.0.1:8765';
   var VM = 'https://goodbyestar.cloud';
-  var TOKEN_KEY = 'autotrader_token_v1';
   var REFRESH_MS = 15000;
   var ANALYSIS_TTL_MS = 120000;
   var timer = null;
@@ -32,23 +28,6 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function getToken() { try { return global.localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; } }
-  function setToken(v) { try { if (v) global.localStorage.setItem(TOKEN_KEY, v); else global.localStorage.removeItem(TOKEN_KEY); } catch (e) { /* */ } }
-
-  function api(path, method, body, timeoutMs) {
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var t = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 4000) : null;
-    var headers = { 'X-AutoTrader-Token': getToken() };
-    var init = { method: method || 'GET', headers: headers, cache: 'no-store', signal: controller ? controller.signal : undefined };
-    if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
-    return fetch(API + path, init).then(function (r) {
-      if (t) clearTimeout(t);
-      if (r.status === 401) throw new Error('token');
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }, function (e) { if (t) clearTimeout(t); throw e; });
-  }
-
   function fmtPrice(v) { return v == null || v === 0 ? '-' : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 0 }); }
   function fmtWon(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
   function signed(v) { return v == null ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(Math.round(v)).toLocaleString('ko-KR'); }
@@ -69,7 +48,7 @@
         + '</td><td>' + esc(j.nextRunAt ? scheduleTime(j.nextRunAt) : j.state === '의도적 비활성화' ? '없음' : j.id === 'deploy' ? '5분 간격' : '변경 시') + '</td></tr>';
     }).join('');
     return '<section class="at-box at-orders-wide"><div class="at-hd"><h3>갱신·스케줄 상태</h3><span>시각 KST · 작업 결과 기준 · 계좌 정보 제외</span></div>'
-      + '<details data-schedule-details' + (scheduleExpanded ? ' open' : '') + '><summary>사이트 · Actions · GAS · VM · PC 확인</summary><div class="at-month-wrap"><table><thead><tr><th>영역</th><th>작업</th><th>상태</th><th>마지막 성공</th><th>다음 실행</th></tr></thead><tbody>'
+      + '<details data-schedule-details' + (scheduleExpanded ? ' open' : '') + '><summary>사이트 · Actions · GAS · VM 확인</summary><div class="at-month-wrap"><table><thead><tr><th>영역</th><th>작업</th><th>상태</th><th>마지막 성공</th><th>다음 실행</th></tr></thead><tbody>'
       + (rows || '<tr><td colspan="5">상태를 확인하는 중입니다.</td></tr>') + '</tbody></table></div></details></section>';
   }
 
@@ -84,7 +63,6 @@
       { id: 308765062, name: 'Pages 배포', next: '변경 시' }
     ];
     schedulePromise = Promise.all([
-      api('/api/schedules', 'GET', undefined, 15000).catch(function () { return { jobs: [] }; }),
       getJson(VM + '/health/schedules').catch(function () { return { jobs: [] }; }),
       Promise.all(workflows.map(function (w) {
         return getJson(gh + w.id + '/runs?per_page=10').then(function (res) {
@@ -105,12 +83,10 @@
         .catch(function () { return { group: 'GAS', name: '시세 프록시 응답', state: '미확인', nextRunAt: '요청 시' }; })
     ]).then(function (out) {
       var items = [{ group: '사이트', name: '운영 화면', state: '정상', lastSuccessAt: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }), nextRunAt: '요청 시' }];
-      (out[2] || []).forEach(function (j) { items.push(j); });
-      items.push(out[3]);
-      var vmSchedule = out[1].data || out[1];
+      (out[1] || []).forEach(function (j) { items.push(j); });
+      items.push(out[2]);
+      var vmSchedule = out[0].data || out[0];
       (vmSchedule.jobs || []).forEach(function (j) { items.push(Object.assign({ group: 'VM' }, j)); });
-      (out[0].jobs || []).forEach(function (j) { items.push(Object.assign({ group: 'PC' }, j)); });
-      if (!(out[0].jobs || []).length) items.push({ group: 'PC', name: '작업 스케줄러', state: '미확인' });
       if (!(vmSchedule.jobs || []).length) items.push({ group: 'VM', name: 'systemd', state: '미확인' });
       scheduleCache = items;
       scheduleCacheAt = Date.now();
@@ -227,23 +203,6 @@
   }
 
   /* ───────────── 화면 ───────────── */
-  function shellDisconnected(message) {
-    root.innerHTML = '<section class="at-card at-connect"><h2>자동매매 운영센터</h2>'
-      + '<p class="at-lead">이 화면은 <b>이 PC에서 실행 중인 자동매매 프로그램</b>과만 연결됩니다. ' + esc(message) + '</p>'
-      + '<ol class="at-steps"><li>PC에서 <code>autotrader\\run.bat</code> 을 실행합니다(키움 키는 <code>.env</code> 에 직접 입력).</li>'
-      + '<li>브라우저가 "로컬 네트워크 접근" 허용을 물으면 허용합니다.</li>'
-      + '<li>프로그램 폴더의 <code>.token</code> 파일을 메모장으로 열어 내용을 복사하고, 아래에 붙여 넣은 뒤 연결을 누릅니다(이 브라우저에만 저장됩니다).</li></ol>'
-      + '<form class="at-token" data-token-form><input type="password" autocomplete="off" placeholder="접속 토큰" aria-label="접속 토큰" data-token-input>'
-      + '<button type="submit">연결</button></form></section>';
-    root.querySelector('[data-token-form]').addEventListener('submit', function (event) {
-      event.preventDefault();
-      var value = root.querySelector('[data-token-input]').value.trim();
-      if (!value) return;
-      setToken(value);
-      refresh();
-    });
-  }
-
   function balanceChip(b) {
     var map = { OK: ['정상', ''], STALE: ['오래됨', ' is-wait'], FAILED: ['조회 실패', ' is-off'], NOT_YET: ['조회 전', ' is-wait'] };
     var m = map[b && b.state] || map.NOT_YET;
@@ -422,13 +381,13 @@
   }
 
   // 종목명: 서버가 준 name → 보유·감시 목록 → 사이트 종목 사전(data/krx_map.js, 없으면 한 번만 불러와 다시 그린다) 순서로 찾는다.
-  var lastRendered = null, krxByCode = null, krxLoading = false;
+  var krxByCode = null, krxLoading = false;
   function loadKrxMap() {
     if (global.KRX_MAP || krxLoading) return;
     krxLoading = true;
     var sc = document.createElement('script');
     sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-    sc.onload = function () { krxByCode = null; if (lastRendered) render(lastRendered); };
+    sc.onload = function () { krxByCode = null; };
     document.head.appendChild(sc);
   }
   function krxName(code) {
@@ -582,97 +541,9 @@
       + '</section>';
   }
 
-  function render(d) {
-    lastRendered = d;
-    var balance = d.holdingsMeta.balance || d.status.balance;
-    // 구버전 봇은 조회 상태를 모른다: 보유 목록이 있으면 그대로 보여 주고(배너로 경고), 비어 있으면 0개가 아니라 '조회 전'으로 둔다.
-    if (!balance) balance = { state: d.holdings.length ? 'OK' : 'NOT_YET', legacy: true, last_ok: d.status.last_poll || null, age_sec: null };
-    root.innerHTML = (d.legacy ? '<p class="at-banner is-bad">PC에서 실행 중인 자동매매 프로그램이 이전 버전이라 잔고 조회 상태·분석 전용·정책 정보가 없습니다. 프로그램을 새 버전으로 업데이트하면 표시됩니다(보유 종목 수는 이 상태에서 신뢰하지 마세요).</p>' : '')
-      + topbarHtml(d.status, balance) + engineConflictHtml(d) + kpiHtml(d.status, d.holdings, d.orders, balance) + monthSummaryHtml(d.orders, String(d.status.now || '').slice(0, 10))
-      // 주문 기록은 표가 넓어(11칸) 두 칼럼 안에 두면 줄바꿈이 심해 전체 폭 구역으로 올렸다(2026-10-16).
-      + '<section class="at-box at-orders-wide"><div class="at-hd"><h3>주문 기록</h3><span>최근 주문 먼저 · 전송과 체결은 구분</span></div>' + ordersHtml(d.orders, String(d.status.now || '').slice(0, 10), d) + '</section>'
-      + scheduleHtml(d.schedules)
-      + '<div class="at-grid"><div class="at-col">'
-      + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 장전에도 조회(주문 없음) · 마지막 정상 ' + esc(hhmm(balance && balance.last_ok)) + '</span></div>'
-      + holdingsHtml(d.holdings, balance, d.status) + '</section>'
-      + analysisHtml(d)
-      + eventsHtml(d.events)
-      + '</div><div class="at-col">' + policyHtml(d.status, d.holdings) + watchHtml(d.watch) + '</div></div>';
-    wire(d);
-  }
-
-  function post(path, body) { return api(path, 'POST', body).then(refresh).catch(refresh); }
-
-  function wire(d) {
-    var scheduleDetails = root.querySelector('[data-schedule-details]');
-    if (scheduleDetails) scheduleDetails.addEventListener('toggle', function () { scheduleExpanded = scheduleDetails.open; });
-    var tdy = String(d.status.now || '').slice(0, 10);
-    var mon = root.querySelector('[data-month]');
-    if (mon) mon.addEventListener('change', function (e) { if (/^\d{4}-\d{2}$/.test(e.target.value)) { selMonth = e.target.value; selDay = null; monthScroll = null; render(d); } });
-    root.querySelectorAll('[data-mon]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var v = b.getAttribute('data-mon'), cur = selMonth || tdy.slice(0, 7);
-        selMonth = v === 'today' ? tdy.slice(0, 7) : shiftMonth(cur, Number(v)); selDay = null; monthScroll = null; render(d);
-      });
-    });
-    root.querySelectorAll('[data-day]').forEach(function (r) {
-      function pick() { var day = r.getAttribute('data-day'); selDay = selDay === day ? null : day; render(d); }
-      r.addEventListener('click', pick);
-      r.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
-    });
-    // 월간 표 스크롤: 15초마다 다시 그려도 보던 위치를 유지하고, 처음에는 주문이 있는 첫 날 근처에서 시작한다.
-    var mw = root.querySelector('.at-month-wrap');
-    if (mw) {
-      var first = mw.querySelector('tr.is-sel') || mw.querySelector('tr.has');
-      mw.scrollTop = monthScroll != null ? monthScroll : (first ? Math.max(0, first.offsetTop - 70) : 0);
-      mw.addEventListener('scroll', function () { monthScroll = mw.scrollTop; });
-    }
-    var clr = root.querySelector('[data-day-clear]');
-    if (clr) clr.addEventListener('click', function () { selDay = null; render(d); });
-    root.querySelectorAll('[data-dl]').forEach(function (b) {
-      b.addEventListener('click', function () { downloadCsv(d.orders, d, b.getAttribute('data-dl') === 'month' ? (selMonth || tdy.slice(0, 7)) : null); });
-    });
-    root.querySelector('[data-toggle]').addEventListener('click', function () {
-      api(d.status.stopped ? '/api/resume' : '/api/stop', 'POST').then(refresh).catch(refresh);
-    });
-    root.querySelector('[data-type-filter]').addEventListener('change', function (event) { typeFilter = event.target.value; refresh(); });
-    root.querySelector('[data-watch-form]').addEventListener('submit', function (event) {
-      event.preventDefault();
-      var code = root.querySelector('[data-watch-code]').value.trim();
-      var name = root.querySelector('[data-watch-name]').value.trim();
-      if (!/^\d{6}$/.test(code)) return;
-      post('/api/watch', { code: code, name: name });
-    });
-    root.querySelectorAll('[data-unwatch]').forEach(function (button) {
-      button.addEventListener('click', function () { post('/api/unwatch', { code: button.getAttribute('data-unwatch') }); });
-    });
-    root.querySelectorAll('[data-act]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var act = button.getAttribute('data-act'), code = button.getAttribute('data-code'), name = button.getAttribute('data-name') || '';
-        if (act === 'analysis-add') post('/api/analysis', { code: code, name: name });
-        else if (act === 'analysis-remove') post('/api/analysis-remove', { code: code });
-        else if (act === 'watch-add') post('/api/watch', { code: code, name: name });
-        else if (act === 'unwatch') post('/api/unwatch', { code: code });
-        else if (act === 'confirm') {
-          var st = d.status;
-          var text = '이 종목에 손절 -' + st.stop_loss_pct + '% · 익절 +' + st.take_profit_cap_pct + '% 규칙을 적용하는 것을 확인합니다.\n'
-            + (button.getAttribute('data-beyond') ? '\n※ 지금 이미 기준을 넘은 상태입니다. 확인하면 다음 판단 주기에 규칙 대상이 됩니다.\n' : '')
-            + '\n로컬 감시 봇의 실주문은 현재 비활성이라 주문은 나가지 않고 기록만 남습니다. 계속할까요?';
-          if (global.confirm(text)) post('/api/watch-confirm', { code: code, confirmed: true });
-        }
-      });
-    });
-  }
-
   /* ───────────── 분석 데이터 ───────────── */
   function getJson(url) {
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var t = controller ? setTimeout(function () { controller.abort(); }, 9000) : null;
-    return fetch(url, { signal: controller ? controller.signal : undefined }).then(function (r) {
-      if (t) clearTimeout(t);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }, function (e) { if (t) clearTimeout(t); throw e; }).then(function (b) { return b && b.data ? b.data : b; });
+    return global.NineHttp.json(url, { timeoutMs: 9000 }).then(function (b) { return b && b.data ? b.data : b; });
   }
 
   function loadAnalysisData(code) {
@@ -711,32 +582,6 @@
     return Promise.all(jobs);
   }
 
-  var lastAnalysis = {};
-
-  function refresh() {
-    if (!root) return;
-    if (!getToken()) { shellDisconnected('아직 접속 토큰이 없습니다.'); return; }
-    Promise.all([api('/api/status'), api('/api/watch'), api('/api/holdings'), api('/api/orders?limit=1000'),
-      api('/api/events?limit=200' + (typeFilter ? '&type=' + encodeURIComponent(typeFilter) : '')),
-      api('/api/analysis').catch(function (e) { if (e && e.message === 'token') throw e; return { analysis: [], legacy: true }; })])
-      .then(function (out) {
-        var legacy = !out[0].balance;      // PC 실행본이 구버전이면 새 필드가 없다 - 0개·조회 전으로 오해하지 않게 따로 표시한다
-        var holdings = (out[2].holdings || []).map(function (h) {
-          return h.kind ? h : Object.assign({}, h, { kind: h.live_managed ? 'engine' : 'manual', engine_qty: h.live_managed ? h.qty : 0, manual_qty: h.live_managed ? 0 : h.qty,
-            locked_qty: Math.max(0, (h.qty || 0) - (h.sellable || 0)), sell_watch: h.watched ? 'rule_confirmed' : 'none' });
-        });
-        var d = { status: out[0], watch: out[1].watch || [], holdings: holdings, holdingsMeta: out[2] || {}, orders: out[3].orders || [],
-          events: out[4].events || [], analysis: out[5].analysis || [], analysisResult: lastAnalysis, legacy: legacy };
-        render(d);
-        loadSchedules().then(function (items) { d.schedules = items; render(d); });
-        runAnalysis(d).then(function () { lastAnalysis = d.analysisResult; if (d.analysis.length) render(d); });
-      })
-      .catch(function (error) {
-        if (error && error.message === 'token') { setToken(''); shellDisconnected('토큰이 맞지 않습니다. .token 파일 내용을 다시 붙여 넣으세요.'); return; }
-        shellDisconnected('프로그램에 연결하지 못했습니다(실행 중인지, 이 PC의 브라우저인지 확인).');
-      });
-  }
-
   // 티스토리 본문 컨테이너가 좁아 표가 눌리므로, 이 화면을 감싼 조상의 max-width 제한만 풀어 준다(이 페이지에서만 실행).
   function widen() {
     var p = root.parentElement;
@@ -749,16 +594,104 @@
     root.classList.add('at-wide');
   }
 
+  /* ───────────── 제어 카드 (VM 에이전트 경유) ───────────── */
+  var busy = false;
+  var lastControl = null;
+  var lastError = '';
+
+  function controlUrl(path) { return global.NineAPI.vmUrl + path; }
+  function controlRequest(path, body) {
+    var fetchOptions = { credentials: 'include', cache: 'no-store' };
+    if (body) { fetchOptions.method = 'POST'; fetchOptions.headers = { 'Content-Type': 'application/json' }; fetchOptions.body = JSON.stringify(body); }
+    return global.NineAPI.data(controlUrl(path), { private: true, timeoutMs: body ? 15000 : 8000, fetchOptions: fetchOptions });
+  }
+
+  function orMissing(value, map) {
+    if (value == null || value === '') return '미수신';
+    return map && map[value] ? map[value] : String(value);
+  }
+  function yesNo(value, yes, no) { return value == null ? '미수신' : value ? yes : no; }
+  function cell(label, value, cls) { return '<div><small>' + esc(label) + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(value) + '</b></div>'; }
+
+  function controlHtml(c) {
+    var vm = c.vm || {}, flags = vm.flags || {}, ledger = vm.ledger || {}, feed = vm.feed || {}, last = vm.lastResult || {};
+    var timer = orMissing(vm.timerState, { enabled: '켜짐(다음 08:55 실행)', disabled: '꺼짐' });
+    var service = orMissing(vm.serviceState, { active: '실행 중', inactive: '대기', failed: '실패', activating: '시작 중' });
+    var link = c.received ? '수신 · ' + c.ageSec + '초 전' : '미수신' + (c.ageSec != null ? ' · 마지막 ' + c.ageSec + '초 전' : '');
+    var approval = flags.approval ? (flags.approval.present ? '있음' + (flags.approval.date ? ' (' + flags.approval.date + '~)' : '') : '없음') : '미수신';
+    var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지' }[c.lastCommand.action] || c.lastCommand.action) + ' ' + ({ DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
+      + ' · ' + String(c.lastCommand.at || '').slice(5, 16).replace('T', ' ') + (c.lastCommand.reason ? ' · ' + c.lastCommand.reason : '') : '없음';
+    var blockers = c.startBlockers || [];
+    return '<section class="at-card at-ctl"><div class="at-ctl-head"><h2>자동매매 운영센터</h2>'
+      + '<span class="at-ctl-link' + (c.received ? '' : ' is-bad') + '">VM 연결 ' + esc(link) + '</span></div>'
+      + (c.configured ? '' : '<p class="at-banner is-bad">서버에 제어 비밀값이 설정되지 않아 제어할 수 없습니다.</p>')
+      + '<div class="at-ctl-grid">'
+      + cell('실행 타이머', timer, vm.timerState === 'enabled' ? 'is-on' : '') + cell('실행 서비스', service)
+      + cell('마지막 실행', last.result ? last.result + (last.exitStatus ? ' (종료 ' + last.exitStatus + ')' : '') : '미수신')
+      + cell('오늘 거래일', c.tradingDay == null ? '확인 불가' : c.tradingDay ? '거래일' : '휴장일')
+      + cell('장부 보유 종목', ledger.openPositions == null ? '미수신' : ledger.openPositions + '개')
+      + cell('UNKNOWN 주문', ledger.unknownOrders == null ? '미수신' : ledger.unknownOrders + '건', ledger.unknownOrders > 0 ? 'is-bad' : '')
+      + cell('오늘 주문 기록', ledger.todayOrders == null ? '미수신' : ledger.todayOrders + '건')
+      + cell('9Pay 신호 피드', feed.state ? feed.state + (feed.reason ? ' · ' + feed.reason : '') : '미수신', feed.state && feed.state !== 'OK' ? 'is-bad' : '')
+      + cell('실주문 스위치', yesNo(flags.liveTrading, '켜짐', '꺼짐')) + cell('9Pay 주문 스위치', yesNo(flags.ninepayLive, '켜짐', '꺼짐'))
+      + cell('봇 매도(LIVE_SELL)', yesNo(flags.liveSell, '켜짐', '꺼짐')) + cell('승인 파일', approval)
+      + '</div>'
+      + '<p class="at-note">스위치·승인 파일은 서버 설정값을 읽은 것이며 주문 허용 판정이 아닙니다. 실제 주문 여부는 서비스 자체 게이트가 정합니다.</p>'
+      + (blockers.length ? '<ul class="at-ctl-block">' + blockers.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>' : '')
+      + '<div class="at-ctl-actions"><button type="button" class="at-ctl-btn is-go" data-ctl="start"' + (c.canStart && !busy ? '' : ' disabled') + '>시작</button>'
+      + '<button type="button" class="at-ctl-btn is-stop" data-ctl="stop"' + (c.configured && !busy ? '' : ' disabled') + '>중지</button>'
+      + '<span class="at-ctl-last">최근 명령: ' + esc(lastCmd) + (c.pending ? ' · 처리 대기 중' : '') + '</span></div>'
+      + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '') + '</section>';
+  }
+
+  var CONFIRM = {
+    start: '실계좌 자동매매 타이머를 켭니다.\n\n켜면 다음 거래일 08:55부터 실계좌 자동매매가 실행되어 실제 주문이 나갈 수 있습니다(서비스 자체 게이트를 통과한 경우).\n계속할까요?',
+    stop: '실계좌 자동매매를 중지합니다.\n\n타이머를 끄고, 실행 중이면 서비스도 멈춥니다. 이미 접수된 주문은 취소되지 않으며 보유 종목은 그대로입니다. 다시 켜기 전까지 자동 실행되지 않습니다.\n계속할까요?'
+  };
+
+  function renderControl(c) {
+    lastControl = c;
+    var scroll = global.pageYOffset;
+    root.innerHTML = controlHtml(c) + scheduleHtml(scheduleCache);
+    var details = root.querySelector('[data-schedule-details]');
+    if (details) details.addEventListener('toggle', function () { scheduleExpanded = details.open; });
+    root.querySelectorAll('[data-ctl]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var action = button.getAttribute('data-ctl');
+        if (busy || !global.confirm(CONFIRM[action])) return;
+        busy = true; lastError = ''; renderControl(lastControl);
+        controlRequest('/autotrader/command', { action: action }).catch(function (e) {
+          lastError = e && e.status === 403 ? '관리자 Google 로그인이 필요합니다.' : e && e.status === 409 ? '서버가 명령을 거부했습니다. 아래 사유를 확인하세요.' : '명령을 보내지 못했습니다.';
+        }).then(function () { busy = false; refresh(); });
+      });
+    });
+    global.scrollTo(0, scroll);
+  }
+
+  function refresh() {
+    if (!root) return;
+    controlRequest('/autotrader/status').then(function (c) {
+      lastError = lastError && busy ? lastError : '';
+      var hadSchedules = !!scheduleCache;
+      renderControl(c);
+      if (!hadSchedules) loadSchedules().then(function () { renderControl(lastControl); });
+    }).catch(function (e) {
+      root.innerHTML = '<section class="at-card at-ctl"><h2>자동매매 운영센터</h2><p class="at-error">'
+        + (e && e.status === 403 ? '관리자 Google 로그인이 필요합니다. 사이트에서 Google 관리자 계정으로 로그인한 뒤 새로고침하세요.' : '서버에서 상태를 읽지 못했습니다(미수신).') + '</p></section>';
+    });
+  }
+
   function init() {
     root = document.getElementById(ROOT_ID);
     if (!root) return;
-    // 티스토리 관리자(블로그 운영자) 로그인 상태에서만 화면을 연다. 방문자에게는 안내 한 줄만 보인다.
+    // 표시 조건일 뿐이다. 실제 권한은 서버가 관리자 Google 세션으로 판정한다.
     var c = global.T && global.T.config;
     if (!(c && c.IS_LOGIN && c.ROLE && c.ROLE !== 'guest')) { root.innerHTML = '<p class="at-empty">블로그 관리자 로그인 후 이용할 수 있습니다.</p>'; return; }
+    if (!global.NineAPI || !global.NineAPI.data) { root.innerHTML = '<p class="at-error">공통 API 모듈을 불러오지 못했습니다.</p>'; return; }
     widen();
     refresh();
     if (timer) clearInterval(timer);
-    timer = setInterval(function () { if (!document.hidden && getToken()) refresh(); }, REFRESH_MS);
+    timer = setInterval(function () { if (!document.hidden && !busy) refresh(); }, REFRESH_MS);
   }
 
   global.AutoTraderPage = { init: init, analyze: analyze, widen: function (el) { root = el; widen(); } };
