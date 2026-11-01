@@ -6,10 +6,6 @@
 
 요청: 지표 구성 저장, 독립(전체화면) 차트가 바깥 영역 클릭으로 닫히는 문제를 ✕로만 닫게. 변경: `js/skin-shell.js` NineUI에 `persistPrefs`(localStorage, 종류가 다른 저장값 무시·값이 바뀔 때만 기록) 추가, `js/stock-search.js`(`nine.chart.studies.search.v1`)·`js/foreign-flow.js`(`nine.chart.studies.flow.v1`)가 이동평균·일목·볼린저·지지저항·RSI·파동·매물대·거래량 배수 등 켬/끔과 범례 강조를 기억. `js/dashboard-enhancements.js` 오버레이 바깥 클릭 닫힘 제거(✕·줄이기·Esc 유지). 검증: 저장 함수 단위 시험(복원·타입 불일치 무시·무변경 시 미기록) 통과, 4개 파일 구문 확인. 실사이트 화면 확인은 못 함. 배포: PR 병합 후 Pages 반영.
 
-실사이트 확인(PC 다크·모바일 375px 라이트/다크, 가로 넘침 없음): 리스크표 가능성·영향 칸이 한 글자씩 줄바꿈되어 `css/foreign-flow.css`에서 두 칸을 줄바꿈 금지로 보정. 배포: PR 병합 후 Pages 반영.
-
-요청: 종목분석을 스토리형으로 개편, 우선 한화오션. 변경: 신규 `data/stock-stories.js`(`window.STOCK_STORIES`, 한 줄 논지·판정 3개와 틀릴 조건·5개 장·리스크표·감시표, 작성 시점 값), `js/foreign-flow.js`에 회사소개와 같은 지연 로드 방식의 `ensureStockStories/loadStockStory`(자료 없는 종목은 영역 미생성, 종목 전환 후 늦은 응답 폐기), `css/foreign-flow.css` 라이트/다크. 투자등급·목표가는 넣지 않음. 검증: test_stock_stories 신규 + company_profiles/foreign_flow_compute 14 passed. 화면 렌더(PC/모바일)는 Pages 반영 후 확인 필요. 후속: 전 종목 자동 요약 층은 미착수.
-
 **2026-11-01 이야기 시리즈 색감 조정**
 
 요청: 하늘색이 읽기 불편 → 남색, 어두운 면 위 글자는 흰색, 상자 배경 #FEFDFA. 변경: `css/legal.css` 이야기 통일 구간(`--learn-navy` 추가, 하늘색 틴트→중립 톤, 단락/네비/검색 상자 #FEFDFA, 색 막대 위 글자 흰색). 검증: CSS 값 확인만, 화면 렌더는 미확인. 배포: 아래 PR.
