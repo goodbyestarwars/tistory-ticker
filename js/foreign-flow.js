@@ -1856,7 +1856,7 @@
 
     // 2주 스윙 판정은 탭 밖에 항상 노출한다. 별점/구 등급은 화면 최종의견에서 제거하고
     // 국면·보유자 행동·신규 진입을 분리해 보여준다.
-    if (!selectedIsEtf) html += buildCompanyProfilePlaceholder(data.code) + buildStockStoryPlaceholder(data.code);
+    if (!selectedIsEtf) html += buildStockStoryPlaceholder(data.code) + buildCompanyProfilePlaceholder(data.code);
     html += buildSummaryBox(data, entry, techScore, fundamentals, chartData);
 
     // 2026-08-23: "펀더멘탈 탭에 있으면 안되겠어, 요약에 넣어" 요청으로 여기(탭 밖,
