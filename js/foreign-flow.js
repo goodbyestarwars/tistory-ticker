@@ -2721,12 +2721,17 @@
   // items[i].trend가 있으면 그 값('up'/'down')으로 색을 정하고(추세 기준: 증가=빨강/감소=파랑),
   // 없으면 예전처럼 값의 부호로 정한다(부호 기준 색이 맞는 경우, 예: YoY %처럼 이미 증감을
   // 나타내는 값).
-  function svgBarChart(items, colorPos, colorNeg) {
-    var w = 320, h = 90, barW = Math.min(48, (w - 20) / items.length - 10);
+  function svgBarChart(items, colorPos, colorNeg, reserveNeg) {
+    var w = 320, barW = Math.min(48, (w - 20) / items.length - 10);
     var vals = items.map(function (it) { return it.value == null ? 0 : it.value; });
-    var maxAbs = Math.max.apply(null, vals.map(Math.abs).concat([1]));
-    var zeroY = h - 22;
-    var scale = (zeroY - 10) / maxAbs;
+    // 음수(적자) 막대가 있으면 0선을 위로 올려 아래쪽에 막대와 값 라벨 자리를 만든다(연도 라벨을 덮지 않게).
+    var posMax = Math.max.apply(null, vals.concat([0])), negMax = Math.max.apply(null, vals.map(function (v) { return -v; }).concat([0]));
+    var hasNeg = negMax > 0 || !!reserveNeg; // reserveNeg: 나란한 차트끼리 높이를 맞춘다
+    var h = hasNeg ? 130 : 90;
+    var plotTop = 14, plotBottom = h - 22 - (hasNeg ? 16 : 0);
+    var span = (posMax + negMax) || 1;
+    var scale = (plotBottom - plotTop) / span;
+    var zeroY = plotTop + posMax * scale;
     var bars = items.map(function (it, i) {
       var x = 10 + i * (w - 20) / items.length + ((w - 20) / items.length - barW) / 2;
       var v = it.value == null ? 0 : it.value;
@@ -2755,10 +2760,11 @@
         return { label: String(y.year).slice(2) + "'", value: v, trend: trend };
       });
     }
+    var anyNeg = ['revenue', 'operating_income', 'net_income'].some(function (f) { return years.some(function (y) { return y[f] < 0; }); });
     return '<div class="ff-fund-charts">'
-      + '<div class="ff-chart-block"><div class="ff-chart-title">매출액 추이</div>' + svgBarChart(series('revenue'), '#d24f45', '#1261c4') + '</div>'
-      + '<div class="ff-chart-block"><div class="ff-chart-title">영업이익 추이</div>' + svgBarChart(series('operating_income'), '#d24f45', '#1261c4') + '</div>'
-      + '<div class="ff-chart-block"><div class="ff-chart-title">순이익 추이</div>' + svgBarChart(series('net_income'), '#d24f45', '#1261c4') + '</div>'
+      + '<div class="ff-chart-block"><div class="ff-chart-title">매출액 추이</div>' + svgBarChart(series('revenue'), '#d24f45', '#1261c4', anyNeg) + '</div>'
+      + '<div class="ff-chart-block"><div class="ff-chart-title">영업이익 추이</div>' + svgBarChart(series('operating_income'), '#d24f45', '#1261c4', anyNeg) + '</div>'
+      + '<div class="ff-chart-block"><div class="ff-chart-title">순이익 추이</div>' + svgBarChart(series('net_income'), '#d24f45', '#1261c4', anyNeg) + '</div>'
       + '</div>';
   }
 
