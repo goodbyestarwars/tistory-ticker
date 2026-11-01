@@ -629,6 +629,12 @@
     try { localStorage.setItem(WATCHLIST_OPEN_KEY, open ? '1' : '0'); } catch (err) {}
   }
 
+  // 관심종목에서 종목을 누르면 드로어를 접는다(다음 화면이 열린 채로 시작하지 않도록 저장값도 함께 바꾼다).
+  function closeGlobalWatchlist() {
+    var drawer = document.querySelector('.global-watchlist-drawer');
+    if (drawer) setWatchlistDrawerOpen(drawer, false);
+  }
+
   function loadWatchlistScript() {
     if (global.Watchlist) { global.Watchlist.init(); return; }
     if (document.querySelector('script[src*="/js/watchlist.js"]')) return;
@@ -716,7 +722,7 @@
     })();
   }
 
-  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist };
+  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist, closeGlobalWatchlist: closeGlobalWatchlist };
   global.StockSearchPanel = StockSearchPanel;
 
   // defer scripts can run before skin-shell; DOMContentLoaded follows all defer scripts.

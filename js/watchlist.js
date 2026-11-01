@@ -1127,6 +1127,7 @@
     });
     container.querySelectorAll('.wl-card').forEach(function (card) {
       function goToRealtime() {
+        if (global.StockSearchPanel && global.StockSearchPanel.closeGlobalWatchlist) global.StockSearchPanel.closeGlobalWatchlist();
         location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(card.getAttribute('data-code'))
           + '&name=' + encodeURIComponent(card.getAttribute('data-name'))
           + '&from=my';
