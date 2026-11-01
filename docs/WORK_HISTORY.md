@@ -1,3 +1,7 @@
+**2026-11-01 종목 스토리 카드 애플 큰 카드 · 가장자리 넘김 · 스윙 판정 1번 카드**
+
+요청: 넘김을 가장자리 동그란 버튼으로, 2주 스윙 판정을 1번 카드로, 카드 모양을 애플 큰 카드로. 변경: `js/foreign-flow.js` 스토리 렌더(기존 `.ff-swing-summary` 노드를 1번 카드로 옮겨 담음 — 스토리 없는 종목은 기존 자리 유지, 공통 캐러셀 `progress` 제거·가장자리 이전/다음 버튼), `css/foreign-flow.css` 스토리 블록 교체(회색 `#f5f5f7` 28px 카드·큰 제목·파란 '더 보기' 알약·다크). 트랙 좌우 패딩을 0으로(스냅 시 scrollLeft 2로 이전 버튼이 안 꺼지던 문제). 검증: test_stock_stories·company_profiles 통과, 로컬 하니스 PC/모바일 375px 가로 넘침 없음, 끝 버튼 숨김. 실사이트는 반영 후 확인.
+
 **2026-11-01 페이지 바탕색 원복 #FBF8EC → #FEFDFA**
 
 요청: 바탕색 원복. 변경: `style.css --page-bg`, `css/watchlist.css`, `css/legal.css`, `learn/*.html`, `docs/UI_GUIDE.md`를 이전 값으로 되돌림(황갈색 대신 적용한 애플 중립 회색 상자는 유지). 검증: 잔여 `#FBF8EC` 없음(grep), 화면은 반영 후.
