@@ -1,7 +1,7 @@
 /* ============ 시가총액 트리맵 ============ */
 
 .marketcap-bubble {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Pretendard, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', "Pretendard Variable", Pretendard, sans-serif;
 }
 
 .mcb-filter-bar {
@@ -222,24 +222,24 @@ html.dark #marketcap-bubble .mcb-filter-select {
 
 
 /* 2026-10-24 한경 마켓MAP 레퍼런스: 촘촘한 가로 트리맵. 9Pay 컬러(상승 빨강/하락 파랑) 유지. */
-#marketcap-bubble { width:100%; min-width:0; font-family:Pretendard,sans-serif; }
+#marketcap-bubble { width:100%; min-width:0; font-family:"Pretendard Variable", Pretendard,sans-serif; }
 #marketcap-bubble .mcb-filter-bar { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; margin-bottom:9px; }
 #marketcap-bubble .mcb-market-tabs { display:inline-flex; flex-wrap:wrap; gap:3px; padding:3px; border-radius:10px; background:#edf1f5; }
-#marketcap-bubble .mcb-market-tabs button { border:0; border-radius:7px; background:transparent; color:#586579; padding:6px 10px; font:600 12px/1.25 Pretendard,sans-serif; cursor:pointer; min-height:30px; }
+#marketcap-bubble .mcb-market-tabs button { border:0; border-radius:7px; background:transparent; color:#586579; padding:6px 10px; font:600 12px/1.25 "Pretendard Variable", Pretendard,sans-serif; cursor:pointer; min-height:30px; }
 #marketcap-bubble .mcb-market-tabs button:hover,
 #marketcap-bubble .mcb-market-tabs button:focus-visible { background:#fff; color:#202731; }
 #marketcap-bubble .mcb-market-tabs button.is-active { background:#fff; color:#1a293a; box-shadow:0 1px 4px rgba(0,0,0,.10); }
 #marketcap-bubble .mcb-filter-label { margin-left:auto; color:#465569; }
 #marketcap-bubble .mcb-filter-select { min-height:31px; border-radius:7px; color:#283340; background:#fff; }
-#marketcap-bubble .mcb-period { padding:6px 10px; border:1px solid #d7e0e9; border-radius:7px; color:#32445a; font:700 11px/1.4 Pretendard,sans-serif; white-space:nowrap; }
-#marketcap-bubble .mcb-explainer { margin:0 0 8px; font:400 11px/1.5 Pretendard,sans-serif; color:#748194; }
+#marketcap-bubble .mcb-period { padding:6px 10px; border:1px solid #d7e0e9; border-radius:7px; color:#32445a; font:700 11px/1.4 "Pretendard Variable", Pretendard,sans-serif; white-space:nowrap; }
+#marketcap-bubble .mcb-explainer { margin:0 0 8px; font:400 11px/1.5 "Pretendard Variable", Pretendard,sans-serif; color:#748194; }
 #marketcap-bubble .mcb-canvas { border:1px solid #344252; background:#202731; border-radius:6px; }
 #marketcap-bubble .mcb-svg { display:block; width:100%; height:auto; }
 #marketcap-bubble .mcb-cell { stroke:#202731; stroke-width:1; touch-action:manipulation; }
 #marketcap-bubble .mcb-node:focus-visible .mcb-cell,
 #marketcap-bubble .mcb-node:hover .mcb-cell { stroke:#fff; stroke-width:2.5; }
 #marketcap-bubble .mcb-node:focus-visible { outline:none; }
-#marketcap-bubble .mcb-zone-label { fill:#e2e8f0; font:700 12px Pretendard,sans-serif; }
+#marketcap-bubble .mcb-zone-label { fill:#e2e8f0; font:700 12px "Pretendard Variable", Pretendard,sans-serif; }
 #marketcap-bubble .mcb-label { fill:#fff; font-weight:700; text-shadow:none; }
 #marketcap-bubble .mcb-rate-label { fill:#f9fafb; font-weight:650; text-shadow:none; }
 #marketcap-bubble .mcb-cell.mcb-c-3 { fill:#244d8a; }

@@ -5,7 +5,7 @@
 .ifl { margin:0; }
 .ifl .ifl-asof, .ifl .ifl-cap, .ifl .ifl-note, .ifl .ifl-state, .ifl .ifl-sentence, .ifl .ifl-lv, .ifl .ifl-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:0 0 6px; }
 .ifl .ifl-seg { display:inline-flex; gap:0; }
-.ifl .ifl-seg-btn { appearance:none; margin:0; padding:6px 13px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12.5px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
+.ifl .ifl-seg-btn { appearance:none; margin:0; padding:6px 13px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12.5px/1.2 "Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ifl .ifl-seg-btn:last-child { border-right-width:1px; }
 .ifl .ifl-seg-btn.is-active { background:rgb(var(--ibd-ink)); color:#fff; }
 html.dark .ifl .ifl-seg-btn.is-active { color:var(--dk-bg); }

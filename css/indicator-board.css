@@ -2,7 +2,7 @@
    환율 탭(css/fx-rates.css)과 같은 신문식 표: 카드·둥근 상자·그림자 없이 선과 면으로 구분한다.
    상승 = 빨강, 하락 = 파랑(사이트 공통). 다크모드는 html.dark. 모든 선택자는 .ibd 아래로 한정해 다른 영역에 영향을 주지 않는다. */
 .ibd { min-width:0; margin:0 0 18px; --ibd-ink:13,27,64; --ibd-line:rgba(17,17,17,.13); --ibd-line-strong:rgba(17,17,17,.85);
-  --ibd-sub:#64748b; --ibd-num:#374151; --ibd-up:#d24f45; --ibd-down:#1261c4; --ibd-surface:transparent; --ibd-panel:transparent; --ibd-hover:rgba(var(--ibd-ink),.03); --ibd-selected:rgba(var(--ibd-ink),.02); color:rgb(var(--ibd-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
+  --ibd-sub:#64748b; --ibd-num:#374151; --ibd-up:#d24f45; --ibd-down:#1261c4; --ibd-surface:transparent; --ibd-panel:transparent; --ibd-hover:rgba(var(--ibd-ink),.03); --ibd-selected:rgba(var(--ibd-ink),.02); color:rgb(var(--ibd-ink)); font-family:"Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; }
 html.dark .ibd { --ibd-ink: var(--dk-ink-rgb); --ibd-line:var(--dk-line); --ibd-line-strong:var(--dk-text);
   --ibd-sub:var(--dk-sub); --ibd-num:var(--dk-text); --ibd-up:var(--dk-up); --ibd-down:var(--dk-down); --ibd-surface:var(--dk-card); --ibd-panel:var(--dk-panel); --ibd-hover:var(--dk-hover); --ibd-selected:var(--dk-active); }
 
@@ -40,7 +40,7 @@ html.dark .ibd { --ibd-ink: var(--dk-ink-rgb); --ibd-line:var(--dk-line); --ibd-
 .ibd .ibd-charthead { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 12px; margin-bottom:6px; }
 .ibd .ibd-subtitle { margin:0; font-family:var(--font-ui)!important; font-weight:600!important; font-size:18px!important; line-height:1.4!important; color:rgb(var(--ibd-ink))!important; }
 .ibd .ibd-range { display:flex; gap:0; }
-.ibd .ibd-range-btn { appearance:none; margin:0; padding:5px 12px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
+.ibd .ibd-range-btn { appearance:none; margin:0; padding:5px 12px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12px/1.2 "Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ibd .ibd-range-btn:last-child { border-right-width:1px; }
 .ibd .ibd-range-btn.is-active { background:rgb(var(--ibd-ink)); color:#fff; }
 html.dark .ibd .ibd-range-btn.is-active { color:var(--dk-bg); }
@@ -48,7 +48,7 @@ html.dark .ibd .ibd-range-btn.is-active { color:var(--dk-bg); }
 .ibd .ibd-chart .ibd-empty { padding-top:70px; }
 .ibd .ibd-svg { display:block; width:100%; overflow:visible; touch-action:pan-y; }
 .ibd .ibd-grid { stroke:var(--ibd-line); stroke-width:1; }
-.ibd .ibd-axis { fill:var(--ibd-sub); font-size:11px; font-family:Pretendard,"Malgun Gothic",sans-serif; }
+.ibd .ibd-axis { fill:var(--ibd-sub); font-size:11px; font-family:"Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; }
 .ibd .ibd-line { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
 .ibd .ibd-area { opacity:.08; stroke:none; }
 .ibd .ibd-cross { stroke:var(--ibd-sub); stroke-width:1; stroke-dasharray:3 3; }
@@ -110,7 +110,7 @@ html.dark .ibd .ibd-tip { background:var(--dk-card); color:var(--dk-text); }
 .ibd { --ibd-secline:var(--mi-idx-ref, #4b5563); }
 .ibd .ibd-legend { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin:0 0 6px; }
 .ibd .ibd-legend[hidden] { display:none; }
-.ibd .ibd-leg-btn { appearance:none; display:inline-flex; align-items:center; gap:6px; margin:0; padding:4px 10px; border:1px solid var(--ibd-line); border-radius:3px; background:transparent; color:rgb(var(--ibd-ink)); font:600 12px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
+.ibd .ibd-leg-btn { appearance:none; display:inline-flex; align-items:center; gap:6px; margin:0; padding:4px 10px; border:1px solid var(--ibd-line); border-radius:3px; background:transparent; color:rgb(var(--ibd-ink)); font:600 12px/1.2 "Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ibd .ibd-leg-btn.is-off { color:var(--ibd-sub); text-decoration:line-through; }
 .ibd .ibd-leg-btn.is-off .ibd-swatch { opacity:.3; }
 .ibd .ibd-leg-sec { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ibd-sub); }
@@ -119,7 +119,7 @@ html.dark .ibd .ibd-tip { background:var(--dk-card); color:var(--dk-text); }
 .ibd .ibd-bar { shape-rendering:crispEdges; }
 .ibd .ibd-zero { stroke:var(--ibd-line-strong); stroke-width:1; }
 .ibd .ibd-ref { stroke:var(--ibd-sub); stroke-width:1; stroke-dasharray:4 4; opacity:.7; }
-.ibd .ibd-ref-label { fill:var(--ibd-sub); font-size:10.5px; font-family:Pretendard,"Malgun Gothic",sans-serif; }
+.ibd .ibd-ref-label { fill:var(--ibd-sub); font-size:10.5px; font-family:"Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; }
 .ibd .ibd-mline { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
 .ibd .ibd-secline { fill:none; stroke:var(--ibd-secline); stroke-width:1.7; stroke-dasharray:1.5 3.5; stroke-linecap:round; }
 .ibd .ibd-axis-sec { fill:var(--ibd-sub); }

@@ -2452,8 +2452,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   }
   .nav-logo {
     --font-title: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif;
-    --font-ui: "Pretendard", "Malgun Gothic", sans-serif;
-    --font-data: "Pretendard", "Malgun Gothic", sans-serif;
+    --font-ui: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
+    --font-data: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
   }
   html body .feed .briefing-shelf {
     position: relative; min-width: 0; max-width: 100%;
@@ -4256,7 +4256,7 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: v
 }
 
 /* 2026-08-25 New newspaper type system.
-   Font switching is removed from the header: body/UI/content use Pretendard,
+   Font switching is removed from the header: body/UI/content use "Pretendard Variable", Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
 html body,
 html body * { font-family: var(--font-ui) !important; }

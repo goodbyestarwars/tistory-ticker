@@ -1,4 +1,4 @@
-:is(#us-macro-indicators, .sc-econ-results) { font-family: var(--font-ui, "Pretendard", "Malgun Gothic", sans-serif); color: #111827; }
+:is(#us-macro-indicators, .sc-econ-results) { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif); color: #111827; }
 :is(#us-macro-indicators, .sc-econ-results) .umi { padding: 4px 0 18px; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 0; }
 :is(#us-macro-indicators, .sc-econ-results) h2 { margin: 0 0 5px; font-size: 20px; }
