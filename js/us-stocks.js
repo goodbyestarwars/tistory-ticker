@@ -578,10 +578,11 @@
         + '</div>'
         + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
         + '<div class="us-stocks-market-grid">'
-        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
+        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div></section>'
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
         + '</div>'
+        + '<section id="usStocksOptions" class="us-stocks-panel us-opt-card" hidden></section>'
         + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>';
     }
     updateQuoteFields(quote, detail);
@@ -624,10 +625,11 @@
       + '<div class="us-stocks-metric us-stocks-metric-wide"><span>전일 거래량 대비</span><b data-us-metric="volchange">-</b></div>'
       + '</div></section>'
       + '<div class="ss-panels us-stocks-market-grid">'
-      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
+      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div></section>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
       + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
+      + '<section id="usStocksOptions" class="ss-options-panel us-stocks-panel us-opt-card" hidden></section>'
       + '<section class="ss-news-panel us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }
@@ -968,10 +970,10 @@
     var avgHtml = avgTiles
       ? '<div class="us-opt-tiles">' + avgTiles + '</div>'
       : '<p class="us-opt-note">평소 대비 거래량은 하루씩 기록을 쌓아 계산합니다(현재 ' + (o.volume_history_days || 0) + '일 기록).</p>';
-    return '<div class="us-opt-head"><b>옵션 종합</b><span>' + optAsOfText(data) + ' · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>'
+    return '<div class="us-opt-head"><b>옵션 종합</b><span>' + optAsOfText(data) + '</span></div>'
       + '<dl class="us-opt-kv">'
       + '<div><dt>현재가</dt><dd>' + optMoney(data.price) + '</dd></div>'
-      + '<div><dt>맥스 페인(가장 가까운 만기)</dt><dd>' + optMoney(o.max_pain) + '</dd></div>'
+      + '<div><dt>맥스 페인 (만기 ' + escapeOptHtml(String(data.expiry).slice(5)) + ')</dt><dd>' + optMoney(o.max_pain) + '</dd></div>'
       + '<div><dt>풋/콜 비율 (거래량)</dt><dd>' + (o.pc_volume == null ? '-' : o.pc_volume.toFixed(2)) + '</dd></div>'
       + '<div><dt>풋/콜 비율 (미결제약정)</dt><dd>' + (o.pc_oi == null ? '-' : o.pc_oi.toFixed(2)) + '</dd></div>'
       + '</dl>'
@@ -992,12 +994,17 @@
       + '<p class="us-opt-note">프리미엄 비중은 거래량×호가 중간가로 계산한 추정이며 실제 체결 금액이 아닙니다. 감마 플립은 주가가 ±15% 움직일 때 순감마가 0이 되는 지점의 추정입니다.</p>';
   }
 
+  // 넓은 패널에서는 왼쪽 종합 지표, 오른쪽 0DTE 사다리로 나눈다(좁으면 위아래).
+  function optGridHtml(overviewHtml, ladderHtml) {
+    return '<div class="us-opt-grid"><div class="us-opt-col">' + overviewHtml + '</div><div class="us-opt-col">' + ladderHtml + '</div></div>';
+  }
+
   function renderOptionsCard(mount, data) {
     if (!data || !data.available) { mount.hidden = true; mount.innerHTML = ''; return; }
     var overviewHtml = optOverviewHtml(data);
     if (!data.is_0dte) {
       mount.hidden = false;
-      mount.innerHTML = overviewHtml + '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 옵션 없음 · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>';
+      mount.innerHTML = optGridHtml(overviewHtml, '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 옵션 없음 · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>');
       return;
     }
     var rows = (data.strikes || []).slice().sort(function (a, b) { return b.strike - a.strike; });
@@ -1005,7 +1012,7 @@
     rows.forEach(function (r) { maxValue = Math.max(maxValue, r.call, r.put); });
     maxValue = maxValue || 1;
     var price = Number(data.price);
-    var html = overviewHtml + '<div class="us-opt-head us-opt-head-0dte"><b>0DTE 옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
+    var html = '<div class="us-opt-head us-opt-head-0dte"><b>0DTE 옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
       + '<div class="us-opt-sub">오늘 거래량이 미결제약정보다 큰 행사가 = 신규 포지션 · 감마는 OI(전일) 기준</div>'
       + '<div class="us-opt-tiles">'
       + '<div><span>콜 월(최대 콜 감마)</span><b class="us-opt-call">$' + Number(data.call_wall).toFixed(2) + '</b></div>'
@@ -1028,7 +1035,7 @@
     });
     html += '<p class="us-opt-note">막대: 행사가별 감마 노출 추정(주가 1% 움직일 때). 숫자: 미결제약정(OI) · 오늘 거래량. 시장조성자가 콜을 팔고 풋을 샀다는 가정의 추정이며 실제 포지션이 아닙니다.</p>';
     mount.hidden = false;
-    mount.innerHTML = html;
+    mount.innerHTML = optGridHtml(overviewHtml, html);
   }
 
   function escapeOptHtml(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }

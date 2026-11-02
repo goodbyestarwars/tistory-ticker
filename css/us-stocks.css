@@ -353,3 +353,34 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 }
 
 .us-stocks-quote-line[data-us-session-comparison][hidden] { display: none; }
+
+/* 옵션 패널(2026-11-03): 호가 옆 좁은 칸에서 차트 아래 전체 폭으로 옮기고 종합/0DTE를 좌우 두 단으로 나눈다 */
+.us-opt-card.us-stocks-panel { margin-top: 0; border-top-width: 1px; padding: 14px 18px 12px; }
+#stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
+.us-opt-grid { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 8px 28px; align-items: start; }
+.us-opt-col { min-width: 0; }
+.us-opt-card.us-stocks-panel .us-opt-head b { font-size: 15px; }
+.us-opt-card.us-stocks-panel .us-opt-head span { font-size: 12px; }
+.us-opt-card.us-stocks-panel .us-opt-kv > div { padding: 8px 0; font-size: 13.5px; }
+.us-opt-card.us-stocks-panel .us-opt-share { grid-template-columns: 84px minmax(0, 1fr) 84px; font-size: 12.5px; padding: 4px 0; }
+.us-opt-card.us-stocks-panel .us-opt-share em { font-size: 12px; }
+.us-opt-card.us-stocks-panel .us-opt-sub { font-size: 12.5px; padding: 4px 6px 8px; }
+.us-opt-card.us-stocks-panel .us-opt-tiles > div { padding: 9px 10px; font-size: 12px; }
+.us-opt-card.us-stocks-panel .us-opt-tiles b { font-size: 16px; }
+.us-opt-card.us-stocks-panel .us-opt-row { height: 32px; font-size: 13.5px; grid-template-columns: 1fr 72px 1fr; }
+.us-opt-card.us-stocks-panel .us-opt-cols { grid-template-columns: 1fr 72px 1fr; font-size: 12.5px; }
+.us-opt-card.us-stocks-panel .us-opt-n { font-size: 12px; }
+.us-opt-card.us-stocks-panel .us-opt-cur { font-size: 13.5px; padding: 6px 8px; }
+.us-opt-card.us-stocks-panel .us-opt-note { font-size: 11.5px; }
+.us-opt-card.us-stocks-panel .us-opt-head-0dte { margin-top: 0; border-top: 0; }
+@media (max-width: 960px) {
+  .us-opt-grid { grid-template-columns: minmax(0, 1fr); }
+  .us-opt-card.us-stocks-panel .us-opt-head-0dte { margin-top: 10px; border-top: 1px solid #eee; }
+  .us-opt-card.us-stocks-panel { padding: 12px 12px 10px; }
+}
+@media (max-width: 480px) {
+  .us-opt-card.us-stocks-panel .us-opt-row { grid-template-columns: 1fr 60px 1fr; font-size: 12.5px; }
+  .us-opt-card.us-stocks-panel .us-opt-n { font-size: 10.5px; }
+}
+html.dark .us-opt-card.us-stocks-panel .us-opt-head-0dte { border-top-color: var(--dk-line); }
+.us-opt-head b { white-space: nowrap; }
