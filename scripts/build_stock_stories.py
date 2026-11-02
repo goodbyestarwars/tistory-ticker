@@ -42,11 +42,13 @@ RECENT = 5
 # 카드를 만들 기준(바꾸면 카드 수가 크게 달라진다)
 DRAWDOWN_MIN = 35.0         # 흑자인데 52주 고점 대비 이만큼 이상 하락
 LOW_NEAR = 1.05             # 52주 저가의 5% 이내를 '저가 근처'로
-FLOW_MIN_PCT_OF_CAP = 1.0   # 순매도 쪽이 시가총액의 1% 이상
+FLOW_MIN_PCT_OF_CAP = 0.3   # 순매도 쪽이 시가총액의 0.3% 이상
 FLOW_OFFSET_RATIO = 0.6     # 반대편 순매수가 그 순매도의 60% 이상
 SHORT_HIGH_PCT = 8.0        # 20거래일 평균 공매도 비중
-SHORT_JUMP_RATIO = 2.0      # 최근 5거래일 평균이 이전 15거래일 평균의 2배 이상
+SHORT_JUMP_RATIO = 3.0      # 최근 5거래일 평균이 이전 15거래일 평균의 3배 이상
 SHORT_JUMP_MIN_PCT = 4.0    # 그리고 최근 평균이 이 값 이상
+PCT_CUT = {'gap': 85, 'flow': 90, 'short': 90}   # 시장 전체가 같이 빠진 날 모든 종목에 카드가 붙지 않게, 이번 실행 분포의 상위 일부만 통과
+TH0 = {'gap': DRAWDOWN_MIN, 'flow': FLOW_MIN_PCT_OF_CAP, 'short': SHORT_HIGH_PCT}
 MAX_STORY_BYTES = 600_000   # 단일 파일 로드 한계 경고선(넘으면 분할 필요)
 
 NOTE = '작성 시점 값이라 실시간으로 바뀌지 않는다. 사라는 말도 팔라는 말도 아니다.'
@@ -86,13 +88,13 @@ def short_shares(short_rows):
     return out
 
 
-def card_profit_gap(b):
+def card_profit_gap(b, th=TH0):
     """흑자인데 주가는 고점에서 크게 내려온 종목(영업이익은 직전 결산 1개 값이라 '증가'는 말하지 않는다)."""
     op, cur, hi = b.get('bus_pro'), b.get('cur'), b.get('hi')
     if op is None or not cur or not hi or op <= 0:
         return None
     dd = (cur / hi - 1) * 100
-    if dd > -DRAWDOWN_MIN:
+    if dd > -th['gap']:
         return None
     return {
         'title': '흑자인데 주가는 고점 대비 %d%%' % round(dd),
@@ -114,14 +116,15 @@ def card_below_book(b):
     if not pbr or pbr <= 0 or pbr >= 1 or not cur or not lo or cur > lo * LOW_NEAR:
         return None
     hi = b.get('hi')
+    top = max(hi or 0, b.get('bps') or 0, cur)  # 주당순자산이 52주 고점보다 클 수 있어 가장 큰 값을 100으로 잡는다
     rows = []
     if hi:
-        rows.append({'label': '52주 고점 {:,.0f}원'.format(hi), 'val': '', 'w': 100, 't': 'n'})
+        rows.append({'label': '52주 고점 {:,.0f}원'.format(hi), 'val': '', 'w': max(1, round(hi / top * 100)), 't': 'n'})
     if b.get('bps'):
         rows.append({'label': '주당순자산 {:,.0f}원'.format(b['bps']), 'val': '직전 결산 기준',
-                     'w': max(1, round(b['bps'] / hi * 100)) if hi else 50, 't': 'n'})
+                     'w': max(1, round(b['bps'] / top * 100)), 't': 'n'})
     rows.append({'label': '현재 {:,.0f}원'.format(cur), 'val': '52주 저가 {:,.0f}원'.format(lo),
-                 'w': max(1, round(cur / hi * 100)) if hi else 30, 't': 'dn'})
+                 'w': max(1, round(cur / top * 100)), 't': 'dn'})
     return {
         'title': '순자산보다 싼데(PBR %.2f배) 52주 저가 근처다' % pbr,
         'pair': [{'k': 'PBR', 'v': '%.2f배' % pbr, 't': 'n'},
@@ -146,7 +149,7 @@ def window_sums(invsr_rows, key):
 GROUPS = (('외국인', 'frgnr_invsr'), ('기관', 'orgn'), ('개인', 'ind_invsr'))
 
 
-def card_flow(b, invsr_rows):
+def card_flow(b, invsr_rows, th=TH0):
     cap = b.get('mac')
     if not cap or cap <= 0:
         return None
@@ -159,7 +162,7 @@ def card_flow(b, invsr_rows):
         return None
     seller = min(sums, key=lambda k: sums[k][0])
     sell = -sums[seller][0]
-    if sell <= 0 or sell < cap * FLOW_MIN_PCT_OF_CAP / 100:
+    if sell <= 0 or sell < cap * th['flow'] / 100:
         return None
     buyers = [k for k in sums if k != seller and sums[k][0] > 0]
     if not buyers:
@@ -182,7 +185,7 @@ def card_flow(b, invsr_rows):
     }, {'seller': seller}
 
 
-def card_short(b, short_rows):
+def card_short(b, short_rows, th=TH0):
     sh = short_shares(short_rows)[:WINDOW]
     if len(sh) < WINDOW // 2:
         return None
@@ -208,7 +211,7 @@ def card_short(b, short_rows):
             'detail': base + ['틀렸다면: 5거래일 평균 비중이 이전 평균(%.1f%%) 근처로 돌아오면 매도 압력 이야기는 틀린 것이다.' % p],
         }
         warn = max(p * 1.2, SHORT_JUMP_MIN_PCT)
-    elif avg20 >= SHORT_HIGH_PCT:
+    elif avg20 >= th['short']:
         card = {
             'title': '거래량의 %d%%가 공매도다' % round(avg20),
             'rows': [{'label': '%d거래일 평균' % len(sh), 'val': '%.1f%%' % avg20, 'w': 100, 't': 'dn'},
@@ -246,28 +249,58 @@ def card_risk(b, short_meta):
             'detail': [NOTE], 'src': '키움증권 일봉·수급·공매도', 'topics': ['risk']}
 
 
-def build_entry(code, basic, short_rows, invsr_rows, today):
-    """종목 하나의 스토리 항목. 기준을 넘는 카드가 없으면 None."""
-    b = {
+def parse_basic(basic):
+    return {
         'name': basic.get('stk_nm') or '',
         'cur': absnum(basic.get('cur_prc')), 'hi': absnum(basic.get('250hgst')), 'lo': absnum(basic.get('250lwst')),
         'per': num(basic.get('per')), 'pbr': num(basic.get('pbr')), 'bps': num(basic.get('bps')),
         'mac': num(basic.get('mac')), 'bus_pro': num(basic.get('bus_pro')),
     }
+
+
+def pctile(vals, pct):
+    vals = sorted(vals)
+    return vals[min(len(vals) - 1, int(len(vals) * pct / 100))] if vals else None
+
+
+def derive_thresholds(raws):
+    """raws: [(basic, short_rows, invsr_rows)] -> 이번 실행 분포 기준 임계값(절대 하한 이상)."""
+    gaps, flows, shorts = [], [], []
+    for basic, short_rows, invsr_rows in raws:
+        b = parse_basic(basic)
+        if b['bus_pro'] and b['bus_pro'] > 0 and b['cur'] and b['hi']:
+            gaps.append(-(b['cur'] / b['hi'] - 1) * 100)
+        sh = short_shares(sorted(short_rows, key=lambda r: r.get('dt', ''), reverse=True))[:WINDOW]
+        if len(sh) >= WINDOW // 2:
+            shorts.append(sum(v for _, v in sh) / len(sh))
+        rows = sorted(invsr_rows, key=lambda r: r.get('dt', ''), reverse=True)
+        sums = [window_sums(rows, k) for _, k in GROUPS]
+        if b['mac'] and b['mac'] > 0 and all(sums):
+            flows.append(max(0.0, -min(x[0] for x in sums)) / b['mac'] * 100)
+    th = dict(TH0)
+    for key, vals in (('gap', gaps), ('flow', flows), ('short', shorts)):
+        cut = pctile(vals, PCT_CUT[key])
+        if cut is not None:
+            th[key] = max(TH0[key], cut)
+    return th
+
+
+def build_entry(code, basic, short_rows, invsr_rows, today, th=TH0):
+    """종목 하나의 스토리 항목. 기준을 넘는 카드가 없으면 None."""
+    b = parse_basic(basic)
     short_rows = sorted(short_rows, key=lambda r: r.get('dt', ''), reverse=True)
     invsr_rows = sorted(invsr_rows, key=lambda r: r.get('dt', ''), reverse=True)
     as_of = short_rows[0]['dt'] if short_rows else (invsr_rows[0]['dt'] if invsr_rows else None)
     if not b['name'] or not as_of or not b['cur']:
         return None
     cards = []
-    for fn in (card_profit_gap, card_below_book):
-        c = fn(b)
+    for c in (card_profit_gap(b, th), card_below_book(b)):
         if c:
             cards.append(c)
-    flow = card_flow(b, invsr_rows) if invsr_rows else None
+    flow = card_flow(b, invsr_rows, th) if invsr_rows else None
     if flow:
         cards.append(flow[0])
-    short = card_short(b, short_rows) if short_rows else None
+    short = card_short(b, short_rows, th) if short_rows else None
     if short:
         cards.append(short[0])
     cards = cards[:3]
@@ -334,7 +367,7 @@ def main():
     end = datetime.now()
     strt_dt, end_dt = (end - timedelta(days=LOOKBACK_DAYS)).strftime('%Y%m%d'), end.strftime('%Y%m%d')
     today = end.strftime('%Y-%m-%d')
-    auto, failed = {}, 0
+    raws, failed = [], 0
     for i, code in enumerate(codes, 1):
         try:
             basic = fif.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
@@ -344,14 +377,19 @@ def main():
             invsr = fif.call_tr(token, 'ka10059', '/api/dostk/stkinfo',
                                 {'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
             time.sleep(fif.THROTTLE_SEC)
-            entry = build_entry(code, basic, short.get('shrts_trnsn') or [], invsr.get('stk_invsr_orgn') or [], today)
-            if entry:
-                auto[code] = entry
+            raws.append((code, basic, short.get('shrts_trnsn') or [], invsr.get('stk_invsr_orgn') or []))
         except Exception as e:  # 한 종목 실패가 전체를 멈추지 않게 - 실패는 집계해서 보고한다.
             failed += 1
             fif.log('%s 실패: %s' % (code, e))
         if i % 100 == 0:
-            fif.log('%d/%d, 카드 있는 종목 %d, 실패 %d' % (i, len(codes), len(auto), failed))
+            fif.log('%d/%d 수집, 실패 %d' % (i, len(codes), failed))
+    th = derive_thresholds([(b, s_, v) for _, b, s_, v in raws])
+    fif.log('이번 실행 임계값: 이익괴리 고점대비 -%.1f%%, 수급쏠림 시총의 %.2f%%, 공매도 20일평균 %.1f%%' % (th['gap'], th['flow'], th['short']))
+    auto = {}
+    for code, basic, short, invsr in raws:
+        entry = build_entry(code, basic, short, invsr, today, th)
+        if entry:
+            auto[code] = entry
     kinds = {}
     for v in auto.values():
         for c in v['cards']:

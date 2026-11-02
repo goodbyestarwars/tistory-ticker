@@ -39,6 +39,8 @@ SECTORS_FILE = os.path.join(REPO_ROOT, 'data', 'sectors-v3.js')
 OUTPUT_FILE = os.path.join(REPO_ROOT, 'data', 'investor-flow-cache.js')
 
 BASE_URL = 'https://api.kiwoom.com'
+# 클라우드 VM에서는 urllib 기본 User-Agent가 WAF에 차단된다(cloud-vm/kiwoom_client.py와 같은 이유).
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 THROTTLE_SEC = 0.25  # 초당 4회
 LOOKBACK_DAYS = 100  # 60영업일 확보용 여유(주말/휴장 감안)
 
@@ -89,7 +91,7 @@ def get_token(appkey, secretkey):
     req = urllib.request.Request(
         BASE_URL + '/oauth2/token',
         data=body,
-        headers={'Content-Type': 'application/json;charset=UTF-8'},
+        headers={'Content-Type': 'application/json;charset=UTF-8', 'User-Agent': USER_AGENT},
         method='POST'
     )
     with urllib.request.urlopen(req, timeout=15) as res:
@@ -106,6 +108,7 @@ def call_tr(token, api_id, path, body):
         data=json.dumps(body).encode('utf-8'),
         headers={
             'Content-Type': 'application/json;charset=UTF-8',
+            'User-Agent': USER_AGENT,
             'authorization': 'Bearer ' + token,
             'api-id': api_id,
         },
