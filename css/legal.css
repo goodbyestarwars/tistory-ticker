@@ -106,6 +106,7 @@ body.learn-page .legal-wrap {
      표는 머리글 한 줄만 아주 옅은 남색(--learn-head), 그림 면(--learn-box/-deep)은 남색 계열 옅은 톤.
      상승 빨강/하락 파랑 외 그래프 색은 남색 계열만 쓴다(황갈색·금색·회색 금지). */
   --learn-surface: #fff;
+  --learn-panel: #FEFDFA;
   --learn-head: #eef2f9;
   --learn-box: #eef2f9;
   --learn-box-deep: #d9e2f1;
@@ -187,10 +188,12 @@ body.learn-page .legal-wrap .learn-table th,
 body.learn-page .legal-wrap .learn-case-no,
 body.learn-page .legal-wrap .fig-ink,
 body.learn-page .legal-wrap .fig-on-strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 400; }
-body.learn-page .legal-wrap h1 { color: var(--learn-ink); }
+/* 제목과 번호 달린 문장은 남색(2026-11-02). */
+body.learn-page .legal-wrap h1,
 body.learn-page .legal-wrap h2,
 body.learn-page .legal-wrap h3,
-body.learn-page .legal-wrap h4 { color: var(--learn-ink); }
+body.learn-page .legal-wrap h4,
+body.learn-page .legal-wrap ol > li { color: var(--learn-navy); }
 /* 제목만 굵게: 본문 강조는 굵기 대신 남색 글자로 구분한다. */
 body.learn-page .legal-wrap b,
 body.learn-page .legal-wrap strong { font-weight: 400; color: var(--learn-case-label); }
@@ -226,7 +229,7 @@ body.learn-page .legal-wrap .learn-sec,
 body.learn-page .legal-wrap .learn-deep {
   margin: 0 0 var(--ui-section-gap);
   padding: 26px 28px;
-  background: var(--learn-surface);
+  background: var(--learn-panel);
   border: 1px solid var(--learn-line);
   border-radius: 22px;
   box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16);
@@ -283,6 +286,7 @@ body.learn-page .legal-wrap .ls-snippet mark { padding: 0 2px; border-radius: 4p
 @media (prefers-color-scheme: dark) {
   body.learn-page .legal-wrap {
     --learn-surface: #161d2c;
+    --learn-panel: #161d2c;
     --learn-head: #1c2b44;
     --learn-box: #1b2433;
     --learn-box-deep: #223049;
