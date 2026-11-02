@@ -1751,6 +1751,9 @@
       if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
+      // 회사 소개는 따로 두지 않고 종목 스토리 제목 바로 아래로 옮긴다(소개 문구는 기존 로더가 그대로 채운다).
+      var storyHead = mount.querySelector('.ff-story-head'), profile = box.querySelector('.ff-company-profile');
+      if (storyHead && profile) { storyHead.appendChild(profile); profile.classList.add('is-in-story'); }
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
@@ -1772,8 +1775,17 @@
           var w = host.getBoundingClientRect().width;
           if (w > 0 && vw > w) stage.style.setProperty('--ff-band-side', Math.max(16, (vw - w) / 2) + 'px');
         }
+        // 넓은 화면에서 제목·소개가 띠 왼쪽 빈 공간에 떠 있으므로 소개가 길면 띠 높이를 그만큼 늘린다.
+        function fitHead() {
+          var head = stage.querySelector('.ff-story-head');
+          stage.style.minHeight = '';
+          if (head && getComputedStyle(head).position === 'absolute') stage.style.minHeight = (head.offsetTop + head.offsetHeight + 40) + 'px';
+        }
+        var headBox = stage.querySelector('.ff-story-head');
+        if (headBox && global.ResizeObserver) new ResizeObserver(fitHead).observe(headBox);
+        fitHead();
         alignBand();
-        global.addEventListener('resize', function () { if (document.body.contains(stage)) alignBand(); });
+        global.addEventListener('resize', function () { if (document.body.contains(stage)) { alignBand(); fitHead(); } });
         var pauseBtn = stage.querySelector('[data-wide-pause]'), userPaused = !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches), hold = false;
         function syncPause() { if (!pauseBtn) return; pauseBtn.classList.toggle('is-paused', userPaused); pauseBtn.setAttribute('aria-label', userPaused ? '자동 넘김 재생' : '자동 넘김 일시정지'); }
         if (pauseBtn) pauseBtn.addEventListener('click', function () { userPaused = !userPaused; syncPause(); });
