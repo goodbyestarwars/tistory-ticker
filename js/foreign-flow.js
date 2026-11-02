@@ -1631,10 +1631,15 @@
     return '<strong class="' + wideTone_(text) + (big ? ' is-big' : '') + '">' + escapeHtml(text) + '</strong>';
   }
 
-  // 판정 값을 머리글 한 줄 + 값 한 줄 표로 보여준다(첫 줄만 옅은 남색)
-  function wideTable_(heads, cells) {
-    return '<table class="ff-wide-table"><thead><tr>' + heads.map(function (h) { return '<th scope="col">' + escapeHtml(h) + '</th>'; }).join('')
-      + '</tr></thead><tbody><tr>' + cells.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr></tbody></table>';
+  // 판정 값을 6칸 한 표로 보여준다: 3칸·2칸·6칸 묶음이 같은 칸 눈금을 쓰므로 좌우 끝선이 맞는다(첫 줄만 옅은 남색)
+  function wideTable_(groups) {
+    var rows = groups.map(function (g, gi) {
+      var span = 6 / g.heads.length;
+      return (gi ? '<tr class="is-gap"><td colspan="6"></td></tr>' : '')
+        + '<tr class="is-head">' + g.heads.map(function (h) { return '<th scope="col" colspan="' + span + '">' + escapeHtml(h) + '</th>'; }).join('') + '</tr>'
+        + '<tr>' + g.cells.map(function (c) { return '<td colspan="' + span + '">' + c + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    return '<table class="ff-wide-table"><colgroup><col><col><col><col><col><col></colgroup><tbody>' + rows + '</tbody></table>';
   }
 
   function buildVerdictCard(vm) {
@@ -1646,9 +1651,11 @@
       + '<div class="ff-wide-lead"><small>2주 스윙 판정</small>' + wideValue_(label, true)
       + '<p>' + escapeHtml(story) + '</p><em>최근 이벤트 · ' + escapeHtml(vm.recentEvent.label) + '</em></div>'
       + '<div class="ff-wide-body">'
-      + wideTable_(['장기 · 맥락', '중기 · 방향', '단기 · 진입 시점'], [wideValue_(vm.bigWave.label), wideValue_(vm.midWave.label), wideValue_(vm.smallWave.label)])
-      + wideTable_(['보유자 행동', '신규 진입'], [wideValue_(a.holderAction), wideValue_(a.entryOpinion)])
-      + wideTable_(['5일선 신호', '전환 단계', '보조 상태', '모멘텀', '펀더멘털', '위험'], [vm.shortSignal.label || '없음', vm.transitionLabel, vm.auxiliary, a.momentum.state, a.fundamental.state, vm.risk.state].map(function (v) { return '<b>' + escapeHtml(v) + '</b>'; }))
+      + wideTable_([
+        { heads: ['장기 · 맥락', '중기 · 방향', '단기 · 진입 시점'], cells: [wideValue_(vm.bigWave.label), wideValue_(vm.midWave.label), wideValue_(vm.smallWave.label)] },
+        { heads: ['보유자 행동', '신규 진입'], cells: [wideValue_(a.holderAction), wideValue_(a.entryOpinion)] },
+        { heads: ['5일선 신호', '전환 단계', '보조 상태', '모멘텀', '펀더멘털', '위험'], cells: [vm.shortSignal.label || '없음', vm.transitionLabel, vm.auxiliary, a.momentum.state, a.fundamental.state, vm.risk.state].map(function (v) { return '<b>' + escapeHtml(v) + '</b>'; }) }
+      ])
       + '</div></div>'
       + '<footer class="ff-wide-foot"><p><b>판정 근거</b> ' + escapeHtml(vm.reasons || '차트 데이터 확인 중') + '</p>'
       + '<p><b>무효화 조건</b> ' + escapeHtml(vm.chart.invalidation || '-') + '</p>'
@@ -1751,9 +1758,6 @@
       if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
-      // 회사 소개는 따로 두지 않고 종목 스토리 제목 바로 아래로 옮긴다(소개 문구는 기존 로더가 그대로 채운다).
-      var storyHead = mount.querySelector('.ff-story-head'), profile = box.querySelector('.ff-company-profile');
-      if (storyHead && profile) { storyHead.appendChild(profile); profile.classList.add('is-in-story'); }
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
@@ -1775,17 +1779,8 @@
           var w = host.getBoundingClientRect().width;
           if (w > 0 && vw > w) stage.style.setProperty('--ff-band-side', Math.max(16, (vw - w) / 2) + 'px');
         }
-        // 넓은 화면에서 제목·소개가 띠 왼쪽 빈 공간에 떠 있으므로 소개가 길면 띠 높이를 그만큼 늘린다.
-        function fitHead() {
-          var head = stage.querySelector('.ff-story-head');
-          stage.style.minHeight = '';
-          if (head && getComputedStyle(head).position === 'absolute') stage.style.minHeight = (head.offsetTop + head.offsetHeight + 40) + 'px';
-        }
-        var headBox = stage.querySelector('.ff-story-head');
-        if (headBox && global.ResizeObserver) new ResizeObserver(fitHead).observe(headBox);
-        fitHead();
         alignBand();
-        global.addEventListener('resize', function () { if (document.body.contains(stage)) { alignBand(); fitHead(); } });
+        global.addEventListener('resize', function () { if (document.body.contains(stage)) alignBand(); });
         var pauseBtn = stage.querySelector('[data-wide-pause]'), userPaused = !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches), hold = false;
         function syncPause() { if (!pauseBtn) return; pauseBtn.classList.toggle('is-paused', userPaused); pauseBtn.setAttribute('aria-label', userPaused ? '자동 넘김 재생' : '자동 넘김 일시정지'); }
         if (pauseBtn) pauseBtn.addEventListener('click', function () { userPaused = !userPaused; syncPause(); });
