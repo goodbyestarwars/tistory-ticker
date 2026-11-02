@@ -1728,13 +1728,41 @@
       + '</div><footer class="ff-wide-foot"><small>일봉 종가 기준 · 최근 ' + span + '거래일</small></footer></article>';
   }
 
+  // 종목 스토리 제목 아래 아주 작은 분봉(5분봉, 가장 최근 거래일 09:00~15:20). 선 하나와 전일 종가 점선만 그린다.
+  function loadStoryMinute(mount, code, chartData) {
+    var slot = mount.querySelector('[data-story-mini]');
+    if (!slot || !/^[0-9A-Z]{6}$/.test(String(code || ''))) return;
+    fetchJson('https://goodbyestar.cloud/ohlc-minute/' + encodeURIComponent(code) + '?tic_scope=5').then(function (res) {
+      if (!mount.contains(slot)) return;
+      var rows = (res && res.data) || [];
+      if (!rows.length) return;
+      var day = rows[rows.length - 1].date;
+      rows = rows.filter(function (r) { return r.date === day && r.time >= '09:00' && r.time <= '15:20' && Number(r.close) > 0; });
+      if (rows.length < 3) return;
+      var daily = (chartData && chartData.daily) || [], prev = null;
+      for (var i = daily.length - 1; i >= 0; i--) { if (String(daily[i].date) < day) { prev = Number(daily[i].close); break; } }
+      var closes = rows.map(function (r) { return Number(r.close); }), last = closes[closes.length - 1];
+      var lo = Math.min.apply(null, closes.concat(prev || closes)), hi = Math.max.apply(null, closes.concat(prev || closes)), range = (hi - lo) || 1;
+      var W = 160, H = 56, n = 79;  // 09:00~15:20 5분봉 79칸 기준으로 x를 정해 장중에는 오른쪽이 비어 보인다
+      var d = closes.map(function (v, k) { return (k ? 'L' : 'M') + (k / (n - 1) * W).toFixed(1) + ' ' + (3 + (1 - (v - lo) / range) * (H - 6)).toFixed(1); }).join('');
+      var rate = prev ? (last / prev - 1) * 100 : null, tone = rate == null ? '' : rate > 0 ? 'is-up' : rate < 0 ? 'is-dn' : '';
+      slot.innerHTML = '<small>' + escapeHtml(day.slice(5)) + ' 분봉 · 5분</small>'
+        + '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="당일 5분봉">'
+        + (prev ? '<line class="ff-mini-prev" x1="0" x2="' + W + '" y1="' + (3 + (1 - (prev - lo) / range) * (H - 6)).toFixed(1) + '" y2="' + (3 + (1 - (prev - lo) / range) * (H - 6)).toFixed(1) + '"/>' : '')
+        + '<path class="ff-mini-line ' + tone + '" d="' + d + '"/></svg>'
+        + (rate == null ? '' : '<b class="' + tone + '">' + Number(last).toLocaleString() + '원 (' + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%)</b>');
+      slot.hidden = false;
+    }).catch(function () {});
+  }
+
   function buildStockStoryHtml(st, wideHtml, wideCount, code) {
     var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
     var cards = (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
     var total = wideCount + (st.cards || []).length;
     return '<div class="ff-wide-stage" data-wide-stage>'
       + '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 : ' + escapeHtml(st.name) + (code ? ' (' + escapeHtml(code) + ')' : '') + '</span>'
-      + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small></div>'
+      + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small>'
+      + '<div class="ff-story-mini" data-story-mini hidden></div></div>'
       + '<div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
       + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
@@ -1758,6 +1786,7 @@
       if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
+      loadStoryMinute(mount, code, chartData);
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
