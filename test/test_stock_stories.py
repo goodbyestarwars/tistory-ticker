@@ -50,7 +50,7 @@ assert(appended.length===0);
  assert(!mx.innerHTML.includes('ff-wide--verdict')&&!mx.innerHTML.includes('ff-wide--chart'));
  assert(mx.innerHTML.includes('ff-wide--story'));
  const m2={hidden:true,innerHTML:''};
- api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?m2:null;},contains(){return true;},closest(){return null;}},'005930');
+ api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?m2:null;},contains(){return true;},closest(){return null;}},'999999');
  await new Promise(setImmediate);
  assert.equal(m2.hidden,true);
  const m3={hidden:true,innerHTML:''};
