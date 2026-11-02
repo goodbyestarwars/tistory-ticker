@@ -959,8 +959,8 @@
     var isUs = /^US:/i.test(code);
     // 실시간 WebSocket 시세(quote.type==='quote')는 marketState를 안 실어 보낸다 - REST가
     // 채워둔 배지를 여기서 지우지 않고 그대로 둔다(marketState가 있을 때만 갱신).
-    if (sessionEl && isUs && quote.marketState != null) {
-      var sessionLabel = usSessionLabel(quote.marketState);
+    if (sessionEl && (quote.marketState != null || quote.market_state != null)) {
+      var sessionLabel = usSessionLabel(quote.marketState || quote.market_state);
       sessionEl.textContent = sessionLabel;
       sessionEl.hidden = !sessionLabel;
     }
@@ -1484,7 +1484,7 @@
 
   // js/us-stocks.js의 marketStateLabel()과 같은 문구(장전/정규장/장후/장 마감).
   function usSessionLabel(state) {
-    return { pre: '장전', regular: '정규장', post: '장후', closed: '장 마감' }[state] || '';
+    return global.NineUI.marketSessionLabel(state);
   }
 
   function formatNumber(n) {

@@ -215,7 +215,10 @@
     global.document.addEventListener('click', later, true);
     return save;
   }
-  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle, persistPrefs: persistPrefs };
+  function marketSessionLabel(value) {
+    return {pre: '프리마켓', regular: '정규장', post: '정규장 마감 · 애프터마켓', closed: '장 마감'}[value] || '시장 상태 확인 중';
+  }
+  global.NineUI = { marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle, persistPrefs: persistPrefs };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 

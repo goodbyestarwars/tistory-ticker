@@ -100,7 +100,9 @@ class YahooExtendedHoursQuoteTest(unittest.TestCase):
 
         import urllib.parse
         import types
-        namespace = {'urllib': types.SimpleNamespace(parse=urllib.parse)}
+        import time
+        namespace = {'urllib': types.SimpleNamespace(parse=urllib.parse), 'time': time, 'datetime': datetime, 'NY_TZ': NY_TZ,
+                     '_session_date': lambda: datetime.now(NY_TZ).date().isoformat()}
 
         def fake_normalize_quote(row, symbol, provider, exchange):
             return dict(row, symbol=symbol, provider=provider, exchange=exchange)
@@ -118,6 +120,8 @@ class YahooExtendedHoursQuoteTest(unittest.TestCase):
         self.namespace = namespace
 
     def run_quote(self, meta, state):
+        import time
+        meta = dict(meta, preMarketTime=time.time() - 5, postMarketTime=time.time() - 5)
         self.namespace['_market_state'] = lambda: state
         self.namespace['_get_yahoo_json'] = lambda url: {'chart': {'result': [{'meta': meta}]}}
         return self.namespace['_yahoo_quote']('AAPL')

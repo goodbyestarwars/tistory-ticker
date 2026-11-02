@@ -751,7 +751,7 @@ def _yahoo_quote(symbol):
     """
     query = urllib.parse.urlencode({
         'range': '1d',
-        'interval': '5m',
+        'interval': '1m',
         'includePrePost': 'true',
         'events': 'history',
     })
@@ -772,16 +772,24 @@ def _yahoo_quote(symbol):
         price = _number(meta.get('postMarketPrice'))
         change = _number(meta.get('postMarketChange'))
         change_rate = _number(meta.get('postMarketChangePercent'))
-    if price is None and state == 'post':
-        end = _number(((meta.get('currentTradingPeriod') or {}).get('regular') or {}).get('end'))
+    quote_time = _number(meta.get('preMarketTime' if state == 'pre' else 'postMarketTime'))
+    if price is not None and (not quote_time or quote_time > time.time()
+            or datetime.fromtimestamp(quote_time, NY_TZ).date().isoformat() != _session_date()):
+        price = change = change_rate = None
+    if price is None and state in ('pre', 'post'):
+        period = ((meta.get('currentTradingPeriod') or {}).get('pre' if state == 'pre' else 'post') or {})
+        regular = ((meta.get('currentTradingPeriod') or {}).get('regular') or {})
+        start = _number(period.get('start') or (regular.get('end') if state == 'post' else None))
+        end = _number(period.get('end') or (regular.get('start') if state == 'pre' else None))
         timestamps = result.get('timestamp') or []
         closes = (((result.get('indicators') or {}).get('quote') or [{}])[0]).get('close') or []
         for index in range(len(timestamps) - 1, -1, -1):
             stamp = _number(timestamps[index])
             value = _number(_series_value(closes, index))
-            if (end and stamp and end <= stamp <= time.time() and value and value > 0
+            if (start and stamp and start <= stamp <= time.time() and (not end or stamp < end) and value and value > 0
                     and datetime.fromtimestamp(stamp, NY_TZ).date().isoformat() == _session_date()):
                 price = value
+                quote_time = stamp
                 break
     has_extended_price = price is not None and state in ('pre', 'post')
     if price is None:
@@ -809,7 +817,14 @@ def _yahoo_quote(symbol):
         'change': change,
         'change_rate': change_rate,
         'name': meta.get('longName') or meta.get('shortName') or symbol,
+        'day_high': meta.get('regularMarketDayHigh'),
+        'day_low': meta.get('regularMarketDayLow'),
+        'volume': meta.get('regularMarketVolume'),
+        'week52_high': meta.get('fiftyTwoWeekHigh'),
+        'week52_low': meta.get('fiftyTwoWeekLow'),
     }, symbol, 'Yahoo Finance 현재가 폴백', meta.get('exchangeName') or 'US')
+    data['quote_time'] = int(quote_time) if has_extended_price and quote_time else meta.get('regularMarketTime')
+    data['delayed'] = True
     if state in ('pre', 'post') and not has_extended_price:
         data['market_state'] = 'closed'  # Only a regular close was available, not a live extended quote.
     return _with_session_comparison(data, meta)
@@ -902,12 +917,26 @@ def quote(symbol):
     if cached is not None:
         return cached
     errors = []
+    # Broker REST can keep returning a regular close after hours. Select an
+    # actual extended-session chart quote first; retain broker fallback on failure.
+    extended = _market_state() in ('pre', 'post')
+    if extended:
+        try:
+            data = _yahoo_quote(symbol)
+            if data.get('market_state') in ('pre', 'post'):
+                _cache_put(_quote_cache, symbol, data)
+                return data
+        except Exception as exc:
+            errors.append(str(exc))
     # 실시간 종목판의 기본 공급자 정책과 동일하게 KIS를 1차로 사용하고,
     # KIS 장애·미설정일 때만 키움으로 내려간다. 마지막으로 Yahoo는 지연
     # 데이터 보조 경로다.
     for fetcher in (_kis_quote, _kiwoom_quote):
         try:
-            data = _with_session_comparison(fetcher(symbol))
+            data = fetcher(symbol)
+            if extended:
+                data['extended_unverified'] = True
+            data = _with_session_comparison(data)
             _cache_put(_quote_cache, symbol, data)
             return data
         except Exception as exc:

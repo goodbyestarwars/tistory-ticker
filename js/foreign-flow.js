@@ -1488,6 +1488,14 @@
   // 정규장 마감 후엔 그대로 멈춰 보인다(2026-07-16 사용자 지적). ticker-proxy.gs의 ?codes=
   // 엔드포인트(js/kospi-futures.js 등이 쓰는 것과 동일 소스)는 NXT 시간외가 반영돼 있어
   // 그걸 따로 불러와 헤더에 우선 쓴다 - 실패해도 daily[0]로 자연스럽게 폴백된다.
+  function quoteStatusLabel(quote) {
+    var session = global.MarketHours && global.MarketHours.krCash();
+    var label = (quote.market_state && global.NineUI.marketSessionLabel(quote.market_state)) || (session && (session.phase === 'after' ? '정규장 마감 · 애프터마켓' : session.label)) || '시장 상태 확인 중';
+    var stamp = quote.quote_time;
+    var date = stamp && new Date(stamp);
+    return label + ' · ' + (date && !isNaN(date.getTime()) ? date.toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'}) + ' 체결' : quote.time + ' 조회');
+  }
+
   function fetchLiveQuote(code, force) {
     var hit = quoteCache[code];
     if (!force && hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
@@ -1902,7 +1910,7 @@
     if (quote) {
       priceHtml = ' <span class="ff-price ' + signClass(quote.changeRate) + '">' + Number(quote.price).toLocaleString()
         + '원 (' + (quote.changeRate >= 0 ? '+' : '') + quote.changeRate.toFixed(2) + '%)</span>';
-      asOfLabel = quote.time;
+      asOfLabel = quoteStatusLabel(quote);
     } else if (latest) {
       priceHtml = ' <span class="ff-price ' + signClass(latest.change_pct) + '">' + Number(latest.close).toLocaleString()
         + '원 (' + (latest.change_pct >= 0 ? '+' : '') + latest.change_pct.toFixed(2) + '%)</span>';
@@ -2000,7 +2008,7 @@
         if (!priceEl) return; // 최초 조회 때 시세를 아예 못 받아온 드문 경우 - 다음 tick 재시도
         priceEl.className = 'ff-price ' + signClass(q.changeRate);
         priceEl.textContent = Number(q.price).toLocaleString() + '원 (' + (q.changeRate >= 0 ? '+' : '') + q.changeRate.toFixed(2) + '%)';
-        if (asofEl) asofEl.textContent = q.time + ' 기준';
+        if (asofEl) asofEl.textContent = quoteStatusLabel(q);
       }).catch(function () {}); // 실패는 조용히 무시하고 다음 tick에 재시도
     }, QUOTE_POLL_MS);
   }

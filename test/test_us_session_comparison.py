@@ -55,5 +55,23 @@ class SessionComparisonTests(unittest.TestCase):
         self.assertAlmostEqual(result['session_change'], -7.98)
         fetch.assert_called_once()
 
+    def test_extended_quote_precedes_frozen_broker_close(self):
+        with mock.patch.object(us, '_market_state', return_value='post'), mock.patch.object(us, '_yahoo_quote', return_value=QUOTE) as yahoo, mock.patch.object(us, '_kis_quote') as broker:
+            self.assertEqual(us.quote('TSLA')['price'], 378.49)
+            self.assertEqual(us.quote('TSLA')['price'], 378.49)
+            yahoo.assert_called_once()
+            broker.assert_not_called()
+
+    def test_premarket_uses_actual_bars_and_rejects_previous_day(self):
+        start = NOW - 3600
+        meta = dict(META, currentTradingPeriod={'pre': {'start': start, 'end': NOW + 3600}})
+        payload = {'chart': {'result': [{'meta': meta, 'timestamp': [NOW - 86400, NOW - 300],
+                   'indicators': {'quote': [{'close': [999, 378.49]}]}}]}}
+        with mock.patch.object(us.time, 'time', return_value=NOW), mock.patch.object(us, '_market_state', return_value='pre'), mock.patch.object(us, '_session_date', return_value='2026-10-21'), mock.patch.object(us, '_get_yahoo_json', return_value=payload):
+            result = us._yahoo_quote('TSLA')
+        self.assertEqual(result['price'], 378.49)
+        self.assertEqual(result['quote_time'], NOW - 300)
+        self.assertTrue(result['delayed'])
+
 if __name__ == '__main__':
     unittest.main()

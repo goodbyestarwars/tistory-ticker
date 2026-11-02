@@ -484,6 +484,10 @@
     if (!quote || quote.code !== 'US:' + state.symbol || !Number.isFinite(Number(quote.price))) return;
     var merged = Object.assign({}, state.lastQuote || {}, quote);
     if (quote.changeRate != null) merged.change_rate = quote.changeRate;
+    merged.delayed = false;
+    merged.extended_unverified = false;
+    merged.quote_time = null;
+    merged.updated_at = Math.floor(Date.now() / 1000);
     state.lastQuote = merged;
     var detail = document.querySelector('#usStocksDetail');
     if (detail) updateQuoteFields(state.lastQuote, detail);
@@ -1325,6 +1329,8 @@
     if (basisNode && quote) basisNode.textContent = basisLabel(quote);
   }
   function basisLabel(quote) {
+    if (quote && quote.extended_unverified) return ' · 시간외 체결 미확인 · 15초 재조회';
+    if (quote && quote.delayed) return ' · 지연 시세 · 15초 자동 갱신';
     if (!quote || quote.market_state === 'regular' || quote.market_state === 'pre'
         || quote.market_state === 'post') {
       // 2026-10-02 사용자 지적: 실제로는 KIS WebSocket 체결이 0.1~0.3초 간격으로 들어오는데 화면은 옛 REST
@@ -1341,10 +1347,10 @@
       var when = sessionDateLabel(quote.session_date);
       return when ? when + ' 장 마감' : '장 마감';
     }
-    return marketStateLabel(quote && quote.market_state) + ' · ' + formatUpdated(quote && quote.updated_at);
+    return marketStateLabel(quote && quote.market_state) + ' · ' + formatUpdated(quote && (quote.quote_time || quote.updated_at));
   }
   function marketStateLabel(value) {
-    return { pre: '프리마켓', regular: '정규장', post: '애프터마켓', closed: '장 마감' }[value] || '시장 상태 확인 중';
+    return global.NineUI.marketSessionLabel(value);
   }
   function signClass(value) { return value > 0 ? 'us-up' : value < 0 ? 'us-down' : 'us-flat'; }
   function applyTone(node, value) {

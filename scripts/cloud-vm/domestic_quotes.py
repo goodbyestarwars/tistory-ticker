@@ -38,16 +38,25 @@ def parse(body, now):
     areas = ((body or {}).get('result') or {}).get('areas') or []
     raw = next((a for a in areas if a.get('name') == 'SERVICE_ITEM'), {})
     by_code = {d.get('cd'): d for d in raw.get('datas', [])}
-    regular = now.weekday() < 5 and 900 <= now.hour * 100 + now.minute <= 1540
+    regular = now.weekday() < 5 and 900 <= now.hour * 100 + now.minute < 1530
     for row in rows:
         item = by_code.get(row['code'], {})
         row['market'] = {'1': 'KOSPI', '2': 'KOSDAQ'}.get(str(item.get('mt')), '')
         row['time'] = now.strftime('%H:%M:%S')
-        # 기존 GAS와 같은 장외 NXT 가격 우선 규칙을 유지한다.
+        row['market_state'] = 'regular' if regular else 'closed'
+        row['quote_time'] = None
+        # 공급자가 보고한 시간외 세션과 실제 체결 시각을 보존한다.
         over = item.get('nxtOverMarketPriceInfo') or {}
         price = _number(over.get('overPrice'))
         if not regular and price and price > 0:
             sign = -1 if str((over.get('compareToPreviousPrice') or {}).get('code')) in ('4', '5') else 1
+            phase = {'PRE_MARKET': 'pre', 'AFTER_MARKET': 'post'}.get(over.get('tradingSessionType'), 'closed')
+            hm = now.hour * 100 + now.minute
+            active = now.weekday() < 5 and ((phase == 'pre' and 800 <= hm < 900)
+                     or (phase == 'post' and 1530 <= hm < 2000))
+            row['market_state'] = phase if active and over.get('overMarketStatus') == 'OPEN' else 'closed'
+            row['quote_time'] = over.get('localTradedAt')
+            row['price_session'] = phase
             row.update(price=price,
                        change=abs(_number(over.get('compareToPreviousClosePrice')) or 0) * sign,
                        changeRate=abs(_number(over.get('fluctuationsRatio')) or 0) * sign)

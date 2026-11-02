@@ -37,6 +37,19 @@ class DomesticQuotesTests(unittest.TestCase):
         row = quotes.parse(raw, regular.replace(hour=17))[0]
         self.assertEqual((row['price'], row['change'], row['changeRate']), (57300, 100, .17))
 
+    def test_after_close_boundary_and_provider_session(self):
+        raw = body()
+        raw['result']['areas'][0]['datas'][0]['nxtOverMarketPriceInfo'] = {
+            'overPrice': '57,300', 'tradingSessionType': 'AFTER_MARKET',
+            'overMarketStatus': 'OPEN', 'localTradedAt': '2026-11-02T15:31:00+09:00'}
+        now = datetime.datetime(2026, 11, 2, 15, 29, tzinfo=quotes.KST)
+        self.assertEqual(quotes.parse(raw, now)[0]['market_state'], 'regular')
+        row = quotes.parse(raw, now.replace(minute=31))[0]
+        self.assertEqual((row['price'], row['market_state']), (57300, 'post'))
+        self.assertEqual(row['quote_time'], '2026-11-02T15:31:00+09:00')
+        raw['result']['areas'][0]['datas'][0]['nxtOverMarketPriceInfo']['overMarketStatus'] = 'CLOSE'
+        self.assertEqual(quotes.parse(raw, now.replace(hour=20))[0]['market_state'], 'closed')
+
     def test_overlapping_requests_only_fetch_missing_codes(self):
         with mock.patch.object(quotes.data, '_get_json', side_effect=[body(), body(('005930',))]) as fetch:
             quotes.fetch_quotes(['083650'])
