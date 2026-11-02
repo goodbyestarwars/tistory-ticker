@@ -1,3 +1,7 @@
+**2026-11-02 종목 스토리 전 종목 확대 되돌림(한화오션 단독 시점으로 원복)**
+
+요청: 전 종목 확대 이전으로 원복. 변경: 837d94ae 이후 스토리 커밋(전 종목 렌더·공시 감시·해석형 카드·VM 수집 확장)의 파일을 3a5499c8 기준으로 되돌림. 시세 갱신·차트 옵션 리본·이야기 시리즈 CSS는 유지. `stock-stories.yml` 워크플로·`data/stock-stories/`·`story_disclosures.py` 삭제. 아래 이전 항목은 이력으로 남김. 검증: 아래 테스트 참고. 배포: master 병합 → Pages, VM 자동 배포.
+
 **2026-11-02 전 종목 스토리 카드를 해석형으로 전환**
 
 요청: 카드는 서로 다른 자료 2종 이상+결론 1문장, 하단 섹션과 중복 금지, 최대 4장. 변경: `stock-story-template.js` 재작성(실적 대비 주가·이익은 어디서·매물대·잠재 물량), `chart-core.js renderProfitPrice`, VM `story_disclosures.py`·fundamentals 분기 8개 이력·`potential_supply`, 기존 Tier1 숫자 카드 `legacyCards`로 보존·비표시. 검증: 스토리 JS/파이썬 테스트 통과(기준선 대비 신규 실패 없음), 화면(5종목 PC/모바일/다크)은 워크플로가 분기 이력을 채운 뒤 확인 예정. 배포: master 병합 → Pages, VM 자동 배포, `stock-stories` 워크플로 수동 실행 필요.

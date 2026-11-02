@@ -65,14 +65,14 @@ def universe():
     return result
 
 
-def load_public_market_master():
+def refresh_markets():
     """Public KIS master: same supplier already used by domestic_futures_ws.
 
-    Parse the official short-code/name/classification fields and the documented
-    prior-day market-cap field (KRW 100 million). No thousand-share conversion.
+    Only the documented leading nine-character short-code field is parsed.
+    No financial ratios, prices or ambiguous thousand-share fields are imported.
     Source: koreainvestment/open-trading-api stocks_info/kis_*_code_mst.py.
     """
-    markets, stocks, preferred_flags, market_caps = {}, {}, {}, {}
+    markets, stocks, preferred_flags = {}, {}, {}
     for market in ('KOSPI', 'KOSDAQ'):
         name = market.lower() + '_code.mst'
         url = 'https://new.real.download.dws.co.kr/common/master/' + name + '.zip'
@@ -93,24 +93,11 @@ def load_public_market_master():
                         flag = row[-tail:][preferred_offset:preferred_offset + 1]
                         if flag in ('1', '2', '9'):
                             preferred_flags[code] = flag
-                        # Official fixed-width field: prior-day market cap, KRW 100 million.
-                        cap_offset = 212 if market == 'KOSPI' else 206
-                        cap = row[-tail:][cap_offset:cap_offset + 9].strip()
-                        if group == 'ST' and flag not in ('1', '2', '9') and cap.isdigit() and int(cap) > 0:
-                            market_caps[code] = int(cap)
     if markets.get('005930') != 'KOSPI' or markets.get('035900') != 'KOSDAQ':
         raise ValueError('Public master validation failed')
     if stocks.get('005930') != '삼성전자' or len(stocks) < 2000:
         raise ValueError('Public stock-name master validation failed')
-    if len(market_caps) < 2000 or market_caps.get('005930', 0) <= 0:
-        raise ValueError('Public market-cap master validation failed')
-    return {'generatedAt': datetime.now(KST).isoformat(), 'source': '한국투자증권 공개 종목 마스터', 'markets': markets, 'stocks': stocks, 'preferredFlags': preferred_flags, 'marketCaps': market_caps}
-
-
-def refresh_markets():
-    payload = load_public_market_master()
-    payload.pop('marketCaps')  # DCF keeps its existing contract; stories own the ranking snapshot.
-    write_js(OUT / 'markets.js', 'DCF_MARKETS', payload)
+    write_js(OUT / 'markets.js', 'DCF_MARKETS', {'generatedAt': datetime.now(KST).isoformat(), 'source': '한국투자증권 공개 종목 마스터', 'markets': markets, 'stocks': stocks, 'preferredFlags': preferred_flags})
 
 
 def write_js(path, name, data):
@@ -152,13 +139,12 @@ def target_codes(canonical, available, attempts, now, cursor, force=False, failu
 
 
 class Collector:
-    def __init__(self, key, max_calls, max_seconds=420, before_request=None):
+    def __init__(self, key, max_calls, max_seconds=420):
         self.key, self.max_calls, self.calls = key, max_calls, 0
         self.max_seconds = max_seconds
         self.started = time.monotonic()
         self.call_lock = threading.Lock()
         self.stopped = threading.Event()
-        self.before_request = before_request
 
     def call(self, fn, *args):
         # One shared throttle/counter across bounded PC/Actions workers.
@@ -169,8 +155,6 @@ class Collector:
                 time.sleep(0.35)
             if self.stopped.is_set() or time.monotonic() - self.started > self.max_seconds:
                 raise BudgetExhausted('수집 예산 종료')
-            if self.before_request:
-                self.before_request()
             self.calls += 1
         try:
             return fn(self.key, *args)

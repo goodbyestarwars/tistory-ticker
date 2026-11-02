@@ -2713,10 +2713,6 @@ def fundamentals_single(code: str = Path(..., min_length=6, max_length=6),
     if isinstance(entry, dict):
         # 화면 표시용 수집 시각(원본 캐시는 건드리지 않고 사본에만 넣는다).
         entry = dict(entry, collected_at=fetched_at)
-        import story_disclosures
-        supply = story_disclosures.load_cached(code)
-        if supply and supply.get('checked_at', '') > (entry.get('potential_supply') or {}).get('checked_at', ''):
-            entry['potential_supply'] = supply
     return envelope({
         'code': code,
         'fundamentals': entry,

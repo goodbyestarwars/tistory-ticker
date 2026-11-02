@@ -22,7 +22,6 @@ from datetime import datetime, timezone
 
 import dart_client
 import fundamentals
-import story_disclosures
 import investor_flow
 import kiwoom_client
 import migrate_fundamentals
@@ -105,10 +104,6 @@ def main():
         try:
             result = investor_flow.fetch_stock(token, code, name)
             if result:
-                if (cache.get(code) or {}).get('potential_supply'):
-                    result['potential_supply'] = cache[code]['potential_supply']
-                else:
-                    result['potential_supply'] = story_disclosures.refresh(dart_key, corp_code, result)
                 cache[code] = result
                 log('[%d/%d] %s(%s) OK' % (i + 1, len(codes_map), name, code))
             else:
@@ -273,18 +268,7 @@ def scan_fundamentals(codes_map, candidate_only=False):
         corp_code = corp_map.get(code)
         fresh = (not is_stale(fetched_at, code) and not needs_ytd_backfill(cache.get(code))
                  and 'dividend' in (cache.get(code) or {})
-                 and (cache.get(code) or {}).get('story_history_version') == 1
                  and (not needs_screening or fundamentals.screening_cache_fresh(cache.get(code))))
-        if corp_code and cache.get(code):
-            try:
-                cache[code]['potential_supply'] = story_disclosures.refresh(dart_key, corp_code, cache[code])
-            except dart_client.DartRateLimitError:
-                stop_reason = '공시 수집 한도 초과'
-                break
-            except Exception:
-                prior = dict(cache[code].get('potential_supply') or {})
-                prior['status'] = 'unverified'
-                cache[code]['potential_supply'] = prior
         if fresh and corp_code and disclosure_due(cache.get(code)):
             # 90일 이내라도 신규 분기·반기·사업보고서나 정정공시가 나왔으면 다시 수집한다.
             try:
@@ -310,10 +294,6 @@ def scan_fundamentals(codes_map, candidate_only=False):
                 if not needs_screening and (cache.get(code) or {}).get('screening'):
                     # Retain old evidence with its original date; never refresh it by association.
                     result['screening'] = cache[code]['screening']
-                if (cache.get(code) or {}).get('potential_supply'):
-                    result['potential_supply'] = cache[code]['potential_supply']
-                else:
-                    result['potential_supply'] = story_disclosures.refresh(dart_key, corp_code, result)
                 cache[code] = result
                 fetched_at[code] = datetime.now(timezone.utc).isoformat()
                 new_count += 1
