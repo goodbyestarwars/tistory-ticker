@@ -3293,7 +3293,7 @@ html.dark #foreign-flow .ff-wide-dots button { background: rgba(255, 255, 255, .
 html.dark #foreign-flow .ff-wide-dots button.is-on { background: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-pause::before { border-color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-pause.is-paused::before { background: var(--dk-text); }
-#foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 40px var(--ff-band-side) 64px; border: 0; border-radius: 0; background: var(--ui-card-surface, #fff); border-block: 1px solid var(--ui-border, #e5e5ea); box-sizing: border-box; }
+#foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 28px var(--ff-band-side) 48px; border: 0; border-radius: 0; background: var(--ui-card-surface, #fff); border-block: 1px solid var(--ui-border, #e5e5ea); box-sizing: border-box; }
 #foreign-flow .ff-wide-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 44px; align-items: start; }
 #foreign-flow .ff-wide-lead { position: relative; z-index: 1; padding-right: 44px; }
 /* 카드 안에는 구분선을 쓰지 않는다(여백으로만 나눈다). 글자 크기는 모두 제목(--ui-title-size)보다 작게. */
@@ -3303,10 +3303,12 @@ html.dark #foreign-flow .ff-wide-pause.is-paused::before { background: var(--dk-
 #foreign-flow .ff-wide strong.is-up { color: #d24f45; }
 #foreign-flow .ff-wide strong.is-dn { color: #1261c4; }
 #foreign-flow .ff-wide-lead p { margin: 0 0 12px; color: #424245; font-size: 16px; line-height: 1.75; }
-#foreign-flow .ff-wide-table { width: 100%; margin: 0 0 16px; border-collapse: collapse; table-layout: fixed; }
+#foreign-flow .ff-wide-table { width: 100%; margin: 0 0 10px; border-collapse: collapse; table-layout: fixed; }
+#foreign-flow .ff-wide-table col { width: 16.666%; }
+#foreign-flow .ff-wide-table tr.is-gap td { height: 10px; padding: 0; border: 0; }
 #foreign-flow .ff-wide-table th, #foreign-flow .ff-wide-table td { border: 1px solid #dbe3f0; }
-#foreign-flow .ff-wide-table th { padding: 8px 12px; background: #eef2f9; color: #5b6678; font-size: 12.5px; text-align: left; }
-#foreign-flow .ff-wide-table td { padding: 10px 12px; vertical-align: top; }
+#foreign-flow .ff-wide-table th { padding: 6px 12px; line-height: 1.3; background: #eef2f9; color: #5b6678; font-size: 12.5px; text-align: left; }
+#foreign-flow .ff-wide-table td { padding: 7px 12px; vertical-align: middle; line-height: 1.35; }
 #foreign-flow .ff-wide-table td strong, #foreign-flow .ff-wide-table td b { font-size: 15px; }
 html.dark #foreign-flow .ff-wide-table :is(th, td) { border-color: var(--dk-line); }
 html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk-sub); }
@@ -3318,7 +3320,7 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-wide-row > div + div { padding-left: 24px; }
 #foreign-flow .ff-wide-facts { display: flex; flex-wrap: wrap; gap: 10px 24px; }
 #foreign-flow .ff-wide-facts b { color: #1d1d1f; font-size: 14px; font-weight: 600; }
-#foreign-flow .ff-wide-foot { position: relative; z-index: 1; margin-top: 12px; padding-top: 18px; }
+#foreign-flow .ff-wide-foot { position: relative; z-index: 1; margin-top: 6px; padding-top: 10px; }
 #foreign-flow .ff-wide-foot p { margin: 0 0 8px; color: #6e6e73; font-size: 14px; line-height: 1.65; }
 #foreign-flow .ff-wide-foot b { color: #1d1d1f; }
 #foreign-flow .ff-wide-foot small { color: #86868b; font-size: 12px; }
@@ -3327,7 +3329,7 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-wide-tiles strong { font-size: 20px; }
 #foreign-flow .ff-wide-tiles small, #foreign-flow .ff-wide-axis > span:not(.ff-wide-legend) { white-space: nowrap; }
 #foreign-flow .ff-wide-grid.is-chart { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
-#foreign-flow .ff-wide-plot { height: 260px; }
+#foreign-flow .ff-wide-plot { height: 220px; }
 #foreign-flow .ff-wide-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 #foreign-flow .ff-wide-svg path { fill: none; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
 #foreign-flow .ff-wide-close { stroke: #1d1d1f; stroke-width: 1.8; }

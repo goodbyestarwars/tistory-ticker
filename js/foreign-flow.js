@@ -1631,10 +1631,15 @@
     return '<strong class="' + wideTone_(text) + (big ? ' is-big' : '') + '">' + escapeHtml(text) + '</strong>';
   }
 
-  // 판정 값을 머리글 한 줄 + 값 한 줄 표로 보여준다(첫 줄만 옅은 남색)
-  function wideTable_(heads, cells) {
-    return '<table class="ff-wide-table"><thead><tr>' + heads.map(function (h) { return '<th scope="col">' + escapeHtml(h) + '</th>'; }).join('')
-      + '</tr></thead><tbody><tr>' + cells.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr></tbody></table>';
+  // 판정 값을 6칸 한 표로 보여준다: 3칸·2칸·6칸 묶음이 같은 칸 눈금을 쓰므로 좌우 끝선이 맞는다(첫 줄만 옅은 남색)
+  function wideTable_(groups) {
+    var rows = groups.map(function (g, gi) {
+      var span = 6 / g.heads.length;
+      return (gi ? '<tr class="is-gap"><td colspan="6"></td></tr>' : '')
+        + '<tr class="is-head">' + g.heads.map(function (h) { return '<th scope="col" colspan="' + span + '">' + escapeHtml(h) + '</th>'; }).join('') + '</tr>'
+        + '<tr>' + g.cells.map(function (c) { return '<td colspan="' + span + '">' + c + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    return '<table class="ff-wide-table"><colgroup><col><col><col><col><col><col></colgroup><tbody>' + rows + '</tbody></table>';
   }
 
   function buildVerdictCard(vm) {
@@ -1646,9 +1651,11 @@
       + '<div class="ff-wide-lead"><small>2주 스윙 판정</small>' + wideValue_(label, true)
       + '<p>' + escapeHtml(story) + '</p><em>최근 이벤트 · ' + escapeHtml(vm.recentEvent.label) + '</em></div>'
       + '<div class="ff-wide-body">'
-      + wideTable_(['장기 · 맥락', '중기 · 방향', '단기 · 진입 시점'], [wideValue_(vm.bigWave.label), wideValue_(vm.midWave.label), wideValue_(vm.smallWave.label)])
-      + wideTable_(['보유자 행동', '신규 진입'], [wideValue_(a.holderAction), wideValue_(a.entryOpinion)])
-      + wideTable_(['5일선 신호', '전환 단계', '보조 상태', '모멘텀', '펀더멘털', '위험'], [vm.shortSignal.label || '없음', vm.transitionLabel, vm.auxiliary, a.momentum.state, a.fundamental.state, vm.risk.state].map(function (v) { return '<b>' + escapeHtml(v) + '</b>'; }))
+      + wideTable_([
+        { heads: ['장기 · 맥락', '중기 · 방향', '단기 · 진입 시점'], cells: [wideValue_(vm.bigWave.label), wideValue_(vm.midWave.label), wideValue_(vm.smallWave.label)] },
+        { heads: ['보유자 행동', '신규 진입'], cells: [wideValue_(a.holderAction), wideValue_(a.entryOpinion)] },
+        { heads: ['5일선 신호', '전환 단계', '보조 상태', '모멘텀', '펀더멘털', '위험'], cells: [vm.shortSignal.label || '없음', vm.transitionLabel, vm.auxiliary, a.momentum.state, a.fundamental.state, vm.risk.state].map(function (v) { return '<b>' + escapeHtml(v) + '</b>'; }) }
+      ])
       + '</div></div>'
       + '<footer class="ff-wide-foot"><p><b>판정 근거</b> ' + escapeHtml(vm.reasons || '차트 데이터 확인 중') + '</p>'
       + '<p><b>무효화 조건</b> ' + escapeHtml(vm.chart.invalidation || '-') + '</p>'
