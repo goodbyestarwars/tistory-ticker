@@ -11,7 +11,7 @@
   var API_BASE = 'https://goodbyestar.cloud';
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var VM_URL = API_BASE;
-  var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260816-banner-race-fix';
+  var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20261102-interpretation1';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // 서버에 예전에 저장된 영문 회사명도 MY 화면에서는 동일한 한글 표시명으로 보여준다.
   // 티커(code)는 API 조회와 상세 페이지 이동에 쓰이므로 그대로 유지한다.

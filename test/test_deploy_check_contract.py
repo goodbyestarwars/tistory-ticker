@@ -72,7 +72,7 @@ class DeployRestartScopeTest(unittest.TestCase):
 
     def test_watch_paths_cover_vm_code_and_locally_read_data(self):
         # sector_cards.py가 ../../data/sectors-v3.js를 로컬에서 읽는다.
-        self.assertIn('VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js :(exclude)data/chart-history/ :(exclude)data/stock-stories/ :(exclude)data/stock-story-selection.js"', self.script)
+        self.assertIn('VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js :(exclude)data/chart-history/ :(exclude)data/stock-stories/ :(exclude)data/stock-story-supply/ :(exclude)data/stock-story-selection.js"', self.script)
         self.assertIn('git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $VM_WATCH_PATHS', self.block)
 
     def test_restart_and_rescan_are_gated(self):

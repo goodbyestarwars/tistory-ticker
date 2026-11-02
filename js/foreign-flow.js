@@ -116,7 +116,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vpcolor';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261102-story-interpretation1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -1398,7 +1398,7 @@
 
   function requestFlowChart(code) {
     return global.NineAPI.flowChart(code, {request: function (url) {
-      return fetchJson(url, url.indexOf(KIWOOM_VM_URL) === 0 ? FLOW_CHART_VM_TIMEOUT_MS : FLOW_CHART_GAS_TIMEOUT_MS);
+      return fetchJson(url + (url.indexOf(KIWOOM_VM_URL) === 0 ? '?history=5y' : ''), url.indexOf(KIWOOM_VM_URL) === 0 ? FLOW_CHART_VM_TIMEOUT_MS : FLOW_CHART_GAS_TIMEOUT_MS);
     }});
   }
 
@@ -1589,7 +1589,7 @@
     if (storyAssets[path]) return storyAssets[path];
     storyAssets[path] = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = STORY_BASE + path;
+      script.src = STORY_BASE + path + '?v=20261102-interpretation1';
       script.onload = function () { if (ready()) resolve(ready()); else { delete storyAssets[path]; reject(new Error('스토리 자료 없음')); } };
       script.onerror = function () { delete storyAssets[path]; reject(new Error('스토리 자료 로드 실패')); };
       document.head.appendChild(script);
@@ -1613,11 +1613,11 @@
 
   // 선별 종목의 이야기 카드도 판정·차트와 같은 가로 흰 카드로 만든다. 더 보기 없이 자세한 설명까지 한 번에 보여준다.
   function buildStockStoryCard(c, i, offset) {
-    var hasBody = (c.pair && c.pair.length) || (c.rows && c.rows.length);
+    var hasBody = (c.pair && c.pair.length) || (c.rows && c.rows.length) || c.chart;
     var html = '<article class="ff-wide ff-wide--story"><div class="ff-wide-grid' + (hasBody ? '' : ' is-solo') + '">'
       + '<div class="ff-wide-lead"><small>' + (i + 1 + offset < 10 ? '0' : '') + (i + 1 + offset) + '</small>'
       + '<strong class="is-big">' + escapeHtml(c.title) + '</strong>'
-      + '<p>' + escapeHtml(c.sub) + '</p>'
+      + '<p data-story-conclusion>' + escapeHtml(c.conclusion) + '</p>'
       + (c.detail && c.detail.length ? '<div class="ff-wide-detail">' + c.detail.map(function (t) { return '<p>' + escapeHtml(t) + '</p>'; }).join('') + '</div>' : '')
       + '</div>';
     if (hasBody) {
@@ -1627,6 +1627,7 @@
           return '<div><small>' + escapeHtml(p.k) + '</small><strong class="is-num ' + (p.t === 'up' ? 'is-up' : p.t === 'dn' ? 'is-dn' : '') + '">' + escapeHtml(p.v) + '</strong></div>';
         }).join('') + '</div>';
       }
+      if (c.chart && c.chart.type === 'profit-price') html += '<div class="ff-story-profit-chart" data-story-profit-chart="' + i + '" role="img" aria-label="분기 영업이익 막대와 분기말 주가 선"></div><small>막대: 분기 영업이익(억원) · 선: 분기말 주가(원)</small>';
       if (c.rows) {
         html += '<div class="ff-story-rows">' + c.rows.map(function (r) {
           var left = Number(r.l) || 0, width = Math.max(2, Math.min(100, Number(r.w) || 0));
@@ -1791,7 +1792,7 @@
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
         + '<div class="ff-wide-dots" data-wide-dots><button type="button" class="ff-wide-pause" data-wide-pause aria-label="자동 넘김 일시정지"></button>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
       + '</div>'
-      + '<small class="ff-story-note">정적 이야기는 작성 시점 기준이고, 응답 기반 카드는 조회 자료로 계산한다. 사라는 말도 팔라는 말도 아니다.</small>';
+      + '<small class="ff-story-note">서로 다른 자료를 결합한 해석이다. 기준일은 각 카드에 표시한다. 사라는 말도 팔라는 말도 아니다.</small>';
   }
 
   function loadStockStory(box, code, swingVm, chartData, storyInput) {
@@ -1804,20 +1805,34 @@
       ensureStoryAsset('js/stock-story-template.js', function () { return global.StockStoryTemplate; }).catch(function () { return null; })
     ]).then(function (results) {
       if (!box.contains(mount) || mount._storyRevision !== revision) return;
-      var primary = results[0], template = results[1], generated = template ? template.build(storyInput || {}) : [];
-      var cards = template ? template.merge(primary && primary.cards, generated) : (primary && primary.cards || []);
-      if (!cards.length) return;
+      var primary = results[0], template = results[1];
+      var input = Object.assign({}, storyInput || {}, {chartData: chartData});
+      var entry = vpRegistry.card;
+      var last = chartData && chartData.daily && chartData.daily[chartData.daily.length - 1];
+      var cachedQuote = quoteCache[code] && quoteCache[code].data;
+      input.currentPrice = cachedQuote && cachedQuote.price || last && last.close;
+      input.priceAsOf = cachedQuote && cachedQuote.quote_time || last && last.date;
+      if (entry && entry.code === code && entry.storyAnalysis) input.volumeProfile = entry.storyAnalysis;
+      if (primary && primary.quarterHistory && !(input.fundamentals && input.fundamentals.fundamentals && input.fundamentals.fundamentals.quarters)) {
+        input.fundamentals = {fundamentals: Object.assign({}, input.fundamentals && input.fundamentals.fundamentals || {}, {quarters: primary.quarterHistory})};
+      }
+      var generated = template ? template.build(input) : [];
+      var cards = template ? template.merge(primary && primary.cards, generated) : [];
+      mount._refreshStory = function () { loadStockStory(box, code, swingVm, chartData, storyInput); };
+      if (mount._storyScopes) mount._storyScopes.forEach(function(scope){scope.dispose();});
+      mount._storyScopes = [];
+      if (!cards.length) { mount.innerHTML = ''; mount.hidden = true; return; }
       var st = Object.assign({}, primary || {}, { name: primary && primary.name || storyInput && storyInput.name || code, cards: cards });
-      // 판정 카드가 기존 2주 스윙 요약 박스를 대신하므로 같은 내용이 두 번 보이지 않게 박스는 숨긴다(DOM은 유지).
       var wide = '', count = 0;
-      if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
-      var chartCard = buildTrendChartCard(chartData);
-      if (chartCard) { wide += chartCard; count++; }
-      var swing = box.querySelector('.ff-swing-summary');
-      if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
-      if (primary) loadStoryMinute(mount, code, chartData);
+      if (cards.some(function(c){return c.chart;})) chartReady().then(function () {
+        if (!box.contains(mount) || mount._storyRevision !== revision) return;
+        mount.querySelectorAll('[data-story-profit-chart]').forEach(function(node){
+          var c = cards[Number(node.getAttribute('data-story-profit-chart'))];
+          if (c && c.chart) mount._storyScopes.push(global.NineChartCore.renderProfitPrice(node, c.chart.points));
+        });
+      }).catch(function () {});
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
@@ -5205,6 +5220,12 @@
     var price = Number(entry.price);
     var main = VP.analyze(estimate.profile.bins, price, closes, opts);
     if (!main) return '';
+    var rows = normalizeDailyForVolumeProfile(entry.daily);
+    entry.storyAnalysis = {analysis: main, price: price, asOf: rows.length && rows[rows.length - 1].date};
+    if (entry.id === 'card') {
+      var mount = document.querySelector('#foreign-flow [data-ff-story]');
+      if (mount && mount._refreshStory) mount._refreshStory();
+    }
     var fmt = opts.format;
     function vol(v) { return compactChartVolume(v) + '주'; }
 

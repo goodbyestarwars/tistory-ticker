@@ -163,3 +163,34 @@ def call_periodic_reports(api_key, corp_code, end_date):
     if int(data.get('total_page', 1)) > 1:
         raise RuntimeError('DART periodic report list incomplete')
     return data.get('list') or []
+
+
+def call_structured_event(api_key, endpoint, corp_code, begin, end):
+    """Official DS005 APIs only. Server batch/event consumers, never visitor handlers."""
+    allowed = {'cvbdIsDecsn', 'bdwtIsDecsn', 'piicDecsn', 'tsstkDpDecsn', 'majorstock'}
+    if endpoint not in allowed:
+        raise ValueError('Unsupported structured disclosure')
+    params = {'crtfc_key': api_key, 'corp_code': corp_code}
+    if endpoint != 'majorstock':
+        params.update(bgn_de=begin, end_de=end)
+    payload = json.loads(_fetch(BASE_URL + '/' + endpoint + '.json?' + urllib.parse.urlencode(params)).decode('utf-8'))
+    if payload.get('status') == '013':
+        return []
+    if payload.get('status') == '020':
+        raise DartRateLimitError('DART structured disclosure request limit')
+    if payload.get('status') != '000':
+        raise RuntimeError('Structured disclosure unavailable')
+    return payload.get('list') or []
+
+
+def call_material_disclosures(api_key, corp_code, begin, end):
+    params = {'crtfc_key':api_key, 'corp_code':corp_code, 'bgn_de':begin, 'end_de':end,
+              'page_count':'100', 'sort':'date', 'sort_mth':'desc', 'last_reprt_at':'Y', 'pblntf_ty':'B'}
+    payload = json.loads(_fetch(BASE_URL + '/list.json?' + urllib.parse.urlencode(params)).decode('utf-8'))
+    if payload.get('status') == '013':
+        return []
+    if payload.get('status') == '020':
+        raise DartRateLimitError('DART disclosure request limit')
+    if payload.get('status') != '000' or int(payload.get('total_page', 1)) > 1:
+        raise RuntimeError('Incomplete material disclosure window')
+    return payload.get('list') or []

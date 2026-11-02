@@ -78,21 +78,21 @@ class StoryPipelineTests(unittest.TestCase):
     def test_new_periodic_event_replaces_earnings_but_keeps_other_dated_editorial(self):
         old = dict(name='회사',asOf='2026-05-01',written='2026-05-01', cards=[
             dict(topic='earnings', title='old',sub='old',src='old',asOf='2026-05-01'),
-            dict(topic='position', title='position',sub='old',src='old',asOf='2026-05-01')])
+            dict(kind='interpretation', topic='segment-profit', title='position',sub='old',src='old',asOf='2026-05-01')])
         result=pipeline.compose_story(old,{'name':'회사'},pipeline.financial_cards(self.rows,self.filing),self.filing,'2026-11-02')
         self.assertFalse(any(c['title']=='old' for c in result['cards']))
         self.assertEqual(result['cards'][-1]['asOf'],'2026-05-01')
         self.assertEqual(result['asOf'],'2026-08-14')
 
     def test_older_periodic_data_does_not_overwrite_newer_editorial_or_expired_badge(self):
-        old=dict(name='회사',asOf='2026-10-30',written='2026-11-01',cards=[dict(topic='earnings',title='new',sub='new',src='new',asOf='2026-10-30',badge={'expiresAt':'2026-11-01'})])
+        old=dict(name='회사',asOf='2026-10-30',written='2026-11-01',cards=[dict(kind='interpretation',topic='earnings-source',title='new',sub='new',src='new',asOf='2026-10-30',badge={'expiresAt':'2026-11-01'})])
         result=pipeline.compose_story(old,{'name':'회사'},pipeline.financial_cards(self.rows,self.filing),self.filing,'2026-11-02')
         self.assertEqual(result['cards'][0]['title'],'new')
         self.assertNotIn('badge',result['cards'][0])
         self.assertIn('badge',old['cards'][0], 'does not mutate source')
 
     def test_added_provenance_does_not_re_date_unchanged_editorial(self):
-        old=dict(name='회사',asOf='2026-10-30',written='2026-11-01',cards=[dict(topic='earnings',title='new',sub='new',src='new',asOf='2026-10-30')])
+        old=dict(name='회사',asOf='2026-10-30',written='2026-11-01',cards=[dict(kind='interpretation',topic='earnings-source',title='new',sub='new',src='new',asOf='2026-10-30')])
         result=pipeline.compose_story(old,{'name':'회사'},pipeline.financial_cards(self.rows,self.filing),self.filing,'2026-11-02')
         self.assertEqual(result['written'],'2026-11-01')
 
@@ -154,7 +154,7 @@ class StoryPipelineTests(unittest.TestCase):
             old=pipeline.compose_story(None,members['005930'],pipeline.financial_cards(self.rows,self.filing),self.filing,'2026-11-02')
             newer=dict(self.filing,rcept_no='20261114000001',rcept_dt='20261114')
             reports=[dict(report_nm='분기보고서 (2026.09)',rcept_no=newer['rcept_no'],rcept_dt=newer['rcept_dt'])]
-            with patch.object(pipeline,'OUT',out),patch.object(pipeline,'SELECTION',selection),patch.object(pipeline,'STATE',state),patch.dict(pipeline.os.environ,{'DART_API_KEY':'test'}),patch.object(pipeline.dart_client,'get_corp_code_map',return_value={'005930':'00126380'}),patch.object(pipeline.dart_client,'call_periodic_reports',return_value=reports),patch.object(pipeline.fundamentals,'call_fnltt_any',return_value=self.rows),patch.object(pipeline,'watch_disclosures'):
+            with patch.object(pipeline,'OUT',out),patch.object(pipeline,'SELECTION',selection),patch.object(pipeline,'STATE',state),patch.dict(pipeline.os.environ,{'DART_API_KEY':'test'}),patch.object(pipeline.dart_client,'get_corp_code_map',return_value={'005930':'00126380'}),patch.object(pipeline.dart_client,'call_periodic_reports',return_value=reports),patch.object(pipeline.fundamentals,'call_fnltt_any',return_value=self.rows),patch.object(pipeline,'watch_disclosures'),patch.object(pipeline,'watch_supply_disclosures'):
                 pipeline.publish_story('005930',old)
                 before=(out/'005930.js').read_bytes()
                 self.assertEqual(pipeline.run(args),2)

@@ -271,6 +271,56 @@ def fetch_latest_quarter(api_key, corp_code, current_year=None):
     return None
 
 
+def fetch_quarter_history(api_key, corp_code, latest, count=8):
+    """Bounded batch-only history. Q4 = annual minus Q3 YTD, same statement basis."""
+    if not latest or latest.get('fs_div') not in ('CFS', 'OFS'):
+        return []
+    fs = latest['fs_div']
+    periods = {1: '11013', 2: '11012', 3: '11014', 4: '11011'}
+    end_q = {'11013': 1, '11012': 2, '11014': 3, '11011': 4}[latest['reprt_code']]
+    serial = latest['year'] * 4 + end_q - 1
+    reports = {}
+    def load(year, quarter):
+        key = (year, quarter)
+        if key not in reports:
+            time.sleep(THROTTLE_SEC)
+            reports[key] = dart_client.call_fnltt(api_key, corp_code, year, periods[quarter], fs)
+        return reports[key]
+    metrics = [('revenue', REVENUE_IDS, '매출액'), ('operating_income', OPERATING_INCOME_IDS, '영업이익'),
+               ('net_income', NET_INCOME_IDS, '당기순이익'),
+               ('net_income_parent', ('ifrs-full_ProfitLossAttributableToOwnersOfParent',), '지배기업의 소유주에게 귀속되는 당기순이익')]
+    out = []
+    for value in range(serial-count+1, serial+1):
+        year, zero = divmod(value, 4)
+        quarter = zero+1
+        rows = load(year, quarter)
+        if not rows:
+            continue
+        ref = find_row(rows, OPERATING_INCOME_IDS, '영업이익', ('IS', 'CIS')) or {}
+        receipt = ref.get('rcept_no')
+        if not receipt:
+            continue
+        month = quarter*3
+        from calendar import monthrange
+        item = dict(year=year, quarter=quarter, period_end='%04d-%02d-%02d' % (year, month, monthrange(year, month)[1]),
+                    amount_basis='standalone_3m', fs_div=fs, rcept_no=receipt, rcept_dt=rcept_dt_from_no(receipt))
+        prior = load(year, 3) if quarter == 4 else None
+        for name, ids, label in metrics:
+            amount = extract_amount(rows, ids, label, ('IS', 'CIS'), 'thstrm_amount')
+            if quarter == 4:
+                ytd = extract_amount(prior, ids, label, ('IS', 'CIS'), 'thstrm_add_amount')
+                amount = amount-ytd if amount is not None and ytd is not None else None
+            item[name] = amount
+        # Shares are a dated denominator, never today's shares copied into old quarters.
+        time.sleep(THROTTLE_SEC)
+        shares = dart_client.call_stock_totqy(api_key, corp_code, year, periods[quarter])
+        common = [r for r in shares if '보통주' in (r.get('se') or '')]
+        item['ordinary_shares'] = to_num(common[0].get('istc_totqy')) if len(common) == 1 else None
+        if all(item[k] is not None for k in ('revenue', 'operating_income', 'net_income')):
+            out.append(item)
+    return out
+
+
 DIVIDEND_REPRT_CODE = '11011'
 
 
@@ -342,6 +392,13 @@ def fetch_stock(api_key, corp_code, include_screening=True):
     if annual is None and latest_quarter is None:
         return None
     result = {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend}
+    try:
+        result['quarters'] = fetch_quarter_history(api_key, corp_code, latest_quarter)
+        result['story_history_version'] = 1
+    except dart_client.DartRateLimitError:
+        raise
+    except Exception:
+        result['quarters'] = []  # Retry in a later batch; no zero-filled history.
     filing = None
     try:
         time.sleep(THROTTLE_SEC)
