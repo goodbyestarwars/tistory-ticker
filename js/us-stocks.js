@@ -947,11 +947,57 @@
     return '기준 ' + t + ' KST · 약 15분 지연';
   }
 
+  function optMoney(value) { return value == null ? '-' : '$' + Number(value).toFixed(2); }
+
+  function optShareRow(label, call) {
+    if (call == null) return '';
+    var put = Math.round((100 - call) * 10) / 10;
+    return '<div class="us-opt-share"><span>' + label + '</span>'
+      + '<div class="us-opt-share-bar"><i style="width:' + call + '%"></i></div>'
+      + '<em>콜 ' + Math.round(call) + ' · 풋 ' + Math.round(put) + '</em></div>';
+  }
+
+  // 전체 만기 종합 지표(맥스 페인·풋/콜·거래량 비중·감마 레벨). 서버가 같은 체인에서 함께 계산한다.
+  function optOverviewHtml(data) {
+    var o = data.overview;
+    if (!o) return '';
+    var avg = o.volume_vs_avg || {};
+    var avgTiles = ['3', '7', '30'].filter(function (k) { return avg[k] != null; }).map(function (k) {
+      return '<div><span>' + k + '일 평균 대비</span><b>' + Number(avg[k]).toFixed(1) + '%</b></div>';
+    }).join('');
+    var avgHtml = avgTiles
+      ? '<div class="us-opt-tiles">' + avgTiles + '</div>'
+      : '<p class="us-opt-note">평소 대비 거래량은 하루씩 기록을 쌓아 계산합니다(현재 ' + (o.volume_history_days || 0) + '일 기록).</p>';
+    return '<div class="us-opt-head"><b>옵션 종합</b><span>' + optAsOfText(data) + ' · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>'
+      + '<dl class="us-opt-kv">'
+      + '<div><dt>현재가</dt><dd>' + optMoney(data.price) + '</dd></div>'
+      + '<div><dt>맥스 페인(가장 가까운 만기)</dt><dd>' + optMoney(o.max_pain) + '</dd></div>'
+      + '<div><dt>풋/콜 비율 (거래량)</dt><dd>' + (o.pc_volume == null ? '-' : o.pc_volume.toFixed(2)) + '</dd></div>'
+      + '<div><dt>풋/콜 비율 (미결제약정)</dt><dd>' + (o.pc_oi == null ? '-' : o.pc_oi.toFixed(2)) + '</dd></div>'
+      + '</dl>'
+      + '<div class="us-opt-shares">'
+      + optShareRow('거래량', o.call_share && o.call_share.volume)
+      + optShareRow('미결제약정', o.call_share && o.call_share.oi)
+      + optShareRow('프리미엄(추정)', o.call_share && o.call_share.premium)
+      + '</div>'
+      + '<div class="us-opt-sub us-opt-sub-plain">오늘 옵션 거래량(전체 만기) <b>' + fmtOptCount(o.total_volume) + '</b></div>'
+      + avgHtml
+      + '<div class="us-opt-sub us-opt-sub-plain">감마 주요 레벨(전체 만기)</div>'
+      + '<div class="us-opt-tiles us-opt-tiles-4">'
+      + '<div><span>콜 월(위쪽)</span><b class="us-opt-call">' + optMoney(o.call_wall) + '</b></div>'
+      + '<div><span>풋 월(아래쪽)</span><b class="us-opt-put">' + optMoney(o.put_wall) + '</b></div>'
+      + '<div><span>감마 플립</span><b>' + optMoney(o.gamma_flip) + '</b></div>'
+      + '<div><span>Net GEX(백만$)</span><b>' + (o.net_gex > 0 ? '+' : '') + Number(o.net_gex).toFixed(0) + '</b></div>'
+      + '</div>'
+      + '<p class="us-opt-note">프리미엄 비중은 거래량×호가 중간가로 계산한 추정이며 실제 체결 금액이 아닙니다. 감마 플립은 주가가 ±15% 움직일 때 순감마가 0이 되는 지점의 추정입니다.</p>';
+  }
+
   function renderOptionsCard(mount, data) {
     if (!data || !data.available) { mount.hidden = true; mount.innerHTML = ''; return; }
+    var overviewHtml = optOverviewHtml(data);
     if (!data.is_0dte) {
       mount.hidden = false;
-      mount.innerHTML = '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 옵션 없음 · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>';
+      mount.innerHTML = overviewHtml + '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 옵션 없음 · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>';
       return;
     }
     var rows = (data.strikes || []).slice().sort(function (a, b) { return b.strike - a.strike; });
@@ -959,7 +1005,7 @@
     rows.forEach(function (r) { maxValue = Math.max(maxValue, r.call, r.put); });
     maxValue = maxValue || 1;
     var price = Number(data.price);
-    var html = '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
+    var html = overviewHtml + '<div class="us-opt-head us-opt-head-0dte"><b>0DTE 옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
       + '<div class="us-opt-sub">오늘 거래량이 미결제약정보다 큰 행사가 = 신규 포지션 · 감마는 OI(전일) 기준</div>'
       + '<div class="us-opt-tiles">'
       + '<div><span>콜 월(최대 콜 감마)</span><b class="us-opt-call">$' + Number(data.call_wall).toFixed(2) + '</b></div>'

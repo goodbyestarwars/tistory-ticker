@@ -260,6 +260,28 @@ html.dark .us-opt-cur { background: var(--dk-inner); border-color: var(--dk-line
 .us-opt-n { font-size: 10px; color: #8a9099; white-space: nowrap; }
 .us-opt-n em { font-style: normal; font-weight: 700; color: #b5720f; }
 html.dark .us-opt-sub, html.dark .us-opt-n em { color: #f0b429; }
+
+/* 옵션 종합(2026-11-03): 전체 만기 풋/콜·맥스 페인·거래량 비중·감마 레벨 */
+.us-opt-kv { margin: 0; padding: 0 6px; }
+.us-opt-kv > div { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0f1f3; font-size: 12px; }
+.us-opt-kv dt { margin: 0; color: #6b7280; }
+.us-opt-kv dd { margin: 0; font-weight: 800; color: #333; }
+.us-opt-shares { margin: 8px 6px 4px; padding: 8px; border-radius: 8px; background: #f7f8fa; }
+.us-opt-share { display: grid; grid-template-columns: 74px minmax(0, 1fr) 72px; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; }
+.us-opt-share span { color: #6b7280; }
+.us-opt-share em { font-style: normal; text-align: right; color: #6b7280; font-size: 10.5px; }
+.us-opt-share-bar { height: 7px; border-radius: 4px; background: var(--num-down); opacity: .85; overflow: hidden; }
+.us-opt-share-bar i { display: block; height: 100%; background: var(--num-up); }
+.us-opt-sub-plain { color: #4b5563; }
+.us-opt-sub-plain b { color: #333; }
+.us-opt-tiles-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.us-opt-head-0dte { margin-top: 6px; border-top: 1px solid #eee; }
+html.dark .us-opt-kv > div { border-bottom-color: var(--dk-line); }
+html.dark .us-opt-kv dt, html.dark .us-opt-share span, html.dark .us-opt-share em { color: var(--dk-sub); }
+html.dark .us-opt-kv dd, html.dark .us-opt-sub-plain b { color: var(--dk-text); }
+html.dark .us-opt-shares { background: var(--dk-inner); }
+html.dark .us-opt-sub-plain { color: var(--dk-text); }
+html.dark .us-opt-head-0dte { border-top-color: var(--dk-line); }
 html.dark .us-opt-n { color: var(--dk-mute); }
 /* 증시검색 안 미국 카드: 국내와 같은 핵심 시세 5칸(2026-10-05) */
 .us-stocks-metrics-core { margin-top: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }

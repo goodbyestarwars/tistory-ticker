@@ -94,3 +94,4 @@ index_history_*.tmp
 scanner_observation.json*
 quant-autotrade/**/order_names.json
 quant-autotrade/**/order_fills.json
+scripts/cloud-vm/us_options_volume_history.json
