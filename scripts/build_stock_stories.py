@@ -20,13 +20,14 @@ sys.path.insert(0, str(ROOT / 'scripts/cloud-vm'))
 from build_dcf_data import read_js, write_js, load_public_market_master, Collector, BudgetExhausted
 import dart_client
 import fundamentals
+import story_disclosures
 from snapshot_io import atomic_json
 
 KST = timezone(timedelta(hours=9))
 OUT = ROOT / 'data/stock-stories'
 SELECTION = ROOT / 'data/stock-story-selection.js'
 STATE = ROOT / 'work/stock-story-state.json'
-VERSION = 1
+VERSION = 2
 
 
 BudgetExceeded = BudgetExhausted
@@ -54,7 +55,7 @@ def load_story(code):
 
 
 def publish_story(code, story):
-    if not re.fullmatch(r'[0-9A-Z]{6}', code) or not story.get('cards'):
+    if not re.fullmatch(r'[0-9A-Z]{6}', code) or not isinstance(story.get('cards'), list):
         raise ValueError('Invalid story')
     body = json.dumps(story, ensure_ascii=False, separators=(',', ':'), allow_nan=False).replace('<', '\\u003c')
     source = 'window.STOCK_STORIES=window.STOCK_STORIES||{};window.STOCK_STORIES["' + code + '"]=' + body + ';\n'
@@ -165,11 +166,11 @@ def compose_story(old, member, cards, filing, today):
     old = old or {}
     managed = (old.get('maintenance') or {}).get('managed', False)
     # A newer editorial/preliminary result must never be replaced by an older periodic filing.
-    keep_editorial = bool(old.get('cards') and not managed and iso_day(old['asOf']) >= iso_day(filing['rcept_dt']))
+    keep_editorial = bool(old.get('cards') and all(c.get('kind') == 'interpretation' for c in old['cards']) and not managed and iso_day(old['asOf']) >= iso_day(filing['rcept_dt']))
     if keep_editorial:
         published = old['cards']
     else:
-        other = [] if managed else [c for c in old.get('cards', []) if 'earnings' not in c.get('topics', [c.get('topic')])]
+        other = [] if managed else [c for c in old.get('cards', []) if c.get('kind') == 'interpretation' and c.get('topic') == 'segment-profit']
         published = cards + other
     published = [dict(c) for c in published]
     for c in published:
@@ -178,7 +179,7 @@ def compose_story(old, member, cards, filing, today):
         if not c.get('asOf'):
             c['asOf'] = old.get('asOf') or iso_day(filing['rcept_dt'])
     story = dict(old, name=member['name'], cards=published,
-                 asOf=max(c['asOf'] for c in published),
+                 asOf=max((c['asOf'] for c in published), default=iso_day(filing['rcept_dt'])),
                  maintenance={'version': VERSION, 'managed': managed or not old.get('cards'), 'filing': filing})
     same = old.get('cards') == published
     story['written'] = old.get('written', today) if same else today
@@ -220,6 +221,44 @@ def watch_disclosures(api_key, members, state, today, max_pages=8):
         cursor['page'] += 1
 
 
+def watch_supply_disclosures(api_key, state, today, max_pages=2):
+    """Reuse the same server-side watcher, budget and cursor, across all listed stocks."""
+    cursor = state.setdefault('supplyWatch', {'page': 1})
+    pending = state.setdefault('supplyPending', {})
+    end = datetime.fromisoformat(today)
+    for _ in range(max_pages):
+        params = {'crtfc_key': api_key, 'bgn_de': (end-timedelta(days=3)).strftime('%Y%m%d'),
+                  'end_de': today.replace('-', ''), 'pblntf_ty':'B', 'page_count':'100',
+                  'page_no':str(cursor['page']), 'sort':'date', 'sort_mth':'desc'}
+        payload = json.loads(dart_client._fetch(dart_client.BASE_URL+'/list.json?'+urllib.parse.urlencode(params)).decode('utf-8'))
+        if payload.get('status') == '013':
+            cursor['page']=1
+            break
+        if payload.get('status') != '000':
+            raise RuntimeError('Material disclosure watch failed')
+        for report in payload.get('list', []):
+            code=report.get('stock_code') or ''
+            if re.fullmatch(r'[0-9A-Z]{6}',code) and any(k in re.sub(r'\s+','',report.get('report_nm','')) for k in story_disclosures.EVENTS):
+                pending[report['rcept_no']]=report
+        if cursor['page'] >= int(payload.get('total_page',1)):
+            cursor['page']=1
+            break
+        cursor['page']+=1
+    output=ROOT/'data'/'stock-story-supply'
+    output.mkdir(parents=True,exist_ok=True)
+    for receipt,report in list(pending.items())[:20]:
+        code=report['stock_code']
+        path=output/(code+'.js')
+        old=read_js(path,'STOCK_STORY_SUPPLY') if path.exists() else None
+        if old and receipt <= old.get('latest_receipt',''):
+            del pending[receipt]
+            continue
+        cache=story_disclosures.collect_event(api_key,report,old)
+        if cache is not None:
+            write_js(path,'STOCK_STORY_SUPPLY',cache)
+        del pending[receipt]
+
+
 def install_budget(state, max_calls, daily_calls):
     today = datetime.now(KST).date().isoformat()
     usage = state.setdefault('usage', {})
@@ -240,6 +279,14 @@ def install_budget(state, max_calls, daily_calls):
     return original, run_calls
 
 
+def interpretation_cards(quarters):
+    import subprocess
+    result = subprocess.run(['node', str(ROOT / 'scripts' / 'story_contract.cjs')],
+                            input=json.dumps({'fundamentals': {'fundamentals': {'quarters': quarters}}}),
+                            text=True, capture_output=True, check=True, encoding='utf-8')
+    return json.loads(result.stdout)
+
+
 def refresh_member(code, member, corp, key, args, today, report_day):
     """Workers only collect/compute; the main thread publishes and acknowledges."""
     if not corp:
@@ -256,11 +303,16 @@ def refresh_member(code, member, corp, key, args, today, report_day):
     old_filing = (old or {}).get('maintenance', {}).get('filing')
     source_stale = old and (report_day - datetime.fromisoformat(old['asOf']).date()).days > 45
     badge_due = old and any(retired_badge(c, today) for c in old.get('cards', []))
-    if old_filing == filing and not source_stale and not badge_due:
+    if old_filing == filing and not source_stale and not badge_due and (old.get('maintenance') or {}).get('version') == 2:
         return filing, None
+    latest = dict(filing, fs_div='CFS')
     rows = fundamentals.call_fnltt_any(key, corp, filing['year'], filing['reprt_code'])
-    cards = financial_cards(rows, filing)
-    return filing, compose_story(old, member, cards, filing, today)
+    if rows: latest['fs_div'] = rows[0].get('fs_div')
+    quarters = fundamentals.fetch_quarter_history(key, corp, latest)
+    cards = interpretation_cards(quarters)
+    story = compose_story(old, member, cards, filing, today)
+    story['quarterHistory'] = quarters
+    return filing, story
 
 
 def run(args):
@@ -292,6 +344,7 @@ def run(args):
         mapping = dart_client.get_corp_code_map(key)
         if args.mode in ('watch', 'event'):
             watch_disclosures(key, members, state, today)
+            watch_supply_disclosures(key, state, today)
         due = set(state.get('pending', {})) & set(members)
         if args.codes:
             due.update(c for c in args.codes.split(',') if c in members)
@@ -325,7 +378,7 @@ def run(args):
                     state.setdefault('pending', {}).setdefault(code, '')
         # Index only entries that have actual readable cards. Retired files are retained.
         index = {code: {'name': member['name'], 'market': member['market'], 'rank': member['rank']}
-                 for code, member in members.items() if load_story(code) and load_story(code).get('cards')}
+                 for code, member in members.items() if load_story(code)}
         if index != old_index:
             write_js(OUT / 'index.js', 'STOCK_STORIES_INDEX', index)
         summary = {'tier1': len(index), 'selected': len(members), 'changed': changed, 'errors': errors,

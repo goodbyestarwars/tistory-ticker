@@ -3281,6 +3281,7 @@ html.dark #foreign-flow .ff-story-mini path.is-dn { stroke: var(--dk-down); }
 html.dark #foreign-flow .ff-story-head { background: var(--dk-card); border-color: var(--dk-line); }
 @media (min-width: 1600px) { html.dark #foreign-flow .ff-story-head { background: none; } }
 #foreign-flow .ff-story-head small { font-size: 13px; }
+#foreign-flow .ff-story-profit-chart { width: 100%; min-width: 0; height: 280px; }
 #foreign-flow .ff-story-rows { display: grid; gap: 16px; margin-bottom: 16px; }
 #foreign-flow .ff-story-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: 13px; color: #1d1d1f; }
 #foreign-flow .ff-story-row em { color: #6e6e73; font-style: normal; text-align: right; }

@@ -1,6 +1,15 @@
 # 종목 스토리
 
-## 표시 계약
+## 해석형 카드 전환 (2026-11-02, 위 Tier2 후보·5장 규칙을 대체)
+
+- 카드는 서로 다른 자료 2종 이상 + 결론 1문장일 때만 표시한다(`StockStoryTemplate.validate`). 최대 4장, 기준일 필수, 결측이면 생략한다.
+- 종류: `earnings-price`(실적 대비 주가, 분기 영업이익 8개 + 분기말 종가 2년 이상), `earnings-source`(매출효과·마진효과·영업외 차이),
+  `volume-profile`(기존 `volume-profile-analysis.js` 결과), `potential-supply`(CB·BW·자기주식 처분 등 DART 구조화 공시, 서버 감시로 수집), `segment-profit`(Tier1 전용, 접수번호 필수).
+- 페이지 하단 섹션과 같은 숫자 나열 카드는 `DUPLICATE_METRICS`로 막는다. 기존 Tier1 숫자 카드는 `legacyCards`로 보존하고 표시하지 않는다.
+- 유상증자 결정 API는 발행가·시작일이 없어 카드를 만들지 않는다. 8분기 미만이면 카드 1·2를 생략한다.
+- 분기 이력(`quarterHistory`)과 잠재 물량(`data/stock-story-supply/`)은 서버 워크플로(`stock-stories.yml`)가 채운다. 방문자 시점 DART 호출은 없다.
+
+## 표시 계약 (이전)
 
 - `/pages/foreign-flow?code=*`의 국내 개별 종목 전부가 대상이다. ETF 분기는 유지한다.
 - Tier2는 `js/stock-story-template.js`의 순수 계산이다. 종목별 파일·fetch·타이머가 없다.

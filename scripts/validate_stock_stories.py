@@ -3,6 +3,8 @@ import argparse
 from datetime import datetime
 import json
 import re
+import subprocess
+from pathlib import Path
 from build_stock_stories import OUT, SELECTION, load_story, iso_day
 from build_dcf_data import read_js
 
@@ -17,9 +19,14 @@ def validate(require_count=0):
         if not re.fullmatch(r'[0-9A-Z]{6}', code) or code not in selection['members']:
             raise ValueError('Invalid index member')
         story = load_story(code)
-        if not story or story['name'] != info['name'] or not story.get('cards'):
+        if not story or story['name'] != info['name'] or not isinstance(story.get('cards'), list):
             raise ValueError('Missing static story')
         iso_day(story['asOf'])
+        result = subprocess.run(['node', str(Path(__file__).with_name('story_contract.cjs'))],
+                                input=json.dumps({'mode':'validate','cards':story['cards']}),
+                                capture_output=True,text=True,encoding='utf-8',check=True)
+        if json.loads(result.stdout) != story['cards']:
+            raise ValueError('Non-interpretive, duplicate, missing evidence or over-four card')
         for card in story['cards']:
             if not card.get('title') or not card.get('sub') or not card.get('src'):
                 raise ValueError('Missing card evidence')
