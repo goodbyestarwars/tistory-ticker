@@ -1,0 +1,118 @@
+name: Stock story disclosure watch and publication
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [watch, bootstrap, review, reselect, event]
+        default: watch
+      codes:
+        description: 'Optional comma-separated public stock codes'
+        default: ''
+  repository_dispatch:
+    types: [stock-story-disclosure, stock-story-badge-retired]
+  schedule:
+    - cron: '3,13,23,33,43,53 * * * *'
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: stock-story-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore private run state and shared corporate map
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            work/stock-story-state.json
+            work/dart_corp_code_map.json
+          key: stock-story-state-${{ github.run_id }}
+          restore-keys: stock-story-state-
+      - name: Validate story generation and frontend contracts
+        run: |
+          python -m unittest discover -s test -p 'test_stock_story_pipeline.py'
+          node test/test_stock_story_template.js
+          python test/test_stock_stories.py
+      - name: Read structured event without shell interpolation
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_CODES: ${{ inputs.codes }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          mode = os.environ.get('INPUT_MODE') or ('event' if os.environ['GITHUB_EVENT_NAME'] == 'repository_dispatch' else 'watch')
+          codes = os.environ.get('INPUT_CODES') or event.get('client_payload', {}).get('codes', '')
+          if mode not in ('watch', 'bootstrap', 'review', 'reselect', 'event'):
+              raise ValueError('Unknown mode')
+          if not isinstance(codes, str) or not re.fullmatch(r'(?:[0-9A-Z]{6}(?:,[0-9A-Z]{6})*)?', codes):
+              raise ValueError('Invalid stock codes')
+          Path('work').mkdir(exist_ok=True)
+          Path('work/stock-story-event.json').write_text(json.dumps({'mode':mode,'codes':codes}))
+          PY
+      - name: Detect disclosures and refresh affected static stories in the same run
+        id: collect
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          config=json.loads(Path('work/stock-story-event.json').read_text())
+          result=subprocess.run(['python','scripts/build_stock_stories.py','--mode',config['mode'],'--codes',config['codes']])
+          Path('work/stock-story-exit.txt').write_text(str(result.returncode))
+          if result.returncode not in (0,2):
+              raise SystemExit(result.returncode)
+          PY
+      - name: Validate every published member against its source metadata
+        run: python scripts/validate_stock_stories.py
+      - name: Publish changed content only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add data/stock-stories/ data/stock-story-selection.js
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Refresh Tier1 stock stories from verified disclosures"
+          git pull --rebase origin master
+          git push origin HEAD:master
+          gh api --method POST repos/${{ github.repository }}/pages/builds
+      - name: Preserve bounded run state even when a provider fails
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            work/stock-story-state.json
+            work/dart_corp_code_map.json
+          key: stock-story-state-${{ github.run_id }}
+      - name: Record run outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-story-outcome
+          path: work/stock-story-run.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Report incomplete coverage or pending provider data
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          code=int(Path('work/stock-story-exit.txt').read_text())
+          if code:
+              raise SystemExit('Source data pending; previous cards retained, next watcher run retries.')
+          PY

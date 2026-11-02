@@ -1637,8 +1637,11 @@
       }
       html += '</div>';
     }
-    return html + '</div><footer class="ff-wide-foot"><small>' + escapeHtml(c.src || '')
-      + (c.asOf && String(c.src || '').indexOf(c.asOf) === -1 ? ' · ' + escapeHtml(c.asOf) + ' 기준' : '') + '</small></footer></article>';
+    var sourceUrl = safeExternalUrl(c.sourceUrl);
+    var sourceLabel = escapeHtml(c.src || '') + (c.asOf && String(c.src || '').indexOf(c.asOf) === -1 ? ' · ' + escapeHtml(c.asOf) + ' 기준' : '');
+    return html + '</div><footer class="ff-wide-foot"><small>'
+      + (sourceUrl ? '<a href="' + escapeAttr(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + sourceLabel + '</a>' : sourceLabel)
+      + '</small></footer></article>';
   }
 
   // 가로로 긴 흰 카드 2장(판정 · 차트). 영역은 눈에 띄지 않는 가는 선으로만 나눈다.

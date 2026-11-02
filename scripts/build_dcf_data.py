@@ -65,14 +65,14 @@ def universe():
     return result
 
 
-def refresh_markets():
+def load_public_market_master():
     """Public KIS master: same supplier already used by domestic_futures_ws.
 
-    Only the documented leading nine-character short-code field is parsed.
-    No financial ratios, prices or ambiguous thousand-share fields are imported.
+    Parse the official short-code/name/classification fields and the documented
+    prior-day market-cap field (KRW 100 million). No thousand-share conversion.
     Source: koreainvestment/open-trading-api stocks_info/kis_*_code_mst.py.
     """
-    markets, stocks, preferred_flags = {}, {}, {}
+    markets, stocks, preferred_flags, market_caps = {}, {}, {}, {}
     for market in ('KOSPI', 'KOSDAQ'):
         name = market.lower() + '_code.mst'
         url = 'https://new.real.download.dws.co.kr/common/master/' + name + '.zip'
@@ -93,11 +93,24 @@ def refresh_markets():
                         flag = row[-tail:][preferred_offset:preferred_offset + 1]
                         if flag in ('1', '2', '9'):
                             preferred_flags[code] = flag
+                        # Official fixed-width field: prior-day market cap, KRW 100 million.
+                        cap_offset = 212 if market == 'KOSPI' else 206
+                        cap = row[-tail:][cap_offset:cap_offset + 9].strip()
+                        if group == 'ST' and flag not in ('1', '2', '9') and cap.isdigit() and int(cap) > 0:
+                            market_caps[code] = int(cap)
     if markets.get('005930') != 'KOSPI' or markets.get('035900') != 'KOSDAQ':
         raise ValueError('Public master validation failed')
     if stocks.get('005930') != '삼성전자' or len(stocks) < 2000:
         raise ValueError('Public stock-name master validation failed')
-    write_js(OUT / 'markets.js', 'DCF_MARKETS', {'generatedAt': datetime.now(KST).isoformat(), 'source': '한국투자증권 공개 종목 마스터', 'markets': markets, 'stocks': stocks, 'preferredFlags': preferred_flags})
+    if len(market_caps) < 2000 or market_caps.get('005930', 0) <= 0:
+        raise ValueError('Public market-cap master validation failed')
+    return {'generatedAt': datetime.now(KST).isoformat(), 'source': '한국투자증권 공개 종목 마스터', 'markets': markets, 'stocks': stocks, 'preferredFlags': preferred_flags, 'marketCaps': market_caps}
+
+
+def refresh_markets():
+    payload = load_public_market_master()
+    payload.pop('marketCaps')  # DCF keeps its existing contract; stories own the ranking snapshot.
+    write_js(OUT / 'markets.js', 'DCF_MARKETS', payload)
 
 
 def write_js(path, name, data):
