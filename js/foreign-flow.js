@@ -1301,6 +1301,14 @@
           return;
         }
         renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals, opinion, etfInfo, selectedIsEtf);
+        // Reuse the same in-flight responses if the first-screen deadline won; never refetch for stories.
+        if (!selectedIsEtf && (!flowEntry || !opinion)) {
+          Promise.all([investorFlowPromise, opinionPromise]).then(function (late) {
+            if (requestId !== searchRequestSeq || ((!late[0] || flowEntry) && (!late[1] || opinion))) return;
+            loadStockStory(resultBox, resolved.code, swingViewModel_(data, late[0] || flowEntry, computeTechnicalScore(chartData), fundamentals, chartData), chartData,
+              { name: data.name, foreignFlow: data, investorFlow: late[0] || flowEntry, fundamentals: fundamentals, opinion: late[1] || opinion, chartData: chartData });
+          }).catch(function () {});
+        }
       })
       .catch(function (err) {
         if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
@@ -1565,25 +1573,27 @@
     });
   }
 
-  // 종목 스토리(선별 종목 카드): data/stock-stories.js를 지연 로드하고 공통 캐러셀(SiteInteractions)로 넘겨 본다.
-  // 자료가 없는 종목은 영역을 만들지 않는다.
-  var stockStoriesPromise = null;
-  var STOCK_STORIES_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/stock-stories.js';
-
-  function ensureStockStories() {
-    if (global.STOCK_STORIES) return Promise.resolve(global.STOCK_STORIES);
-    if (stockStoriesPromise) return stockStoriesPromise;
-    stockStoriesPromise = new Promise(function (resolve, reject) {
+  // Shared renderer; load only the selected Tier1 file. Tier2 receives existing responses only.
+  var storyAssets = {};
+  var STORY_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  function ensureStoryAsset(path, ready) {
+    if (ready()) return Promise.resolve(ready());
+    if (storyAssets[path]) return storyAssets[path];
+    storyAssets[path] = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = STOCK_STORIES_JS;
-      script.onload = function () {
-        if (!global.STOCK_STORIES) { stockStoriesPromise = null; reject(new Error('스토리 자료 없음')); return; }
-        resolve(global.STOCK_STORIES);
-      };
-      script.onerror = function () { stockStoriesPromise = null; reject(new Error('스토리 자료 로드 실패')); };
+      script.src = STORY_BASE + path;
+      script.onload = function () { if (ready()) resolve(ready()); else { delete storyAssets[path]; reject(new Error('스토리 자료 없음')); } };
+      script.onerror = function () { delete storyAssets[path]; reject(new Error('스토리 자료 로드 실패')); };
       document.head.appendChild(script);
     });
-    return stockStoriesPromise;
+    return storyAssets[path];
+  }
+  function ensureStockStories(code) {
+    return ensureStoryAsset('data/stock-stories/index.js', function () { return global.STOCK_STORIES_INDEX; })
+      .then(function (index) {
+        if (!Object.prototype.hasOwnProperty.call(index, code)) return null;
+        return ensureStoryAsset('data/stock-stories/' + code + '.js', function () { return global.STOCK_STORIES && global.STOCK_STORIES[code]; });
+      });
   }
 
   function buildStockStoryPlaceholder(code) {
@@ -1619,7 +1629,8 @@
       }
       html += '</div>';
     }
-    return html + '</div><footer class="ff-wide-foot"><small>' + escapeHtml(c.src || '') + '</small></footer></article>';
+    return html + '</div><footer class="ff-wide-foot"><small>' + escapeHtml(c.src || '')
+      + (c.asOf && String(c.src || '').indexOf(c.asOf) === -1 ? ' · ' + escapeHtml(c.asOf) + ' 기준' : '') + '</small></footer></article>';
   }
 
   // 가로로 긴 흰 카드 2장(판정 · 차트). 영역은 눈에 띄지 않는 가는 선으로만 나눈다.
@@ -1757,27 +1768,35 @@
   }
 
   function buildStockStoryHtml(st, wideHtml, wideCount, code) {
-    var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
+    var asOf = st.asOf && ((window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준'));
     var cards = (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
     var total = wideCount + (st.cards || []).length;
     return '<div class="ff-wide-stage" data-wide-stage>'
       + '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 : ' + escapeHtml(st.name) + (code ? ' (' + escapeHtml(code) + ')' : '') + '</span>'
-      + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small>'
+      + '<small>' + (st.written ? '작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) : '응답 기반 요약 · 기준일은 각 카드에 표시') + '</small>'
       + '<div class="ff-story-mini" data-story-mini hidden></div></div>'
       + '<div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
       + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
         + '<div class="ff-wide-dots" data-wide-dots><button type="button" class="ff-wide-pause" data-wide-pause aria-label="자동 넘김 일시정지"></button>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
       + '</div>'
-      + '<small class="ff-story-note">작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 실시간 계산). 사라는 말도 팔라는 말도 아니다.</small>';
+      + '<small class="ff-story-note">정적 이야기는 작성 시점 기준이고, 응답 기반 카드는 조회 자료로 계산한다. 사라는 말도 팔라는 말도 아니다.</small>';
   }
 
-  function loadStockStory(box, code, swingVm, chartData) {
+  function loadStockStory(box, code, swingVm, chartData, storyInput) {
     var mount = box.querySelector('[data-ff-story]');
     if (!mount) return;
-    ensureStockStories().then(function (all) {
-      var st = all && all[code];
-      if (!st || !box.contains(mount)) return; // 자료가 없거나 종목을 바꾼 뒤 도착한 응답은 버린다.
+    var revision = (mount._storyRevision || 0) + 1;
+    mount._storyRevision = revision;
+    Promise.all([
+      ensureStockStories(code).catch(function () { return null; }),
+      ensureStoryAsset('js/stock-story-template.js', function () { return global.StockStoryTemplate; }).catch(function () { return null; })
+    ]).then(function (results) {
+      if (!box.contains(mount) || mount._storyRevision !== revision) return;
+      var primary = results[0], template = results[1], generated = template ? template.build(storyInput || {}) : [];
+      var cards = template ? template.merge(primary && primary.cards, generated) : (primary && primary.cards || []);
+      if (!cards.length) return;
+      var st = Object.assign({}, primary || {}, { name: primary && primary.name || storyInput && storyInput.name || code, cards: cards });
       // 판정 카드가 기존 2주 스윙 요약 박스를 대신하므로 같은 내용이 두 번 보이지 않게 박스는 숨긴다(DOM은 유지).
       var wide = '', count = 0;
       if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
@@ -1787,7 +1806,7 @@
       if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
-      loadStoryMinute(mount, code, chartData);
+      if (primary) loadStoryMinute(mount, code, chartData);
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
@@ -1933,7 +1952,7 @@
     html += '<div class="ff-view" id="ffViewSim" hidden></div>';
 
     box.innerHTML = html;
-    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData); }
+    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData, { name: data.name, foreignFlow: data, investorFlow: entry, fundamentals: fundamentals, opinion: opinion, chartData: chartData }); }
     loadStockMembers_(box, data.code);
 
     // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)

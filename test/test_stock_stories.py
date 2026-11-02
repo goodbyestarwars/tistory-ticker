@@ -17,7 +17,9 @@ const win={addEventListener(){},NineUI:{escapeHtml:s=>String(s).replace(/&/g,'&a
 const doc={readyState:'loading',addEventListener(){},createElement(){return {}},head:{appendChild(s){appended.push(s);}}};
 vm.runInNewContext(src,{window:win,document:doc,console,fetch(){throw new Error('api');},setTimeout,clearTimeout});
 const api=win.__t;
-vm.runInNewContext(fs.readFileSync('data/stock-stories.js','utf8'),{window:win});
+vm.runInNewContext(fs.readFileSync('data/stock-stories/index.js','utf8'),{window:win});
+vm.runInNewContext(fs.readFileSync('data/stock-stories/042660.js','utf8'),{window:win});
+vm.runInNewContext(fs.readFileSync('js/stock-story-template.js','utf8'),{window:win});
 assert(appended.length===0);
 (async()=>{
  assert.equal(api.buildStockStoryPlaceholder('bad'),'');
