@@ -3073,7 +3073,7 @@ html body #foreign-flow .ff-swing-summary :is(strong,b) { font-family:var(--font
 #foreign-flow .ff-company-profile p { margin: 7px 0 5px; color: #334155; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 #foreign-flow .ff-company-profile small { color: #94a3b8; font-size: 10px; }
 /* 종목 스토리 제목 아래로 옮겨진 회사 소개: 박스 없이 글만 */
-#foreign-flow .ff-story-head .ff-company-profile.is-in-story { margin: 6px 0 0; padding: 0; border: 0; border-radius: 0; background: none; }
+#foreign-flow .ff-story-head .ff-company-profile.is-in-story { margin: 22px 0 0; padding: 0; border: 0; border-radius: 0; background: none; }
 #foreign-flow .ff-story-head .ff-company-profile.is-in-story p { margin: 6px 0 4px; color: #424245; font-size: 13px; font-weight: 600; line-height: 1.7; }
 html.dark #foreign-flow .ff-story-head .ff-company-profile.is-in-story { background: none; }
 html.dark #foreign-flow .ff-company-profile { border-color: var(--dk-line); background: var(--dk-card); }
