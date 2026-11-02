@@ -1644,8 +1644,8 @@
 
   function buildVerdictCard(vm) {
     var a = vm.assessment, label = vm.currentRegime.label;
-    var story = '장기는 ' + vm.bigWave.label + ', 중기는 ' + vm.midWave.label + ', 단기는 ' + vm.smallWave.label + ' 흐름이에요. '
-      + '그래서 지금은 ‘' + (a.diagnosis || vm.waves.diagnosis || '-') + '’으로 봅니다.';
+    var story = '장기는 ' + vm.bigWave.label + ', 중기는 ' + vm.midWave.label + ', 단기는 ' + vm.smallWave.label + ' 흐름이다. '
+      + '그래서 지금 판정은 ‘' + (a.diagnosis || vm.waves.diagnosis || '-') + '’.';
     return '<article class="ff-wide ff-wide--verdict" data-story-number="01">'
       + '<div class="ff-wide-grid">'
       + '<div class="ff-wide-lead"><small>2주 스윙 판정</small>' + wideValue_(label, true)
@@ -1715,9 +1715,9 @@
     }).join('');
     var g20 = gap(lines[2]), g60 = gap(lines[1]);
     var head = g20 == null || g60 == null ? '이동평균선 위치' : (g20 < 0 ? '20일선 아래' : '20일선 위') + ' · ' + (g60 < 0 ? '60일선 아래' : '60일선 위');
-    var story = g20 == null || g60 == null ? '이동평균을 계산할 만큼의 일봉이 아직 부족해요.'
+    var story = g20 == null || g60 == null ? '이동평균을 계산할 만큼의 일봉이 아직 부족하다.'
       : '종가 ' + Math.round(last).toLocaleString() + '원은 20일선보다 ' + Math.abs(g20).toFixed(1) + '% ' + (g20 < 0 ? '낮고' : '높고') + ', 60일선보다 '
-        + Math.abs(g60).toFixed(1) + '% ' + (g60 < 0 ? '낮아요.' : '높아요.') + ' 판정은 이 선들과의 위치에서 시작합니다.';
+        + Math.abs(g60).toFixed(1) + '% ' + (g60 < 0 ? '낮다.' : '높다.') + ' 판정은 이 선들과의 위치에서 출발한다.';
     var legend = lines.slice().reverse().map(function (l) { return '<span class="is-' + l.key + '">' + l.label + '</span>'; }).join('') + '<span class="is-close">종가</span>';
     return '<article class="ff-wide ff-wide--chart" data-story-number="02">'
       + '<div class="ff-wide-grid is-chart">'
@@ -1769,7 +1769,7 @@
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
         + '<div class="ff-wide-dots" data-wide-dots><button type="button" class="ff-wide-pause" data-wide-pause aria-label="자동 넘김 일시정지"></button>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
       + '</div>'
-      + '<small class="ff-story-note">작성 시점 값이며 실시간으로 갱신되지 않습니다(판정·차트 카드만 실시간 계산). 투자 권유가 아닙니다.</small>';
+      + '<small class="ff-story-note">작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 실시간 계산). 사라는 말도 팔라는 말도 아니다.</small>';
   }
 
   function loadStockStory(box, code, swingVm, chartData) {
