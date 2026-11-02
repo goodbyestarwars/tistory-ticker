@@ -3264,14 +3264,15 @@ html.dark #foreign-flow .ff-story-head .ff-panel-title { color: var(--dk-text); 
 @media (min-width: 1600px) {
   #foreign-flow .ff-story-mini:not([hidden]) { display: block; margin-top: 14px; }
 }
-#foreign-flow .ff-story-mini small { display: block; margin-bottom: 4px; }
+#foreign-flow .ff-story-mini-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 4px; }
+#foreign-flow .ff-story-mini-meta small { font-size: 11px; white-space: nowrap; }
 #foreign-flow .ff-story-mini svg { display: block; width: 100%; height: 56px; overflow: visible; }
 #foreign-flow .ff-story-mini path { fill: none; stroke: #6e6e73; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 #foreign-flow .ff-story-mini path.is-up { stroke: #d24f45; }
 #foreign-flow .ff-story-mini path.is-dn { stroke: #1261c4; }
 #foreign-flow .ff-story-mini .ff-mini-prev { stroke: #c4c4c9; stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
-#foreign-flow .ff-story-mini b { display: block; margin-top: 4px; color: #6e6e73; font-size: 13px; font-weight: 700; }
-#foreign-flow .ff-story-mini b span { margin-right: 8px; }
+#foreign-flow .ff-story-mini b { display: flex; flex-wrap: wrap; gap: 8px; color: #6e6e73; font-size: 13px; font-weight: 700; }
+#foreign-flow .ff-story-mini b span { white-space: nowrap; }
 #foreign-flow .ff-story-mini b .is-up { color: #d24f45; }
 #foreign-flow .ff-story-mini b .is-dn { color: #1261c4; }
 html.dark #foreign-flow .ff-story-mini .ff-mini-prev { stroke: rgba(255, 255, 255, .25); }
