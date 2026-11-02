@@ -91,6 +91,11 @@ class StoryPipelineTests(unittest.TestCase):
         self.assertNotIn('badge',result['cards'][0])
         self.assertIn('badge',old['cards'][0], 'does not mutate source')
 
+    def test_added_provenance_does_not_re_date_unchanged_editorial(self):
+        old=dict(name='회사',asOf='2026-10-30',written='2026-11-01',cards=[dict(topic='earnings',title='new',sub='new',src='new',asOf='2026-10-30')])
+        result=pipeline.compose_story(old,{'name':'회사'},pipeline.financial_cards(self.rows,self.filing),self.filing,'2026-11-02')
+        self.assertEqual(result['written'],'2026-11-01')
+
     def test_watcher_resumes_pages_and_keeps_event_pending_until_applied(self):
         state={}
         payload={'status':'000','total_page':2,'list':[dict(stock_code='005930',report_nm='반기보고서 (2026.06)',rcept_no='20260814000001',rcept_dt='20260814')]}

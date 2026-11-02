@@ -180,7 +180,7 @@ def compose_story(old, member, cards, filing, today):
     story = dict(old, name=member['name'], cards=published,
                  asOf=max(c['asOf'] for c in published),
                  maintenance={'version': VERSION, 'managed': managed or not old.get('cards'), 'filing': filing})
-    same = old.get('cards') == published and old.get('maintenance') == story['maintenance']
+    same = old.get('cards') == published
     story['written'] = old.get('written', today) if same else today
     return story
 
