@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 from types import SimpleNamespace
+from concurrent.futures import ThreadPoolExecutor
 import unittest
 from unittest.mock import patch
 
@@ -56,6 +57,10 @@ class StoryPipelineTests(unittest.TestCase):
         cards = pipeline.financial_cards(rows, self.filing)
         self.assertFalse(any(p['k']=='영업이익' for p in cards[0]['pair']))
         self.assertEqual(pipeline.won(None), None)
+        rows[1]['rcept_no']='20260515000001'
+        rows[1]['thstrm_amount']='999999999'
+        cards=pipeline.financial_cards(rows,self.filing)
+        self.assertFalse(any(p['k']=='영업이익' for p in cards[0]['pair']))
 
     def test_noop_review_does_not_change_written_date_or_publish(self):
         member = {'name':'삼성전자'}
@@ -109,6 +114,25 @@ class StoryPipelineTests(unittest.TestCase):
                 with self.assertRaises(pipeline.BudgetExceeded):
                     pipeline.dart_client._fetch('https://example.test')
                 self.assertEqual(request.call_count,1)
+            finally:
+                pipeline.dart_client._fetch=original
+
+    def test_parallel_workers_share_the_same_provider_budget(self):
+        state={}
+        with patch.object(pipeline.dart_client,'_fetch',return_value=b'ok') as request,patch.object(pipeline.time,'sleep'):
+            original,_=pipeline.install_budget(state,3,100)
+            def call(_):
+                try:
+                    pipeline.dart_client._fetch('https://example.test')
+                    return True
+                except pipeline.BudgetExceeded:
+                    return False
+            try:
+                with ThreadPoolExecutor(max_workers=4) as workers:
+                    results=list(workers.map(call,range(12)))
+                self.assertEqual(sum(results),3)
+                self.assertEqual(request.call_count,3)
+                self.assertEqual(state['usage']['calls'],3)
             finally:
                 pipeline.dart_client._fetch=original
 

@@ -4,6 +4,7 @@ Use the existing KIS master parser, DART client, financial extraction and atomic
 All provider calls are bounded. Failed/newly pending disclosures retain old files.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -16,7 +17,7 @@ import urllib.parse
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 sys.path.insert(0, str(ROOT / 'scripts/cloud-vm'))
-from build_dcf_data import read_js, write_js, load_public_market_master
+from build_dcf_data import read_js, write_js, load_public_market_master, Collector, BudgetExhausted
 import dart_client
 import fundamentals
 from snapshot_io import atomic_json
@@ -28,8 +29,7 @@ STATE = ROOT / 'work/stock-story-state.json'
 VERSION = 1
 
 
-class BudgetExceeded(RuntimeError):
-    pass
+BudgetExceeded = BudgetExhausted
 
 
 class DisclosurePending(RuntimeError):
@@ -108,6 +108,7 @@ def financial_cards(rows, filing):
     receipt = str(filing.get('rcept_no') or '')
     if not re.fullmatch(r'\d{14}', receipt) or not rows or not any(r.get('rcept_no') == receipt for r in rows):
         raise DisclosurePending('Statement and latest disclosure do not match yet')
+    rows = [r for r in rows if r.get('rcept_no') == receipt]
     as_of = iso_day(filing['rcept_dt'])
     annual = filing['reprt_code'] == '11011'
     period = str(filing['year']) + '년 ' + fundamentals.QUARTER_LABEL[filing['reprt_code']]
@@ -192,6 +193,8 @@ def watch_disclosures(api_key, members, state, today, max_pages=8):
     """
     cursor = state.setdefault('watch', {})
     if cursor.get('date') != today:
+        if cursor.get('date') and (datetime.fromisoformat(today) - datetime.fromisoformat(cursor['date'])).days > 3:
+            state['reviewed'] = {}  # Reconcile every member after a gap beyond the watcher window.
         cursor.update(date=today, page=1)
     pending = state.setdefault('pending', {})
     for _ in range(max_pages):
@@ -224,17 +227,40 @@ def install_budget(state, max_calls, daily_calls):
         usage.update(date=today, calls=0)
     original = dart_client._fetch
     run_calls = [0]
-    started = time.monotonic()
-    def fetch(url):
-        if run_calls[0] >= max_calls or usage['calls'] >= daily_calls or time.monotonic() - started > 1200:
+    def before_request():
+        if usage['calls'] >= daily_calls:
             raise BudgetExceeded('DART request budget reached')
         run_calls[0] += 1
         usage['calls'] += 1
-        time.sleep(.35)
+    collector = Collector(None, max_calls, 1200, before_request=before_request)
+    def fetch(url):
         # Never print a credential-bearing URL or exception from urllib.
-        return original(url)
+        return collector.call(lambda _key: original(url))
     dart_client._fetch = fetch
     return original, run_calls
+
+
+def refresh_member(code, member, corp, key, args, today, report_day):
+    """Workers only collect/compute; the main thread publishes and acknowledges."""
+    if not corp:
+        raise DisclosurePending('Corporate mapping missing')
+    filing = fundamentals.latest_periodic_filing(dart_client.call_periodic_reports(key, corp, report_day))
+    if not filing or not filing.get('reprt_code'):
+        raise DisclosurePending('Latest periodic report missing')
+    old = load_story(code)
+    if old and args.retired_badges:
+        retired = set(args.retired_badges.split(','))
+        for card in old.get('cards', []):
+            if isinstance(card.get('badge'), dict) and card['badge'].get('id') in retired:
+                card['badge']['status'] = 'retired'
+    old_filing = (old or {}).get('maintenance', {}).get('filing')
+    source_stale = old and (report_day - datetime.fromisoformat(old['asOf']).date()).days > 45
+    badge_due = old and any(retired_badge(c, today) for c in old.get('cards', []))
+    if old_filing == filing and not source_stale and not badge_due:
+        return filing, None
+    rows = fundamentals.call_fnltt_any(key, corp, filing['year'], filing['reprt_code'])
+    cards = financial_cards(rows, filing)
+    return filing, compose_story(old, member, cards, filing, today)
 
 
 def run(args):
@@ -277,48 +303,26 @@ def run(args):
             badge_due = old and any(retired_badge(c, today) for c in old.get('cards', []))
             if not old or args.mode in ('bootstrap', 'review', 'reselect') or fortnight_due or badge_due:
                 due.add(code)
-        # Rank order keeps a time/budget-limited bootstrap resumable.
-        for code in sorted(due, key=lambda c: members[c]['rank']):
-            if processed >= args.max_symbols:
-                break
-            processed += 1
-            try:
-                corp = mapping.get(code)
-                if not corp:
-                    raise DisclosurePending('Corporate mapping missing')
-                filing = fundamentals.latest_periodic_filing(dart_client.call_periodic_reports(key, corp, now.date()))
-                if not filing or not filing.get('reprt_code'):
-                    raise DisclosurePending('Latest periodic report missing')
-                old = load_story(code)
-                if old and args.retired_badges:
-                    retired = set(args.retired_badges.split(','))
-                    for card in old.get('cards', []):
-                        if isinstance(card.get('badge'), dict) and card['badge'].get('id') in retired:
-                            card['badge']['status'] = 'retired'
-                old_filing = (old or {}).get('maintenance', {}).get('filing')
-                # No reason to reread unchanged statements inside the 45-day source age.
-                source_stale = old and (now.date() - datetime.fromisoformat(old['asOf']).date()).days > 45
-                badge_due = old and any(retired_badge(c, today) for c in old.get('cards', []))
-                if old_filing == filing and not source_stale and not badge_due:
+        selected = sorted(due, key=lambda c: members[c]['rank'])[:args.max_symbols]
+        # Actions only. The existing Collector owns the shared throttle/budget across four workers.
+        with ThreadPoolExecutor(max_workers=4) as workers:
+            futures = [(code, workers.submit(refresh_member, code, members[code], mapping.get(code), key, args, today, now.date())) for code in selected]
+            for code, future in futures:
+                processed += 1
+                try:
+                    filing, story = future.result()
+                    if story and publish_story(code, story):
+                        changed.append(code)
+                        print('Updated verified story: ' + code, flush=True)
                     review[code] = today
                     state.setdefault('observed', {})[code] = max(filing['rcept_no'], state.get('pending', {}).get(code, ''))
                     state.setdefault('pending', {}).pop(code, None)
-                    continue
-                rows = fundamentals.call_fnltt_any(key, corp, filing['year'], filing['reprt_code'])
-                cards = financial_cards(rows, filing)
-                story = compose_story(old, members[code], cards, filing, today)
-                if publish_story(code, story):
-                    changed.append(code)
-                    print('Updated verified story: ' + code, flush=True)
-                review[code] = today
-                state.setdefault('observed', {})[code] = max(filing['rcept_no'], state.get('pending', {}).get(code, ''))
-                state.setdefault('pending', {}).pop(code, None)
-            except (BudgetExceeded, dart_client.DartRateLimitError):
-                budget_hit = True
-                break
-            except Exception as exc:
-                errors.append({'code': code, 'type': type(exc).__name__})
-                state.setdefault('pending', {}).setdefault(code, '')
+                except (BudgetExceeded, dart_client.DartRateLimitError):
+                    budget_hit = True
+                    state.setdefault('pending', {}).setdefault(code, '')
+                except Exception as exc:
+                    errors.append({'code': code, 'type': type(exc).__name__})
+                    state.setdefault('pending', {}).setdefault(code, '')
         # Index only entries that have actual readable cards. Retired files are retained.
         index = {code: {'name': member['name'], 'market': member['market'], 'rank': member['rank']}
                  for code, member in members.items() if load_story(code) and load_story(code).get('cards')}

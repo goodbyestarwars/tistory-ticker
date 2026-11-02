@@ -152,12 +152,13 @@ def target_codes(canonical, available, attempts, now, cursor, force=False, failu
 
 
 class Collector:
-    def __init__(self, key, max_calls, max_seconds=420):
+    def __init__(self, key, max_calls, max_seconds=420, before_request=None):
         self.key, self.max_calls, self.calls = key, max_calls, 0
         self.max_seconds = max_seconds
         self.started = time.monotonic()
         self.call_lock = threading.Lock()
         self.stopped = threading.Event()
+        self.before_request = before_request
 
     def call(self, fn, *args):
         # One shared throttle/counter across bounded PC/Actions workers.
@@ -168,6 +169,8 @@ class Collector:
                 time.sleep(0.35)
             if self.stopped.is_set() or time.monotonic() - self.started > self.max_seconds:
                 raise BudgetExhausted('수집 예산 종료')
+            if self.before_request:
+                self.before_request()
             self.calls += 1
         try:
             return fn(self.key, *args)
