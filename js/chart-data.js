@@ -230,7 +230,7 @@
     var siblings = optionsParent.children || [];
     for (var oi = 0; oi < siblings.length; oi++) {
       var kid = siblings[oi];
-      if (kid.classList && (kid.classList.contains('ss-chart-studies') || kid.classList.contains('ff-chart-toggles'))) { optionsRow = kid; break; }
+      if (kid.classList && (kid.classList.contains('nine-chart-options') || kid.classList.contains('ss-chart-studies') || kid.classList.contains('ff-chart-toggles'))) { optionsRow = kid; break; }
     }
     var toolsRow = controls && controls.querySelector('.ss-chart-tabs');
     if (toolsRow) toolsRow.insertBefore(wrap, toolsRow.querySelector('.ss-drawing-tools'));

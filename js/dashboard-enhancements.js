@@ -218,7 +218,7 @@
     } else if (anchor && anchor.querySelector('.ss-index-tools')) {
       controlRow = anchor.querySelector('.ss-index-tools');
     } else if (anchor && anchor.querySelector('.ff-chart-toggles')) {
-      controlRow = anchor.querySelector('.ff-chart-toggles');
+      controlRow = anchor.querySelector('.ff-draw-tools') || anchor.querySelector('.ff-chart-toggles');
     } else if (target.id === 'psChart') {
       controlRow = target.closest('.ps-detail').querySelector('.ps-chart-switcher');
     } else if (target.classList.contains('ff-apt-chart-wrap')) {

@@ -1963,6 +1963,7 @@
     html += '<div class="ff-view" id="ffViewSim" hidden></div>';
 
     box.innerHTML = html;
+    if (global.NineUI.chartOptions) global.NineUI.chartOptions(box);
     if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData, { name: data.name, foreignFlow: data, investorFlow: entry, fundamentals: fundamentals, opinion: opinion, chartData: chartData }); }
     loadStockMembers_(box, data.code);
 

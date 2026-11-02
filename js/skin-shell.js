@@ -218,7 +218,22 @@
   function marketSessionLabel(value) {
     return {pre: '프리마켓', regular: '정규장', post: '정규장 마감 · 애프터마켓', closed: '장 마감'}[value] || '시장 상태 확인 중';
   }
-  global.NineUI = { marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle, persistPrefs: persistPrefs };
+  function chartOptions(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('.ff-chart-toggles, .ss-chart-studies').forEach(function (row) {
+      if (row.closest('.nine-chart-options')) return;
+      var details = global.document.createElement('details');
+      details.className = 'nine-chart-options';
+      details.open = !global.matchMedia || !global.matchMedia('(max-width: 760px)').matches;
+      var summary = global.document.createElement('summary');
+      summary.className = 'nine-chart-options-ribbon';
+      summary.innerHTML = '<span>차트 옵션</span><span class="nine-chart-options-action"><span class="when-open">접기</span><span class="when-closed">펼치기</span><i aria-hidden="true"></i></span>';
+      row.parentNode.insertBefore(details, row);
+      details.appendChild(summary);
+      details.appendChild(row);
+    });
+  }
+  global.NineUI = { chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, loadStyle: loadStyle, persistPrefs: persistPrefs };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 

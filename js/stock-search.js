@@ -436,6 +436,7 @@
       if (title.textContent.trim() === '증시검색') title.textContent = isIndependentChartMode() ? '독립 차트' : '실시간 시세';
     });
     container.innerHTML = buildShell();
+    if (global.NineUI.chartOptions) global.NineUI.chartOptions(container);
     chartReady().catch(function () { /* 차트를 열 때 다시 시도하고 오류를 보여 준다 */ });   // 라이브러리·모듈을 검색·시세 조회와 겹쳐 미리 받는다
     if (global.OrderBook) global.OrderBook.flowChartProvider = loadSharedFlowChart;
     wirePanelResize(container);
@@ -1353,6 +1354,7 @@
             }).join('') + '</div>'
             + '</div>'
             + '<div class="ss-index-chart" id="ssIndexChart"></div>';
+          if (global.NineUI.chartOptions) global.NineUI.chartOptions(panel);
           syncIndexCapabilities(panel, bars);
           panel.querySelectorAll('[data-index-study]').forEach(function (input) {
             input.addEventListener('change', function () {
@@ -2459,6 +2461,7 @@
       + '</div></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">미국 일봉은 제공된 약 2년 자료 범위에서 기간을 선택합니다. 전체 = 수신한 자료 전체.</div>';
+    if (global.NineUI.chartOptions) global.NineUI.chartOptions(container);
 
     // 첫 화면은 일봉만 보인다. 이전에는 보이지 않는 분봉까지 동시에 조회해서
     // 미국 상세 진입 때 뉴스·일봉·분봉 외부 요청이 한꺼번에 몰렸다. 분봉은 탭을
