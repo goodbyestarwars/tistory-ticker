@@ -5,7 +5,6 @@ All provider calls are bounded. Failed/newly pending disclosures retain old file
 """
 import argparse
 from datetime import datetime, timedelta, timezone
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -118,11 +117,10 @@ def financial_cards(rows, filing):
         ('영업이익', fundamentals.OPERATING_INCOME_IDS, '영업이익'),
         ('순이익', fundamentals.NET_INCOME_IDS, '당기순이익'),
     ]
-    amounts, comparisons, values = [], [], {}
+    amounts, comparisons = [], []
     for label, ids, name in metrics:
         current = fundamentals.extract_amount(rows, ids, name, ('IS', 'CIS'), 'thstrm_amount')
         prior = fundamentals.extract_amount(rows, ids, name, ('IS', 'CIS'), prior_key)
-        values[label] = current
         if current is not None:
             amounts.append({'k': label, 'v': won(current), 't': 'up' if current > 0 else 'dn' if current < 0 else 'n'})
         diff = change(current, prior)
@@ -226,8 +224,9 @@ def install_budget(state, max_calls, daily_calls):
         usage.update(date=today, calls=0)
     original = dart_client._fetch
     run_calls = [0]
+    started = time.monotonic()
     def fetch(url):
-        if run_calls[0] >= max_calls or usage['calls'] >= daily_calls:
+        if run_calls[0] >= max_calls or usage['calls'] >= daily_calls or time.monotonic() - started > 1200:
             raise BudgetExceeded('DART request budget reached')
         run_calls[0] += 1
         usage['calls'] += 1
@@ -248,17 +247,21 @@ def run(args):
     selection = read_js(SELECTION, 'STOCK_STORY_SELECTION') if SELECTION.exists() else {}
     # Existing editorial members are public, not the user's private watchlist.
     pinned = [code for code in old_index if not (load_story(code).get('maintenance') or {}).get('managed', False)]
-    if not selection or selection.get('month') != now.strftime('%Y-%m') or args.mode in ('bootstrap', 'reselect'):
+    checked_month = state.get('selectionMonth') or selection.get('month')
+    if not selection or checked_month != now.strftime('%Y-%m') or args.mode in ('bootstrap', 'reselect'):
         master = load_public_market_master()
-        selection = select_members(master, args.count, pinned)
-        write_js(SELECTION, 'STOCK_STORY_SELECTION', selection)
+        candidate = select_members(master, args.count, pinned)
+        if any(candidate.get(k) != selection.get(k) for k in ('members', 'source', 'basis', 'universeCount')):
+            selection = candidate
+            write_js(SELECTION, 'STOCK_STORY_SELECTION', selection)
+        state['selectionMonth'] = now.strftime('%Y-%m')
     members = selection['members']
     key = os.environ.get('DART_API_KEY', '').strip()
     if not key:
         raise RuntimeError('DART_API_KEY is required')
     dart_client.CORP_CODE_MAP_FILE = str(STATE.parent / 'dart_corp_code_map.json')
     original, run_calls = install_budget(state, args.max_calls, args.daily_calls)
-    changed, errors, processed = [], [], 0
+    changed, errors, processed, budget_hit = [], [], 0, False
     try:
         mapping = dart_client.get_corp_code_map(key)
         if args.mode in ('watch', 'event'):
@@ -271,7 +274,6 @@ def run(args):
             old = load_story(code)
             last = review.get(code)
             fortnight_due = not last or (now.date() - datetime.fromisoformat(last).date()).days >= 14
-            stale = not old or (now.date() - datetime.fromisoformat(old['asOf']).date()).days > 45
             badge_due = old and any(retired_badge(c, today) for c in old.get('cards', []))
             if not old or args.mode in ('bootstrap', 'review', 'reselect') or fortnight_due or badge_due:
                 due.add(code)
@@ -288,6 +290,11 @@ def run(args):
                 if not filing or not filing.get('reprt_code'):
                     raise DisclosurePending('Latest periodic report missing')
                 old = load_story(code)
+                if old and args.retired_badges:
+                    retired = set(args.retired_badges.split(','))
+                    for card in old.get('cards', []):
+                        if isinstance(card.get('badge'), dict) and card['badge'].get('id') in retired:
+                            card['badge']['status'] = 'retired'
                 old_filing = (old or {}).get('maintenance', {}).get('filing')
                 # No reason to reread unchanged statements inside the 45-day source age.
                 source_stale = old and (now.date() - datetime.fromisoformat(old['asOf']).date()).days > 45
@@ -302,10 +309,12 @@ def run(args):
                 story = compose_story(old, members[code], cards, filing, today)
                 if publish_story(code, story):
                     changed.append(code)
+                    print('Updated verified story: ' + code, flush=True)
                 review[code] = today
                 state.setdefault('observed', {})[code] = max(filing['rcept_no'], state.get('pending', {}).get(code, ''))
                 state.setdefault('pending', {}).pop(code, None)
             except (BudgetExceeded, dart_client.DartRateLimitError):
+                budget_hit = True
                 break
             except Exception as exc:
                 errors.append({'code': code, 'type': type(exc).__name__})
@@ -316,10 +325,10 @@ def run(args):
         if index != old_index:
             write_js(OUT / 'index.js', 'STOCK_STORIES_INDEX', index)
         summary = {'tier1': len(index), 'selected': len(members), 'changed': changed, 'errors': errors,
-                   'calls': run_calls[0], 'pending': len(state.get('pending', {})), 'mode': args.mode}
+                   'calls': run_calls[0], 'pending': len(state.get('pending', {})), 'mode': args.mode, 'budgetHit': budget_hit}
         atomic_json(STATE.parent / 'stock-story-run.json', summary)
         print(json.dumps(summary, ensure_ascii=True))
-        return 0 if len(index) >= args.count and not errors else 2
+        return 0 if len(index) >= args.count and not errors and not budget_hit and not summary['pending'] else 2
     finally:
         dart_client._fetch = original
         atomic_json(STATE, state)
@@ -329,6 +338,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=['bootstrap', 'watch', 'event', 'review', 'reselect'], default='watch')
     parser.add_argument('--codes', default='')
+    parser.add_argument('--retired-badges', default='')
     parser.add_argument('--count', type=int, default=100)
     parser.add_argument('--max-symbols', type=int, default=110)
     parser.add_argument('--max-calls', type=int, default=400)
@@ -336,6 +346,8 @@ def main():
     args = parser.parse_args()
     if args.count != 100 or not 1 <= args.max_calls <= 500 or not 1 <= args.max_symbols <= 150:
         parser.error('Bounded production settings required')
+    if args.retired_badges and (not args.codes or not re.fullmatch(r'[A-Za-z0-9_.:-]+(?:,[A-Za-z0-9_.:-]+)*', args.retired_badges)):
+        parser.error('Retired badge IDs require an explicit code scope')
     try:
         return run(args)
     except Exception as exc:

@@ -57,12 +57,15 @@ jobs:
           event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
           mode = os.environ.get('INPUT_MODE') or ('event' if os.environ['GITHUB_EVENT_NAME'] == 'repository_dispatch' else 'watch')
           codes = os.environ.get('INPUT_CODES') or event.get('client_payload', {}).get('codes', '')
+          badges = event.get('client_payload', {}).get('retiredBadgeIds', [])
           if mode not in ('watch', 'bootstrap', 'review', 'reselect', 'event'):
               raise ValueError('Unknown mode')
           if not isinstance(codes, str) or not re.fullmatch(r'(?:[0-9A-Z]{6}(?:,[0-9A-Z]{6})*)?', codes):
               raise ValueError('Invalid stock codes')
+          if not isinstance(badges, list) or any(not isinstance(b, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,100}', b) for b in badges) or (badges and not codes):
+              raise ValueError('Invalid badge retirement scope')
           Path('work').mkdir(exist_ok=True)
-          Path('work/stock-story-event.json').write_text(json.dumps({'mode':mode,'codes':codes}))
+          Path('work/stock-story-event.json').write_text(json.dumps({'mode':mode,'codes':codes,'retiredBadges':','.join(badges)}))
           PY
       - name: Detect disclosures and refresh affected static stories in the same run
         id: collect
@@ -73,7 +76,7 @@ jobs:
           import json, subprocess
           from pathlib import Path
           config=json.loads(Path('work/stock-story-event.json').read_text())
-          result=subprocess.run(['python','scripts/build_stock_stories.py','--mode',config['mode'],'--codes',config['codes']])
+          result=subprocess.run(['python','scripts/build_stock_stories.py','--mode',config['mode'],'--codes',config['codes'],'--retired-badges',config['retiredBadges']])
           Path('work/stock-story-exit.txt').write_text(str(result.returncode))
           if result.returncode not in (0,2):
               raise SystemExit(result.returncode)

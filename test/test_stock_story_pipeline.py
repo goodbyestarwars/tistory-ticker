@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -110,6 +111,28 @@ class StoryPipelineTests(unittest.TestCase):
                 self.assertEqual(request.call_count,1)
             finally:
                 pipeline.dart_client._fetch=original
+
+    def test_failed_event_keeps_published_card_and_does_not_acknowledge_receipt(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);out=root/'stories';out.mkdir();state=root/'work/state.json';state.parent.mkdir()
+            selection=root/'selection.js'
+            members={'005930':dict(name='삼성전자',market='KOSPI',rank=1)}
+            for i in range(2,101):
+                members[f'{i:06}']=dict(name=str(i),market='KOSDAQ',rank=i)
+            pipeline.write_js(selection,'STOCK_STORY_SELECTION',dict(month=datetime.now(pipeline.KST).strftime('%Y-%m'),members=members))
+            pipeline.write_js(out/'index.js','STOCK_STORIES_INDEX',{'005930':members['005930']})
+            args=SimpleNamespace(mode='event',codes='005930',retired_badges='',count=100,max_calls=10,daily_calls=100,max_symbols=1)
+            old=pipeline.compose_story(None,members['005930'],pipeline.financial_cards(self.rows,self.filing),self.filing,'2026-11-02')
+            newer=dict(self.filing,rcept_no='20261114000001',rcept_dt='20261114')
+            reports=[dict(report_nm='분기보고서 (2026.09)',rcept_no=newer['rcept_no'],rcept_dt=newer['rcept_dt'])]
+            with patch.object(pipeline,'OUT',out),patch.object(pipeline,'SELECTION',selection),patch.object(pipeline,'STATE',state),patch.dict(pipeline.os.environ,{'DART_API_KEY':'test'}),patch.object(pipeline.dart_client,'get_corp_code_map',return_value={'005930':'00126380'}),patch.object(pipeline.dart_client,'call_periodic_reports',return_value=reports),patch.object(pipeline.fundamentals,'call_fnltt_any',return_value=self.rows),patch.object(pipeline,'watch_disclosures'):
+                pipeline.publish_story('005930',old)
+                before=(out/'005930.js').read_bytes()
+                self.assertEqual(pipeline.run(args),2)
+                self.assertEqual((out/'005930.js').read_bytes(),before)
+                saved=json.loads(state.read_text())
+                self.assertNotIn('005930',saved.get('observed',{}))
+                self.assertIn('005930',saved['pending'])
 
 
 if __name__ == '__main__':
