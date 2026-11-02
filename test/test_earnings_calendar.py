@@ -126,6 +126,27 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual(enriched['result'], viewer_result['result'])
         self.assertEqual(enriched['revenue_actual'], 123600000000)
 
+    def test_splits_capped_finnhub_response_so_dense_week_is_not_lost(self):
+        # 공급자가 한 번에 CAP행만 주고 나머지(이른 날짜)를 자르는 상황을 흉내 낸다.
+        from datetime import date, timedelta
+        small = [{'date': (date(2026, 11, 2) + timedelta(days=i % 5)).isoformat(),
+                  'symbol': 'ZZ%d' % i, 'hour': 'bmo'} for i in range(900)]
+        pltr = {'date': '2026-11-02', 'symbol': 'PLTR', 'company': 'Palantir', 'hour': 'amc'}
+        dataset = small + [pltr]
+        calls = []
+
+        def capped(_key, start, end):
+            calls.append((start, end))
+            rows = [r for r in dataset if start <= r['date'] <= end]
+            return rows[-500:] if len(rows) > 500 else rows
+
+        with mock.patch.object(earnings_calendar, '_fetch_finnhub', side_effect=capped), \
+                mock.patch.object(earnings_calendar.time, 'sleep'):
+            rows = earnings_calendar._fetch_finnhub_range('k', '2026-10-31', '2026-11-30')
+        self.assertIn('PLTR', {r['symbol'] for r in rows})
+        self.assertGreater(len(calls), 1)
+        self.assertLessEqual(len(calls), earnings_calendar.FINNHUB_MAX_CALLS)
+
     def test_fetches_and_caches_us_month(self):
         rows = [
             {'date': '2026-08-15', 'symbol': 'AAPL', 'company': 'Apple Inc.', 'hour': 'amc'},

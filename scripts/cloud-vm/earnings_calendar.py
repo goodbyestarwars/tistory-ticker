@@ -664,6 +664,30 @@ def _fetch_finnhub(api_key, start_date, end_date):
     return payload['earningsCalendar']
 
 
+# 2026-11-02: Finnhub는 한 번에 돌려주는 행 수에 상한이 있고(상위 구간만 반환),
+# 소형주까지 포함한 월 단위 조회는 실적 밀집 주(11/2~11/6)가 통째로 잘려 PLTR 같은
+# S&P 500 종목이 캘린더에서 빠졌다. 응답이 상한 근처면 구간을 반으로 나눠 다시 받는다.
+FINNHUB_SPLIT_ROWS = 400
+FINNHUB_MAX_CALLS = 40
+FINNHUB_CALL_GAP_SEC = 0.15
+
+
+def _fetch_finnhub_range(api_key, start_date, end_date, budget=None):
+    """기간 응답이 상한에 가까우면 이등분해 병합한다. 하루 단위까지만 쪼갠다."""
+    budget = budget if budget is not None else [FINNHUB_MAX_CALLS]
+    budget[0] -= 1
+    rows = _fetch_finnhub(api_key, start_date, end_date)
+    first, last = date.fromisoformat(start_date), date.fromisoformat(end_date)
+    if len(rows) < FINNHUB_SPLIT_ROWS or first >= last or budget[0] < 2:
+        return rows
+    mid = first + (last - first) // 2
+    time.sleep(FINNHUB_CALL_GAP_SEC)
+    left = _fetch_finnhub_range(api_key, first.isoformat(), mid.isoformat(), budget)
+    time.sleep(FINNHUB_CALL_GAP_SEC)
+    right = _fetch_finnhub_range(api_key, (mid + timedelta(days=1)).isoformat(), last.isoformat(), budget)
+    return left + right
+
+
 def _finnhub_hour_label(hour):
     return {
         'bmo': '장전',
@@ -782,7 +806,7 @@ def fetch_us_month(year, month):
     start = date(int(year), int(month), 1)
     end = (date(int(year) + 1, 1, 1) if int(month) == 12
            else date(int(year), int(month) + 1, 1)) - timedelta(days=1)
-    rows = _fetch_finnhub(api_key, (start - timedelta(days=1)).isoformat(), end.isoformat())
+    rows = _fetch_finnhub_range(api_key, (start - timedelta(days=1)).isoformat(), end.isoformat())
     events = []
     seen = set()
     for row in rows:

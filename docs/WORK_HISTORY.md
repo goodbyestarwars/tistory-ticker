@@ -1,3 +1,7 @@
+**2026-11-02 미국 실적 캘린더 11/2~11/8 구간 누락(PLTR 등) 수정**
+
+원인(추정, 운영 응답 근거): 월 단위 Finnhub 한 번 호출이 행 수 상한에 걸려 밀집 주(11/2~11/8 KST)가 잘림. 11월 미국 이벤트가 11/9(부분)부터만 존재하고 PLTR·AAPL이 coverage.missingSymbols에 있음. 운영 VM의 원본 응답은 확인하지 못함. 변경: `earnings_calendar._fetch_finnhub_range`가 응답 400행 이상이면 기간을 이등분해 재조회(최대 40회, 호출 간격 0.15초). 검증: test_earnings_calendar·test_calendar_unified 53 passed(상한 재현 테스트 추가). 배포: master 푸시 후 VM 자동 배포.
+
 **2026-11-02 종목 스토리 전 종목 확대 되돌림(한화오션 단독 시점으로 원복)**
 
 요청: 전 종목 확대 이전으로 원복. 변경: 837d94ae 이후 스토리 커밋(전 종목 렌더·공시 감시·해석형 카드·VM 수집 확장)의 파일을 3a5499c8 기준으로 되돌림. 시세 갱신·차트 옵션 리본·이야기 시리즈 CSS는 유지. `stock-stories.yml` 워크플로·`data/stock-stories/`·`story_disclosures.py` 삭제. 아래 이전 항목은 이력으로 남김. 검증: 아래 테스트 참고. 배포: master 병합 → Pages, VM 자동 배포.
