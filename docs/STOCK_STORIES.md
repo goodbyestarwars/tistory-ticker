@@ -34,17 +34,48 @@
 4. 원고의 수치·날짜·출처를 확인한 후 기존 공통 렌더러 스키마로 저장한다. 내용 변경 때만 커밋하고 master→Pages 배포를 확인한다.
 5. 빠진 종목의 파일은 삭제하지 않고 index에서만 제외한다.
 
-### 2026-11-02 구현 상태
+### 운영 파이프라인
 
-- 전 종목 Tier2, Tier1 종목별 지연 로드, 주제 중복 제거 구현.
-- 실제 Tier1 원고는 한화오션 1개다. 삼성전자 Tier1 우선 테스트는 fixture이며 운영 원고가 아니다.
-- Codex 예약 작업으로 격주 월요일 09:00 KST Tier1 점검과 매월 1일 09:00 KST 재선정을 등록했다. 앱 예약 작업의 실행 환경에 의존하며 서버 cron이 아니다.
-- 공시 이벤트를 이 기능에 전달하는 운영 발신자는 아직 연결되지 않았다. 이벤트 즉시 자동 재작성 완료라고 보고하지 않는다.
-- 100개 정적 원고 확보와 전체 시총 순위 선정은 별도 운영 작업이다. 섹터 표본의 순위를 전 종목 시총 순위라고 쓰지 않는다.
+- `.github/workflows/stock-stories.yml`이 GitHub Actions에서 실행된다. VM에 수집 프로세스를 추가하지 않는다.
+- 전체 KOSPI·KOSDAQ 공개 마스터 파서는 기존 `scripts/build_dcf_data.py`의 `load_public_market_master`를 공유한다.
+  공식 고정폭 시총 필드(전일 기준·억원)를 검증하고, 보통주 전체를 합쳐 상위 100개를 선정한다.
+  `data/stock-story-selection.js`에 표본 수·순위·선정 시점·단위를 기록한다. 표본 섹터 순위가 아니다.
+- 정적 원고는 `scripts/build_stock_stories.py`가 기존 `dart_client`, `fundamentals`의 계정 추출·기간 구분을 재사용해 생성한다.
+  분기/연간 절대 실적, 전년 동기 대비, 연초 누적을 구분하며 흑자·적자 전환을 증가 배수로 쓰지 않는다.
+  모든 공시 카드에는 실제 접수번호, 공시 기준일, DART 원문 링크가 있다.
+- 기존 편집 원고보다 오래된 정기보고서로 최신 편집 내용을 덮지 않는다. 새 정기보고서가 나온 경우 실적 주제만 교체하고,
+  다른 주제의 원고는 개별 기준일을 보존한다. 임의의 해석이나 공시 문서 속 실행 지시를 적용하지 않는다.
+- 공시 감시는 매시 03·13·23·33·43·53분(UTC, 매 10분) 공식 DART 정기공시 목록을 확인한다.
+  **감지된 이벤트는 같은 실행에서 해당 종목 재작성→검증→변경분 커밋→Pages 빌드를 수행한다.**
+  공시 게시부터 감지까지는 수집 주기와 GitHub 대기 시간이 있으며, 게시 시점의 무지연 푸시라고 표현하지 않는다.
+- `repository_dispatch`의 `stock-story-disclosure`를 통한 외부 공시 이벤트도 같은 파이프라인으로 즉시 처리한다.
+  payload는 `{"codes":"005930,042660"}`다. 공급자 원문·키·계좌 정보를 전달하지 않는다.
+- 배지 폐기는 `stock-story-badge-retired` 이벤트에 `{"codes":"005930","retiredBadgeIds":["badge-id"]}`를 전달한다.
+  명시한 종목·배지 ID만 폐기하며, 만료일이 지난 배지도 정기 점검에서 제거한다.
+- 각 종목의 마지막 검토에서 14일이 지나면 새 정기보고서를 확인한다. 재작성은 신규 접수번호·45일 경과·배지 폐기일 때만 한다.
+  동일 내용과 동일 출처면 `written`도 바꾸지 않아 커밋이 생기지 않는다.
+- 월이 바뀐 첫 실행에서 순위를 재산정한다. 선정 내용이 같으면 조회 시간만 변경하는 커밋을 만들지 않는다.
+  제외 종목은 index에서만 제거하며 파일을 보존한다.
+- DART 응답의 접수번호가 새 공시와 다르면 이전 원고를 유지하고 이벤트를 미처리 상태로 남겨 다음 실행에서 재시도한다.
+  실패·결측을 정상값으로 바꾸지 않는다. 하루 1,500회·실행당 최대 400회·20분 수집 상한, 0.35초 호출 간격을 둔다.
+  공시 페이지 커서·이벤트 대기열·검토 시각·호출 예산은 Actions 캐시에 저장하고 공개 저장소에는 올리지 않는다.
+- 브라우저 전용 `data/stock-stories/`와 선정표는 VM 재시작·전 종목 재검색 경로에서 제외한다. 장중 보호창은 유지한다.
+- 초기 Codex 앱 예약 2개는 위 실행 파이프라인으로 대체해 삭제했다. 앱이 열려 있어야만 수행되는 갱신 작업이 아니다.
+
+수동 재현:
+
+```sh
+gh workflow run stock-stories.yml -f mode=bootstrap
+gh workflow run stock-stories.yml -f mode=review
+gh workflow run stock-stories.yml -f mode=reselect
+python scripts/validate_stock_stories.py --require-count 100
+```
 
 ## 검증
 
 `node test/test_stock_story_template.js`, `python test/test_stock_stories.py`.
 16개 화면 조합: 042660 실제 Tier1, 005930 Tier1 fixture, 000020 실제 수급/차트 응답 Tier2,
 000040 응답 전체 결측 fixture × PC1643/모바일390 × 라이트/다크.
+초기 테스트의 삼성전자 Tier1 fixture와 배포 후 실제 정적 원고 검증을 구분한다.
+파이프라인 단위 검증: `python -m unittest discover -s test -p 'test_stock_story_pipeline.py'`.
 fixture를 실제 사용자 로그인이나 운영 삼성전자 원고로 설명하지 않는다.
