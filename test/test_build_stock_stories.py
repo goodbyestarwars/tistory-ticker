@@ -43,7 +43,7 @@ class BuildTests(unittest.TestCase):
 
     def test_flow_card_needs_offsetting_buyer_and_size(self):
         # 20일 합: 외국인 -600억(백만원 -60000*... 행당 -3000백만=-30억), 개인 +25억*20
-        inv = invsr(-3000, 0, 2400)  # 외국인 -600억, 개인 +480억 (시총 5조 억원 = 50000억의 1.2%)
+        inv = invsr(-3000, 0, 2400)  # 외국인 -600억, 개인 +480억 (시총 50000억원의 1.2%)
         e = self.entry(dict(BASIC, bus_pro='-1', pbr='2'), inv=inv)
         self.assertIsNotNone(e)
         self.assertIn('외국인이 판 600억원을 개인이 받았다', e['cards'][0]['title'])
@@ -70,3 +70,10 @@ class BuildTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BelowBookScaleTests(unittest.TestCase):
+    def test_bps_above_high_keeps_widths_within_100(self):
+        b = {'pbr': 0.4, 'cur': 100.0, 'lo': 98.0, 'hi': 150.0, 'bps': 400.0}
+        card = bss.card_below_book(b)
+        self.assertTrue(all(1 <= r['w'] <= 100 for r in card['rows']))
