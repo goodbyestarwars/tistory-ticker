@@ -116,7 +116,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261102-story-interpretation1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vpcolor';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -1301,14 +1301,6 @@
           return;
         }
         renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals, opinion, etfInfo, selectedIsEtf);
-        // Reuse the same in-flight responses if the first-screen deadline won; never refetch for stories.
-        if (!selectedIsEtf && (!flowEntry || !opinion)) {
-          Promise.all([investorFlowPromise, opinionPromise]).then(function (late) {
-            if (requestId !== searchRequestSeq || ((!late[0] || flowEntry) && (!late[1] || opinion))) return;
-            loadStockStory(resultBox, resolved.code, swingViewModel_(data, late[0] || flowEntry, computeTechnicalScore(chartData), fundamentals, chartData), chartData,
-              { name: data.name, foreignFlow: data, investorFlow: late[0] || flowEntry, fundamentals: fundamentals, opinion: late[1] || opinion, chartData: chartData });
-          }).catch(function () {});
-        }
       })
       .catch(function (err) {
         if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
@@ -1398,7 +1390,7 @@
 
   function requestFlowChart(code) {
     return global.NineAPI.flowChart(code, {request: function (url) {
-      return fetchJson(url + (url.indexOf(KIWOOM_VM_URL) === 0 ? '?history=5y' : ''), url.indexOf(KIWOOM_VM_URL) === 0 ? FLOW_CHART_VM_TIMEOUT_MS : FLOW_CHART_GAS_TIMEOUT_MS);
+      return fetchJson(url, url.indexOf(KIWOOM_VM_URL) === 0 ? FLOW_CHART_VM_TIMEOUT_MS : FLOW_CHART_GAS_TIMEOUT_MS);
     }});
   }
 
@@ -1581,27 +1573,25 @@
     });
   }
 
-  // Shared renderer; load only the selected Tier1 file. Tier2 receives existing responses only.
-  var storyAssets = {};
-  var STORY_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-  function ensureStoryAsset(path, ready) {
-    if (ready()) return Promise.resolve(ready());
-    if (storyAssets[path]) return storyAssets[path];
-    storyAssets[path] = new Promise(function (resolve, reject) {
+  // 종목 스토리(선별 종목 카드): data/stock-stories.js를 지연 로드하고 공통 캐러셀(SiteInteractions)로 넘겨 본다.
+  // 자료가 없는 종목은 영역을 만들지 않는다.
+  var stockStoriesPromise = null;
+  var STOCK_STORIES_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/stock-stories.js';
+
+  function ensureStockStories() {
+    if (global.STOCK_STORIES) return Promise.resolve(global.STOCK_STORIES);
+    if (stockStoriesPromise) return stockStoriesPromise;
+    stockStoriesPromise = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = STORY_BASE + path + '?v=20261102-interpretation1';
-      script.onload = function () { if (ready()) resolve(ready()); else { delete storyAssets[path]; reject(new Error('스토리 자료 없음')); } };
-      script.onerror = function () { delete storyAssets[path]; reject(new Error('스토리 자료 로드 실패')); };
+      script.src = STOCK_STORIES_JS;
+      script.onload = function () {
+        if (!global.STOCK_STORIES) { stockStoriesPromise = null; reject(new Error('스토리 자료 없음')); return; }
+        resolve(global.STOCK_STORIES);
+      };
+      script.onerror = function () { stockStoriesPromise = null; reject(new Error('스토리 자료 로드 실패')); };
       document.head.appendChild(script);
     });
-    return storyAssets[path];
-  }
-  function ensureStockStories(code) {
-    return ensureStoryAsset('data/stock-stories/index.js', function () { return global.STOCK_STORIES_INDEX; })
-      .then(function (index) {
-        if (!Object.prototype.hasOwnProperty.call(index, code)) return null;
-        return ensureStoryAsset('data/stock-stories/' + code + '.js', function () { return global.STOCK_STORIES && global.STOCK_STORIES[code]; });
-      });
+    return stockStoriesPromise;
   }
 
   function buildStockStoryPlaceholder(code) {
@@ -1613,11 +1603,11 @@
 
   // 선별 종목의 이야기 카드도 판정·차트와 같은 가로 흰 카드로 만든다. 더 보기 없이 자세한 설명까지 한 번에 보여준다.
   function buildStockStoryCard(c, i, offset) {
-    var hasBody = (c.pair && c.pair.length) || (c.rows && c.rows.length) || c.chart;
+    var hasBody = (c.pair && c.pair.length) || (c.rows && c.rows.length);
     var html = '<article class="ff-wide ff-wide--story"><div class="ff-wide-grid' + (hasBody ? '' : ' is-solo') + '">'
       + '<div class="ff-wide-lead"><small>' + (i + 1 + offset < 10 ? '0' : '') + (i + 1 + offset) + '</small>'
       + '<strong class="is-big">' + escapeHtml(c.title) + '</strong>'
-      + '<p data-story-conclusion>' + escapeHtml(c.conclusion) + '</p>'
+      + '<p>' + escapeHtml(c.sub) + '</p>'
       + (c.detail && c.detail.length ? '<div class="ff-wide-detail">' + c.detail.map(function (t) { return '<p>' + escapeHtml(t) + '</p>'; }).join('') + '</div>' : '')
       + '</div>';
     if (hasBody) {
@@ -1627,7 +1617,6 @@
           return '<div><small>' + escapeHtml(p.k) + '</small><strong class="is-num ' + (p.t === 'up' ? 'is-up' : p.t === 'dn' ? 'is-dn' : '') + '">' + escapeHtml(p.v) + '</strong></div>';
         }).join('') + '</div>';
       }
-      if (c.chart && c.chart.type === 'profit-price') html += '<div class="ff-story-profit-chart" data-story-profit-chart="' + i + '" role="img" aria-label="분기 영업이익 막대와 분기말 주가 선"></div><small>막대: 분기 영업이익(억원) · 선: 분기말 주가(원)</small>';
       if (c.rows) {
         html += '<div class="ff-story-rows">' + c.rows.map(function (r) {
           var left = Number(r.l) || 0, width = Math.max(2, Math.min(100, Number(r.w) || 0));
@@ -1638,11 +1627,7 @@
       }
       html += '</div>';
     }
-    var sourceUrl = safeExternalUrl(c.sourceUrl);
-    var sourceLabel = escapeHtml(c.src || '') + (c.asOf && String(c.src || '').indexOf(c.asOf) === -1 ? ' · ' + escapeHtml(c.asOf) + ' 기준' : '');
-    return html + '</div><footer class="ff-wide-foot"><small>'
-      + (sourceUrl ? '<a href="' + escapeAttr(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + sourceLabel + '</a>' : sourceLabel)
-      + '</small></footer></article>';
+    return html + '</div><footer class="ff-wide-foot"><small>' + escapeHtml(c.src || '') + '</small></footer></article>';
   }
 
   // 가로로 긴 흰 카드 2장(판정 · 차트). 영역은 눈에 띄지 않는 가는 선으로만 나눈다.
@@ -1780,59 +1765,37 @@
   }
 
   function buildStockStoryHtml(st, wideHtml, wideCount, code) {
-    var asOf = st.asOf && ((window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준'));
+    var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
     var cards = (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
     var total = wideCount + (st.cards || []).length;
     return '<div class="ff-wide-stage" data-wide-stage>'
       + '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 : ' + escapeHtml(st.name) + (code ? ' (' + escapeHtml(code) + ')' : '') + '</span>'
-      + '<small>' + (st.written ? '작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) : '응답 기반 요약 · 기준일은 각 카드에 표시') + '</small>'
+      + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small>'
       + '<div class="ff-story-mini" data-story-mini hidden></div></div>'
       + '<div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
       + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
         + '<div class="ff-wide-dots" data-wide-dots><button type="button" class="ff-wide-pause" data-wide-pause aria-label="자동 넘김 일시정지"></button>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
       + '</div>'
-      + '<small class="ff-story-note">서로 다른 자료를 결합한 해석이다. 기준일은 각 카드에 표시한다. 사라는 말도 팔라는 말도 아니다.</small>';
+      + '<small class="ff-story-note">작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 실시간 계산). 사라는 말도 팔라는 말도 아니다.</small>';
   }
 
-  function loadStockStory(box, code, swingVm, chartData, storyInput) {
+  function loadStockStory(box, code, swingVm, chartData) {
     var mount = box.querySelector('[data-ff-story]');
     if (!mount) return;
-    var revision = (mount._storyRevision || 0) + 1;
-    mount._storyRevision = revision;
-    Promise.all([
-      ensureStockStories(code).catch(function () { return null; }),
-      ensureStoryAsset('js/stock-story-template.js', function () { return global.StockStoryTemplate; }).catch(function () { return null; })
-    ]).then(function (results) {
-      if (!box.contains(mount) || mount._storyRevision !== revision) return;
-      var primary = results[0], template = results[1];
-      var input = Object.assign({}, storyInput || {}, {chartData: chartData});
-      var entry = vpRegistry.card;
-      var last = chartData && chartData.daily && chartData.daily[chartData.daily.length - 1];
-      var cachedQuote = quoteCache[code] && quoteCache[code].data;
-      input.currentPrice = cachedQuote && cachedQuote.price || last && last.close;
-      input.priceAsOf = cachedQuote && cachedQuote.quote_time || last && last.date;
-      if (entry && entry.code === code && entry.storyAnalysis) input.volumeProfile = entry.storyAnalysis;
-      if (primary && primary.quarterHistory && !(input.fundamentals && input.fundamentals.fundamentals && input.fundamentals.fundamentals.quarters)) {
-        input.fundamentals = {fundamentals: Object.assign({}, input.fundamentals && input.fundamentals.fundamentals || {}, {quarters: primary.quarterHistory})};
-      }
-      var generated = template ? template.build(input) : [];
-      var cards = template ? template.merge(primary && primary.cards, generated) : [];
-      mount._refreshStory = function () { loadStockStory(box, code, swingVm, chartData, storyInput); };
-      if (mount._storyScopes) mount._storyScopes.forEach(function(scope){scope.dispose();});
-      mount._storyScopes = [];
-      if (!cards.length) { mount.innerHTML = ''; mount.hidden = true; return; }
-      var st = Object.assign({}, primary || {}, { name: primary && primary.name || storyInput && storyInput.name || code, cards: cards });
+    ensureStockStories().then(function (all) {
+      var st = all && all[code];
+      if (!st || !box.contains(mount)) return; // 자료가 없거나 종목을 바꾼 뒤 도착한 응답은 버린다.
+      // 판정 카드가 기존 2주 스윙 요약 박스를 대신하므로 같은 내용이 두 번 보이지 않게 박스는 숨긴다(DOM은 유지).
       var wide = '', count = 0;
+      if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
+      var chartCard = buildTrendChartCard(chartData);
+      if (chartCard) { wide += chartCard; count++; }
+      var swing = box.querySelector('.ff-swing-summary');
+      if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
-      if (cards.some(function(c){return c.chart;})) chartReady().then(function () {
-        if (!box.contains(mount) || mount._storyRevision !== revision) return;
-        mount.querySelectorAll('[data-story-profit-chart]').forEach(function(node){
-          var c = cards[Number(node.getAttribute('data-story-profit-chart'))];
-          if (c && c.chart) mount._storyScopes.push(global.NineChartCore.renderProfitPrice(node, c.chart.points));
-        });
-      }).catch(function () {});
+      loadStoryMinute(mount, code, chartData);
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
@@ -1979,7 +1942,7 @@
 
     box.innerHTML = html;
     if (global.NineUI.chartOptions) global.NineUI.chartOptions(box);
-    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData, { name: data.name, foreignFlow: data, investorFlow: entry, fundamentals: fundamentals, opinion: opinion, chartData: chartData }); }
+    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData); }
     loadStockMembers_(box, data.code);
 
     // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)
@@ -5220,12 +5183,6 @@
     var price = Number(entry.price);
     var main = VP.analyze(estimate.profile.bins, price, closes, opts);
     if (!main) return '';
-    var rows = normalizeDailyForVolumeProfile(entry.daily);
-    entry.storyAnalysis = {analysis: main, price: price, asOf: rows.length && rows[rows.length - 1].date};
-    if (entry.id === 'card') {
-      var mount = document.querySelector('#foreign-flow [data-ff-story]');
-      if (mount && mount._refreshStory) mount._refreshStory();
-    }
     var fmt = opts.format;
     function vol(v) { return compactChartVolume(v) + '주'; }
 

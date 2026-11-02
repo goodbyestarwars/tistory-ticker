@@ -39,16 +39,7 @@ class BrowserOnlyCompanyDataDeployTest(unittest.TestCase):
             history_file = os.path.join(history_dir, 'crypto.js')
             with open(history_file, 'w') as handle:
                 handle.write('old history')
-            story_dir = os.path.join(data_dir, 'stock-stories')
-            os.mkdir(story_dir)
-            story_paths = [os.path.join(story_dir, '005930.js'), os.path.join(data_dir, 'stock-story-selection.js')]
-            for path in story_paths:
-                with open(path, 'w') as handle:
-                    handle.write('old story')
             self.assertEqual(run('add', 'data/'), 0)
-            for path in story_paths:
-                with open(path, 'w') as handle:
-                    handle.write('new story')
             with open(company, 'w') as handle:
                 handle.write('new company snapshot')
             with open(history_file, 'w') as handle:
@@ -72,7 +63,7 @@ class DeployRestartScopeTest(unittest.TestCase):
 
     def test_watch_paths_cover_vm_code_and_locally_read_data(self):
         # sector_cards.py가 ../../data/sectors-v3.js를 로컬에서 읽는다.
-        self.assertIn('VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js :(exclude)data/chart-history/ :(exclude)data/stock-stories/ :(exclude)data/stock-story-supply/ :(exclude)data/stock-story-selection.js"', self.script)
+        self.assertIn('VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js :(exclude)data/chart-history/"', self.script)
         self.assertIn('git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $VM_WATCH_PATHS', self.block)
 
     def test_restart_and_rescan_are_gated(self):

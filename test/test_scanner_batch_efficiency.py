@@ -15,8 +15,8 @@ class BatchEfficiencyTest(unittest.TestCase):
     def test_only_technical_gate_and_no_duplicate_refresh_preserves_evidence(self):
         now=datetime.now(timezone.utc)
         oldproof={'checked_at':'2020-01-01','version':1}
-        cache={'000001':{'dividend':{},'story_history_version':1},'000002':{'dividend':{},'story_history_version':1},
-               '000003':{'dividend':{},'story_history_version':1,'screening':oldproof}}
+        cache={'000001':{'dividend':{}},'000002':{'dividend':{}},
+               '000003':{'dividend':{},'screening':oldproof}}
         times={'000001':now.isoformat(),'000002':now.isoformat(),
                '000003':(now-timedelta(days=100)).isoformat()}
         with tempfile.TemporaryDirectory() as folder:
@@ -32,7 +32,7 @@ class BatchEfficiencyTest(unittest.TestCase):
                  patch.object(batch,'load_fundamentals_state',return_value=(cache,times,0)), \
                  patch.object(batch,'save_fundamentals_cursor') as cursor, \
                  patch.object(batch.fundamentals,'fetch_stock',side_effect=fetched) as fetch, \
-                 patch.object(batch.story_disclosures,'refresh',return_value={'status':'ok','items':[]}),patch.object(batch.migrate_fundamentals,'main'),patch.object(batch.time,'sleep'),patch.object(batch,'log'):
+                 patch.object(batch.migrate_fundamentals,'main'),patch.object(batch.time,'sleep'),patch.object(batch,'log'):
                 batch.scan_fundamentals({c:c for c in cache})
                 self.assertEqual(fetch.call_count,2)
                 self.assertEqual(fetch.call_args_list[0].kwargs,{'include_screening':True})

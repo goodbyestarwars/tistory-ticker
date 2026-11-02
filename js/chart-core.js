@@ -1469,28 +1469,8 @@
     return counts;
   }
 
-  // Shared lifecycle, theme and resize contract for story profit/price comparisons.
-  function renderProfitPrice(container, points) {
-    var scope = createScope('profit-price');
-    loadLibrary().then(function(LWC) {
-      if (scope.disposed || !container.isConnected) return;
-      var options = chartOptions(LWC, 'default', {height: 280});
-      options.leftPriceScale = {visible:true};
-      var chart = LWC.createChart(container, options);
-      scope.add(function(){chart.remove();});
-      var bars = chart.addSeries(LWC.HistogramSeries, {priceScaleId:'left', priceFormat:{type:'custom',formatter:function(v){return v.toFixed(0)+'억';}}});
-      var line = chart.addSeries(LWC.LineSeries, {priceScaleId:'right',color:CANDLE_DOWN,lineWidth:2});
-      bars.setData(points.map(function(p){return {time:p.time,value:p.profit/1e8,color:p.profit>=0?CANDLE_UP:CANDLE_DOWN};}));
-      line.setData(points.map(function(p){return {time:p.time,value:p.price};}));
-      chart.timeScale().fitContent();
-      scope.resize(container,function(){if(container.clientWidth) chart.applyOptions({width:container.clientWidth});});
-      scope.theme(function(){chart.applyOptions(themeUpdateOptions(LWC,'default'));});
-    }).catch(function(){ if (!scope.disposed) container.textContent='차트 표시를 다시 시도해 주세요.'; });
-    return scope;
-  }
-
   global.NineChartCore = {
-    renderProfitPrice:renderProfitPrice, REGIME:REGIME,trendRegimes:trendRegimes,trendRegimeLegendHtml:trendRegimeLegendHtml,majorWaveContext:majorWaveContext,
+    REGIME:REGIME,trendRegimes:trendRegimes,trendRegimeLegendHtml:trendRegimeLegendHtml,majorWaveContext:majorWaveContext,
     SUPPLY_DISPLAY:SUPPLY_DISPLAY,supplyDisplayEvents:supplyDisplayEvents,supplyDisplayMarkers:supplyDisplayMarkers,
     SUPPLY_TRACES: SUPPLY_TRACES, supplyTraceBars: supplyTraceBars, supplyTraceMarkers: supplyTraceMarkers, supplyTraceSummary: supplyTraceSummary, supplyTraceLegendHtml: supplyTraceLegendHtml, supplyTraceTooltipHtml: supplyTraceTooltipHtml, attachSupplyTraceTooltip: attachSupplyTraceTooltip, setSupplyTraceMarkers: setSupplyTraceMarkers,
     VERSION: VERSION, ROOT: ROOT, LWC_URL: LWC_URL,
