@@ -1745,12 +1745,13 @@
       var lo = Math.min.apply(null, closes.concat(prev || closes)), hi = Math.max.apply(null, closes.concat(prev || closes)), range = (hi - lo) || 1;
       var W = 160, H = 56, n = 79;  // 09:00~15:20 5분봉 79칸 기준으로 x를 정해 장중에는 오른쪽이 비어 보인다
       var d = closes.map(function (v, k) { return (k ? 'L' : 'M') + (k / (n - 1) * W).toFixed(1) + ' ' + (3 + (1 - (v - lo) / range) * (H - 6)).toFixed(1); }).join('');
+      var dayHigh = Math.max.apply(null, rows.map(function (r) { return Number(r.high) || Number(r.close); })), dayLow = Math.min.apply(null, rows.map(function (r) { return Number(r.low) || Number(r.close); }));
       var rate = prev ? (last / prev - 1) * 100 : null, tone = rate == null ? '' : rate > 0 ? 'is-up' : rate < 0 ? 'is-dn' : '';
       slot.innerHTML = '<small>' + escapeHtml(day.slice(5)) + ' 분봉 · 5분</small>'
         + '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="당일 5분봉">'
         + (prev ? '<line class="ff-mini-prev" x1="0" x2="' + W + '" y1="' + (3 + (1 - (prev - lo) / range) * (H - 6)).toFixed(1) + '" y2="' + (3 + (1 - (prev - lo) / range) * (H - 6)).toFixed(1) + '"/>' : '')
         + '<path class="ff-mini-line ' + tone + '" d="' + d + '"/></svg>'
-        + (rate == null ? '' : '<b class="' + tone + '">' + Number(last).toLocaleString() + '원 (' + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%)</b>');
+        + '<b><span class="is-up">고 ' + Number(dayHigh).toLocaleString() + '</span> <span class="is-dn">저 ' + Number(dayLow).toLocaleString() + '</span></b>';
       slot.hidden = false;
     }).catch(function () {});
   }
