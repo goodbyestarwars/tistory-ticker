@@ -1,3 +1,7 @@
+**2026-11-04 미국 옵션 카드 늦게 뜸·화면 밀림 개선**
+
+요청: 옵션 종합·감마가 몇 초 늦게 뜨고 한참 뒤 제자리로 돌아감. 원인: `js/us-stocks.js` `loadOptionsCard`가 일부러 2.5초 늦게 요청하고 카드가 `hidden`이라 도착 순간 아래 화면이 밀림(서버 `/us-options`는 캐시 포함 0.15~0.9초 실측). 변경: 요청 지연 2.5초→0.3초, 첫 로드 때 "옵션 데이터를 불러오는 중입니다" 자리표시(`.us-opt-loading`, 최소 높이 280px, 공통 면 토큰)로 높이를 먼저 확보, 실패·옵션 없음이면 다시 숨김. 검증: 구문 검사, `test_us_orderbook_refresh` 9건. 미확인: 운영 화면 체감·자리표시 높이와 실제 카드 높이 차이. 배포: master → Pages.
+
 **2026-11-03 자동매매 제목 글꼴을 다른 도구 화면과 통일**
 
 요청: "자동매매"·"자동매매 운영센터" 제목을 전역 글꼴로. 변경: `style.css` 페이지 제목(`.post-single-title`) 마루부리 Bold 목록 2곳에 `#auto-trader` 추가, 소제목 UI 목록에 `#auto-trader h2`·`.at-brand` 추가(Pretendard 600·`--ui-section-size`). 검증: 로컬 프로브에서 제목=MaruBuriBold 700 24px(종목검색 제목과 동일), 운영센터 제목=Pretendard 600 17px(`.ss-title`과 동일). 미확인: 관리자 로그인 상태의 실제 운영 화면. 배포: master → Pages.

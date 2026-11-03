@@ -905,7 +905,12 @@
     if (!mount || state.symbol !== symbol) return;
     if (state.optionsTimer) clearTimeout(state.optionsTimer);
     state.optionsTimer = null;
-    // 시세·호가·차트가 먼저 뜨도록 약간 늦게 시작한다.
+    // 처음 불러올 때는 자리를 먼저 잡아 두어, 데이터가 도착해도 아래 화면이 밀리지 않게 한다.
+    if (mount.hidden || !mount.innerHTML) {
+      mount.hidden = false;
+      mount.innerHTML = '<div class="us-opt-loading">옵션 데이터를 불러오는 중입니다.</div>';
+    }
+    // 서버가 결과를 캐시해 응답이 0.2~1초라, 시세·호가 요청과 겹치지 않을 만큼만(0.3초) 늦춘다.
     state.optionsTimer = setTimeout(function () {
       if (state.symbol !== symbol) return;
       fetchJson(API_BASE + '/us-options/' + encodeURIComponent(symbol)).then(function (data) {
@@ -919,8 +924,8 @@
             loadOptionsCard(symbol);
           }, OPTIONS_REFRESH_MS);
         }
-      }).catch(function () { mount.hidden = true; });
-    }, 2500);
+      }).catch(function () { mount.hidden = true; mount.innerHTML = ''; });
+    }, 300);
   }
 
   function fmtOptCount(n) { return Number(n || 0).toLocaleString('en-US'); }

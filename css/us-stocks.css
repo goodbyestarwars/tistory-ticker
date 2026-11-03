@@ -374,6 +374,8 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 }
 html.dark #stock-search .ss-options-panel .us-opt-col { border-color: var(--dk-line); }
 .us-opt-card:not(.is-opt-expanded) .us-opt-far { display: none; }
+.us-opt-loading { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; min-height: 280px; box-sizing: border-box; border: 1px solid #e5e5e5; border-radius: 12px; background: var(--ui-card-surface, #fff); color: #888; font-size: 13px; }
+html.dark .us-opt-loading { border-color: var(--dk-line); color: var(--dk-muted, #9aa4b2); }
 .us-opt-more { display: block; width: calc(100% - 16px); margin: 6px 8px; padding: 8px 0; border: 1px solid #d9dee5; border-radius: 6px; background: #fff; color: #4e5968; font-size: 12.5px; cursor: pointer; }
 .us-opt-more:hover { background: #f4f6f8; }
 html.dark .us-opt-more { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-sub); }
