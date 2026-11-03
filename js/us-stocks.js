@@ -1021,21 +1021,34 @@
       + '</div>'
       + '<div class="us-opt-cols"><span class="us-opt-put">풋</span><span></span><span class="us-opt-call">콜</span></div>';
     var inserted = false;
-    rows.forEach(function (r) {
+    // 현재가 가까운 위·아래 6개 행사가만 먼저 보이고 나머지는 펼쳐서 본다(세로 길이가 왼쪽 종합과 비슷하도록).
+    var NEAR = 6;
+    var firstBelow = rows.findIndex(function (r) { return r.strike < price; });
+    if (firstBelow < 0) firstBelow = rows.length;
+    var extraCount = 0;
+    rows.forEach(function (r, i) {
       if (!inserted && r.strike < price) {
         html += '<div class="us-opt-cur">현재가 $' + price.toFixed(2) + '</div>';
         inserted = true;
       }
       var wall = r.strike === data.call_wall || r.strike === data.put_wall;
-      html += '<div class="us-opt-row' + (wall ? ' is-wall' : '') + '">'
+      var far = i < firstBelow - NEAR || i >= firstBelow + NEAR;
+      if (far) extraCount++;
+      html += '<div class="us-opt-row' + (wall ? ' is-wall' : '') + (far ? ' us-opt-far' : '') + '">'
         + '<span class="us-opt-l">' + optCountHtml(r.put_oi, r.put_vol) + '<i class="us-opt-bar-put" style="width:' + Math.max(2, Math.round(r.put / maxValue * 90)) + 'px"></i></span>'
         + '<b>' + r.strike.toFixed(2) + '</b>'
         + '<span class="us-opt-r"><i class="us-opt-bar-call" style="width:' + Math.max(2, Math.round(r.call / maxValue * 90)) + 'px"></i>' + optCountHtml(r.call_oi, r.call_vol) + '</span>'
         + '</div>';
     });
+    if (extraCount) html += '<button type="button" class="us-opt-more" data-more="' + extraCount + '">행사가 ' + extraCount + '개 더 보기</button>';
     html += '<p class="us-opt-note">막대: 행사가별 감마 노출 추정(주가 1% 움직일 때). 숫자: 미결제약정(OI) · 오늘 거래량. 시장조성자가 콜을 팔고 풋을 샀다는 가정의 추정이며 실제 포지션이 아닙니다.</p>';
     mount.hidden = false;
     mount.innerHTML = optGridHtml(overviewHtml, html);
+    var more = mount.querySelector('.us-opt-more');
+    if (more) more.addEventListener('click', function () {
+      var open = mount.classList.toggle('is-opt-expanded');
+      more.textContent = open ? '가까운 행사가만 보기' : '행사가 ' + more.getAttribute('data-more') + '개 더 보기';
+    });
   }
 
   function escapeOptHtml(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }

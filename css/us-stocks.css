@@ -359,6 +359,11 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 #stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
 .us-opt-grid { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 8px 28px; align-items: start; }
 .us-opt-col { min-width: 0; }
+.us-opt-card:not(.is-opt-expanded) .us-opt-far { display: none; }
+.us-opt-more { display: block; width: calc(100% - 16px); margin: 6px 8px; padding: 8px 0; border: 1px solid #d9dee5; border-radius: 6px; background: #fff; color: #4e5968; font-size: 12.5px; cursor: pointer; }
+.us-opt-more:hover { background: #f4f6f8; }
+html.dark .us-opt-more { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-sub); }
+html.dark .us-opt-more:hover { background: var(--dk-hover); }
 .us-opt-card.us-stocks-panel .us-opt-head b { font-size: 15px; }
 .us-opt-card.us-stocks-panel .us-opt-head span { font-size: 12px; }
 .us-opt-card.us-stocks-panel .us-opt-kv > div { padding: 8px 0; font-size: 13.5px; }
