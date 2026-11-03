@@ -1277,12 +1277,13 @@
     if (!mount) return;
     var symbol = encodeURIComponent(state.symbol || '');
     var quiverUrl = 'https://www.quiverquant.com/congresstrading/stock/' + symbol;
-    var officialUrl = 'https://disclosures-clerk.house.gov/FinancialDisclosure/ViewSearch';
+    // Capitol Trades는 종목 주소가 내부 번호라 티커로 바로 갈 수 없어, 티커 검색 결과 페이지로 연결한다.
+    var capitolUrl = 'https://www.capitoltrades.com/issuers?search=' + symbol;
     mount.innerHTML = '<div class="us-stocks-congress-links">'
       + '<a class="us-stocks-congress-link" href="' + escapeAttr(quiverUrl) + '" target="_blank" rel="noopener">'
       + '<strong>Quiver에서 ' + escapeHtml(state.symbol) + ' 거래 확인</strong><span>의원별 매수·매도·거래일·신고일 보기 ↗</span></a>'
-      + '<a class="us-stocks-congress-link" href="' + escapeAttr(officialUrl) + '" target="_blank" rel="noopener">'
-      + '<strong>미 하원 공식 신고 검색</strong><span>의원 성·연도로 검색 → 거래 보고서(PDF) 원문 ↗</span></a>'
+      + '<a class="us-stocks-congress-link" href="' + escapeAttr(capitolUrl) + '" target="_blank" rel="noopener">'
+      + '<strong>Capitol Trades에서 ' + escapeHtml(state.symbol) + ' 검색</strong><span>의원·정당별 거래 내역과 규모 보기 ↗</span></a>'
       + '</div>'
       + '<p class="us-stocks-congress-note">외부 공개자료 · 거래일과 신고일이 다를 수 있음 · 최대 45일 지연 가능 · 복사매매 신호 아님</p>';
   }

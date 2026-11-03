@@ -1,3 +1,7 @@
+**2026-11-04 의회 거래 링크: 하원 공식 → Capitol Trades 검색**
+
+요청: 하원 공식 자료는 원천 데이터라 쓰기 어렵고 종목별 매칭 필요. 변경: `js/us-stocks.js` `renderCongressLinks`에서 하원 공식 링크를 `capitoltrades.com/issuers?search=티커`로 교체(검색 결과가 종목 1건, TSLA→435211 등 4종목 확인; 번호는 내부 ID라 티커로 직접 못 만듦). Quiver 종목 링크는 유지. 미확인: 운영 화면 클릭. 배포: master → Pages.
+
 **2026-11-04 미국 시장 카드에 필라델피아 반도체(SOX) 추가**
 
 요청: S&P 500·나스닥 거래량 게이지에 필라델피아 반도체도. 변경: `scripts/cloud-vm/us_market_breadth.py` 지수 목록에 `SOX`=`NASDAQ:SOX`(TradingView 스캐너, 라이브 확인: 30종목 전부 거래량·평균 대비 값 있음, `CBOE:SOX`는 0건), 갱신당 외부 요청 2→3회·기존 2분 캐시 유지. `js/skin-main.js` 거래량 게이지·상승/하락 막대 행에 SOX 추가(시장 방향 계산은 S&P 500·나스닥 종합 두 지수만 유지), `css/home-market-board.css` 게이지 3개일 때만 칸 폭 116→176px(국내 2개는 그대로). 검증: `test_us_market_breadth` 14건·`test_market_participation*.js` 통과, 라이브 페이지에 CSS 주입해 3칸 폭 176px 확인. 미확인: 서버 반영 후 실제 SOX 값, PC/모바일 실화면. 배포: master → Pages·VM 자동 배포.
