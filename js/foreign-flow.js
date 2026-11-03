@@ -1836,7 +1836,7 @@
           dots.forEach(function (d, i) { d.classList.toggle('is-on', i === on); });
         }, { passive: true });
         dots.forEach(function (d, i) { d.addEventListener('click', function () { wideTrack.scrollTo({ left: wideStep() * i, behavior: 'smooth' }); }); });
-        // 자동 넘김: 6초마다 다음 장(마지막 다음은 처음). 일시정지 버튼·마우스를 올림·키보드 포커스·움직임 줄이기 설정이면 멈춘다.
+        // 자동 넘김: 10초마다 다음 장(마지막 다음은 처음). 일시정지 버튼·마우스를 올림·키보드 포커스·움직임 줄이기 설정이면 멈춘다.
         // 띠 안의 글 좌우선을 페이지 본문(#foreign-flow)의 좌우선과 맞춘다. 띠 자체는 화면 끝까지, 글만 본문 폭.
         function alignBand() {
           var host = stage.parentElement, vw = document.documentElement.clientWidth;
@@ -1857,7 +1857,7 @@
           if (userPaused || hold || document.hidden || dots.length < 2) return;
           var on = Math.round(wideTrack.scrollLeft / wideStep());
           wideTrack.scrollTo({ left: wideStep() * ((on + 1) % dots.length), behavior: 'smooth' });
-        }, 6000);
+        }, 10000);
       }).catch(function () {});
     }).catch(function () {});
   }

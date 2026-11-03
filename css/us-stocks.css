@@ -359,12 +359,22 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 #stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
 .us-opt-grid { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 8px 28px; align-items: start; }
 .us-opt-col { min-width: 0; }
-/* 좌우 두 단(861px~)에서는 호가 칸을 차트 높이만큼 늘리고 호가 줄 간격을 넓혀 아래 빈칸이 생기지 않게 한다 */
+/* 좌우 두 단(861px~)에서는 호가 칸을 차트 높이만큼 늘리고, 호가 내용은 칸 안에서 가운데로 모아 위·아래 여백을 같게 한다 */
 @media (min-width: 861px) {
   #stock-search .ss-panels.us-stocks-market-grid > .ss-panel-left.us-stocks-orderbook-panel { align-self: stretch; }
-  #stock-search .us-stocks-orderbook-panel .us-ob-table { display: flex; flex: 1 1 auto; flex-direction: column; }
-  #stock-search .us-stocks-orderbook-panel .us-ob-pair { flex: 1 1 0; max-height: 44px; }
+  #stock-search .us-stocks-orderbook-panel .us-stocks-orderbook { justify-content: center; }
+  #stock-search .us-stocks-orderbook-panel .us-ob-table { padding-bottom: 0; }
+  #stock-search .us-stocks-orderbook-panel .us-ob-pair { height: 52px; }
 }
+/* 옵션 패널: 종합은 호가 칸 아래, 0DTE는 차트 칸 아래에 같은 열 폭으로 맞춘다(열 폭은 호가·차트 사이 조절 핸들 값을 그대로 따른다) */
+@media (min-width: 861px) {
+  #stock-search .ss-panels > .ss-options-panel.us-opt-card { display: grid; grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr); padding: 0; border: 0; background: transparent; }
+  #stock-search .ss-options-panel .us-opt-grid { display: contents; }
+  #stock-search .ss-options-panel .us-opt-col { box-sizing: border-box; padding: 14px; border: 1px solid #e5e5e5; border-radius: 12px; }
+  #stock-search .ss-options-panel .us-opt-col:first-child { grid-column: 1; }
+  #stock-search .ss-options-panel .us-opt-col:last-child { grid-column: 3; }
+}
+html.dark #stock-search .ss-options-panel .us-opt-col { border-color: var(--dk-line); }
 .us-opt-card:not(.is-opt-expanded) .us-opt-far { display: none; }
 .us-opt-more { display: block; width: calc(100% - 16px); margin: 6px 8px; padding: 8px 0; border: 1px solid #d9dee5; border-radius: 6px; background: #fff; color: #4e5968; font-size: 12.5px; cursor: pointer; }
 .us-opt-more:hover { background: #f4f6f8; }
