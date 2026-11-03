@@ -1,3 +1,7 @@
+**2026-11-04 업종 표 거래대금 배수 한 줄 표시**
+
+요청: `1.34배`가 `1.34`/`배` 두 줄로 꺾임. 변경: `css/home-market-board.css` 업종 행 마지막 열을 고정폭에서 auto로, 등락률·배수에 nowrap. 검증: 열 폭 합산 계산상 390px 행 폭(234px) 이내, 실제 화면 확인은 미실시. 배포: master → Pages.
+
 **2026-11-04 홈 지수 차트 면적/막대 전환을 카드별로 분리**
 
 요청: 한 카드에서 면적/막대를 바꾸면 다른 카드까지 전부 바뀜. 원인: `homePriceMode` 하나를 모든 세션 차트가 공유하고 토글 시 전체 재렌더. 변경: `js/skin-main.js` `homePriceModes[차트키]`로 카드별 저장(`homeModeOf`, 미선택 차트 기본값은 기존 `homePriceMode`=면적), 클릭 시 해당 차트만 다시 그림(렌더러·DOM 계약 그대로). 검증: test_home_session_chart 통과(test_home_chart_history 실패는 기존 기준선), 실제 화면 클릭 확인은 미실시. 배포: master → Pages.
