@@ -403,3 +403,6 @@ html.dark .us-opt-more:hover { background: var(--dk-hover); }
 }
 html.dark .us-opt-card.us-stocks-panel .us-opt-head-0dte { border-top-color: var(--dk-line); }
 .us-opt-head b { white-space: nowrap; }
+
+/* 옵션 패널 박스는 콘텐츠 카드 공통 면(--ui-card-surface: 라이트 흰색·다크 --dk-card)을 쓴다(2026-11-03). 칸·지표 타일이 투명해 페이지 바탕색이 비치던 것을 바로잡는다. */
+.us-opt-col, .us-opt-tiles > div { background: var(--ui-card-surface, #fff); }

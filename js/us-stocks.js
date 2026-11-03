@@ -990,18 +990,23 @@
   function renderOptionsCard(mount, data) {
     if (!data || !data.available) { mount.hidden = true; mount.innerHTML = ''; return; }
     var overviewHtml = optOverviewHtml(data);
-    if (!data.is_0dte) {
-      mount.hidden = false;
-      mount.innerHTML = optGridHtml(overviewHtml, '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 옵션 없음 · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>');
-      return;
-    }
     var rows = (data.strikes || []).slice().sort(function (a, b) { return b.strike - a.strike; });
     var maxValue = 0;
     rows.forEach(function (r) { maxValue = Math.max(maxValue, r.call, r.put); });
     maxValue = maxValue || 1;
     var price = Number(data.price);
-    var html = '<div class="us-opt-head us-opt-head-0dte"><b>0DTE 옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
-      + '<div class="us-opt-sub">오늘 거래량이 미결제약정보다 큰 행사가 = 신규 포지션 · 감마는 OI(전일) 기준</div>'
+    // 당일(0DTE) 만기가 없으면 빈 칸 대신 가장 가까운 만기의 같은 표를 보여 주고, 서비스 장애가 아니라는 안내를 붙인다.
+    var is0 = !!data.is_0dte;
+    if (!rows.length) {
+      mount.hidden = false;
+      mount.innerHTML = optGridHtml(overviewHtml, '<div class="us-opt-head"><b>옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
+        + '<div class="us-opt-sub">현재가 부근 행사가 데이터가 없습니다(장애가 아니라 해당 만기에 거래 가능한 행사가가 없는 경우입니다).</div>');
+      return;
+    }
+    var html = '<div class="us-opt-head us-opt-head-0dte"><b>' + (is0 ? '0DTE 옵션 감마' : '옵션 감마 · 만기 ' + escapeOptHtml(String(data.expiry).slice(5))) + '</b><span>' + optAsOfText(data) + '</span></div>'
+      + '<div class="us-opt-sub">' + (is0
+        ? '오늘 거래량이 미결제약정보다 큰 행사가 = 신규 포지션 · 감마는 OI(전일) 기준'
+        : '오늘 만기 옵션이 없어 가장 가까운 만기(' + escapeOptHtml(data.expiry) + ') 기준으로 보여 드립니다 · 서비스 정상 · 감마는 OI(전일) 기준') + '</div>'
       + '<div class="us-opt-tiles">'
       + '<div><span>콜 월(최대 콜 감마)</span><b class="us-opt-call">$' + Number(data.call_wall).toFixed(2) + '</b></div>'
       + '<div><span>풋 월(최대 풋 감마)</span><b class="us-opt-put">$' + Number(data.put_wall).toFixed(2) + '</b></div>'
