@@ -359,6 +359,12 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 #stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
 .us-opt-grid { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 8px 28px; align-items: start; }
 .us-opt-col { min-width: 0; }
+/* 좌우 두 단(861px~)에서는 호가 칸을 차트 높이만큼 늘리고 호가 줄 간격을 넓혀 아래 빈칸이 생기지 않게 한다 */
+@media (min-width: 861px) {
+  #stock-search .ss-panels.us-stocks-market-grid > .ss-panel-left.us-stocks-orderbook-panel { align-self: stretch; }
+  #stock-search .us-stocks-orderbook-panel .us-ob-table { display: flex; flex: 1 1 auto; flex-direction: column; }
+  #stock-search .us-stocks-orderbook-panel .us-ob-pair { flex: 1 1 0; max-height: 44px; }
+}
 .us-opt-card:not(.is-opt-expanded) .us-opt-far { display: none; }
 .us-opt-more { display: block; width: calc(100% - 16px); margin: 6px 8px; padding: 8px 0; border: 1px solid #d9dee5; border-radius: 6px; background: #fff; color: #4e5968; font-size: 12.5px; cursor: pointer; }
 .us-opt-more:hover { background: #f4f6f8; }
