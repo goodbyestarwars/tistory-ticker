@@ -1,3 +1,7 @@
+**2026-11-03 모바일 홈 시장 카드 가로 넘침 · 모바일 로그인 진입점**
+
+요청: 모바일 홈 미국증시 탭에서 '나스닥100 · S&P500 선물(CME)' 라벨이 카드 밖으로 밀려 페이지가 옆으로 늘어남, 모바일엔 로그인 메뉴가 없음. 원인: `.home-card-heading`이 nowrap 부제와 라벨 때문에 카드(343px)보다 넓은 516px, 모바일(≤430px)에서 헤더 아이콘을 전부 숨김. 변경: `css/home-market-board.css` ≤640px에서 제목 줄 wrap·부제 줄바꿈 허용, `style.css` ≤430px에서 톱니(`.nav-manage-btn`, 로그인 선택창 진입)만 다시 표시. 검증: 라이브 375px에 CSS 주입해 scrollWidth 547→375, 톱니 클릭 시 로그인 선택창 열림 확인. 배포: master → Pages.
+
 **2026-11-03 미국 호가창을 국내 호가창 모양으로 · 세부 시세 삭제 · 지난 만기 제외**
 
 요청: 미국 호가창을 국내처럼(세로 사다리·증감·잔량 합계), 세부 시세 칸 삭제 후 거래량·전일 거래량 대비는 전일 종가 줄로, 새벽에 '당일 만기 없음 · 11/2' 표시 원인 수정. 변경: `js/us-stocks.js` 호가를 `ob-*` 세로 사다리로 렌더(증감은 직전 조회 대비, 실루엣은 `OrderBook.drawSilhouette` 공용 재사용·벽 판정만 미국 기준 전달), 시가·고가·저가는 호가 칸 맨 위(`ss-session`), 세부 시세 칸 삭제; `css/order-book.css`·`css/stock-search.css`의 `#order-book` 하위 규칙을 `:is(#order-book, #usStocksOrderbook)`로 확장(국내 규칙 값 변경 없음); `js/order-book.js`는 `drawSilhouette` 내보내기와 벽 판정 override 인자만 추가; `scripts/cloud-vm/us_options.py`는 뉴욕 기준 오늘보다 앞선 만기(프리마켓에 남은 전 거래일 체인)를 제외. 검증: pytest 26 passed(us_options·earnings), `test_us_orderbook_refresh.py` 9 passed(현재가 행 셀렉터 갱신), 라이브 NVDA에 변경분 주입해 20행 사다리·시가고저 줄·전일종가 줄 확인. 배포: master → Pages, VM 자동 배포(us_options).

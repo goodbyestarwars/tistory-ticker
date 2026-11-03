@@ -4680,6 +4680,8 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   /* 작은 화면에서는 폰트·다크 토글과 1차 텍스트 메뉴를 우선한다. MY와 커뮤니티는
      1차 메뉴에서 직접 접근하므로 원형 보조 아이콘은 헤더 폭을 차지하지 않게 한다. */
   .nav-icons > .nav-icon-btn { display: none; }
+  /* 2026-11-03: 모바일엔 로그인 진입점이 없었다. 톱니(관리자·로그인 선택창)만 남겨 로그인할 수 있게 한다. */
+  .nav-icons > .nav-manage-btn { display: flex; }
   .sidebar-left .nav-menu { padding: 0 4px 0 8px; }
   .nav-logo-name { font-size: 15px; }
   .nav-logo-icon { width: 32px; height: 32px; }
