@@ -408,3 +408,20 @@ html.dark .us-opt-card.us-stocks-panel .us-opt-head-0dte { border-top-color: var
 
 /* 옵션 패널 박스는 콘텐츠 카드 공통 면(--ui-card-surface: 라이트 흰색·다크 --dk-card)을 쓴다(2026-11-03). 칸·지표 타일이 투명해 페이지 바탕색이 비치던 것을 바로잡는다. */
 .us-opt-col, .us-opt-tiles > div { background: var(--ui-card-surface, #fff); }
+
+/* 모바일 재무·실적·애널리스트·내부자 카드(2026-11-04): 2열 세로로 길게 늘어지던 것을 한 열 가로 행으로 줄인다.
+   라벨·값은 한 줄, 상세는 아래 한 줄, 출처 문단은 한 줄로 줄이되(전체 문구는 title/펼침으로 유지) 내용은 그대로 둔다. */
+@media (max-width: 700px) {
+  .us-stocks-analysis-grid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .us-stocks-analysis-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 2px 10px; padding: 8px 10px; }
+  .us-stocks-analysis-card > span:first-child { grid-column: 1; }
+  .us-stocks-analysis-card > b { grid-column: 2; margin-top: 0; text-align: right; }
+  .us-stocks-analysis-card > small { grid-column: 1 / -1; margin-top: 0; }
+  .us-stocks-analysis-card > .us-analysis-source { grid-column: 1 / -1; margin: 2px 0 0; }
+  .us-stocks-analysis-card p.us-analysis-source,
+  .us-stocks-analysis-card .us-analysis-records > p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; margin: 2px 0; line-height: 1.45; }
+  .us-stocks-analysis-card > b:has(.us-consensus) { grid-column: 1 / -1; text-align: left; }
+  .us-stocks-analysis-card .us-consensus { flex-direction: row; align-items: center; gap: 12px; min-height: 0; }
+  .us-stocks-analysis-card .us-consensus svg { width: 56px; height: 56px; flex: 0 0 auto; }
+  .us-stocks-analysis-card .us-consensus-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+}
