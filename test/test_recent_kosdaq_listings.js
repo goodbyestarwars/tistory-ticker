@@ -36,7 +36,7 @@ function expose(file, marker, exportSpec) {
   const exposed = source.replace(marker, '  global.__listingTest = ' + exportSpec + ';\n' + marker);
   assert.notEqual(exposed, source, file + ' test hook missing');
   const context = {
-    window: {KRX_MAP: Object.assign({}, map), KRX_ETF_NAMES: []},
+    window: {KRX_MAP: Object.assign({}, map), KRX_ETF_NAMES: [], addEventListener() {}, removeEventListener() {}},
     document: {readyState: 'loading', addEventListener() {}},
   };
   context.window.document = context.document; // Shared NineUI.persistPrefs binds to window.document.
