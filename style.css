@@ -2322,7 +2322,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-weight: 700 !important;
   }
   html body .post-single:has(.mi-wrap #kospi-futures) .post-single-title,
-  html body .post-single:has(:is(#market-temp, #foreign-flow, #pattern-scan, #strategy-search, #stock-search, #stock-calendar)) .post-single-header .post-single-title,
+  html body .post-single:has(:is(#market-temp, #foreign-flow, #pattern-scan, #strategy-search, #stock-search, #stock-calendar, #auto-trader)) .post-single-header .post-single-title,
   html body .it-modal :is(#itTitle, #itFxTitle) {
     font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
     font-weight: 700 !important;
@@ -7782,14 +7782,15 @@ html body :where(.post-single, .post-card, .card:not(.nav-menu), #stock-calendar
 html body :is(.sector-card-title, .mt-section-title, .dmi-heading h2, .dmi-subheading h3,
   .kf-section-title, .ibd-subtitle, .home-card-heading strong:where(:not(.ui-section-title)), .hrt-head strong,
   .home-section-heading strong, .wl-title, .ps-title, .ss-title, .sc-title,
-  .mt-page-title, .om-title, .mi-title, .hen-head strong, .mi-block-title, .mi-sub-title) {
+  .mt-page-title, .om-title, .mi-title, .hen-head strong, .mi-block-title, .mi-sub-title,
+  #auto-trader h2, #auto-trader .at-brand) {
   font-family: var(--font-ui) !important;
   font-weight: 600 !important;
   font-size: var(--ui-section-size) !important;
   line-height: 1.4 !important;
   letter-spacing: 0 !important;
 }
-html body .post-single:has(:is(#market-temp, #pattern-scan, #stock-search, .mi-wrap, #stock-calendar, #foreign-flow)) .post-single-title,
+html body .post-single:has(:is(#market-temp, #pattern-scan, #stock-search, .mi-wrap, #stock-calendar, #foreign-flow, #auto-trader)) .post-single-title,
 html body :is(.dmi-heading h2, .mt-page-title, .ps-title, .ss-title, .sc-title) {
   font-family: var(--font-ui) !important;
   font-weight: 600 !important;

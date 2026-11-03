@@ -1,3 +1,7 @@
+**2026-11-03 자동매매 제목 글꼴을 다른 도구 화면과 통일**
+
+요청: "자동매매"·"자동매매 운영센터" 제목을 전역 글꼴로. 변경: `style.css` 페이지 제목(`.post-single-title`) 마루부리 Bold 목록 2곳에 `#auto-trader` 추가, 소제목 UI 목록에 `#auto-trader h2`·`.at-brand` 추가(Pretendard 600·`--ui-section-size`). 검증: 로컬 프로브에서 제목=MaruBuriBold 700 24px(종목검색 제목과 동일), 운영센터 제목=Pretendard 600 17px(`.ss-title`과 동일). 미확인: 관리자 로그인 상태의 실제 운영 화면. 배포: master → Pages.
+
 **2026-11-03 Cboe 옵션 요청 실패 기록**
 
 요청: 사용량 집계 없이 Cboe 요청 실패만 남김. 변경: `scripts/cloud-vm/us_options.py` `_fetch_chain` 실패(HTTP 상태, 타임아웃/네트워크 예외, gzip·JSON 오류)를 `us_options` 로거 경고로 기록(`symbol`·사유만, 같은 종목·사유는 10분에 한 번). 성공·호출 횟수는 기록하지 않고 응답·요청 동작은 불변. 검증: `test/test_us_options_overview.py` 6건 통과(중복 억제·타임아웃 기록). 미확인: VM 반영 후 실제 로그 출력(journalctl). 배포: master → VM 자동 배포.
