@@ -39,6 +39,7 @@ function expose(file, marker, exportSpec) {
     window: {KRX_MAP: Object.assign({}, map), KRX_ETF_NAMES: []},
     document: {readyState: 'loading', addEventListener() {}},
   };
+  context.window.document = context.document; // Shared NineUI.persistPrefs binds to window.document.
   vm.runInNewContext(exposed, context, {filename: file});
   assert(context.window.__listingTest, file + ' resolver unavailable');
   for (const [name, code] of listings) {
