@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import db_schema
 
-US_SPOT = {'NASDAQ_INDEX', 'SP500_INDEX'}
+US_SPOT = {'NASDAQ_INDEX', 'SP500_INDEX', 'SOX'}
 US_FUTURES = {'NASDAQ100', 'SP500'}
 KR_SPOT = {'KOSPI', 'KOSDAQ'}
 SYMBOLS = US_SPOT | US_FUTURES | KR_SPOT

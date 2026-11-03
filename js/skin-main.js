@@ -1743,7 +1743,7 @@ document.documentElement.classList.add('skin-ready');
 
     function renderHomeIndexChart(element, rows, key, reference) {
       if (!element) return;
-      if (['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0) {
+      if (['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'SOX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0) {
         stopHomeChartMotion(element);
         var oldCaption = element.nextElementSibling;
         if (oldCaption && oldCaption.classList.contains('home-index-history-caption')) oldCaption.remove();
