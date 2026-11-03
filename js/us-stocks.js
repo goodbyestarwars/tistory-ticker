@@ -611,7 +611,7 @@
       // 위쪽 카드는 한 줄 요약(전일 종가·거래량·전일 거래량 대비·52주 범위·상장주식 수). 시가·고가·저가는 국내처럼 호가 칸 맨 위에(2026-11-03 사용자 요청: 세부 시세 칸 삭제)
       + '<div class="us-stocks-quote-line" aria-label="전일 종가·거래량·52주 범위·상장주식 수">'
       + '<span>전일 종가 <b data-us-metric="previous">-</b></span>'
-      + '<span>거래량 <b data-us-metric="volume">-</b></span>'
+      + '<span>거래량 <b data-us-metric="volume">-</b> <small data-us-volume-basis></small></span>'
       + '<span>전일 거래량 대비 <b data-us-metric="volchange">-</b></span>'
       + '<span>52주 범위 <b data-us-metric="week52">-</b></span>'
       + '<span>상장주식 수 <b data-us-metric="shares">-</b></span>'
@@ -681,6 +681,12 @@
       var node = card.querySelector('[data-us-metric="' + key + '"]') || detail.querySelector('[data-us-metric="' + key + '"]');
       if (node) node.textContent = values[key];
     });
+    // 거래량은 정규장 누적이다(2026-11-04 SPCX 마감 비교: 한투 71,164,835 = Yahoo 정규장 거래량). 장중에는 마감 전 값이라 일봉 확정값보다 작다.
+    var volBasis = detail.querySelector('[data-us-volume-basis]');
+    if (volBasis) {
+      var vs = quote.market_state;
+      volBasis.textContent = vs === 'regular' ? '(마감 전 누적)' : vs === 'pre' ? '' : '(정규장 누적)';
+    }
     updateVolumeChange(detail, quote);
     var updatedNode = card.querySelector('[data-us-updated]');
     if (updatedNode) updatedNode.textContent = updatedLabel(quote);
