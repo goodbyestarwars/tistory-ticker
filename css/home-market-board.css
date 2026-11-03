@@ -372,6 +372,8 @@ body#tt-body-index .home-editorial-page .home-night-content .home-index-chart { 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[hidden] { display: none; }
 @media (min-width: 561px) {
   body#tt-body-index .home-editorial-page.is-us-market #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* 세 카드의 현재가·등락률을 항상 두 줄로 고정해 차트·설명 가로줄이 카드마다 같은 높이에 놓이게 한다. */
+  body#tt-body-index .home-editorial-page.is-us-market #homeMarketBoard.hmb2 .home-index-strip .home-index-price-row { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 2px; }
 }
 
 /* ── 반응형 ── */
