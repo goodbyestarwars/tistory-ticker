@@ -11,6 +11,7 @@ Cboe 지연 시세 공개 JSON(옵션 체인 전체, 종목에 따라 1.5~6MB)�
 """
 import gzip
 import json
+import logging
 import math
 import os
 import re
@@ -32,6 +33,8 @@ TTL_NEGATIVE = 3600
 CACHE_MAX = 40
 STRIKE_BAND = 0.06
 _NY = ZoneInfo('America/New_York')
+logger = logging.getLogger('us_options')
+FAIL_LOG_INTERVAL = 600
 # 전체 만기 종합 지표(맥스 페인·풋/콜·감마 플립). 감마 플립은 주가 격자에서 BS 감마를 다시 계산한다.
 FLIP_SPAN = 0.15
 FLIP_STEP = 0.005
@@ -45,6 +48,19 @@ _cache = {}                       # symbol -> (expires_at, payload)
 _locks = {}                       # symbol -> Lock
 _locks_guard = threading.Lock()
 _download = threading.Semaphore(1)
+_fail_logged = {}                 # (symbol, reason) -> 마지막 기록 시각
+
+
+def _log_fail(symbol, reason):
+    """Cboe 요청 실패만 남긴다(성공·호출 횟수는 기록하지 않음). 같은 종목·사유는 10분에 한 번."""
+    now = time.time()
+    key = (symbol, reason)
+    if now - _fail_logged.get(key, 0) < FAIL_LOG_INTERVAL:
+        return
+    if len(_fail_logged) > 500:
+        _fail_logged.clear()
+    _fail_logged[key] = now
+    logger.warning('cboe fetch failed symbol=%s reason=%s', symbol, reason)
 
 
 def _ny_now():
@@ -74,15 +90,18 @@ def _fetch_chain(symbol):
             raw = response.read(MAX_BODY_BYTES + 1)
             encoding = response.headers.get('Content-Encoding', '')
     except urllib.error.HTTPError as exc:
+        _log_fail(symbol, 'http_%s' % exc.code)
         if exc.code in (403, 404):
             raise ValueError('옵션 체인이 없는 종목입니다.')
         raise us_stocks.UsStockUnavailable('옵션 체인을 불러오지 못했습니다.')
-    except (urllib.error.URLError, TimeoutError, OSError):
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        _log_fail(symbol, type(exc).__name__)
         raise us_stocks.UsStockUnavailable('옵션 체인을 불러오지 못했습니다.')
     if 'gzip' in encoding:
         try:
             raw = gzip.decompress(raw)
         except OSError:
+            _log_fail(symbol, 'gzip_error')
             raise us_stocks.UsStockUnavailable('옵션 체인을 불러오지 못했습니다.')
     # 압축 전송이어도 풀린 크기를 기준으로 상한을 둔다(파싱 때 메모리를 쓰는 건 풀린 쪽).
     if len(raw) > MAX_BODY_BYTES or (length and not encoding and int(length) > MAX_BODY_BYTES):
@@ -90,6 +109,7 @@ def _fetch_chain(symbol):
     try:
         return json.loads(raw)
     except ValueError:
+        _log_fail(symbol, 'bad_json')
         raise us_stocks.UsStockUnavailable('옵션 체인 형식이 올바르지 않습니다.')
 
 

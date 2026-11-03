@@ -64,5 +64,31 @@ class UsOptionsOverviewTests(unittest.TestCase):
         self.assertEqual(baseline, {'3': 150.0})
 
 
+class CboeFailureLogTests(unittest.TestCase):
+    def setUp(self):
+        us_options._fail_logged.clear()
+
+    def _fail_with(self, exc):
+        import urllib.request
+        from unittest import mock
+        with mock.patch.object(urllib.request, 'urlopen', side_effect=exc):
+            with self.assertRaises(Exception):
+                us_options._fetch_chain('NVDA')
+
+    def test_failure_logged_once_per_interval(self):
+        import urllib.error
+        err = urllib.error.HTTPError('u', 503, 'x', {}, None)
+        with self.assertLogs('us_options', level='WARNING') as cm:
+            self._fail_with(err)
+            self._fail_with(err)
+        self.assertEqual(len(cm.output), 1)
+        self.assertIn('symbol=NVDA reason=http_503', cm.output[0])
+
+    def test_timeout_logged(self):
+        with self.assertLogs('us_options', level='WARNING') as cm:
+            self._fail_with(TimeoutError())
+        self.assertIn('reason=TimeoutError', cm.output[0])
+
+
 if __name__ == '__main__':
     unittest.main()
