@@ -104,8 +104,8 @@ def card_profit_gap(b, th=TH0):
                  {'label': '{:,.0f} → {:,.0f}원'.format(hi, cur), 'val': '52주 고점 대비',
                   'w': max(1, round(cur / hi * 100)), 't': 'dn'}],
         'sub': '직전 결산 영업이익은 흑자인데 주가는 52주 고점(%s원)보다 %.1f%% 낮다.' % ('{:,.0f}'.format(hi), abs(dd)),
-        'detail': ['PER %s배. 영업이익은 직전 결산 한 해 값이라 이익이 늘었는지 줄었는지는 이 자료로 알 수 없다.'
-                   % ('%.1f' % b['per'] if b.get('per') else '-'),
+        'detail': [('PER %.1f배. ' % b['per'] if b.get('per') else '')
+                   + '영업이익은 직전 결산 한 해 값이라 이익이 늘었는지 줄었는지는 이 자료로 알 수 없다.',
                    '틀렸다면: 다음 분기 영업이익이 적자로 돌아서면 이익은 나는데 주가만 빠졌다는 전제가 깨진다.'],
         'src': '키움증권(영업이익·52주 고점)', 'topics': ['earnings', 'position'],
     }
