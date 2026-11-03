@@ -112,6 +112,32 @@ class ControlTest(unittest.TestCase):
         with self.assertRaises(ac.ControlError):
             ac.verify_agent(ts, ac.sign(ts, body), body + b' ')
 
+    def test_activity_keeps_only_whitelisted_fields(self):
+        raw = {'orders': [{'ts': '2026-11-02T11:44:59+09:00', 'code': '068270', 'name': '셀트리온', 'side': 'buy', 'qty': '4',
+                           'price': 193200, 'state': 'ACK', 'reason': 'ENTRY', 'order_no': '0001234', 'detail': 'acct 1234', 'note': 'x'},
+                          {'code': 'BAD', 'side': 'BUY'}, {'code': '005930', 'side': 'HOLD'}],
+               'positions': [{'code': '068270', 'qty': 4, 'state': 'OPEN', 'buyDay': '2026-11-02', 'avg_price': 1}],
+               'candidates': {'scanDate': '2026-11-03', 'rows': [{'scanner': 'pullback', 'code': '005830', 'name': 'DB손해보험',
+                                                                   'score': 7.5, 'basePrice': 'x', 'reason': 'private'}]}}
+        out = ac.sanitize_activity(raw)
+        self.assertEqual(len(out['orders']), 1)
+        self.assertEqual(set(out['orders'][0]), {'ts', 'code', 'name', 'side', 'qty', 'price', 'state', 'reason'})
+        self.assertEqual(out['orders'][0]['side'], 'BUY')
+        self.assertEqual(out['orders'][0]['qty'], 4)
+        self.assertEqual(set(out['positions'][0]), {'code', 'name', 'qty', 'state', 'buyDay'})
+        self.assertIsNone(out['candidates']['rows'][0]['basePrice'])
+        self.assertNotIn('reason', out['candidates']['rows'][0])
+        self.assertEqual(ac.sanitize_activity('junk')['orders'], [])
+
+    def test_activity_is_stored_and_only_exposed_when_received(self):
+        now = MON
+        ac.agent_sync({'snapshot': {'timerState': 'enabled'}, 'activity': {'orders': [{'code': '068270', 'side': 'BUY', 'qty': 1}]}}, now)
+        self.assertEqual(ac.public_status(now)['activity']['orders'][0]['code'], '068270')
+        self.assertIsNone(ac.public_status(now + timedelta(minutes=5))['activity'])
+        # activity 키가 없는 동기화는 기존 목록을 지우지 않는다
+        ac.agent_sync({'snapshot': {'timerState': 'enabled'}}, now + timedelta(seconds=20))
+        self.assertEqual(len(ac.public_status(now + timedelta(seconds=30))['activity']['orders']), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

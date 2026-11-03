@@ -22,6 +22,7 @@
   var scheduleCacheAt = 0;
   var schedulePromise = null;
   var scheduleExpanded = false;
+  var activityOpen = { orders: false, candidates: false };   // 접힘 상태는 갱신(다시 그리기)에도 유지한다
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
@@ -644,6 +645,55 @@
       + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '') + '</section>';
   }
 
+  // 에이전트가 올린 주문·보유·연구 후보(서버가 허용 필드만 남김). 주문번호·계좌·잔고는 받지 않는다.
+  var ACT_REASON = { ENTRY: '신규 진입', STOP_3: '손절(-3%)', TRAIL_2_5: '추적 청산(고점 -2.5%)', STOP_EMERGENCY: '긴급 손절' };
+  var ACT_STATE = { ACK: '접수됨 · 체결 확인 전', FILLED: '체결', UNKNOWN: '확인 필요', SENT: '전송됨' };
+  var SCANNER_LABEL = { pullback: '눌림목', maCloudBreakout: '구름대 돌파', doubleBottom: '쌍바닥', invHeadShoulders: '역헤드앤숄더' };
+  var ORDERS_FIRST = 30;
+
+  function actName(row) {
+    return row.name ? '<b>' + esc(row.name) + '</b><small class="at-sub">' + esc(row.code) + '</small>' : '<b>' + esc(row.code) + '</b>';
+  }
+  function orderRows(rows) {
+    return rows.map(function (o) {
+      var buy = o.side === 'BUY';
+      return '<tr><td>' + esc(String(o.ts || '').slice(0, 16).replace('T', ' ')) + '</td><td>' + actName(o) + '</td>'
+        + '<td class="' + (buy ? 'at-up' : 'at-down') + '">' + (buy ? '매수' : '매도') + '</td>'
+        + '<td class="n">' + (o.qty == null ? '-' : esc(o.qty)) + '</td><td class="n">' + fmtPrice(o.price) + '</td>'
+        + '<td>' + esc(ACT_REASON[o.reason] || o.reason || '') + '</td><td>' + esc(ACT_STATE[o.state] || o.state || '') + '</td></tr>';
+    }).join('');
+  }
+  function orderTable(rows) {
+    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">주문가</th><th>사유</th><th>상태</th></tr></thead><tbody>'
+      + orderRows(rows) + '</tbody></table></div>';
+  }
+  function activityHtml(a) {
+    if (!a) return '<section class="at-card at-act"><h3>주문 내역</h3><p class="at-empty">에이전트가 아직 내역을 올리지 않았습니다. 설치 직후에는 최대 1분 걸립니다.</p></section>';
+    var orders = a.orders || [], positions = a.positions || [], cand = a.candidates || {}, rows = cand.rows || [];
+    var html = '<section class="at-card at-act"><div class="at-hd"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
+    html += orders.length ? orderTable(orders.slice(0, ORDERS_FIRST)) : '<p class="at-empty">아직 주문 기록이 없습니다.</p>';
+    if (orders.length > ORDERS_FIRST) {
+      html += '<details class="at-more" data-act-more="orders"' + (activityOpen.orders ? ' open' : '') + '><summary>더 보기 (' + (orders.length - ORDERS_FIRST) + '건)</summary>'
+        + orderTable(orders.slice(ORDERS_FIRST)) + '</details>';
+    }
+    html += '<p class="at-note">"접수됨 · 체결 확인 전"은 주문이 접수된 것까지만 확인된 상태입니다. 체결가·손익은 장부에 없어 표시하지 않습니다. 주문번호·계좌·잔고는 이 화면에 올라오지 않습니다.</p>';
+    html += '<h3 class="at-subhead">보유 종목 <small>장부의 열린 포지션</small></h3>';
+    html += positions.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">수량</th><th>상태</th><th>매수일</th></tr></thead><tbody>'
+      + positions.map(function (p) { return '<tr><td>' + actName(p) + '</td><td class="n">' + (p.qty == null ? '-' : esc(p.qty)) + '</td><td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>'; }).join('')
+      + '</tbody></table></div>' : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
+    var groups = {}, order = [];
+    rows.forEach(function (r) { if (!groups[r.scanner]) { groups[r.scanner] = []; order.push(r.scanner); } groups[r.scanner].push(r); });
+    html += '<details class="at-more at-ribbon" data-act-more="candidates"' + (activityOpen.candidates ? ' open' : '') + '><summary>텔레그램 연구 후보 (' + rows.length + '종목'
+      + (cand.scanDate ? ' · ' + esc(cand.scanDate) + ' 스캔' : '') + ')</summary>'
+      + (rows.length ? order.map(function (key) {
+        return '<h4 class="at-grp">' + esc(SCANNER_LABEL[key] || key) + ' <small>' + groups[key].length + '</small></h4><div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">점수</th><th class="n">기준가</th></tr></thead><tbody>'
+          + groups[key].map(function (r) { return '<tr><td>' + actName(r) + '</td><td class="n">' + (r.score == null ? '-' : esc(Math.round(r.score))) + '</td><td class="n">' + fmtPrice(r.basePrice) + '</td></tr>'; }).join('')
+          + '</tbody></table></div>';
+      }).join('') : '<p class="at-empty">후보가 없습니다.</p>')
+      + '<p class="at-note">장 마감 스캔(평일 20:15)으로 선정되어 텔레그램으로도 오는 연구 후보입니다. 연구용이며 자동 매수와 연결되어 있지 않습니다.</p></details></section>';
+    return html;
+  }
+
   var CONFIRM = {
     start: '실계좌 자동매매 타이머를 켭니다.\n\n켜면 다음 거래일 08:55부터 실계좌 자동매매가 실행되어 실제 주문이 나갈 수 있습니다(서비스 자체 게이트를 통과한 경우).\n계속할까요?',
     stop: '실계좌 자동매매를 중지합니다.\n\n타이머를 끄고, 실행 중이면 서비스도 멈춥니다. 이미 접수된 주문은 취소되지 않으며 보유 종목은 그대로입니다. 다시 켜기 전까지 자동 실행되지 않습니다.\n계속할까요?'
@@ -652,9 +702,12 @@
   function renderControl(c) {
     lastControl = c;
     var scroll = global.pageYOffset;
-    root.innerHTML = controlHtml(c) + scheduleHtml(scheduleCache);
+    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + scheduleHtml(scheduleCache);
     var details = root.querySelector('[data-schedule-details]');
     if (details) details.addEventListener('toggle', function () { scheduleExpanded = details.open; });
+    root.querySelectorAll('[data-act-more]').forEach(function (more) {
+      more.addEventListener('toggle', function () { activityOpen[more.getAttribute('data-act-more')] = more.open; });
+    });
     root.querySelectorAll('[data-ctl]').forEach(function (button) {
       button.addEventListener('click', function () {
         var action = button.getAttribute('data-ctl');

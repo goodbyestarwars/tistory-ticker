@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -24,6 +25,8 @@ AUDIT_MAX_BYTES = 1024 * 1024
 
 ACTIONS = ('start', 'stop')
 STALE_AFTER_SEC = 90        # 에이전트는 20초 주기. 이보다 오래되면 미수신으로 본다.
+ACTIVITY_MAX_ORDERS = 300     # 화면 "더 보기"가 볼 수 있는 최근 주문 수
+ACTIVITY_MAX_CANDIDATES = 100
 COMMAND_TTL_SEC = 150       # 에이전트가 못 가져간 명령은 만료한다(뒤늦게 실행되지 않게).
 SIGNATURE_WINDOW_SEC = 60
 KNOWN_CALENDAR_YEARS = (2026,)   # market_calendar 표가 검증된 연도. 그 밖은 휴장 여부를 모르므로 start 거부.
@@ -145,6 +148,7 @@ def public_status(now=None):
     return {'configured': configured(), 'received': received, 'ageSec': age, 'staleAfterSec': STALE_AFTER_SEC,
             'checkedAt': now.isoformat(timespec='seconds'), 'tradingDay': (market_calendar.is_kr_trading_day(now)
                                                                            if now.year in KNOWN_CALENDAR_YEARS else None),
+            'activity': state.get('activity') if received else None,
             'vm': view, 'startBlockers': blockers, 'canStart': not blockers and not pending,
             'pending': {'id': pending['id'], 'action': pending['action']} if pending else None,
             'lastCommand': state.get('last')}
@@ -177,6 +181,57 @@ def queue_command(action, account, now=None):
     return {'id': command['id'], 'action': action}
 
 
+_CODE_RE = re.compile(r'^[0-9A-Z]{6}$')
+
+
+def _int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _float(value):
+    try:
+        number = float(value)
+        return number if number == number and abs(number) != float('inf') else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _text(value, limit):
+    return str(value or '').strip()[:limit]
+
+
+def sanitize_activity(raw):
+    """에이전트가 올린 주문·보유·후보 목록을 화면용 필드만 남기고 걸러 저장한다.
+
+    주문번호·상세·비고·계좌·잔고 같은 필드는 아예 받지 않는다(허용 목록 방식). 모양이 틀린 행은 버린다.
+    """
+    raw = raw if isinstance(raw, dict) else {}
+    orders, positions, cands = [], [], []
+    for row in (raw.get('orders') or [])[:ACTIVITY_MAX_ORDERS]:
+        if not isinstance(row, dict) or not _CODE_RE.match(str(row.get('code') or '')):
+            continue
+        side = str(row.get('side') or '').upper()
+        if side not in ('BUY', 'SELL'):
+            continue
+        orders.append({'ts': _text(row.get('ts'), 32), 'code': row['code'], 'name': _text(row.get('name'), 24), 'side': side,
+                       'qty': _int(row.get('qty')), 'price': _int(row.get('price')),
+                       'state': _text(row.get('state'), 12), 'reason': _text(row.get('reason'), 16)})
+    for row in (raw.get('positions') or [])[:100]:
+        if isinstance(row, dict) and _CODE_RE.match(str(row.get('code') or '')):
+            positions.append({'code': row['code'], 'name': _text(row.get('name'), 24), 'qty': _int(row.get('qty')),
+                              'state': _text(row.get('state'), 12), 'buyDay': _text(row.get('buyDay'), 10)})
+    block = raw.get('candidates') if isinstance(raw.get('candidates'), dict) else {}
+    for row in (block.get('rows') or [])[:ACTIVITY_MAX_CANDIDATES]:
+        if isinstance(row, dict) and _CODE_RE.match(str(row.get('code') or '')):
+            cands.append({'scanner': _text(row.get('scanner'), 24), 'code': row['code'], 'name': _text(row.get('name'), 24),
+                          'score': _float(row.get('score')), 'basePrice': _float(row.get('basePrice'))})
+    return {'orders': orders, 'positions': positions,
+            'candidates': {'scanDate': _text(block.get('scanDate'), 10), 'rows': cands}}
+
+
 def agent_sync(payload, now=None):
     """에이전트가 올린 상태를 저장하고, 대기 중인 명령(있으면 1건)을 돌려준다."""
     now = now or _now()
@@ -188,6 +243,8 @@ def agent_sync(payload, now=None):
         state = _load()
         snapshot['receivedAt'] = now.isoformat(timespec='seconds')
         state['snapshot'] = snapshot
+        if 'activity' in payload:
+            state['activity'] = sanitize_activity(payload.get('activity'))
         pending = state.get('pending')
         if isinstance(ack, dict) and pending and ack.get('id') == pending.get('id'):
             result = 'DONE' if ack.get('ok') else 'FAILED'

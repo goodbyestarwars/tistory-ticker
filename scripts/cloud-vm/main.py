@@ -1020,7 +1020,7 @@ async def autotrader_agent_sync(request: Request):
     """Google VM 에이전트 전용(서버 간 HMAC). 브라우저 세션은 받지 않는다."""
     _check_rate_limit('autotrader_agent', request, max_per_window=30)
     raw = await request.body()
-    if len(raw) > 64 * 1024:
+    if len(raw) > 128 * 1024:
         raise HTTPException(status_code=413, detail='payload too large')
     try:
         autotrader_control.verify_agent(request.headers.get('x-ts'), request.headers.get('x-sig'), raw)

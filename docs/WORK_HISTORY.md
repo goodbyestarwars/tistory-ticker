@@ -1,3 +1,7 @@
+**2026-11-04 운영센터 주문 내역·보유·연구 후보 표시**
+
+요청: 매매내역 표시, 최근 30건+더 보기, 텔레그램 추천 종목을 접는 리본으로. 변경: 에이전트(autotrader-private `control/control_agent.py`)가 장부 `live_orders.db`(최근 주문 200건·열린 보유)와 `research/research.db` 최신 후보를 읽기 전용으로 올린다(주문번호·상세·비고·계좌·잔고는 읽지 않음). `scripts/cloud-vm/autotrader_control.py`에 `sanitize_activity`(허용 필드만·행 수 상한)와 `/autotrader/status`의 `activity`(수신 중일 때만), `main.py` 동기화 본문 상한 64→128KB. `js/auto-trader.js`·`css/auto-trader.css`에 주문 표(30건+'더 보기' 접힘 유지)·보유 표·연구 후보 리본. 기존 죽은 `ordersHtml`은 데이터 모양이 달라 재사용하지 않았다. 검증: `test/test_autotrader_control.py` 12건, 렌더 단위 확인(30행+더 보기 5건), VM에서 `activity()` 9.8KB(주문 35·보유 1·후보 42) 실측. 미확인: 로그인 상태의 실제 화면. 제외: 체결가·손익(장부에 없음). 배포: master→Oracle·Pages, 에이전트는 autotrader-private main→VM 자동 반영.
+
 **2026-11-04 국내 시세 세션·거래소 표기 공통 함수**
 
 목적: 사용자가 보는 국내 가격이 정규장인지 애프터마켓인지, 어느 거래소 값인지 혼동하지 않게. 변경: `js/skin-shell.js`에 `MarketHours.krQuoteSession(quote)` 추가(공급자 `market_state`·`price_session`·`exchange` 근거로만 프리/애프터 표기, 네이버 NXT 시간외 값은 '애프터마켓 · NXT', 거래소 불명은 거래소 생략, 시계만으로 애프터 판정 안 함, 20:00 이후 '장 마감', 휴장), `js/foreign-flow.js` 종목 상세 `quoteStatusLabel`이 이를 사용. 시세·등락률 계산, WebSocket/REST, 호출량은 변경 없음. 검증: `test/test_kr_quote_session.js` 13건·`test_closed_countdown.js` 통과, `test_market_hours.py`는 Windows subprocess 오류 6건이 변경 전과 동일. 미적용: 홈 실시간 표 제목(시계 기반 세션명 유지)·관심종목 국내 행·티커 툴팁(세션 문구 없음, 후속). 갱신: 이용방법(`legal/guide.html`)·릴리스 노트. 배포: master→Pages.
