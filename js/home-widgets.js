@@ -148,9 +148,7 @@
 
     grid = document.createElement('div');
     grid.className = 'home-widget-grid';
-    // 2026-11-03: 코스피200 야간선물 독립 카드는 위젯 메뉴 대상이 아니다. 경제뉴스 오른쪽에 그대로 따라붙는다(미국 모드에서만 보임).
-    var night = overview && overview.querySelector('.home-night-card');
-    [market, economic, night, realtime, options.briefing].forEach(function (node) {
+    [market, economic, realtime, options.briefing].forEach(function (node) {
       if (node) grid.appendChild(node);
     });
 
@@ -1096,11 +1094,6 @@
       loadDisclosures();
     });
     applyState(loadState());
-    (function keepNightCardBesideNews() {
-      var nightCard = grid.querySelector(':scope > .home-night-card');
-      var news = registry['economic-news'];
-      if (nightCard && news && news.nextElementSibling !== nightCard) grid.insertBefore(nightCard, news.nextSibling);
-    })();
     syncEconomicHeight();
     if (typeof ResizeObserver === 'function' && registry['market-summary']) {
       var observer = new ResizeObserver(syncEconomicHeight);

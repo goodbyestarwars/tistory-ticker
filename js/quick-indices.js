@@ -144,7 +144,7 @@
   var FUTURES_SYMBOLS = OPTIONS
     .filter(function (o) { return o.source === 'futures'; })
     .map(function (o) { return o.sourceKey; })
-    .concat(['NASDAQ_INDEX', 'SP500_INDEX']).concat(['US10Y', 'DOW_INDEX'])
+    .concat(['NASDAQ_INDEX', 'SP500_INDEX'])
     .join(',');
   var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'nasdaq', 'sp500', 'vix', 'btc', 'wti'];
 
