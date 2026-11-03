@@ -1597,7 +1597,9 @@ document.documentElement.classList.add('skin-ready');
     // 2026-08-29: 운영 데이터로 전환. /futures 응답의 일봉과 별도 야간 분봉을 쓴다. 레이아웃 작업 때
     // 다시 고정 샘플이 필요하면 이 값을 true로만 바꾸면 된다(아래 기구는 유지).
     var HOME_USE_SAMPLE_CHARTS = false;
-    var homeSessionCharts = {}, homePriceMode = 'area', homeSessionLoading = false;
+    var homeSessionCharts = {}, homePriceMode = 'area', homePriceModes = {}, homeSessionLoading = false;
+    // 면적/막대는 차트(카드)마다 따로 기억한다. homePriceMode 는 아직 고르지 않은 차트의 기본값이다.
+    function homeModeOf(key) { return homePriceModes[key] || homePriceMode; }
     // 마우스 오버용 점 목록(js/home-chart-hover.js가 읽는다). [x%, y%, 문구] - 문구는 textContent 로만 쓰이지만 속성 이스케이프는 여기서 한다.
     function homeHoverAttr(points) {
       return JSON.stringify(points.map(function (p) { return [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100, p[2]]; }))
@@ -1615,13 +1617,14 @@ document.documentElement.classList.add('skin-ready');
       });
       element.classList.add('has-session-chart');
       element.setAttribute('data-session-symbol', key);
+      var mode = homeModeOf(key);
       var controls = '<div class="hmb-price-controls"><span>30분 · '
         + (['KOSPI', 'KOSDAQ', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간') + '</span>'
         + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
-        + (homePriceMode === 'bar' ? '면적' : '막대') + ' 차트로 전환">‹</button><span>'
-        + (homePriceMode === 'bar' ? '막대' : '면적') + '</span>'
+        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">‹</button><span>'
+        + (mode === 'bar' ? '막대' : '면적') + '</span>'
         + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
-        + (homePriceMode === 'bar' ? '면적' : '막대') + ' 차트로 전환">›</button></div>';
+        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">›</button></div>';
       if (!meta || !rows.length) {
         element.innerHTML = controls + '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
         return;
@@ -1645,7 +1648,7 @@ document.documentElement.classList.add('skin-ready');
         if (!group || r.slot !== group[group.length - 1].slot + 1) { group = []; groups.push(group); }
         group.push(r);
       });
-      if (homePriceMode === 'area') {
+      if (mode === 'area') {
         marks = '<defs><clipPath id="' + id + '-buy"><rect width="100" height="' + zero + '"/></clipPath>'
           + '<clipPath id="' + id + '-sell"><rect y="' + zero + '" width="100" height="' + (90 - zero) + '"/></clipPath></defs>';
         groups.forEach(function (group) {
@@ -1661,7 +1664,7 @@ document.documentElement.classList.add('skin-ready');
       rows.forEach(function (r) {
         var tone = !hasReference ? 'flat' : r.close > base ? 'buy' : r.close < base ? 'sell' : 'flat';
         var title = '<title>' + time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' 구간 · ' + amount(r.close) + ' · 관측 ' + time(r.ts) + '</title>';
-        marks += homePriceMode === 'bar'
+        marks += mode === 'bar'
           ? '<rect data-price-slot="' + r.slot + '" class="hmb-investor-' + tone + '" x="' + (x(r.slot) - 28 / meta.slotCount) + '" y="' + Math.min(zero, y(r.close)) + '" width="' + 56 / meta.slotCount + '" height="' + Math.max(.6, Math.abs(zero - y(r.close))) + '">' + title + '</rect>'
           : '<circle class="hmb-investor-' + tone + '" cx="' + x(r.slot) + '" cy="' + y(r.close) + '" r=".7">' + title + '</circle>';
       });
@@ -1682,6 +1685,13 @@ document.documentElement.classList.add('skin-ready');
     }
     dashboardSection.addEventListener('click', function (event) {
       if (!event.target.closest('[data-price-switch]')) return;
+      var chart = event.target.closest('.home-index-chart');
+      var key = chart && chart.getAttribute && chart.getAttribute('data-session-symbol');
+      if (key) {
+        homePriceModes[key] = homeModeOf(key) === 'bar' ? 'area' : 'bar';
+        renderHomeSessionChart(chart, key, null);
+        return;
+      }
       homePriceMode = homePriceMode === 'bar' ? 'area' : 'bar';
       if (latestHomeIndices) renderHomeIndices(latestHomeIndices);
     });

@@ -1,3 +1,7 @@
+**2026-11-04 홈 지수 차트 면적/막대 전환을 카드별로 분리**
+
+요청: 한 카드에서 면적/막대를 바꾸면 다른 카드까지 전부 바뀜. 원인: `homePriceMode` 하나를 모든 세션 차트가 공유하고 토글 시 전체 재렌더. 변경: `js/skin-main.js` `homePriceModes[차트키]`로 카드별 저장(`homeModeOf`, 미선택 차트 기본값은 기존 `homePriceMode`=면적), 클릭 시 해당 차트만 다시 그림(렌더러·DOM 계약 그대로). 검증: test_home_session_chart 통과(test_home_chart_history 실패는 기존 기준선), 실제 화면 클릭 확인은 미실시. 배포: master → Pages.
+
 **2026-11-04 주도·주의 업종 막대를 행 옆으로**
 
 요청: 업종 밑이 아니라 옆에 그래프. 변경: `css/home-market-board.css` `.hus-rot-list li`를 업종명·막대·등락률·배수 4열 그리드로 바꿔 막대를 같은 줄에 배치(막대 8px, 중앙 기준선 유지). 검증: 1400px 막대 48~51px·390px 69~72px, 가로 넘침 없음. 배포: master → Pages.
