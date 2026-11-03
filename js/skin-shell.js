@@ -659,6 +659,37 @@
     return domesticWindow ? 'domestic' : 'us';
   }
 
+  /* 국내 시세가 어느 시간대·거래소의 값인지 화면 문구로 돌려준다(2026-11-04).
+     시계만으로 "애프터마켓 시세"라고 말하지 않는다. 공급자가 세션을 알려 준 경우
+     (VM /domestic-quotes의 market_state·price_session, 네이버 nxtOverMarketPriceInfo 근거)만
+     프리마켓·애프터마켓을 쓰고, 근거가 없으면 시계로 판정 가능한 정규장·마감·휴장만 말한다.
+     거래소는 quote.exchange가 UN/KRX+NXT(통합)·NX/NXT·J/KRX로 확인될 때만 붙이고, 네이버 NXT
+     시간외 값(price_session)은 NXT 단독으로 적는다. 확인되지 않으면 거래소를 쓰지 않는다.
+     등락률 값은 건드리지 않는다. 표시 문구만 만든다. */
+  function krQuoteSession(quote, date) {
+    quote = quote || {};
+    var cash = krCash(date);
+    var state = quote.market_state || quote.marketState || '';
+    var ex = String(quote.exchange || '').toUpperCase();
+    var exchange = quote.price_session ? 'NXT'
+      : (ex === 'UN' || ex === 'KRX+NXT') ? '통합시세'
+      : (ex === 'NX' || ex === 'NXT') ? 'NXT'
+      : (ex === 'J' || ex === 'KRX') ? 'KRX' : '';
+    var label;
+    if (cash.phase === 'closed' && cash.label === '휴장') label = '휴장';
+    else if (state === 'regular') label = cash.phase === 'regular' ? cash.label : '정규장';
+    else if (state === 'pre') label = '프리마켓' + (exchange ? ' · ' + exchange : '');
+    else if (state === 'post') label = '애프터마켓' + (exchange ? ' · ' + exchange : '');
+    else if (state === 'closed') {
+      // 공급자가 닫힘이라고 했다. 20:00 전이면 시세만 못 받은 것이라 마감과 구분한다.
+      var m = kst(date).minutes;
+      label = m >= M(8) && m < M(20) && cash.phase !== 'regular' ? '시간외 시세 미수신 · 마지막 시세' : '장 마감';
+    } else if (cash.phase === 'regular') label = cash.label;
+    else if (cash.phase === 'closed') label = '장 마감';
+    else label = '시세 세션 확인 중';
+    return { label: label, exchange: exchange, phase: cash.phase };
+  }
+
   global.MarketHours = {
     KST_OFFSET_MS: KST_OFFSET_MS,
     kst: kst,
@@ -669,6 +700,7 @@
     isUsHoliday: isUsHoliday,
     krCash: krCash,
     krFutures: krFutures,
+    krQuoteSession: krQuoteSession,
     us: us,
     usPreOpenKstMinutes: usPreOpenKstMinutes,
     weekendStartKstMinutes: weekendStartKstMinutes,

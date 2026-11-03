@@ -1,3 +1,7 @@
+**2026-11-04 국내 시세 세션·거래소 표기 공통 함수**
+
+목적: 사용자가 보는 국내 가격이 정규장인지 애프터마켓인지, 어느 거래소 값인지 혼동하지 않게. 변경: `js/skin-shell.js`에 `MarketHours.krQuoteSession(quote)` 추가(공급자 `market_state`·`price_session`·`exchange` 근거로만 프리/애프터 표기, 네이버 NXT 시간외 값은 '애프터마켓 · NXT', 거래소 불명은 거래소 생략, 시계만으로 애프터 판정 안 함, 20:00 이후 '장 마감', 휴장), `js/foreign-flow.js` 종목 상세 `quoteStatusLabel`이 이를 사용. 시세·등락률 계산, WebSocket/REST, 호출량은 변경 없음. 검증: `test/test_kr_quote_session.js` 13건·`test_closed_countdown.js` 통과, `test_market_hours.py`는 Windows subprocess 오류 6건이 변경 전과 동일. 미적용: 홈 실시간 표 제목(시계 기반 세션명 유지)·관심종목 국내 행·티커 툴팁(세션 문구 없음, 후속). 갱신: 이용방법(`legal/guide.html`)·릴리스 노트. 배포: master→Pages.
+
 **2026-11-04 미국 종목 거래량 기준 표기 · SPCX 마감 비교**
 
 요청: 한투 거래량이 일봉보다 낮아 보이는 문제 확인. 비교(11/3 마감 후): 한투 71,164,835 = Yahoo 정규장 71,164,835, 토스 61.7M(약 13% 낮음, 다른 피드). 장중 차이(한투 39.9M·토스 47.5M·Yahoo 55.6M)는 소스별 반영 지연. 변경: `js/us-stocks.js` 거래량 옆에 '(마감 전 누적)'(장중)·'(정규장 누적)'(마감 후) 표기, 출처 교체 없음. 검증: node --check. 배포: master→Pages.

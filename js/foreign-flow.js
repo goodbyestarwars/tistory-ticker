@@ -1496,8 +1496,9 @@
   // 엔드포인트(js/kospi-futures.js 등이 쓰는 것과 동일 소스)는 NXT 시간외가 반영돼 있어
   // 그걸 따로 불러와 헤더에 우선 쓴다 - 실패해도 daily[0]로 자연스럽게 폴백된다.
   function quoteStatusLabel(quote) {
-    var session = global.MarketHours && global.MarketHours.krCash();
-    var label = (quote.market_state && global.NineUI.marketSessionLabel(quote.market_state)) || (session && (session.phase === 'after' ? '정규장 마감 · 애프터마켓' : session.label)) || '시장 상태 확인 중';
+    var hours = global.MarketHours;
+    var session = hours && hours.krQuoteSession && hours.krQuoteSession(quote);
+    var label = (session && session.label) || '시장 상태 확인 중';
     var stamp = quote.quote_time;
     var date = stamp && new Date(stamp);
     return label + ' · ' + (date && !isNaN(date.getTime()) ? date.toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'}) + ' 체결' : quote.time + ' 조회');
