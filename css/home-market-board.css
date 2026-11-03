@@ -272,30 +272,30 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-tren
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top strong { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top b { font: 700 14px/1.4 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { position: relative; width: 100%; height: 90px; margin-top: 8px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark { width: 100%; height: 100%; margin: 0; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { position: absolute; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point.is-high { background: var(--hmb-chart-up); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point.is-low { background: var(--hmb-chart-down); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; color: var(--hmb-mute); font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span { white-space: nowrap; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:first-child b { color: var(--hmb-chart-up-text); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:last-child b { color: var(--hmb-chart-down-text); }
-html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { box-shadow: 0 0 0 2px var(--dk-bg); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-controls { display: flex; align-items: center; gap: 8px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-controls [data-investor-mode] { min-width: 24px; text-align: center; color: var(--hmb-ink); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-buy { fill: var(--hmb-chart-up); color: var(--hmb-chart-up); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-sell { fill: var(--hmb-chart-down); color: var(--hmb-chart-down); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-flat { fill: var(--hmb-flat); color: var(--hmb-flat); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-area { fill: currentColor; opacity: .14; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-line { stroke: currentColor; stroke-width: 1.5; fill: none; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-zero { stroke: var(--hmb-line); stroke-width: 1; stroke-dasharray: none; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-axis { display: flex; justify-content: space-between; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-asof { margin-top: 6px; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-empty { display: flex; align-items: center; justify-content: center; height: 90px; color: var(--hmb-mute); font: 400 12px/1.5 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-spark-wrap { position: relative; width: 100%; height: 90px; margin-top: 8px; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-spark { width: 100%; height: 100%; margin: 0; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-point { position: absolute; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-point.is-high { background: var(--hmb-chart-up); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-point.is-low { background: var(--hmb-chart-down); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-extrema { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; color: var(--hmb-mute); font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-extrema span { white-space: nowrap; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-extrema span:first-child b { color: var(--hmb-chart-up-text); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-extrema span:last-child b { color: var(--hmb-chart-down-text); }
+html.dark body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-point { box-shadow: 0 0 0 2px var(--dk-bg); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-controls { display: flex; align-items: center; gap: 8px; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-controls [data-investor-mode] { min-width: 24px; text-align: center; color: var(--hmb-ink); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-buy { fill: var(--hmb-chart-up); color: var(--hmb-chart-up); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-sell { fill: var(--hmb-chart-down); color: var(--hmb-chart-down); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-flat { fill: var(--hmb-flat); color: var(--hmb-flat); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-area { fill: currentColor; opacity: .14; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-line { stroke: currentColor; stroke-width: 1.5; fill: none; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-zero { stroke: var(--hmb-line); stroke-width: 1; stroke-dasharray: none; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-axis { display: flex; justify-content: space-between; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-asof { margin-top: 6px; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-spark-empty { display: flex; align-items: center; justify-content: center; height: 90px; color: var(--hmb-mute); font: 400 12px/1.5 var(--font-ui, system-ui, sans-serif); }
 @media (pointer: coarse) {
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-switch { min-width: 44px; min-height: 44px; }
+  body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-card) .hmb-investor-switch { min-width: 44px; min-height: 44px; }
 }
 
 /* ── F. 관심종목 주간 공시: 경제 종합뉴스 패널 상단, 기존 가로 이동·선택 기능은 그대로 ── */
@@ -303,6 +303,85 @@ body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures 
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+
+/* ── G. 공통 지표 타일 (2026-11-03 미국시장 개편 시안, 9Pay 지표 타일 표준) ──
+ * .ui-kpi-grid / .ui-kpi-tile / .ui-kpi-top / .ui-kpi-value-row / .ui-kpi-source / .ui-kpi-empty 는 다른 화면도 재사용하는 공통 클래스다.
+ * 색은 기존 토큰(--num-up/--num-down, 다크는 --dk-*)만 쓰고 상승 빨강·하락 파랑 의미색을 유지한다. */
+body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card) {
+  --hmb-ink: rgb(var(--np-ink, 26, 26, 26));
+  --hmb-mute: rgba(var(--np-ink, 26, 26, 26), .56);
+  --hmb-faint: rgba(var(--np-ink, 26, 26, 26), .38);
+  --hmb-line: rgba(var(--np-ink, 26, 26, 26), .1);
+  --hmb-chart-up: #e7aaa5; --hmb-chart-line: #b0bbc8; --hmb-chart-down: #9dbbe0; --hmb-chart-up-text: #ad706b; --hmb-chart-down-text: #6386b2; --hmb-flat: rgba(var(--np-ink, 26, 26, 26), .22);
+  min-width: 0;
+}
+html.dark body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card) {
+  --hmb-ink: var(--dk-text); --hmb-mute: var(--dk-sub); --hmb-faint: var(--dk-mute); --hmb-line: var(--dk-line);
+  --hmb-chart-up: var(--dk-up); --hmb-chart-line: var(--dk-sub); --hmb-chart-down: var(--dk-down); --hmb-chart-up-text: var(--dk-up); --hmb-chart-down-text: var(--dk-down); --hmb-flat: var(--dk-mute);
+}
+body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card)[hidden] { display: none; }
+body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card) .hmb-summary-head {
+  display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 12px; padding: 0; border: 0; background: transparent;
+}
+body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card) .hmb-summary-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .ui-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 10px; }
+body#tt-body-index .home-editorial-page .ui-kpi-tile { min-width: 0; padding: 12px 14px; border: 1px solid var(--hmb-line); border-radius: 8px; background: transparent; }
+body#tt-body-index .home-editorial-page .ui-kpi-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
+body#tt-body-index .home-editorial-page .ui-kpi-top strong { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); }
+body#tt-body-index .home-editorial-page .ui-kpi-top span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); text-align: right; }
+body#tt-body-index .home-editorial-page .ui-kpi-value-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-width: 0; margin-top: 4px; }
+body#tt-body-index .home-editorial-page .ui-kpi-value-row strong { font: 700 20px/1.2 var(--font-data, "Pretendard Variable", Pretendard, sans-serif); font-variant-numeric: tabular-nums; letter-spacing: -.02em; overflow-wrap: anywhere; }
+body#tt-body-index .home-editorial-page .ui-kpi-value-row em { font: 600 13px/1.4 var(--font-data, "Pretendard Variable", Pretendard, sans-serif); font-style: normal; font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page .ui-kpi-source { display: block; margin: 6px 0 0; font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .ui-kpi-empty { color: var(--hmb-faint); font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card) :is(.home-positive) { color: var(--num-up); }
+body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card) :is(.home-negative) { color: var(--num-down); }
+body#tt-body-index .home-editorial-page :is(.home-us-panel, .home-global-panel, .home-night-card) :is(.home-neutral) { color: var(--hmb-mute); }
+body#tt-body-index .home-editorial-page .hus-futures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body#tt-body-index .home-editorial-page .hus-futures[hidden] { display: none; }
+body#tt-body-index .home-editorial-page .hus-spot { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body#tt-body-index .home-editorial-page .hus-fut .home-index-chart { margin-top: 8px; }
+body#tt-body-index .home-editorial-page .hus-rotation { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 4px; }
+body#tt-body-index .home-editorial-page .hus-rot-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+body#tt-body-index .home-editorial-page .hus-rot-list li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; font: 600 13px/1.45 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page .hus-rot-list li b { font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page .hus-rot-list li small { flex-basis: 100%; font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .hgp-body { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(0, 2fr); gap: 14px; align-items: start; }
+body#tt-body-index .home-editorial-page .hgp-summary { display: grid; gap: 10px; margin: 0; }
+body#tt-body-index .home-editorial-page .hgp-summary > div { min-width: 0; }
+body#tt-body-index .home-editorial-page .hgp-summary dt { margin: 0 0 2px; font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .hgp-summary dd { margin: 0; font: 700 14px/1.45 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page .hgp-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+body#tt-body-index .home-editorial-page .hgp-tiles .ui-kpi-value-row strong { font-size: 17px; }
+body#tt-body-index .home-editorial-page .home-night-card .hnc-change { margin-top: 2px; }
+body#tt-body-index .home-editorial-page .home-night-card .ui-kpi-value-row > strong { font-size: 27px; }
+body#tt-body-index .home-editorial-page .hnc-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 0; }
+body#tt-body-index .home-editorial-page .hnc-range dt { font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .hnc-range dd { margin: 0; font: 700 14px/1.4 var(--font-data, "Pretendard Variable", Pretendard, sans-serif); font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page .home-night-card .home-index-chart { margin-top: 10px; }
+body#tt-body-index .home-editorial-page .home-night-card .home-night-futures-chart[hidden] { display: none; }
+
+/* 미국 모드 3열: 미국시장 50% · 경제뉴스 26% · 코스피200 야간선물 24% (home-widgets.js가 만든 .home-widget-grid 기준) */
+body#tt-body-index .home-editorial-page .home-night-card { display: none; align-self: start; min-width: 0; }
+body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid { grid-template-columns: minmax(0, 50fr) minmax(0, 26fr) minmax(0, 24fr); }
+body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid > :is(.home-market-board, .home-economic-news) { grid-column: auto; }
+body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid > .home-night-card { display: block; grid-column: auto; }
+body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid > :is(.home-realtime-board, .home-briefing-section) { grid-column: 1 / -1; }
+@media (max-width: 1180px) {
+  body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid > .home-market-board { grid-column: 1 / -1; }
+  body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid > .home-night-card { grid-column: auto; }
+  body#tt-body-index .home-editorial-page .hgp-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 820px) {
+  body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid { grid-template-columns: minmax(0, 1fr); }
+  body#tt-body-index .home-editorial-page.is-us-market .home-widget-grid > * { grid-column: 1 / -1; }
+  body#tt-body-index .home-editorial-page .hgp-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  body#tt-body-index .home-editorial-page .hus-futures { grid-template-columns: minmax(0, 1fr); }
+  body#tt-body-index .home-editorial-page .hus-rotation { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* ── 반응형 ── */
 @media (max-width: 1100px) and (min-width: 721px) {
