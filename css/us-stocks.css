@@ -425,3 +425,12 @@ html.dark .us-opt-card.us-stocks-panel .us-opt-head-0dte { border-top-color: var
   .us-stocks-analysis-card .us-consensus svg { width: 56px; height: 56px; flex: 0 0 auto; }
   .us-stocks-analysis-card .us-consensus-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 }
+
+/* 모바일 미국 의회 거래 공시 칸(2026-11-04): 링크 두 개를 나란히, 보조 설명 줄은 숨기고 안내문은 2줄까지만 */
+@media (max-width: 700px) {
+  .us-stocks-congress-links { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .us-stocks-congress-link { padding: 8px 10px; }
+  .us-stocks-congress-link strong { white-space: normal; font-size: 12px; line-height: 1.35; }
+  .us-stocks-congress-link span { display: none; }
+  .us-stocks-congress-note { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 6px 2px 0; line-height: 1.4; }
+}

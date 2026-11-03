@@ -1,3 +1,7 @@
+**2026-11-04 모바일 미국 의회 거래 공시 칸 축소**
+
+요청: 미국 의회 공시 칸이 모바일에서 큼. 변경: `css/us-stocks.css` ≤700px에서 링크 2개 나란히·보조 설명 줄 숨김·안내문 2줄 클램프(링크·문구 자체는 그대로). 검증: 라이브 AAPL 390px에 CSS 주입해 칸 높이 245→143px, 가로 넘침 없음. 배포: master → Pages.
+
 **2026-11-04 홈 SOX 카드도 나스닥·S&P500과 같은 30분 세션 차트로**
 
 요청: 필라델피아 지수도 옆 카드와 같은 정보·같은 그래프. 변경: `scripts/cloud-vm/home_session_chart.py` `US_SPOT`에 SOX 추가(기존 foreign_futures 수집 루프가 이미 받는 .SOX 시세의 정규장 30분 관측값을 같은 방식으로 기록, 새 호출 없음), `js/skin-main.js` 세션 차트 키에 SOX 추가. 검증: test_home_session_chart 15 passed(기존 실패 1건은 Windows AF_UNIX). 주의: SOX 세션 기록은 VM 배포 이후 장중부터 쌓이므로 첫 장중에는 차트가 짧게 보일 수 있음. 배포: master → Pages·VM 자동 배포.
