@@ -271,3 +271,7 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 #auto-trader .at-grp { margin: 18px 0 0; font-size: 14px; font-weight: 600; }
 #auto-trader .at-grp small { margin-left: 4px; color: var(--at-mute); font-weight: 400; }
 @media (max-width: 640px) { #auto-trader .at-act .at-table { font-size: 12px; } #auto-trader .at-act .at-table th, #auto-trader .at-act .at-table td { padding: 7px 6px; } }
+#auto-trader .at-dl { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; }
+#auto-trader .at-dl input[type="date"] { padding: 5px 8px; border: 1px solid var(--at-line); border-radius: 8px; background: transparent; color: var(--at-ink); }
+#auto-trader .at-why { margin: 0; padding-left: 16px; font-size: 12.5px; line-height: 1.55; color: var(--at-mute); }
+#auto-trader .at-why li + li { margin-top: 2px; }

@@ -1,3 +1,7 @@
+**2026-11-04 운영센터 내역 보강: 번호·평단·추천 이유·기간 CSV**
+
+요청: 주문 번호·시간·평단·보유수량, 추천 종목의 검색기·이유·추천 단가, 기간 선택 다운로드. 변경: 에이전트가 주문 순번(`no`)·보유 평단(보유수량을 채우는 최근 매수 주문가 가중평균 추정)·후보 선정 이유(`reasons`)·과거 후보 20거래일(30분마다)을 올리고, `autotrader_control.py` 허용 목록·history 유지·주문 상한 400, `main.py` 본문 상한 256KB. `js/auto-trader.js`: 번호 열, 보유 수량·평단가(추정), 검색기별 후보 표(점수·추천 단가·이유), 기간 선택 + 주문/추천 CSV(UTF-8 BOM). 한계: 장부가 주문 접수 기록뿐이라 주문별 체결가·평단·손익은 없고, 보유 평단은 주문가 기준 추정이다. 검증: `test/test_autotrader_control.py` 13건, 렌더·CSV 단위 확인, VM에서 에이전트 `activity()` 실측. 미확인: 로그인 상태 실제 화면. 배포: master→Oracle·Pages, 에이전트 autotrader-private main.
+
 **2026-11-04 운영센터 주문 내역·보유·연구 후보 표시**
 
 요청: 매매내역 표시, 최근 30건+더 보기, 텔레그램 추천 종목을 접는 리본으로. 변경: 에이전트(autotrader-private `control/control_agent.py`)가 장부 `live_orders.db`(최근 주문 200건·열린 보유)와 `research/research.db` 최신 후보를 읽기 전용으로 올린다(주문번호·상세·비고·계좌·잔고는 읽지 않음). `scripts/cloud-vm/autotrader_control.py`에 `sanitize_activity`(허용 필드만·행 수 상한)와 `/autotrader/status`의 `activity`(수신 중일 때만), `main.py` 동기화 본문 상한 64→128KB. `js/auto-trader.js`·`css/auto-trader.css`에 주문 표(30건+'더 보기' 접힘 유지)·보유 표·연구 후보 리본. 기존 죽은 `ordersHtml`은 데이터 모양이 달라 재사용하지 않았다. 검증: `test/test_autotrader_control.py` 12건, 렌더 단위 확인(30행+더 보기 5건), VM에서 `activity()` 9.8KB(주문 35·보유 1·후보 42) 실측. 미확인: 로그인 상태의 실제 화면. 제외: 체결가·손익(장부에 없음). 배포: master→Oracle·Pages, 에이전트는 autotrader-private main→VM 자동 반영.

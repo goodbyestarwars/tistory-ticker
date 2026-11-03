@@ -25,8 +25,9 @@ AUDIT_MAX_BYTES = 1024 * 1024
 
 ACTIONS = ('start', 'stop')
 STALE_AFTER_SEC = 90        # 에이전트는 20초 주기. 이보다 오래되면 미수신으로 본다.
-ACTIVITY_MAX_ORDERS = 300     # 화면 "더 보기"가 볼 수 있는 최근 주문 수
-ACTIVITY_MAX_CANDIDATES = 100
+ACTIVITY_MAX_ORDERS = 400     # 화면 "더 보기"가 볼 수 있는 최근 주문 수
+ACTIVITY_MAX_CANDIDATES = 120
+ACTIVITY_MAX_HISTORY_DATES = 20
 COMMAND_TTL_SEC = 150       # 에이전트가 못 가져간 명령은 만료한다(뒤늦게 실행되지 않게).
 SIGNATURE_WINDOW_SEC = 60
 KNOWN_CALENDAR_YEARS = (2026,)   # market_calendar 표가 검증된 연도. 그 밖은 휴장 여부를 모르므로 start 거부.
@@ -203,6 +204,16 @@ def _text(value, limit):
     return str(value or '').strip()[:limit]
 
 
+def _candidate_rows(rows):
+    out = []
+    for row in (rows or [])[:ACTIVITY_MAX_CANDIDATES]:
+        if isinstance(row, dict) and _CODE_RE.match(str(row.get('code') or '')):
+            reasons = [_text(item, 160) for item in (row.get('reasons') or [])[:5]] if isinstance(row.get('reasons'), list) else []
+            out.append({'scanner': _text(row.get('scanner'), 24), 'code': row['code'], 'name': _text(row.get('name'), 24),
+                        'score': _float(row.get('score')), 'basePrice': _float(row.get('basePrice')), 'reasons': reasons})
+    return out
+
+
 def sanitize_activity(raw):
     """에이전트가 올린 주문·보유·후보 목록을 화면용 필드만 남기고 걸러 저장한다.
 
@@ -216,20 +227,21 @@ def sanitize_activity(raw):
         side = str(row.get('side') or '').upper()
         if side not in ('BUY', 'SELL'):
             continue
-        orders.append({'ts': _text(row.get('ts'), 32), 'code': row['code'], 'name': _text(row.get('name'), 24), 'side': side,
+        orders.append({'no': _int(row.get('no')), 'ts': _text(row.get('ts'), 32), 'code': row['code'], 'name': _text(row.get('name'), 24), 'side': side,
                        'qty': _int(row.get('qty')), 'price': _int(row.get('price')),
                        'state': _text(row.get('state'), 12), 'reason': _text(row.get('reason'), 16)})
     for row in (raw.get('positions') or [])[:100]:
         if isinstance(row, dict) and _CODE_RE.match(str(row.get('code') or '')):
             positions.append({'code': row['code'], 'name': _text(row.get('name'), 24), 'qty': _int(row.get('qty')),
-                              'state': _text(row.get('state'), 12), 'buyDay': _text(row.get('buyDay'), 10)})
+                              'state': _text(row.get('state'), 12), 'buyDay': _text(row.get('buyDay'), 10),
+                              'avg': _int(row.get('avg'))})
     block = raw.get('candidates') if isinstance(raw.get('candidates'), dict) else {}
-    for row in (block.get('rows') or [])[:ACTIVITY_MAX_CANDIDATES]:
-        if isinstance(row, dict) and _CODE_RE.match(str(row.get('code') or '')):
-            cands.append({'scanner': _text(row.get('scanner'), 24), 'code': row['code'], 'name': _text(row.get('name'), 24),
-                          'score': _float(row.get('score')), 'basePrice': _float(row.get('basePrice'))})
-    return {'orders': orders, 'positions': positions,
-            'candidates': {'scanDate': _text(block.get('scanDate'), 10), 'rows': cands}}
+    cands = _candidate_rows(block.get('rows'))
+    result = {'orders': orders, 'positions': positions, 'candidates': {'scanDate': _text(block.get('scanDate'), 10), 'rows': cands}}
+    if isinstance(block.get('history'), list):
+        result['candidates']['history'] = [{'scanDate': _text(day.get('scanDate'), 10), 'rows': _candidate_rows(day.get('rows'))}
+                                           for day in block['history'][:ACTIVITY_MAX_HISTORY_DATES] if isinstance(day, dict)]
+    return result
 
 
 def agent_sync(payload, now=None):
@@ -244,7 +256,12 @@ def agent_sync(payload, now=None):
         snapshot['receivedAt'] = now.isoformat(timespec='seconds')
         state['snapshot'] = snapshot
         if 'activity' in payload:
-            state['activity'] = sanitize_activity(payload.get('activity'))
+            fresh = sanitize_activity(payload.get('activity'))
+            # 과거 후보(history)는 드물게만 오므로 이번에 없으면 이전 값을 유지한다.
+            old_hist = ((state.get('activity') or {}).get('candidates') or {}).get('history')
+            if 'history' not in fresh['candidates'] and old_hist is not None:
+                fresh['candidates']['history'] = old_hist
+            state['activity'] = fresh
         pending = state.get('pending')
         if isinstance(ack, dict) and pending and ack.get('id') == pending.get('id'):
             result = 'DONE' if ack.get('ok') else 'FAILED'

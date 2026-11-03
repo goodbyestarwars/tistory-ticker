@@ -650,6 +650,8 @@
   var ACT_STATE = { ACK: '접수됨 · 체결 확인 전', FILLED: '체결', UNKNOWN: '확인 필요', SENT: '전송됨' };
   var SCANNER_LABEL = { pullback: '눌림목', maCloudBreakout: '구름대 돌파', doubleBottom: '쌍바닥', invHeadShoulders: '역헤드앤숄더' };
   var ORDERS_FIRST = 30;
+  var activityRange = { from: '', to: '' };
+  var lastActivity = null;
 
   function actName(row) {
     return row.name ? '<b>' + esc(row.name) + '</b><small class="at-sub">' + esc(row.code) + '</small>' : '<b>' + esc(row.code) + '</b>';
@@ -657,41 +659,76 @@
   function orderRows(rows) {
     return rows.map(function (o) {
       var buy = o.side === 'BUY';
-      return '<tr><td>' + esc(String(o.ts || '').slice(0, 16).replace('T', ' ')) + '</td><td>' + actName(o) + '</td>'
+      return '<tr><td class="n at-mute">' + (o.no == null ? '' : esc(o.no)) + '</td><td>' + esc(String(o.ts || '').slice(0, 16).replace('T', ' ')) + '</td><td>' + actName(o) + '</td>'
         + '<td class="' + (buy ? 'at-up' : 'at-down') + '">' + (buy ? '매수' : '매도') + '</td>'
         + '<td class="n">' + (o.qty == null ? '-' : esc(o.qty)) + '</td><td class="n">' + fmtPrice(o.price) + '</td>'
         + '<td>' + esc(ACT_REASON[o.reason] || o.reason || '') + '</td><td>' + esc(ACT_STATE[o.state] || o.state || '') + '</td></tr>';
     }).join('');
   }
   function orderTable(rows) {
-    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">주문가</th><th>사유</th><th>상태</th></tr></thead><tbody>'
+    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th class="n">번호</th><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">주문가</th><th>사유</th><th>상태</th></tr></thead><tbody>'
       + orderRows(rows) + '</tbody></table></div>';
   }
   function activityHtml(a) {
     if (!a) return '<section class="at-card at-act"><h3>주문 내역</h3><p class="at-empty">에이전트가 아직 내역을 올리지 않았습니다. 설치 직후에는 최대 1분 걸립니다.</p></section>';
     var orders = a.orders || [], positions = a.positions || [], cand = a.candidates || {}, rows = cand.rows || [];
     var html = '<section class="at-card at-act"><div class="at-hd"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
+    html += '<div class="at-dl"><label>기간 <input type="date" data-act-from value="' + esc(activityRange.from) + '"> ~ <input type="date" data-act-to value="' + esc(activityRange.to) + '"></label>'
+      + '<button type="button" class="at-mini" data-act-dl="orders">주문 내역 CSV</button><button type="button" class="at-mini" data-act-dl="cands">추천 종목 CSV</button>'
+      + '<span class="at-sub">비워 두면 전체 기간</span></div>';
     html += orders.length ? orderTable(orders.slice(0, ORDERS_FIRST)) : '<p class="at-empty">아직 주문 기록이 없습니다.</p>';
     if (orders.length > ORDERS_FIRST) {
       html += '<details class="at-more" data-act-more="orders"' + (activityOpen.orders ? ' open' : '') + '><summary>더 보기 (' + (orders.length - ORDERS_FIRST) + '건)</summary>'
         + orderTable(orders.slice(ORDERS_FIRST)) + '</details>';
     }
-    html += '<p class="at-note">"접수됨 · 체결 확인 전"은 주문이 접수된 것까지만 확인된 상태입니다. 체결가·손익은 장부에 없어 표시하지 않습니다. 주문번호·계좌·잔고는 이 화면에 올라오지 않습니다.</p>';
+    html += '<p class="at-note">번호는 장부의 주문 순번이고, 종목 아래 숫자가 종목코드입니다. "접수됨 · 체결 확인 전"은 주문이 접수된 것까지만 확인된 상태입니다. 평단가는 보유수량을 채우는 최근 매수 주문가의 평균 추정이며 증권사 실제 평단과 다를 수 있습니다. 체결가·손익·주문번호·계좌·잔고는 장부에 없거나 올라오지 않습니다.</p>';
     html += '<h3 class="at-subhead">보유 종목 <small>장부의 열린 포지션</small></h3>';
-    html += positions.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">수량</th><th>상태</th><th>매수일</th></tr></thead><tbody>'
-      + positions.map(function (p) { return '<tr><td>' + actName(p) + '</td><td class="n">' + (p.qty == null ? '-' : esc(p.qty)) + '</td><td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>'; }).join('')
+    html += positions.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">보유수량</th><th class="n">평단가(추정)</th><th>상태</th><th>매수일</th></tr></thead><tbody>'
+      + positions.map(function (p) { return '<tr><td>' + actName(p) + '</td><td class="n">' + (p.qty == null ? '-' : esc(p.qty)) + '</td><td class="n">' + fmtPrice(p.avg) + '</td><td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>'; }).join('')
       + '</tbody></table></div>' : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
     var groups = {}, order = [];
     rows.forEach(function (r) { if (!groups[r.scanner]) { groups[r.scanner] = []; order.push(r.scanner); } groups[r.scanner].push(r); });
-    html += '<details class="at-more at-ribbon" data-act-more="candidates"' + (activityOpen.candidates ? ' open' : '') + '><summary>텔레그램 연구 후보 (' + rows.length + '종목'
+    html += '<details class="at-more at-ribbon" data-act-more="candidates"' + (activityOpen.candidates ? ' open' : '') + '><summary>텔레그램 추천 종목 (' + rows.length + '종목'
       + (cand.scanDate ? ' · ' + esc(cand.scanDate) + ' 스캔' : '') + ')</summary>'
       + (rows.length ? order.map(function (key) {
-        return '<h4 class="at-grp">' + esc(SCANNER_LABEL[key] || key) + ' <small>' + groups[key].length + '</small></h4><div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">점수</th><th class="n">기준가</th></tr></thead><tbody>'
-          + groups[key].map(function (r) { return '<tr><td>' + actName(r) + '</td><td class="n">' + (r.score == null ? '-' : esc(Math.round(r.score))) + '</td><td class="n">' + fmtPrice(r.basePrice) + '</td></tr>'; }).join('')
+        return '<h4 class="at-grp">검색기: ' + esc(SCANNER_LABEL[key] || key) + ' <small>' + groups[key].length + '종목</small></h4><div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">점수</th><th class="n">추천 단가</th><th>왜 추천했나</th></tr></thead><tbody>'
+          + groups[key].map(function (r) {
+            var why = (r.reasons || []).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('');
+            return '<tr><td>' + actName(r) + '</td><td class="n">' + (r.score == null ? '-' : esc(Math.round(r.score))) + '</td><td class="n">' + fmtPrice(r.basePrice) + '</td><td>' + (why ? '<ul class="at-why">' + why + '</ul>' : '<span class="at-mute">이유 기록 없음</span>') + '</td></tr>';
+          }).join('')
           + '</tbody></table></div>';
       }).join('') : '<p class="at-empty">후보가 없습니다.</p>')
-      + '<p class="at-note">장 마감 스캔(평일 20:15)으로 선정되어 텔레그램으로도 오는 연구 후보입니다. 연구용이며 자동 매수와 연결되어 있지 않습니다.</p></details></section>';
+      + '<p class="at-note">장 마감 스캔(평일 20:15)으로 선정되어 텔레그램으로도 오는 연구 후보입니다. 연구용이며 추천 단가는 스캔 기준가이고 자동 매수와 연결되어 있지 않습니다.</p></details></section>';
     return html;
+  }
+
+  function csvCell(v) { var t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
+  function inRange(day) { return (!activityRange.from || day >= activityRange.from) && (!activityRange.to || day <= activityRange.to); }
+  function saveCsv(name, header, lines) {
+    var blob = new Blob(['\ufeff' + [header].concat(lines).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+  }
+  function downloadActivity(kind) {
+    var a = lastActivity;
+    if (!a) return;
+    var span = (activityRange.from || 'all') + '_' + (activityRange.to || 'all');
+    if (kind === 'orders') {
+      var list = (a.orders || []).filter(function (o) { return inRange(String(o.ts || '').slice(0, 10)); }).reverse();
+      saveCsv('autotrader-orders_' + span + '.csv', '번호,시각,종목코드,종목명,구분,수량,주문가,사유,상태', list.map(function (o) {
+        return [o.no, o.ts, o.code, o.name, o.side === 'BUY' ? '매수' : '매도', o.qty, o.price, ACT_REASON[o.reason] || o.reason, ACT_STATE[o.state] || o.state].map(csvCell).join(',');
+      }));
+      return;
+    }
+    var cand = a.candidates || {}, days = [{ scanDate: cand.scanDate, rows: cand.rows || [] }].concat(cand.history || []), lines = [];
+    days.forEach(function (d) {
+      if (!d.scanDate || !inRange(d.scanDate)) return;
+      (d.rows || []).forEach(function (r) {
+        lines.push([d.scanDate, SCANNER_LABEL[r.scanner] || r.scanner, r.code, r.name, r.score == null ? '' : Math.round(r.score), r.basePrice, (r.reasons || []).join(' | ')].map(csvCell).join(','));
+      });
+    });
+    saveCsv('autotrader-candidates_' + span + '.csv', '스캔일,검색기,종목코드,종목명,점수,추천단가,선정이유', lines);
   }
 
   var CONFIRM = {
@@ -702,9 +739,16 @@
   function renderControl(c) {
     lastControl = c;
     var scroll = global.pageYOffset;
+    lastActivity = c.activity;
     root.innerHTML = controlHtml(c) + activityHtml(c.activity) + scheduleHtml(scheduleCache);
     var details = root.querySelector('[data-schedule-details]');
     if (details) details.addEventListener('toggle', function () { scheduleExpanded = details.open; });
+    var from = root.querySelector('[data-act-from]'), to = root.querySelector('[data-act-to]');
+    if (from) from.addEventListener('change', function () { activityRange.from = from.value; });
+    if (to) to.addEventListener('change', function () { activityRange.to = to.value; });
+    root.querySelectorAll('[data-act-dl]').forEach(function (button) {
+      button.addEventListener('click', function () { downloadActivity(button.getAttribute('data-act-dl')); });
+    });
     root.querySelectorAll('[data-act-more]').forEach(function (more) {
       more.addEventListener('toggle', function () { activityOpen[more.getAttribute('data-act-more')] = more.open; });
     });

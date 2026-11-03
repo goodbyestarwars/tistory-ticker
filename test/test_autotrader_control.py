@@ -121,12 +121,13 @@ class ControlTest(unittest.TestCase):
                                                                    'score': 7.5, 'basePrice': 'x', 'reason': 'private'}]}}
         out = ac.sanitize_activity(raw)
         self.assertEqual(len(out['orders']), 1)
-        self.assertEqual(set(out['orders'][0]), {'ts', 'code', 'name', 'side', 'qty', 'price', 'state', 'reason'})
+        self.assertEqual(set(out['orders'][0]), {'no', 'ts', 'code', 'name', 'side', 'qty', 'price', 'state', 'reason'})
         self.assertEqual(out['orders'][0]['side'], 'BUY')
         self.assertEqual(out['orders'][0]['qty'], 4)
-        self.assertEqual(set(out['positions'][0]), {'code', 'name', 'qty', 'state', 'buyDay'})
+        self.assertEqual(set(out['positions'][0]), {'code', 'name', 'qty', 'state', 'buyDay', 'avg'})
         self.assertIsNone(out['candidates']['rows'][0]['basePrice'])
         self.assertNotIn('reason', out['candidates']['rows'][0])
+        self.assertEqual(out['candidates']['rows'][0]['reasons'], [])
         self.assertEqual(ac.sanitize_activity('junk')['orders'], [])
 
     def test_activity_is_stored_and_only_exposed_when_received(self):
@@ -137,6 +138,14 @@ class ControlTest(unittest.TestCase):
         # activity 키가 없는 동기화는 기존 목록을 지우지 않는다
         ac.agent_sync({'snapshot': {'timerState': 'enabled'}}, now + timedelta(seconds=20))
         self.assertEqual(len(ac.public_status(now + timedelta(seconds=30))['activity']['orders']), 1)
+
+    def test_candidate_history_is_kept_until_replaced(self):
+        now = MON
+        hist = [{'scanDate': '2026-11-02', 'rows': [{'code': '005830', 'scanner': 'pullback', 'reasons': ['a', 'b']}]}]
+        ac.agent_sync({'snapshot': {}, 'activity': {'candidates': {'scanDate': '2026-11-03', 'rows': [], 'history': hist}}}, now)
+        ac.agent_sync({'snapshot': {}, 'activity': {'candidates': {'scanDate': '2026-11-03', 'rows': []}}}, now + timedelta(seconds=20))
+        kept = ac.public_status(now + timedelta(seconds=30))['activity']['candidates']['history']
+        self.assertEqual(kept[0]['rows'][0]['reasons'], ['a', 'b'])
 
 
 if __name__ == '__main__':
