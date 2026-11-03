@@ -87,7 +87,8 @@
     { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
     { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' },
     { code: '468670', name: '브릴스', aliases: '브릴스 brils' },
-    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' }
+    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' },
+    { code: '0147B0', name: '래블업', aliases: '레블업 lablup' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
@@ -855,6 +856,11 @@
     var map = applyDomesticListingFallbacks();
     var needle = String(query || '').trim().toLowerCase();
     if (!needle) return null;
+    var listing = DOMESTIC_LISTING_FALLBACKS.find(function (row) {
+      return row.code.toLowerCase() === needle || row.name.toLowerCase() === needle
+        || String(row.aliases || '').toLowerCase().split(/\s+/).indexOf(needle) !== -1;
+    });
+    if (listing) return { name: listing.name, code: listing.code };
     for (var name in map) {
       if (map.hasOwnProperty(name) && String(name).toLowerCase() === needle) {
         return { name: name, code: map[name] };
