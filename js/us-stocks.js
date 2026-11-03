@@ -1193,7 +1193,7 @@
       var date = Number(row.gradeTime) > 0 ? new Date(Number(row.gradeTime) * 1000).toISOString().slice(0, 10) : '일자 미제공';
       return '<li><strong>' + escapeHtml(row.company || '기관명 미제공') + '</strong> · ' + escapeHtml(date) + '<br>' + escapeHtml(grade(row.fromGrade) || '이전 의견 없음') + ' → ' + escapeHtml(grade(row.toGrade) || '미제공') + ' · ' + escapeHtml(({up:'상향',down:'하향',main:'유지',init:'신규',reit:'재확인'})[row.action] || row.action || '') + '</li>';
     }).join('') + '</ul>';
-    var heading = data.available && rows.length ? '기관별 최근 투자의견 (' + rows.length + '건)' : data.status === 'access_denied' ? '기관별 투자의견 · 권한 미확보' : '기관별 투자의견 · 자료 미확보';
+    var heading = data.available && rows.length ? '기관별 최근 투자의견 (' + rows.length + '건)' : data.status === 'access_denied' ? '기관별 투자의견 · 제공하지 않음' : '기관별 투자의견 · 자료 미확보';
     return '<details class="us-analysis-source us-analysis-records"><summary>' + heading + '</summary><p>최근 90일 · 최대 50건. 월별 집계와 기준일이 다릅니다. 투자의견이며 기관의 실제 매매 내역이 아닙니다.</p>' + body + '</details>';
   }
 
