@@ -34,6 +34,7 @@ import fetch_investor_flow as fif  # noqa: E402  (인증·전송·종목 풀 재
 
 REPO_ROOT = fif.REPO_ROOT
 OUTPUT_FILE = os.path.join(REPO_ROOT, 'data', 'stock-stories.js')
+STORIES_DIR = os.path.join(REPO_ROOT, 'data', 'stories')
 PROFILES_FILE = os.path.join(REPO_ROOT, 'data', 'company-profiles.js')
 LOOKBACK_DAYS = 45          # 20거래일 확보용
 WINDOW = 20                 # 거래일
@@ -49,7 +50,7 @@ SHORT_JUMP_RATIO = 3.0      # 최근 5거래일 평균이 이전 15거래일 평
 SHORT_JUMP_MIN_PCT = 4.0    # 그리고 최근 평균이 이 값 이상
 PCT_CUT = {'gap': 85, 'flow': 90, 'short': 90}   # 시장 전체가 같이 빠진 날 모든 종목에 카드가 붙지 않게, 이번 실행 분포의 상위 일부만 통과
 TH0 = {'gap': DRAWDOWN_MIN, 'flow': FLOW_MIN_PCT_OF_CAP, 'short': SHORT_HIGH_PCT}
-MAX_STORY_BYTES = 600_000   # 단일 파일 로드 한계 경고선(넘으면 분할 필요)
+MAX_STORY_BYTES = 100_000   # 메인 파일(수기+색인) 경고선. 자동 항목은 종목별 파일
 
 NOTE = '작성 시점 값이라 실시간으로 바뀌지 않는다. 사라는 말도 팔라는 말도 아니다.'
 
@@ -316,13 +317,15 @@ def build_entry(code, basic, short_rows, invsr_rows, today, th=TH0):
 
 
 def load_existing():
+    """메인 파일의 수기 항목과 분할 색인을 읽는다."""
     try:
         with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
             src = f.read()
     except OSError:
-        return {}
-    m = re.search(r'window\.STOCK_STORIES\s*=\s*(\{.*\})\s*;?\s*$', src, re.S)
-    return json.loads(m.group(1)) if m else {}
+        return {}, []
+    m = re.search(r'^window\.STOCK_STORIES=(\{.*\});$', src, re.M)
+    idx = re.search(r'^window\.STOCK_STORY_INDEX=(\[.*\]);$', src, re.M)
+    return (json.loads(m.group(1)) if m else {}), (json.loads(idx.group(1)) if idx else [])
 
 
 def merge(existing, auto):
@@ -333,14 +336,33 @@ def merge(existing, auto):
     return out
 
 
-def write_output(data):
-    text = 'window.STOCK_STORIES=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n'
+def write_output(manual, auto, index, partial):
+    """수기 항목+색인은 메인 파일, 자동 항목은 종목별 파일(data/stories/<코드>.js)로 쓴다.
+
+    partial(--codes)이면 이번 대상이 아닌 기존 종목 파일은 건드리지 않고, 전체 실행이면 이번에 카드가 없는 종목 파일은 지운다."""
+    os.makedirs(STORIES_DIR, exist_ok=True)
+    for code, entry in auto.items():
+        if code in manual:
+            continue
+        with open(os.path.join(STORIES_DIR, code + '.js'), 'w', encoding='utf-8', newline='') as f:
+            f.write("(window.STOCK_STORIES=window.STOCK_STORIES||{})['%s']=%s;\n"
+                    % (code, json.dumps(entry, ensure_ascii=False, separators=(',', ':'))))
+    keep = set(c for c in auto if c not in manual)
+    if partial:
+        keep |= set(index)
+    else:
+        for name in os.listdir(STORIES_DIR):
+            if name.endswith('.js') and name[:-3] not in keep:
+                os.remove(os.path.join(STORIES_DIR, name))
+    text = ('window.STOCK_STORIES=' + json.dumps(manual, ensure_ascii=False, separators=(',', ':')) + ';\n'
+            + 'window.STOCK_STORY_INDEX=' + json.dumps(sorted(keep), separators=(',', ':')) + ';\n')
     with open(OUTPUT_FILE, 'w', encoding='utf-8', newline='') as f:
         f.write(text)
     size = len(text.encode('utf-8'))
-    fif.log('저장 완료: %s (%d종목, %d바이트)' % (OUTPUT_FILE, len(data), size))
+    fif.log('저장 완료: 메인 %s(수기 %d종목, 색인 %d종목, %d바이트) + 종목별 파일 %d개'
+            % (OUTPUT_FILE, len(manual), len(keep), size, len(keep)))
     if size > MAX_STORY_BYTES:
-        fif.log('경고: %d바이트 - 모든 종목 페이지가 이 파일을 통째로 받는다. 파일 분할이 필요하다.' % size)
+        fif.log('경고: 메인 파일이 %d바이트다. 모든 종목 페이지가 통째로 받는다.' % size)
 
 
 def universe(args):
@@ -398,7 +420,8 @@ def main():
     if failed > len(codes) * 0.2:
         fif.log('실패가 20%를 넘어 파일을 쓰지 않습니다. 키·호출 제한을 확인하세요.')
         sys.exit(2)
-    write_output(merge(load_existing(), auto))
+    existing, index = load_existing()
+    write_output(merge(existing, {}), auto, index, '--codes' in args)
 
 
 if __name__ == '__main__':

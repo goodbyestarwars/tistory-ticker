@@ -68,6 +68,27 @@ class BuildTests(unittest.TestCase):
         self.assertNotIn('auto', out['042660'])
 
 
+    def test_write_output_shards_auto_entries_and_indexes_them(self):
+        import tempfile, os, json, re
+        with tempfile.TemporaryDirectory() as d:
+            old = (bss.OUTPUT_FILE, bss.STORIES_DIR)
+            bss.OUTPUT_FILE, bss.STORIES_DIR = os.path.join(d, 'stock-stories.js'), os.path.join(d, 'stories')
+            try:
+                os.makedirs(bss.STORIES_DIR)
+                open(os.path.join(bss.STORIES_DIR, '999999.js'), 'w').write('x')
+                manual = {'042660': {'name': '한화오션', 'cards': []}}
+                bss.write_output(manual, {'222222': {'auto': True, 'cards': []}, '042660': {'auto': True}}, [], False)
+                self.assertEqual(sorted(os.listdir(bss.STORIES_DIR)), ['222222.js'])  # 오래된 파일 삭제, 수기 코드는 분할하지 않음
+                main = open(bss.OUTPUT_FILE, encoding='utf-8').read()
+                self.assertEqual(json.loads(re.search(r'STOCK_STORY_INDEX=(\[.*\]);', main).group(1)), ['222222'])
+                existing, index = bss.load_existing()
+                self.assertEqual((list(existing), index), (['042660'], ['222222']))
+                bss.write_output(manual, {'333333': {'auto': True, 'cards': []}}, index, True)  # --codes는 기존 파일 보존
+                self.assertEqual(sorted(os.listdir(bss.STORIES_DIR)), ['222222.js', '333333.js'])
+            finally:
+                bss.OUTPUT_FILE, bss.STORIES_DIR = old
+
+
 if __name__ == '__main__':
     unittest.main()
 

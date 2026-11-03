@@ -1787,10 +1787,22 @@
       + '<small class="ff-story-note">작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 실시간 계산). 사라는 말도 팔라는 말도 아니다.</small>';
   }
 
+  // 자동 생성 종목은 종목별 파일(data/stories/<코드>.js)로 나눠 두고, 메인 파일의 색인(STOCK_STORY_INDEX)에 있을 때만 받는다.
+  function ensureStoryPart(code) {
+    var all = global.STOCK_STORIES || {};
+    if (all[code] || !/^[0-9A-Z]{6}$/.test(code) || (global.STOCK_STORY_INDEX || []).indexOf(code) < 0) return Promise.resolve(all);
+    return new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = STOCK_STORIES_JS.replace('stock-stories.js', 'stories/' + code + '.js');
+      script.onload = script.onerror = function () { resolve(global.STOCK_STORIES || all); };
+      document.head.appendChild(script);
+    });
+  }
+
   function loadStockStory(box, code, swingVm, chartData) {
     var mount = box.querySelector('[data-ff-story]');
     if (!mount) return;
-    ensureStockStories().then(function (all) {
+    ensureStockStories().then(function () { return ensureStoryPart(code); }).then(function (all) {
       var st = all && all[code];
       if (!st || !box.contains(mount)) return; // 자료가 없거나 종목을 바꾼 뒤 도착한 응답은 버린다.
       // 판정 카드가 기존 2주 스윙 요약 박스를 대신하므로 같은 내용이 두 번 보이지 않게 박스는 숨긴다(DOM은 유지).
