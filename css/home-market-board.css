@@ -352,9 +352,9 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar::before {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-up { left: 50%; border-radius: 0 4px 4px 0; background: color-mix(in srgb, var(--num-up) 65%, var(--np-paper, #fff)); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-down { right: 50%; border-radius: 4px 0 0 4px; background: color-mix(in srgb, var(--num-down) 65%, var(--np-paper, #fff)); }
-/* 글로벌 지수: 지표 5종(WTI·원/달러·미 10년물·VIX·SOX) */
+/* 글로벌 지수: 지표 4종(WTI·원/달러·미 10년물·VIX) */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl { display: grid; gap: 12px; margin-top: 12px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-value-row strong { font-size: 17px; }
 body#tt-body-index .home-editorial-page .home-night-content .hnc-change { margin-top: 2px; }
 body#tt-body-index .home-editorial-page .home-night-content .ui-kpi-value-row > strong { font-size: 27px; }
@@ -363,8 +363,15 @@ body#tt-body-index .home-editorial-page .hnc-range dt { font: 600 12px/1.4 var(-
 body#tt-body-index .home-editorial-page .hnc-range dd { margin: 0; font: 700 14px/1.4 var(--font-data, "Pretendard Variable", Pretendard, sans-serif); font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page .home-night-content .home-index-chart { margin-top: 10px; }
 @media (max-width: 560px) {
+  body#tt-body-index .home-editorial-page.is-us-market #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-rotation { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 미국 모드: 나스닥·S&P500·SOX 세 지수 카드를 한 줄에 둔다(모바일은 세로 한 열). */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[hidden] { display: none; }
+@media (min-width: 561px) {
+  body#tt-body-index .home-editorial-page.is-us-market #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* ── 반응형 ── */

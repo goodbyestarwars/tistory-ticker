@@ -823,6 +823,12 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
+        // 2026-11-04: 필라델피아 반도체지수(SOX)는 나스닥·S&P500 옆 세 번째 지수 카드(미국 모드에서만). renderHomeIndices가 채운다.
+        + '<article class="home-index-card" data-home-index-slot="tertiary" hidden>'
+        + '<div class="home-index-top"><strong data-index-field="label">필라델피아 반도체</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
+        + '</article>'
         + '</div>'
         + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list hmb2-core">'
@@ -838,7 +844,7 @@ document.documentElement.classList.add('skin-ready');
         + '</dl>'
         // 2026-11-04 글로벌 지수(미국 모드): 지표 4종 + 현물 지수 3종. 값은 renderHomeGlobalBlock이 /futures 응답으로 채운다.
         + '<div class="hgl" data-home-global hidden><div class="ui-kpi-grid hgl-metrics">'
-        + ['WTI|WTI 원유 선물', 'USDKRW|원/달러', 'US10Y|미국 국채 10년물', 'VIX|VIX 변동성지수', 'SOX|필라델피아 반도체지수(SOX)'].map(function (def) {
+        + ['WTI|WTI 원유 선물', 'USDKRW|원/달러', 'US10Y|미국 국채 10년물', 'VIX|VIX 변동성지수'].map(function (def) {
           var p = def.split('|');
           return '<article class="ui-kpi-tile" data-global-tile="' + p[0] + '"><div class="ui-kpi-top"><strong>' + p[1] + '</strong></div>'
             + '<div class="ui-kpi-value-row"><strong data-global-field="price">-</strong><em data-global-field="change">-</em></div>'
@@ -942,6 +948,8 @@ document.documentElement.classList.add('skin-ready');
       if (nightFutures) nightFutures.hidden = !isUs;
       // 미국 모드: 선물·업종 패널과 글로벌 지표 패널이 기존 '시장 요약'(핵심 지표) 칸을 대신한다. 국내 모드는 그대로.
       dashboardSection.classList.toggle('is-us-market', isUs);
+      var soxCard = homeIndexCard('tertiary');
+      if (soxCard) soxCard.hidden = !isUs;
       var rotationBox = dashboardSection.querySelector('[data-home-us-rotation]');
       if (rotationBox) rotationBox.hidden = !isUs;
       var globalBlock = dashboardSection.querySelector('[data-home-global]');
@@ -2044,7 +2052,7 @@ document.documentElement.classList.add('skin-ready');
 
     var US_GLOBAL_TILES = {
       WTI: {digits: 2, prefix: '$', note: '선물(CL 연속월물) · '}, USDKRW: {digits: 1, suffix: '원'},
-      US10Y: {digits: 2, suffix: '%', pp: true}, VIX: {digits: 2}, SOX: {digits: 2, note: '현물지수 · '}
+      US10Y: {digits: 2, suffix: '%', pp: true}, VIX: {digits: 2}
     };
 
     function renderHomeUsPanels() {
@@ -2137,6 +2145,17 @@ document.documentElement.classList.add('skin-ready');
       } else {
         setField('nightFutures', '데이터 확인 중', 'home-neutral');
         if (nightChartEl) { nightChartEl.hidden = true; nightChartEl.innerHTML = ''; }
+      }
+      var soxItem = bySymbol.SOX, soxCard = homeIndexCard('tertiary');
+      if (soxCard && session.market === 'us') {
+        var sp = soxItem ? homeNum(soxItem.price) : null, sc = soxItem ? homeNum(soxItem.change) : null, sr = soxItem ? homeNum(soxItem.change_rate) : null;
+        var soxTone = homeTone(sc);
+        var soxPrice = soxCard.querySelector('[data-index-field="price"]'), soxChange = soxCard.querySelector('[data-index-field="change"]'), soxStatus = soxCard.querySelector('[data-index-field="status"]');
+        if (soxPrice) { soxPrice.textContent = sp == null ? '-' : sp.toLocaleString('ko-KR', {maximumFractionDigits: 2}); soxPrice.className = soxTone; }
+        if (soxChange) { soxChange.textContent = sr == null ? '-' : (sc > 0 ? '▲' : sc < 0 ? '▼' : '') + Math.abs(sr).toFixed(2) + '%'; soxChange.className = soxTone; }
+        // SOX는 선물이 아닌 현물 지수다. 본장이 아닐 때는 마지막 값임을 표시한다.
+        if (soxStatus) soxStatus.textContent = !soxItem ? '· 미수신' : usRegularSessionState().open ? '· 현물 거래중' : '· 현물 마지막 값';
+        renderHomeIndexChart(soxCard.querySelector('[data-index-field="chart"]'), soxItem && soxItem.chart, 'SOX', sp != null && sc != null ? sp - sc : null);
       }
       session.keys.forEach(function (key, index) {
         var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
