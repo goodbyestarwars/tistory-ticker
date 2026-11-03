@@ -7,6 +7,7 @@
   'use strict';
 
   var API_BASE = 'https://goodbyestar.cloud';
+  var ORDER_BOOK_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/order-book.css';
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20261020-consensus-insiders';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
@@ -128,6 +129,13 @@
         setTimeout(flushStylePending, STYLE_WAIT_MS);
       }
       return;
+    }
+    // 호가 사다리는 국내 호가창과 같은 css/order-book.css를 쓴다(증시검색 화면엔 이미 있다).
+    if (!document.querySelector('link[href*="order-book.css"]')) {
+      var obLink = document.createElement('link');
+      obLink.rel = 'stylesheet';
+      obLink.href = ORDER_BOOK_CSS_URL;
+      document.head.appendChild(obLink);
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -600,9 +608,11 @@
       + '</div>'
       + '<div class="us-stocks-quote-line" data-us-session-comparison hidden></div>'
       + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식<span data-us-basis></span></span></div>'
-      // 위쪽 카드는 한 줄 요약(전일 종가·52주 범위·상장주식 수), 시가·고가·저가·거래량·전일 거래량 대비는 아래 "세부 시세" 칸에(2026-10-05 사용자 요청)
-      + '<div class="us-stocks-quote-line" aria-label="전일 종가·52주 범위·상장주식 수">'
+      // 위쪽 카드는 한 줄 요약(전일 종가·거래량·전일 거래량 대비·52주 범위·상장주식 수). 시가·고가·저가는 국내처럼 호가 칸 맨 위에(2026-11-03 사용자 요청: 세부 시세 칸 삭제)
+      + '<div class="us-stocks-quote-line" aria-label="전일 종가·거래량·52주 범위·상장주식 수">'
       + '<span>전일 종가 <b data-us-metric="previous">-</b></span>'
+      + '<span>거래량 <b data-us-metric="volume">-</b></span>'
+      + '<span>전일 거래량 대비 <b data-us-metric="volchange">-</b></span>'
       + '<span>52주 범위 <b data-us-metric="week52">-</b></span>'
       + '<span>상장주식 수 <b data-us-metric="shares">-</b></span>'
       + '</div>'
@@ -615,17 +625,14 @@
       + analysisCard('내부자 거래', '내부자 거래를 불러오는 중...', 'insider')
       + '</div>'
       + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
-      // 세부 시세: 국내 카드와 같은 둥근 칸 5개(기본 재무~의회 거래 공시 다음)
-      + '<section class="us-stocks-panel us-stocks-detail-quotes"><div class="us-stocks-panel-head"><h4>세부 시세</h4></div>'
-      + '<div class="us-stocks-metrics us-stocks-metrics-core">'
-      + metric('시가', '', 'open')
-      + metric('고가', '', 'high', 'us-up')
-      + metric('저가', '', 'low', 'us-down')
-      + metric('거래량', '', 'volume')
-      + '<div class="us-stocks-metric us-stocks-metric-wide"><span>전일 거래량 대비</span><b data-us-metric="volchange">-</b></div>'
-      + '</div></section>'
       + '<div class="ss-panels us-stocks-market-grid">'
-      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div></section>'
+      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div>'
+      + '<div class="ss-session"><div class="ss-session-values">'
+      + '<div><span>시가</span><b data-us-metric="open">-</b></div>'
+      + '<div><span>고가</span><b class="ss-session-high" data-us-metric="high">-</b></div>'
+      + '<div><span>저가</span><b class="ss-session-low" data-us-metric="low">-</b></div>'
+      + '</div></div>'
+      + '<div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div></section>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
       + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
@@ -755,11 +762,15 @@
 
   function updateOrderbookCurrent() {
     var mount = document.querySelector('#usStocksOrderbook');
-    var row = mount && mount.querySelector('.us-stocks-book-current');
+    var row = mount && mount.querySelector('[data-field="current-row"]');
     if (!row || !state.lastQuote) return;
-    row.querySelector('strong').textContent = formatPrice(state.lastQuote.price);
-    row.querySelector('span:last-child').textContent = formatPercent(state.lastQuote.change_rate);
+    var rate = quoteSessionRate(state.lastQuote);
+    row.querySelector('[data-field="current-price"]').textContent = formatPrice(state.lastQuote.price);
+    row.querySelector('[data-field="current-change"]').textContent = formatPercent(rate);
+    row.className = 'ob-current-row ' + usObTone(rate);
   }
+
+  function usObTone(rate) { return rate > 0 ? 'ob-up' : rate < 0 ? 'ob-down' : 'ob-flat'; }
 
   // 키움 usa20101 호가 가격은 부호(+/-)가 붙어 오는 경우가 있어(실측: AAPL 호가가 -331.98로 옴) 절댓값을 가격으로 쓴다.
   function absLevels(levels) {
@@ -772,22 +783,26 @@
   function renderOrderbook(book) {
     var mount = document.querySelector('#usStocksOrderbook');
     if (!mount) return;
-    book = Object.assign({}, book, { asks: absLevels(book.asks), bids: absLevels(book.bids) });
-    var asks = (book.asks || []).slice().reverse();
-    var bids = book.bids || [];
-    var rows = Math.max(asks.length, bids.length);
     var levelSize = function (level) {
       var value = level && level.size != null ? level.size : level && level.qty;
       return Number.isFinite(Number(value)) ? Number(value) : 0;
     };
-    var maxAsk = Math.max.apply(null, asks.map(levelSize).concat([0]));
-    var maxBid = Math.max.apply(null, bids.map(levelSize).concat([0]));
+    // 국내 호가창(js/order-book.js)과 같은 세로 사다리: 위가 매도(높은 가격부터), 가운데 현재가, 아래가 매수.
+    var toRows = function (levels) {
+      return absLevels(levels).map(function (l) { return { price: Number(l.price), qty: levelSize(l) }; })
+        .filter(function (r) { return Number.isFinite(r.price) && r.price > 0; })
+        .sort(function (a, b) { return b.price - a.price; });
+    };
+    var asks = toRows(book && book.asks).slice(-10);
+    var bids = toRows(book && book.bids).slice(0, 10);
+    var maxAsk = Math.max.apply(null, asks.map(function (r) { return r.qty; }).concat([0]));
+    var maxBid = Math.max.apply(null, bids.map(function (r) { return r.qty; }).concat([0]));
     var maxLevel = Math.max(maxAsk, maxBid, 1);
     var strength = maxAsk > 0 ? maxBid / maxAsk * 100 : null;
     var strengthWidth = strength == null ? 0 : Math.max(0, Math.min(100, strength / 2));
     var balanceLabel = maxAsk === maxBid ? '균형' : (maxAsk > maxBid ? '매도 우위' : '매수 우위');
     var current = state.lastQuote && Number(state.lastQuote.price);
-    if (!rows && !Number.isFinite(current)) {
+    if (!asks.length && !bids.length && !Number.isFinite(current)) {
       mount.innerHTML = '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
       return;
     }
@@ -796,37 +811,51 @@
       + '<div class="us-stocks-level-row"><span class="us-level-label us-book-bid-text">지지(매수벽)</span><i><em class="us-book-bid-fill" style="width:' + Math.round(maxBid / maxLevel * 100) + '%"></em></i><b>' + formatVolume(maxBid) + '</b></div>'
       + '<div class="us-stocks-level-row"><span class="us-level-label">호가강도</span><i><em class="us-book-strength-fill" style="width:' + strengthWidth + '%"></em></i><b>' + (strength == null ? '-' : strength.toFixed(1) + '%') + '</b></div>'
       + '<p>미국 10단계 호가 잔량 기준 · 실제 체결강도와는 다를 수 있습니다. <strong>' + balanceLabel + '</strong></p>'
-      + '</div>'
-      + '<div class="us-ob-head"><span class="us-book-bid-text">매수 가격 · 잔량</span><span class="us-book-ask-text">잔량 · 매도 가격</span></div>';
+      + '</div>';
+    var prev = state.usDepth && state.usDepth.symbol === state.symbol ? state.usDepth : null;
+    var rate = state.lastQuote ? quoteSessionRate(state.lastQuote) : 0;
+    html += '<div class="ob-table ob-table-pairs" aria-label="매도 최대 10호가와 매수 최대 10호가">'
+      + '<div class="ob-pair-head"><span class="ob-bid-text">매수 잔량 · 증감</span><span>가격</span><span class="ob-ask-text">매도 잔량 · 증감</span></div>'
+      + asks.map(function (r, i) { return usLadderRow(r, maxLevel, 'ask', i + 1, prev); }).join('');
     if (Number.isFinite(current)) {
-      html += '<div class="us-stocks-book-current"><span>현재가</span><strong>' + formatPrice(current) + '</strong><span>' + formatPercent(state.lastQuote.change_rate) + '</span></div>';
+      html += '<div class="ob-current-row ' + usObTone(rate) + '" data-field="current-row" data-dominance="'
+        + (maxBid > maxAsk ? 'bid' : maxAsk > maxBid ? 'ask' : 'balanced') + '">'
+        + '<span data-field="current-price">' + formatPrice(current) + '</span>'
+        + ' <span class="ob-current-change" data-field="current-change">' + formatPercent(rate) + '</span></div>';
     }
-    // 국내 호가창과 같은 좌우 배치(2026-10-05 사용자 요청): 왼쪽 매수(빨강)·오른쪽 매도(파랑), 막대는 가운데에서
-    // 바깥으로, 가격은 바깥쪽·잔량은 가운데 쪽. 매도는 API가 낮은 호가부터 주므로 같은 줄에 가장 가까운 호가끼리 놓는다.
-    var askRows = (book.asks || []);
-    html += '<div class="us-ob-table">';
-    for (var i = 0; i < rows; i++) {
-      var ask = askRows[i];
-      var bid = bids[i];
-      html += '<div class="us-ob-pair">'
-        + usBookRow(bid, 'bid', maxLevel, i + 1, levelSize)
-        + usBookRow(ask, 'ask', maxLevel, i + 1, levelSize)
-        + '</div>';
-    }
-    html += '</div>';
-    mount.innerHTML = html || '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
-    drawUsSilhouette(mount, askRows.map(function (l) { return { price: Number(l.price), qty: levelSize(l) }; }),
-      bids.map(function (l) { return { price: Number(l.price), qty: levelSize(l) }; }));
+    html += bids.map(function (r, i) { return usLadderRow(r, maxLevel, 'bid', i + 1, prev); }).join('') + '</div>';
+    var totalAsk = asks.reduce(function (sum, r) { return sum + r.qty; }, 0);
+    var totalBid = bids.reduce(function (sum, r) { return sum + r.qty; }, 0);
+    var totalAll = totalAsk + totalBid || 1;
+    html += '<div class="ob-footer"><div class="ob-footer-label">표시 호가 잔량 합계 <span class="ob-ask-text">매도 <b>' + formatVolume(totalAsk) + '</b></span> · <span class="ob-bid-text">매수 <b>' + formatVolume(totalBid) + '</b></span></div>'
+      + '<div class="ob-footer-bar"><span class="ob-footer-bar-ask" style="width:' + (totalAsk / totalAll * 100).toFixed(1) + '%"></span><span class="ob-footer-bar-bid" style="width:' + (totalBid / totalAll * 100).toFixed(1) + '%"></span></div></div>';
+    mount.innerHTML = html;
+    state.usDepth = { symbol: state.symbol, ask: usDepthMap(asks), bid: usDepthMap(bids) };
+    state.lastSil = { mount: mount, asks: asks, bids: bids };
+    drawUsSilhouette(mount, asks, bids);
   }
 
-  function usBookRow(level, side, maxLevel, levelNo, levelSize) {
-    if (!level) return '<div class="us-ob-row us-ob-row-empty"></div>';
-    var qty = levelSize(level);
-    var pct = Math.max(2, Math.round(qty / maxLevel * 100));
-    return '<div class="us-ob-row us-ob-row-' + side + '" data-level="' + levelNo + '">'
-      + '<span class="us-ob-qty">' + formatVolume(qty) + '</span>'
-      + '<span class="us-ob-bar-wrap"><span class="us-ob-bar" style="width:' + pct + '%"></span></span>'
-      + '<span class="us-ob-price us-book-' + side + '-text">' + formatPrice(level.price) + '</span>'
+  function usDepthMap(rows) {
+    var map = Object.create(null);
+    rows.forEach(function (r) { map[String(r.price)] = r.qty; });
+    return map;
+  }
+
+  // 증감은 직전 조회와 같은 가격의 잔량 차이다(국내 호가창과 같은 방식). 처음 보는 가격은 '—'.
+  function usLadderRow(row, maxQty, side, level, prev) {
+    var pct = Math.max(2, Math.round(row.qty / maxQty * 100));
+    var textCls = side === 'ask' ? 'ob-ask-text' : 'ob-bid-text';
+    var before = prev && prev[side][String(row.price)];
+    var delta = before == null ? null : row.qty - before;
+    var deltaCls = delta == null ? '' : delta > 0 ? ' ob-delta-up' : delta < 0 ? ' ob-delta-down' : '';
+    var deltaText = delta == null ? '—' : (delta > 0 ? '+' : '') + formatVolume(delta);
+    var depth = '<span class="ob-depth"><span class="ob-qty ' + textCls + '">' + formatVolume(row.qty) + '</span>'
+      + '<span class="ob-delta' + deltaCls + '">' + deltaText + '</span>'
+      + '<span class="ob-bar-wrap"><span class="' + (side === 'ask' ? 'ob-bar-ask' : 'ob-bar-bid') + '" style="width:' + pct + '%"></span></span></span>';
+    return '<div class="ob-row ob-row-' + side + '" data-level="' + level + '">'
+      + (side === 'ask' ? '<span class="ob-depth-empty"></span>' : depth)
+      + '<span class="ob-price ' + textCls + '">' + formatPrice(row.price) + '</span>'
+      + (side === 'ask' ? depth : '<span class="ob-depth-empty"></span>')
       + '</div>';
   }
 
@@ -856,51 +885,10 @@
     return set;
   }
 
-  // 막대 끝점을 직선으로 이은 빛나는 실루엣 선. 막대 DOM 위치를 읽어 그리고, 선은 막대·글자 뒤에 둔다.
+  // 막대 끝점을 이은 실루엣 선은 국내 호가창과 같은 그림(js/order-book.js)을 쓰고, 벽 판정만 미국 쪽 기준(usWallLevels)을 넘긴다.
   function drawUsSilhouette(mount, asks, bids) {
-    var table = mount.querySelector('.us-ob-table');
-    if (!table) return;
-    state.lastSil = { mount: mount, asks: asks, bids: bids };
-    var NS = 'http://www.w3.org/2000/svg';
-    var layers = {};
-    ['under', 'over'].forEach(function (name) {
-      var svg = table.querySelector('.us-ob-sil-' + name);
-      if (!svg) {
-        svg = document.createElementNS(NS, 'svg');
-        svg.setAttribute('class', 'us-ob-sil us-ob-sil-' + name);
-        svg.setAttribute('aria-hidden', 'true');
-        table.appendChild(svg);
-      }
-      layers[name] = svg;
-    });
-    var tr = table.getBoundingClientRect();
-    ['under', 'over'].forEach(function (name) {
-      layers[name].setAttribute('width', tr.width);
-      layers[name].setAttribute('height', tr.height);
-    });
-    var walls = { ask: usWallLevels(asks), bid: usWallLevels(bids) };
-    var lines = '', dots = '';
-    ['bid', 'ask'].forEach(function (side) {
-      var pts = [];
-      table.querySelectorAll('.us-ob-row-' + side).forEach(function (row) {
-        var odd = !!walls[side][Number(row.getAttribute('data-level'))];
-        row.classList.toggle('us-ob-row-odd', odd);
-        var bar = row.querySelector('.us-ob-bar');
-        if (!bar) return;
-        var br = bar.getBoundingClientRect();
-        var rr = row.getBoundingClientRect();
-        var x = (side === 'bid' ? br.left - 2 : br.right + 2) - tr.left;
-        var y = rr.top + rr.height / 2 - tr.top;
-        pts.push([x, y]);
-        if (odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="us-ob-sil-dot"/>';
-      });
-      if (pts.length > 1) {
-        lines += '<polyline class="us-ob-sil-line us-ob-sil-' + side + '" points="'
-          + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>';
-      }
-    });
-    layers.under.innerHTML = lines;
-    layers.over.innerHTML = dots;
+    if (!global.OrderBook || !global.OrderBook.drawSilhouette) return;
+    global.OrderBook.drawSilhouette(mount, asks, bids, { ask: usWallLevels(asks), bid: usWallLevels(bids) });
   }
 
   global.addEventListener('ss-volume-profile', function () {

@@ -363,8 +363,6 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 @media (min-width: 861px) {
   #stock-search .ss-panels.us-stocks-market-grid > .ss-panel-left.us-stocks-orderbook-panel { align-self: stretch; }
   #stock-search .us-stocks-orderbook-panel .us-stocks-orderbook { justify-content: center; }
-  #stock-search .us-stocks-orderbook-panel .us-ob-table { padding-bottom: 0; }
-  #stock-search .us-stocks-orderbook-panel .us-ob-pair { height: 52px; }
 }
 /* 옵션 패널: 종합은 호가 칸 아래, 0DTE는 차트 칸 아래에 같은 열 폭으로 맞춘다(열 폭은 호가·차트 사이 조절 핸들 값을 그대로 따른다) */
 @media (min-width: 861px) {

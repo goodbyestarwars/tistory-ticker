@@ -33,6 +33,14 @@ class UsOptionsOverviewTests(unittest.TestCase):
             option('P', 95, 40, 100), option('P', 100, 20, 300), option('P', 105, 20, 100),
         ]}}
 
+    def test_expired_expiry_left_in_premarket_chain_is_ignored(self):
+        chain = self.chain()
+        chain['data']['options'].append({'option': 'NVDA261104C00100000', 'volume': 5, 'open_interest': 50,
+                                         'gamma': 0.01, 'iv': 0.4, 'bid': 1.0, 'ask': 1.2})
+        summary = us_options.summarize(chain, date(2026, 11, 3), 'NVDA')
+        self.assertEqual(summary['expiry'], '2026-11-04')
+        self.assertFalse(summary['is_0dte'])
+
     def test_overview_ratios_and_max_pain(self):
         summary = us_options.summarize(self.chain(), date(2026, 11, 2), 'NVDA')
         overview = summary['overview']

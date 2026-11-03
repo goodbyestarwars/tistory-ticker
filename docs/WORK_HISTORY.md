@@ -1,3 +1,7 @@
+**2026-11-03 미국 호가창을 국내 호가창 모양으로 · 세부 시세 삭제 · 지난 만기 제외**
+
+요청: 미국 호가창을 국내처럼(세로 사다리·증감·잔량 합계), 세부 시세 칸 삭제 후 거래량·전일 거래량 대비는 전일 종가 줄로, 새벽에 '당일 만기 없음 · 11/2' 표시 원인 수정. 변경: `js/us-stocks.js` 호가를 `ob-*` 세로 사다리로 렌더(증감은 직전 조회 대비, 실루엣은 `OrderBook.drawSilhouette` 공용 재사용·벽 판정만 미국 기준 전달), 시가·고가·저가는 호가 칸 맨 위(`ss-session`), 세부 시세 칸 삭제; `css/order-book.css`·`css/stock-search.css`의 `#order-book` 하위 규칙을 `:is(#order-book, #usStocksOrderbook)`로 확장(국내 규칙 값 변경 없음); `js/order-book.js`는 `drawSilhouette` 내보내기와 벽 판정 override 인자만 추가; `scripts/cloud-vm/us_options.py`는 뉴욕 기준 오늘보다 앞선 만기(프리마켓에 남은 전 거래일 체인)를 제외. 검증: pytest 26 passed(us_options·earnings), `test_us_orderbook_refresh.py` 9 passed(현재가 행 셀렉터 갱신), 라이브 NVDA에 변경분 주입해 20행 사다리·시가고저 줄·전일종가 줄 확인. 배포: master → Pages, VM 자동 배포(us_options).
+
 **2026-11-03 옵션 패널 열 맞춤 · 호가 여백 · 카드 자동 넘김 10초**
 
 요청: 옵션 종합은 호가 칸 아래, 0DTE 감마는 차트 칸 아래 왼쪽 정렬, 호가 위·아래 여백 동일, 카드형 자동 넘김 10초. 변경: 861px 이상에서 옵션 패널을 호가·차트와 같은 열 폭(--ss-left-width)으로 배치, 호가 줄 52px 고정 후 가운데 모음, `js/foreign-flow.js` 자동 넘김 6000→10000ms. 검증: 라이브 NVDA 1300px에서 CSS 주입(열 x=48/372 일치), 호가 위·아래 여백 68/75px. 배포: master → Pages.

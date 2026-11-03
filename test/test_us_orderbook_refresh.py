@@ -14,8 +14,8 @@ let source = fs.readFileSync('js/us-stocks.js', 'utf8').replace(
 let now=0, nextId=0;
 const timers=new Map(), intervals=new Map(), requests=[], events={};
 const status={textContent:''}, price={textContent:''}, change={textContent:''};
-const current={querySelector(s){return s==='strong'?price:change;}};
-const mount={innerHTML:'',querySelector(s){return s==='.us-ob-table'?null:this.innerHTML.includes('us-stocks-book-current')?current:null;}};
+const current={className:'',querySelector(s){return s==='[data-field="current-price"]'?price:change;}};
+const mount={innerHTML:'',querySelector(s){return s==='.ob-table-pairs'?null:s==='[data-field="current-row"]'&&this.innerHTML.includes('data-field="current-row"')?current:null;}};
 const container={hidden:false,innerHTML:''};
 const document={hidden:false,querySelector(s){
   return s==='#usStocksOrderbook'?mount:s==='[data-us-book-status]'?status:

@@ -241,11 +241,15 @@ def summarize(chain, today, symbol='', now=None):
         return None
     parsed = []
     nearest = None
+    today_code = today.strftime('%y%m%d')
     for item in options:
         match = _OPTION_RE.match(item.get('option') or '')
         if not match:
             continue
         expiry = match.group(2)
+        # 뉴욕 새벽·프리마켓에는 Cboe 지연 체인에 전 거래일 만기분이 남아 있다. 이미 지난 만기는 쓰지 않는다.
+        if expiry < today_code:
+            continue
         if nearest is None or expiry < nearest:
             nearest = expiry
         parsed.append((expiry, match.group(3), int(match.group(4)) / 1000.0, item))

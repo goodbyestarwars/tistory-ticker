@@ -616,18 +616,19 @@
     return svg;
   }
 
-  function drawSilhouette(board, asks, bids) {
+  // wallsOverride({ask:{level:true},bid:{...}})가 있으면 그 벽 판정을 쓴다(미국 호가창이 같은 그림을 재사용). 이때는 국내 재그리기 상태를 건드리지 않는다.
+  function drawSilhouette(board, asks, bids, wallsOverride) {
     var table = board && board.querySelector('.ob-table-pairs');
     if (!table) return;
     var lineSvg = silLayer(table, 'ob-sil-under');
     var dotSvg = silLayer(table, 'ob-sil-over');
-    state.lastSil = { board: board, asks: asks, bids: bids };
+    if (!wallsOverride) state.lastSil = { board: board, asks: asks, bids: bids };
     var tr = table.getBoundingClientRect();
     [lineSvg, dotSvg].forEach(function (el) {
       el.setAttribute('width', tr.width);
       el.setAttribute('height', tr.height);
     });
-    var walls = { ask: findWallLevels(asks), bid: findWallLevels(bids) };
+    var walls = wallsOverride || { ask: findWallLevels(asks), bid: findWallLevels(bids) };
     var lines = '', dots = '';
     ['bid', 'ask'].forEach(function (side) {
       var items = [];
@@ -1585,7 +1586,7 @@
   function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, fetchChart: fetchChart, select: selectStock };
+  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, fetchChart: fetchChart, select: selectStock, drawSilhouette: drawSilhouette };
   global.OrderBook = OrderBook;
 
   // init(selector)에 selector 인자가 추가된 뒤로 addEventListener가 콜백에 넘기는

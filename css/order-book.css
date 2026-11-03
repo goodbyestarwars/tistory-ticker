@@ -1,7 +1,7 @@
 /* 실시간 호가창 위젯 (js/order-book.js)
  * 매도=파랑 #1261c4, 매수=빨강 #d24f45 (사이트 공통 등락색과 동일 - 증권사 HTS의
  * "매도=청색계열/매수=적색계열" 관례와 우연히 일치해 그대로 재사용)
- * 다크모드: html.dark #order-book ... !important (9bolt 스킨 블랑켓 규칙 대응) */
+ * 다크모드: html.dark :is(#order-book, #usStocksOrderbook) ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
 #order-book {
   font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
@@ -12,16 +12,16 @@
 }
 
 /* ---- 검색 ---- */
-#order-book .ob-search {
+:is(#order-book, #usStocksOrderbook) .ob-search {
   display: flex;
   gap: 8px;
   margin-bottom: 14px;
 }
-#order-book .ob-input-wrap {
+:is(#order-book, #usStocksOrderbook) .ob-input-wrap {
   position: relative;
   flex: 1;
 }
-#order-book .ob-input {
+:is(#order-book, #usStocksOrderbook) .ob-input {
   width: 100%;
   box-sizing: border-box;
   padding: 9px 10px;
@@ -30,8 +30,8 @@
   border-radius: 6px;
   outline: none;
 }
-#order-book .ob-input:focus { border-color: #888; }
-#order-book .ob-go-btn {
+:is(#order-book, #usStocksOrderbook) .ob-input:focus { border-color: #888; }
+:is(#order-book, #usStocksOrderbook) .ob-go-btn {
   padding: 9px 16px;
   font-size: 13.5px;
   border: none;
@@ -41,9 +41,9 @@
   cursor: pointer;
   white-space: nowrap;
 }
-#order-book .ob-go-btn:hover { background: #555; }
+:is(#order-book, #usStocksOrderbook) .ob-go-btn:hover { background: #555; }
 
-#order-book .ob-suggest {
+:is(#order-book, #usStocksOrderbook) .ob-suggest {
   display: none;
   position: absolute;
   top: calc(100% + 2px);
@@ -57,8 +57,8 @@
   max-height: 260px;
   overflow-y: auto;
 }
-#order-book .ob-suggest.active { display: block; }
-#order-book .ob-suggest-item {
+:is(#order-book, #usStocksOrderbook) .ob-suggest.active { display: block; }
+:is(#order-book, #usStocksOrderbook) .ob-suggest-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -66,10 +66,10 @@
   font-size: 13px;
   cursor: pointer;
 }
-#order-book .ob-suggest-item:hover { background: #f2f2f2; }
+:is(#order-book, #usStocksOrderbook) .ob-suggest-item:hover { background: #f2f2f2; }
 
 /* ---- 상태 메시지 ---- */
-#order-book .ob-hint {
+:is(#order-book, #usStocksOrderbook) .ob-hint {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -81,10 +81,10 @@
   border: 1px dashed #ddd;
   border-radius: 10px;
 }
-#order-book .ob-error { color: #c0392b; }
+:is(#order-book, #usStocksOrderbook) .ob-error { color: #c0392b; }
 /* 2026-08-22 요청: 로딩 표시를 원형 스피너 대신 심장박동 모니터(ECG) 파형으로 교체 -
    foreign-flow.css와 동일 패턴(pathLength="100" polyline + dashoffset 애니메이션). */
-#order-book .ob-spinner {
+:is(#order-book, #usStocksOrderbook) .ob-spinner {
   display: block;
   width: 108px;
   height: 42px;
@@ -92,7 +92,7 @@
   overflow: visible;
   color: var(--num-down);
 }
-#order-book .ob-spinner polyline {
+:is(#order-book, #usStocksOrderbook) .ob-spinner polyline {
   fill: none;
   stroke: currentColor;
   stroke-width: 3;
@@ -109,7 +109,7 @@
 }
 
 /* ---- 아이콘 (img/stock-icons/{code}.svg 규칙, 다른 위젯과 동일) ---- */
-#order-book .ob-icon {
+:is(#order-book, #usStocksOrderbook) .ob-icon {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
@@ -120,57 +120,57 @@
 
 /* ---- 저항/지지/체결강도 HUD (2026-07-27, "호가 전쟁" 개편 - 원래 3D 패널 안에 있던 걸
    3D 뷰 삭제 후 호가창 화면으로 그대로 옮김. 유지 대상: 작업지시서 "증시검색" 절 참고) ---- */
-#order-book .ob-hud {
+:is(#order-book, #usStocksOrderbook) .ob-hud {
   padding: 10px 14px;
   margin-bottom: 10px;
   border: 1px solid #e5e5e5;
   border-radius: 12px;
   background: rgb(255, 254, 252);
 }
-#order-book .ob-hud-row {
+:is(#order-book, #usStocksOrderbook) .ob-hud-row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 6px;
   font-size: 12px;
 }
-#order-book .ob-hud-label {
+:is(#order-book, #usStocksOrderbook) .ob-hud-label {
   flex-shrink: 0;
   width: 70px;
   font-weight: 700;
 }
-#order-book .ob-hud-bar {
+:is(#order-book, #usStocksOrderbook) .ob-hud-bar {
   flex: 1;
   height: 8px;
   border-radius: 999px;
   background: #f0f0f0;
   overflow: hidden;
 }
-#order-book .ob-hud-fill {
+:is(#order-book, #usStocksOrderbook) .ob-hud-fill {
   display: block;
   height: 100%;
   width: 0%;
   border-radius: 999px;
   transition: width 0.3s ease;
 }
-#order-book .ob-hud-fill-ask { background: #9dbbe0; }
-#order-book .ob-hud-fill-bid { background: #e7aaa5; }
-#order-book .ob-hud-fill-strength { background: #0ca678; }
-#order-book .ob-hud-val {
+:is(#order-book, #usStocksOrderbook) .ob-hud-fill-ask { background: #9dbbe0; }
+:is(#order-book, #usStocksOrderbook) .ob-hud-fill-bid { background: #e7aaa5; }
+:is(#order-book, #usStocksOrderbook) .ob-hud-fill-strength { background: #0ca678; }
+:is(#order-book, #usStocksOrderbook) .ob-hud-val {
   flex-shrink: 0;
   width: 48px;
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: #555;
 }
-#order-book .ob-hud-note {
+:is(#order-book, #usStocksOrderbook) .ob-hud-note {
   font-size: 11.5px;
   color: #888;
   padding: 2px 0 0;
 }
 /* "체결량이 얼마 정도면 뚫을 수 있는지"(2026-07-28 사용자 요청) - 추적 중인 매도벽이
    있을 때만 채워지고 없으면 빈 문자열이라 자리를 안 차지함(margin-top 조건부) */
-#order-book .ob-breakout-note:not(:empty) {
+:is(#order-book, #usStocksOrderbook) .ob-breakout-note:not(:empty) {
   font-size: 11.5px;
   font-weight: 600;
   color: #b5720f;
@@ -179,16 +179,16 @@
   border-top: 1px dashed #eee;
 }
 
-#order-book .ob-breakout-note .ob-breakout-sub {
+:is(#order-book, #usStocksOrderbook) .ob-breakout-note .ob-breakout-sub {
   margin-top: 3px;
   font-size: 11px;
   font-weight: 500;
   color: #8a5a0c;
 }
-html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-breakout-note .ob-breakout-sub { color: #e0b560 !important; }
 
 /* 2026-10-22: 호가 시장 범위·조회/수신 시각·동시호가 예상체결 표시 */
-#order-book .ob-book-provenance {
+:is(#order-book, #usStocksOrderbook) .ob-book-provenance {
   margin-top: 5px;
   padding-top: 5px;
   border-top: 1px dashed #e5e5e5;
@@ -199,10 +199,10 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
   color: #5b6572;
   font-variant-numeric: tabular-nums;
 }
-html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-book-provenance { color: #b9c5d4 !important; }
 
 /* 비정상 매물대 배지(2026-09-21) - 매수/매도 잔량 쏠림·특정 호가 벽을 한눈에 보이게 표시 */
-#order-book .ob-abnormal-badges:not(:empty) {
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badges:not(:empty) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -210,7 +210,7 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   margin-top: 4px;
   border-top: 1px dashed #eee;
 }
-#order-book .ob-abnormal-badge {
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge {
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
@@ -219,18 +219,18 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   white-space: nowrap;
 }
 /* 2026-10-23 매수·매도벽 카드 간결화: 이모지 없이 1줄 11px(벽 가격) / 2줄 10px(평균 배수 · 현가 대비), 패딩 5px 8px, 줄 간격 최소 */
-#order-book .ob-abnormal-badge.ob-abnormal-badge { padding: 5px 8px; line-height: 1.25; }
-#order-book .ob-abnormal-badge .ob-ab-l1, #order-book .ob-abnormal-badge .ob-ab-l2 { display: block; line-height: 1.25; }
-#order-book .ob-abnormal-badge .ob-ab-l1 { font-size: 11px; }
-#order-book .ob-abnormal-badge .ob-ab-l2 { font-size: 10px; }
-#order-book .ob-abnormal-badge-ask { background: rgba(18, 97, 196, 0.12); color: var(--num-down); }
-#order-book .ob-abnormal-badge-bid { background: rgba(210, 79, 69, 0.12); color: var(--num-up); }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge.ob-abnormal-badge { padding: 5px 8px; line-height: 1.25; }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge .ob-ab-l1, :is(#order-book, #usStocksOrderbook) .ob-abnormal-badge .ob-ab-l2 { display: block; line-height: 1.25; }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge .ob-ab-l1 { font-size: 11px; }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge .ob-ab-l2 { font-size: 10px; }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-ask { background: rgba(18, 97, 196, 0.12); color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-bid { background: rgba(210, 79, 69, 0.12); color: var(--num-up); }
 /* 현재가에서 크게 떨어진 벽(허수호가 의심, 2026-09-21(2차)) - 색을 강하게 채워 일반 벽 배지와 구분 */
-#order-book .ob-abnormal-badge-suspect { background: #b5720f; color: #fff; }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-suspect { background: #b5720f; color: #fff; }
 
 /* ---- 매도벽 돌파 토스트("게임처럼", 2026-07-27) - absolute 오버레이 대신 HUD와 호가창
    사이 자연스러운 흐름에서 슬라이드다운으로 보여준다(3D 패널 제거로 기준 좌표가 없어짐) ---- */
-#order-book .ob-toast {
+:is(#order-book, #usStocksOrderbook) .ob-toast {
   max-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -244,23 +244,23 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   transition: opacity 0.25s ease, max-height 0.25s ease, margin 0.25s ease;
   white-space: nowrap;
 }
-#order-book .ob-toast.show {
+:is(#order-book, #usStocksOrderbook) .ob-toast.show {
   max-height: 40px;
   opacity: 1;
   padding: 8px 18px;
   margin-bottom: 10px;
 }
 
-#order-book .ob-milestones {
+:is(#order-book, #usStocksOrderbook) .ob-milestones {
   margin-top: 10px;
 }
-#order-book .ob-milestones-title {
+:is(#order-book, #usStocksOrderbook) .ob-milestones-title {
   font-size: 12px;
   font-weight: 700;
   color: #666;
   margin-bottom: 6px;
 }
-#order-book .ob-milestones-list {
+:is(#order-book, #usStocksOrderbook) .ob-milestones-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -272,20 +272,20 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   max-height: 130px;
   overflow-y: auto;
 }
-#order-book .ob-milestone-time {
+:is(#order-book, #usStocksOrderbook) .ob-milestone-time {
   color: #999;
   font-size: 11px;
 }
 
 /* ---- 보드 ---- */
-#order-book .ob-board {
+:is(#order-book, #usStocksOrderbook) .ob-board {
   border: 1px solid #e5e5e5;
   border-radius: 12px;
   overflow: hidden;
   background: rgb(255, 254, 252);
 }
 
-#order-book .ob-header {
+:is(#order-book, #usStocksOrderbook) .ob-header {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -293,13 +293,13 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   padding: 12px 14px;
   border-bottom: 1px solid #eee;
 }
-#order-book .ob-header .ob-icon { width: 20px; height: 20px; }
-#order-book .ob-header-name { font-size: 15px; font-weight: 700; }
-#order-book .ob-header-code { font-size: 12px; color: #9ca3af; }
-#order-book .ob-header-price { margin-left: auto; font-size: 16px; font-weight: 700; }
-#order-book .ob-header-change { font-size: 12px; }
+:is(#order-book, #usStocksOrderbook) .ob-header .ob-icon { width: 20px; height: 20px; }
+:is(#order-book, #usStocksOrderbook) .ob-header-name { font-size: 15px; font-weight: 700; }
+:is(#order-book, #usStocksOrderbook) .ob-header-code { font-size: 12px; color: #9ca3af; }
+:is(#order-book, #usStocksOrderbook) .ob-header-price { margin-left: auto; font-size: 16px; font-weight: 700; }
+:is(#order-book, #usStocksOrderbook) .ob-header-change { font-size: 12px; }
 
-#order-book .ob-summary {
+:is(#order-book, #usStocksOrderbook) .ob-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
@@ -307,7 +307,7 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   border-bottom: 1px solid #eee;
   background: #fcfcfd;
 }
-#order-book .ob-summary-item {
+:is(#order-book, #usStocksOrderbook) .ob-summary-item {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -319,7 +319,7 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   font-size: 11px;
   color: #8a9099;
 }
-#order-book .ob-summary-item b {
+:is(#order-book, #usStocksOrderbook) .ob-summary-item b {
   overflow: hidden;
   color: #333;
   font-size: 13px;
@@ -328,11 +328,11 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#order-book .ob-summary-item b.ob-up { color: var(--num-up); }
-#order-book .ob-summary-item b.ob-down { color: var(--num-down); }
-#order-book .ob-summary-item b.ob-summary-high { color: var(--num-up); }
-#order-book .ob-summary-item b.ob-summary-low { color: var(--num-down); }
-#order-book .ob-summary-volume-change { grid-column: span 2; }
+:is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-up { color: var(--num-up); }
+:is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-down { color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-summary-high { color: var(--num-up); }
+:is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-summary-low { color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-summary-volume-change { grid-column: span 2; }
 
 /* 2026-09-01 사용자 리포트("숫자 잘림"). 운영 모바일에서는 본문 폭이 321px라(하네스 375px와
  * 다르다) 시가·고가·저가·거래량 값이 칸보다 3~4px 넓어져 말줄임으로 끝 글자가 잘렸다.
@@ -340,16 +340,16 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
  * 값을 줄이거나 3열을 무너뜨리지 않고, 칸 안쪽 여백과 열 간격만 좁혀 자리를 만든다
  * (열당 약 10px 확보 - 필요한 4px보다 여유가 있다). */
 @media (max-width: 420px) {
-  #order-book .ob-summary { gap: 6px; padding-right: 10px; padding-left: 10px; }
-  #order-book .ob-summary-item { padding-right: 6px; padding-left: 6px; }
+  :is(#order-book, #usStocksOrderbook) .ob-summary { gap: 6px; padding-right: 10px; padding-left: 10px; }
+  :is(#order-book, #usStocksOrderbook) .ob-summary-item { padding-right: 6px; padding-left: 6px; }
 }
 
-#order-book .ob-table {
+:is(#order-book, #usStocksOrderbook) .ob-table {
   display: flex;
   flex-direction: column;
 }
 
-#order-book .ob-row {
+:is(#order-book, #usStocksOrderbook) .ob-row {
   display: grid;
   grid-template-columns: 68px 1fr 72px;
   align-items: center;
@@ -358,31 +358,31 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
 }
-#order-book .ob-qty { text-align: left; }
-#order-book .ob-price { text-align: right; font-weight: 700; }
+:is(#order-book, #usStocksOrderbook) .ob-qty { text-align: left; }
+:is(#order-book, #usStocksOrderbook) .ob-price { text-align: right; font-weight: 700; }
 
-#order-book .ob-bar-wrap {
+:is(#order-book, #usStocksOrderbook) .ob-bar-wrap {
   position: relative;
   height: 14px;
   background: #f4f4f5;
   border-radius: 2px;
   overflow: hidden;
 }
-#order-book .ob-bar-ask,
-#order-book .ob-bar-bid {
+:is(#order-book, #usStocksOrderbook) .ob-bar-ask,
+:is(#order-book, #usStocksOrderbook) .ob-bar-bid {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   border-radius: 2px;
 }
-#order-book .ob-bar-ask { background: rgba(18, 97, 196, 0.22); }
-#order-book .ob-bar-bid { background: rgba(210, 79, 69, 0.22); }
+:is(#order-book, #usStocksOrderbook) .ob-bar-ask { background: rgba(18, 97, 196, 0.22); }
+:is(#order-book, #usStocksOrderbook) .ob-bar-bid { background: rgba(210, 79, 69, 0.22); }
 
-#order-book .ob-ask-text { color: var(--num-down); }
-#order-book .ob-bid-text { color: var(--num-up); }
+:is(#order-book, #usStocksOrderbook) .ob-ask-text { color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-bid-text { color: var(--num-up); }
 
-#order-book .ob-current-row {
+:is(#order-book, #usStocksOrderbook) .ob-current-row {
   padding: 8px 14px;
   text-align: center;
   font-size: 16px;
@@ -391,38 +391,38 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   border-top: 1px solid #eee;
   border-bottom: 1px solid #eee;
 }
-#order-book .ob-current-row.ob-up { color: var(--num-up); }
-#order-book .ob-current-row.ob-down { color: var(--num-down); }
-#order-book .ob-current-change {
+:is(#order-book, #usStocksOrderbook) .ob-current-row.ob-up { color: var(--num-up); }
+:is(#order-book, #usStocksOrderbook) .ob-current-row.ob-down { color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-current-change {
   font-size: 12px;
   font-weight: 600;
 }
 
 /* ---- 하단 총잔량 비율 바 ---- */
-#order-book .ob-footer {
+:is(#order-book, #usStocksOrderbook) .ob-footer {
   padding: 12px 14px 14px;
 }
-#order-book .ob-footer-label {
+:is(#order-book, #usStocksOrderbook) .ob-footer-label {
   font-size: 12px;
   color: #666;
   margin-bottom: 6px;
 }
-#order-book .ob-footer-bar {
+:is(#order-book, #usStocksOrderbook) .ob-footer-bar {
   display: flex;
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
   background: #f0f0f0;
 }
-#order-book .ob-footer-bar-ask { background: #9dbbe0; }
-#order-book .ob-footer-bar-bid { background: #e7aaa5; }
+:is(#order-book, #usStocksOrderbook) .ob-footer-bar-ask { background: #9dbbe0; }
+:is(#order-book, #usStocksOrderbook) .ob-footer-bar-bid { background: #e7aaa5; }
 
 /* ---- 최근 체결: KIS 개별 수신 / REST 표본을 구분 ---- */
-#order-book .ob-trades {
+:is(#order-book, #usStocksOrderbook) .ob-trades {
   padding: 0 14px 14px;
   border-top: 1px solid #eee;
 }
-#order-book .ob-trades-title {
+:is(#order-book, #usStocksOrderbook) .ob-trades-title {
   display: flex;
   align-items: baseline;
   gap: 5px;
@@ -433,8 +433,8 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   color: #666;
   margin-bottom: 6px;
 }
-#order-book .ob-trades-label { flex: 0 0 auto; white-space: nowrap; }
-#order-book .ob-trades-note {
+:is(#order-book, #usStocksOrderbook) .ob-trades-label { flex: 0 0 auto; white-space: nowrap; }
+:is(#order-book, #usStocksOrderbook) .ob-trades-note {
   flex: 1 1 auto;
   min-width: 0;
   font-weight: 400;
@@ -446,8 +446,8 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   overflow-wrap: normal;
   hyphens: none;
 }
-#order-book .ob-trades-header,
-#order-book .ob-trade-row {
+:is(#order-book, #usStocksOrderbook) .ob-trades-header,
+:is(#order-book, #usStocksOrderbook) .ob-trade-row {
   display: grid;
   grid-template-columns: 56px minmax(70px, 1fr) 64px 84px;
   gap: 6px;
@@ -455,101 +455,101 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   padding: 2px 0;
   font-variant-numeric: tabular-nums;
 }
-#order-book .ob-trades-header {
+:is(#order-book, #usStocksOrderbook) .ob-trades-header {
   color: #9ca3af;
   font-size: 11px;
   padding-bottom: 4px;
 }
-#order-book .ob-trades-header span:nth-child(2),
-#order-book .ob-trade-price,
-#order-book .ob-trades-header span:nth-child(3),
-#order-book .ob-trade-qty {
+:is(#order-book, #usStocksOrderbook) .ob-trades-header span:nth-child(2),
+:is(#order-book, #usStocksOrderbook) .ob-trade-price,
+:is(#order-book, #usStocksOrderbook) .ob-trades-header span:nth-child(3),
+:is(#order-book, #usStocksOrderbook) .ob-trade-qty {
   text-align: right;
 }
-#order-book .ob-trade-direction { text-align: right; white-space: nowrap; }
-#order-book .ob-trade-empty { padding: 8px 0; color: #9ca3af; font-size: 12px; }
-#order-book .ob-trades-list {
+:is(#order-book, #usStocksOrderbook) .ob-trade-direction { text-align: right; white-space: nowrap; }
+:is(#order-book, #usStocksOrderbook) .ob-trade-empty { padding: 8px 0; color: #9ca3af; font-size: 12px; }
+:is(#order-book, #usStocksOrderbook) .ob-trades-list {
   max-height: none;
   overflow: visible;
 }
-#order-book .ob-trade-time { color: #9ca3af; }
-#order-book .ob-trade-time,
-#order-book .ob-trade-price,
-#order-book .ob-trade-qty {
+:is(#order-book, #usStocksOrderbook) .ob-trade-time { color: #9ca3af; }
+:is(#order-book, #usStocksOrderbook) .ob-trade-time,
+:is(#order-book, #usStocksOrderbook) .ob-trade-price,
+:is(#order-book, #usStocksOrderbook) .ob-trade-qty {
   min-width: 0;
   white-space: nowrap;
 }
-#order-book .ob-trade-price.ob-up,
-#order-book .ob-trade-qty.ob-up,
-#order-book .ob-trade-direction.ob-up { color: var(--num-up); }
-#order-book .ob-trade-price.ob-down,
-#order-book .ob-trade-qty.ob-down,
-#order-book .ob-trade-direction.ob-down { color: var(--num-down); }
-#order-book .ob-trade-price.ob-flat,
-#order-book .ob-trade-qty.ob-flat,
-#order-book .ob-trade-direction.ob-flat { color: #666; }
+:is(#order-book, #usStocksOrderbook) .ob-trade-price.ob-up,
+:is(#order-book, #usStocksOrderbook) .ob-trade-qty.ob-up,
+:is(#order-book, #usStocksOrderbook) .ob-trade-direction.ob-up { color: var(--num-up); }
+:is(#order-book, #usStocksOrderbook) .ob-trade-price.ob-down,
+:is(#order-book, #usStocksOrderbook) .ob-trade-qty.ob-down,
+:is(#order-book, #usStocksOrderbook) .ob-trade-direction.ob-down { color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-trade-price.ob-flat,
+:is(#order-book, #usStocksOrderbook) .ob-trade-qty.ob-flat,
+:is(#order-book, #usStocksOrderbook) .ob-trade-direction.ob-flat { color: #666; }
 
 /* ---- 다크모드 ---- */
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. 매도/매수(ob-ask/bid/up/down) 등락색은 의미가 있는
    색이라 유지. */
 html.dark #order-book { color: var(--dk-text) !important; }
-html.dark #order-book .ob-hud { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
-html.dark #order-book .ob-hud-bar { background: var(--dk-hover) !important; }
-html.dark #order-book .ob-hud-val { color: var(--dk-sub) !important; }
-html.dark #order-book .ob-hud-note { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: var(--dk-line) !important; }
-html.dark #order-book .ob-abnormal-badges:not(:empty) { border-top-color: var(--dk-line) !important; }
-html.dark #order-book .ob-milestones-title { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-milestones-list { color: var(--dk-text) !important; }
-html.dark #order-book .ob-milestone-time { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-toast { color: var(--dk-text) !important; }
-html.dark #order-book .ob-input {
+html.dark :is(#order-book, #usStocksOrderbook) .ob-hud { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-hud-bar { background: var(--dk-hover) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-hud-val { color: var(--dk-sub) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-hud-note { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-abnormal-badges:not(:empty) { border-top-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-milestones-title { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-milestones-list { color: var(--dk-text) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-milestone-time { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-toast { color: var(--dk-text) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-input {
   background: var(--dk-inner) !important;
   border-color: var(--dk-line) !important;
   color: var(--dk-text) !important;
 }
-html.dark #order-book .ob-suggest {
+html.dark :is(#order-book, #usStocksOrderbook) .ob-suggest {
   background: var(--dk-inner) !important;
   border-color: var(--dk-line) !important;
 }
-html.dark #order-book .ob-suggest-item:hover { background: var(--dk-hover) !important; }
-html.dark #order-book .ob-hint { color: var(--dk-mute) !important; border-color: var(--dk-line) !important; }
-html.dark #order-book .ob-spinner {
+html.dark :is(#order-book, #usStocksOrderbook) .ob-suggest-item:hover { background: var(--dk-hover) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-hint { color: var(--dk-mute) !important; border-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-spinner {
   color: var(--dk-text) !important;
 }
-html.dark #order-book .ob-board { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
-html.dark #order-book .ob-header { border-color: var(--dk-line) !important; }
-html.dark #order-book .ob-header-code { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-summary { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
-html.dark #order-book .ob-summary-item { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-mute) !important; }
-html.dark #order-book .ob-summary-item b { color: var(--dk-text) !important; }
-html.dark #order-book .ob-summary-item b.ob-up { color: var(--dk-up) !important; }
-html.dark #order-book .ob-summary-item b.ob-down { color: var(--dk-down) !important; }
-html.dark #order-book .ob-summary-item b.ob-summary-high { color: var(--dk-up) !important; }
-html.dark #order-book .ob-summary-item b.ob-summary-low { color: var(--dk-down) !important; }
-html.dark #order-book .ob-bar-wrap { background: var(--dk-hover) !important; }
-html.dark #order-book .ob-current-row { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; }
-html.dark #order-book .ob-footer-label { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-footer-bar { background: var(--dk-hover) !important; }
-html.dark #order-book .ob-ask-text { color: var(--dk-down) !important; }
-html.dark #order-book .ob-bid-text { color: var(--dk-up) !important; }
-html.dark #order-book .ob-current-row.ob-up { color: var(--dk-up) !important; }
-html.dark #order-book .ob-current-row.ob-down { color: var(--dk-down) !important; }
-html.dark #order-book .ob-trades { border-color: var(--dk-line) !important; }
-html.dark #order-book .ob-trades-title { color: var(--dk-sub) !important; }
-html.dark #order-book .ob-trades-note { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-trades-header { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-trade-time { color: var(--dk-mute) !important; }
-html.dark #order-book .ob-trade-price.ob-up,
-html.dark #order-book .ob-trade-qty.ob-up,
-html.dark #order-book .ob-trade-direction.ob-up { color: var(--dk-up) !important; }
-html.dark #order-book .ob-trade-price.ob-down,
-html.dark #order-book .ob-trade-qty.ob-down,
-html.dark #order-book .ob-trade-direction.ob-down { color: var(--dk-down) !important; }
-html.dark #order-book .ob-trade-price.ob-flat,
-html.dark #order-book .ob-trade-qty.ob-flat,
-html.dark #order-book .ob-trade-direction.ob-flat { color: var(--dk-sub) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-board { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-header { border-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-header-code { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-summary { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-summary-item { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-summary-item b { color: var(--dk-text) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-up { color: var(--dk-up) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-down { color: var(--dk-down) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-summary-high { color: var(--dk-up) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-summary-item b.ob-summary-low { color: var(--dk-down) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-bar-wrap { background: var(--dk-hover) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-current-row { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-footer-label { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-footer-bar { background: var(--dk-hover) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-ask-text { color: var(--dk-down) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-bid-text { color: var(--dk-up) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-current-row.ob-up { color: var(--dk-up) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-current-row.ob-down { color: var(--dk-down) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trades { border-color: var(--dk-line) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trades-title { color: var(--dk-sub) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trades-note { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trades-header { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-time { color: var(--dk-mute) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-price.ob-up,
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-qty.ob-up,
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-direction.ob-up { color: var(--dk-up) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-price.ob-down,
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-qty.ob-down,
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-direction.ob-down { color: var(--dk-down) !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-price.ob-flat,
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-qty.ob-flat,
+html.dark :is(#order-book, #usStocksOrderbook) .ob-trade-direction.ob-flat { color: var(--dk-sub) !important; }
 
 
 /* ============================================================
@@ -560,106 +560,106 @@ html.dark #order-book .ob-trade-direction.ob-flat { color: var(--dk-sub) !import
    ============================================================ */
 @media (max-width: 720px) {
   /* 실측 35px. 종목 입력은 키보드를 띄우는 첫 조작이라 특히 크게 잡는다. */
-  #order-book .ob-input { min-height: 44px; }
+  :is(#order-book, #usStocksOrderbook) .ob-input { min-height: 44px; }
 }
 
 /* ── 좌우 나란히 호가창 (2026-10-04 사용자 요청) ──
    왼쪽 매수(빨강)·오른쪽 매도(파랑). 잔량 막대는 가운데에서 바깥쪽으로 뻗는다. */
-#order-book .ob-table-pairs { display: block; padding: 4px 10px 8px; }
-#order-book .ob-pair-head { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; padding: 6px 8px; font-size: 11px; font-weight: 700; }
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs { display: block; padding: 4px 10px 8px; }
+:is(#order-book, #usStocksOrderbook) .ob-pair-head { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; padding: 6px 8px; font-size: 11px; font-weight: 700; }
 
-#order-book .ob-pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; }
-#order-book .ob-pair .ob-row {
+:is(#order-book, #usStocksOrderbook) .ob-pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row {
   position: relative; display: flex; align-items: center; justify-content: space-between; gap: 6px;
   padding: 4px 8px; isolation: isolate; font-size: 12.5px; min-height: 26px; box-sizing: border-box;
 }
-#order-book .ob-pair .ob-row-ask { flex-direction: row-reverse; }
-#order-book .ob-pair .ob-qty { text-align: inherit; color: #475569; font-weight: 500; }
-#order-book .ob-pair .ob-price { text-align: inherit; font-weight: 700; }
-#order-book .ob-pair .ob-bar-wrap { position: absolute; inset: 2px 0; height: auto; background: transparent; border-radius: 0; z-index: -1; overflow: hidden; }
-#order-book .ob-pair .ob-bar-bid { left: auto; right: 0; background: rgba(210, 79, 69, .16); border-radius: 4px 0 0 4px; }
-#order-book .ob-pair .ob-bar-ask { left: 0; right: auto; background: rgba(18, 97, 196, .16); border-radius: 0 4px 4px 0; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row-ask { flex-direction: row-reverse; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-qty { text-align: inherit; color: #475569; font-weight: 500; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-price { text-align: inherit; font-weight: 700; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-bar-wrap { position: absolute; inset: 2px 0; height: auto; background: transparent; border-radius: 0; z-index: -1; overflow: hidden; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-bar-bid { left: auto; right: 0; background: rgba(210, 79, 69, .16); border-radius: 4px 0 0 4px; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-bar-ask { left: 0; right: auto; background: rgba(18, 97, 196, .16); border-radius: 0 4px 4px 0; }
 
 /* ── 잔량 실루엣 (2026-10-05 사용자 요청) ──
    막대 끝점을 이은 빛나는 선. 매물대(벽) 호가는 주황. 선은 클릭을 막지 않는다. */
-#order-book .ob-table-pairs { position: relative; }
-#order-book .ob-sil { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
-#order-book .ob-sil-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs { position: relative; }
+:is(#order-book, #usStocksOrderbook) .ob-sil { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+:is(#order-book, #usStocksOrderbook) .ob-sil-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
 /* 빛나는 효과(2026-10-22): 좁은 광채 + 넓은 광채를 겹쳐 밝은 배경에서도 번져 보이게 한다. 매수 빨강·매도 파랑. */
-#order-book .ob-sil-bid { stroke: #ff3b3b; filter: drop-shadow(0 0 2px rgba(255, 59, 59, .95)) drop-shadow(0 0 7px rgba(255, 59, 59, .65)); }
-#order-book .ob-sil-ask { stroke: #2f8cff; filter: drop-shadow(0 0 2px rgba(47, 140, 255, .95)) drop-shadow(0 0 7px rgba(47, 140, 255, .65)); }
-#order-book .ob-sil-end-bid { fill: #ff3b3b; filter: drop-shadow(0 0 4px rgba(255, 59, 59, .9)); }
-#order-book .ob-sil-end-ask { fill: #2f8cff; filter: drop-shadow(0 0 4px rgba(47, 140, 255, .9)); }
-#order-book .ob-sil-dot { fill: #ff8a00; stroke: #fff; stroke-width: 1.5; }
-#order-book .ob-pair .ob-row-odd .ob-bar-bid,
-#order-book .ob-pair .ob-row-odd .ob-bar-ask { background: rgba(255, 138, 0, .26); }
-#order-book .ob-pair .ob-row-odd .ob-price { color: #d97000; }
-html.dark #order-book .ob-pair .ob-row-odd .ob-price { color: #ffa032 !important; }
-html.dark #order-book .ob-sil-dot { stroke: var(--dk-bg); }
+:is(#order-book, #usStocksOrderbook) .ob-sil-bid { stroke: #ff3b3b; filter: drop-shadow(0 0 2px rgba(255, 59, 59, .95)) drop-shadow(0 0 7px rgba(255, 59, 59, .65)); }
+:is(#order-book, #usStocksOrderbook) .ob-sil-ask { stroke: #2f8cff; filter: drop-shadow(0 0 2px rgba(47, 140, 255, .95)) drop-shadow(0 0 7px rgba(47, 140, 255, .65)); }
+:is(#order-book, #usStocksOrderbook) .ob-sil-end-bid { fill: #ff3b3b; filter: drop-shadow(0 0 4px rgba(255, 59, 59, .9)); }
+:is(#order-book, #usStocksOrderbook) .ob-sil-end-ask { fill: #2f8cff; filter: drop-shadow(0 0 4px rgba(47, 140, 255, .9)); }
+:is(#order-book, #usStocksOrderbook) .ob-sil-dot { fill: #ff8a00; stroke: #fff; stroke-width: 1.5; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row-odd .ob-bar-bid,
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row-odd .ob-bar-ask { background: rgba(255, 138, 0, .26); }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row-odd .ob-price { color: #d97000; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-pair .ob-row-odd .ob-price { color: #ffa032 !important; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-sil-dot { stroke: var(--dk-bg); }
 
 /* 가격은 바깥쪽, 잔량은 가운데 쪽(2026-10-05 사용자 요청). 선은 행(막대·글자) 아래, 주황 점은 위. */
-#order-book .ob-pair .ob-row { z-index: 1; }
-#order-book .ob-pair .ob-row-bid { flex-direction: row-reverse; }
-#order-book .ob-pair .ob-row-ask { flex-direction: row; }
-#order-book .ob-sil-under { z-index: 0; }
-#order-book .ob-sil-over { z-index: 2; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row { z-index: 1; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row-bid { flex-direction: row-reverse; }
+:is(#order-book, #usStocksOrderbook) .ob-pair .ob-row-ask { flex-direction: row; }
+:is(#order-book, #usStocksOrderbook) .ob-sil-under { z-index: 0; }
+:is(#order-book, #usStocksOrderbook) .ob-sil-over { z-index: 2; }
 
 /* 국내 개별종목: 10+10 호가를 한 가격축에 모두 표시한다. 비어 있는 반대편에는 수치를 만들지 않는다. */
-#order-book .ob-table-pairs { padding: 4px 8px 8px; }
-#order-book .ob-pair-head,
-#order-book .ob-table-pairs > .ob-row {
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs { padding: 4px 8px 8px; }
+:is(#order-book, #usStocksOrderbook) .ob-pair-head,
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
   column-gap: 6px;
   align-items: center;
 }
-#order-book .ob-pair-head { padding: 5px 7px; border-bottom: 1px solid #e5e7eb; font-size: 10px; color: #64748b; }
-#order-book .ob-pair-head span:nth-child(2) { text-align: center; }
-#order-book .ob-pair-head span:last-child { text-align: right; }
-#order-book .ob-table-pairs > .ob-row { min-height: 29px; padding: 2px 7px; border-bottom: 1px solid rgba(100,116,139,.11); font-variant-numeric: tabular-nums; }
-#order-book .ob-table-pairs > .ob-row[hidden] { display: none; }
-#order-book .ob-table-pairs > .ob-row-ask { background: rgba(18,97,196,.035); }
-#order-book .ob-table-pairs > .ob-row-bid { background: rgba(210,79,69,.035); }
-#order-book .ob-table-pairs .ob-price { text-align: center; font-size: 13px; white-space: nowrap; }
-#order-book .ob-depth { position: relative; display: flex; align-items: center; gap: 5px; min-width: 0; height: 24px; isolation: isolate; }
-#order-book .ob-row-ask .ob-depth { justify-content: flex-end; }
-#order-book .ob-row-bid .ob-depth { justify-content: flex-start; }
-#order-book .ob-depth .ob-qty, #order-book .ob-depth .ob-delta { position: relative; z-index: 1; font-size: 11px; white-space: nowrap; }
-#order-book .ob-depth .ob-qty { font-weight: 700; }
-#order-book .ob-depth .ob-delta { color: #64748b; min-width: 30px; }
-#order-book .ob-depth .ob-delta-up { color: var(--num-up); }
-#order-book .ob-depth .ob-delta-down { color: var(--num-down); }
-#order-book .ob-row-ask .ob-delta-up { color: var(--num-down); }
-#order-book .ob-row-bid .ob-delta-down { color: #64748b; }
-#order-book .ob-depth .ob-bar-wrap { position: absolute; inset: 2px 0; height: auto; background: transparent; overflow: visible; z-index: 0; }
-#order-book .ob-depth .ob-bar-wrap > span { position: absolute; height: 100%; top: 0; }
-#order-book .ob-row-ask .ob-bar-wrap > span { right: 0; left: auto; }
-#order-book .ob-row-bid .ob-bar-wrap > span { left: 0; }
-#order-book .ob-spread { padding: 5px 8px; text-align: center; font-size: 10px; font-weight: 700; color: #64748b; background: #f1f5f9; border-block: 1px solid #cbd5e1; }
-html.dark #order-book .ob-table-pairs > .ob-row-ask { background: rgba(60,130,220,.08); }
-html.dark #order-book .ob-table-pairs > .ob-row-bid { background: rgba(220,90,90,.08); }
-html.dark #order-book .ob-spread { background: #29313b; color: var(--dk-text); }
+:is(#order-book, #usStocksOrderbook) .ob-pair-head { padding: 5px 7px; border-bottom: 1px solid #e5e7eb; font-size: 10px; color: #64748b; }
+:is(#order-book, #usStocksOrderbook) .ob-pair-head span:nth-child(2) { text-align: center; }
+:is(#order-book, #usStocksOrderbook) .ob-pair-head span:last-child { text-align: right; }
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row { min-height: 29px; padding: 2px 7px; border-bottom: 1px solid rgba(100,116,139,.11); font-variant-numeric: tabular-nums; }
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row[hidden] { display: none; }
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row-ask { background: rgba(18,97,196,.035); }
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row-bid { background: rgba(210,79,69,.035); }
+:is(#order-book, #usStocksOrderbook) .ob-table-pairs .ob-price { text-align: center; font-size: 13px; white-space: nowrap; }
+:is(#order-book, #usStocksOrderbook) .ob-depth { position: relative; display: flex; align-items: center; gap: 5px; min-width: 0; height: 24px; isolation: isolate; }
+:is(#order-book, #usStocksOrderbook) .ob-row-ask .ob-depth { justify-content: flex-end; }
+:is(#order-book, #usStocksOrderbook) .ob-row-bid .ob-depth { justify-content: flex-start; }
+:is(#order-book, #usStocksOrderbook) .ob-depth .ob-qty, :is(#order-book, #usStocksOrderbook) .ob-depth .ob-delta { position: relative; z-index: 1; font-size: 11px; white-space: nowrap; }
+:is(#order-book, #usStocksOrderbook) .ob-depth .ob-qty { font-weight: 700; }
+:is(#order-book, #usStocksOrderbook) .ob-depth .ob-delta { color: #64748b; min-width: 30px; }
+:is(#order-book, #usStocksOrderbook) .ob-depth .ob-delta-up { color: var(--num-up); }
+:is(#order-book, #usStocksOrderbook) .ob-depth .ob-delta-down { color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-row-ask .ob-delta-up { color: var(--num-down); }
+:is(#order-book, #usStocksOrderbook) .ob-row-bid .ob-delta-down { color: #64748b; }
+:is(#order-book, #usStocksOrderbook) .ob-depth .ob-bar-wrap { position: absolute; inset: 2px 0; height: auto; background: transparent; overflow: visible; z-index: 0; }
+:is(#order-book, #usStocksOrderbook) .ob-depth .ob-bar-wrap > span { position: absolute; height: 100%; top: 0; }
+:is(#order-book, #usStocksOrderbook) .ob-row-ask .ob-bar-wrap > span { right: 0; left: auto; }
+:is(#order-book, #usStocksOrderbook) .ob-row-bid .ob-bar-wrap > span { left: 0; }
+:is(#order-book, #usStocksOrderbook) .ob-spread { padding: 5px 8px; text-align: center; font-size: 10px; font-weight: 700; color: #64748b; background: #f1f5f9; border-block: 1px solid #cbd5e1; }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row-ask { background: rgba(60,130,220,.08); }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row-bid { background: rgba(220,90,90,.08); }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-spread { background: #29313b; color: var(--dk-text); }
 @media (max-width: 420px) {
-  #order-book .ob-pair-head, #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); column-gap: 3px; }
-  #order-book .ob-depth { gap: 3px; }
-  #order-book .ob-depth .ob-qty, #order-book .ob-depth .ob-delta { font-size: 10px; }
+  :is(#order-book, #usStocksOrderbook) .ob-pair-head, :is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); column-gap: 3px; }
+  :is(#order-book, #usStocksOrderbook) .ob-depth { gap: 3px; }
+  :is(#order-book, #usStocksOrderbook) .ob-depth .ob-qty, :is(#order-book, #usStocksOrderbook) .ob-depth .ob-delta { font-size: 10px; }
 }
 
 /* 호가 압축: 가격 글꼴·10단계·잔량·체결내역은 유지하고 막대 여백만 줄인다. */
-#stock-search #order-book .ob-table-pairs { padding: 4px 4px 6px; }
-#stock-search #order-book .ob-pair-head,
-#stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 3px; padding-inline: 4px; }
-#stock-search #order-book .ob-depth { gap: 3px; }
+#stock-search :is(#order-book, #usStocksOrderbook) .ob-table-pairs { padding: 4px 4px 6px; }
+#stock-search :is(#order-book, #usStocksOrderbook) .ob-pair-head,
+#stock-search :is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 3px; padding-inline: 4px; }
+#stock-search :is(#order-book, #usStocksOrderbook) .ob-depth { gap: 3px; }
 @media (max-width: 420px) {
-  #stock-search #order-book .ob-pair-head,
-  #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 2px; }
-  #stock-search #order-book .ob-depth { flex-wrap: wrap; height: auto; min-height: 24px; gap: 1px 3px; }
+  #stock-search :is(#order-book, #usStocksOrderbook) .ob-pair-head,
+  #stock-search :is(#order-book, #usStocksOrderbook) .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 2px; }
+  #stock-search :is(#order-book, #usStocksOrderbook) .ob-depth { flex-wrap: wrap; height: auto; min-height: 24px; gap: 1px 3px; }
 }
 
 /* Keep all four trade columns inside narrow mobile panels. */
 @media (max-width: 600px) {
-  #order-book .ob-trades-header,
-  #order-book .ob-trade-row {
+  :is(#order-book, #usStocksOrderbook) .ob-trades-header,
+  :is(#order-book, #usStocksOrderbook) .ob-trade-row {
     grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr) 68px;
     gap: 4px;
     font-size: 11px;
