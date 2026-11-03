@@ -212,10 +212,10 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .h
 @media (max-width: 600px) {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { grid-template-columns: max-content minmax(116px, 1fr); gap: var(--ui-paragraph-gap); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
-/* 거래량 게이지가 3개(미국: S&P 500·나스닥 종합·필라델피아 반도체)면 칸을 넓힌다. 2개(국내)는 그대로. */
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict:has(.hmb2-participation .hmp-item:nth-child(3)) > .hmb2-participation { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 176px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth:has(.hmb2-participation .hmp-item:nth-child(3)) { grid-template-columns: max-content 176px minmax(0, 1fr); }
-@media (max-width: 640px) { body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth:has(.hmb2-participation .hmp-item:nth-child(3)) { grid-template-columns: max-content minmax(176px, 1fr); } }
+/* 거래량 게이지가 3개(미국: S&P 500·나스닥 종합·필라델피아 반도체)면 칸을 넓힌다(js/skin-main.js가 has-three-gauges를 붙임). 2개(국내)는 그대로. */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-three-gauges > .hmb2-participation { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 176px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth.has-three-gauges { grid-template-columns: max-content 176px minmax(0, 1fr); }
+@media (max-width: 640px) { body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth.has-three-gauges { grid-template-columns: max-content minmax(176px, 1fr); } }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > [data-us-breadth-meta] { grid-column: 1 / -1; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > div { grid-template-columns: minmax(0, 1fr) auto; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios .hmb2-breadth-total { grid-column: 1 / -1; grid-row: 2; }
@@ -490,3 +490,15 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar[hidden
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar i { display: block; height: 100%; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up { background: color-mix(in srgb, var(--num-up) 65%, var(--np-paper, #fff)); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: color-mix(in srgb, var(--num-down) 65%, var(--np-paper, #fff)); }
+
+/* KOSPI200 야간선물 카드 축소(2026-11-04): 가격·등락·고저는 왼쪽, 30분 차트는 오른쪽에 나란히 두고 차트 높이를 줄인다. 고가·저가가 위에 있어 차트 아래 '관측 고점/저점' 줄은 숨긴다. */
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content:not([hidden]) { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); column-gap: 20px; align-items: start; }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content > .hmb-summary-head { grid-column: 1 / -1; margin-bottom: 6px; }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content > :is(.ui-kpi-value-row, .hnc-range) { grid-column: 1; }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content > .home-night-futures-chart { grid-column: 2; grid-row: 2 / span 3; margin: 0; }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content > .ui-kpi-source { grid-column: 1 / -1; margin-top: 4px; }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content .hmb-investor-spark-wrap { height: 64px; }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content .hmb-investor-extrema { display: none; }
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content:not([hidden]) { display: block; }
+}

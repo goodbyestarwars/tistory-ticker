@@ -1542,6 +1542,8 @@ document.documentElement.classList.add('skin-ready');
           + (delta !== null && Math.abs(delta) >= .000001 ? '<i class="hmp-column ' + (delta > 0 ? 'is-up' : 'is-down') + '" style="height:' + (Math.abs(delta) / scale * 50).toFixed(2) + '%"></i>' : '')
           + '</div></div><div class="hmp-volume-value">' + (market === 'domestic' ? '누적<br>거래대금' : '거래량') + '<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div></div>';
       }).join('');
+      // 게이지가 3개면(미국: 필라델피아 반도체 추가) 칸 폭을 넓히는 표시 클래스.
+      if (target.parentElement) target.parentElement.classList.toggle('has-three-gauges', models.length > 2);
       var basis = dashboardSection.querySelector('[data-participation-basis]');
       if (basis) {
         basis.hidden = target.hidden;
