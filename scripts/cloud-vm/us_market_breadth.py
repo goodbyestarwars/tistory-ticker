@@ -11,7 +11,8 @@ import urllib.error
 import urllib.request
 
 SOURCE = 'TradingView index components'
-INDEXES = {'SP500': ('SP:SPX', 'S&P 500'), 'NASDAQ': ('NASDAQ:IXIC', '나스닥 종합')}
+INDEXES = {'SP500': ('SP:SPX', 'S&P 500'), 'NASDAQ': ('NASDAQ:IXIC', '나스닥 종합'),
+           'SOX': ('NASDAQ:SOX', '필라델피아 반도체')}
 _lock = threading.Lock()
 _cache = {'at': 0, 'data': None, 'attempt': 0}
 MARKETS = {'us': ('america', 'America/New_York', 570, 960, INDEXES),

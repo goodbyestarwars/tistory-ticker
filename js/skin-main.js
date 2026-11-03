@@ -801,7 +801,7 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-market-ratios" data-domestic-ratios>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
-        + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio="SP500"><dt>S&amp;P 500</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="NASDAQ"><dt>나스닥 종합</dt><dd>데이터 확인 중</dd></div><span class="hmb2-breadth-total" data-us-breadth-meta>지수 구성종목 · 지연시세</span></div>'
+        + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio="SP500"><dt>S&amp;P 500</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="NASDAQ"><dt>나스닥 종합</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="SOX"><dt>필라델피아 반도체</dt><dd>데이터 확인 중</dd></div><span class="hmb2-breadth-total" data-us-breadth-meta>지수 구성종목 · 지연시세</span></div>'
         + '<div class="hmp-basis hmp-note" data-participation-basis></div>'
         + '</dl>'
         // 2026-11-04 주도/주의 업종: 시장 방향·상승/하락 바로 아래(미국 모드). /us-sector-rotation(ETF 확정 일봉) 값만 쓴다.
@@ -1428,16 +1428,17 @@ document.documentElement.classList.add('skin-ready');
       renderMarketParticipation();
       var notes = [];
       var ratios = [];
-      ['SP500', 'NASDAQ'].forEach(function (key) {
+      ['SP500', 'NASDAQ', 'SOX'].forEach(function (key) {
         var entry = body && body.byIndex && body.byIndex[key];
-        var label = key === 'SP500' ? 'S&P 500' : '나스닥 종합';
+        var label = key === 'SP500' ? 'S&P 500' : key === 'SOX' ? '필라델피아 반도체' : '나스닥 종합';
         var row = dashboardSection.querySelector('[data-us-ratio="' + key + '"]');
         var valid = entry && entry.status !== 'unavailable' && typeof entry.total === 'number' && entry.total > 0;
         renderHomeBreadthEntry(row, escapeHomeHtml(label), valid ? entry : null, false);
         if (valid) {
           if (entry.missing) notes.push(label + ' 결측 ' + entry.missing + '종목');
           if (entry.status === 'stale') notes.push(label + ' 갱신 지연');
-          if (entry.status === 'ok') ratios.push(entry.up / entry.total);
+          // 시장 방향은 S&P 500·나스닥 종합 두 지수 기준이다. 업종 지수(SOX)는 표시만 한다.
+          if (entry.status === 'ok' && key !== 'SOX') ratios.push(entry.up / entry.total);
           if (row) row.title = 'TradingView 지수 구성종목 · 지연시세 · 수집 ' + (entry.retrievedAt || '확인 중');
         }
       });
@@ -1462,7 +1463,7 @@ document.documentElement.classList.add('skin-ready');
     var latestHomeParticipation = {domestic: null, us: null};
 
     function homeParticipationModel(market, body) {
-      var definitions = market === 'us' ? [['SP500', 'S&P 500'], ['NASDAQ', '나스닥 종합']]
+      var definitions = market === 'us' ? [['SP500', 'S&P 500'], ['NASDAQ', '나스닥 종합'], ['SOX', '필라델피아 반도체']]
         : [['KOSPI', '코스피'], ['KOSDAQ', '코스닥']];
       return definitions.map(function (definition) {
         var entry = body && body.byIndex && body.byIndex[definition[0]];

@@ -33,14 +33,14 @@ def test_shared_cache_single_refresh_and_failure_backoff():
     now = 1793116800
     with patch.object(m, '_fetch', return_value={'up': 2, 'down': 1, 'flat': 0, 'missing': 0, 'total': 3}) as fetch:
         result = m.get_breadth(now)
-        assert fetch.call_count == 2
+        assert fetch.call_count == 3
         assert m.get_breadth(now + 1) is result
-        assert fetch.call_count == 2
+        assert fetch.call_count == 3
     with patch.object(m, '_fetch', side_effect=ValueError('offline')) as fetch:
         result = m.get_breadth(now + 4000)
         assert all(entry['status'] == 'unavailable' for entry in result['byIndex'].values())
         m.get_breadth(now + 4001)
-        assert fetch.call_count == 2
+        assert fetch.call_count == 3
 
 def test_volume_participation_excludes_missing_and_counts_one_vote_per_stock():
     data = payload([2, -1, 0, 1, 1])
@@ -59,11 +59,11 @@ def test_domestic_and_us_have_independent_shared_caches():
     with patch.object(m, '_fetch', return_value={'up': 1, 'down': 0, 'total': 1}) as fetch:
         us = m.get_breadth(1793116800, market='us')
         kr = m.get_breadth(1793116800, market='domestic')
-        assert set(us['byIndex']) == {'SP500', 'NASDAQ'}
+        assert set(us['byIndex']) == {'SP500', 'NASDAQ', 'SOX'}
         assert set(kr['byIndex']) == {'KOSPI', 'KOSDAQ'}
-        assert fetch.call_count == 4
+        assert fetch.call_count == 5
         m.get_breadth(1793116801, market='domestic')
-        assert fetch.call_count == 4
+        assert fetch.call_count == 5
         assert fetch.call_args[0][1] == 'korea'
 
 def test_volume_index_is_ratio_of_sums_not_mean_of_ratios():
