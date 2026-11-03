@@ -88,7 +88,15 @@
     { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' },
     { code: '468670', name: '브릴스', aliases: '브릴스 brils' },
     { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' },
-    { code: '0147B0', name: '래블업', aliases: '레블업 lablup' }
+    { code: '0147B0', name: '래블업', aliases: '레블업 lablup' },
+    { code: '359410', name: '영광', aliases: '영광공작소' },
+    { code: '420610', name: '인텔리빅스', aliases: 'intellivix' },
+    { code: '439270', name: '크리에이츠', aliases: 'creates' },
+    { code: '0127E0', name: '한화플러스제6호스팩', aliases: '한화플러스제6호기업인수목적 한화플러스6호스팩' },
+    { code: '0053F0', name: '티앤이코리아', aliases: 'TNE코리아 tnekorea' },
+    { code: '0205H0', name: '에스케이증권제14호기업인수목적', aliases: 'SK증권제14호스팩 SK증권스팩14호 에스케이증권제14호스팩' },
+    { code: '0015M0', name: '디티에스', aliases: 'dts' },
+    { code: '0158S0', name: '엘리스', aliases: '엘리스그룹 elice' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
