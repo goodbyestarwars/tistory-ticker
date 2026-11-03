@@ -798,9 +798,12 @@
     var maxAsk = Math.max.apply(null, asks.map(function (r) { return r.qty; }).concat([0]));
     var maxBid = Math.max.apply(null, bids.map(function (r) { return r.qty; }).concat([0]));
     var maxLevel = Math.max(maxAsk, maxBid, 1);
-    var strength = maxAsk > 0 ? maxBid / maxAsk * 100 : null;
+    // 호가강도는 최대 한 칸이 아니라 10단계 총잔량 비율이다(최대 한 칸은 주문 한두 건에 초 단위로 요동친다).
+    var sumAsk = asks.reduce(function (sum, r) { return sum + r.qty; }, 0);
+    var sumBid = bids.reduce(function (sum, r) { return sum + r.qty; }, 0);
+    var strength = sumAsk > 0 ? sumBid / sumAsk * 100 : null;
     var strengthWidth = strength == null ? 0 : Math.max(0, Math.min(100, strength / 2));
-    var balanceLabel = maxAsk === maxBid ? '균형' : (maxAsk > maxBid ? '매도 우위' : '매수 우위');
+    var balanceLabel = sumAsk === sumBid ? '균형' : (sumAsk > sumBid ? '매도 우위' : '매수 우위');
     var current = state.lastQuote && Number(state.lastQuote.price);
     if (!asks.length && !bids.length && !Number.isFinite(current)) {
       mount.innerHTML = '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
@@ -810,7 +813,7 @@
       + '<div class="us-stocks-level-row"><span class="us-level-label us-book-ask-text">저항(매도벽)</span><i><em class="us-book-ask-fill" style="width:' + Math.round(maxAsk / maxLevel * 100) + '%"></em></i><b>' + formatVolume(maxAsk) + '</b></div>'
       + '<div class="us-stocks-level-row"><span class="us-level-label us-book-bid-text">지지(매수벽)</span><i><em class="us-book-bid-fill" style="width:' + Math.round(maxBid / maxLevel * 100) + '%"></em></i><b>' + formatVolume(maxBid) + '</b></div>'
       + '<div class="us-stocks-level-row"><span class="us-level-label">호가강도</span><i><em class="us-book-strength-fill" style="width:' + strengthWidth + '%"></em></i><b>' + (strength == null ? '-' : strength.toFixed(1) + '%') + '</b></div>'
-      + '<p>미국 10단계 호가 잔량 기준 · 실제 체결강도와는 다를 수 있습니다. <strong>' + balanceLabel + '</strong></p>'
+      + '<p>미국 10단계 호가 총잔량(매수÷매도) 기준 · 실제 체결강도와는 다를 수 있습니다. <strong>' + balanceLabel + '</strong></p>'
       + '</div>';
     var prev = state.usDepth && state.usDepth.symbol === state.symbol ? state.usDepth : null;
     var rate = state.lastQuote ? quoteSessionRate(state.lastQuote) : 0;
