@@ -1161,6 +1161,8 @@
     setAnalysisCard(mount, 'insider', insider ? '매수 ' + formatVolume(insider.buy_shares) + '주' : '공시 자료 미확보', insider ? '매도 ' + formatVolume(insider.sell_shares) + '주 · 기타 ' + insider.other_count + '건' : '');
     var insiderCard = mount.querySelector('[data-analysis-card="insider"]');
     if (insiderCard && insider) insiderCard.insertAdjacentHTML('beforeend', insiderHtml(insider));
+    var insiderOpen = insiderCard && insiderCard.querySelector('[data-insider-open]');
+    if (insiderOpen) insiderOpen.addEventListener('click', function () { openInsiderModal(insider); });
   }
 
   function consensusHtml(rec) {
@@ -1200,11 +1202,42 @@
   function insiderHtml(data) {
     var rows = Array.isArray(data.items) ? data.items : [];
     return '<div class="us-analysis-source us-analysis-records"><p>Finnhub · 거래일 ' + escapeHtml(data.from || '') + ' ~ ' + escapeHtml(data.to || '') + '</p><p>매수 ' + Number(data.buy_count || 0) + '건 · 매도 ' + Number(data.sell_count || 0) + '건 · 반환자료 최신 공시 ' + escapeHtml(data.latest_filing || '없음') + '</p><p>비파생 P/S만 매수·매도 집계. 보상·행사·세금·증여는 기타 변동입니다.</p>'
-      + '<details><summary>내부자 공시 내역 (' + rows.length + '건)</summary><ul>' + rows.map(function (row) {
-        var source = /^https:\/\/www\.sec\.gov\//.test(row.source_url || '') ? ' · <a href="' + escapeAttr(row.source_url) + '" target="_blank" rel="noopener noreferrer">SEC 원문 ↗</a>' : '';
-        return '<li><strong>' + escapeHtml(row.name || '이름 미제공') + '</strong> · ' + escapeHtml(row.label || '기타 변동') + ' (' + escapeHtml(row.code) + ')<br>거래 ' + escapeHtml(row.transaction_date) + ' · 공시 ' + escapeHtml(row.filing_date) + '<br>' + escapeHtml(formatVolume(row.shares)) + '주 · 단가 ' + escapeHtml(row.price == null ? '미제공' : String(row.price)) + ' ' + escapeHtml(row.currency || '(통화 미제공)') + (row.is_derivative === true ? ' · 파생상품' : '') + source + '</li>';
-      }).join('') + '</ul><p>제공처가 반환한 공시 범위이며 전체 공시의 완전성을 보장하지 않습니다. 거래일 미확인 ' + Number(data.missing_dates || 0) + '건은 집계 제외.</p></details></div>';
+      + '<button type="button" class="us-modal-open" data-insider-open>내부자 공시 내역 (' + rows.length + '건) 보기</button></div>';
   }
+
+  function insiderRowsHtml(data) {
+    var rows = Array.isArray(data.items) ? data.items : [];
+    return '<ul class="us-modal-list">' + rows.map(function (row) {
+      var source = /^https:\/\/www\.sec\.gov\//.test(row.source_url || '') ? ' · <a href="' + escapeAttr(row.source_url) + '" target="_blank" rel="noopener noreferrer">SEC 원문 ↗</a>' : '';
+      return '<li><strong>' + escapeHtml(row.name || '이름 미제공') + '</strong> · ' + escapeHtml(row.label || '기타 변동') + ' (' + escapeHtml(row.code) + ')<br>거래 ' + escapeHtml(row.transaction_date) + ' · 공시 ' + escapeHtml(row.filing_date) + '<br>' + escapeHtml(formatVolume(row.shares)) + '주 · 단가 ' + escapeHtml(row.price == null ? '미제공' : String(row.price)) + ' ' + escapeHtml(row.currency || '(통화 미제공)') + (row.is_derivative === true ? ' · 파생상품' : '') + source + '</li>';
+    }).join('') + '</ul><p class="us-modal-note">제공처가 반환한 공시 범위이며 전체 공시의 완전성을 보장하지 않습니다. 거래일 미확인 ' + Number(data.missing_dates || 0) + '건은 집계 제외.</p>';
+  }
+
+  // 내부자 공시 내역은 카드 안 접이식 목록 대신 모달로 보여 준다(176건처럼 길어 카드 높이를 밀어내던 문제).
+  function openInsiderModal(data) {
+    closeInsiderModal();
+    var count = Array.isArray(data.items) ? data.items.length : 0;
+    var overlay = document.createElement('div');
+    overlay.className = 'us-modal-overlay';
+    overlay.setAttribute('data-insider-modal', '');
+    overlay.innerHTML = '<div class="us-modal" role="dialog" aria-modal="true" aria-label="내부자 공시 내역">'
+      + '<div class="us-modal-head"><strong>내부자 공시 내역 (' + count + '건)</strong>'
+      + '<button type="button" class="us-modal-close" aria-label="닫기">✕</button></div>'
+      + '<div class="us-modal-body">' + insiderRowsHtml(data) + '</div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (event) { if (event.target === overlay) closeInsiderModal(); });
+    overlay.querySelector('.us-modal-close').addEventListener('click', closeInsiderModal);
+    document.addEventListener('keydown', onInsiderModalKey);
+    overlay.querySelector('.us-modal-close').focus();
+  }
+
+  function closeInsiderModal() {
+    var old = document.querySelector('[data-insider-modal]');
+    if (old) old.remove();
+    document.removeEventListener('keydown', onInsiderModalKey);
+  }
+
+  function onInsiderModalKey(event) { if (event.key === 'Escape') closeInsiderModal(); }
 
   function renderEtfHoldings(mount, data, instrument) {
     var old = mount.querySelector('[data-etf-holdings]');

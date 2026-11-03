@@ -1,3 +1,7 @@
+**2026-11-04 내부자 공시 내역을 모달로**
+
+요청: "내부자 공시 내역 (176건)"을 모달로. 변경: `js/us-stocks.js` 카드 안 접이식 목록(`<details>`)을 "내부자 공시 내역 (N건) 보기" 버튼으로 바꾸고 클릭 시 모달(`openInsiderModal`, 바깥 클릭·✕·Esc 닫기, 내용·SEC 원문 링크·완전성 안내 유지), `css/us-stocks.css` `.us-modal*`(공통 면 토큰, 다크·모바일). 검증: 구문 검사, `test_us_orderbook_refresh` 통과. 미확인: 운영 화면 클릭·모달 렌더(PC/모바일/다크). 배포: master → Pages.
+
 **2026-11-04 미국 애널리스트 기관별 의견 문구 · Finnhub 무료 범위 재확인**
 
 요청: "권한 미확보" 문구 변경, 무료 여부 재확인. 변경: `js/us-stocks.js` 기관별 투자의견 머리말을 "제공하지 않음"으로(코드 `access_denied` 처리는 그대로). 확인(2026-11-04 Finnhub 공식 문서 사이드바): Recommendation Trends는 Premium 표시 없음(무료), Upgrade Downgrade·Price Target은 Premium. 한도: 전 플랜 초당 30회 상한(무료 분당 한도는 문서에서 못 찾음). 미확인: 무료 키 데이터의 사이트 재표시 약관. 배포: master → Pages.
