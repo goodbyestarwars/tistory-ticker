@@ -62,7 +62,8 @@
     { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
     { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' },
     { code: '468670', name: '브릴스', aliases: '브릴스 brils' },
-    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' }
+    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' },
+    { code: '0147B0', name: '래블업', aliases: '레블업 lablup' }
   ];
 
   function applyDomesticListingFallbacks() {
@@ -1163,6 +1164,12 @@
   // 종목명/코드 -> { code, name }. 정확일치 우선, 부분일치는 1개일 때만.
   function resolveStock(query) {
     if (!query) return null;
+    var needle = String(query).trim().toLowerCase();
+    var listing = DOMESTIC_LISTING_FALLBACKS.find(function (row) {
+      return row.code.toLowerCase() === needle || row.name.toLowerCase() === needle
+        || String(row.aliases || '').toLowerCase().split(/\s+/).indexOf(needle) !== -1;
+    });
+    if (listing) return { code: listing.code, name: listing.name };
     var map = applyDomesticListingFallbacks();
 
     // 2026-07-16 버그 수정: 6자리 코드로 검색하면 이름을 못 찾고 name에 코드를 그대로

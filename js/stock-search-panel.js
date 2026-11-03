@@ -63,7 +63,8 @@
     { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
     { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' },
     { code: '468670', name: '브릴스', aliases: '브릴스 brils' },
-    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' }
+    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' },
+    { code: '0147B0', name: '래블업', aliases: '레블업 lablup' }
   ];
   var RATE_FETCH_TIMEOUT_MS = 8000;
 
@@ -137,6 +138,16 @@
       if (!global.KRX_MAP[row.name]) global.KRX_MAP[row.name] = row.code;
     });
     return global.KRX_MAP;
+  }
+
+  // 신규상장 종목의 정식명·코드·별칭을 동일한 종목으로 연결한다.
+  function domesticListingFallback(query) {
+    var q = String(query || '').trim().toLowerCase();
+    if (!q) return null;
+    return DOMESTIC_LISTING_FALLBACKS.find(function (row) {
+      return row.code.toLowerCase() === q || row.name.toLowerCase() === q
+        || String(row.aliases || '').toLowerCase().split(/\s+/).indexOf(q) !== -1;
+    }) || null;
   }
 
   // ---- localStorage ----
@@ -247,6 +258,8 @@
     if (!query) return null;
     var index = indexSearchRows(query).filter(function (row) { return row.code.toLowerCase() === String(query).toLowerCase() || row.name.toLowerCase() === String(query).toLowerCase() || row.aliases.split(' ').indexOf(String(query).toLowerCase()) >= 0; })[0];
     if (index) return { code: index.code, name: index.name };
+    var listing = domesticListingFallback(query);
+    if (listing) return { code: listing.code, name: listing.name };
     var map = applyDomesticListingFallbacks();
     if (/^[0-9A-Z]{6}$/i.test(query)) {
       for (var nm in map) {
@@ -284,7 +297,8 @@
 
   function suggestNames(query) {
     var map = applyDomesticListingFallbacks();
-    var q = query.toLowerCase();
+    var listing = domesticListingFallback(query);
+    var q = (listing ? listing.name : query).toLowerCase();
     // ETF 병합 이후 "삼성전자"를 검색하면 진짜 삼성전자보다 이름에 검색어가 포함된 ETF
     // (예: "KODEX 삼성전자SK하이닉스채권혼합50")가 먼저 뜨는 문제가 있었음 - 시작/포함
     // 일치 2단계는 유지하고, 각 단계 안에서 일반 종목을 ETF보다 먼저 보여주도록 4단계로
