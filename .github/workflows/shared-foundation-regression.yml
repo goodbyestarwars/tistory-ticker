@@ -73,6 +73,7 @@ jobs:
           node test/test_early_bootstrap.js
           node test/test_home_first_paint.js
           node test/test_chart_core.js
+          node test/test_recent_kosdaq_listings.js
           node test/test_chart_smooth_wheel.js
           node test/test_chart_interactions.js
           node test/test_mobile_market.js
