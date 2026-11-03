@@ -804,6 +804,11 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio="SP500"><dt>S&amp;P 500</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="NASDAQ"><dt>나스닥 종합</dt><dd>데이터 확인 중</dd></div><span class="hmb2-breadth-total" data-us-breadth-meta>지수 구성종목 · 지연시세</span></div>'
         + '<div class="hmp-basis hmp-note" data-participation-basis></div>'
         + '</dl>'
+        // 2026-11-04 주도/주의 업종: 시장 방향·상승/하락 바로 아래(미국 모드). /us-sector-rotation(ETF 확정 일봉) 값만 쓴다.
+        + '<div class="hus-rotation" data-home-us-rotation hidden>'
+        + '<div class="hus-rot-col" data-us-rot="leaders"><strong>주도 업종 <small>유입·주도</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<div class="hus-rot-col" data-us-rot="cautions"><strong>주의 업종 <small>둔화·이탈</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<p class="ui-kpi-source" data-us-rot-meta>업종은 섹터 ETF 기반 · 정규장 종가 기준</p></div>'
         // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
         + '</div>'
@@ -819,43 +824,6 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
-        // 2026-11-03 미국시장 개편: 나스닥100·S&P500 선물 차트 + 주도/주의 업종(US 모드에서만). 값은 renderHomeUsPanels가 채운다.
-        + '<section class="home-us-panel ui-content-block" data-home-us-panel hidden aria-label="미국 선물과 업종">'
-        + '<div class="hmb-summary-head"><strong class="ui-section-title">미국 지수선물 · 업종</strong><span data-us-fut-meta>CME 선물 · 서버 관측 30분 구간</span></div>'
-        + '<div class="ui-kpi-grid hus-spot">'
-        + ['NASDAQ_INDEX|나스닥 종합 현물', 'SP500_INDEX|S&amp;P500 현물', 'DOW_INDEX|다우존스 현물'].map(function (def) {
-          var p = def.split('|');
-          return '<article class="ui-kpi-tile" data-us-spot="' + p[0] + '"><div class="ui-kpi-top"><strong>' + p[1] + '</strong><span data-us-spot-field="status">· 확인 중</span></div>'
-            + '<div class="ui-kpi-value-row"><strong data-us-spot-field="price">-</strong><em data-us-spot-field="change">-</em></div></article>';
-        }).join('')
-        + '</div>'
-        + '<div class="ui-kpi-grid hus-futures">'
-        + ['NASDAQ100|나스닥100 선물', 'SP500|S&amp;P500 선물'].map(function (def) {
-          var p = def.split('|');
-          return '<article class="ui-kpi-tile hus-fut" data-us-fut="' + p[0] + '"><div class="ui-kpi-top"><strong>' + p[1] + '</strong><span data-us-fut-field="status">· 확인 중</span></div>'
-            + '<div class="ui-kpi-value-row"><strong data-us-fut-field="price">-</strong><em data-us-fut-field="change">-</em></div>'
-            + '<div class="home-index-chart" data-us-fut-field="chart" aria-hidden="true"></div></article>';
-        }).join('')
-        + '</div>'
-        + '<div class="ui-kpi-grid hus-strength"><div class="ui-kpi-tile" data-us-vix><div class="ui-kpi-top"><strong>VIX (변동성지수)</strong><span data-us-vix-field="status">· 확인 중</span></div>'
-        + '<div class="ui-kpi-value-row"><strong data-us-vix-field="price">-</strong><em data-us-vix-field="change">-</em></div></div></div>'
-        + '<div class="ui-kpi-grid hus-rotation">'
-        + '<div class="ui-kpi-tile" data-us-rot="leaders"><div class="ui-kpi-top"><strong>주도 업종</strong><span>유입·주도</span></div><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
-        + '<div class="ui-kpi-tile" data-us-rot="cautions"><div class="ui-kpi-top"><strong>주의 업종</strong><span>둔화·이탈</span></div><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
-        + '</div><p class="ui-kpi-source" data-us-rot-meta>업종은 섹터 ETF 기반 · 정규장 종가 기준</p></section>'
-        + '<section class="home-global-panel ui-content-block" data-home-global-panel hidden aria-label="미국시장 요약과 글로벌 지표">'
-        + '<div class="hmb-summary-head"><strong class="ui-section-title">미국시장 요약 · 글로벌 지표</strong><span data-global-meta>지표별 기준시각</span></div>'
-        + '<div class="hgp-body"><dl class="hgp-summary"><div><dt>시장 방향</dt><dd data-us-sum="direction">확인 중</dd></div>'
-        + '<div><dt>S&amp;P500 상승·하락</dt><dd data-us-sum="sp500">확인 중</dd></div>'
-        + '<div><dt>나스닥 상승·하락</dt><dd data-us-sum="nasdaq">확인 중</dd></div></dl>'
-        + '<div class="ui-kpi-grid hgp-tiles">'
-        + ['WTI|WTI 원유', 'GOLD|금 선물', 'USDKRW|원/달러', 'US10Y|미국 국채 10년', 'BTC|비트코인', 'SOX|SOX 반도체'].map(function (def) {
-          var p = def.split('|');
-          return '<article class="ui-kpi-tile" data-global-tile="' + p[0] + '"><div class="ui-kpi-top"><strong>' + p[1] + '</strong></div>'
-            + '<div class="ui-kpi-value-row"><strong data-global-field="price">-</strong><em data-global-field="change">-</em></div>'
-            + '<small class="ui-kpi-source" data-global-field="time">확인 중</small></article>';
-        }).join('')
-        + '</div></div></section>'
         + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list hmb2-core">'
         + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
@@ -867,7 +835,24 @@ document.documentElement.classList.add('skin-ready');
         + '<span data-investor-mode>면적</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">›</button></div></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
-        + '</dl></section>'
+        + '</dl>'
+        // 2026-11-04 글로벌 지수(미국 모드): 지표 4종 + 현물 지수 3종. 값은 renderHomeGlobalBlock이 /futures 응답으로 채운다.
+        + '<div class="hgl" data-home-global hidden><div class="ui-kpi-grid hgl-metrics">'
+        + ['WTI|WTI 원유 선물', 'USDKRW|원/달러', 'US10Y|미국 국채 10년물', 'VIX|VIX 변동성지수'].map(function (def) {
+          var p = def.split('|');
+          return '<article class="ui-kpi-tile" data-global-tile="' + p[0] + '"><div class="ui-kpi-top"><strong>' + p[1] + '</strong></div>'
+            + '<div class="ui-kpi-value-row"><strong data-global-field="price">-</strong><em data-global-field="change">-</em></div>'
+            + '<small class="ui-kpi-source" data-global-field="time">확인 중</small></article>';
+        }).join('')
+        + '</div><div class="home-index-strip hgl-spot" aria-label="미국 주요 현물지수">'
+        + ['NASDAQ_INDEX|나스닥 종합', 'SP500_INDEX|S&amp;P500', 'SOX|SOX 반도체'].map(function (def) {
+          var p = def.split('|');
+          return '<article class="home-index-card" data-global-spot="' + p[0] + '"><div class="home-index-top"><strong>' + p[1] + '</strong><span data-gs-field="status">· 확인 중</span></div>'
+            + '<div class="home-index-price-row"><strong data-gs-field="price">-</strong><em data-gs-field="change">-</em></div>'
+            + '<div class="home-index-chart" data-gs-field="chart" aria-hidden="true"></div>'
+            + '<small class="ui-kpi-source" data-gs-field="time">확인 중</small></article>';
+        }).join('')
+        + '</div></div></section>'
         // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
         // 시장 요약과 같은 머리말·칸(.hmb-summary-head/.hmb-list)을 그대로 써서 칸 모양을 맞춘다. 값은 /us-etf-returns.
         + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 연초 이후</span></div>'
@@ -885,13 +870,12 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hen-breaking-list" data-hen-breaking-list></div>'
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>경제 뉴스를 불러오는 중입니다.</p></div>'
-        + '</section></section>'
-        // 2026-11-03 코스피200 야간선물 독립 카드(경제뉴스 오른쪽, US 모드에서만). 기존 data-market-field·차트 계약을 그대로 옮겼다.
-        + '<section class="home-night-card editorial-section home-block-column" data-home-night-futures hidden aria-label="코스피200 야간선물">'
-        + '<section class="home-night-content ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title">코스피200 야간선물</strong><span data-night-field="status">확인 중</span></div>'
+        + '</section>'
+        // 2026-11-04 코스피200 야간선물 독립 카드: 경제 종합뉴스 바로 아래(같은 열, 미국 모드에서만). 기존 data-market-field·차트 계약을 그대로 옮겼다.
+        + '<section class="home-night-content ui-content-block" data-home-night-futures hidden aria-label="KOSPI200 야간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 야간선물</strong><span data-night-field="status">확인 중</span></div>'
         + '<div class="ui-kpi-value-row"><strong data-market-field="nightFutures">데이터 확인 중</strong></div>'
         + '<div class="ui-kpi-value-row hnc-change"><em data-night-field="change">-</em></div>'
-        + '<dl class="hnc-range"><div><dt>당일 고가</dt><dd data-night-field="high">-</dd></div><div><dt>당일 저가</dt><dd data-night-field="low">-</dd></div></dl>'
+        + '<dl class="hnc-range"><div><dt>고가</dt><dd data-night-field="high">-</dd></div><div><dt>저가</dt><dd data-night-field="low">-</dd></div></dl>'
         + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div>'
         + '<small class="ui-kpi-source" data-night-field="time">수신 시각 확인 중</small></section></section></div>'
         + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
@@ -948,8 +932,8 @@ document.documentElement.classList.add('skin-ready');
       // 국내 장이 열려 있을 시간대라 다음날 코스피 방향을 가늠할 수 있는 코스피 야간선물을
       // 그 빈 칸에 채운다(국내 시장 요약에서는 이미 투자자 동향이 있어 굳이 안 보여줌).
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
-      if (title) title.textContent = isUs ? '미국 시장 요약' : '시장 핵심 지표';
-      if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
+      if (title) title.textContent = isUs ? '글로벌 지수' : '시장 핵심 지표';
+      if (meta) meta.textContent = isUs ? '지표별 수집 시각' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : '상승 종목 비율';
       // Outside the US cash session, the large "시장 방향" headline already
       // shows the same "본장 개장 전 / 본장 마감 / 미국장 휴장" label.
@@ -966,12 +950,13 @@ document.documentElement.classList.add('skin-ready');
       if (nightFutures) nightFutures.hidden = !isUs;
       // 미국 모드: 선물·업종 패널과 글로벌 지표 패널이 기존 '시장 요약'(핵심 지표) 칸을 대신한다. 국내 모드는 그대로.
       dashboardSection.classList.toggle('is-us-market', isUs);
-      ['[data-home-us-panel]', '[data-home-global-panel]'].forEach(function (selector) {
-        var panel = dashboardSection.querySelector(selector);
-        if (panel) panel.hidden = !isUs;
-      });
-      var legacySummary = dashboardSection.querySelector('.home-market-summary');
-      if (legacySummary) legacySummary.hidden = isUs;
+      var rotationBox = dashboardSection.querySelector('[data-home-us-rotation]');
+      if (rotationBox) rotationBox.hidden = !isUs;
+      var globalBlock = dashboardSection.querySelector('[data-home-global]');
+      if (globalBlock) globalBlock.hidden = !isUs;
+      // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(기존 핵심 지표 목록은 국내 모드 전용).
+      var coreList = dashboardSection.querySelector('.hmb2-core');
+      if (coreList) coreList.hidden = isUs;
       if (isUs) { loadHomeUsRotation(); renderHomeUsPanels(); }
       var verdict = dashboardSection.querySelector('.hmb2-verdict');
       if (verdict) verdict.classList.toggle('has-market-breadth', !isUs || !!(usSession && usSession.open));
@@ -2066,51 +2051,18 @@ document.documentElement.classList.add('skin-ready');
     }
 
     var US_GLOBAL_TILES = {
-      WTI: {digits: 2, prefix: '$'}, GOLD: {digits: 1, prefix: '$'}, USDKRW: {digits: 1, suffix: '원'},
-      US10Y: {digits: 2, suffix: '%', pp: true}, BTC: {digits: 0, suffix: '원'}, SOX: {digits: 2}
+      WTI: {digits: 2, prefix: '$', note: '선물(CL 연속월물) · '}, USDKRW: {digits: 1, suffix: '원'},
+      US10Y: {digits: 2, suffix: '%', pp: true}, VIX: {digits: 2}
     };
 
     function renderHomeUsPanels() {
       var by = latestFuturesBySymbol || {};
-      var panel = dashboardSection.querySelector('[data-home-us-panel]');
-      var globalPanel = dashboardSection.querySelector('[data-home-global-panel]');
-      if (!panel || !globalPanel || !homeShowsUs) return;
-      // 현물 지수 3종: 정규장 거래 여부로 상태만 구분한다(선물과 다른 상품).
-      var cashOpen = usRegularSessionState().open;
-      panel.querySelectorAll('[data-us-spot]').forEach(function (tile) {
-        var item = by[tile.getAttribute('data-us-spot')];
-        var price = item ? homeNum(item.price) : null, change = item ? homeNum(item.change) : null, rate = item ? homeNum(item.change_rate) : null;
-        homeFill(tile, 'data-us-spot-field', 'status', !item ? '· 미수신' : cashOpen ? '· 현물 거래중' : '· 현물 마감', cashOpen && item ? 'home-positive' : 'home-neutral');
-        homeFill(tile, 'data-us-spot-field', 'price', price == null ? '-' : homeFmt(price, 2), homeTone(change));
-        homeFill(tile, 'data-us-spot-field', 'change', rate == null ? '-' : (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%', homeTone(change));
-      });
-      // 상단 지수 띠가 이미 선물 2종(본장 밖 시간)을 보여주면 같은 차트를 반복하지 않는다.
-      var futGrid = panel.querySelector('.hus-futures');
-      var stripShowsFutures = homeMarketSession().keys.indexOf('NASDAQ100') >= 0;
-      if (futGrid) futGrid.hidden = stripShowsFutures;
-      // 미국 선물 2종: 거래소 정식 분봉이 아니라 서버가 관측해 쌓은 30분 구간 차트다(home-session-chart).
-      ['NASDAQ100', 'SP500'].forEach(function (key) {
-        var card = panel.querySelector('[data-us-fut="' + key + '"]');
-        var item = by[key];
-        if (!card) return;
-        var price = item ? homeNum(item.price) : null, change = item ? homeNum(item.change) : null, rate = item ? homeNum(item.change_rate) : null;
-        var state = !item ? '미수신' : item.market_closed ? '휴장' : item.stale || !homeFresh(item, 30) ? '지연' : '거래중';
-        homeFill(card, 'data-us-fut-field', 'status', '· 선물 ' + state, state === '거래중' ? 'home-positive' : 'home-neutral');
-        homeFill(card, 'data-us-fut-field', 'price', price == null ? '-' : homeFmt(price, 2), homeTone(change));
-        homeFill(card, 'data-us-fut-field', 'change', rate == null ? '-' : (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%', homeTone(change));
-        renderHomeIndexChart(card.querySelector('[data-us-fut-field="chart"]'), item && item.chart, key, price != null && change != null ? price - change : null);
-      });
-      var vix = by.VIX, vixEl = panel.querySelector('[data-us-vix]');
-      if (vixEl) {
-        var vp = vix ? homeNum(vix.price) : null, vc = vix ? homeNum(vix.change_rate) : null;
-        homeFill(vixEl, 'data-us-vix-field', 'price', vp == null ? '-' : homeFmt(vp, 2), null);
-        homeFill(vixEl, 'data-us-vix-field', 'change', vc == null ? '-' : (vc > 0 ? '▲' : vc < 0 ? '▼' : '') + Math.abs(vc).toFixed(2) + '%', homeTone(vc));
-        homeFill(vixEl, 'data-us-vix-field', 'status', vix ? '· ' + (homeKstTime(vix.updated_at) || '시각 없음') : '· 미수신', 'home-neutral');
-      }
-      // 업종: /us-sector-rotation(ETF 기반, 정규장 종가).
-      var rotMeta = panel.querySelector('[data-us-rot-meta]');
+      var globalBlock = dashboardSection.querySelector('[data-home-global]');
+      if (!globalBlock || !homeShowsUs) return;
+      // 주도/주의 업종: /us-sector-rotation(ETF 확정 일봉). 실시간 업종 분석이 아니다.
+      var rotation = dashboardSection.querySelector('[data-home-us-rotation]');
       [['leaders', ['emerging', 'leading'], -1], ['cautions', ['lagging', 'weakening'], 1]].forEach(function (def) {
-        var list = panel.querySelector('[data-us-rot="' + def[0] + '"] .hus-rot-list');
+        var list = rotation && rotation.querySelector('[data-us-rot="' + def[0] + '"] .hus-rot-list');
         if (!list) return;
         var rows = homeUsRotation ? def[1].reduce(function (all, k) { return all.concat(homeUsRotation[k] || []); }, []) : [];
         rows = rows.filter(function (r) { return r && r.sector && homeNum(r.rotationScore) != null; })
@@ -2121,11 +2073,12 @@ document.documentElement.classList.add('skin-ready');
             + (tv != null ? '<small>거래대금 ' + tv.toFixed(2) + '배</small>' : '') + '</li>';
         }).join('') : '<li class="ui-kpi-empty">' + (homeUsRotation ? '업종 데이터 없음' : '확인 중') + '</li>';
       });
+      var rotMeta = rotation && rotation.querySelector('[data-us-rot-meta]');
       if (rotMeta) rotMeta.textContent = homeUsRotation && homeUsRotation.date
-        ? '업종은 섹터 ETF 기반 · ' + homeUsRotation.date.slice(5).replace('-', '.') + ' 정규장 종가' + (homeUsRotation.final === false ? '(잠정)' : '')
-        : '업종은 섹터 ETF 기반 · 정규장 종가 기준';
-      // 글로벌 지표 타일 6종. 기존 /futures 응답의 값·기준시각만 쓴다(금리는 %p 변동).
-      globalPanel.querySelectorAll('[data-global-tile]').forEach(function (tile) {
+        ? '섹터 ETF 기반 · ' + homeUsRotation.date.slice(5).replace('-', '.') + ' 정규장 종가' + (homeUsRotation.final === false ? '(잠정)' : '') + ' · 실시간 아님'
+        : '섹터 ETF 기반 · 정규장 종가 기준';
+      // 글로벌 지표 4종(WTI·원/달러·미 10년물·VIX).
+      globalBlock.querySelectorAll('[data-global-tile]').forEach(function (tile) {
         var key = tile.getAttribute('data-global-tile'), cfg = US_GLOBAL_TILES[key] || {}, item = by[key];
         var price = item ? homeNum(item.price) : null, change = item ? homeNum(item.change) : null, rate = item ? homeNum(item.change_rate) : null;
         homeFill(tile, 'data-global-field', 'price', price == null ? '-' : (cfg.prefix || '') + homeFmt(price, cfg.digits) + (cfg.suffix || ''), homeTone(change));
@@ -2133,16 +2086,19 @@ document.documentElement.classList.add('skin-ready');
           : (rate == null ? null : (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%');
         homeFill(tile, 'data-global-field', 'change', delta || '-', homeTone(change));
         var stamp = item && homeKstTime(item.updated_at);
-        homeFill(tile, 'data-global-field', 'time', !item ? '미수신' : (item.stale ? '지연 · ' : '') + (stamp || '기준시각 없음'));
+        homeFill(tile, 'data-global-field', 'time', !item ? '미수신' : (cfg.note || '') + (item.stale ? '지연 · ' : '') + (stamp ? '수집 ' + stamp : '기준시각 없음'));
       });
-      // 왼쪽 요약: 방향 문구와 지수 구성종목 상승·하락 수(/us-market-breadth).
-      var dir = field('direction');
-      homeFill(globalPanel, 'data-us-sum', 'direction', dir && dir.textContent ? dir.textContent : '확인 중', dir && dir.classList.contains('home-positive') ? 'home-positive' : dir && dir.classList.contains('home-negative') ? 'home-negative' : 'home-neutral');
-      var breadth = latestHomeParticipation.us && latestHomeParticipation.us.byIndex || {};
-      [['sp500', 'SP500'], ['nasdaq', 'NASDAQ']].forEach(function (pair) {
-        var e = breadth[pair[1]];
-        var ok = e && e.status !== 'unavailable' && typeof e.total === 'number' && e.total > 0;
-        homeFill(globalPanel, 'data-us-sum', pair[0], ok ? '상승 ' + e.up + ' · 하락 ' + e.down + (e.status === 'stale' ? ' (지연)' : '') : '확인 중', null);
+      // 현물 지수 3종(나스닥 종합·S&P500·SOX). 선물이 아니라 현물이며, 본장이 아닐 때는 마지막 값임을 표시한다.
+      var cashOpen = usRegularSessionState().open;
+      globalBlock.querySelectorAll('[data-global-spot]').forEach(function (card) {
+        var key = card.getAttribute('data-global-spot'), item = by[key];
+        var price = item ? homeNum(item.price) : null, change = item ? homeNum(item.change) : null, rate = item ? homeNum(item.change_rate) : null;
+        homeFill(card, 'data-gs-field', 'status', !item ? '· 미수신' : cashOpen ? '· 현물 거래중' : '· 현물 마지막 값', cashOpen && item ? 'home-positive' : 'home-neutral');
+        homeFill(card, 'data-gs-field', 'price', price == null ? '-' : homeFmt(price, 2), homeTone(change));
+        homeFill(card, 'data-gs-field', 'change', rate == null ? '-' : (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%', homeTone(change));
+        var stamp = item && homeKstTime(item.updated_at);
+        homeFill(card, 'data-gs-field', 'time', !item ? '미수신' : (item.stale ? '지연 · ' : '') + (stamp ? '수집 ' + stamp : '기준시각 없음'));
+        renderHomeIndexChart(card.querySelector('[data-gs-field="chart"]'), item && item.chart, key, price != null && change != null ? price - change : null);
       });
     }
 
@@ -2238,7 +2194,7 @@ document.documentElement.classList.add('skin-ready');
       if (session.closed) return;
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
-        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CNASDAQ100%2CSP500%2CKOSPI200_NIGHT%2CVIX%2CWTI%2CGOLD%2CUSDKRW%2CUS10Y%2CBTC%2CSOX%2CDOW_INDEX&stored_only=true', 12000)
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CNASDAQ100%2CSP500%2CKOSPI200_NIGHT%2CVIX%2CWTI%2CGOLD%2CUSDKRW%2CUS10Y%2CBTC%2CSOX&stored_only=true', 12000)
           .then(function (data) { return data && data.data ? data.data : []; });
       request.then(renderHomeIndices).catch(function () {
         ['primary', 'secondary'].forEach(function (slot) {
