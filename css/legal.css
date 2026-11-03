@@ -552,3 +552,44 @@ body.learn-page .legal-wrap .fig-marker + .fig-on-accent { fill: #f8f0db; }
   body.footer-docs .fig-marker + .fig-on-accent,
   body.learn-page .legal-wrap .fig-marker + .fig-on-accent { fill: #16202f; }
 }
+
+
+/* 경제 이야기 3장: 공통 이야기 토큰을 재사용하는 가격·가중치·임금 학습 도구 */
+body.learn-page.inflation-page .in-toc { columns: 2; column-gap: var(--ui-section-gap); padding-left: 22px; }
+body.learn-page.inflation-page .in-toc li { break-inside: avoid; padding: 3px 0; }
+body.learn-page.inflation-page .in-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0 20px; }
+body.learn-page.inflation-page .in-fact { padding: 16px; border: 1px solid var(--learn-line); border-radius: 16px; background: var(--learn-surface); }
+body.learn-page.inflation-page .in-fact span { display: block; color: var(--learn-sub); font-size: 12.5px; }
+body.learn-page.inflation-page .in-fact strong { display: block; margin-top: 3px; color: var(--learn-navy); font-family: "MaruBuriBold", "MaruBuri", serif; font-size: 22px; font-weight: 400; }
+body.learn-page.inflation-page .in-tool { margin: 16px 0 20px; padding: var(--ui-card-padding); border: 1px solid var(--learn-line); border-radius: 16px; background: var(--learn-surface); }
+body.learn-page.inflation-page .in-tool > h3 { margin-top: 0; }
+body.learn-page.inflation-page .in-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+body.learn-page.inflation-page .in-field { display: block; color: var(--learn-ink); font-size: 14px; }
+body.learn-page.inflation-page .in-field > span { display: block; margin-bottom: 4px; }
+body.learn-page.inflation-page .in-field input { width: 100%; min-width: 0; padding: 10px 12px; background: var(--learn-panel); color: var(--learn-ink); border: 1px solid var(--learn-box-border); border-radius: 10px; font: inherit; font-variant-numeric: tabular-nums; }
+body.learn-page.inflation-page .in-field input[type="range"] { padding: 9px 0; accent-color: var(--learn-navy); }
+body.learn-page.inflation-page .in-field input:focus-visible,
+body.learn-page.inflation-page .in-quiz summary:focus-visible { outline: 2px solid var(--learn-navy); outline-offset: 3px; }
+body.learn-page.inflation-page .in-output { margin: 14px 0 0; padding: 12px 14px; background: var(--learn-box); border-radius: 10px; color: var(--learn-ink); }
+body.learn-page.inflation-page .in-output strong { font-size: 18px; color: var(--learn-navy); }
+body.learn-page.inflation-page .in-small { font-size: 13px; color: var(--learn-sub); line-height: 1.7; }
+body.learn-page.inflation-page .in-bar-row { display: grid; grid-template-columns: 100px minmax(0, 1fr) 80px; align-items: center; gap: 10px; margin: 10px 0; font-size: 13px; }
+body.learn-page.inflation-page .in-bar-track { overflow: hidden; height: 16px; border-radius: 999px; background: var(--learn-box-deep); }
+body.learn-page.inflation-page .in-bar-fill { display: block; width: 11%; height: 100%; border-radius: inherit; background: var(--learn-navy); transition: width .18s ease; }
+body.learn-page.inflation-page .in-bar-row output { font-variant-numeric: tabular-nums; text-align: right; }
+body.learn-page.inflation-page .in-quiz { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--learn-line); border-radius: 12px; background: var(--learn-surface); }
+body.learn-page.inflation-page .in-quiz summary { cursor: pointer; color: var(--learn-navy); }
+body.learn-page.inflation-page .in-quiz p { margin: 10px 0 2px; }
+body.learn-page.inflation-page .in-mathline { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+body.learn-page.inflation-page .in-storyline { border-left: 3px solid var(--learn-navy); padding-left: 14px; margin: 14px 0 18px; }
+body.learn-page.inflation-page .in-note-list li { margin-bottom: 10px; }
+body.learn-page.inflation-page .in-fig-legend { font-size: 12px; color: var(--learn-sub); margin-top: 8px; }
+@media (max-width: 640px) {
+  body.learn-page.inflation-page .in-toc { columns: 1; }
+  body.learn-page.inflation-page .in-facts { grid-template-columns: 1fr; }
+  body.learn-page.inflation-page .in-fields { grid-template-columns: 1fr; }
+  body.learn-page.inflation-page .in-bar-row { grid-template-columns: 65px minmax(0, 1fr) 65px; gap: 6px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.learn-page.inflation-page .in-bar-fill { transition: none; }
+}
