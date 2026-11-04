@@ -3296,7 +3296,7 @@ html.dark #foreign-flow .ff-story-head { background: var(--dk-card); border-colo
 /* 2026-11-02: 띠 배너형 - 사이트 카드면(흰색)과 가는 위아래 선의 띠가 화면 가로 전체를 채우고, 글은 가운데 고정 폭 안에 둔다(--ff-band-side). */
 html:has(#foreign-flow .ff-wide-stage) { overflow-x: clip; }
 #foreign-flow .ff-wide-stage { --ff-band-side: max(64px, calc((100% - 1180px) / 2)); width: 100vw; margin-left: calc(50% - 50vw); box-sizing: border-box; }
-#foreign-flow .ff-wide-track { display: flex; align-items: stretch; gap: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: grab; }
+#foreign-flow .ff-wide-track { display: flex; align-items: stretch; gap: var(--ui-section-gap); padding: 4px calc(var(--ui-card-padding) / 2) 10px; scroll-padding-inline: calc(var(--ui-card-padding) / 2); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: grab; }
 #foreign-flow .ff-wide-track::-webkit-scrollbar { display: none; }
 #foreign-flow .ff-wide-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 #foreign-flow .ff-wide-track .ff-wide { flex: 0 0 100%; scroll-snap-align: start; }
@@ -3313,6 +3313,9 @@ html.dark #foreign-flow .ff-wide-dots button.is-on { background: var(--dk-text);
 html.dark #foreign-flow .ff-wide-pause::before { border-color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-pause.is-paused::before { background: var(--dk-text); }
 #foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 22px var(--ff-band-side) 40px; border-radius: var(--ui-radius-card, 14px); background: var(--ui-clear-sheen), var(--ui-clear-surface); border: 1px solid var(--ui-clear-edge); box-shadow: var(--ui-clear-shadow); -webkit-backdrop-filter: var(--ui-clear-filter); backdrop-filter: var(--ui-clear-filter); box-sizing: border-box; }
+/* Static, masked rim: two fine reflective edges, no layer across chart/text or hit targets. */
+#foreign-flow .ff-wide::before { content: ""; position: absolute; inset: 1px; padding: 2px; border-radius: inherit; background: var(--ui-clear-rim); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+#foreign-flow .ff-wide::after { content: ""; position: absolute; inset: 5px; border: 1px solid transparent; border-top-color: var(--ui-clear-inner-edge); border-bottom-color: var(--ui-clear-inner-shade); border-radius: calc(var(--ui-radius-card, 14px) - 5px); box-shadow: inset 0 7px 9px -9px rgba(85,105,126,.5), inset 0 -7px 9px -9px rgba(85,105,126,.3); pointer-events: none; }
 #foreign-flow .ff-wide-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 44px; align-items: start; }
 #foreign-flow .ff-wide-lead { position: relative; z-index: 1; padding-right: 44px; }
 /* 카드 안에는 구분선을 쓰지 않는다(여백으로만 나눈다). 글자 크기는 모두 제목(--ui-title-size)보다 작게. */
@@ -3400,7 +3403,7 @@ html.dark #foreign-flow .ff-wide-legend .is-close { color: var(--dk-text); }
   #foreign-flow .ff-wide-row > div + div { padding-left: 12px; }
   #foreign-flow .ff-wide-plot { height: 230px; }
   #foreign-flow .ff-wide-axis { flex-wrap: wrap; }
-  #foreign-flow .ff-wide-legend { order: -1; flex-basis: 100%; }
+  #foreign-flow .ff-wide-legend { order: -1; flex-basis: 100%; column-gap: 6px; }
 }
 html.dark #foreign-flow .ff-story-nav { background: var(--dk-card); color: var(--dk-text); }
 
