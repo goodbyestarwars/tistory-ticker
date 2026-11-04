@@ -70,7 +70,8 @@
 
 - `js/css/data/style.css`는 master → Pages, `scripts/cloud-vm`은 master → VM 자동 배포다.
   종목 스토리 정적 자료(`data/stock-stories.js`, `data/stories/`)는 VM 코드·재스캔 감시에서 제외한다.
-  스토리 자동 갱신은 `.github/workflows/stock-stories-fortnightly.yml`의 격주 일요일 10:00 KST이며, 키움 자격증명은 GitHub Actions secrets에서만 읽는다.
+  종목 스토리 수집·생성은 **Oracle 서버의 기존 비공개 키**로만 수행한다. GitHub Actions·Secrets·로그·커밋에 키움 인증정보를 전달하거나 복제하지 않는다.
+  격주 일요일 10:00 KST 갱신은 Oracle 서버 Claude Code가 설치·검증하는 systemd 타이머가 소유하며, GitHub에는 검증된 공개 카드 JS만 배포한다. 구체적 설치·검증 절차는 `docs/ORACLE_STOCK_STORY_REFRESH.md`를 따른다.
   `gas/`는 master → Actions/clasp(설정 없으면 수동)다. 작업 브랜치 push는 운영 배포가 아니다.
 - `skin.html` 마크업은 Tistory 관리자 수동 반영이다. HTML로 해결할 문제에 새 런타임 우회를
   만들지 않고 `docs/SKIN_HTML_PENDING.md`에 기록한다. 기존 우회는 실제 반영 확인 전 보존한다.
