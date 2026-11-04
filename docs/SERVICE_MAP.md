@@ -150,7 +150,7 @@
 | **VM FastAPI 내부 스레드** `morning-briefing` | **국내 거래일 07:00**부터(미확정이면 개장 전 5분·장중 30분 재시도, 15:30 뒤 중단) | 미국 마감 지표·야간선물 → `morning_briefing`(거래일당 확정 1회, 별도 systemd 타이머 아님·재시작 후 DB에서 이어서 재시도) |
 | **VM FastAPI 내부 스레드** `ai-comments` | 시작 90초 뒤부터 장중·마감 후 2분 / 그 밖 5분마다 **점검**(호출은 코멘트 서명이 바뀐 카드가 있을 때만, 묶음별 최소 간격·일 상한) | 사실 계산 → GAS→Groq → 검증 → `ai_comments`(별도 systemd 타이머 아님, 재시작해도 DB 유지). 상태 `/health/ai-comments`, 미배포 GAS면 실패 기록 후 코멘트 칸만 빈다 |
 | **VM/FastAPI 경량 폴러** | 기능별 장중 수초~분/장외 느린 주기 | WS, 호가, 랭킹, 뉴스, 환율 등. 별도 systemd 타이머가 아니라 `market_clock.py`/모듈 내부 주기 |
-| **Google VM** `autotrader-live` (구 Windows PC `AutotraderLiveTrading`; 2026-10-30 인계서 기준 VM `autotrader-live.timer`, `Restart=no`) | **거래일 08:55 예약** | 기존 실거래 runner + 9Pay 장중 A/B 피드, 보유·미체결·예산 검사 → 승인된 계좌만 주문 가능 |
+| **Google VM** `autotrader-live` (구 Windows PC `AutotraderLiveTrading`, VM `autotrader-live.timer`, `Restart=no`) | **거래일 08:55 예약, 14:00 자동 종료** | 기존 실거래 Runner + 9Pay A/B 피드. 웹 수동 중지 시 `MANUAL_STOP`으로 봇·엔진 주문을 지속 차단하고 웹 시작 명령만 재무장한다(실제 VM sudoers·장부 확인 별도) |
 | **Google VM** `autotrader-bot` (구 PC `AutotraderBot`) | **5분 간격 감시** | 로컬 봇 실행/관제·토큰 인증 운영센터 API |
 | **Google VM** `autotrader-research` (구 PC `AutotraderResearch`) | **평일 20:15**, 시작 후 **10분 간격** 스캔 완료 감시(~다음 08:15), 로그인 후 1회 | `/pattern-scan` 확정 → 후보 생성 1회·읽기 전용 일봉·연구 모의평가 → PC `research.db`·`status.json` |
 | **Windows PC** `AutotraderCandidates` / `AutotraderLivePaper` | **비활성화**(2026-10-20 현장 확인) | 중복 후보 작업·별도 실모의 예약 실행 금지. 연구 기능 자체는 `AutotraderResearch`에 통합 |
