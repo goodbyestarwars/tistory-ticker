@@ -197,6 +197,12 @@ class ControlTest(unittest.TestCase):
         self.assertEqual(log[0]['account'], 'owner')
         self.assertNotIn('@', str(log))
 
+    def test_hold_file_reported_invalid_is_shown_as_active_like_the_engine(self):
+        self.seed(good(MON, capabilities=['hold'], flags={'hold': {'invalid': True}}))
+        view = ac.public_status(MON)['hold']
+        self.assertTrue(view['active'])
+        self.assertTrue(view['invalid'])
+
 
 if __name__ == '__main__':
     unittest.main()

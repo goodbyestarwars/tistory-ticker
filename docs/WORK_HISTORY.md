@@ -1,3 +1,7 @@
+**2026-11-04 운영센터 보류 표시: 에이전트가 보류 파일 불량을 보고하면 '보류 중'으로 표시**
+
+배경: VM 에이전트·엔진(autotrader-private e4a79c0)이 HOLD_BUY 파일을 읽지 못하거나 깨졌을 때 안전 방향으로 신규 매수를 보류한다. 화면도 같게 보이도록 `autotrader_control.hold_view`가 `flags.hold.invalid`를 활성으로 표시하고 `js/auto-trader.js`가 '보류 파일 확인 필요'를 붙인다. 검증: control 20개·화면 테스트 통과. 배포: master 병합 후 Pages 즉시, Oracle은 평일 20:00 이후.
+
 **2026-11-04 자동매매 운영센터 화면 단순화**
 
 요청: 상태 한 줄·시작/중지·매매내역·로그만. 변경: `js/auto-trader.js`에 상태 한 줄(`statusLine`, 기존 필드 조합·직접 중지(SIGTERM 15)는 장애와 구분)·명령 기록 목록, 기존 상세 칸과 보류 버튼은 접기, `autotrader_control.recent_log`(감사 로그의 최근 명령·계정은 @ 앞만)을 `/autotrader/status.log`로 제공, `css/auto-trader.css` 보강, `test_auto_trader_research_ui`의 허용 명령 목록을 hold/resume 포함으로 갱신(앞선 보류 변경이 깨뜨린 테스트). 검증: control 19개·UI 10개·research UI 8개·주문 JS 통과, 390px/1100px 렌더 가로 넘침 없음. 배포: master 병합 시 Pages/Oracle 반영(Oracle 재시작은 장외). 미완료: 매매내역은 VM 에이전트가 내역을 올려야 채워짐, `stop`이 타이머를 끄는 동작 변경은 에이전트 쪽(작업지시서에 추가).

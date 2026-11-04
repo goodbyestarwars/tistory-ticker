@@ -617,6 +617,7 @@
   // 오늘 신규 매수 보류(당일 한정). 원본은 에이전트가 올린 값이며 날짜가 오늘이 아니면 보류가 아니다.
   function holdLabel(h) {
     if (!h) return '미수신';
+    if (h.invalid) return '보류 중(보류 파일 확인 필요)';
     if (h.active) return '보류 중 (' + String(h.day || '').slice(5).replace('-', '/') + ' 하루만)';
     return h.supported ? '정상(보류 없음)' : '미지원(에이전트 업데이트 필요)';
   }
