@@ -1,7 +1,7 @@
 
 require('./helpers/common_runtime');
 /* 지지·저항 강도·전환(js/chart-sr.js enrichLevel), 거래량 체감 배수(chart-core), 이동평균선 그룹(chart-core),
- * 파동 박스 안 추세선(chart-wave-overlay channelOf) 검증(브라우저 없이). */
+ * 추세선·이탈 판정(chart-wave-overlay trendLinesOf) 검증(브라우저 없이). */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -122,37 +122,44 @@ assert.strictEqual(Core.maStudies(true, ['long']).find((x) => x.key === 'ma224')
 assert.deepStrictEqual(Core.maStudies(false, []).length, 0);
 console.log('moving average groups OK');
 
-// ---- 파동 박스 안 추세선(채널) ----
+// ---- 추세선 + 이탈 판정(chart-wave-overlay trendLinesOf) ----
 require('../js/chart-wave-overlay.js');
 const Wave = globalThis.NineChartWave;
-const upWave = { kind: 'up', start: 0, end: 60, low: 100, high: 160, confirmed: true };
-const lowerOk = [
-  { kind: 'up', start: 0, end: 15, low: 100, high: 125 }, { kind: 'down', start: 15, end: 25, high: 125, low: 112 },
-  { kind: 'up', start: 25, end: 40, low: 112, high: 140 }, { kind: 'down', start: 40, end: 48, high: 140, low: 128 },
-  { kind: 'up', start: 48, end: 60, low: 128, high: 160 }
-];
-const ch = Wave.channelOf(upWave, lowerOk);
-assert.ok(ch, '채널이 만들어진다');
-assert.ok(ch.upper.m > 0 && ch.lower.m > 0, '상승 파동의 위·아래선은 오른쪽으로 오른다');
-// 위선은 모든 고점 위, 아래선은 모든 저점 아래
-ch.highs.forEach((q) => assert.ok(q.p <= ch.upper.m * q.i + ch.upper.b + 1e-9));
-ch.lows.forEach((q) => assert.ok(q.p >= ch.lower.m * q.i + ch.lower.b - 1e-9));
-assert.strictEqual(Wave.channelOf(upWave, [{ kind: 'up', start: 0, end: 60, low: 100, high: 160 }]), null, '아래 규모 점이 2개 미만이면 선을 긋지 않는다');
-assert.strictEqual(Wave.channelOf({ kind: 'side', isBox: true, start: 0, end: 60 }, lowerOk), null, '횡보 박스는 선을 긋지 않는다');
-assert.strictEqual(Wave.channelOf(upWave, []), null);
-// 하락 파동
-const downWave = { kind: 'down', start: 0, end: 60, high: 160, low: 100, confirmed: false };
-const lowerDown = [
-  { kind: 'down', start: 0, end: 15, high: 160, low: 140 }, { kind: 'up', start: 15, end: 25, low: 140, high: 152 },
-  { kind: 'down', start: 25, end: 45, high: 152, low: 118 }, { kind: 'up', start: 45, end: 52, low: 118, high: 128 },
-  { kind: 'down', start: 52, end: 60, high: 128, low: 100 }
-];
-const chd = Wave.channelOf(downWave, lowerDown);
-assert.ok(chd && chd.upper.m < 0 && chd.lower.m < 0 && chd.confirmed === false);
-// 박스 밖 점은 쓰지 않는다
-const outside = Wave.channelOf({ kind: 'up', start: 20, end: 40, low: 110, high: 140, confirmed: true }, lowerOk);
-outside && outside.lows.concat(outside.highs).forEach((q) => assert.ok(q.i >= 20 && q.i <= 40));
-console.log('wave channel OK');
+// 상승 추세: 저점 100→(i=10)110→(i=20)120→(i=30)130 (기울기 1/봉), 고점은 저점 +15. 저점 허용 오차 안에서 어긋난 점 포함.
+function mkBars(n, lowAt, closeAt) {
+  const out = [];
+  for (let i = 0; i < n; i++) { const lo = lowAt(i), c = closeAt(i); out.push({ date: 'd' + i, open: c, high: c + 3, low: lo, close: c, volume: 1 }); }
+  return out;
+}
+const lowOf = (i) => 100 + i;                       // 추세선 y = 100 + i
+const upBars = mkBars(60, (i) => lowOf(i) - 0.5, (i) => lowOf(i) + 8);
+const lowPivots = [{ kind: 'down', start: 0, end: 10, high: 118, low: 110.4 }, { kind: 'up', start: 10, end: 15, low: 110.4, high: 124 },
+  { kind: 'down', start: 15, end: 20, high: 124, low: 120.3 }, { kind: 'up', start: 20, end: 25, low: 120.3, high: 134 },
+  { kind: 'down', start: 25, end: 30, high: 134, low: 129.2 }, { kind: 'up', start: 30, end: 45, low: 129.2, high: 150 }];
+let r = Wave.trendLinesOf(upBars, [], lowPivots);
+assert.ok(r.up && r.up.m > 0, '상승 추세선이 만들어진다');
+assert.ok(r.up.touches.length >= 3 && r.up.solid, '허용 오차 안의 저점 3개 이상 → 실선');
+assert.strictEqual(r.up.breakIndex, -1, '이탈 없음');
+// 기울기가 같은 선이 아니라 각 저점에 붙는지: 지나는 선과 저점 차이가 1.5% 이내
+r.up.touches.forEach((q) => assert.ok(Math.abs(q.p - (r.up.m * q.i + r.up.b)) <= Math.max(1.5, 0.015 * q.p) + 1e-9));
+// 이탈: 45봉 뒤 종가가 선 아래로 2봉 연속 크게 벗어난다
+const brokenBars = mkBars(60, (i) => i < 46 ? lowOf(i) - 0.5 : lowOf(i) - 12, (i) => i < 46 ? lowOf(i) + 8 : lowOf(i) - 10);
+r = Wave.trendLinesOf(brokenBars, [], lowPivots);
+assert.ok(r.up && r.up.breakIndex >= 46, '2봉 연속 종가 이탈 → 추세 이탈');
+// 하루만 뚫고 복귀하면 이탈이 아니다
+const oneDay = mkBars(60, (i) => lowOf(i) - 0.5, (i) => i === 50 ? lowOf(i) - 10 : lowOf(i) + 8);
+r = Wave.trendLinesOf(oneDay, [], lowPivots);
+assert.ok(r.up && r.up.breakIndex === -1, '하루 이탈은 무시');
+// 하락 추세: 고점 끼리 내려오는 선은 down(파란색 쪽)
+const downBars = mkBars(60, (i) => 200 - i - 8, (i) => 200 - i - 5);
+const highPivots = [{ kind: 'up', start: 0, end: 10, low: 195, high: 190 }, { kind: 'down', start: 10, end: 15, high: 190, low: 180 },
+  { kind: 'up', start: 15, end: 20, low: 180, high: 180.2 }, { kind: 'down', start: 20, end: 25, high: 180.2, low: 170 },
+  { kind: 'up', start: 25, end: 30, low: 170, high: 170.4 }, { kind: 'down', start: 30, end: 45, high: 170.4, low: 150 }];
+r = Wave.trendLinesOf(downBars, [], highPivots);
+assert.ok(r.down && r.down.m < 0 && r.down.touches.length >= 3, '하락 추세선(고점끼리)');
+assert.strictEqual(Wave.trendLinesOf(upBars.slice(0, 10), [], lowPivots).up, null, '봉이 너무 적으면 긋지 않는다');
+assert.strictEqual(Wave.trendLinesOf(upBars, [], []).up, null, '극점이 없으면 긋지 않는다');
+console.log('wave trendline OK');
 
 // ---- RSI 다이버전스(js/chart-divergence.js) ----
 require('../js/chart-divergence.js');

@@ -23,8 +23,6 @@
     wide: { stroke: '#7c6f9a', fill: 'rgba(124,111,154,.10)', label: '변동성 큰 박스권' },
     unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
   };
-  var CHANNEL_COLOR = { up: '#d62524', down: '#1558c9' };   // 추세선(채널)은 박스 색보다 진하게
-  var TREND_TIP = '박스 안의 한 단계 아래 규모 고점끼리·저점끼리 이은 선(채널). 아래 규모 점이 2개 미만이거나 소파동·횡보 박스는 선을 긋지 않습니다. 진행 중 박스의 선은 점선입니다. 관찰용이며 매수·매도 신호가 아닙니다.';
   var TIP = '실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다.';
 
   // ---- 분석 결과 캐시(페이지 안의 모든 차트가 공유) ----
@@ -67,7 +65,7 @@
     var lowerName = lv === 'major' ? 'medium' : (lv === 'medium' ? 'minor' : null);
     return {
       level: lv,
-      lower: lowerName ? (result.levels[lowerName] || []) : [],   // 추세선(채널)을 긋는 재료: 한 단계 아래 규모의 모든 파동(가려진 것 포함)
+      lower: lowerName ? (result.levels[lowerName] || []) : [],   // 추세선 재료(스윙 고점·저점): 한 단계 아래 규모의 모든 파동(가려진 것 포함)
       waves: (result.levels[lv] || []).filter(function (w) { return !w.suppressed; }),
       parents: parentName ? (result.levels[parentName] || []).filter(function (w) { return !w.suppressed; }) : [],
       summary: result.state ? result.state.summaryText : ''
@@ -113,7 +111,7 @@
         var chk = event.target && event.target.matches && event.target.matches('[data-wave-trend]') ? event.target : null;
         if (!chk) return;
         state.trend = chk.checked;
-        onChange('trend');   // 분석은 그대로, 채널만 다시 그린다
+        onChange('trend');   // 분석은 그대로, 추세선만 다시 그린다
       };
       box.onclick = function (event) {
         var btn = event.target.closest ? event.target.closest('[data-wave-level]') : null;
@@ -126,39 +124,82 @@
     return { sync: sync };
   }
 
-  // ---- 박스 안 추세선(채널) ----
-  // 상승·하락 파동 하나(wave)에 대해, 그 안에 들어 있는 한 단계 아래 규모의 확정·진행 중 고점·저점으로 위선·아래선을 긋는다.
-  // 위선은 모든 고점 위를, 아래선은 모든 저점 아래를 지나는 최소제곱선이라 두 선이 평행하지 않아도 된다(쐐기·확장 그대로).
-  // 박스에 고점·저점이 각각 2개 미만이면 선을 긋지 않는다(null). 계산은 이미 정해진 파동 정보만 쓰며 새 봉을 보지 않는다.
-  function fitLine(points, above) {
-    var n = points.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
-    points.forEach(function (q) { sx += q.i; sy += q.p; sxx += q.i * q.i; sxy += q.i * q.p; });
-    var d = n * sxx - sx * sx;
-    var m = d === 0 ? 0 : (n * sxy - sx * sy) / d;
-    var b = above ? -Infinity : Infinity;
-    points.forEach(function (q) { var r = q.p - m * q.i; b = above ? Math.max(b, r) : Math.min(b, r); });
-    return { m: m, b: b };
+  // ---- 추세선 + 이탈 판정 ----
+  // 상승 추세는 스윙 저점끼리, 하락 추세는 스윙 고점끼리 잇는 한 줄이다(상승 붉은색·하락 파란색). 저점·고점이 딱 붙을 필요는 없고
+  // 변동성(ATR14) 기준 허용 오차 안이면 "닿았다"고 센다. 닿음 3회 이상이면 확정선(실선), 2회는 잠정선(점선).
+  // 종가가 선에서 이탈 허용치 넘게 벗어난 봉이 2봉 연속이면 추세 이탈, 이탈 뒤 직전 스윙 극점까지 깨면 추세 전환이다.
+  // 파동 엔진 결과는 바꾸지 않고 이미 정해진 고점·저점만 읽는다. 허용치는 아래 상수 한 곳에서 조정한다.
+  var TREND = { atrPeriod: 14, touchAtr: 0.5, touchPct: 0.015, breakAtr: 1, breakPct: 0.025, breakBars: 2, minTouches: 2, solidTouches: 3, maxPivots: 8, staleBars: 120 };
+  var TREND_COLOR = { up: '#d62524', down: '#1558c9' };
+  var TREND_TIP = '상승 추세는 스윙 저점끼리(붉은색), 하락 추세는 스윙 고점끼리(파란색) 이은 선입니다. 변동성(ATR) 안쪽으로 닿으면 같은 선으로 보고, 닿음 3회 이상은 실선·2회는 점선입니다. 종가가 허용치 넘게 2봉 연속 벗어나면 추세 이탈, 직전 극점까지 깨면 추세 전환으로 표시합니다. 관찰용이며 매수·매도 신호가 아닙니다.';
+
+  function atrAt(bars, i) {
+    var n = TREND.atrPeriod, from = Math.max(1, i - n + 1), sum = 0, cnt = 0;
+    for (var k = from; k <= i; k++) {
+      var b = bars[k], pc = bars[k - 1].close;
+      var tr = Math.max(b.high - b.low, Math.abs(b.high - pc), Math.abs(b.low - pc));
+      if (isFinite(tr)) { sum += tr; cnt++; }
+    }
+    return cnt ? sum / cnt : 0;
   }
-  function channelOf(wave, lowerWaves) {
-    if (!wave || wave.isBox || (wave.kind !== 'up' && wave.kind !== 'down') || !lowerWaves || !lowerWaves.length) return null;
-    var seen = {}, lows = [], highs = [];
+  // 한 방향(up=저점 추세선, down=고점 추세선)의 가장 좋은 선 하나. 점은 {i, p}, 오래된 순.
+  function bestTrend(bars, pivots, dir) {
+    var last = bars.length - 1, atr = atrAt(bars, last), best = null;
+    var pts = pivots.slice(-TREND.maxPivots);
+    function tol(price, atrMul, pct) { return Math.max(atrMul * atr, pct * price); }
+    for (var x = 0; x < pts.length; x++) for (var y = x + 1; y < pts.length; y++) {
+      var A = pts[x], B = pts[y];
+      if (B.i - A.i < 3) continue;
+      var m = (B.p - A.p) / (B.i - A.i);
+      if (dir === 'up' ? m <= 0 : m >= 0) continue;
+      function at(i) { return A.p + m * (i - A.i); }
+      // 이탈 봉: 종가가 선 아래(상승)·위(하락)로 허용치 넘게 breakBars 연속
+      var breakIdx = -1, run = 0;
+      for (var i = A.i; i <= last; i++) {
+        var gap = dir === 'up' ? at(i) - bars[i].close : bars[i].close - at(i);
+        if (gap > tol(at(i), TREND.breakAtr, TREND.breakPct)) { run++; if (run >= TREND.breakBars) { breakIdx = i; break; } } else run = 0;
+      }
+      var lastOk = breakIdx < 0 ? last : breakIdx - TREND.breakBars;   // 이탈 직전까지만 선의 유효 구간
+      if (lastOk < B.i) continue;                                         // 두 번째 점에 닿기 전에 이미 깨진 선은 버린다
+      var touches = [];
+      pts.forEach(function (q) {
+        if (q.i < A.i || q.i > lastOk) return;
+        if (Math.abs(q.p - at(q.i)) <= tol(q.p, TREND.touchAtr, TREND.touchPct)) touches.push(q);
+      });
+      if (touches.length < TREND.minTouches) continue;
+      if (breakIdx >= 0 && last - breakIdx > TREND.staleBars) continue;   // 오래전에 끝난 선은 보이지 않는다
+      var cand = { dir: dir, m: m, b: A.p - m * A.i, start: A.i, end: last, touches: touches, solid: touches.length >= TREND.solidTouches,
+                   breakIndex: breakIdx, reversed: false, reversalIndex: -1, lastTouch: touches[touches.length - 1].i };
+      // 점수: 닿음 수 → 최근에 닿은 정도 → 긴 구간 순. 깨진 선보다 살아 있는 선을 우선한다.
+      cand.score = (breakIdx < 0 ? 1e6 : 0) + touches.length * 1e4 + cand.lastTouch * 10 + (cand.end - cand.start) * 0.001;
+      if (!best || cand.score > best.score) best = cand;
+    }
+    if (best && best.breakIndex >= 0) {
+      // 추세 전환: 이탈 전 마지막 반대편 스윙 극점(상승선이면 직전 저점, 하락선이면 직전 고점)을 이후 종가가 넘어선 봉
+      var ref = null;
+      pts.forEach(function (q) { if (q.i <= best.breakIndex && (!ref || q.i > ref.i)) ref = q; });
+      if (ref) for (var j = best.breakIndex; j <= last; j++) {
+        if (dir === 'up' ? bars[j].close < ref.p : bars[j].close > ref.p) { best.reversed = true; best.reversalIndex = j; break; }
+      }
+    }
+    return best;
+  }
+  function trendLinesOf(bars, waves, lowerWaves) {
+    if (!bars || bars.length < 20) return { up: null, down: null };
+    var lows = [], highs = [], seen = {};
     function add(i, p, type) {
-      if (i < wave.start || i > wave.end || !isFinite(p)) return;
       var k = type + i;
-      if (seen[k]) return;
+      if (seen[k] || !isFinite(p) || i < 0 || i >= bars.length) return;
       seen[k] = true;
       (type === 'L' ? lows : highs).push({ i: i, p: p });
     }
-    // 이 파동 자신의 양 끝도 점으로 쓴다(한 단계 아래 규모의 점과 겹치면 한 번만 센다).
-    if (wave.kind === 'up') { add(wave.start, wave.low, 'L'); add(wave.end, wave.high, 'H'); }
-    else { add(wave.start, wave.high, 'H'); add(wave.end, wave.low, 'L'); }
-    lowerWaves.forEach(function (w) {
-      if (w.isBox || (w.kind !== 'up' && w.kind !== 'down')) return;
+    (lowerWaves || []).concat(waves || []).forEach(function (w) {
+      if (!w || w.isBox || (w.kind !== 'up' && w.kind !== 'down')) return;
       if (w.kind === 'up') { add(w.start, w.low, 'L'); add(w.end, w.high, 'H'); }
       else { add(w.start, w.high, 'H'); add(w.end, w.low, 'L'); }
     });
-    if (lows.length < 2 || highs.length < 2) return null;
-    return { kind: wave.kind, start: wave.start, end: wave.end, confirmed: !!wave.confirmed, upper: fitLine(highs, true), lower: fitLine(lows, false), lows: lows, highs: highs };
+    var byIndex = function (a, b) { return a.i - b.i; };
+    return { up: bestTrend(bars, lows.sort(byIndex), 'up'), down: bestTrend(bars, highs.sort(byIndex), 'down') };
   }
 
   // ---- 그리기(오버레이 층용) ----
@@ -219,32 +260,44 @@
       // 소파동은 박스가 아주 많아 라벨이 겹치므로 어느 정도 폭이 있을 때만 쓴다.
       if (x2 - lx > (level === 'minor' ? 34 : 12)) ctx.fillText(text, lx, y1 + 3);
     });
-    // 추세선(채널): 박스 안에서만, 박스와 같은 색(상승 빨강·하락 파랑). 진행 중 박스는 점선.
-    if (picked.trend && picked.lower && picked.lower.length) {
-      waves.forEach(function (wave) {
-        var ch = channelOf(wave, picked.lower), st = STYLE[wave.kind], b0 = bars[wave.start], b1 = bars[wave.end];
-        if (!ch || !st || !b0 || !b1) return;
-        var u0 = view.coord({ time: b0.date, price: ch.upper.m * wave.start + ch.upper.b }), u1 = view.coord({ time: b1.date, price: ch.upper.m * wave.end + ch.upper.b });
-        var l0 = view.coord({ time: b0.date, price: ch.lower.m * wave.start + ch.lower.b }), l1 = view.coord({ time: b1.date, price: ch.lower.m * wave.end + ch.lower.b });
-        if (!u0 || !u1 || !l0 || !l1) return;
-        if (Math.max(u0.x, u1.x, l0.x, l1.x) < 0 || Math.min(u0.x, u1.x, l0.x, l1.x) > view.width) return;
-        // 선이 박스 밖으로 나가 보이지 않게 박스 안으로 자른다(기울기 때문에 한쪽 끝이 박스 위·아래를 넘을 수 있다).
-        var box = rectOf(wave) || { x1: 0, y1: 0, x2: view.width, y2: view.height };
+    // 추세선: 상승 추세(저점끼리) 붉은색·하락 추세(고점끼리) 파란색. 현재 봉까지 이어 그리고, 이탈한 뒤는 점선으로 바꾼다.
+    if (picked.trend) {
+      if (!picked._trend || picked._trendBars !== bars.length) { picked._trend = trendLinesOf(bars, picked.waves, picked.lower); picked._trendBars = bars.length; }
+      ['up', 'down'].forEach(function (dir) {
+        var t = picked._trend[dir];
+        if (!t) return;
+        var color = TREND_COLOR[dir];
+        function pt(i) { return view.coord({ time: bars[i].date, price: t.m * i + t.b }); }
+        var p0 = pt(t.start), p1 = pt(t.end);
+        if (!p0 || !p1 || Math.max(p0.x, p1.x) < 0 || Math.min(p0.x, p1.x) > view.width) return;
+        var brk = t.breakIndex >= 0 ? pt(t.breakIndex) : null;
         ctx.save();
-        ctx.beginPath(); ctx.rect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1); ctx.clip();
-        ctx.strokeStyle = CHANNEL_COLOR[wave.kind] || st.stroke;   // 박스 테두리보다 진한 색·굵은 선(2026-10-22 사용자 요청)
-        ctx.lineWidth = 2.6;
-        ctx.setLineDash(ch.confirmed ? [] : [8, 4]);
-        ctx.beginPath(); ctx.moveTo(u0.x, u0.y); ctx.lineTo(u1.x, u1.y); ctx.moveTo(l0.x, l0.y); ctx.lineTo(l1.x, l1.y); ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.strokeStyle = color; ctx.lineWidth = 2.6;
+        // 살아 있는 구간: 확정선은 실선, 잠정선(닿음 2회)은 점선. 이탈 이후 구간은 옅은 점선.
+        var liveEnd = brk || p1;
+        ctx.setLineDash(t.solid ? [] : [8, 4]);
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(liveEnd.x, liveEnd.y); ctx.stroke();
+        if (brk) {
+          ctx.globalAlpha = 0.5; ctx.setLineDash([3, 5]);
+          ctx.beginPath(); ctx.moveTo(brk.x, brk.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        }
         ctx.restore();
-        [[u0, u1], [l0, l1]].forEach(function (pair) {
-          pair.forEach(function (pt) {
-            if (pt.x < box.x1 || pt.x > box.x2 || pt.y < box.y1 || pt.y > box.y2) return;
-            ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.6, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff'; ctx.fill();
-            ctx.strokeStyle = CHANNEL_COLOR[wave.kind] || st.stroke; ctx.lineWidth = 2; ctx.stroke();
-          });
+        t.touches.forEach(function (q) {
+          var tp = view.coord({ time: bars[q.i].date, price: q.p });
+          if (!tp || tp.x < 0 || tp.x > view.width) return;
+          ctx.beginPath(); ctx.arc(tp.x, tp.y, 3.6, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff'; ctx.fill();
+          ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+        });
+        var marks = [];
+        if (t.breakIndex >= 0) marks.push({ i: t.breakIndex, text: '추세 이탈 ' + (dir === 'up' ? '▼' : '▲') });
+        if (t.reversed) marks.push({ i: t.reversalIndex, text: '추세 전환' });
+        marks.forEach(function (mk) {
+          var mp = view.coord({ time: bars[mk.i].date, price: t.m * mk.i + t.b });
+          if (!mp || mp.x < 0 || mp.x > view.width) return;
+          ctx.font = '700 11px ' + font; ctx.fillStyle = color; ctx.textBaseline = dir === 'up' ? 'top' : 'bottom';
+          var w = ctx.measureText(mk.text).width, tx = Math.min(Math.max(mp.x - w / 2, 2), Math.max(2, view.width - w - 2));
+          ctx.fillText(mk.text, tx, mp.y + (dir === 'up' ? 6 : -6));
         });
       });
     }
@@ -388,7 +441,7 @@
   global.NineChartWave = {
     LEVELS: LEVELS, LEVEL_NAME: LEVEL_NAME, STYLE: STYLE, TIP: TIP,
     analysis: analysis, pickLevel: pickLevel, fingerprintOf: fingerprintOf,
-    levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, channelOf: channelOf, attach: attach, activeMajor:activeMajor, majorTooltipHtml:majorTooltipHtml,
+    levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, trendLinesOf: trendLinesOf, attach: attach, activeMajor:activeMajor, majorTooltipHtml:majorTooltipHtml,
     _cache: getCache
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartWave;
