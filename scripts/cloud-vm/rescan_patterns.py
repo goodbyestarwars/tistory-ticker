@@ -184,6 +184,11 @@ def main():
         existing.setdefault('universe', len(codes))
 
     daily_scan_cache.update(_apply)
+    try:
+        import shape_scan
+        shape_scan.refresh()
+    except Exception as error:
+        log('모양 후보 재계산 실패(기존 신호/후보 보존): %s' % type(error).__name__)
     log('저장 완료: %s (패턴 %d / 눌림목 %d / 전체 %d, investSignal 섹션은 기존 값 유지)'
         % (OUTPUT_FILE, pattern_scanned, pullback_scanned, len(codes)))
 

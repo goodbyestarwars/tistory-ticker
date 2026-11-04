@@ -2916,7 +2916,10 @@ def _build_pattern_scan():
     pullback_scan = data.get('pullbackScan') or {}
     patterns = pattern_scan.get('patterns') or {}
     long_term_items, long_term_summary = pattern_detect.validated_long_term_snapshot(pattern_scan)
+    import shape_scan
+    shape_selection = shape_scan.public_snapshot(data.get('shapeSelection'), basis=data.get('dataDate'))
     return {
+        'shapeSelection': shape_selection,
         'scannedAt': data.get('generatedAt'),
         'universe': data.get('universe') or 0,
         'scanned': pattern_scan.get('scanned') or 0,

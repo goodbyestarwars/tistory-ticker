@@ -539,3 +539,8 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 - 신규 필드가 아직 운영 서버에 없으면 홈은 거래대금확인중으로 표시하며 기존거래량을 거래대금으로 재표기하지 않는다. 거래량참여도는기존 공급자/기준으로 따로표시한다. 상세 검증/배포 경계: `docs/DOMESTIC_TURNOVER.md`.
 
 국내 `/domestic-quotes`는 기존 필드에 `market_state`(regular/pre/post/closed), `price_session`, `quote_time`(공급자 ISO 체결시각)을 추가한다. `time`은 기존 조회시각 계약을 유지한다. NXT는 공급자 tradingSessionType/overMarketStatus를 사용하며 정규장 경계는 15:30이다.
+
+
+## 모양 기준 공개 후보 (2026-11-05)
+
+`GET /pattern-scan`에 `shapeSelection`을 추가한다. `null`은 새 선정 스냅샷 미준비/구버전/만료/기준일 불일치다. 유효하면 `{version:'shape-selection-v1',mode:'observation',orderAuthorized:false,status:'ok',scannedAt,dataDate,coverage:{universe,eligible,skipped},groups:{liveFlow,trendBreakout,bottomFormation,pullbackRebreak,longTermQuality}}`다. 각 그룹은 기존 종목 행 형식이며 `patternDetail`에 `selectionVersion`, `observationOnly:true`, `orderAuthorized:false`, `shapeLabel`, `shape`, `windowBars`, 지지/저항·이유가 있다. 확정/주문 필드는 생성하지 않는다. 장기는 기존 재무 관문을 통과하고 공개 시 만료를 재검사한다. 기존 `patterns`와 실시간 A/B·신호 피드·이력은 보존한다. 상세: [검색기 선정 기준](docs/SCANNER_FIVE_GROUPS_2026-10-19.md).

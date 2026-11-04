@@ -22,7 +22,7 @@
   (`chart-data`, `chart-drawing`, `chart-wave-overlay`, `chart-sr` 등), 호가는 `js/order-book.js`,
   추세선은 같은 `chart-wave-overlay`에서 선택 규모의 숨겨진 방향 파동까지 구간별로 분석한다. 국소 채널은 양쪽 경계 접점을 검증하고 과거 구간 끝에서 멈추며, `up/down` 호환값과 `lines` 목록을 함께 유지한다. 추세선은 공통 `auto-wave.shapeOf`의 방향 일관성과 접점 분포를 먼저 본다. 기본 15봉 기준보다 짧아도 형태가 뚜렷한 12~14봉 구간은 허용하고, 길어도 방향이 불명확한 잡음은 제외한다.  최근 5봉 이내까지 이어진 유효 구간은 현재 봉까지 검증한 뒤 5봉 앞을 점선으로 투영한다. 진행 구간의 최근 2봉은 경계 적합에서 분리해 이탈을 검증한다.
   눌림목은 `auto-wave.js`가 기존 상승·조정 파동에 계산 메타데이터를 붙이고 `chart-wave-overlay`가 공통 라벨을 표시한다. 후보/확정을 구분하며 확정 시점 이후 데이터로 과거 판정을 바꾸지 않는다. 기준은 `docs/AUTO_WAVE_VALIDATION_2026-10-13.md`를 따른다.
-  검색기 5개 메뉴도 같은 `shapeOf`로 기존 결과의 최근 20일 종가 모양을 평가해 같은 상태 안에서 정렬·설명한다. 원래 포착·확정·재무·주문 판정을 이 보조 순위로 대체하지 않는다.
+  검색기 5개 메뉴의 기본 후보는 공통 `auto-wave.selectShapesOf`로 전체 저장 일봉의 OHLCV 모양에서 새로 선정한다. `shape_scan.py`가 기존 DB·캐시·원자 저장을 재사용하며 Node 배치 1회로 같은 JS 엔진을 실행한다. 공개 `/pattern-scan.shapeSelection`은 관찰 전용(`orderAuthorized=false`)이고 기존 `patterns`·확정 신호·이력·주문 피드는 보존한다. 종목 유형·최신 일봉·유동성·장기 재무 관문은 유지한다.
   표는 `js/indicator-board.js`, 입력 효과/캐러셀은 `js/site-interactions.js`를 먼저 확인한다.
 - 공통 진입점 `js/skin-shell.js`의 `NineHttp.json`(전송)·`NineAPI`(정식 경로/공통 계약/fallback)·
   `NineUI`(포맷/로딩)를 재사용한다. 화면별 transport를 새로 만들지 않고 특수 단위·표시는 호출부가 소유한다.

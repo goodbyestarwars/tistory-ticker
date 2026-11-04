@@ -21,7 +21,7 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var PATTERN_SCRIPT_URL = document.currentScript && document.currentScript.src;
-  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261105-shape-context', PATTERN_SCRIPT_URL).href
+  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261105-shape-selection', PATTERN_SCRIPT_URL).href
     : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-rounded-labels1';
   var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
@@ -201,14 +201,14 @@
   };
   // Original descriptors/detectors remain available; only the menu is consolidated.
   var MENU_TABS = [
-    {key:'liveFlow',label:'실시간 거래량·수급',sources:['ninepayLive','volumeBreakout']},
+    {key:'liveFlow',label:'거래량·가격 회복',sources:['ninepayLive','volumeBreakout']},
     {key:'trendBreakout',label:'추세 돌파',sources:['shortTermMaBreakout','angleMomentum']},
     {key:'bottomFormation',label:'바닥 형성',sources:['risingLows','doubleBottom','invHeadShoulders','boxRangeLow']},
     {key:'pullbackRebreak',label:'눌림·재돌파',sources:['pullback','firstPullbackBreakout','gongpasan']},
     {key:'longTermQuality',label:'224일선·구름대 + 재무',sources:['longTermQuality']}
   ];
   function groupFor(key) { return MENU_TABS.filter(function(t){return t.key === key;})[0]; }
-  function sourceLabel(key) { return key === 'longTermQuality' ? '재무 통과 장기 응축/돌파' : ((TABS.filter(function(t){return t.key === key;})[0] || {}).label || key); }
+  function sourceLabel(key) { if(key.indexOf('shape:')===0)return ((groupFor(key.slice(6)) || {}).label || '모양')+' · 모양 선정'; return key === 'longTermQuality' ? '재무 통과 장기 응축/돌파' : ((TABS.filter(function(t){return t.key === key;})[0] || {}).label || key); }
 
   var ninepayData = null, ninepayError = '', ninepayBusy = false, ninepayTimer = null;
   var rootContainer = null;
@@ -456,6 +456,11 @@
   function updateMeta(container) {
     var meta = container.querySelector('#psMeta');
     if (!meta) return;
+    if(trackView==='all' && groupFor(activeTab)) {
+      var selected=shapeSelection();
+      meta.textContent=selected?'모양 기준 전종목 일봉 선정 · 기준일 '+selected.dataDate+' · 계산 '+kstText(selected.scannedAt):'모양 기준 전종목 스캔 대기 · 기존 수치 후보와 구분';
+      return;
+    }
     if (activeTab === 'liveFlow') { meta.textContent = '9Pay 10초 · 거래량 감시 30초 · 일봉/장중 기준은 종목별로 구분'; return; }
     if (activeTab === 'ninepayLive') {
       meta.textContent = '장중 09:00~15:35 감시 · 장초반 거래량 70% 이상 · A OR B';
@@ -1073,6 +1078,9 @@
 
   // patternDetail.status → 목록 배지. 형성 중 / 돌파 준비 / 돌파 확인을 한눈에 가른다(2026-10-15).
   var PATTERN_STATE = {
+    SHAPE_FORMING:{label:'모양 형성 중',tone:'is-form'},
+    SHAPE_REBOUND:{label:'반등 시도 관찰',tone:'is-form'},
+    SHAPE_BREAKOUT:{label:'저항 회복 관찰',tone:'is-form'},
     BREAKOUT_NEW: { label: '돌파 확인', tone: 'is-confirm' },
     BREAKOUT_CONFIRMED: { label: '돌파 확인', tone: 'is-confirm' },
     COMPRESSION_READY: { label: '돌파 준비', tone: 'is-ready' },
@@ -1298,7 +1306,23 @@
         && s.branches.every(function (b) { return b === 'A' || b === 'B'; });
     });
   }
+  function shapeSelection() {
+    var s=scanData && scanData.shapeSelection;
+    return s && s.version==='shape-selection-v1' && s.mode==='observation' && s.orderAuthorized===false &&
+      s.status==='ok' && s.coverage && Number.isFinite(s.coverage.universe) && Number.isFinite(s.coverage.eligible) && s.groups && Array.isArray(s.groups[activeTab]) ? s : null;
+  }
+  function shapeSelectionItems(selection, key) {
+    var now=Date.now(),stamp=Date.parse(selection.scannedAt || '');
+    return (selection.groups[key] || []).map(function(it){
+      var stale=!Number.isFinite(stamp) || now<stamp || now-stamp>36*3600000;
+      return Object.assign({},it,{_observationStale:stale,_observationMissing:!Number.isFinite(stamp)});
+    });
+  }
   function unifiedItems() {
+    if(trackView==='all' && groupFor(activeTab)) {
+      var selected=shapeSelection();
+      return selected ? mergeScannerRows([{key:'shape:'+activeTab,items:shapeSelectionItems(selected,activeTab)}]) : [];
+    }
     var group=groupFor(activeTab), patterns=(scanData && scanData.patterns) || {};
     if(!group)return [];
     return mergeScannerRows(group.sources.map(function(key){
@@ -1388,10 +1412,16 @@
       trendBreakout:'하락추세선 돌파와 이평 기울기 전환을 구분해 본다.',bottomFormation:'저점상승·쌍바닥·역헤드앤숄더·박스권 하단의 모든 충족 상태를 본다.',
       pullbackRebreak:'이평 눌림·첫 눌림 재돌파·급락 후 첫 눌림의 단계별 후보를 함께 본다.',longTermQuality:'224일선·구름대 응축/돌파 중 최근 연간 영업이익·순이익 흑자와 최신 단독분기 비적자를 확인한 기업만 본다.'};
     var shortPurpose={liveFlow:'거래량·수급·재돌파 신호를 종목별로 확인합니다.',trendBreakout:'추세선 돌파와 이평 기울기 전환을 구분합니다.',bottomFormation:'저점상승·쌍바닥 등 바닥 형성 패턴을 함께 봅니다.',pullbackRebreak:'눌림과 재돌파 후보의 진행 단계를 확인합니다.',longTermQuality:'장기 기술 패턴과 재무 건전성을 함께 확인합니다.'};
-    box.innerHTML='<details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
-      +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 최근 일봉 종가의 모양·흐름을 우선 정렬합니다. 현재 검색 결과 안에서의 비교이며 확정·재무·주문 조건을 대신하지 않습니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
+    purpose={liveFlow:'가격 지지 후 거래량이 다시 확장되고 봉이 회복되는 일봉 흐름을 찾습니다.',
+      trendBreakout:'하락 고점 연결 저항 또는 최근 고점 저항을 종가로 회복하는 흐름을 찾습니다.',
+      bottomFormation:'하락 뒤 저점이 반복 지지되고 변동폭이 줄거나 저점이 높아지는 바닥을 찾습니다.',
+      pullbackRebreak:'선행 상승 뒤 조정 거래량·봉 변동폭이 줄고 저점이 유지되는 눌림과 반등을 찾습니다.',
+      longTermQuality:'장기 저점 지지·가격 응축·저항 회복 모양을 먼저 찾고 기존 재무 관문을 확인합니다.'};
+    shortPurpose={liveFlow:'가격 지지·거래량 재확장 모양',trendBreakout:'고점 연결 저항 회복 모양',bottomFormation:'반복 저점 지지·바닥 모양',pullbackRebreak:'상승 뒤 눌림·반등 모양',longTermQuality:'장기 지지·응축 모양 + 재무 확인'};
+    box.innerHTML='<p>기본 후보: 상승·조정·지지·반등, 고점 연결 저항 회복, 바닥 다지기와 변동폭 축소를 함께 평가합니다. 일봉 모양 관찰이며 실시간 매수 신호가 아닙니다.</p><details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
+      +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 최근 일봉 종가의 모양·흐름을 우선 정렬합니다. 기본 후보는 전체 저장 일봉에서 모양으로 새로 선정합니다. 기존 수치 검색 이력과 실시간 A/B·주문 경로는 개별 검색기 기록에서 별도로 유지합니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
       +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
-      +group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
+      +'<p><b>이전 수치 검색 조건 (이력 확인용)</b></p>'+group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
     var history=container.querySelector('#psSourceHistory');
     var keys=group.sources.filter(function(k){return k!=='ninepayLive';});
     if(activeTab==='longTermQuality')keys.push('maCloudBreakout');
@@ -1456,6 +1486,11 @@
     if(it.entryInvalid || stage==='invalidated' || stage==='INVALIDATED')return {key:'expired',reason:'조건 무효화 · 현재 유효 신호 아님'};
     if(it._observationMissing)return {key:'research',reason:'관측 시각 미확인 · 현재 신호 검증 미완료'};
     if(it._observationStale)return {key:'expired',reason:'관측 정보 지연 · 현재 유효 신호 아님'};
+    if(member.key.indexOf('shape:')===0) {
+      if(d.selectionVersion!=='shape-selection-v1' || d.orderAuthorized!==false || d.observationOnly!==true)
+        return {key:'research',reason:'모양 선정 계약 미확인'};
+      return {key:'observation',reason:d.interpretation || '모양으로 새로 선정한 일봉 관찰 후보 · 주문 신호 아님'};
+    }
     var signalMs=Number(it.signalAt)*1000;
     if(member.key==='ninepayLive' && it.signalAt && Number.isFinite(signalMs) && (now-signalMs>10000 || signalMs>now))return {key:'expired',reason:'신호 유효 시간 종료 또는 시각 불일치 · 과거 발생 기록'};
     var reviewMs=Date.parse(review.evaluatedAt || '');
@@ -1470,6 +1505,8 @@
 
   var shapeLoadState='loading';
   function scannerShape(item) {
+    var d=detailFor(item);
+    if(d.selectionVersion==='shape-selection-v1' && d.shape)return Object.assign({},d.shape,{label:d.shapeLabel || d.shape.label});
     var AW=global.AutoWave;
     if(!AW || !AW.shapeOf)return {type:'unknown',label:shapeLoadState==='failed'?'모양 분석을 불러오지 못함':'모양 분석 준비 중',score:0,basis:'최근 일봉 종가'};
     // Do not coerce missing/null closes to zero or silently join gaps.
@@ -1483,7 +1520,7 @@
   }
   function shapeHtml(item) {
     var s=item.chartShape || scannerShape(item);
-    return '<div class="ps-shape-context"><b>'+escapeHtml(s.label)+'</b><br><small>최근 20일 일봉 종가 모양 · 거래량·실시간 흐름은 별도 확인</small></div>';
+    return '<div class="ps-shape-context"><b>'+escapeHtml(s.label)+'</b><br><small>'+escapeHtml(detailFor(item).selectionVersion==='shape-selection-v1'?'일봉 OHLCV 모양 선정 · 기준일 '+(item.dataAsOf || item.date || '미확인'):'최근 20일 일봉 종가 모양 · 거래량·실시간 흐름은 별도 확인')+'</small></div>';
   }
 
   function publicModel(rows,state,now) {
@@ -1505,16 +1542,10 @@
     if(trackView!=='all'){renderLegacyUnifiedList(container);return;}
     ensureTrackMap(container);
     var current=unifiedItems(), group=groupFor(activeTab);
-    var historyEntries=group.sources.reduce(function(out,key){['active','success','failed'].forEach(function(view){var cache=trackedCache['pattern:'+key+'|'+view];if(cache && cache.data)out.push({key:key,items:(cache.data.tracks || []).map(trackToItem)});});return out;},[]);
+    var historyEntries=shapeSelection()?[]:group.sources.reduce(function(out,key){['active','success','failed'].forEach(function(view){var cache=trackedCache['pattern:'+key+'|'+view];if(cache && cache.data)out.push({key:key,items:(cache.data.tracks || []).map(trackToItem)});});return out;},[]);
     var combined=mergeScannerRows(current.reduce(function(out,row){row.members.forEach(function(m){out.push({key:m.key,items:[m.item]});});return out;},[]).concat(historyEntries));
     var model=publicModel(combined,ninepayData,Date.now());
-    var known=group.sources.every(function(key){
-      if(scannerDataState(key)!=='ready')return false;
-      if(key==='ninepayLive')return Array.isArray(ninepayData.items) && Array.isArray(ninepayData.signals) && !ninepayError && !ninepayData.rankError && !ninepayData.persistenceError && !ninepayData.queueDropped && ninepayData.ruleVersion==='ab70-v1';
-      if(key==='volumeBreakout' && liveSurgeInfo && Array.isArray(liveSurgeInfo.items))return !liveSurgeError && !liveSurgeInfo.error;
-      var filter=scanData && scanData.longTermFilter;
-      return !scanError && scanData && scanData.patterns && Array.isArray(scanData.patterns[key]) && (key!=='longTermQuality' || filter && filter.version===1 && (!filter.excluded || Array.isArray(filter.excludedItems)));
-    }) && !current.some(function(row){return row.members.some(function(m){return m.item._observationMissing && !m.item.excluded;});});
+    var selection=shapeSelection(),known=!!selection && !scanError;
     var visible=model.rows.filter(function(r){return publicView==='all'?['confirmed','observation','research'].indexOf(r.publicStatus.key)>=0:r.publicStatus.key===publicView;});
     var countAll=model.counts.confirmed+model.counts.observation+model.counts.research;
     container.querySelectorAll('[data-status]').forEach(function(button){button.setAttribute('aria-pressed',String(button.getAttribute('data-status')===publicView));});
@@ -1525,7 +1556,8 @@
     if(typeof global.CustomEvent==='function')document.dispatchEvent(new global.CustomEvent('scanner-public-state',{detail:global.PatternScan.publicSummary}));
     var list=container.querySelector('#psList');
     detailNavItems=visible;
-    list.innerHTML='<p class="ps-state-meaning">확정은 검색기 검증 충족이며 수익 보장이 아닙니다. 관찰·연구는 매수 지시가 아니며, 과거 돌파 성공은 체결·수익과 별개입니다.<br>집계: 선택한 검색기의 수신 결과·조회된 추적 기록. 전체 과거 이력은 개별 검색기 이력에서 확인합니다.'+(!global.SCANNER_SECURITY_TYPES?' 종목 유형 자료 미수신 · 확인 가능한 유형·이름 기준으로 스팩 제외 중.':'')+'</p>'
+    var selectionCopy=selection?'모양 기준으로 전체 일봉 '+selection.coverage.universe+'종목 중 '+selection.coverage.eligible+'종목을 검사했습니다. 기준일 '+selection.dataDate+' · 기존 수치 검색과 독립 선정 · 일봉 관찰 후보입니다.':'모양 기준 전종목 스캔을 기다리고 있습니다. 기존 수치 검색 결과로 대신 표시하지 않습니다.';
+    list.innerHTML='<p class="ps-state-meaning">'+escapeHtml(selectionCopy)+'</p><p class="ps-state-meaning">확정은 검색기 검증 충족이며 수익 보장이 아닙니다. 관찰·연구는 매수 지시가 아니며, 과거 돌파 성공은 체결·수익과 별개입니다.<br>집계: 선택한 검색기의 수신 결과·조회된 추적 기록. 전체 과거 이력은 개별 검색기 이력에서 확인합니다.'+(!global.SCANNER_SECURITY_TYPES?' 종목 유형 자료 미수신 · 확인 가능한 유형·이름 기준으로 스팩 제외 중.':'')+'</p>'
       + (visible.length?'': '<p class="ps-state-empty">'+(known?'선택한 상태의 종목이 없습니다.':'자료를 확인하지 못했습니다. 수신 상태와 데이터 기준을 확인해 주세요.')+'</p>')
       + ['confirmed','observation','research','excluded','expired'].map(function(k){var rows=visible.filter(function(r){return r.publicStatus.key===k;});if(!rows.length)return '';return '<section class="ps-state-section" data-section="'+k+'"><h3>'+PUBLIC_LABELS[k]+' '+rows.length+'</h3>'+rows.map(function(r){
         var chosen=r.classified[0].member,it=chosen.item,proof=r.publicStatus.proof || {},review=it.signalReview || {};
@@ -3056,7 +3088,7 @@
     }, { _sourceKey:snapshot.source.replace(/^pattern:/, '') }));
   }
 
-  global.PatternScan = { scannerShape: scannerShape, shapeOrder: shapeOrder, shapeHtml: shapeHtml, init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, referenceChange: referenceChange, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
+  global.PatternScan = { shapeSelectionItems:shapeSelectionItems, scannerShape: scannerShape, shapeOrder: shapeOrder, shapeHtml: shapeHtml, init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, referenceChange: referenceChange, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
 
   global.addEventListener && global.addEventListener('tistory-chart-resize',function(){
     var detail=document.getElementById('psDetail');

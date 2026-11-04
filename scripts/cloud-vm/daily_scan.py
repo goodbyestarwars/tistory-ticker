@@ -635,6 +635,11 @@ def main():
         }
 
     daily_scan_cache.update(_apply)
+    try:
+        import shape_scan
+        shape_scan.refresh()
+    except Exception as error:
+        log('모양 후보 재계산 실패(기존 신호/후보 보존): %s' % type(error).__name__)
     log('저장 완료: %s (패턴 %d / 눌림목 %d / 투자시그널 %d / 전체 %d, 오늘자 이미 있어 API 스킵: OHLC %d / 수급 %d)'
         % (OUTPUT_FILE, pattern_scanned, pullback_scanned, signal_state['scanned'], len(universe),
            ohlc_skipped, flow_skipped))

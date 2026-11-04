@@ -31,7 +31,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-11-05-shape-context';
+  var VERSION = '2026-11-05-shape-selection';
 
   var DEFAULTS = {
     atrPeriod: 14,
@@ -804,7 +804,85 @@
       higherLows:higher,lowerHighs:lower,contraction:contraction,basis:'종가 흐름'};
   }
 
-  var api = { shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+
+  // Daily web selection, independent of legacy numeric scanner/order feeds.
+  // Windows are observation scales, not required pattern durations.
+  function selectShapesOf(bars) {
+    var groups={liveFlow:[],trendBreakout:[],bottomFormation:[],pullbackRebreak:[],longTermQuality:[]};
+    if(!Array.isArray(bars) || bars.length<24)return groups;
+    if(bars.some(function(b,i){return !b || ![b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite) ||
+      b.close<=0 || b.volume<0 || b.low>Math.min(b.open,b.close) || b.high<Math.max(b.open,b.close) ||
+      i && String(b.date)<=String(bars[i-1].date);}))return groups;
+    function med(a){a=a.slice().sort(function(x,y){return x-y;});var k=Math.floor(a.length/2);return a.length%2?a[k]:(a[k-1]+a[k])/2;}
+    function emit(key,win,shape,label,stage,reasons,extra) {
+      var last=win[win.length-1], detail=Object.assign({status:stage,shapeLabel:label,shape:shape,
+        observationOnly:true,orderAuthorized:false,selectionVersion:'shape-selection-v1',
+        windowBars:win.length,support:Math.min.apply(null,win.slice(-5).map(function(b){return b.low;})),
+        signal:{date:last.date,price:last.close},score:shape.score,reasons:reasons,
+        interpretation:label+' · 일봉 모양 관찰'},extra || {});
+      if(!groups[key].length || detail.score>groups[key][0].score)groups[key]=[detail];
+    }
+    [24,40,80,160,224].forEach(function(length) {
+      if(bars.length<length)return;
+      var win=bars.slice(-length),n=win.length,last=win[n-1],shape=shapeOf(win);
+      if(shape.type==='unknown')return;
+      var atr=atrSeries(win,14)[n-1] || 0;
+      if(!(atr>0))return;
+      var head=win.slice(0,Math.max(4,Math.floor(n*.6))),tail=win.slice(-Math.max(4,Math.floor(n*.2)));
+      var tailTR=med(tail.map(function(b){return b.high-b.low;})),headTR=med(head.map(function(b){return b.high-b.low;}));
+      var headVol=med(head.map(function(b){return b.volume;})),tailVol=med(tail.map(function(b){return b.volume;}));
+      var peakIndex=win.reduce(function(best,b,i){return b.close>win[best].close?i:best;},0);
+      var riseVolumes=win.slice(0,peakIndex+1).map(function(b){return b.volume;});
+      var correctionVolumes=win.slice(peakIndex+1).map(function(b){return b.volume;});
+      var riseVolume=med(riseVolumes),correctionVolume=correctionVolumes.length?med(correctionVolumes):null;
+      var quietVolume=riseVolume>0 && correctionVolume>0 && correctionVolume<riseVolume;
+      var calm=tailTR<headTR;
+      var priorHigh=Math.max.apply(null,win.slice(0,-3).map(function(b){return b.high;}));
+      var priorLow=Math.min.apply(null,head.map(function(b){return b.low;}));
+      var recentLow=Math.min.apply(null,tail.map(function(b){return b.low;}));
+      var stable=recentLow>priorLow-atr*.5;
+      var risingTail=last.close>win[n-3].close && last.close>last.open;
+      var highBreak=last.close>priorHigh && win[n-2].close<=priorHigh;
+      var highs=[];
+      for(var i=2;i<n-2;i++)if(win[i].high>=Math.max(win[i-2].high,win[i-1].high,win[i+1].high,win[i+2].high))highs.push(i);
+      var descendingBreak=false,resistance=null;
+      if(highs.length>=2) {
+        var b=highs[highs.length-1],a=highs[highs.length-2],m=(win[b].high-win[a].high)/(b-a);
+        if(m<0 && b-a>=3) {
+          resistance=win[b].high+m*(n-1-b);
+          descendingBreak=last.close>resistance+atr*.15 && win[n-2].close<=resistance-m+atr*.5;
+        }
+      }
+      var panic=tail.filter(function(b){return b.close<b.open && b.open-b.close>atr && headVol>0 && b.volume>headVol*1.5;}).length>=2;
+      var structuralRise=shape.higherLows>=2 && shape.slope>0 && shape.coherence>.5;
+      var reasons=[shape.label,calm?'최근 봉 변동폭 축소':'최근 봉 변동폭 유지',
+        quietVolume?'조정 거래량 감소':'거래량 감소 미확인'];
+      if(stable && !panic && (highBreak || descendingBreak) && risingTail)
+        emit('trendBreakout',win,shape,'고점 연결 저항을 넘어서는 전환','SHAPE_BREAKOUT',reasons.concat('직전 저항을 종가로 회복'),{resistance:resistance || priorHigh});
+      if(stable && !panic && ['pullback','rebound'].indexOf(shape.type)>=0 && (calm || quietVolume)) {
+        emit('pullbackRebreak',win,shape,shape.type==='rebound'?'상승 뒤 눌림·반등 시도':'상승 뒤 눌림 형성',
+          shape.type==='rebound'?'SHAPE_REBOUND':'SHAPE_FORMING',reasons);
+      }
+      // Base: decline first, then repeated low tests without a fresh close breakdown.
+      var middle=win.slice(Math.floor(n*.35),Math.floor(n*.75));
+      var middleLow=Math.min.apply(null,middle.map(function(b){return b.low;}));
+      var earlierHigh=Math.max.apply(null,head.map(function(b){return b.high;}));
+      var tested=win.slice(Math.floor(n*.35)).filter(function(b){return b.low<=middleLow+atr;}).length>=3;
+      if(earlierHigh-middleLow>atr*3 && tested && recentLow>=middleLow-atr*.5 &&
+          last.close>middleLow+atr*.5 && (calm || shape.higherLows>=2) && !panic)
+        emit('bottomFormation',win,shape,'하락 뒤 저점 지지·바닥 다지기','SHAPE_FORMING',reasons,{support:middleLow});
+      var recentVol=med(win.slice(-5,-1).map(function(b){return b.volume;}));
+      if(stable && !panic && risingTail && (highBreak || structuralRise) &&
+          recentVol>0 && last.volume>recentVol && last.close>win[n-2].high)
+        emit('liveFlow',win,shape,'가격 지지 뒤 거래량 재확장','SHAPE_REBOUND',reasons.concat('일봉 거래량과 가격 동반 회복'));
+      if(length>=160 && !panic && stable && (shape.type==='compression' || structuralRise || highBreak) &&
+          (calm || quietVolume || highBreak))
+        emit('longTermQuality',win,shape,'장기 저점 지지·응축 또는 저항 회복','SHAPE_FORMING',reasons,{resistance:priorHigh});
+    });
+    return groups;
+  }
+
+  var api = { selectShapesOf: selectShapesOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;
