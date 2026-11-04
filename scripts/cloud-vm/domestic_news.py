@@ -822,6 +822,22 @@ def _save(items):
         conn.close()
 
 
+_TITLE_NOISE_RE = re.compile(r'[\s\W_]+', re.UNICODE)
+
+
+def _same_headline_key(item):
+    """같은 매체가 같은 제목으로 기사 번호만 달리 낸 중복(예: 연합뉴스 PYH 시리즈)을 묶는 키.
+
+    링크가 다르면 _item_key는 서로 다른 기사로 본다. 공시(kind=disclosure)는 별도 규칙이 있어 제외하고,
+    매체(source/provider)가 같을 때만 묶어 서로 다른 매체의 같은 제목(시차 전재)은 건드리지 않는다.
+    """
+    if item.get('kind') == 'disclosure':
+        return None
+    outlet = _strip(item.get('source') or item.get('provider')).lower()
+    title = _TITLE_NOISE_RE.sub('', _strip(item.get('title')).lower())
+    return (outlet, title) if outlet and title else None
+
+
 def _merge(items, limit, code='', item_kind='all'):
     by_id = {}
     for item in items:
@@ -831,7 +847,18 @@ def _merge(items, limit, code='', item_kind='all'):
         existing = by_id.get(key)
         if existing is None or (item.get('kind') == 'disclosure' and existing.get('kind') != 'disclosure'):
             by_id[key] = item
-    result = list(by_id.values())
+    by_headline = {}
+    for key, item in by_id.items():
+        headline = _same_headline_key(item)
+        if headline is None:
+            by_headline[('id', key)] = item
+            continue
+        kept = by_headline.get(headline)
+        # 같은 매체·같은 제목이면 직접 관련(relevance) 기사를 우선하고, 같으면 더 최근 것을 남긴다.
+        if kept is None or (item.get('relevance') == 'direct', _parse_pub_date(item.get('pubDate'))) > (
+                kept.get('relevance') == 'direct', _parse_pub_date(kept.get('pubDate'))):
+            by_headline[headline] = item
+    result = list(by_headline.values())
     if item_kind == 'news':
         result = [item for item in result if item.get('kind') != 'disclosure']
     result.sort(key=lambda item: (

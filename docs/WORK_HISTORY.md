@@ -1,3 +1,7 @@
+**2026-11-04 국내 뉴스 같은 매체 같은 제목 중복 제거**
+
+요청: 주요 뉴스에 같은 제목이 반복 표시. 원인: `/domestic-news`의 중복 판정이 링크 기준이라, 연합뉴스가 같은 제목을 기사 번호만 달리 여러 건 내면(PYH…) 모두 통과. 변경: `domestic_news._merge`에 같은 매체·같은 제목(공백·구두점 무시) 묶기 추가(공시 제외, 다른 매체의 같은 제목은 유지, 같으면 직접 관련 우선·최신 유지). 검증: `test_domestic_news` 23개(신규 2)·warmer 통과, 실제 응답 25건→17건(쿠팡 12건→4건) 재현 확인. 배포: master 병합 시 Oracle `kiwoom-api` 재시작되므로 장외(15:40 이후)에 병합.
+
 **2026-11-04 운영센터 '오늘 신규 매수 보류' (Oracle 쪽 선구현)**
 
 요청: STOP 파일을 수동으로 만들지 않고 웹에서 당일 신규 매수만 보류. 변경: `autotrader_control.py`에 `hold`/`resume` 명령(대상 에이전트가 `capabilities`에 `hold`를 올릴 때만 접수, 날짜(KST)·scope=buy 동봉, 보류 여부는 에이전트 보고값이고 날짜가 오늘이 아니면 무효), `js/auto-trader.js` 버튼·확인창·상태 칸, 테스트 5개, VM 쪽 작업지시서 `docs/AUTOTRADER_HOLD_AGENT_SPEC_2026-11-04.md`. 검증: `test_autotrader_control` 18개·`test_auto_trader_ui` 10개·주문 JS 통과. 배포: master 병합 시 Oracle/Pages 반영, **에이전트·엔진 미반영이라 버튼은 비활성**(실주문 코드 diff 승인 대기). 미완료: 에이전트·엔진·텔레그램 문구(비공개 저장소).
