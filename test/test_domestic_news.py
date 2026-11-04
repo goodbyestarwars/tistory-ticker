@@ -413,6 +413,31 @@ class NaverStockNewsTests(unittest.TestCase):
         with mock.patch.object(domestic_news.urllib.request, 'urlopen', return_value=self._fake_response({'unexpected': 1})):
             self.assertEqual(domestic_news._naver_stock_news_items('068270', '셀트리온'), [])
 
+    def test_merge_collapses_same_outlet_same_headline_with_different_links(self):
+        def row(title, link, source, pub, **extra):
+            item = {'title': title, 'link': link, 'source': source, 'provider': source, 'pubDate': pub, 'kind': 'news'}
+            item.update(extra)
+            item['id'] = domestic_news._item_key(item)
+            return item
+        items = [
+            row('쿠팡Inc, 3개분기 연속 적자', 'https://www.yna.co.kr/view/PYH20261104094300013?input=1', 'yna.co.kr', '2026-11-04T12:21:00+09:00'),
+            row('쿠팡Inc, 3개분기 연속 적자', 'https://www.yna.co.kr/view/PYH20261104094600013?input=1', 'yna.co.kr', '2026-11-04T12:21:00+09:00'),
+            row('쿠팡Inc,  3개분기 연속 적자 ', 'https://www.yna.co.kr/view/PYH20261104094100013?input=1', 'yna.co.kr', '2026-11-04T12:20:00+09:00'),
+            row('쿠팡Inc, 3개분기 연속 적자', 'https://www.mk.co.kr/news/1', 'mk.co.kr', '2026-11-04T12:19:00+09:00'),
+            row('다른 제목', 'https://www.yna.co.kr/view/AKR1', 'yna.co.kr', '2026-11-04T12:10:00+09:00'),
+        ]
+        out = domestic_news._merge(items, 25)
+        self.assertEqual([(i['source'], i['title'].strip()) for i in out],
+                         [('yna.co.kr', '쿠팡Inc, 3개분기 연속 적자'), ('mk.co.kr', '쿠팡Inc, 3개분기 연속 적자'), ('yna.co.kr', '다른 제목')])
+        self.assertEqual(out[0]['pubDate'], '2026-11-04T12:21:00+09:00')
+
+    def test_merge_prefers_direct_relevance_for_same_outlet_same_headline(self):
+        a = {'title': 'A사 실적', 'link': 'https://x.kr/1', 'source': 'x.kr', 'pubDate': '2026-11-04T12:00:00+09:00', 'kind': 'news', 'relevance': 'direct'}
+        b = {'title': 'A사 실적', 'link': 'https://x.kr/2', 'source': 'x.kr', 'pubDate': '2026-11-04T12:05:00+09:00', 'kind': 'news', 'relevance': 'body'}
+        out = domestic_news._merge([b, a], 10, code='005930')
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]['link'], 'https://x.kr/1')
+
 
 if __name__ == '__main__':
     unittest.main()

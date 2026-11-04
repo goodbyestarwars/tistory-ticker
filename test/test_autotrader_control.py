@@ -147,6 +147,56 @@ class ControlTest(unittest.TestCase):
         kept = ac.public_status(now + timedelta(seconds=30))['activity']['candidates']['history']
         self.assertEqual(kept[0]['rows'][0]['reasons'], ['a', 'b'])
 
+    def test_hold_is_refused_until_agent_reports_capability(self):
+        self.seed(good(MON))
+        with self.assertRaises(ac.ControlError) as ctx:
+            ac.queue_command('hold', 'a@b.c', MON)
+        self.assertEqual(ctx.exception.status, 409)
+        self.assertFalse(ac.public_status(MON)['hold']['supported'])
+        self.assertIsNone(ac.public_status(MON)['pending'])
+
+    def test_hold_is_accepted_on_any_day_and_carries_today_and_buy_scope(self):
+        self.seed(good(SUN, capabilities=['hold']))
+        ac.queue_command('hold', 'a@b.c', SUN)
+        out = ac.agent_sync({'snapshot': good(SUN, capabilities=['hold'])}, SUN)
+        self.assertEqual(out['command']['action'], 'hold')
+        self.assertEqual(out['command']['day'], '2026-11-01')
+        self.assertEqual(out['command']['scope'], 'buy')
+
+    def test_hold_status_comes_from_agent_and_expires_at_midnight(self):
+        today = '2026-11-02'
+        snap = good(MON, capabilities=['hold'], flags={'hold': {'day': today, 'scope': 'buy'}})
+        self.seed(snap)
+        self.assertTrue(ac.public_status(MON)['hold']['active'])
+        next_day = MON + timedelta(days=1)
+        self.seed(good(next_day, capabilities=['hold'], flags={'hold': {'day': today, 'scope': 'buy'}}))
+        view = ac.public_status(next_day)['hold']
+        self.assertFalse(view['active'])
+        self.assertEqual(view['staleDay'], today)
+
+    def test_hold_unreceived_is_not_reported_as_active_or_supported(self):
+        old = MON - timedelta(minutes=10)
+        self.seed(good(old, capabilities=['hold'], flags={'hold': {'day': '2026-11-02'}}))
+        view = ac.public_status(MON)['hold']
+        self.assertFalse(view['active'])
+        self.assertFalse(view['supported'])
+
+    def test_resume_follows_same_gate_and_start_does_not_carry_day(self):
+        self.seed(good(MON, capabilities=['hold']))
+        cmd = ac.queue_command('resume', 'a@b.c', MON)
+        self.assertEqual(cmd['action'], 'resume')
+        out = ac.agent_sync({'snapshot': good(MON, capabilities=['hold'])}, MON)
+        self.assertNotIn('day', out['command'])
+
+    def test_status_includes_recent_log_newest_first_without_full_email(self):
+        self.seed(good(MON))
+        ac.queue_command('stop', 'owner@example.com', MON)
+        ac.audit('owner@example.com', 'start', 'REFUSED', '타이머가 이미 켜져 있음')
+        log = ac.public_status(MON)['log']
+        self.assertEqual([row['action'] for row in log], ['start', 'stop'])
+        self.assertEqual(log[0]['account'], 'owner')
+        self.assertNotIn('@', str(log))
+
 
 if __name__ == '__main__':
     unittest.main()

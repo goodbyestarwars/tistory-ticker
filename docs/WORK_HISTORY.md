@@ -1,3 +1,19 @@
+**2026-11-04 자동매매 운영센터 화면 단순화**
+
+요청: 상태 한 줄·시작/중지·매매내역·로그만. 변경: `js/auto-trader.js`에 상태 한 줄(`statusLine`, 기존 필드 조합·직접 중지(SIGTERM 15)는 장애와 구분)·명령 기록 목록, 기존 상세 칸과 보류 버튼은 접기, `autotrader_control.recent_log`(감사 로그의 최근 명령·계정은 @ 앞만)을 `/autotrader/status.log`로 제공, `css/auto-trader.css` 보강, `test_auto_trader_research_ui`의 허용 명령 목록을 hold/resume 포함으로 갱신(앞선 보류 변경이 깨뜨린 테스트). 검증: control 19개·UI 10개·research UI 8개·주문 JS 통과, 390px/1100px 렌더 가로 넘침 없음. 배포: master 병합 시 Pages/Oracle 반영(Oracle 재시작은 장외). 미완료: 매매내역은 VM 에이전트가 내역을 올려야 채워짐, `stop`이 타이머를 끄는 동작 변경은 에이전트 쪽(작업지시서에 추가).
+
+**2026-11-04 국내 뉴스 같은 매체 같은 제목 중복 제거**
+
+요청: 주요 뉴스에 같은 제목이 반복 표시. 원인: `/domestic-news`의 중복 판정이 링크 기준이라, 연합뉴스가 같은 제목을 기사 번호만 달리 여러 건 내면(PYH…) 모두 통과. 변경: `domestic_news._merge`에 같은 매체·같은 제목(공백·구두점 무시) 묶기 추가(공시 제외, 다른 매체의 같은 제목은 유지, 같으면 직접 관련 우선·최신 유지). 검증: `test_domestic_news` 23개(신규 2)·warmer 통과, 실제 응답 25건→17건(쿠팡 12건→4건) 재현 확인. 배포: master 병합 시 Oracle `kiwoom-api` 재시작되므로 장외(15:40 이후)에 병합.
+
+**2026-11-04 운영센터 '오늘 신규 매수 보류' (Oracle 쪽 선구현)**
+
+요청: STOP 파일을 수동으로 만들지 않고 웹에서 당일 신규 매수만 보류. 변경: `autotrader_control.py`에 `hold`/`resume` 명령(대상 에이전트가 `capabilities`에 `hold`를 올릴 때만 접수, 날짜(KST)·scope=buy 동봉, 보류 여부는 에이전트 보고값이고 날짜가 오늘이 아니면 무효), `js/auto-trader.js` 버튼·확인창·상태 칸, 테스트 5개, VM 쪽 작업지시서 `docs/AUTOTRADER_HOLD_AGENT_SPEC_2026-11-04.md`. 검증: `test_autotrader_control` 18개·`test_auto_trader_ui` 10개·주문 JS 통과. 배포: master 병합 시 Oracle/Pages 반영, **에이전트·엔진 미반영이라 버튼은 비활성**(실주문 코드 diff 승인 대기). 미완료: 에이전트·엔진·텔레그램 문구(비공개 저장소).
+
+**2026-11-04 구성 문서 정정·자동매매 경고 문구 정정**
+
+요청: GCP 자동매매 점검 중 문서와 실제 구성 불일치 발견. 변경: `CLAUDE.md`·`docs/SERVICE_MAP.md`·`LIVE_OPERATIONS.md`의 백엔드=Oracle A1·자동매매=전용 Google VM(2026-10-30 인계 기준) 정정, `tg_live_status.fmt_stale`·`tg_monitor` 연구 경고의 "PC 절전" 문구를 VM 기준으로 변경(판단·주기 로직 무변경, 주문 코드 무변경). 검증: 아래 기록. 배포: 알림 문구는 autotrader-private 반영 필요(이 저장소 push는 VM 자동 반영 아님), 문서는 즉시. 미완료: 수동 중지를 경고에서 구분하는 상태 표식(비공개 control-agent 쪽 설계 필요).
+
 **2026-11-04 차트 추세선 재설계: 저점/고점 추세선 + 이탈·전환 판정**
 
 요청: 박스 안 채널은 추세선이 아님, 허용 오차 안에서 일직선을 이탈하면 '추세 이탈'. 변경: `js/chart-wave-overlay.js`의 `channelOf/fitLine`을 `trendLinesOf`로 교체(상승=저점끼리 붉은색, 하락=고점끼리 파란색, 현재 봉까지 연장). 허용 오차 ATR14 기준(닿음 max(0.5ATR,1.5%), 이탈 max(1ATR,2.5%) 종가 2봉 연속), 닿음 3회↑ 실선·2회 점선, 이탈 라벨·추세 전환 라벨·이탈 후 옅은 점선. 파동 엔진·VM/API 변경 없음. 검증: `test/test_chart_studies.js`(추세선 시험으로 교체, 상승/하락/하루 이탈 무시/2봉 이탈/데이터 부족) 통과. 미확인: 실제 종목 일봉에서의 임계값 적합도·PC/모바일 실화면, `test_site_guide_chart.js`는 변경 전부터 실패(가이드 '2026년 10월 26일 업데이트' 문구). 갱신: UI_GUIDE·이용방법·릴리스 노트. 배포: master→Pages.

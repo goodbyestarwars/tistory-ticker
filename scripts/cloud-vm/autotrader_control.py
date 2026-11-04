@@ -2,7 +2,8 @@
 
 브라우저 -> 이 서버(관리자 Google 세션) -> 명령 대기열 <- Google VM 에이전트가 주기적으로 가져감.
 VM에는 들어오는 연결이 없다. 에이전트가 서버 간 비밀(HMAC)로 상태를 올리고 대기 명령을 받아 간다.
-이 모듈은 주문·계좌·브로커를 호출하지 않으며 VM 서비스의 start/stop 의도만 전달한다.
+이 모듈은 주문·계좌·브로커를 호출하지 않으며 VM 서비스의 start/stop, 그리고 '오늘 신규 매수 보류'(hold/resume) 의도만 전달한다.
+보류는 당일(KST) 날짜가 붙은 플래그로만 의미가 있고 자정 이후 자동으로 무효가 된다. 보류 여부의 원본은 에이전트가 올린 값이다.
 상태는 에이전트가 올린 값만 쓰고, 오래됐거나 없으면 '미수신'으로 두며 정상·0으로 바꾸지 않는다.
 """
 import hashlib
@@ -23,7 +24,9 @@ STATE_PATH = os.path.join(HERE, 'autotrader_control_state.json')
 AUDIT_PATH = os.path.join(HERE, 'autotrader_control_audit.jsonl')
 AUDIT_MAX_BYTES = 1024 * 1024
 
-ACTIONS = ('start', 'stop')
+ACTIONS = ('start', 'stop', 'hold', 'resume')
+HOLD_SCOPE = 'buy'            # 신규 매수만 보류한다. 보유분 청산 점검은 막지 않는다.
+HOLD_CAPABILITY = 'hold'      # 에이전트가 snapshot.capabilities에 이 값을 올려야 hold/resume을 접수한다.
 STALE_AFTER_SEC = 90        # 에이전트는 20초 주기. 이보다 오래되면 미수신으로 본다.
 ACTIVITY_MAX_ORDERS = 400     # 화면 "더 보기"가 볼 수 있는 최근 주문 수
 ACTIVITY_MAX_CANDIDATES = 120
@@ -134,24 +137,66 @@ def start_blockers(snapshot, now):
     return out
 
 
+def hold_supported(snapshot):
+    caps = (snapshot or {}).get('capabilities')
+    return isinstance(caps, list) and HOLD_CAPABILITY in caps
+
+
+def hold_view(snapshot, now):
+    """오늘 신규 매수 보류 상태. 원본은 에이전트가 올린 flags.hold이며 날짜가 오늘이 아니면 무효다."""
+    today = now.strftime('%Y-%m-%d')
+    raw = ((snapshot or {}).get('flags') or {}).get('hold')
+    reported = isinstance(raw, dict)
+    active = reported and raw.get('day') == today
+    return {'supported': hold_supported(snapshot), 'active': bool(active), 'day': today,
+            'scope': HOLD_SCOPE, 'staleDay': raw.get('day') if reported and not active else None}
+
+
+def recent_log(limit=10):
+    """화면용 최근 명령 기록(최신순). 감사 로그에서 시각·행동·결과·사유만 읽고 계정은 @ 앞부분만 보인다."""
+    try:
+        with open(AUDIT_PATH, 'rb') as stream:
+            stream.seek(0, os.SEEK_END)
+            size = stream.tell()
+            stream.seek(max(0, size - 64 * 1024))
+            lines = stream.read().decode('utf-8', 'replace').splitlines()
+    except OSError:
+        return []
+    rows = []
+    for line in reversed(lines):
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict) or row.get('action') not in ACTIONS:
+            continue
+        rows.append({'at': _text(row.get('at'), 25), 'action': row['action'], 'result': _text(row.get('result'), 12),
+                     'account': _text(str(row.get('account') or '-').split('@')[0], 24), 'reason': _text(row.get('reason'), 80)})
+        if len(rows) >= limit:
+            break
+    return rows
+
+
 def public_status(now=None):
     now = now or _now()
     state = _load()
     snapshot = state.get('snapshot') or {}
     age = _fresh(snapshot, now)
     received = age is not None and age <= STALE_AFTER_SEC
-    keep = ('timerState', 'serviceState', 'lastResult', 'flags', 'ledger', 'feed', 'runnerProcs', 'tgConflict', 'liveStatus')
+    keep = ('timerState', 'serviceState', 'lastResult', 'flags', 'ledger', 'feed', 'runnerProcs', 'tgConflict', 'liveStatus', 'capabilities')
     view = {key: snapshot.get(key) for key in keep} if received else {key: None for key in keep}
     pending = state.get('pending')
     if pending and (time.time() - pending.get('queuedAt', 0)) > COMMAND_TTL_SEC:
         pending = None
     blockers = start_blockers(snapshot, now)
+    hold = hold_view(snapshot if received else {}, now)
     return {'configured': configured(), 'received': received, 'ageSec': age, 'staleAfterSec': STALE_AFTER_SEC,
             'checkedAt': now.isoformat(timespec='seconds'), 'tradingDay': (market_calendar.is_kr_trading_day(now)
                                                                            if now.year in KNOWN_CALENDAR_YEARS else None),
             'activity': state.get('activity') if received else None,
             'vm': view, 'startBlockers': blockers, 'canStart': not blockers and not pending,
             'pending': {'id': pending['id'], 'action': pending['action']} if pending else None,
+            'hold': hold, 'log': recent_log(),
             'lastCommand': state.get('last')}
 
 
@@ -173,9 +218,15 @@ def queue_command(action, account, now=None):
             if blockers:
                 audit(account, action, 'REFUSED', '; '.join(blockers))
                 raise ControlError(409, '시작할 수 없음: ' + '; '.join(blockers))
-        # stop은 상태·시간과 무관하게 언제나 접수한다.
+        # stop·hold·resume은 상태·시간과 무관하게 접수한다(더 안전한 방향의 명령). hold는 대상 에이전트가 지원할 때만.
+        if action in ('hold', 'resume') and not hold_supported(state.get('snapshot')):
+            audit(account, action, 'REFUSED', '에이전트 보류 기능 미지원')
+            raise ControlError(409, '에이전트가 아직 보류 기능을 지원하지 않습니다.')
         command = {'id': '%d-%s' % (int(time.time()), os.urandom(4).hex()), 'action': action,
                    'queuedAt': time.time(), 'account': account}
+        if action == 'hold':
+            command['day'] = now.strftime('%Y-%m-%d')    # 에이전트는 이 날짜의 플래그만 쓴다(자정 이후 자동 무효).
+            command['scope'] = HOLD_SCOPE
         state['pending'] = command
         _save(state)
     audit(account, action, 'QUEUED', command['id'])
@@ -277,6 +328,6 @@ def agent_sync(payload, now=None):
                                  'at': now.isoformat(timespec='seconds'), 'reason': '에이전트가 시간 안에 가져가지 못함'}
                 state['pending'] = None
             else:
-                command = {'id': pending['id'], 'action': pending['action']}
+                command = {key: pending[key] for key in ('id', 'action', 'day', 'scope') if key in pending}
         _save(state)
     return {'command': command}

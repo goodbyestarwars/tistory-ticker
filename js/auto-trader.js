@@ -614,18 +614,41 @@
   function yesNo(value, yes, no) { return value == null ? '미수신' : value ? yes : no; }
   function cell(label, value, cls) { return '<div><small>' + esc(label) + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(value) + '</b></div>'; }
 
+  // 오늘 신규 매수 보류(당일 한정). 원본은 에이전트가 올린 값이며 날짜가 오늘이 아니면 보류가 아니다.
+  function holdLabel(h) {
+    if (!h) return '미수신';
+    if (h.active) return '보류 중 (' + String(h.day || '').slice(5).replace('-', '/') + ' 하루만)';
+    return h.supported ? '정상(보류 없음)' : '미지원(에이전트 업데이트 필요)';
+  }
+  function holdBtns(c) {
+    var h = c.hold || {}, ok = c.configured && h.supported && !c.pending && !busy;
+    return '<button type="button" class="at-ctl-btn is-stop" data-ctl="hold"' + (ok && !h.active ? '' : ' disabled') + '>오늘 신규 매수 보류</button>'
+      + '<button type="button" class="at-ctl-btn is-go" data-ctl="resume"' + (ok && h.active ? '' : ' disabled') + '>보류 해제</button>';
+  }
+
   function controlHtml(c) {
     var vm = c.vm || {}, flags = vm.flags || {}, ledger = vm.ledger || {}, feed = vm.feed || {}, last = vm.lastResult || {};
     var timer = orMissing(vm.timerState, { enabled: '켜짐(다음 08:55 실행)', disabled: '꺼짐' });
     var service = orMissing(vm.serviceState, { active: '실행 중', inactive: '대기', failed: '실패', activating: '시작 중' });
     var link = c.received ? '수신 · ' + c.ageSec + '초 전' : '미수신' + (c.ageSec != null ? ' · 마지막 ' + c.ageSec + '초 전' : '');
     var approval = flags.approval ? (flags.approval.present ? '있음' + (flags.approval.date ? ' (' + flags.approval.date + '~)' : '') : '없음') : '미수신';
-    var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지' }[c.lastCommand.action] || c.lastCommand.action) + ' ' + ({ DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
+    var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지', hold: '오늘 신규 매수 보류', resume: '보류 해제' }[c.lastCommand.action] || c.lastCommand.action) + ' ' + ({ DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
       + ' · ' + String(c.lastCommand.at || '').slice(5, 16).replace('T', ' ') + (c.lastCommand.reason ? ' · ' + c.lastCommand.reason : '') : '없음';
     var blockers = c.startBlockers || [];
-    return '<section class="at-card at-ctl"><div class="at-ctl-head"><h2>자동매매 운영센터</h2>'
+    var st = statusLine(c);
+    var timerOn = vm.timerState === 'enabled';
+    var startHint = timerOn ? '자동 시작이 켜져 있어 시작 버튼은 꺼져 있습니다. 중지하면 자동 시작도 꺼지므로, 다시 자동으로 돌리려면 시작을 누르세요.' : '';
+    return '<section class="at-card at-ctl"><div class="at-ctl-head"><h2>자동매매</h2>'
       + '<span class="at-ctl-link' + (c.received ? '' : ' is-bad') + '">VM 연결 ' + esc(link) + '</span></div>'
       + (c.configured ? '' : '<p class="at-banner is-bad">서버에 제어 비밀값이 설정되지 않아 제어할 수 없습니다.</p>')
+      + '<p class="at-ctl-status' + (st.bad ? ' is-bad' : st.ok ? ' is-ok' : '') + '">' + esc(st.text) + '</p>'
+      + '<div class="at-ctl-actions"><button type="button" class="at-ctl-btn is-go" data-ctl="start"' + (c.canStart && !busy ? '' : ' disabled') + '>시작</button>'
+      + '<button type="button" class="at-ctl-btn is-stop" data-ctl="stop"' + (c.configured && !busy ? '' : ' disabled') + '>중지</button>'
+      + '<span class="at-ctl-last">최근 명령: ' + esc(lastCmd) + (c.pending ? ' · 처리 대기 중' : '') + '</span></div>'
+      + (startHint ? '<p class="at-note">' + esc(startHint) + '</p>' : '')
+      + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '')
+      + logHtml(c.log)
+      + '<details class="at-more" data-act-more="ctlDetail"' + (activityOpen.ctlDetail ? ' open' : '') + '><summary>상세 상태·오늘 신규 매수 보류</summary>'
       + '<div class="at-ctl-grid">'
       + cell('실행 타이머', timer, vm.timerState === 'enabled' ? 'is-on' : '') + cell('실행 서비스', service)
       + cell('마지막 실행', last.result ? last.result + (last.exitStatus ? ' (종료 ' + last.exitStatus + ')' : '') : '미수신')
@@ -634,15 +657,39 @@
       + cell('UNKNOWN 주문', ledger.unknownOrders == null ? '미수신' : ledger.unknownOrders + '건', ledger.unknownOrders > 0 ? 'is-bad' : '')
       + cell('오늘 주문 기록', ledger.todayOrders == null ? '미수신' : ledger.todayOrders + '건')
       + cell('9Pay 신호 피드', feed.state ? feed.state + (feed.reason ? ' · ' + feed.reason : '') : '미수신', feed.state && feed.state !== 'OK' ? 'is-bad' : '')
+      + cell('오늘 신규 매수', holdLabel(c.hold), c.hold && c.hold.active ? 'is-bad' : '')
       + cell('실주문 스위치', yesNo(flags.liveTrading, '켜짐', '꺼짐')) + cell('9Pay 주문 스위치', yesNo(flags.ninepayLive, '켜짐', '꺼짐'))
       + cell('봇 매도(LIVE_SELL)', yesNo(flags.liveSell, '켜짐', '꺼짐')) + cell('승인 파일', approval)
       + '</div>'
       + '<p class="at-note">스위치·승인 파일은 서버 설정값을 읽은 것이며 주문 허용 판정이 아닙니다. 실제 주문 여부는 서비스 자체 게이트가 정합니다.</p>'
       + (blockers.length ? '<ul class="at-ctl-block">' + blockers.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>' : '')
-      + '<div class="at-ctl-actions"><button type="button" class="at-ctl-btn is-go" data-ctl="start"' + (c.canStart && !busy ? '' : ' disabled') + '>시작</button>'
-      + '<button type="button" class="at-ctl-btn is-stop" data-ctl="stop"' + (c.configured && !busy ? '' : ' disabled') + '>중지</button>'
-      + '<span class="at-ctl-last">최근 명령: ' + esc(lastCmd) + (c.pending ? ' · 처리 대기 중' : '') + '</span></div>'
-      + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '') + '</section>';
+      + '<div class="at-ctl-actions">' + holdBtns(c) + '</div></details></section>';
+  }
+
+  // 한 줄 상태. 새 데이터 없이 기존 필드만 조합한다. 값이 없으면 정상으로 보이지 않게 '확인 필요'로 둔다.
+  function statusLine(c) {
+    var vm = c.vm || {}, last = vm.lastResult || {}, cmd = c.lastCommand || {};
+    var timerOn = vm.timerState === 'enabled';
+    var next = timerOn ? ' · 다음 거래일 08:55 자동 시작' : ' · 자동 시작 꺼짐(시작을 눌러야 다시 켜집니다)';
+    if (!c.received) return { text: 'VM에서 상태를 받지 못했습니다 — 연결 확인 필요', bad: true };
+    if (vm.serviceState === 'active' || vm.serviceState === 'activating') {
+      return { text: '실행 중' + (c.hold && c.hold.active ? ' · 오늘 신규 매수 보류' : ''), ok: true };
+    }
+    var manual = (last.result === 'signal' && String(last.exitStatus) === '15') || (cmd.action === 'stop' && cmd.result === 'DONE');
+    if (manual) return { text: '직접 중지됨' + next };
+    if (vm.serviceState === 'failed') return { text: '비정상 종료 — 확인 필요' + (last.result ? ' (' + last.result + (last.exitStatus ? ' ' + last.exitStatus : '') + ')' : ''), bad: true };
+    return { text: '대기 중' + next };
+  }
+
+  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제' };
+  var LOG_RESULT = { QUEUED: '접수', DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)', REFUSED: '거부' };
+  function logHtml(rows) {
+    if (!rows || !rows.length) return '<h3 class="at-subhead">명령 기록</h3><p class="at-empty">아직 기록이 없습니다.</p>';
+    return '<h3 class="at-subhead">명령 기록 <small>최근 ' + rows.length + '건</small></h3><ul class="at-ctl-log">' + rows.map(function (r) {
+      return '<li><span class="at-mute">' + esc(String(r.at || '').slice(5, 16).replace('T', ' ')) + '</span> '
+        + '<b>' + esc(LOG_ACTION[r.action] || r.action) + '</b> · ' + esc(LOG_RESULT[r.result] || r.result)
+        + (r.account && r.account !== '-' ? ' · ' + esc(r.account) : '') + (r.reason ? ' · <span class="at-mute">' + esc(r.reason) + '</span>' : '') + '</li>';
+    }).join('') + '</ul>';
   }
 
   // 에이전트가 올린 주문·보유·연구 후보(서버가 허용 필드만 남김). 주문번호·계좌·잔고는 받지 않는다.
@@ -733,6 +780,8 @@
 
   var CONFIRM = {
     start: '실계좌 자동매매 타이머를 켭니다.\n\n켜면 다음 거래일 08:55부터 실계좌 자동매매가 실행되어 실제 주문이 나갈 수 있습니다(서비스 자체 게이트를 통과한 경우).\n계속할까요?',
+    hold: '오늘(KST) 하루 동안 신규 매수를 보류합니다.\n\n보유 종목의 청산 점검은 막지 않으며, 이미 접수된 주문은 취소되지 않습니다. 자정이 지나면 자동으로 풀립니다.\n계속할까요?',
+    resume: '오늘의 신규 매수 보류를 해제합니다.\n\n해제하면 서비스가 실행 중일 때 자체 게이트를 통과한 신규 매수가 나갈 수 있습니다.\n계속할까요?',
     stop: '실계좌 자동매매를 중지합니다.\n\n타이머를 끄고, 실행 중이면 서비스도 멈춥니다. 이미 접수된 주문은 취소되지 않으며 보유 종목은 그대로입니다. 다시 켜기 전까지 자동 실행되지 않습니다.\n계속할까요?'
   };
 

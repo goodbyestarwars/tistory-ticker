@@ -32,7 +32,10 @@ class AutoTraderResearchUiTests(unittest.TestCase):
         self.assertNotRegex(self.js, r"\bfetch\(")      # 전송은 NineHttp/NineAPI 공통 모듈만 쓴다
 
     def test_control_actions_are_confirmed_and_limited(self):
-        self.assertEqual(sorted(re.findall(r'data-ctl="(\w+)"', self.js)), ['start', 'stop'])
+        # 허용 목록: 시작·중지와 당일 신규 매수 보류/해제(서버 ACTIONS와 같아야 한다). 주문·계좌 명령은 화면에 없다.
+        self.assertEqual(sorted(set(re.findall(r'data-ctl="(\w+)"', self.js))), ['hold', 'resume', 'start', 'stop'])
+        for action in ('hold', 'resume'):
+            self.assertIn(action + ": '", self.js.split('var CONFIRM', 1)[1].split('};', 1)[0])
         self.assertIn('global.confirm(CONFIRM[action])', self.js)
         self.assertIn('실계좌', self.js.split('var CONFIRM', 1)[1].split('};', 1)[0])
         # 시작은 서버가 허용(canStart)할 때만 누를 수 있고, 중지는 상태와 무관하게 누를 수 있다.
