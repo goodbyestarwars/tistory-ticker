@@ -823,7 +823,7 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
-        // 2026-11-04: 필라델피아 반도체지수(SOX)는 나스닥·S&P500 옆 세 번째 지수 카드(미국 모드에서만). renderHomeIndices가 채운다.
+        // 미국 세 번째 카드는 본장 전/마감 후 다우30 선물, 본장 거래 중 SOX로 자동 전환한다.
         + '<article class="home-index-card" data-home-index-slot="tertiary" hidden>'
         + '<div class="home-index-top"><strong data-index-field="label">필라델피아 반도체</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
@@ -1756,7 +1756,9 @@ document.documentElement.classList.add('skin-ready');
 
     function renderHomeIndexChart(element, rows, key, reference) {
       if (!element) return;
-      if (['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'SOX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0) {
+      // 다우 선물의 30분 관측값이 없는 경우 일봉 차트를 정확한 기간 표기와 함께 사용한다.
+      if (['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'SOX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0
+          || (key === 'DOW' && homeSessionCharts.DOW && homeSessionCharts.DOW.rows && homeSessionCharts.DOW.rows.length)) {
         stopHomeChartMotion(element);
         var oldCaption = element.nextElementSibling;
         if (oldCaption && oldCaption.classList.contains('home-index-history-caption')) oldCaption.remove();
@@ -2120,6 +2122,16 @@ document.documentElement.classList.add('skin-ready');
       }).catch(function () { /* 이전 값 유지 */ });
     }
 
+    // 미국 정규장 여부는 공통 MarketHours(뉴욕 현지 시간·DST·휴장·조기 마감)를 단일 출처로 사용한다.
+    function usThirdIndexState(now) {
+      var hours = window.MarketHours;
+      var spot = hours && typeof hours.us === 'function' ? hours.us(now) : null;
+      var regular = !!(spot && spot.open && spot.phase === 'regular');
+      return regular
+        ? { key: 'SOX', label: '필라델피아 반도체', regular: true }
+        : { key: 'DOW', label: '다우존스30 선물(CME)', regular: false };
+    }
+
     function renderHomeIndices(items) {
       var session = homeMarketSession();
       applyHomeMarketSession(session);
@@ -2159,16 +2171,36 @@ document.documentElement.classList.add('skin-ready');
         setField('nightFutures', '데이터 확인 중', 'home-neutral');
         if (nightChartEl) { nightChartEl.hidden = true; nightChartEl.innerHTML = ''; }
       }
-      var soxItem = bySymbol.SOX, soxCard = homeIndexCard('tertiary');
-      if (soxCard && session.market === 'us') {
-        var sp = soxItem ? homeNum(soxItem.price) : null, sc = soxItem ? homeNum(soxItem.change) : null, sr = soxItem ? homeNum(soxItem.change_rate) : null;
-        var soxTone = homeTone(sc);
-        var soxPrice = soxCard.querySelector('[data-index-field="price"]'), soxChange = soxCard.querySelector('[data-index-field="change"]'), soxStatus = soxCard.querySelector('[data-index-field="status"]');
-        if (soxPrice) { soxPrice.textContent = sp == null ? '-' : sp.toLocaleString('ko-KR', {maximumFractionDigits: 2}); soxPrice.className = soxTone; }
-        if (soxChange) { soxChange.textContent = sr == null ? '-' : (sc > 0 ? '▲' : sc < 0 ? '▼' : '') + Math.abs(sr).toFixed(2) + '%'; soxChange.className = soxTone; }
-        // SOX는 선물이 아닌 현물 지수다. 본장이 아닐 때는 마지막 값임을 표시한다.
-        if (soxStatus) soxStatus.textContent = !soxItem ? '· 미수신' : usRegularSessionState().open ? '· 현물 거래중' : '· 현물 마지막 값';
-        renderHomeIndexChart(soxCard.querySelector('[data-index-field="chart"]'), soxItem && soxItem.chart, 'SOX', sp != null && sc != null ? sp - sc : null);
+      var thirdCard = homeIndexCard('tertiary');
+      if (thirdCard && session.market === 'us') {
+        var third = usThirdIndexState(), thirdItem = bySymbol[third.key];
+        var thirdPrice = thirdItem ? homeNum(thirdItem.price) : null;
+        var thirdChange = thirdItem ? homeNum(thirdItem.change) : null;
+        var thirdRate = thirdItem ? homeNum(thirdItem.change_rate) : null;
+        var thirdTone = homeTone(thirdChange);
+        // 같은 슬롯에서 다른 지수로 교체할 때 종전 시세·차트를 남겨 혼동시키지 않는다.
+        if (thirdCard.getAttribute('data-home-index') !== third.key) {
+          thirdCard.setAttribute('data-home-index', third.key);
+          var oldChart = thirdCard.querySelector('[data-index-field="chart"]');
+          if (oldChart) oldChart.innerHTML = '';
+        }
+        var thirdLabelEl = thirdCard.querySelector('[data-index-field="label"]');
+        var thirdPriceEl = thirdCard.querySelector('[data-index-field="price"]');
+        var thirdChangeEl = thirdCard.querySelector('[data-index-field="change"]');
+        var thirdStatusEl = thirdCard.querySelector('[data-index-field="status"]');
+        if (thirdLabelEl) thirdLabelEl.textContent = third.label;
+        if (thirdPriceEl) { thirdPriceEl.textContent = thirdPrice == null ? '-' : thirdPrice.toLocaleString('ko-KR', {maximumFractionDigits: 2}); thirdPriceEl.className = thirdTone; }
+        if (thirdChangeEl) { thirdChangeEl.textContent = thirdRate == null ? '-' : (thirdChange > 0 ? '▲' : thirdChange < 0 ? '▼' : '') + Math.abs(thirdRate).toFixed(2) + '%'; thirdChangeEl.className = thirdTone; }
+        if (thirdStatusEl) {
+          var thirdDelayed = !!(thirdItem && (thirdItem.stale || !homeFresh(thirdItem, 30)));
+          thirdStatusEl.textContent = !thirdItem ? '· 미수신'
+            : thirdDelayed ? '· 시세 지연'
+            : third.regular ? '· 현물 거래중'
+            : usFuturesSessionOpen() ? '· 선물 거래시간' : '· 선물 마지막 값';
+        }
+        renderHomeIndexChart(thirdCard.querySelector('[data-index-field="chart"]'),
+          thirdItem && thirdItem.chart, third.key,
+          thirdPrice != null && thirdChange != null ? thirdPrice - thirdChange : null);
       }
       session.keys.forEach(function (key, index) {
         var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
@@ -2213,7 +2245,7 @@ document.documentElement.classList.add('skin-ready');
       if (session.closed) return;
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
-        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CNASDAQ100%2CSP500%2CKOSPI200_NIGHT%2CVIX%2CWTI%2CGOLD%2CUSDKRW%2CUS10Y%2CBTC%2CSOX&stored_only=true', 12000)
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CNASDAQ100%2CSP500%2CDOW%2CKOSPI200_NIGHT%2CVIX%2CWTI%2CGOLD%2CUSDKRW%2CUS10Y%2CBTC%2CSOX&stored_only=true', 12000)
           .then(function (data) { return data && data.data ? data.data : []; });
       request.then(renderHomeIndices).catch(function () {
         ['primary', 'secondary'].forEach(function (slot) {
