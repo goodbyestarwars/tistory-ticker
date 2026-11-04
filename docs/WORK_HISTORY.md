@@ -1,3 +1,7 @@
+**2026-11-04 차트 추세선 재설계: 저점/고점 추세선 + 이탈·전환 판정**
+
+요청: 박스 안 채널은 추세선이 아님, 허용 오차 안에서 일직선을 이탈하면 '추세 이탈'. 변경: `js/chart-wave-overlay.js`의 `channelOf/fitLine`을 `trendLinesOf`로 교체(상승=저점끼리 붉은색, 하락=고점끼리 파란색, 현재 봉까지 연장). 허용 오차 ATR14 기준(닿음 max(0.5ATR,1.5%), 이탈 max(1ATR,2.5%) 종가 2봉 연속), 닿음 3회↑ 실선·2회 점선, 이탈 라벨·추세 전환 라벨·이탈 후 옅은 점선. 파동 엔진·VM/API 변경 없음. 검증: `test/test_chart_studies.js`(추세선 시험으로 교체, 상승/하락/하루 이탈 무시/2봉 이탈/데이터 부족) 통과. 미확인: 실제 종목 일봉에서의 임계값 적합도·PC/모바일 실화면, `test_site_guide_chart.js`는 변경 전부터 실패(가이드 '2026년 10월 26일 업데이트' 문구). 갱신: UI_GUIDE·이용방법·릴리스 노트. 배포: master→Pages.
+
 **2026-11-04 국내 시세 세션 표기 후속 적용(홈·관심종목·툴팁)**
 
 목적: 정규장/애프터마켓·거래소 표기를 남은 화면에도 공통 함수로 적용. 변경: `krQuoteSession`에 `clockOnly` 옵션(시세 근거 없을 때 '애프터마켓 시간대'처럼 시간대만), `js/home-realtime-table.js` 제목이 이를 사용, `js/watchlist.js` 국내 카드 배지와 `js/ticker-tooltip-v5.js` 기준시각이 공급자 `market_state` 있을 때 같은 문구 사용. 시세·등락률 계산, WebSocket/REST, 호출량, 주문 로직 변경 없음. 검증: `test/test_kr_quote_session.js` 17건·`test_closed_countdown.js` 통과, 변경 JS node --check. 갱신: 이용방법·릴리스 노트. 미확인: 실화면 PC/모바일 줄바꿈(병합 후 확인). 배포: master→Pages(미머지).
