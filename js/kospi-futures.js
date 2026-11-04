@@ -300,28 +300,33 @@
   function buildOptionSection() {
     var cards = OPTION_SIDES.map(function (s) {
       return '<div class="kf-opt-card" data-side="' + s.key + '">'
-        + '<div class="kf-opt-title">' + escapeHtml(s.label) + '</div>'
+        + '<div class="kf-opt-title">' + escapeHtml(s.label) + ' <small title="' + (s.key === 'CALL' ? '정해진 행사가로 살 수 있는 권리입니다. 콜 거래에는 매수자와 매도자가 모두 있습니다.' : '정해진 행사가로 팔 수 있는 권리입니다. 풋 거래에는 매수자와 매도자가 모두 있습니다.') + '">(' + (s.key === 'CALL' ? '살 권리' : '팔 권리') + ')</small></div>'
         + '<div class="kf-opt-body kf-loading">' + global.NineUI.spinner() + '불러오는 중...</div>'
         + '</div>';
     }).join('');
     var collapsed = loadCollapsed('option');
     return '<section class="kf-section mi-block' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="option" data-mi-block="option">'
-      + buildBlockHead('04', '옵션 수급', ' <span class="kf-option-title-meta">만기 확인 중</span>',
+      + buildBlockHead('04', '콜·풋 거래량 및 미결제약정(OI) 분석', ' <span class="kf-option-title-meta">만기 확인 중</span>',
         '<button type="button" class="kf-collapse-btn" data-chart-key="option" aria-label="' + (collapsed ? '펼치기' : '숨기기') + '">' + (collapsed ? '펼치기' : '숨기기') + '</button>')
       + '<div class="mi-block-desc">KOSPI200 옵션 콜·풋의 거래량·미결제약정(OI) 증감과 행사가별 분포입니다.</div>'
       + '<div class="kf-section-body">'
-      + '<div class="mi-sub"><div class="mi-sub-title">콜·풋 미결제약정 수급</div>'
-      + '<div class="mi-sub-cap">콜옵션과 풋옵션의 거래량, 미결제약정(OI), OI 증감을 따로 보여 줍니다.</div>'
+      + '<div class="mi-sub"><div class="mi-sub-title">콜·풋 거래량·남아 있는 계약 수</div>'
+      + '<div class="mi-sub-cap">거래량은 거래된 계약 수, 미결제약정(OI)은 아직 청산되거나 만기가 끝나지 않은 계약 수입니다. 단위는 계약입니다.</div>'
+      + '<div class="mi-sub-cap">OI 증감은 KIS 제공값(비교 기준 미확인)입니다. 직전 수집값을 빼서 계산한 수치가 아닙니다.</div>'
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div></div>'
       + '<div class="mi-sub kf-option-profile" id="kfOptionProfile">'
-      + '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
+      + '<div class="kf-option-profile-head"><b title="행사가(미리 정한 지수 수준)마다 거래된 계약 수와 남아 있는 계약 수가 얼마나 모여 있는지 보여주는 분포도입니다.">행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
       + '<div class="kf-option-profile-loading">' + global.NineUI.spinner() + '행사가별 데이터를 불러오는 중...</div>'
       + '</div>'
-      + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
+      + '<details class="mi-sub"><summary>용어 쉽게 보기 · 거래량 / OI / 행사가 / 콜·풋</summary>'
+      + '<p class="mi-sub-cap">콜은 정해진 가격으로 살 권리, 풋은 팔 권리입니다. 행사가(예: 950)는 권리를 행사할 때 적용하는 KOSPI200 지수 수준으로, 옵션 자체의 거래 가격이 아닙니다.</p>'
+      + '<p class="mi-sub-cap">거래량은 당일 누적 거래 계약 수입니다. 같은 계약이 여러 번 거래될 수 있어 남아 있는 계약 수(OI)와 다릅니다. OI 증가는 남아 있는 계약 수가 늘었다는 뜻이며 신규 매수량을 뜻하지 않습니다. OI 증감의 +는 증가, −는 감소입니다.</p>'
+      + '<p class="mi-sub-cap">행사가별 프로파일은 가격대별 분포도입니다. 왼쪽은 콜, 오른쪽은 풋이며 진한 막대는 OI, 연한 막대는 거래량입니다. 각 막대는 조회 범위 내 같은 지표의 최댓값을 기준으로 하므로 OI 막대와 거래량 막대의 길이를 직접 비교하지 마세요.</p></details>'
+      + '<div class="kf-opt-desc">이 화면의 API는 투자자 유형(외국인·기관·개인)별 매수·매도 구분을 제공하지 않아, '
       + '조회된 콜·풋 미결제약정(OI) 증감을 보여드립니다. OI 증가는 미결제 계약 증가, 감소는 계약 감소이며, '
       + '콜·풋 종류와 OI 증감만으로 투자자의 매수·매도 또는 시장 상승·하락 방향을 판단할 수 없습니다. '
-      + '합계와 행사가별 프로파일은 KIS가 반환한 콜·풋 각 최대 100건의 조회 범위이며 전체 시장 합계가 아닙니다. '
-      + '5분 주기 REST 스냅샷이고 업데이트 시각은 자료 수집 시각입니다. 야간 체결 반영을 보장하지 않습니다.</div></div>'
+      + '합계와 행사가별 프로파일은 상단에 표시한 행사가 조회 범위이며 전체 시장 합계가 아닙니다. 현물 부근 조회에 실패하면 전광판의 콜·풋 각 최대 100건으로 범위가 축소됩니다. '
+      + '30분 주기 REST 스냅샷이고 업데이트 시각은 자료 수집 시각입니다. 야간 체결 반영을 보장하지 않습니다.</div></div>'
       + '</section>';
   }
 
@@ -352,10 +357,10 @@
     var t = optTendency(row, side);
     var sign = row.oi_change > 0 ? '+' : '';
     return '<div class="kf-opt-body">'
-      + '<span class="kf-opt-tendency ' + t.cls + '">' + t.label + '</span>'
-      + '<div class="kf-opt-row"><span>거래량</span><b>' + Math.round(row.volume || 0).toLocaleString('ko-KR') + '</b></div>'
-      + '<div class="kf-opt-row"><span>미결제약정(OI)</span><b>' + Math.round(row.oi || 0).toLocaleString('ko-KR') + '</b></div>'
-      + '<div class="kf-opt-row"><span>OI 증감</span><b class="' + t.cls + '">' + sign + Math.round(row.oi_change || 0).toLocaleString('ko-KR') + '</b></div>'
+      + '<span class="kf-opt-tendency ' + t.cls + '" title="KIS 제공 OI 증감의 부호입니다. 비교 기준 미확인 · 직전 수집 대비 아님. 증가해도 매수 우세나 상승을 뜻하지 않습니다.">' + t.label + '</span>'
+      + '<div class="kf-opt-row"><span title="당일 누적 거래 계약 수입니다. 같은 계약의 반복 거래도 포함합니다.">거래량</span><b>' + Math.round(row.volume || 0).toLocaleString('ko-KR') + '</b></div>'
+      + '<div class="kf-opt-row"><span title="아직 청산되거나 만기가 끝나지 않은 계약 수입니다. 매수량이나 매도량이 아닙니다.">미결제약정(OI)</span><b>' + Math.round(row.oi || 0).toLocaleString('ko-KR') + '</b></div>'
+      + '<div class="kf-opt-row"><span title="KIS 제공 증감값의 합계입니다. 비교 기준 미확인 · 직전 수집 대비 아님.">OI 증감</span><b class="' + t.cls + '">' + (row.oi_change == null ? '미제공' : sign + Math.round(row.oi_change).toLocaleString('ko-KR')) + '</b></div>'
       + '<div class="kf-opt-updated nt-stamp">' + ((window.NineTime && window.NineTime.updated(row.updated_at)) || ('업데이트 ' + fmtTime(row.updated_at))) + '</div>'
       + '</div>';
   }
@@ -385,7 +390,7 @@
         }
       });
       var profile = container.querySelector('#kfOptionProfile');
-      if (profile) profile.innerHTML = '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b></div>'
+      if (profile) profile.innerHTML = '<div class="kf-option-profile-head"><b title="행사가(미리 정한 지수 수준)마다 거래된 계약 수와 남아 있는 계약 수가 얼마나 모여 있는지 보여주는 분포도입니다.">행사가별 콜·풋 프로파일</b></div>'
         + '<div class="kf-option-profile-empty">행사가별 옵션 데이터를 불러오지 못했어요.</div>';
     });
   }
@@ -419,7 +424,7 @@
       return row && row.strike != null && (Number(row.oi) || Number(row.volume));
     });
     if (!usable.length) {
-      mount.innerHTML = '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
+      mount.innerHTML = '<div class="kf-option-profile-head"><b title="행사가(미리 정한 지수 수준)마다 거래된 계약 수와 남아 있는 계약 수가 얼마나 모여 있는지 보여주는 분포도입니다.">행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
         + '<div class="kf-option-profile-empty">행사가별 원자료가 아직 없습니다. 옵션 수급 수집이 한 번 실행되면 표시됩니다.</div>';
       return;
     }
@@ -446,9 +451,9 @@
         + '</div>'
         + '</div>';
     }).join('');
-    mount.innerHTML = '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b>'
+    mount.innerHTML = '<div class="kf-option-profile-head"><b title="행사가(미리 정한 지수 수준)마다 거래된 계약 수와 남아 있는 계약 수가 얼마나 모여 있는지 보여주는 분포도입니다.">행사가별 콜·풋 프로파일</b>'
       + '<span><i class="call-dot"></i>콜&nbsp;&nbsp; <i class="put-dot"></i>풋 · 진한 막대 OI / 연한 막대 거래량</span></div>'
-      + '<div class="kf-option-profile-labels"><span>콜옵션</span><b>행사가</b><span>풋옵션</span></div>'
+      + '<div class="kf-option-profile-labels"><span>콜옵션</span><b title="옵션의 권리를 행사할 때 적용하는 KOSPI200 지수 수준입니다. 옵션 자체의 거래 가격이 아닙니다.">행사가</b><span>풋옵션</span></div>'
       + '<div class="kf-option-profile-scroll">' + body + '</div>';
   }
 
