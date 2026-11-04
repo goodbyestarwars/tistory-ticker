@@ -13,6 +13,7 @@
 `style.css`와 독립 문서 `css/legal.css`에서 가져온다. 기존 명조 역할만 변경하며 Pretendard UI·숫자·버튼은 유지한다.
 기존 별도 Bold 패밀리에 weight 400을 주던 제목·SVG 문구도 실제 700으로 승계한다. 400/600/700은 실제 웹폰트 굵기를 쓰며 font-synthesis를 끈다.
 2026-11-05 후속: 공식 Google Fonts v32 가변 WOFF2 unicode-range를 공통 fonts.css에서 직접 선언해 중간 Google CSS 요청을 없앤다. 각 부분집합은 필요한 글자에만 내려받는다.
+티스토리 기본 CSS의 별도 Noto Serif KR 400 face와 충돌하지 않도록 내부 패밀리 이름은 `Noto Serif KR Site`를 쓴다. 실제 폰트는 같은 공식 Noto Serif KR이며 모든 화면은 기존 `--font-serif`만 참조한다.
 공통 face의 size-adjust 96%, ascent 110%/descent 29%/line-gap 0%로 마루부리의 시각 크기와 normal 행 높이를 보정한다. 24px Bold 비교 문구의 잉크 ascent는 마루부리20/Noto기존21/보정20px, 독립 24px normal 표본은 마루부리32/기존Noto35/보정32px다.
 기존 24/22/17px 크기·행간·자간 지정은 확대하지 않고 Bold700을 유지한다. UI 고딕에는 face 보정이 적용되지 않는다.
 
