@@ -7685,6 +7685,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --ui-radius-inner: 9px;
   --ui-title-size: 24px;
   --ui-section-size: 17px;
+  --home-editorial-card-title-size: 20.7px;
   --ui-card-surface: var(--ui-glass-surface);
   --ui-inner-surface: #fff;
   --ui-panel-surface: var(--ui-glass-panel);
@@ -7705,6 +7706,9 @@ html.dark {
 
 @media (max-width: 760px) {
   :root { --ui-title-size: 22px; }
+}
+@media (max-width: 720px) {
+  :root { --home-editorial-card-title-size: 16.2px; }
 }
 
 @layer np {
@@ -8932,7 +8936,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { bottom: 54px; right: 23px; font-size: 99px; }
   html body#tt-body-index .briefing-carousel-track .post-header { margin: 0 0 var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-track .post-date { font-size: 11px !important; }
-  html body#tt-body-index .briefing-carousel-track .post-title { font-size: 23.4px !important; margin: 0 0 var(--ui-paragraph-gap) !important; }
+  html body#tt-body-index .briefing-carousel-track .post-title { font-size: var(--home-editorial-card-title-size) !important; margin: 0 0 var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
   html body#tt-body-index .briefing-carousel-track .post-footer { padding-top: var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-controls { gap: 25px; padding: 7px 50px 14px 0 !important; }
@@ -8951,7 +8955,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body .site-footer-learn a.learn-card::before { top: 23px; right: 22px; font-size: 12.6px !important; }
   html body .site-footer-learn a.learn-card::after { bottom: 25px; right: 22px; font-size: 16px !important; }
   html body .site-footer-learn a.learn-card svg { top: 22px !important; left: 22px !important; width: 43px !important; height: 43px !important; padding: 9px !important; }
-  html body .site-footer-learn a.learn-card b { font-size: 20.7px !important; }
+  html body .site-footer-learn a.learn-card b { font-size: var(--home-editorial-card-title-size) !important; }
   html body .site-footer-learn a.learn-card small { padding-right: 22px; font-size: 12px !important; }
   html body .site-footer-learn .learn-description { font-size: 12px !important; }
 } }
@@ -8971,7 +8975,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body#tt-body-index .briefing-intro p { font-size: 13.5px !important; }
     html body#tt-body-index .briefing-intro .home-briefing-more { margin-top: 18px !important; font-size: 13.5px !important; padding: 16px 22px !important; }
     html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: auto !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
-    html body#tt-body-index .briefing-carousel-track .post-title { font-size: 16.2px !important; }
+    html body#tt-body-index .briefing-carousel-track .post-title { font-size: var(--home-editorial-card-title-size) !important; }
     html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
     html body#tt-body-index .briefing-carousel-controls { gap: 16px; }
     /* 이야기 시리즈(모바일) */
@@ -8981,7 +8985,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body .learn-intro p { font-size: 13.5px !important; }
     html body .site-footer-learn a.learn-card { grid-template-rows: 36px auto minmax(0, 1fr) auto !important; height: 216px !important; padding: 20px 14px !important; gap: 7px !important; border-radius: 20px !important; }
     html body .site-footer-learn a.learn-card svg { top: 18px !important; left: 14px !important; width: 36px !important; height: 36px !important; padding: 7px !important; }
-    html body .site-footer-learn a.learn-card b { font-size: 16.2px !important; }
+    html body .site-footer-learn a.learn-card b { font-size: var(--home-editorial-card-title-size) !important; }
     html body .site-footer-learn a.learn-card small { padding-right: 20px; font-size: 11px !important; }
     html body .site-footer-learn .learn-description { font-size: 11px !important; }
     html body .site-footer-learn a.learn-card::before { top: 21px; right: 14px; font-size: 11px !important; }
