@@ -2,6 +2,12 @@
 
 > **2026-11-04 정정(전면 개정):** 실계좌 runner·엔진·주문 어댑터·텔레그램 봇은 **자동매매 전용 Google VM**(`instance-20260712-153038`, 사용자 `autotrader`, 폴더 `~/autotrader`)에서만 동작한다. 사용자 PC 예약 작업(`AutotraderLiveTrading`)은 삭제됐다. 2026-10-19~27 기록의 "PC"는 이전 위치의 과거 사실이며 아래 이력 표에만 남긴다. 기준: `docs/HANDOFF_2026-10-30.md` §1·§3, 2026-11-04 VM 실측.
 
+## 2026-11-04 주문 제어 패치(운영 상태는 별도)
+
+비공개 `autotrader-private/main`: `order_guard.py` 공통 시간/STOP/수동중지/주문 잠금, `live_runner.py` 14:00 자동 종료, `control_agent.py` 웹 영구중지·수동 시작, `bot.py` 엔진 보유분 중복 매도 차단, `ninepay_signal_client.py` Shadow·시간·무효 신호 거부, `live_engine.py` 스윙 우선·미분류 제외. GitHub Actions 테스트 통과.
+**미확인:** Google VM 실제 pull SHA, 기존 `/etc/sudoers.d/autotrader-control` 교체, Runner/timer 상태, 장부/보유·미체결, 계좌 승인·`STOP`·`MANUAL_STOP`, 다음 장중의 동작. 특히 sudoers 구버전이면 웹 stop에서 타이머 비활성화, 장중 웹 start에서 서비스 시작이 실패할 수 있으며 수동 주문 차단 표식은 계속 유효하다.
+Google VM 설치·검증은 비공개 `control/README.md`를 따른다. SSH/실계좌 주문을 이번 GitHub 변경으로 수행했다고 해석하지 않는다.
+
 ## 2026-10-28 통합 PR의 운영 상태
 
 확정 UI·Shadow 증거·주문 경계 변경은 작업 브랜치/PR에만 제공한다. 공개 상태는 키움 연결·Toss 미실행·9Pay 장외/20종목 한도이며 장중 400종목 정상 수신을 입증하지 않는다. [전환·롤백과 미검증 범위](../../docs/NINEPAY_INTEGRATED_CONFIRMATION.md).
@@ -16,7 +22,7 @@
 | `live_runner.py` (`autotrader-live.timer` 평일 08:55, `Restart=no`) | 자동매매 VM | 매도 점검 → 9Pay 단타 → 기존 후보 순회 |
 | `live_engine.py` | 자동매매 VM | 예산·보유 제한·확정 일봉 순위·매도 청산·장부·`HOLD_BUY` 확인 |
 | `ninepay_signal_client.py` / `ninepay_trade.py` | 자동매매 VM | 피드 검증·단타 지정가 주문 |
-| `autotrader-bot` (상시) | 자동매매 VM | 잔고 감시·텔레그램 알림(읽기 전용 명령), 봇 매도(`LIVE_SELL`)는 코드에서 꺼짐 |
+| `autotrader-bot` (상시) | 자동매매 VM | 잔고·텔레그램 감시, `LIVE_SELL=1`(11/04 VM 기록). 확정 감시 목록의 수동 보유만 14시 이전 매도 가능. `MANUAL_STOP`과 엔진 소유·공통 잠금으로 주문 차단 |
 | `control/control_agent.py` (20초 타이머) | 자동매매 VM | 상태·주문 내역을 사이트로 업로드, 시작/중지/보류/재개 명령 수행(주문 없음) |
 | `research.db`·`live_orders.db` | 자동매매 VM | 연구 후보·실거래 주문 의도/포지션, **Git에 올리지 않음** |
 
