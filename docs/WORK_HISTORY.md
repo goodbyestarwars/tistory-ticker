@@ -1,3 +1,7 @@
+**2026-11-04 운영센터 '오늘 신규 매수 보류' (Oracle 쪽 선구현)**
+
+요청: STOP 파일을 수동으로 만들지 않고 웹에서 당일 신규 매수만 보류. 변경: `autotrader_control.py`에 `hold`/`resume` 명령(대상 에이전트가 `capabilities`에 `hold`를 올릴 때만 접수, 날짜(KST)·scope=buy 동봉, 보류 여부는 에이전트 보고값이고 날짜가 오늘이 아니면 무효), `js/auto-trader.js` 버튼·확인창·상태 칸, 테스트 5개, VM 쪽 작업지시서 `docs/AUTOTRADER_HOLD_AGENT_SPEC_2026-11-04.md`. 검증: `test_autotrader_control` 18개·`test_auto_trader_ui` 10개·주문 JS 통과. 배포: master 병합 시 Oracle/Pages 반영, **에이전트·엔진 미반영이라 버튼은 비활성**(실주문 코드 diff 승인 대기). 미완료: 에이전트·엔진·텔레그램 문구(비공개 저장소).
+
 **2026-11-04 구성 문서 정정·자동매매 경고 문구 정정**
 
 요청: GCP 자동매매 점검 중 문서와 실제 구성 불일치 발견. 변경: `CLAUDE.md`·`docs/SERVICE_MAP.md`·`LIVE_OPERATIONS.md`의 백엔드=Oracle A1·자동매매=전용 Google VM(2026-10-30 인계 기준) 정정, `tg_live_status.fmt_stale`·`tg_monitor` 연구 경고의 "PC 절전" 문구를 VM 기준으로 변경(판단·주기 로직 무변경, 주문 코드 무변경). 검증: 아래 기록. 배포: 알림 문구는 autotrader-private 반영 필요(이 저장소 push는 VM 자동 반영 아님), 문서는 즉시. 미완료: 수동 중지를 경고에서 구분하는 상태 표식(비공개 control-agent 쪽 설계 필요).
