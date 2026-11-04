@@ -130,9 +130,9 @@
   // 변동성(ATR14) 기준 허용 오차 안이면 "닿았다"고 센다. 닿음 3회 이상이면 확정선(실선), 2회는 잠정선(점선).
   // 종가가 선에서 이탈 허용치 넘게 벗어난 봉이 2봉 연속이면 추세 이탈, 이탈 뒤 직전 스윙 극점까지 깨면 추세 전환이다.
   // 파동 엔진 결과는 바꾸지 않고 이미 정해진 고점·저점만 읽는다. 허용치는 아래 상수 한 곳에서 조정한다.
-  var TREND = { atrPeriod: 14, touchAtr: 0.5, touchPct: 0.015, breakAtr: 1, breakPct: 0.025, breakBars: 2, minTouches: 2, solidTouches: 3, maxPivots: 8, staleBars: 120 };
+  var TREND = { atrPeriod: 14, touchAtr: 0.5, touchPct: 0.015, breakAtr: 1, breakPct: 0.025, breakBars: 2, minTouches: 2, solidTouches: 3, maxPivots: 8, staleBars: 120, minSpan: 14, projectionBars: 5, recentBars: 5 };
   var TREND_COLOR = { up: '#d62524', down: '#1558c9' };
-  var TREND_TIP = '선택 규모의 과거·현재 파동마다 검증된 국소 추세선과 평행 채널·횡보 경계를 표시합니다. 과거 선은 구간 끝에서 멈춥니다. 현재 자료의 사후 재구성이며 진행 구간은 바뀔 수 있습니다. 상승 추세는 스윙 저점끼리(붉은색), 하락 추세는 스윙 고점끼리(파란색) 이은 선입니다. 변동성(ATR) 안쪽으로 닿으면 같은 선으로 보고, 닿음 3회 이상은 실선·2회는 점선입니다. 종가가 허용치 넘게 2봉 연속 벗어나면 추세 이탈, 직전 극점까지 깨면 추세 전환으로 표시합니다. 관찰용이며 매수·매도 신호가 아닙니다.';
+  var TREND_TIP = '선택 규모의 과거·현재 파동마다 검증된 국소 추세선과 평행 채널·횡보 경계를 표시합니다. 15봉 미만의 짧은 추세는 제외합니다. 과거 선은 구간 끝에서 멈추고, 현재 유효한 선은 기울기를 5봉 앞까지 점선으로 연장합니다(가격 예언이 아닌 추세 이탈 비교 기준). 현재 자료의 사후 재구성이며 진행 구간은 바뀔 수 있습니다. 상승 추세는 스윙 저점끼리(붉은색), 하락 추세는 스윙 고점끼리(파란색) 이은 선입니다. 변동성(ATR) 안쪽으로 닿으면 같은 선으로 보고, 닿음 3회 이상은 실선·2회는 점선입니다. 종가가 허용치 넘게 2봉 연속 벗어나면 추세 이탈, 직전 극점까지 깨면 추세 전환으로 표시합니다. 관찰용이며 매수·매도 신호가 아닙니다.';
 
   function atrAt(bars, i) {
     var n = TREND.atrPeriod, from = Math.max(1, i - n + 1), sum = 0, cnt = 0;
@@ -192,7 +192,10 @@
     var lines = [];
     (waves || []).forEach(function(w) {
       var start = Math.max(0, w.start), end = Math.min(bars.length - 1, w.end);
-      if (end - start < 8 || !/^(up|down|side|wide)$/.test(w.kind)) return;
+      if (end - start < TREND.minSpan || !/^(up|down|side|wide)$/.test(w.kind)) return;
+      var observedEnd = end, progressing = w.confirmed === false;
+      // Hold the latest two closes out of the fit so a fresh break cannot pull the rail along.
+      if (progressing && bars.length-1-end <= TREND.recentBars && end-start >= TREND.minSpan+2) end -= 2;
       var n = end - start + 1, sx = 0, sy = 0, sxx = 0, sxy = 0;
       for (var i = start; i <= end; i++) {
         var x = i - start, y = bars[i].close;
@@ -228,7 +231,7 @@
               (!touches.length || k-touches[touches.length-1].i >= 3)) touches.push({i:k,p:price});
         }
         if (touches.length < 2 || touches[touches.length-1].i-touches[0].i < (end-start)*0.3) return;
-        valid.push({dir:side?'side':w.kind,m:m,b:rail.b,start:start,end:end,
+        valid.push({dir:side?'side':w.kind,m:m,b:rail.b,start:start,end:observedEnd,fitEnd:end,progressing:progressing,
           touches:touches,solid:w.confirmed !== false && touches.length >= 3,
           breakIndex:-1,reversed:false,reversalIndex:-1,local:true,edge:rail.edge});
       });
@@ -267,6 +270,7 @@
     [up,down].forEach(function(t){if(t){t.end=t.breakIndex>=0?Math.min(t.end,t.breakIndex+8):t.end;lines.push(t);}});
     var unique = [];
     lines.forEach(function(t) {
+      if (t.end-t.start < TREND.minSpan) return;
       var duplicate = unique.some(function(q) {
         return q.dir===t.dir && (!q.edge || !t.edge || q.edge===t.edge) && Math.min(q.end,t.end)-Math.max(q.start,t.start) >=
           Math.min(q.end-q.start,t.end-t.start)*0.75 &&
@@ -275,6 +279,27 @@
       });
       if(!duplicate)unique.push(t);
     });
+    var last = bars.length-1, fitted = unique.map(function(t){return Object.assign({},t);});
+    unique.forEach(function(t) {
+      t.active = t.breakIndex < 0 && last-t.end <= TREND.recentBars;
+      if (!t.active) return;
+      var run = 0, checkFrom = t.fitEnd == null ? t.end+1 : t.fitEnd+1;
+      // Channels use the trend's supporting boundary, not its opposite rail.
+      var boundary = t.edge && t.dir === 'up' ? 'support' : (t.edge && t.dir === 'down' ? 'resistance' : t.edge);
+      var rail = boundary ? fitted.find(function(q) {
+        return q.start===t.start && q.end===t.end && q.dir===t.dir && q.edge===boundary;
+      }) : t;
+      if (!rail) rail=t;
+      for(var i=checkFrom;i<=last;i++) {
+        var at=rail.m*i+rail.b, close=bars[i].close;
+        var gap=rail.dir==='up'?at-close:(rail.dir==='down'?close-at:Math.abs(close-at));
+        if(rail.dir==='side')gap=rail.edge==='support'?at-close:close-at;
+        var tolerance=Math.max(atrAt(bars,i)*TREND.breakAtr,Math.abs(at)*TREND.breakPct);
+        if(gap>tolerance) { if(++run>=TREND.breakBars){t.breakIndex=i;t.end=i;t.active=false;break;} } else run=0;
+      }
+      if(t.active) t.projectionEnd=last+TREND.projectionBars;
+    });
+    unique.forEach(function(t){if(t.active)t.end=last;});
     return { up:up, down:down, lines:unique };
 
   }
@@ -344,9 +369,19 @@
         var dir = t.dir;
         if (!t) return;
         var color = TREND_COLOR[dir] || STYLE.side.stroke;
-        function pt(i) { return view.coord({ time: bars[i].date, price: t.m * i + t.b }); }
+        function pt(i) {
+          var last=bars.length-1, p=view.coord({time:bars[Math.min(i,last)].date,price:t.m*i+t.b});
+          if (p && i>last) {
+            var scale=view.chart && view.chart.timeScale();
+            var x=scale && scale.logicalToCoordinate ? scale.logicalToCoordinate(i) : null;
+            if(x!=null)p={x:x,y:p.y};
+            else if(xa && xb)p={x:p.x+(xb.x-xa.x)*(i-last),y:p.y};
+            else return null;
+          }
+          return p;
+        }
         var p0 = pt(t.start), p1 = pt(t.end);
-        if (!p0 || !p1 || Math.max(p0.x, p1.x) < 0 || Math.min(p0.x, p1.x) > view.width || (t.local && Math.abs(p1.x-p0.x)<18)) return;
+        if (!p0 || !p1 || Math.max(p0.x, p1.x) < 0 || Math.min(p0.x, p1.x) > view.width || (t.local && Math.abs(p1.x-p0.x)<36)) return;
         var brk = t.breakIndex >= 0 ? pt(t.breakIndex) : null;
         ctx.save();
         ctx.strokeStyle = color; ctx.lineWidth = t.local ? 2.2 : 1.4;
@@ -358,6 +393,13 @@
         if (brk) {
           ctx.globalAlpha = 0.5; ctx.setLineDash([3, 5]);
           ctx.beginPath(); ctx.moveTo(brk.x, brk.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        }
+        if (t.active && t.projectionEnd != null) {
+          var future=pt(t.projectionEnd);
+          if(future) {
+            ctx.globalAlpha=0.8; ctx.setLineDash([5,4]);
+            ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(future.x,future.y);ctx.stroke();
+          }
         }
         ctx.restore();
         (t.local ? [] : t.touches).forEach(function (q) {

@@ -37,7 +37,7 @@
   var MODULES = {
     data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261022-order1' },
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261022-hline-preview' },
-    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261104-local-trends', needs: ['data', 'autowave'] },
+    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261104-trend-project5', needs: ['data', 'autowave'] },
     divergence: { file: 'js/chart-divergence.js', global: 'NineChartDivergence', v: '20261022-div1', needs: ['wave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
@@ -295,7 +295,7 @@
     var timeframe = record.timeframe, barsPerYear = timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : timeframe === 'minute' ? 0 : 252;
     var wanted = barsPerYear && Number(years) > 0 ? Math.round(barsPerYear * Number(years)) : record.bars;
     var count = Math.min(record.bars || wanted, wanted || record.bars);
-    if (count > 1) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, record.bars - count), to: record.bars - 1 + 3 });
+    if (count > 1) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, record.bars - count), to: record.bars - 1 + 6 });
     else chart.timeScale().fitContent();
     return true;
   }
