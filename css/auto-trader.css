@@ -258,6 +258,10 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 #auto-trader .at-ctl-btn.is-go:hover:not(:disabled) { background: var(--at-up); border-color: var(--at-up); color: #fff; }
 #auto-trader .at-ctl-btn.is-stop:hover:not(:disabled) { background: var(--at-down); border-color: var(--at-down); color: #fff; }
 #auto-trader .at-ctl-btn:disabled { opacity: .4; cursor: not-allowed; }
+#auto-trader .at-ctl-status { margin: 10px 0 0; font-size: 20px; font-weight: 700; }
+#auto-trader .at-ctl-status.is-ok { color: var(--at-ok, var(--at-ink)); }
+#auto-trader .at-ctl-status.is-bad { color: var(--num-up); }
+#auto-trader .at-ctl-log { margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.7; }
 #auto-trader .at-ctl-last { font-size: 12.5px; color: var(--at-mute); }
 
 /* 주문 내역·보유·연구 후보(2026-11-04) */

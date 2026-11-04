@@ -635,9 +635,20 @@
     var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지', hold: '오늘 신규 매수 보류', resume: '보류 해제' }[c.lastCommand.action] || c.lastCommand.action) + ' ' + ({ DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
       + ' · ' + String(c.lastCommand.at || '').slice(5, 16).replace('T', ' ') + (c.lastCommand.reason ? ' · ' + c.lastCommand.reason : '') : '없음';
     var blockers = c.startBlockers || [];
-    return '<section class="at-card at-ctl"><div class="at-ctl-head"><h2>자동매매 운영센터</h2>'
+    var st = statusLine(c);
+    var timerOn = vm.timerState === 'enabled';
+    var startHint = timerOn ? '자동 시작이 켜져 있어 시작 버튼은 꺼져 있습니다. 중지하면 자동 시작도 꺼지므로, 다시 자동으로 돌리려면 시작을 누르세요.' : '';
+    return '<section class="at-card at-ctl"><div class="at-ctl-head"><h2>자동매매</h2>'
       + '<span class="at-ctl-link' + (c.received ? '' : ' is-bad') + '">VM 연결 ' + esc(link) + '</span></div>'
       + (c.configured ? '' : '<p class="at-banner is-bad">서버에 제어 비밀값이 설정되지 않아 제어할 수 없습니다.</p>')
+      + '<p class="at-ctl-status' + (st.bad ? ' is-bad' : st.ok ? ' is-ok' : '') + '">' + esc(st.text) + '</p>'
+      + '<div class="at-ctl-actions"><button type="button" class="at-ctl-btn is-go" data-ctl="start"' + (c.canStart && !busy ? '' : ' disabled') + '>시작</button>'
+      + '<button type="button" class="at-ctl-btn is-stop" data-ctl="stop"' + (c.configured && !busy ? '' : ' disabled') + '>중지</button>'
+      + '<span class="at-ctl-last">최근 명령: ' + esc(lastCmd) + (c.pending ? ' · 처리 대기 중' : '') + '</span></div>'
+      + (startHint ? '<p class="at-note">' + esc(startHint) + '</p>' : '')
+      + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '')
+      + logHtml(c.log)
+      + '<details class="at-more" data-act-more="ctlDetail"' + (activityOpen.ctlDetail ? ' open' : '') + '><summary>상세 상태·오늘 신규 매수 보류</summary>'
       + '<div class="at-ctl-grid">'
       + cell('실행 타이머', timer, vm.timerState === 'enabled' ? 'is-on' : '') + cell('실행 서비스', service)
       + cell('마지막 실행', last.result ? last.result + (last.exitStatus ? ' (종료 ' + last.exitStatus + ')' : '') : '미수신')
@@ -652,10 +663,33 @@
       + '</div>'
       + '<p class="at-note">스위치·승인 파일은 서버 설정값을 읽은 것이며 주문 허용 판정이 아닙니다. 실제 주문 여부는 서비스 자체 게이트가 정합니다.</p>'
       + (blockers.length ? '<ul class="at-ctl-block">' + blockers.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>' : '')
-      + '<div class="at-ctl-actions"><button type="button" class="at-ctl-btn is-go" data-ctl="start"' + (c.canStart && !busy ? '' : ' disabled') + '>시작</button>'
-      + '<button type="button" class="at-ctl-btn is-stop" data-ctl="stop"' + (c.configured && !busy ? '' : ' disabled') + '>중지</button>' + holdBtns(c)
-      + '<span class="at-ctl-last">최근 명령: ' + esc(lastCmd) + (c.pending ? ' · 처리 대기 중' : '') + '</span></div>'
-      + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '') + '</section>';
+      + '<div class="at-ctl-actions">' + holdBtns(c) + '</div></details></section>';
+  }
+
+  // 한 줄 상태. 새 데이터 없이 기존 필드만 조합한다. 값이 없으면 정상으로 보이지 않게 '확인 필요'로 둔다.
+  function statusLine(c) {
+    var vm = c.vm || {}, last = vm.lastResult || {}, cmd = c.lastCommand || {};
+    var timerOn = vm.timerState === 'enabled';
+    var next = timerOn ? ' · 다음 거래일 08:55 자동 시작' : ' · 자동 시작 꺼짐(시작을 눌러야 다시 켜집니다)';
+    if (!c.received) return { text: 'VM에서 상태를 받지 못했습니다 — 연결 확인 필요', bad: true };
+    if (vm.serviceState === 'active' || vm.serviceState === 'activating') {
+      return { text: '실행 중' + (c.hold && c.hold.active ? ' · 오늘 신규 매수 보류' : ''), ok: true };
+    }
+    var manual = (last.result === 'signal' && String(last.exitStatus) === '15') || (cmd.action === 'stop' && cmd.result === 'DONE');
+    if (manual) return { text: '직접 중지됨' + next };
+    if (vm.serviceState === 'failed') return { text: '비정상 종료 — 확인 필요' + (last.result ? ' (' + last.result + (last.exitStatus ? ' ' + last.exitStatus : '') + ')' : ''), bad: true };
+    return { text: '대기 중' + next };
+  }
+
+  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제' };
+  var LOG_RESULT = { QUEUED: '접수', DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)', REFUSED: '거부' };
+  function logHtml(rows) {
+    if (!rows || !rows.length) return '<h3 class="at-subhead">명령 기록</h3><p class="at-empty">아직 기록이 없습니다.</p>';
+    return '<h3 class="at-subhead">명령 기록 <small>최근 ' + rows.length + '건</small></h3><ul class="at-ctl-log">' + rows.map(function (r) {
+      return '<li><span class="at-mute">' + esc(String(r.at || '').slice(5, 16).replace('T', ' ')) + '</span> '
+        + '<b>' + esc(LOG_ACTION[r.action] || r.action) + '</b> · ' + esc(LOG_RESULT[r.result] || r.result)
+        + (r.account && r.account !== '-' ? ' · ' + esc(r.account) : '') + (r.reason ? ' · <span class="at-mute">' + esc(r.reason) + '</span>' : '') + '</li>';
+    }).join('') + '</ul>';
   }
 
   // 에이전트가 올린 주문·보유·연구 후보(서버가 허용 필드만 남김). 주문번호·계좌·잔고는 받지 않는다.

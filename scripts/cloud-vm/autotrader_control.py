@@ -152,6 +152,31 @@ def hold_view(snapshot, now):
             'scope': HOLD_SCOPE, 'staleDay': raw.get('day') if reported and not active else None}
 
 
+def recent_log(limit=10):
+    """화면용 최근 명령 기록(최신순). 감사 로그에서 시각·행동·결과·사유만 읽고 계정은 @ 앞부분만 보인다."""
+    try:
+        with open(AUDIT_PATH, 'rb') as stream:
+            stream.seek(0, os.SEEK_END)
+            size = stream.tell()
+            stream.seek(max(0, size - 64 * 1024))
+            lines = stream.read().decode('utf-8', 'replace').splitlines()
+    except OSError:
+        return []
+    rows = []
+    for line in reversed(lines):
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict) or row.get('action') not in ACTIONS:
+            continue
+        rows.append({'at': _text(row.get('at'), 25), 'action': row['action'], 'result': _text(row.get('result'), 12),
+                     'account': _text(str(row.get('account') or '-').split('@')[0], 24), 'reason': _text(row.get('reason'), 80)})
+        if len(rows) >= limit:
+            break
+    return rows
+
+
 def public_status(now=None):
     now = now or _now()
     state = _load()
@@ -171,7 +196,7 @@ def public_status(now=None):
             'activity': state.get('activity') if received else None,
             'vm': view, 'startBlockers': blockers, 'canStart': not blockers and not pending,
             'pending': {'id': pending['id'], 'action': pending['action']} if pending else None,
-            'hold': hold,
+            'hold': hold, 'log': recent_log(),
             'lastCommand': state.get('last')}
 
 

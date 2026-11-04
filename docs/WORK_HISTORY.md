@@ -1,3 +1,7 @@
+**2026-11-04 자동매매 운영센터 화면 단순화**
+
+요청: 상태 한 줄·시작/중지·매매내역·로그만. 변경: `js/auto-trader.js`에 상태 한 줄(`statusLine`, 기존 필드 조합·직접 중지(SIGTERM 15)는 장애와 구분)·명령 기록 목록, 기존 상세 칸과 보류 버튼은 접기, `autotrader_control.recent_log`(감사 로그의 최근 명령·계정은 @ 앞만)을 `/autotrader/status.log`로 제공, `css/auto-trader.css` 보강, `test_auto_trader_research_ui`의 허용 명령 목록을 hold/resume 포함으로 갱신(앞선 보류 변경이 깨뜨린 테스트). 검증: control 19개·UI 10개·research UI 8개·주문 JS 통과, 390px/1100px 렌더 가로 넘침 없음. 배포: master 병합 시 Pages/Oracle 반영(Oracle 재시작은 장외). 미완료: 매매내역은 VM 에이전트가 내역을 올려야 채워짐, `stop`이 타이머를 끄는 동작 변경은 에이전트 쪽(작업지시서에 추가).
+
 **2026-11-04 국내 뉴스 같은 매체 같은 제목 중복 제거**
 
 요청: 주요 뉴스에 같은 제목이 반복 표시. 원인: `/domestic-news`의 중복 판정이 링크 기준이라, 연합뉴스가 같은 제목을 기사 번호만 달리 여러 건 내면(PYH…) 모두 통과. 변경: `domestic_news._merge`에 같은 매체·같은 제목(공백·구두점 무시) 묶기 추가(공시 제외, 다른 매체의 같은 제목은 유지, 같으면 직접 관련 우선·최신 유지). 검증: `test_domestic_news` 23개(신규 2)·warmer 통과, 실제 응답 25건→17건(쿠팡 12건→4건) 재현 확인. 배포: master 병합 시 Oracle `kiwoom-api` 재시작되므로 장외(15:40 이후)에 병합.

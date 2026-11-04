@@ -188,6 +188,15 @@ class ControlTest(unittest.TestCase):
         out = ac.agent_sync({'snapshot': good(MON, capabilities=['hold'])}, MON)
         self.assertNotIn('day', out['command'])
 
+    def test_status_includes_recent_log_newest_first_without_full_email(self):
+        self.seed(good(MON))
+        ac.queue_command('stop', 'owner@example.com', MON)
+        ac.audit('owner@example.com', 'start', 'REFUSED', '타이머가 이미 켜져 있음')
+        log = ac.public_status(MON)['log']
+        self.assertEqual([row['action'] for row in log], ['start', 'stop'])
+        self.assertEqual(log[0]['account'], 'owner')
+        self.assertNotIn('@', str(log))
+
 
 if __name__ == '__main__':
     unittest.main()
