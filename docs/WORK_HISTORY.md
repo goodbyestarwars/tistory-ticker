@@ -1,3 +1,7 @@
+**2026-11-04 종목 스토리 금융 키 Oracle 전용 전환 · GitHub Actions 수집 폐지**
+
+사용자 보안 지시: 키움 API 키를 GitHub에 두지 않음. 변경: `.github/workflows/stock-stories-fortnightly.yml` 삭제로 Actions 키 요구·예약/수동 실행 경로 제거, `CLAUDE.md`에 Oracle 전용 키 정책, `docs/ORACLE_STOCK_STORY_REFRESH.md`에 서버 Claude Code 설치 지시서(2026-11-08부터 격주 일요일 10:00 KST systemd, 기존 API 3종 읽기 전용, 격리 수집·검증 뒤 공개 카드 JS만 push) 추가. GitHub 키 업로드 없음. 검증: 해당 워크플로 삭제 커밋과 정책·지시서 원본 확인. 배포: `master` 문서/워크플로 직접 반영. **미완료: Oracle systemd 등록·첫 수집·Pages 갱신은 서버 Claude Code 실행/운영 확인 필요**. 기존 카드와 실거래 주문 기능은 변경하지 않음.
+
 **2026-11-04 자동매매 보류·중지·알림·봇 매도 (autotrader-private + 문서)**
 
 요청: 신규 매수 보류(`HOLD_BUY`), 중지는 오늘만(타이머 유지), 텔레그램 오경보 정리, 활동 내역 업로드 확인, 봇 매도 켜기, PC 표기 정정. 변경(비공개 저장소 `autotrader-private` main): `control/control_agent.py` — `hold`/`resume`(HOLD_BUY 원자 저장·삭제, ack), `snapshot.capabilities=["hold"]`·`flags.hold`, `stop`은 `autotrader-live.service`만 정지(타이머 유지)하고 `MANUAL_STOP` 표시 기록, `start` 때 삭제, sudoers에서 `disable --now timer` 제거(VM 설치본은 미교체). `live_engine.py`·`ninepay_trade.py` — `hold_buy_active()`(오늘이면 신규 매수만 건너뛰고 사유 `HOLD_BUY` 기록, 파일 불량=보류, 날짜 지남·없음=무시, 청산·정합 무변경, ninepay는 브로커 호출 전과 주문 직전 2회 확인). `tg_live_status.py`·`tg_monitor.py` — "응답 없음" 문구에서 PC 절전/AutotraderLiveTrading 제거, 직접 중지(MANUAL_STOP 또는 서비스 inactive+ExecMainStatus 15)는 "직접 중지됨" 1회. `bot.py` — `live_sell_enabled()`가 `.env`의 `LIVE_SELL`(1/true/yes/on)을 읽도록 변경(사용자 승인, 감시 목록 확정 종목만 대상이며 현재 감시 목록 비어 있음, 켜면 모의 실매매 엔진 live_paper는 LIVE_SELL_ACTIVE로 중지). 활동(주문·보유·후보) 업로드는 d887834로 main 반영 확인. 커밋: d887834(활동 업로드), e4a79c0(보류·중지·알림), 6319dc4(봇 매도 스위치). 운영: VM `.env`에 `LIVE_SELL=1` 추가(백업 `.env.bak-livesell-20261104`, 권한 600), `autotrader-deploy`가 e4a79c0을 19:34 KST, 6319dc4를 20:51 KST에 수신, 봇 재시작 20:52(START "실주문 ON(매도 전용)"), 모두 장외. Oracle `kiwoom-api/.env.bak-20261104-071218`(키 포함 백업)은 사용자가 직접 삭제. 문서: PR #1148 — `LIVE_OPERATIONS.md` 전면 개정(실행 위치=자동매매 Google VM, 이력 표의 PC는 이전 위치 표시), `SERVICE_MAP.md` PC 표기 7곳 정정. 검증: `test_hold_buy.py` 12개 통과(오늘/어제/깨진 파일/없음, 매도 경로 무변경, hold→파일→ack→resume 왕복, 직접 중지 판정), 기존 4개 테스트 파일 실패 12건은 Windows 기준선과 동일, VM py_compile·제어 에이전트 1회 실행 종료코드 0. 미검증: 실주문 경로(보류 포함)는 11/05 08:55 첫 실행에서만 확인 가능, 운영센터 보류 버튼·내역 표는 관리자 로그인 화면에서 미확인, 새 sudoers 미설치, 셀트리온(068270) 장부 OPEN 4주는 사용자가 수동 매도했으므로 다음 엔진 점검에서 CLOSED 정리될 예정(미확인). 배포: autotrader-private은 위 시각 자동 반영, tistory-ticker 문서는 PR #1148 병합.
@@ -189,15 +193,3 @@
 **2026-11-03 미국주식 옵션 종합 카드(맥스 페인·풋/콜·감마 레벨) 추가**
 
 요청: 유료 서비스(Unusual Whales) 수준 옵션 지표를 엔비디아에 구현. 변경: `us_options.py`가 같은 Cboe 체인에서 전체 만기 종합(맥스 페인·풋/콜 거래량/OI·콜/풋 비중·콜월(위)/풋월(아래)·감마 플립·Net GEX)과 일별 거래량 기록(3/7/30일 평균 대비, 기록이 쌓이면 표시)을 함께 계산. `us-stocks.js`·`us-stocks.css`는 기존 0DTE 카드 위에 '옵션 종합' 블록을 추가(PC·모바일·다크 확인). 검증: NVDA 실체인(11/2)에서 맥스 페인 207.5·풋/콜 0.59/1.02·콜/풋 63/37·OI 49/51이 유료 화면과 일치, 프리미엄 비중(56)은 거래량×호가 중간가 추정이라 차이, 콜월/풋월은 정의가 달라 다름. test_us_options_overview 3건. 배포: master 푸시 후 VM·Pages 자동 배포.
-
-**2026-11-03 오픈소스 라이선스 페이지에 TradingView 저작권 고지·링크 추가**
-
-Lightweight Charts는 로고(attributionLogo)를 끄면 NOTICE 문구와 https://www.tradingview.com/ 링크를 사용자가 볼 수 있는 페이지에 둬야 한다(공식 README). 기존 페이지는 라이선스명과 GitHub 링크만 있어 `legal/opensource-license.html`에 NOTICE 문구와 링크를 추가. 검증: 파일 diff 확인, 푸터 링크 경로 기존 유지. 배포: master 푸시 후 Pages.
-
-**2026-11-03 종목 스토리 전 종목 자동 생성 스크립트(PC 2주 1회 스냅샷)**
-
-목적: 시범 3종목의 발견형 카드를 전 종목으로 확대. 변경: `scripts/build_stock_stories.py` 신설(전송·인증·종목 풀은 `fetch_investor_flow.py` 재사용) — 키움 ka10001/ka10014/ka10059로 종목마다 받아 기준을 넘는 카드만 생성(흑자인데 고점 대비 -35%↓, PBR<1·52주 저가 근처, 순매도 쪽이 시총 1%↑이고 반대편이 60%↑ 받음, 공매도 20일 평균 8%↑ 또는 최근5일 2배↑) + 반증 조건 + '틀려지는 때' 카드. 기준 미달 종목은 카드 없음. 수기 항목(한화오션 등)은 보존, 이전 auto 항목은 교체. 공매도는 잔고가 아니라 거래량 비중만 사용. `test/test_build_stock_stories.py` 추가. 검증: 단위 테스트 통과(합성 입력). 미검증: 키움 REST 실호출(이 세션에 키 없음, 필드명 250hgst/250lwst/bus_pro/mac/bps는 MCP 응답 기준), --all 실행 시 파일 크기(600KB 초과 시 분할 필요). 배포: 스크립트만, 데이터 파일 변경 없음.
-
-**2026-11-03 미국 실적 캘린더 한글 종목명 S&P 500 전체로 확대**
-
-원인: 서버 응답의 `company`가 비어 있고(11월 미국 178건 전부) 화면 이름표 `US_COMPANY_NAME_MAP`이 S&P 100(107개)뿐이라 PLTR 등 399개가 티커로만 표시됨. 변경: `js/stock-calendar.js` 이름표에 399개 추가(회사명 확신 없는 P·ECHO·VMRK는 제외, 티커 표시 유지). 검증: 스크립트 구문·캘린더 JS 테스트. 배포: master 푸시 후 Pages.
