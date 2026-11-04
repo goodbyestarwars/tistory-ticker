@@ -30,9 +30,9 @@
   └─ GAS 웹앱 ── 캐시·AI 요약·인증 경로 ──→ VM 및 외부 공급자
 
 운영 VM의 9Pay A/B 신호 (주문 기능 없음)
-  └─ 인증·시각·누락 검증 → Windows PC 실거래 runner → 키움 계좌
+  └─ 인증·시각·누락 검증 → 자동매매 Google VM 실거래 runner → 키움 계좌
                                 └─ 보유/미체결/승인/예산/STOP 재검증
-Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연구 DB/모의 결과 (주문 금지)
+자동매매 Google VM 연구 스케줄(`autotrader-research`) → 공개 pattern-scan + 조회용 일봉 → 연구 DB/모의 결과 (주문 금지)
 ~~~
 
 **절대로 혼동하지 말 것:** ① `skin.html`은 git push만으로 티스토리에 반영되지 않는다. ② `js/css/data`는 Pages, `scripts/cloud-vm`은 VM, `gas/`는 clasp 경로다. ③ VM은 신호를 만들 뿐 실거래 주문은 PC가 수행한다. ④ 사이트에 보이는 값과 저장된 일봉/캐시의 수집·기준 시각을 분리한다.
@@ -56,7 +56,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 | **캘린더** `/page/stock-calendar` | 실적·경제 발표·시장 이벤트 일정 | `js/stock-calendar.js`, 일정 공급자 |
 | **커뮤니티** `/guestbook` | 방명록·커뮤니티 | 티스토리 |
 | **MY** `/page/watchlist` | 개인 관심종목·메모·동기화·관심 그룹 | 계정/로그인·GAS/VM 사용자 데이터 및 브라우저 저장 |
-| **자동매매** `/page/auto-trader` | 관리자에게만 내비게이션 링크 표시. PC 봇 연결·작업 상태·주문/연구/모의 성과·운영센터 | `js/auto-trader.js`, 로컬 봇 토큰 인증 API. **메뉴 숨김은 인증/보안 경계가 아님** |
+| **자동매매** `/page/auto-trader` | 관리자에게만 내비게이션 링크 표시. 자동매매 VM 연결·작업 상태·주문/연구/모의 성과·운영센터 | `js/auto-trader.js`, 로컬 봇 토큰 인증 API. **메뉴 숨김은 인증/보안 경계가 아님** |
 | 기타 직접 URL `/page/dcf`, `/page/foreign-flow` 등 | 숨겨진 기업가치(DCF) 및 옛 주소 기능은 별도 지시 없이 삭제 금지 | `dcf-data/`, 기존 UI/라우팅 |
 
 **차트 공통 기능은 한 번만 수정한다:** `js/chart-core.js`·`chart-data.js`·`chart-drawing.js`·`chart-wave-overlay.js`·`chart-sr.js`. 메뉴 링크는 `/page`와 `/pages`가 혼재하므로 임의 통일하지 말고 실제 운영 주소를 확인한다.
@@ -125,7 +125,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 | VM JSON/JSONL | `daily_scan_cache.json`, `fundamentals_cache.json`, `investor_flow_cache.json`, `week52_cache.json`, `strategy_scan_cache.json`, `weekly_report_cache.json`, 실시간 관측/상태 파일 | REST 응답·배치 결과 일부는 **SQLite가 아닌 파일 캐시가 원본**. 생성 시각, TTL, 원자적 교체·잠금 확인 |
 | GitHub Pages 정적 자료 | `data/*.js`(`window.XXX` 형식), `data/chart-history/`(5년 시장 이력), `dcf-data/`(DART 연간/DCF 원본), 기타 고정 섹터·종목 매핑 | 버전/갱신 주기 상이. VM DB가 아님 |
 | GAS | Script Properties(비밀키) + `CacheService`(시황·해설·뉴스 공용 TTL) | DB가 아님. 방문자별이 아니라 공용 캐시인 항목 존재 |
-| 사용자 PC | `research.db`, `status.json`, 실거래 장부·로컬 상태/로그 | **VM DB와 별개**, Git 커밋 금지, PC에서 실행·인증 확인. 연구/실거래 데이터 교차 사용 금지 |
+| 자동매매 Google VM(`~/autotrader`) | `research.db`, `status.json`, 실거래 장부·로컬 상태/로그 | **백엔드 DB와 별개**, Git 커밋 금지, VM에서 실행·인증 확인. 연구/실거래 데이터 교차 사용 금지 |
 
 **DB 작업 시:** `docs/DB_SPEC.md` + `scripts/cloud-vm/db_schema.py` 및 관련 모듈이 원본이다. `*.db`, `.env`, 토큰·계좌·체결 원본·로그는 Git에 올리지 않는다. 백업은 장외 유지보수와 무결성 검사를 확인하고 임의 삭제/초기화하지 않는다. **신용잔고·예탁금**은 `/domestic-market-indicators`의 `funds.credit`/`funds.market_funds`와 날짜·단위를 대조한다. `/market-temp`의 `creditRisk`는 별도 위험축이며 방향 점수에 넣지 않는다.
 
@@ -165,13 +165,13 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 
 ### 5. 자동매매 — 상세 규칙은 전용 문서를 기준으로 확인
 
-자동매매 전용 문서는 `quant-autotrade/docs/`에서 관리한다. 이 서비스 지도에는 **VM은 신호만 생성하고 실제 주문은 사용자 PC가 수행한다**는 경계만 기록한다.
+자동매매 전용 문서는 `quant-autotrade/docs/`에서 관리한다. 이 서비스 지도에는 **VM은 신호만 생성하고 실제 주문은 자동매매 전용 Google VM이 수행한다**는 경계만 기록한다.
 
 - [현재 GitHub 매매규칙](../quant-autotrade/docs/TRADING_RULES.md) — 단타→스윙→중장기, 자금·손절·익절·상품 제외·차단 조건
-- [실제 PC 운영/설치 이력과 현재 미확인 사항](../quant-autotrade/docs/LIVE_OPERATIONS.md) — 2026-10-19 설치/승인 기록과 10/22~26 코드 변경을 구분
+- [자동매매 VM 운영·설치 이력과 점검 절차](../quant-autotrade/docs/LIVE_OPERATIONS.md) — 2026-10-19 설치/승인 기록과 10/22~26 코드 변경을 구분
 - [백테스트·모의/CI 검증](../quant-autotrade/docs/STRATEGY_TESTS.md) — 연구 결과를 실계좌 승인으로 해석하지 않음
 - [자동매매 정책·승인 변경 이력](../quant-autotrade/docs/CHANGELOG.md)
 - [2026-10-26까지 9Pay 주문/피드 운영 기록 보존본](../quant-autotrade/docs/NINEPAY_LIVE_TRADING_HISTORY.md)
 - [VM 장중 피드 장애 기술 분석](NINEPAY_FEED_INCIDENT_2026-10-20.md) — VM 구현·장애 분석은 서비스 문서에 보존
 
-**안전 경계:** 저장소 문서/PR 테스트 통과는 PC 운영 파일 설치나 실주문 승인과 다르다. 사용자 명시 승인 없이 PC 실계좌 실행·재시작·주문·스위치 변경 금지. 장중 VM 재시작 및 당일 피드 누락 계수 임의 초기화 금지.
+**안전 경계:** 저장소 문서/PR 테스트 통과는 자동매매 VM 운영 파일 반영이나 실주문 승인과 다르다. 사용자 명시 승인 없이 VM 실계좌 실행·재시작·주문·스위치 변경 금지. 장중 VM 재시작 및 당일 피드 누락 계수 임의 초기화 금지.
