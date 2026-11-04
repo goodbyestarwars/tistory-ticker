@@ -1,3 +1,7 @@
+**2026-11-04 Oracle 종목 스토리 격주 타이머 설치**
+
+목적: 금융 키 Oracle 전용 수집·검증·공개 JS 배포 자동화. 변경: `scripts/oracle-stock-stories/` oneshot/timer·격리 실행기·설치기, 잠금/중단·수기 보존·감소 차단·응답/JS/단위 테스트·동시 master 변경 차단·Pages 해시 확인. 공통 scheduled_job/snapshot_io와 기존 생성기를 재사용하며 실거래/주문 경로 변경 없음. 검증: 안전 회귀 3+기존 9건, calendar/verify·enable/active·11/08 10:00 KST·날짜/실제 잠금 skip. 첫 수집/Pages는 운영 후속 검증 기록에서 확정한다. 배포: master 및 Oracle 타이머 등록, API 재시작 없음.
+
 **2026-11-04 종목 스토리 금융 키 Oracle 전용 전환 · GitHub Actions 수집 폐지**
 
 사용자 보안 지시: 키움 API 키를 GitHub에 두지 않음. 변경: `.github/workflows/stock-stories-fortnightly.yml` 삭제로 Actions 키 요구·예약/수동 실행 경로 제거, `CLAUDE.md`에 Oracle 전용 키 정책, `docs/ORACLE_STOCK_STORY_REFRESH.md`에 서버 Claude Code 설치 지시서(2026-11-08부터 격주 일요일 10:00 KST systemd, 기존 API 3종 읽기 전용, 격리 수집·검증 뒤 공개 카드 JS만 push) 추가. GitHub 키 업로드 없음. 검증: 해당 워크플로 삭제 커밋과 정책·지시서 원본 확인. 배포: `master` 문서/워크플로 직접 반영. **미완료: Oracle systemd 등록·첫 수집·Pages 갱신은 서버 Claude Code 실행/운영 확인 필요**. 기존 카드와 실거래 주문 기능은 변경하지 않음.
@@ -189,7 +193,3 @@
 **2026-11-03 종목 스토리 자동 생성 실행(Oracle) · 사이트 종목 풀 238개 중 89종목에 카드**
 
 목적: 전 종목 확대 1단계. 변경: Oracle(9pay)에서 `scripts/build_stock_stories.py` 실행(임시 폴더 /tmp/story-run, 키는 서버 .env에서 프로세스 환경변수로만 전달·미기록) → `data/stock-stories.js`에 auto 항목 85개 추가(수기 4종목 보존, 파일 약 136KB). 스크립트 보완: urllib 기본 User-Agent가 키움 WAF에 차단돼(HTTP 400 Request Blocked) `fetch_investor_flow.py`에 브라우저 UA 추가, 임계값을 이번 실행 분포의 상위(이익괴리 85·수급 90·공매도 90백분위, 하한 유지)로 두어 시장 전체가 빠진 날 모든 종목에 카드가 붙지 않게 함, 공매도 급증 기준 3배, PBR 카드 막대 폭 100 초과 수정. 실행 결과: 238종목 중 카드 생성 89종목(37%), 실패 1(353200 SSL 타임아웃), 임계값 고점대비 -62.9%·시총의 2.03%·공매도 18.0%. 검증: 단위 테스트 8개, 시범 4종목 값이 MCP 수기 값과 일치(삼성 -39%, 하이닉스 -50%, NAVER -42%·공매도 11%). 미검증: 실제 사이트 화면 렌더, --all(2,600여 종목) 실행 — 파일이 수 MB가 되므로 종목별 분할 로더가 먼저 필요. 배포: master 병합 후 Pages(미확인).
-
-**2026-11-03 미국주식 옵션 종합 카드(맥스 페인·풋/콜·감마 레벨) 추가**
-
-요청: 유료 서비스(Unusual Whales) 수준 옵션 지표를 엔비디아에 구현. 변경: `us_options.py`가 같은 Cboe 체인에서 전체 만기 종합(맥스 페인·풋/콜 거래량/OI·콜/풋 비중·콜월(위)/풋월(아래)·감마 플립·Net GEX)과 일별 거래량 기록(3/7/30일 평균 대비, 기록이 쌓이면 표시)을 함께 계산. `us-stocks.js`·`us-stocks.css`는 기존 0DTE 카드 위에 '옵션 종합' 블록을 추가(PC·모바일·다크 확인). 검증: NVDA 실체인(11/2)에서 맥스 페인 207.5·풋/콜 0.59/1.02·콜/풋 63/37·OI 49/51이 유료 화면과 일치, 프리미엄 비중(56)은 거래량×호가 중간가 추정이라 차이, 콜월/풋월은 정의가 달라 다름. test_us_options_overview 3건. 배포: master 푸시 후 VM·Pages 자동 배포.

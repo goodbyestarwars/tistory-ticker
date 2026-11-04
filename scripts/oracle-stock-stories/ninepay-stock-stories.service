@@ -1,0 +1,28 @@
+[Unit]
+Description=Oracle verified fortnightly public stock story refresh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/ninepay-stock-stories/refresh_stock_stories.py
+TimeoutStartSec=3h
+TimeoutStopSec=20s
+KillMode=control-group
+Restart=no
+Nice=15
+CPUWeight=10
+IOWeight=10
+IOSchedulingClass=idle
+MemoryMax=768M
+TasksMax=64
+UMask=0077
+Environment=TZ=Asia/Seoul
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/ninepay-stock-stories /home/ubuntu/tistory-ticker /home/goodbyestarwars/kiwoom-api/.scan_serial.lock /home/goodbyestarwars/kiwoom-api/.deploy_check.lock
+PrivateTmp=no
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
