@@ -116,10 +116,8 @@ def start_blockers(snapshot, now):
     age = _fresh(snapshot, now)
     if age is None or age > STALE_AFTER_SEC:
         return ['VM 상태 미수신(에이전트 응답 없음)']
-    if now.year not in KNOWN_CALENDAR_YEARS:
-        out.append('휴장일 표가 %d년을 덮지 않아 거래일을 확정할 수 없음' % now.year)
-    elif not market_calendar.is_kr_trading_day(now):
-        out.append('휴장일(주말·공휴일)')
+    # Web start can re-arm tomorrow's timer outside market hours or on holidays.
+    # The VM runner performs the actual calendar and <14:00 entry checks.
     unknown = (snapshot.get('ledger') or {}).get('unknownOrders')
     if unknown is None:
         out.append('UNKNOWN 주문 수 미수신')
@@ -132,7 +130,14 @@ def start_blockers(snapshot, now):
         out.append('autotrader-live가 이미 실행 중(이중 실행 방지)')
     if snapshot.get('tgConflict'):
         out.append('다른 곳에서 같은 텔레그램 봇이 동작 중(PC 실행 흔적 의심)')
-    if snapshot.get('timerState') == 'enabled':
+    flags = snapshot.get('flags') or {}
+    manual = flags.get('manualStop')
+    if not isinstance(manual, bool):
+        out.append('수동 중지 상태 미수신(에이전트 버전 확인)')
+    timer = snapshot.get('timerState')
+    if timer not in ('enabled', 'disabled'):
+        out.append('타이머 상태 확인 불가')
+    elif timer == 'enabled' and manual is not True:
         out.append('타이머가 이미 켜져 있음')
     return out
 
