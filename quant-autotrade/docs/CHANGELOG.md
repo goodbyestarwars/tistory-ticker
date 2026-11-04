@@ -1,5 +1,12 @@
 # 자동매매 정책·승인·검증 변경 이력
 
+## 2026-11-04 후속 (GitHub 반영, 운영 실측 분리)
+
+사용자 명령: 14:00 자동 종료, 웹 중지는 Runner·봇 주문 모두 수동 시작 전까지 차단, 공통 중복 주문 방어, 웹 문구 정정, 스윙/중장기 우선순위·단타 14:00 안전 경계 일치.
+변경: 비공개 `order_guard.py`, `live_runner.py`, `live_engine.py`, `ninepay_trade.py`, `ninepay_signal_client.py`, `bot.py`, `control/control_agent.py`·sudoers 및 텔레그램 안내, 공개 `autotrader_control.py`·`auto-trader.js`. 승인 파일·.env·계좌/장부는 변경하지 않음.
+검증: [비공개 GitHub Actions](https://github.com/goodbyestarwars/autotrader-private/actions/runs/41847575107) CI 구문·가짜 브로커 통과. 운영 Google VM 실측·sudoers 설치·다음 거래일 확인은 **미완료**.
+
+
 ## 2026-10-28 확정 화면과 실주문 계약 분리 (미배포)
 
 신규 검증은 Shadow 전용이며 기존 A/B 진입·예산·청산 조건은 유지한다. PC 수신 경계에서 Shadow/UI 계약 거부·재수신 중복 제거, VM에서 무효화된 이벤트 즉시 제외를 추가했다. 운영 PC/계좌 승인/환경변수/예약 작업/서비스는 변경하지 않았다. [구현·검증·한계·롤백](../../docs/NINEPAY_INTEGRATED_CONFIRMATION.md).
