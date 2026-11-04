@@ -674,10 +674,10 @@
     var timerOn = vm.timerState === 'enabled';
     var next = timerOn ? ' · 다음 거래일 08:55 자동 시작' : ' · 자동 시작 꺼짐(시작을 눌러야 다시 켜집니다)';
     if (!c.received) return { text: 'VM에서 상태를 받지 못했습니다 — 연결 확인 필요', bad: true };
+    if ((vm.flags || {}).manualStop === true) return { text: '직접 중지됨 · 웹 [시작] 전까지 엔진·봇 주문 차단', bad: false };
     if (vm.serviceState === 'active' || vm.serviceState === 'activating') {
       return { text: '실행 중' + (c.hold && c.hold.active ? ' · 오늘 신규 매수 보류' : ''), ok: true };
     }
-    if ((vm.flags || {}).manualStop === true) return { text: '직접 중지됨 · 웹 [시작] 전까지 엔진·봇 주문 차단', bad: false };
     if ((vm.liveStatus || {}).state === 'AUTO_STOP_1400') return { text: '14:00 자동 종료' + next };
     if (vm.serviceState === 'failed') return { text: '비정상 종료 — 확인 필요' + (last.result ? ' (' + last.result + (last.exitStatus ? ' ' + last.exitStatus : '') + ')' : ''), bad: true };
     return { text: '대기 중' + next };
