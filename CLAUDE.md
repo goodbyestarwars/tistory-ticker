@@ -69,6 +69,8 @@
 ## 배포·기록
 
 - `js/css/data/style.css`는 master → Pages, `scripts/cloud-vm`은 master → VM 자동 배포다.
+  종목 스토리 정적 자료(`data/stock-stories.js`, `data/stories/`)는 VM 코드·재스캔 감시에서 제외한다.
+  스토리 자동 갱신은 `.github/workflows/stock-stories-fortnightly.yml`의 격주 일요일 10:00 KST이며, 키움 자격증명은 GitHub Actions secrets에서만 읽는다.
   `gas/`는 master → Actions/clasp(설정 없으면 수동)다. 작업 브랜치 push는 운영 배포가 아니다.
 - `skin.html` 마크업은 Tistory 관리자 수동 반영이다. HTML로 해결할 문제에 새 런타임 우회를
   만들지 않고 `docs/SKIN_HTML_PENDING.md`에 기록한다. 기존 우회는 실제 반영 확인 전 보존한다.

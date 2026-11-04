@@ -57,6 +57,17 @@ assert(appended.length===0);
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?m3:null;},contains(){return false;},closest(){return null;}},'042660');
  await new Promise(setImmediate);
  assert.equal(m3.hidden,true);
+ // 셀트리온처럼 심층 데이터가 없어도 이미 계산한 스윙·차트 카드가 보인다.
+ const m4={hidden:true,innerHTML:''}, m4s={classList:{add(c){m4s.cls=c;}}};
+ const box4={querySelector(sel){return /data-ff-story/.test(sel)?m4:/ff-swing-summary/.test(sel)?m4s:null;},contains(){return true;},closest(){return null;}};
+ api.loadStockStory(box4,'068270',vm0,{daily},'셀트리온');
+ await new Promise(setImmediate);
+ assert.equal(m4.hidden,false);
+ assert(m4.innerHTML.includes('종목 분석 : 셀트리온'));
+ assert(m4.innerHTML.includes('ff-wide--verdict') && m4.innerHTML.includes('ff-wide--chart'));
+ assert(!m4.innerHTML.includes('ff-wide--story'));
+ assert(m4.innerHTML.includes('심층 스토리 미제공'));
+ assert.equal(m4s.cls,'is-in-story');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 '''
         r = subprocess.run(['node', '-e', script], cwd=ROOT, capture_output=True, text=True, encoding='utf-8')
