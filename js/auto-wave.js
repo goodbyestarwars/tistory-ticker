@@ -31,7 +31,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-13-hier-3';
+  var VERSION = '2026-11-04-pullback-label';
 
   var DEFAULTS = {
     atrPeriod: 14,
@@ -611,11 +611,53 @@
     }
   }
 
-  function tagWaves(levels) {
+
+  /* Observational pullback label: use only data known at the wave's confirmation.
+     Missing volume remains unknown; candidate is never a completed reversal claim. */
+  function pullbackOf(bars, wave, prior, options, knownAtr) {
+    var opt = options || DEFAULTS;
+    if (!wave || !prior || wave.isBox || prior.isBox || wave.kind !== 'down' || prior.kind !== 'up' ||
+        prior.end !== wave.start || prior.struct === 'LH' || wave.struct === 'LL') return null;
+    var start=wave.start,end=wave.end,known=wave.confirmed ? wave.confirmedIndex : bars.length-1;
+    if (!Number.isInteger(start) || !Number.isInteger(end) || !Number.isInteger(known) ||
+        start<0 || end-start<3 || known<end || known>=bars.length || prior.start<0) return null;
+    var base=prior.startPrice,peak=prior.endPrice,low=wave.endPrice,rise=peak-base;
+    var atr=knownAtr ? knownAtr[start] : atrSeries(bars.slice(0,start+1),opt.atrPeriod || 14)[start];
+    if (!(base>0) || !(rise>=Math.max(base*0.05,3*(atr || 0))) || !(low>base)) return null;
+    var retrace=(peak-low)/rise;
+    if (retrace<(opt.pullbackMinRetrace || 0.25) || retrace>0.75) return null;
+    for(var i=prior.start;i<=known;i++) {
+      var b=bars[i];
+      if(!b || ![b.open,b.high,b.low,b.close].every(Number.isFinite) || b.high<b.low)return null;
+      if(i>=start && b.close<=base)return null;
+    }
+    function averageVolume(a,z) {
+      var sum=0,count=0,total=z-a+1;
+      for(var j=a;j<=z;j++)if(Number.isFinite(bars[j].volume) && bars[j].volume>0){sum+=bars[j].volume;count++;}
+      return count>=Math.max(3,Math.ceil(total*0.8)) ? sum/count : null;
+    }
+    var upVolume=averageVolume(prior.start+1,prior.end),downVolume=averageVolume(start+1,end);
+    var volumeRatio=upVolume && downVolume ? downVolume/upVolume : null;
+    if(volumeRatio!=null && volumeRatio>1.3)return null;
+    var confirmed=!!wave.confirmed && volumeRatio!=null && volumeRatio<1;
+    return {status:confirmed?'confirmed':'candidate',label:confirmed?'눌림목':'눌림목 후보',
+      retrace:+retrace.toFixed(3),volumeRatio:volumeRatio==null?null:+volumeRatio.toFixed(3),
+      support:base,knownIndex:known,reason:confirmed?'상승 후 조정·저점 유지·거래량 감소·반등 확인':
+        (!wave.confirmed?'조정 진행·반등 미확인':(volumeRatio==null?'거래량 자료 부족':'거래량 감소 미확인'))};
+  }
+
+  function tagWaves(levels, ctx) {
     LEVELS.forEach(function (name) {
       levels[name].forEach(function (w) {
         if (w.isBox) { w.label = w.kind === 'wide' ? '변동성 큰 박스권' : (w.compression ? '횡보·변동성 압축' : '횡보'); return; }
         if (w.struct) w.tags.push(w.struct);
+      });
+    });
+    LEVELS.forEach(function(name) {
+      var prior=null;
+      levels[name].filter(function(w){return !w.isBox;}).forEach(function(w) {
+        w.pullback=pullbackOf(ctx.bars,w,prior,ctx.opt,ctx.atr);
+        prior=w;
       });
     });
     // 중파동 서술 라벨: 직전 흐름 안에서의 위치(눌림·재상승 등). 그 파동이 확정된 시점까지의 정보만 쓴다.
@@ -711,7 +753,7 @@
     });
   }
 
-  var api = { analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+  var api = { pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;

@@ -23,7 +23,7 @@
     wide: { stroke: '#7c6f9a', fill: 'rgba(124,111,154,.10)', label: '변동성 큰 박스권' },
     unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
   };
-  var TIP = '실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다.';
+  var TIP = '실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 눌림목은 앞선 상승의 25~75% 조정·저점 유지·거래량 감소·반등 확인을 함께 계산합니다. 확인 전에는 눌림목 후보입니다. 매수·매도 추천이 아닙니다.';
 
   // ---- 분석 결과 캐시(페이지 안의 모든 차트가 공유) ----
   var data = global.NineChartData;
@@ -350,7 +350,7 @@
       ctx.strokeRect(x1 + .5, y1 + .5, x2 - x1 - 1, y2 - y1 - 1);
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
-      var text = wave.label || st.label;
+      var text = wave.pullback ? wave.pullback.label : (wave.label || st.label);
       if (!wave.confirmed) text += ' · 진행 중';
       else if (level !== 'minor' && !wave.isBox && wave.confirmedIndex != null) text += ' · 확정 +' + (wave.confirmedIndex - wave.end) + '봉';
       ctx.font = '700 10px ' + font;
@@ -358,9 +358,9 @@
       ctx.textBaseline = 'top';
       // 확대·이동으로 박스 왼쪽이 화면 밖이어도 라벨은 보이는 영역 안에서 시작한다.
       var lx = Math.max(x1 + 4, 4);
-      while (text.length > 2 && ctx.measureText(text).width > x2 - lx - 2) text = text.slice(0, -1);
+      while (text.length > (wave.pullback ? wave.pullback.label.length : 2) && ctx.measureText(text).width > x2 - lx - 2) text = text.slice(0, -1);
       // 소파동은 박스가 아주 많아 라벨이 겹치므로 어느 정도 폭이 있을 때만 쓴다.
-      if (x2 - lx > (level === 'minor' ? 34 : 12)) ctx.fillText(text, lx, y1 + 3);
+      if (x2 - lx > (level === 'minor' ? 34 : 12) && (!wave.pullback || ctx.measureText(wave.pullback.label).width <= x2-lx-2)) ctx.fillText(text, lx, y1 + 3);
     });
     // 구간별 추세/평행 채널 + 보조 장기선. 과거 선은 해당 구간까지만 그린다.
     if (picked.trend) {
@@ -454,7 +454,8 @@
     var wave=activeMajor(result),date=bars[index].date;
     var out='<b>대파동 · '+escapeText(date)+' 당시 자료 기준</b><br>';
     if(!wave)return out+'파동 자료 부족';
-    out+=escapeText(wave.label || (STYLE[wave.kind] || STYLE.unk).label)+' · '+(wave.confirmed?'확정(실선)':'진행 중(점선·변경 가능)')+'<br>';
+    out+=escapeText(wave.pullback ? wave.pullback.label : (wave.label || (STYLE[wave.kind] || STYLE.unk).label))+' · '+(wave.confirmed?'확정(실선)':'진행 중(점선·변경 가능)')+'<br>';
+    if(wave.pullback)out+='되돌림 '+Math.round(wave.pullback.retrace*100)+'% · '+(wave.pullback.volumeRatio==null?'거래량 자료 부족':'상승 구간 대비 거래량 '+Math.round(wave.pullback.volumeRatio*100)+'%')+'<br>'+escapeText(wave.pullback.reason)+'<br>';
     out+='극점 구간 '+escapeText(bars[wave.start].date)+' ~ '+escapeText(bars[wave.end].date)+'<br>';
     if(wave.confirmed && wave.confirmedIndex!=null)out+='확정일 '+escapeText(bars[wave.confirmedIndex].date)+' · 극점 이후 '+(wave.confirmedIndex-wave.end)+'봉<br>';
     var context=core.majorWaveContext(lanes,wave,index);
@@ -467,7 +468,7 @@
       var drawn=(reconstructed.levels.major || []).filter(function(w){return !w.suppressed && w.start<=index && w.end>=index;});
       var region=drawn.filter(function(w){return w.isBox;}).pop() || drawn.pop();
       if(region){
-        out+='<hr><b>현재 그림의 해당 영역 (사후 재구성)</b><br>'+escapeText(region.label || STYLE[region.kind].label);
+        out+='<hr><b>현재 그림의 해당 영역 (사후 재구성)</b><br>'+escapeText(region.pullback ? region.pullback.label : (region.label || STYLE[region.kind].label));
         if(region.confirmed && region.confirmedIndex!=null){
           out+='<br>확정일 '+escapeText(bars[region.confirmedIndex].date)+(region.confirmedIndex>index?' · 조회일에는 미확정':'');
           out+='<br>확정일 보조 설명<br>'+contextHtml(core.majorWaveContext(lanes,region,region.confirmedIndex));

@@ -31,7 +31,7 @@ function synth(n, seed, noise) {
 const series = real.concat([{ id: 'synth-a', bars: synth(520, 7, 0.04) }, { id: 'synth-b', bars: synth(420, 21, 0.06) }]);
 
 const LEVELS = ['major', 'medium', 'minor'];
-function immutable(w) { return [w.id, w.level, w.kind, w.start, w.end, w.startPrice, w.endPrice, w.startConfirmedIndex, w.confirmedIndex, w.struct, w.retrace].join('|'); }
+function immutable(w) { return [w.id, w.level, w.kind, w.start, w.end, w.startPrice, w.endPrice, w.startConfirmedIndex, w.confirmedIndex, w.struct, w.retrace, JSON.stringify(w.pullback)].join('|'); }
 function confirmedLegs(res) { const out = {}; LEVELS.forEach((lv) => res.levels[lv].filter((w) => !w.isBox && w.confirmed).forEach((w) => { out[w.id] = w; })); return out; }
 
 /* (1)+(2)+(3) prefix 대 전체 */

@@ -1,0 +1,30 @@
+
+const assert=require('assert'),AW=require('../js/auto-wave.js'),W=require('../js/chart-wave-overlay.js');
+const bars=Array.from({length:61},(_,i)=>{const c=i<=30?100+40*i/30:i<=45?140-20*(i-30)/15:120+2*(i-45);
+ return {date:'d'+i,open:c,close:c,high:c+1,low:c-1,volume:i>30&&i<=45?500:1000};});
+const up={kind:'up',start:0,end:30,startPrice:99,endPrice:141,confirmed:true,struct:'HH'};
+const down={kind:'down',start:30,end:45,startPrice:141,endPrice:119,confirmed:true,confirmedIndex:50,struct:'HL'};
+const p=AW.pullbackOf(bars,down,up);
+assert.strictEqual(p.label,'눌림목');assert.strictEqual(p.volumeRatio,0.5);assert.ok(p.retrace>0.5);
+const open={...down,confirmed:false,confirmedIndex:null};
+assert.strictEqual(AW.pullbackOf(bars.slice(0,46),open,up).label,'눌림목 후보');
+const future=bars.map(b=>({...b}));for(let i=51;i<future.length;i++)future[i].close=10;
+assert.deepStrictEqual(AW.pullbackOf(future,down,up),p,'future bars never change a confirmed annotation');
+assert.strictEqual(AW.pullbackOf(bars,{...down,endPrice:105},up),null,'deep retracement rejected');
+assert.strictEqual(AW.pullbackOf(bars,{...down,endPrice:98},up),null,'broken starting low rejected');
+assert.strictEqual(AW.pullbackOf(bars,down,{...up,struct:'LH'}),null,'declining high rebound rejected');
+const broken=bars.map(b=>({...b}));broken[48].close=90;
+assert.strictEqual(AW.pullbackOf(broken,down,up),null,'support loss by confirmation cancels pullback');
+const missing=bars.map(b=>({...b,volume:null}));
+assert.strictEqual(AW.pullbackOf(missing,down,up).status,'candidate','missing volume never becomes contraction');
+const heavy=bars.map((b,i)=>({...b,volume:i>30&&i<=45?2000:b.volume}));
+assert.strictEqual(AW.pullbackOf(heavy,down,up),null,'heavy sell volume excluded');
+const invalid=bars.map(b=>({...b}));invalid[32].close=NaN;
+assert.strictEqual(AW.pullbackOf(invalid,down,up),null);
+const labels=[]; const ctx=new Proxy({measureText:s=>({width:s.length*5}),fillText:s=>labels.push(s)},{get:(o,k)=>k in o?o[k]:()=>{}});
+function render(w){W.drawWaves(ctx,{bars,width:800,height:600,coord:({time,price})=>({x:Number(time.slice(1))*10,y:400-price})},{waves:[w],parents:[],level:'medium'},'sans-serif');}
+render({...down,high:141,low:119,label:'첫 눌림',pullback:p});
+assert.ok(labels.some(s=>s.startsWith('눌림목 · 확정')));
+render({...open,high:141,low:119,pullback:AW.pullbackOf(bars.slice(0,46),open,up)});
+assert.ok(labels.some(s=>s.startsWith('눌림목 후보 · 진행 중')));
+console.log('pullback depth, support, volume, candidate/confirmed, future stability and wave labels OK');
