@@ -1,3 +1,7 @@
+**2026-11-04 국내 시세 세션 표기 후속 적용(홈·관심종목·툴팁)**
+
+목적: 정규장/애프터마켓·거래소 표기를 남은 화면에도 공통 함수로 적용. 변경: `krQuoteSession`에 `clockOnly` 옵션(시세 근거 없을 때 '애프터마켓 시간대'처럼 시간대만), `js/home-realtime-table.js` 제목이 이를 사용, `js/watchlist.js` 국내 카드 배지와 `js/ticker-tooltip-v5.js` 기준시각이 공급자 `market_state` 있을 때 같은 문구 사용. 시세·등락률 계산, WebSocket/REST, 호출량, 주문 로직 변경 없음. 검증: `test/test_kr_quote_session.js` 17건·`test_closed_countdown.js` 통과, 변경 JS node --check. 갱신: 이용방법·릴리스 노트. 미확인: 실화면 PC/모바일 줄바꿈(병합 후 확인). 배포: master→Pages(미머지).
+
 **2026-11-04 운영센터 내역 보강: 번호·평단·추천 이유·기간 CSV**
 
 요청: 주문 번호·시간·평단·보유수량, 추천 종목의 검색기·이유·추천 단가, 기간 선택 다운로드. 변경: 에이전트가 주문 순번(`no`)·보유 평단(보유수량을 채우는 최근 매수 주문가 가중평균 추정)·후보 선정 이유(`reasons`)·과거 후보 20거래일(30분마다)을 올리고, `autotrader_control.py` 허용 목록·history 유지·주문 상한 400, `main.py` 본문 상한 256KB. `js/auto-trader.js`: 번호 열, 보유 수량·평단가(추정), 검색기별 후보 표(점수·추천 단가·이유), 기간 선택 + 주문/추천 CSV(UTF-8 BOM). 한계: 장부가 주문 접수 기록뿐이라 주문별 체결가·평단·손익은 없고, 보유 평단은 주문가 기준 추정이다. 검증: `test/test_autotrader_control.py` 13건, 렌더·CSV 단위 확인, VM에서 에이전트 `activity()` 실측. 미확인: 로그인 상태 실제 화면. 배포: master→Oracle·Pages, 에이전트 autotrader-private main.

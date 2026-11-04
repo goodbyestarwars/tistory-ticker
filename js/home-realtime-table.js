@@ -321,7 +321,9 @@
     if (market === 'us') return usSessionLabel();
     // 2026-09-14 사용자 지적("지금도 구분이 안되어 있잖아?"): 고정 문구(08:00~20:00)라
     // 정규장·애프터마켓(16:00~20:00)·NXT 단독 시간이 구분되지 않았다. 세션 이름을 그대로 쓴다.
-    var session = krSession();
+    // 행 데이터에 세션 근거가 없어 시계 기준 시간대만 안내한다('애프터마켓 시간대'). 공통 함수 재사용.
+    var hours = global.MarketHours;
+    var session = hours && hours.krQuoteSession ? hours.krQuoteSession({clockOnly: true}) : null;
     return '국내시장 · ' + (session ? session.label : '오전 08:00~오후 08:00');
   }
 

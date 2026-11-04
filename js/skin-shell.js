@@ -686,6 +686,8 @@
       label = m >= M(8) && m < M(20) && cash.phase !== 'regular' ? '시간외 시세 미수신 · 마지막 시세' : '장 마감';
     } else if (cash.phase === 'regular') label = cash.label;
     else if (cash.phase === 'closed') label = '장 마감';
+    // 시세 근거 없이 시간대만 안내하는 화면(홈 종목판 제목): 거래 중이라고 단정하지 않는다.
+    else if (quote.clockOnly) label = cash.label + ' 시간대';
     else label = '시세 세션 확인 중';
     return { label: label, exchange: exchange, phase: cash.phase };
   }

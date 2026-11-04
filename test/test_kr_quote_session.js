@@ -28,3 +28,9 @@ assert.equal(f({market_state: 'closed'}, '2026-11-04T17:00').label, '시간외 �
 assert.equal(f({market_state: 'post'}, '2026-11-07T11:00').label, '휴장');
 assert.equal(f({market_state: 'regular'}, '2026-12-25T11:00').label, '휴장');
 console.log('kr quote session: 13 cases passed');
+// 홈 종목판 제목: 시세 근거 없이 시간대만 안내(거래 중 단정 금지)
+assert.equal(f({clockOnly: true}, '2026-11-04T16:30').label, '애프터마켓 시간대');
+assert.equal(f({clockOnly: true}, '2026-11-04T10:00').label, '정규장');
+assert.equal(f({clockOnly: true}, '2026-11-04T21:00').label, '장 마감');
+assert.equal(f({clockOnly: true}, '2026-11-07T11:00').label, '휴장');
+console.log('kr quote session clockOnly: 4 cases passed');
