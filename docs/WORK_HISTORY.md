@@ -1,3 +1,7 @@
+**2026-11-04 종목 스토리 기본 카드 전 종목 노출·격주 주말 재생성 예약**
+
+원인: 11/3 전체 2,696종목 수집 중 1,308종목만 심층 카드 생성; 셀트리온(068270)은 색인·분할 파일 모두 없어 카드 전체가 숨겨짐. 변경: `js/foreign-flow.js`는 심층 카드가 없거나 로딩에 실패해도 이미 조회한 스윙 판정·일봉 차트가 있으면 '종목 분석' 기본 카드로 표시(기존 공통 캐러셀·심층 카드는 그대로, 추가 API 호출 없음), `test/test_stock_stories.py`에 셀트리온 회귀 추가. `.github/workflows/stock-stories-fortnightly.yml`은 2026-11-08부터 격주 일요일 10:00 KST(GitHub Actions, 키움 읽기 전용 인증은 Actions secrets, 실행 예외는 수동 dispatch) 전체 스냅샷 생성·테스트·전번 대비 카드 수 15% 초과 감소 차단·종목별 파일 무결성 점검·변경분 master 반영·Pages 빌드 요청. `deploy_check.sh`에서 스토리 정적 데이터는 Oracle API 재시작·검색 재스캔 감시 제외, `CLAUDE.md` 배포 규칙 반영. 검증: JS 구문 검사·기존 스윙/차트 데이터로 셀트리온 기본 카드 노출 자체 모의 실행 성공. 배포: master 직접 push, Pages 운영 응답 확인 불가. 미완료: 키움 GitHub Actions secrets 존재 여부 미확인, 격주 실제 실행·새 스냅샷 생성 및 운영 페이지 표시 확인 필요. 실계좌·주문·API 공급자 변경 없음.
+
 **2026-11-04 자동매매 운영센터 화면 단순화**
 
 요청: 상태 한 줄·시작/중지·매매내역·로그만. 변경: `js/auto-trader.js`에 상태 한 줄(`statusLine`, 기존 필드 조합·직접 중지(SIGTERM 15)는 장애와 구분)·명령 기록 목록, 기존 상세 칸과 보류 버튼은 접기, `autotrader_control.recent_log`(감사 로그의 최근 명령·계정은 @ 앞만)을 `/autotrader/status.log`로 제공, `css/auto-trader.css` 보강, `test_auto_trader_research_ui`의 허용 명령 목록을 hold/resume 포함으로 갱신(앞선 보류 변경이 깨뜨린 테스트). 검증: control 19개·UI 10개·research UI 8개·주문 JS 통과, 390px/1100px 렌더 가로 넘침 없음. 배포: master 병합 시 Pages/Oracle 반영(Oracle 재시작은 장외). 미완료: 매매내역은 VM 에이전트가 내역을 올려야 채워짐, `stop`이 타이머를 끄는 동작 변경은 에이전트 쪽(작업지시서에 추가).
