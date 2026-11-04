@@ -242,7 +242,7 @@ class Monitor:
         started = F.to_dt(rs.get('startedAt'))
         if now_dt.weekday() < 5 and (now_dt.hour, now_dt.minute) >= (20, 45) and (started is None or started.strftime('%Y-%m-%d') != now_dt.strftime('%Y-%m-%d')):
             n.raise_alert('research_not_started', F.fmt_alert('오늘 연구 작업 미시작', '평일 20:15 연구 작업이 오늘 아직 시작되지 않았습니다(마지막 시작 %s).' % F.ts(started), 'warn',
-                                                              'PC 절전·작업 스케줄러 상태를 확인하세요. PC에 로그온하면 자동으로 따라잡습니다', now_dt), 'warn', 6 * 3600)
+                                                              '연구 작업 실행 환경(타이머·절전·스케줄러) 상태를 확인하세요', now_dt), 'warn', 6 * 3600)
         elif started and started.strftime('%Y-%m-%d') == now_dt.strftime('%Y-%m-%d'):
             n.clear_alert('research_not_started', '오늘 연구 작업이 시작되었습니다.')
         success = F.to_dt(rs.get('lastSuccessAt'))

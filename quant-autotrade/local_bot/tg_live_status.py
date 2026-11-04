@@ -112,8 +112,8 @@ def fmt_feed_down(reason, now_dt):
 
 def fmt_stale(age_sec, now_dt):
     return F.fmt_alert('runner 응답 없음', ['live_status.json 이 %d분 넘게 갱신되지 않았습니다(마지막 %d분 전).' % (STALE_SEC // 60, age_sec // 60),
-                                         'runner 가 멈췄거나 PC 가 절전 상태일 수 있습니다. 이 동안 매수와 청산 점검이 없습니다.'], 'critical',
-                       'PC에서 AutotraderLiveTrading 작업 상태를 확인하세요', now_dt)
+                                         'runner 가 멈췄거나(직접 중지 포함) 실행 서버가 응답하지 않을 수 있습니다. 이 동안 매수와 청산 점검이 없습니다.'], 'critical',
+                       '자동매매 서버(Google VM)에서 autotrader-live 서비스 상태를 확인하세요. 직접 중지했다면 정상입니다', now_dt)
 
 
 def skip_lines(skips, limit=4):

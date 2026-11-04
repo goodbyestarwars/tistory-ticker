@@ -14,10 +14,10 @@
 |---|---|---|
 | 운영 사이트 | https://ghlee.tistory.com · 티스토리 스킨이 메뉴/마크업 제공 | `skin.html`, `js/skin-menu.js`, `js/skin-main.js` |
 | 정적 프론트/공개 데이터 | GitHub Pages가 `master`의 JS/CSS/정적 데이터를 서빙 | `js/`, `css/`, `data/`, `dcf-data/` |
-| 백엔드 API | https://goodbyestar.cloud · GCP e2-micro(메모리 1GB) FastAPI + REST/WS + SQLite/JSON + 배치 | `scripts/cloud-vm/main.py`, `API_REFERENCE.md` |
+| 백엔드 API | https://goodbyestar.cloud · Oracle A1(백엔드; 자동매매는 별도 Google VM, `docs/HANDOFF_2026-10-30.md` §1) FastAPI + REST/WS + SQLite/JSON + 배치 | `scripts/cloud-vm/main.py`, `API_REFERENCE.md` |
 | 보조 서버 | Google Apps Script(GAS): VM 호출 중계, 공용 캐시, 뉴스/AI 해설, 로그인·개인 기능 일부 | `gas/ticker-proxy.gs` |
 | 외부 데이터 | 키움·KIS·네이버·DART·KOFIA·KIND·한국수출입은행·미국 데이터 공급자 등 **기능별 상이** | `docs/ARCHITECTURE_SPEC.md`, 해당 소스별 문서 |
-| PC 자동매매 | 사용자 Windows PC의 로컬 봇·실계좌 키움 어댑터·예약 작업. **VM 자체가 주문하지 않음** | `quant-autotrade/local_bot/`, `quant-autotrade/docs/TRADING_RULES.md`, `quant-autotrade/docs/LIVE_OPERATIONS.md` |
+| 자동매매 | **자동매매 전용 Google VM**(runner·봇·연구, systemd `autotrader-*`)의 로컬 봇·실계좌 키움 어댑터. 사이트 백엔드 VM은 주문하지 않음. PC 작업은 삭제됨(2026-10-30 인계) | `quant-autotrade/local_bot/`, `quant-autotrade/docs/TRADING_RULES.md`, `quant-autotrade/docs/LIVE_OPERATIONS.md` |
 | 개발·배포 | `master` = 웹/VM/GAS 배포 기준. 별도 연구 작업 브랜치는 운영과 분리 | `ARCHITECTURE.md`, `docs/API_OPERATION_SPEC.md` |
 
 ~~~text
@@ -150,9 +150,9 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 | **VM FastAPI 내부 스레드** `morning-briefing` | **국내 거래일 07:00**부터(미확정이면 개장 전 5분·장중 30분 재시도, 15:30 뒤 중단) | 미국 마감 지표·야간선물 → `morning_briefing`(거래일당 확정 1회, 별도 systemd 타이머 아님·재시작 후 DB에서 이어서 재시도) |
 | **VM FastAPI 내부 스레드** `ai-comments` | 시작 90초 뒤부터 장중·마감 후 2분 / 그 밖 5분마다 **점검**(호출은 코멘트 서명이 바뀐 카드가 있을 때만, 묶음별 최소 간격·일 상한) | 사실 계산 → GAS→Groq → 검증 → `ai_comments`(별도 systemd 타이머 아님, 재시작해도 DB 유지). 상태 `/health/ai-comments`, 미배포 GAS면 실패 기록 후 코멘트 칸만 빈다 |
 | **VM/FastAPI 경량 폴러** | 기능별 장중 수초~분/장외 느린 주기 | WS, 호가, 랭킹, 뉴스, 환율 등. 별도 systemd 타이머가 아니라 `market_clock.py`/모듈 내부 주기 |
-| **Windows PC** `AutotraderLiveTrading` | **거래일 08:55 예약** | PC 기존 실거래 runner + 9Pay 장중 A/B 피드, 보유·미체결·예산 검사 → 승인된 계좌만 주문 가능 |
-| **Windows PC** `AutotraderBot` | **5분 간격 감시** | 로컬 봇 실행/관제·토큰 인증 운영센터 API |
-| **Windows PC** `AutotraderResearch` | **평일 20:15**, 시작 후 **10분 간격** 스캔 완료 감시(~다음 08:15), 로그인 후 1회 | `/pattern-scan` 확정 → 후보 생성 1회·읽기 전용 일봉·연구 모의평가 → PC `research.db`·`status.json` |
+| **Google VM** `autotrader-live` (구 Windows PC `AutotraderLiveTrading`; 2026-10-30 인계서 기준 VM `autotrader-live.timer`, `Restart=no`) | **거래일 08:55 예약** | 기존 실거래 runner + 9Pay 장중 A/B 피드, 보유·미체결·예산 검사 → 승인된 계좌만 주문 가능 |
+| **Google VM** `autotrader-bot` (구 PC `AutotraderBot`) | **5분 간격 감시** | 로컬 봇 실행/관제·토큰 인증 운영센터 API |
+| **Google VM** `autotrader-research` (구 PC `AutotraderResearch`) | **평일 20:15**, 시작 후 **10분 간격** 스캔 완료 감시(~다음 08:15), 로그인 후 1회 | `/pattern-scan` 확정 → 후보 생성 1회·읽기 전용 일봉·연구 모의평가 → PC `research.db`·`status.json` |
 | **Windows PC** `AutotraderCandidates` / `AutotraderLivePaper` | **비활성화**(2026-10-20 현장 확인) | 중복 후보 작업·별도 실모의 예약 실행 금지. 연구 기능 자체는 `AutotraderResearch`에 통합 |
 | **GitHub Actions** `dcf-data.yml` | **매시 :17·:47(UTC cron)** = 한국시각에도 매시 :17·:47 | DART 연간 공시/DCF 정적 파일 생성. **30일 경과 데이터 갱신**은 자료 유효기간 정책이며 “매월 1회” 작업이 아님 |
 | **GitHub Actions** `market-chart-history.yml` | **매주 토요일 09:15** | 5년 시장지표 정적 차트 이력 갱신 |
