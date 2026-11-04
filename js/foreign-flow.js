@@ -1590,7 +1590,7 @@
   }
 
   // 종목 스토리(선별 종목 카드): data/stock-stories.js를 지연 로드하고 공통 캐러셀(SiteInteractions)로 넘겨 본다.
-  // 자료가 없는 종목은 영역을 만들지 않는다.
+  // 심층 스토리가 없는 종목도 기존 스윙 판정·일봉 차트로 기본 분석 카드를 표시한다.
   var stockStoriesPromise = null;
   var STOCK_STORIES_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/stock-stories.js';
 
@@ -1781,19 +1781,22 @@
   }
 
   function buildStockStoryHtml(st, wideHtml, wideCount, code) {
-    var asOf = (window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준');
+    var baseline = !!st.baselineOnly;
+    var asOf = baseline ? '' : ((window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준'));
     var cards = (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
     var total = wideCount + (st.cards || []).length;
     return '<div class="ff-wide-stage" data-wide-stage>'
-      + '<div class="ff-story-head"><span class="ff-panel-title">종목 스토리 : ' + escapeHtml(st.name) + (code ? ' (' + escapeHtml(code) + ')' : '') + '</span>'
-      + '<small>작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf) + '</small>'
+      + '<div class="ff-story-head"><span class="ff-panel-title">' + (baseline ? '종목 분석 : ' : '종목 스토리 : ') + escapeHtml(st.name) + (code ? ' (' + escapeHtml(code) + ')' : '') + '</span>'
+      + '<small>' + (baseline ? '기본 분석 · 심층 스토리 미제공' : '작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf)) + '</small>'
       + '<div class="ff-story-mini" data-story-mini hidden></div></div>'
       + '<div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
       + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
         + '<div class="ff-wide-dots" data-wide-dots><button type="button" class="ff-wide-pause" data-wide-pause aria-label="자동 넘김 일시정지"></button>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
       + '</div>'
-      + '<small class="ff-story-note">작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 실시간 계산). 사라는 말도 팔라는 말도 아니다.</small>';
+      + '<small class="ff-story-note">' + (baseline
+        ? '판정·차트는 조회된 일봉 기준으로 계산한다. 심층 스토리 미제공은 매수·매도 신호가 아니다.'
+        : '작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 조회 데이터로 계산). 사라는 말도 팔라는 말도 아니다.') + '</small>';
   }
 
   // 자동 생성 종목은 종목별 파일(data/stories/<코드>.js)로 나눠 두고, 메인 파일의 색인(STOCK_STORY_INDEX)에 있을 때만 받는다.
@@ -1808,22 +1811,24 @@
     });
   }
 
-  function loadStockStory(box, code, swingVm, chartData) {
+  function loadStockStory(box, code, swingVm, chartData, stockName) {
     var mount = box.querySelector('[data-ff-story]');
     if (!mount) return;
-    ensureStockStories().then(function () { return ensureStoryPart(code); }).then(function (all) {
+    ensureStockStories().then(function () { return ensureStoryPart(code); }).catch(function () { return {}; }).then(function (all) {
       var st = all && all[code];
-      if (!st || !box.contains(mount)) return; // 자료가 없거나 종목을 바꾼 뒤 도착한 응답은 버린다.
+      if (!box.contains(mount)) return; // 종목을 바꾼 뒤 도착한 응답은 버린다.
       // 판정 카드가 기존 2주 스윙 요약 박스를 대신하므로 같은 내용이 두 번 보이지 않게 박스는 숨긴다(DOM은 유지).
       var wide = '', count = 0;
       if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
       var chartCard = buildTrendChartCard(chartData);
       if (chartCard) { wide += chartCard; count++; }
+      if (!st && !count) return; // 일봉·스윙마저 없으면 빈 분석을 만들지 않는다.
+      if (!st) st = { name: stockName || code, cards: [], baselineOnly: true };
       var swing = box.querySelector('.ff-swing-summary');
       if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
       mount.hidden = false;
-      loadStoryMinute(mount, code, chartData);
+      if (!st.baselineOnly) loadStoryMinute(mount, code, chartData);
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
@@ -1970,7 +1975,7 @@
 
     box.innerHTML = html;
     if (global.NineUI.chartOptions) global.NineUI.chartOptions(box);
-    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData); }
+    if (!selectedIsEtf) { loadCompanyProfile(box, data.code); loadStockStory(box, data.code, selectedIsEtf ? null : swingViewModel_(data, entry, techScore, fundamentals, chartData), chartData, data.name); }
     loadStockMembers_(box, data.code);
 
     // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)
