@@ -147,8 +147,10 @@ def hold_view(snapshot, now):
     today = now.strftime('%Y-%m-%d')
     raw = ((snapshot or {}).get('flags') or {}).get('hold')
     reported = isinstance(raw, dict)
-    active = reported and raw.get('day') == today
-    return {'supported': hold_supported(snapshot), 'active': bool(active), 'day': today,
+    # 에이전트가 파일을 읽지 못하거나 깨졌다고 보고하면({'invalid': True}) 엔진은 안전 방향으로 보류로 본다. 화면도 같게 보여 준다.
+    invalid = reported and raw.get('invalid') is True
+    active = reported and (invalid or raw.get('day') == today)
+    return {'supported': hold_supported(snapshot), 'active': bool(active), 'invalid': bool(invalid), 'day': today,
             'scope': HOLD_SCOPE, 'staleDay': raw.get('day') if reported and not active else None}
 
 
