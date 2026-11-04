@@ -18,7 +18,7 @@ KEY = 'k' * 40
 
 def good(now, **over):
     snap = {'receivedAt': now.isoformat(), 'timerState': 'disabled', 'serviceState': 'inactive', 'runnerProcs': 0,
-            'tgConflict': False, 'ledger': {'unknownOrders': 0, 'openPositions': 0}}
+            'tgConflict': False, 'ledger': {'unknownOrders': 0, 'openPositions': 0}, 'flags': {'manualStop': False}}
     snap.update(over)
     return snap
 
@@ -38,7 +38,6 @@ class ControlTest(unittest.TestCase):
 
     def test_start_blockers(self):
         cases = [
-            (SUN, good(SUN), '휴장일'),
             (MON, good(MON, ledger={'unknownOrders': 2}), 'UNKNOWN 주문 2건'),
             (MON, good(MON, ledger={}), 'UNKNOWN 주문 수 미수신'),
             (MON, good(MON, runnerProcs=1), '이중 실행'),
@@ -48,11 +47,18 @@ class ControlTest(unittest.TestCase):
             (MON, good(MON, timerState='enabled'), '이미 켜져'),
             (MON, {}, '미수신'),
             (MON, good(MON - timedelta(seconds=200)), '미수신'),
-            (datetime(2027, 3, 2, 21, 0, tzinfo=KST), good(datetime(2027, 3, 2, 21, 0, tzinfo=KST)), '거래일을 확정할 수 없음'),
+            (MON, good(MON, flags={}), '수동 중지 상태 미수신'),
+            (MON, good(MON, timerState='unknown'), '타이머 상태 확인 불가'),
         ]
         for now, snap, text in cases:
             joined = ' '.join(ac.start_blockers(snap, now))
             self.assertIn(text, joined, (text, joined))
+
+    def test_manual_stop_may_be_rearmed_on_closed_day(self):
+        stopped = good(SUN, timerState='enabled', flags={'manualStop': True})
+        self.assertEqual(ac.start_blockers(stopped, SUN), [])
+        self.seed(stopped)
+        self.assertEqual(ac.queue_command('start', 'a@b.c', SUN)['action'], 'start')
 
     def test_start_refused_is_audited_and_not_queued(self):
         self.seed(good(MON, runnerProcs=1))
