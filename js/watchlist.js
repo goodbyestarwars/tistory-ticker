@@ -960,7 +960,11 @@
     // 실시간 WebSocket 시세(quote.type==='quote')는 marketState를 안 실어 보낸다 - REST가
     // 채워둔 배지를 여기서 지우지 않고 그대로 둔다(marketState가 있을 때만 갱신).
     if (sessionEl && (quote.marketState != null || quote.market_state != null)) {
-      var sessionLabel = usSessionLabel(quote.marketState || quote.market_state);
+      // 국내는 공통 krQuoteSession(공급자 market_state·price_session·exchange 근거), 미국은 기존 문구.
+      var hours = global.MarketHours;
+      var sessionLabel = !isUs && hours && hours.krQuoteSession
+        ? hours.krQuoteSession(quote).label
+        : usSessionLabel(quote.marketState || quote.market_state);
       sessionEl.textContent = sessionLabel;
       sessionEl.hidden = !sessionLabel;
     }

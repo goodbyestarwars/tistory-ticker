@@ -56,6 +56,14 @@
     return krxMapPromise;
   }
 
+  // 공급자 세션 근거가 있을 때만 공통 krQuoteSession 문구를 앞에 붙인다(시세·등락률은 그대로).
+  function sessionPrefix(data) {
+    var hours = global.MarketHours;
+    if (!data || data.market_state == null || !hours || !hours.krQuoteSession) return '';
+    var label = hours.krQuoteSession(data).label;
+    return label ? label + ' · ' : '';
+  }
+
   function fetchTickerData(codes) {
     return global.NineAPI.domesticQuotes(codes, {timeoutMs:FETCH_TIMEOUT_MS});
   }
@@ -277,7 +285,7 @@
       '<div class="ticker-tooltip-row"><span class="ticker-tooltip-label">거래량</span>' +
         '<span class="ticker-tooltip-value">' + formatNumber(data.volume) + '주</span></div>' +
       '<div class="ticker-tooltip-row"><span class="ticker-tooltip-label">기준시각</span>' +
-        '<span class="ticker-tooltip-value">' + escapeHTML(data.time) + '</span></div>' +
+        '<span class="ticker-tooltip-value">' + escapeHTML(sessionPrefix(data) + data.time) + '</span></div>' +
       '<div class="ticker-tooltip-chart">' +
         '<div class="ticker-chart-tabs">' +
           '<button type="button" class="ticker-chart-tab active" data-period="area/day">당일</button>' +
