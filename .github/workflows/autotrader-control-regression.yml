@@ -1,0 +1,26 @@
+name: Autotrader control regression
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'scripts/cloud-vm/autotrader_control.py'
+      - 'test/test_autotrader_control.py'
+      - 'js/auto-trader.js'
+      - '.github/workflows/autotrader-control-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m py_compile scripts/cloud-vm/autotrader_control.py
+      - run: python test/test_autotrader_control.py
+      - run: node --check js/auto-trader.js
