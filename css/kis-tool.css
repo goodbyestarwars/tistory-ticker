@@ -5,7 +5,7 @@
 .kis-side{position:sticky;top:var(--ui-section-gap,20px);align-self:start;display:flex;flex-direction:column;gap:var(--ui-paragraph-gap,14px);
   background:var(--ui-card-surface,#fff);border:1px solid var(--ui-border,#e7e5e0);border-radius:var(--ui-radius-card,14px);
   box-shadow:var(--ui-glass-shadow);padding:var(--ui-card-padding,18px)}
-.kis-brand{font-family:var(--font-title,MaruBuriBold,serif);font-size:var(--ui-section-size,17px);font-weight:700;margin:0}
+.kis-brand{font-family:var(--font-title, var(--font-serif));font-size:var(--ui-section-size,17px);font-weight:700;margin:0}
 .kis-chip{display:inline-block;margin-top:6px;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--ui-panel-surface,#f8f7f4);border:1px solid var(--ui-border,#e7e5e0)}
 .kis-group{display:flex;flex-direction:column;gap:4px}
 .kis-group h2{font-size:11px;font-weight:600;letter-spacing:.04em;margin:0 0 2px 8px;opacity:.6}

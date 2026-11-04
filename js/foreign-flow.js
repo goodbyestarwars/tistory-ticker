@@ -1668,12 +1668,10 @@
 
   function buildVerdictCard(vm) {
     var a = vm.assessment, label = vm.currentRegime.label;
-    var story = '장기는 ' + vm.bigWave.label + ', 중기는 ' + vm.midWave.label + ', 단기는 ' + vm.smallWave.label + ' 흐름이다. '
-      + '그래서 지금 판정은 ‘' + (a.diagnosis || vm.waves.diagnosis || '-') + '’.';
-    return '<article class="ff-wide ff-wide--verdict" data-story-number="01">'
+    return '<article class="ff-wide ff-wide--verdict" data-story-number="02">'
       + '<div class="ff-wide-grid">'
       + '<div class="ff-wide-lead"><small>2주 스윙 판정</small>' + wideValue_(label, true)
-      + '<p>' + escapeHtml(story) + '</p><em>최근 이벤트 · ' + escapeHtml(vm.recentEvent.label) + '</em></div>'
+      + '</div>'
       + '<div class="ff-wide-body">'
       + wideTable_([
         { heads: ['장기 · 맥락', '중기 · 방향', '단기 · 진입 시점'], cells: [wideValue_(vm.bigWave.label), wideValue_(vm.midWave.label), wideValue_(vm.smallWave.label)] },
@@ -1681,75 +1679,70 @@
         { heads: ['5일선 신호', '전환 단계', '보조 상태', '모멘텀', '펀더멘털', '위험'], cells: [vm.shortSignal.label || '없음', vm.transitionLabel, vm.auxiliary, a.momentum.state, a.fundamental.state, vm.risk.state].map(function (v) { return '<b>' + escapeHtml(v) + '</b>'; }) }
       ])
       + '</div></div>'
-      + '<footer class="ff-wide-foot"><p><b>판정 근거</b> ' + escapeHtml(vm.reasons || '차트 데이터 확인 중') + '</p>'
-      + '<p><b>무효화 조건</b> ' + escapeHtml(vm.chart.invalidation || '-') + '</p>'
-      + (vm.risk.flags && vm.risk.flags.length ? '<p><b>위험 근거</b> ' + escapeHtml(vm.risk.flags.join(' · ')) + '</p>' : '')
-      + '</footer></article>';
+      + '</article>';
   }
 
-  // 판정의 근거가 된 가격과 이동평균선을 한 장에 그린다(종가 · 20/60/224일선). 별도 API 없이 이미 받은 일봉만 쓴다.
+  // Card presentation only. Shared MA/Ichimoku engine, existing fetched OHLC, no new feed.
   function buildTrendChartCard(chartData) {
-    var daily = chartData && chartData.daily;
-    if (!daily || daily.length < 30) return '';
-    var closes = daily.map(function (d) { return Number(d.close); });
-    function sma(period) {
-      var out = new Array(closes.length).fill(null), sum = 0;
-      closes.forEach(function (v, i) {
-        sum += v;
-        if (i >= period) sum -= closes[i - period];
-        if (i >= period - 1) out[i] = sum / period;
+    if (!chartData) return '';
+    var daily = chartData.daily;
+    if (!daily || !daily.length) return '<article class="ff-wide ff-wide--chart"><p role="status">일봉 자료가 부족합니다.</p></article>';
+    var core = global.NineChartCore, n = daily.length;
+    var closes = daily.map(function (d) { var v = Number(d.close); return Number.isFinite(v) && v > 0 ? v : null; });
+    var span = Math.min(n, 250), from = n - span, future = 26;
+    var lines = [224, 60, 20].map(function (period) {
+      var vals = new Array(n).fill(null);
+      if (core) core.movingAveragePoints(daily, 'close', period).forEach(function (p, i) {
+        var end = i + period - 1;
+        if (closes.slice(end - period + 1, end + 1).every(function (v) { return v != null; })) vals[end] = p.value;
       });
-      return out;
-    }
-    var span = Math.min(closes.length, 250), from = closes.length - span;
-    var lines = [
-      { key: 'ma224', label: '224일선', vals: sma(224) },
-      { key: 'ma60', label: '60일선', vals: sma(60) },
-      { key: 'ma20', label: '20일선', vals: sma(20) }
-    ];
-    var W = 640, H = 250, padY = 14, all = closes.slice(from);
+      return { key: 'ma' + period, label: period + '일선', vals: vals };
+    });
+    var cloud = [], valid = daily.map(function (d) {
+      return ['open', 'high', 'low', 'close'].every(function (k) { return d[k] != null && d[k] !== '' && Number.isFinite(Number(d[k])) && Number(d[k]) > 0; })
+        && Number(d.high) >= Math.max(Number(d.open), Number(d.close)) && Number(d.low) <= Math.min(Number(d.open), Number(d.close));
+    });
+    if (core && n >= 52 && /^\d{4}-\d{2}-\d{2}$/.test(daily[n - 1].date) && Number.isFinite(Date.parse(daily[n - 1].date))) core.ichimokuCloudPoints(daily, 'day').forEach(function (p, i) {
+      var source = i + 51, target = source + future;
+      if (target < from || !valid.slice(source - 51, source + 1).every(Boolean)) return;
+      cloud.push({ index: target - from, a: p.spanA, b: p.spanB });
+    });
+    var W = 640, H = 250, padY = 14, all = closes.slice(from).filter(function (v) { return v != null; });
     lines.forEach(function (l) { l.vals.slice(from).forEach(function (v) { if (v != null) all.push(v); }); });
-    var min = Math.min.apply(null, all), max = Math.max.apply(null, all), range = (max - min) || 1;
-    function px(i) { return (i / (span - 1)) * W; }
+    cloud.forEach(function (p) { all.push(p.a, p.b); });
+    if (!all.length) return '<article class="ff-wide ff-wide--chart"><p role="status">유효한 일봉 자료가 없습니다.</p></article>';
+    var min = Math.min.apply(null, all), max = Math.max.apply(null, all), range = max - min || Math.max(1, max * .02);
+    function px(i) { return i / Math.max(1, span - 1 + future) * W; }
     function py(v) { return padY + (1 - (v - min) / range) * (H - padY * 2); }
+    function point(i, v) { return px(i).toFixed(2) + ' ' + py(v).toFixed(2); }
     function path(vals) {
-      var d = '';
+      var d = '', connected = false;
       for (var i = 0; i < span; i++) {
         var v = vals[from + i];
-        if (v == null) continue;
-        d += (d ? 'L' : 'M') + px(i).toFixed(1) + ' ' + py(v).toFixed(1);
+        if (v == null || !Number.isFinite(v)) { connected = false; continue; }
+        d += (connected ? 'L' : 'M') + point(i, v); connected = true;
       }
       return d;
     }
-    var last = closes[closes.length - 1];
-    var svg = '<svg class="ff-wide-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="종가와 이동평균선" preserveAspectRatio="none">';
-    lines.forEach(function (l) {
-      var d = path(l.vals);
-      if (d) svg += '<path class="ff-wide-ma is-' + l.key + '" d="' + d + '"/>';
+    var svg = '<svg class="ff-wide-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="종가, 20·60·224일 이동평균선과 파란 일목 구름대, 오른쪽 26거래일 선행 영역" preserveAspectRatio="none">';
+    // One polygon per contiguous valid run. Fill only, with no span lines or perimeter stroke.
+    var runs = [];
+    cloud.forEach(function (p) { var run = runs[runs.length - 1]; if (!run || p.index !== run[run.length - 1].index + 1) runs.push(run = []); run.push(p); });
+    runs.forEach(function (run) {
+      if (run.length < 2) return;
+      var d = run.map(function (p, i) { return (i ? 'L' : 'M') + point(p.index, p.a); }).join('')
+        + run.slice().reverse().map(function (p) { return 'L' + point(p.index, p.b); }).join('') + 'Z';
+      svg += '<path class="ff-wide-cloud" fill="rgba(65,139,220,.22)" stroke="none" d="' + d + '"/>';
     });
+    lines.forEach(function (l) { var d = path(l.vals); if (d) svg += '<path class="ff-wide-ma is-' + l.key + '" d="' + d + '"/>'; });
     svg += '<path class="ff-wide-close" d="' + path(closes) + '"/></svg>';
-    function gap(l) {
-      var m = l.vals[closes.length - 1];
-      return m ? (last / m - 1) * 100 : null;
-    }
-    var tiles = lines.slice().reverse().map(function (l) {
-      var g = gap(l);
-      if (g == null) return '<div><small>' + l.label + ' 대비</small><strong>-</strong></div>';
-      return '<div><small>' + l.label + ' 대비</small><strong class="' + (g >= 0 ? 'is-up' : 'is-dn') + '">' + (g >= 0 ? '+' : '') + g.toFixed(1) + '%</strong></div>';
-    }).join('');
-    var g20 = gap(lines[2]), g60 = gap(lines[1]);
-    var head = g20 == null || g60 == null ? '이동평균선 위치' : (g20 < 0 ? '20일선 아래' : '20일선 위') + ' · ' + (g60 < 0 ? '60일선 아래' : '60일선 위');
-    var story = g20 == null || g60 == null ? '이동평균을 계산할 만큼의 일봉이 아직 부족하다.'
-      : '종가 ' + Math.round(last).toLocaleString() + '원은 20일선보다 ' + Math.abs(g20).toFixed(1) + '% ' + (g20 < 0 ? '낮고' : '높고') + ', 60일선보다 '
-        + Math.abs(g60).toFixed(1) + '% ' + (g60 < 0 ? '낮다.' : '높다.') + ' 판정은 이 선들과의 위치에서 출발한다.';
-    var legend = lines.slice().reverse().map(function (l) { return '<span class="is-' + l.key + '">' + l.label + '</span>'; }).join('') + '<span class="is-close">종가</span>';
-    return '<article class="ff-wide ff-wide--chart" data-story-number="02">'
-      + '<div class="ff-wide-grid is-chart">'
-      + '<div class="ff-wide-lead"><small>차트로 보면</small><strong class="is-big">' + escapeHtml(head) + '</strong>'
-      + '<p>' + escapeHtml(story) + '</p><div class="ff-wide-tiles">' + tiles + '</div></div>'
-      + '<div class="ff-wide-body"><div class="ff-wide-plot">' + svg + '</div>'
-      + '<div class="ff-wide-axis"><span>' + escapeHtml(String(daily[from].date || '')) + '</span><span class="ff-wide-legend">' + legend + '</span><span>' + escapeHtml(String(daily[daily.length - 1].date || '')) + '</span></div></div>'
-      + '</div><footer class="ff-wide-foot"><small>일봉 종가 기준 · 최근 ' + span + '거래일</small></footer></article>';
+    var legend = lines.slice().reverse().map(function (l) { return '<span class="is-' + l.key + '">' + l.label + '</span>'; }).join('')
+      + '<span class="is-close">종가</span><span class="is-cloud">일목 구름</span>';
+    var note = !core ? '차트 보조선 로드 실패' : n < 52 ? '구름 계산에 52개 유효 일봉 필요' : !cloud.length ? '구름 계산용 OHLC 자료 부족' : '일목 9·26·52 / 26거래일 선행';
+    return '<article class="ff-wide ff-wide--chart" data-story-number="01"><div class="ff-wide-grid is-chart"><div class="ff-wide-body">'
+      + '<div class="ff-wide-plot">' + svg + '</div><div class="ff-wide-axis"><span>' + escapeHtml(String(daily[from].date || '')) + '</span>'
+      + '<span class="ff-wide-legend">' + legend + '</span><span>' + escapeHtml(String(daily[n - 1].date || '')) + '</span></div></div></div>'
+      + '<footer class="ff-wide-foot"><small>최근 ' + span + '거래일 · ' + note + '</small></footer></article>';
   }
 
   // 종목 스토리 제목 아래 아주 작은 분봉(5분봉, 가장 최근 거래일 09:00~15:20). 선 하나와 전일 종가 점선만 그린다.
@@ -1814,14 +1807,14 @@
   function loadStockStory(box, code, swingVm, chartData, stockName) {
     var mount = box.querySelector('[data-ff-story]');
     if (!mount) return;
-    ensureStockStories().then(function () { return ensureStoryPart(code); }).catch(function () { return {}; }).then(function (all) {
+    Promise.all([loadChartCore().catch(function () { return null; }), ensureStockStories().then(function () { return ensureStoryPart(code); })]).then(function (parts) { return parts[1]; }).catch(function () { return {}; }).then(function (all) {
       var st = all && all[code];
       if (!box.contains(mount)) return; // 종목을 바꾼 뒤 도착한 응답은 버린다.
       // 판정 카드가 기존 2주 스윙 요약 박스를 대신하므로 같은 내용이 두 번 보이지 않게 박스는 숨긴다(DOM은 유지).
       var wide = '', count = 0;
-      if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
       var chartCard = buildTrendChartCard(chartData);
       if (chartCard) { wide += chartCard; count++; }
+      if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
       if (!st && !count) return; // 일봉·스윙마저 없으면 빈 분석을 만들지 않는다.
       if (!st) st = { name: stockName || code, cards: [], baselineOnly: true };
       var swing = box.querySelector('.ff-swing-summary');
@@ -6965,3 +6958,4 @@
     init();
   }
 })(window);
+

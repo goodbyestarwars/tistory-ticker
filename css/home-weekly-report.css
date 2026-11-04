@@ -909,7 +909,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 }
 
 .weekend-dashboard .wd-header h2 {
-  font-family: "MaruBuriBold","MaruBuri",serif;
+  font-weight: 700; font-family: var(--font-serif);
 }
 
 .weekend-dashboard .wd-countdown {
@@ -1041,7 +1041,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 .weekend-dashboard .wd-news-card { box-sizing: border-box; display: flex; flex-direction: column; flex: 0 0 320px; min-width: 0; min-height: 420px; padding: var(--closed-card-pad); border: 1px solid var(--wd-line); border-radius: 18px; background: var(--wd-surface); background: var(--wd-glass); color: var(--wd-text); box-shadow: var(--wd-glass-shadow); scroll-snap-align: start; transition: transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
 .weekend-dashboard .wd-news-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(var(--np-ink),.14); }
-.weekend-dashboard .wd-news-card .wd-news-title { color: var(--wd-text); font-size: 20px; line-height: 1.45; font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 700; }
+.weekend-dashboard .wd-news-card .wd-news-title { color: var(--wd-text); font-size: 20px; line-height: 1.45; font-family: var(--font-serif); font-weight: 700; }
 .weekend-dashboard .wd-news-rule { width: 100%; flex: 0 0 auto; margin: 14px 0; border: 0; border-top: 1px solid var(--wd-line); }
 .weekend-dashboard .wd-news-source { display: inline-flex; align-self: flex-start; margin: 0 0 14px; padding: 4px 10px; border: 1px solid var(--wd-line); border-radius: 999px; background: var(--wd-inner); color: var(--wd-sub); font-size: 11px; line-height: 1.4; }
 .weekend-dashboard .wd-news-korean { margin: 0; color: var(--wd-sub); font-size: 13px; line-height: 1.55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

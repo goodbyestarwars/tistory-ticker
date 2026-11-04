@@ -42,7 +42,7 @@ html.dark .mi-tab-summary .om-live-status { background: var(--dk-inner) !importa
     #fx-rates .fxr-subtitle,
     #crypto-market .cm-news-head h3,
     .mi-tab-summary h2, #overnight-market .om-summary-head, #overnight-market .om-summary-head b) {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
     font-size: var(--ui-section-size) !important;
     line-height: 1.4 !important;

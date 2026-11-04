@@ -1,3 +1,4 @@
+@import url('./css/fonts.css');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
 @import url('./css/liquid-glass.css');
 @import url('./css/ui-spacing.css');
@@ -175,18 +176,7 @@ html.skin-ready { background: var(--page-bg) !important; }
    양수로 올리면 비홈은 이 규칙이 0으로 눌러준다. */
 html.full-width-page { --qi-height: 0px; }
 
-/* 2026-07-17: 페이지 배경을 연라벤더(#edf0f7)에서 흰색으로 변경(사용자 요청 - "토스
-   스타일"처럼 배경과 카드가 또렷이 구분되는 옅은 회색/보라 대신, 카드 그림자만으로
-   구분되는 플랫한 흰 배경). .card/.post-card 등은 이미 테두리 없이 box-shadow만으로
-   떠 있는 느낌을 내고 있어서(아래 .card 참고) 배경이 흰색이어도 그림자로 구분된다.
-   2026-07-18: 순백(#fff)에서 rgb(255, 254, 252)로 재변경(사용자 요청 - 배경색 통일).
-   2026-08: 기본 명조 폰트를 'Noto Serif KR'에서 '마루 부리'(MaruBuri, 네이버 한글한글
-   아름답게 - skin.html의 maru-buri.css 링크로 로드)로 교체(사용자 요청). CDN이
-   MaruBuriExtraLight/Light/MaruBuri(Regular)/SemiBold/Bold 5개 굵기를 별도 font-family로
-   제공하는데, 지금은 Regular('MaruBuri')만 기본값으로 연결했다 - font-weight:700/800을
-   쓰는 굵은 텍스트는 브라우저가 합성(faux) 볼드로 그린다(진짜 Bold/SemiBold 글자꼴을
-   쓰려면 해당 굵기 문맥마다 font-family를 'MaruBuriBold'/'MaruBuriSemiBold'로 따로
-   지정해야 함 - 아직 안 함). */
+/* Serif family and real weights are defined in css/fonts.css. */
 body {
   font-family: var(--font-ui);
   background: var(--page-bg);
@@ -2309,22 +2299,22 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   }
   /* Market briefing masthead uses the brand serif for its label and title. */
   html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1) {
-    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
   }
   html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1) {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
   }
   /* Market > Main news: the section heading uses MaruBuri. */
   html body:has(#main-news) .post-single-header .post-single-title,
   html body #main-news .mn-head h2 {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
   }
   html body .post-single:has(.mi-wrap #kospi-futures) .post-single-title,
   html body .post-single:has(:is(#market-temp, #foreign-flow, #pattern-scan, #strategy-search, #stock-search, #stock-calendar, #auto-trader)) .post-single-header .post-single-title,
   html body .it-modal :is(#itTitle, #itFxTitle) {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
     font-size: var(--ui-title-size) !important;
     line-height: 1.4 !important;
@@ -2333,14 +2323,14 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body#tt-body-index #homeMarketBoard > .home-card-heading strong,
   html body#tt-body-index #homeRealtimeBoard .hrt-head > div > strong,
   html body#tt-body-index .home-briefing-section .home-section-heading > div > strong {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
   }
   /* The site-wide important h3 rule uses Pretendard. The weekly-news section and
      English article headlines retain the MaruBuri editorial treatment. */
   html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-news-section .wd-panel-head h3,
   html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-news-card .wd-news-title {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
   }
   /* News article titles use MaruBuriBold within the same important layer as
@@ -2348,7 +2338,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body#tt-body-index #homeEconomicNews .hen-row .app-news-body > strong,
   html body #crypto-market .cm-news-item .app-news-body > strong,
   html body #main-news .mn-row-title {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
     font-synthesis: none !important;
   }
@@ -2389,14 +2379,14 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body .ui-section-title,
   html body#tt-body-index #homeEconomicNews .hen-head > div > strong,
   html body .post-single #market-temp .mt-stocks-only :is(.mt-stocks-only-heading h1, .mt-section-head h2) {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
     font-size: var(--ui-section-size) !important;
     line-height: 1.4 !important;
   }
   /* Stock analysis verdict phrases share the heading font; numbers, chips and body stay on the UI font. */
   html body #foreign-flow :is(.ff-swing-regime > strong, .ff-swing-step > strong, .ff-swing-diagnosis > strong, .ff-sig-badge, .ff-wide strong.is-big) {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: var(--font-serif) !important;
     font-weight: 700 !important;
   }
   html body .feed:has(> .briefing-search) > .category-masthead > div > span {
@@ -2442,7 +2432,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body#tt-body-index .home-briefing-section .briefing-carousel-track .post-title *,
   html body .feed .briefing-shelf .post-title,
   html body .feed .briefing-shelf .post-title * {
-    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700; font-family: var(--font-serif) !important;
   }
   html body#tt-body-index .home-briefing-section .briefing-carousel-track .post-title,
   html body .feed .briefing-shelf .post-title,
@@ -2451,7 +2441,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-weight: 700 !important;
   }
   .nav-logo {
-    --font-title: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif;
+    --font-title: var(--font-serif);
     --font-ui: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
     --font-data: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
   }
@@ -8025,7 +8015,7 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
   .home-economic-news .hen-row .app-news-body > strong,
   #main-news .mn-row-title,
   #crypto-market .cm-news-item .app-news-body > strong) {
-  font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-family: var(--font-serif) !important;
   font-weight: 700 !important;
   font-synthesis: none;
   letter-spacing: 0 !important;
@@ -9096,7 +9086,7 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
   .home-economic-news .hen-row .app-news-body > strong,
   #main-news .mn-row-title,
   #crypto-market .cm-news-item .app-news-body > strong) {
-  font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-family: var(--font-serif) !important;
   font-weight: 700 !important;
   font-size: 15px !important;
   line-height: 1.55 !important;

@@ -1241,7 +1241,7 @@
         if (indexDrawingCtl) indexDrawingCtl.shapes.bars = currentBars;
         if (indexWaveState.enabled && indexDrawingCtl && global.NineChartWave) {
           if (indexWaveHandle) indexWaveHandle.detach();
-          indexWaveHandle = global.NineChartWave.attach({ core: core, ctl: indexDrawingCtl, key: 'INDEX:' + symbol, timeframe: indexTimeframe, bars: currentBars, state: indexWaveState, font: 'MaruBuri, serif' });
+          indexWaveHandle = global.NineChartWave.attach({ core: core, ctl: indexDrawingCtl, key: 'INDEX:' + symbol, timeframe: indexTimeframe, bars: currentBars, state: indexWaveState, font: getComputedStyle(document.documentElement).getPropertyValue('--font-serif').trim() || 'serif' });
           indexWaveHandle.apply();
         }
       };
@@ -2717,7 +2717,7 @@
     var bars = ctlNow.shapes.bars, timeframe = ctlNow.shapes.timeframe;
     loadChartCore().then(function (core) { return core.loadModule('wave'); }).then(function (Wave) {
       if (drawingCtl !== ctlNow || ctlNow.detached) return;   // 그 사이 차트가 다시 그려졌다
-      if (!waveHandle) waveHandle = Wave.attach({ core: global.NineChartCore, ctl: ctlNow, key: state.selectedCode, timeframe: timeframe, bars: bars, state: state.wave, font: 'MaruBuri, serif' });
+      if (!waveHandle) waveHandle = Wave.attach({ core: global.NineChartCore, ctl: ctlNow, key: state.selectedCode, timeframe: timeframe, bars: bars, state: state.wave, font: getComputedStyle(document.documentElement).getPropertyValue('--font-serif').trim() || 'serif' });
       waveHandle.apply();
     }).catch(function () { /* 파동 모듈을 못 받아도 차트는 그대로 */ });
   }

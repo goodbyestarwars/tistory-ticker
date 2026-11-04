@@ -1,6 +1,11 @@
 /* Common liquid-glass material. Layout, type, page backgrounds and semantic colors
    belong to their existing components. Opaque material is the default fallback. */
 :root {
+  --ui-clear-surface: rgba(255,255,255,.12);
+  --ui-clear-sheen: linear-gradient(125deg, rgba(255,255,255,.34), transparent 28%, transparent 70%, rgba(255,255,255,.12));
+  --ui-clear-edge: rgba(255,255,255,.64);
+  --ui-clear-shadow: 0 10px 26px rgba(15,23,42,.09), 0 2px 5px rgba(15,23,42,.05), inset 0 1px 1px rgba(255,255,255,.95), inset 1px 0 1px rgba(255,255,255,.6), inset 0 -1px 2px rgba(100,116,139,.17), inset 0 0 0 3px rgba(255,255,255,.16);
+  --ui-clear-filter: blur(4px);
   --ui-glass-surface: #fff;
   --ui-glass-panel: #f8f7f4;
   --ui-glass-filter: none;
@@ -61,10 +66,14 @@ html.dark {
   }
 }
 @media (max-width: 760px) {
-  :root { --ui-glass-filter: blur(6px) saturate(110%); }
+  :root { --ui-clear-filter: blur(2px); --ui-glass-filter: blur(6px) saturate(110%); }
 }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active), print {
   :root, html.dark, body:not([id]) {
+    --ui-clear-surface: var(--surface, #fff);
+    --ui-clear-sheen: none;
+    --ui-clear-filter: none;
+    --ui-clear-shadow: none;
     --ui-glass-surface: var(--surface, #fff);
     --ui-glass-panel: var(--surface, #fff);
     --ui-glass-filter: none;

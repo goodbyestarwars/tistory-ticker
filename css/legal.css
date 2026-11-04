@@ -1,3 +1,4 @@
+@import url('./fonts.css');
 /* 이용약관/개인정보처리방침/오픈소스 라이선스 등 정적 법적 고지 페이지 공통 스타일.
    티스토리 스킨(style.css)과 별개 문서(GitHub Pages 단독 호스팅)라 prefers-color-scheme으로
    다크모드를 판단한다(localStorage 'bolt-dark'는 tistory.com 도메인이라 이 origin에서 못 읽음). */
@@ -178,7 +179,7 @@ body.learn-page .legal-wrap .legal-contact {
 
 /* ── 이야기 시리즈 통일 디자인 (2026-10-31) ── */
 body.learn-page,
-body.learn-page .legal-wrap { font-family: "MaruBuri", "Maru Buri", Georgia, serif; color: var(--learn-ink, #14213d); }
+body.learn-page .legal-wrap { font-family: var(--font-serif); color: var(--learn-ink, #14213d); }
 body.learn-page .legal-wrap h1,
 body.learn-page .legal-wrap h2,
 body.learn-page .legal-wrap h3,
@@ -187,7 +188,7 @@ body.learn-page .legal-wrap .learn-toc a,
 body.learn-page .legal-wrap .learn-table th,
 body.learn-page .legal-wrap .learn-case-no,
 body.learn-page .legal-wrap .fig-ink,
-body.learn-page .legal-wrap .fig-on-strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 400; }
+body.learn-page .legal-wrap .fig-on-strong { font-family: var(--font-serif); font-weight: 700; }
 /* 제목과 번호 달린 문장은 남색(2026-11-02). */
 body.learn-page .legal-wrap h1,
 body.learn-page .legal-wrap h2,
@@ -197,9 +198,7 @@ body.learn-page .legal-wrap ol > li { color: var(--learn-navy); }
 /* 제목만 굵게: 본문 강조는 굵기 대신 남색 글자로 구분한다. */
 body.learn-page .legal-wrap b,
 body.learn-page .legal-wrap strong { font-weight: 400; color: var(--learn-case-label); }
-body.learn-page .legal-wrap .learn-fig text { font-family: "MaruBuri", "Maru Buri", Georgia, serif; }
-body.learn-page .legal-wrap .fig-ink,
-body.learn-page .legal-wrap .fig-on-strong,
+body.learn-page .legal-wrap .learn-fig text { font-family: var(--font-serif); }
 body.learn-page .legal-wrap .fig-on-accent { font-weight: 400; }
 body.learn-page .legal-wrap .fig-ink { fill: var(--learn-ink); }
 body.learn-page .legal-wrap .fig-sub,
@@ -279,7 +278,7 @@ body.learn-page .legal-wrap .ls-list li { margin: 0; }
 body.learn-page .legal-wrap .ls-item { display: block; padding: 10px 12px; border-radius: 14px; color: var(--learn-ink); text-decoration: none; }
 body.learn-page .legal-wrap .ls-item:hover,
 body.learn-page .legal-wrap .ls-item:focus-visible { background: var(--learn-box); }
-body.learn-page .legal-wrap .ls-head { display: block; font-family: "MaruBuriBold", "MaruBuri", serif; font-size: 15px; color: var(--learn-ink); }
+body.learn-page .legal-wrap .ls-head { display: block; font-weight: 700; font-family: var(--font-serif); font-size: 15px; color: var(--learn-ink); }
 body.learn-page .legal-wrap .ls-snippet { display: block; margin-top: 2px; color: var(--learn-sub); font-size: 13.5px; line-height: 1.6; }
 body.learn-page .legal-wrap .ls-snippet mark { padding: 0 2px; border-radius: 4px; background: var(--learn-case-good-bg); color: var(--learn-up); }
 
@@ -560,7 +559,7 @@ body.learn-page.inflation-page .in-toc li { break-inside: avoid; padding: 3px 0;
 body.learn-page.inflation-page .in-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0 20px; }
 body.learn-page.inflation-page .in-fact { padding: 16px; border: 1px solid var(--learn-line); border-radius: 16px; background: var(--learn-surface); }
 body.learn-page.inflation-page .in-fact span { display: block; color: var(--learn-sub); font-size: 12.5px; }
-body.learn-page.inflation-page .in-fact strong { display: block; margin-top: 3px; color: var(--learn-navy); font-family: "MaruBuriBold", "MaruBuri", serif; font-size: 22px; font-weight: 400; }
+body.learn-page.inflation-page .in-fact strong { display: block; margin-top: 3px; color: var(--learn-navy); font-family: var(--font-serif); font-size: 22px; font-weight: 700; }
 body.learn-page.inflation-page .in-tool { margin: 16px 0 20px; padding: var(--ui-card-padding); border: 1px solid var(--learn-line); border-radius: 16px; background: var(--learn-surface); }
 body.learn-page.inflation-page .in-tool > h3 { margin-top: 0; }
 body.learn-page.inflation-page .in-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }

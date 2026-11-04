@@ -8,11 +8,10 @@
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
-<link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" />
 <style>
 /* First paint: preserve reading width and theme before the shared CSS/font completes. */
 html { background: #FEFDFA; }
-body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: "MaruBuri", "Maru Buri", Georgia, serif; font-size: 15px; line-height: 1.8; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
 body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 @media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
 @media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
@@ -28,7 +27,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 .gl-card { padding: 20px 24px; margin: 0 0 var(--ui-section-gap, 16px); border: 1px solid var(--learn-line, #d9e5f6); border-radius: 22px; background: #fff; box-shadow: 0 1px 2px rgba(18, 97, 196, .05), 0 12px 30px -14px rgba(18, 97, 196, .18); scroll-margin-top: 16px; }
 .gl-card.flash { box-shadow: 0 0 0 2px var(--learn-up, #d24f45) inset; }
 .gl-card h3 { margin: 0 0 4px; font-size: 18px; }
-.gl-card h3 small { margin-left: 8px; font-size: 12.5px; font-weight: 400; color: var(--learn-sub, #35507a); font-family: "MaruBuri", "Maru Buri", Georgia, serif; }
+.gl-card h3 small { margin-left: 8px; font-size: 12.5px; font-weight: 400; color: var(--learn-sub, #35507a); font-family: var(--font-serif); }
 .gl-cat { display: inline-block; margin-bottom: 8px; padding: 1px 10px; border-radius: 999px; font-size: 11.5px; background: var(--learn-case-good-bg, #e8f1fd); color: var(--learn-case-label, #1d4f91); }
 .gl-card p { margin: 6px 0; line-height: 1.7; }
 .gl-ex { color: var(--learn-ink, #14213d); }

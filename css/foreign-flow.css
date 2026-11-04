@@ -3257,7 +3257,7 @@ html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-
 html body:has(.global-watchlist-drawer.is-open) #foreign-flow .ff-story-head, html.wl-open body #foreign-flow .ff-story-head { display: none; }
 
 #foreign-flow .ff-story-head small, #foreign-flow .ff-story-note { color: #86868b; font-size: 11px; }
-#foreign-flow .ff-story-head .ff-panel-title { color: #0d1b40; font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-size: 18px; font-weight: 700; line-height: 1.3; letter-spacing: 0; }
+#foreign-flow .ff-story-head .ff-panel-title { color: #0d1b40; font-family: var(--font-serif); font-size: 18px; font-weight: 700; line-height: 1.3; letter-spacing: 0; }
 html.dark #foreign-flow .ff-story-head .ff-panel-title { color: var(--dk-text); }
 /* 제목 아래 작은 분봉: 왼쪽 빈 공간(1600px 이상)에서만 보인다 */
 #foreign-flow .ff-story-mini { display: none; }
@@ -3312,13 +3312,13 @@ html.dark #foreign-flow .ff-wide-dots button { background: rgba(255, 255, 255, .
 html.dark #foreign-flow .ff-wide-dots button.is-on { background: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-pause::before { border-color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-pause.is-paused::before { background: var(--dk-text); }
-#foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 22px var(--ff-band-side) 40px; border: 0; border-radius: 0; background: var(--ui-card-surface, #fff); border-block: 1px solid var(--ui-border, #e5e5ea); box-sizing: border-box; }
+#foreign-flow .ff-wide { position: relative; overflow: hidden; padding: 22px var(--ff-band-side) 40px; border-radius: var(--ui-radius-card, 14px); background: var(--ui-clear-sheen), var(--ui-clear-surface); border: 1px solid var(--ui-clear-edge); box-shadow: var(--ui-clear-shadow); -webkit-backdrop-filter: var(--ui-clear-filter); backdrop-filter: var(--ui-clear-filter); box-sizing: border-box; }
 #foreign-flow .ff-wide-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 44px; align-items: start; }
 #foreign-flow .ff-wide-lead { position: relative; z-index: 1; padding-right: 44px; }
 /* 카드 안에는 구분선을 쓰지 않는다(여백으로만 나눈다). 글자 크기는 모두 제목(--ui-title-size)보다 작게. */
 #foreign-flow .ff-wide-lead > small, #foreign-flow .ff-wide small { display: block; color: #6e6e73; font-size: 13px; }
 #foreign-flow .ff-wide strong { display: block; color: #1d1d1f; font-size: 17px; font-weight: 700; line-height: 1.4; }
-#foreign-flow .ff-wide strong.is-big { margin: 6px 0 12px; color: #0d1b40; font-family: "MaruBuriBold", "MaruBuri", serif; font-size: var(--ui-title-size); font-weight: 400; line-height: 1.2; letter-spacing: -.02em; }
+#foreign-flow .ff-wide strong.is-big { margin: 6px 0 12px; color: #0d1b40; font-family: var(--font-serif); font-size: var(--ui-title-size); font-weight: 700; line-height: 1.2; letter-spacing: -.02em; }
 #foreign-flow .ff-wide strong.is-up { color: #d24f45; }
 #foreign-flow .ff-wide strong.is-dn { color: #1261c4; }
 #foreign-flow .ff-wide-lead p { margin: 0 0 8px; color: #424245; font-size: 16px; line-height: 1.6; }
@@ -3347,10 +3347,12 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-wide-tiles > div + div { padding-left: 14px; }
 #foreign-flow .ff-wide-tiles strong { font-size: 20px; }
 #foreign-flow .ff-wide-tiles small, #foreign-flow .ff-wide-axis > span:not(.ff-wide-legend) { white-space: nowrap; }
-#foreign-flow .ff-wide-grid.is-chart { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
-#foreign-flow .ff-wide-plot { height: 200px; }
+#foreign-flow .ff-wide-grid.is-chart { grid-template-columns: minmax(0, 1fr); }
+#foreign-flow .ff-wide-plot { height: clamp(220px, 28vw, 340px); border-radius: var(--ui-radius-inner, 9px); background: rgba(255,255,255,.78); padding: 8px; }
 #foreign-flow .ff-wide-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 #foreign-flow .ff-wide-svg path { fill: none; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+#foreign-flow .ff-wide-svg .ff-wide-cloud { fill: rgba(65,139,220,.22); stroke: none; stroke-width: 0; }
+#foreign-flow .ff-wide-legend .is-cloud { color: #418bdc; }
 #foreign-flow .ff-wide-close { stroke: #1d1d1f; stroke-width: 1.8; }
 #foreign-flow .ff-wide-ma { stroke-width: 1.4; }
 #foreign-flow .ff-wide-ma.is-ma20 { stroke: #1261c4; }
@@ -3373,14 +3375,13 @@ html.dark #foreign-flow .ff-story-bar b.is-up { background: #ff8a80; }
 html.dark #foreign-flow .ff-story-bar b.is-dn { background: #7fb3ff; }
 html.dark #foreign-flow .ff-story-row em, html.dark #foreign-flow .ff-story-head small, html.dark #foreign-flow .ff-story-note { color: var(--dk-sub); }
 html.dark #foreign-flow .ff-story-bar { background: var(--dk-bg); }
-html.dark #foreign-flow .ff-wide { background: var(--dk-card); border-color: var(--dk-line); }
+html.dark #foreign-flow .ff-wide { background: var(--ui-clear-sheen), var(--ui-clear-surface); border-color: var(--ui-clear-edge); }
 html.dark #foreign-flow .ff-wide :is(.ff-wide-lead, .ff-wide-row, .ff-wide-row > div + div, .ff-wide-foot, .ff-wide-tiles, .ff-wide-tiles > div + div) { border-color: rgba(255, 255, 255, .09); }
 html.dark #foreign-flow .ff-wide strong, html.dark #foreign-flow .ff-wide strong.is-big, html.dark #foreign-flow .ff-wide strong.is-num, html.dark #foreign-flow .ff-wide-facts b, html.dark #foreign-flow .ff-wide-foot b { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide strong.is-up { color: var(--dk-up); }
 html.dark #foreign-flow .ff-wide strong.is-dn { color: var(--dk-down); }
 html.dark #foreign-flow .ff-wide-lead p { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide :is(.ff-wide-lead > small, small, .ff-wide-lead em, .ff-wide-foot p) { color: var(--dk-sub); }
-html.dark #foreign-flow .ff-wide-close { stroke: var(--dk-text); }
 html.dark #foreign-flow .ff-wide-legend .is-close { color: var(--dk-text); }
 @media (max-width: 820px) {
   #foreign-flow .ff-wide-stage { --ff-band-side: 20px; }
@@ -3397,14 +3398,16 @@ html.dark #foreign-flow .ff-wide-legend .is-close { color: var(--dk-text); }
   #foreign-flow .ff-wide-foot p, #foreign-flow .ff-wide-detail p { font-size: 13.5px; }
   #foreign-flow .ff-wide-row { gap: 0 12px; }
   #foreign-flow .ff-wide-row > div + div { padding-left: 12px; }
-  #foreign-flow .ff-wide-plot { height: 200px; }
+  #foreign-flow .ff-wide-plot { height: 230px; }
+  #foreign-flow .ff-wide-axis { flex-wrap: wrap; }
+  #foreign-flow .ff-wide-legend { order: -1; flex-basis: 100%; }
 }
 html.dark #foreign-flow .ff-story-nav { background: var(--dk-card); color: var(--dk-text); }
 
 /* 이야기 카드: 판정·차트와 같은 가로 카드 안에서 자세한 설명까지 한 번에 */
 #foreign-flow .ff-wide-grid.is-solo { grid-template-columns: 1fr; }
 #foreign-flow .ff-wide-grid.is-solo .ff-wide-lead { padding-right: 0; border-right: 0; }
-#foreign-flow .ff-wide strong.is-num { color: #0d1b40; margin: 4px 0 0; font-family: "MaruBuriBold", "MaruBuri", serif; font-size: var(--ui-title-size); font-weight: 400; line-height: 1.15; }
+#foreign-flow .ff-wide strong.is-num { color: #0d1b40; margin: 4px 0 0; font-family: var(--font-serif); font-size: var(--ui-title-size); font-weight: 700; line-height: 1.15; }
 #foreign-flow .ff-wide-detail { margin-top: 12px; padding-top: 12px; }
 #foreign-flow .ff-wide-detail p { margin: 0 0 8px; font-size: 14.5px; }
 #foreign-flow .ff-wide-body .ff-story-rows { display: grid; gap: 14px; }

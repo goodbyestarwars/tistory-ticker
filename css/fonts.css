@@ -1,0 +1,4 @@
+/* Shared serif family: real 400–900 variable weights, Korean unicode subsets and swap. */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200..900&display=swap');
+:root { --font-serif: "Noto Serif KR", Georgia, serif; }
+html { font-synthesis: none; }

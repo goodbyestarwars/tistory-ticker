@@ -17,6 +17,7 @@ const win={addEventListener(){},NineUI:{escapeHtml:s=>String(s).replace(/&/g,'&a
 const doc={readyState:'loading',addEventListener(){},createElement(){return {}},head:{appendChild(s){appended.push(s);}}};
 vm.runInNewContext(src,{window:win,document:doc,console,fetch(){throw new Error('api');},setTimeout,clearTimeout});
 const api=win.__t;
+win.NineChartCore=require('./js/chart-core.js');
 vm.runInNewContext(fs.readFileSync('data/stock-stories.js','utf8'),{window:win});
 assert(appended.length===0);
 (async()=>{
@@ -47,7 +48,7 @@ assert(appended.length===0);
  const mx={hidden:true,innerHTML:''};
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?mx:null;},contains(){return true;},closest(){return null;}},'042660',null,{daily:daily.slice(0,10)});
  await new Promise(setImmediate);
- assert(!mx.innerHTML.includes('ff-wide--verdict')&&!mx.innerHTML.includes('ff-wide--chart'));
+ assert(!mx.innerHTML.includes('ff-wide--verdict'));assert(mx.innerHTML.includes('ff-wide--chart'));
  assert(mx.innerHTML.includes('ff-wide--story'));
  const m2={hidden:true,innerHTML:''};
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?m2:null;},contains(){return true;},closest(){return null;}},'999999');
@@ -76,3 +77,4 @@ assert(appended.length===0);
 
 if __name__ == '__main__':
     unittest.main()
+
