@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('refresh', ROOT / 'scripts/oracle-stock-stories/refresh_stock_stories.py')
@@ -47,6 +48,24 @@ class SafetyTests(unittest.TestCase):
             process = subprocess.Popen(['sleep', '30'], start_new_session=True)
             stop_group(process, .1)
             self.assertIsNotNone(process.poll())
+
+    def test_resume_rejects_changed_inputs_and_modified_saved_output(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'scripts/cloud-vm'))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'source'
+            state = Path(tmp) / 'state'
+            (root / 'data/stories').mkdir(parents=True)
+            state.mkdir()
+            (root / 'data/stock-stories.js').write_text('fixture')
+            r.save_verified(state, root, 'base', date(2026, 11, 4))
+            with patch.object(r, 'git', return_value=b'data/company-profiles.js'):
+                with self.assertRaisesRegex(RuntimeError, 'collection_inputs_changed'):
+                    r.restore_verified(state, root, Path('repo'), 'new', date(2026, 11, 4))
+            (state / 'verified-public-data/stock-stories.js').write_text('modified')
+            with patch.object(r, 'git', return_value=b''):
+                with self.assertRaisesRegex(RuntimeError, 'hash_changed'):
+                    r.restore_verified(state, root, Path('repo'), 'base', date(2026, 11, 4))
 
 
 if __name__ == '__main__':

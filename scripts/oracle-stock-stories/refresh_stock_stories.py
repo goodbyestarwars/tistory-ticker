@@ -191,6 +191,40 @@ def health():
     return ok
 
 
+def save_verified(state, root, base, today):
+    """Keep public output only, so a push race does not waste a full collection."""
+    from snapshot_io import atomic_json
+    folder = state / 'verified-public-data'
+    if folder.exists():
+        shutil.rmtree(folder)
+    folder.mkdir(mode=0o700)
+    shutil.copy2(root / DATA[0], folder / 'stock-stories.js')
+    shutil.copytree(root / DATA[1], folder / 'stories')
+    hashes = {p.relative_to(folder).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in folder.rglob('*.js')}
+    atomic_json(folder / 'manifest.json', dict(base=base, date=str(today), hashes=hashes))
+
+
+def restore_verified(state, root, repo, base, today):
+    folder = state / 'verified-public-data'
+    manifest = json.loads((folder / 'manifest.json').read_text())
+    collected = date.fromisoformat(manifest['date'])
+    if not 0 <= (today - collected).days <= 1:
+        raise RuntimeError('verified_output_too_old')
+    sensitive = DATA + ['data/company-profiles.js', 'scripts/build_stock_stories.py', 'scripts/fetch_investor_flow.py']
+    if git(repo, 'diff', '--name-only', manifest['base'], base, '--', *sensitive).strip():
+        raise RuntimeError('collection_inputs_changed')
+    actual = {p.relative_to(folder).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in folder.rglob('*.js')}
+    if actual != manifest['hashes']:
+        raise RuntimeError('verified_output_hash_changed')
+    shutil.copy2(folder / 'stock-stories.js', root / DATA[0])
+    shutil.rmtree(root / DATA[1])
+    shutil.copytree(folder / 'stories', root / DATA[1])
+    emit('verified_output_restored', collectionDate=str(collected))
+    return collected
+
+
 def bounded_worker(root, runtime, python, codes, timeout):
     sys.path.insert(0, str(root / 'scripts/cloud-vm'))
     from scheduled_job import stop_group
@@ -312,6 +346,7 @@ def main():
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--smoke', action='store_true')
+    parser.add_argument('--resume-verified', action='store_true')
     parser.add_argument('--worker', type=Path)
     parser.add_argument('--codes', default='')
     parser.add_argument('--worker-timeout', type=int, default=7200)
@@ -350,13 +385,17 @@ def main():
             python = str(args.runtime / 'venv/bin/python')
             if not health():
                 raise RuntimeError('api_unhealthy_before_collection')
-            bounded_worker(root, args.runtime, python,
-                '005930,042660,005380,068270' if args.smoke else '', args.worker_timeout)
+            if args.resume_verified:
+                today = restore_verified(args.state, root, args.repo, base, today)
+            else:
+                bounded_worker(root, args.runtime, python,
+                    '005930,042660,005380,068270' if args.smoke else '', args.worker_timeout)
             if args.smoke:
                 emit('smoke_passed')
                 return
             _, index = validate(root, before, today)
             run_tests(root, python)
+            save_verified(args.state, root, base, today)
             if not health():
                 raise RuntimeError('api_unhealthy_before_publish')
             sha = publish(args.repo, root, args.runtime, base)
