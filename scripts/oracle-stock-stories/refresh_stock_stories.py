@@ -44,7 +44,7 @@ def clean_env():
 def git(repo, *args, input=None):
     command = ['git', '-C', str(repo), *args]
     if os.geteuid() == 0:
-        command = ['runuser', '-u', 'ubuntu', '--', *command]
+        command = ['/usr/sbin/runuser', '-u', 'ubuntu', '--', *command]
     result = subprocess.run(command, input=input, capture_output=True,
                             env=clean_env(), timeout=120)
     if result.returncode:
@@ -200,7 +200,7 @@ def bounded_worker(root, runtime, python, codes, timeout):
         os.chown(folder, account.pw_uid, account.pw_gid)
         for name in files:
             os.chown(Path(folder) / name, account.pw_uid, account.pw_gid)
-    command = ['runuser', '-u', 'goodbyestarwars', '--', python, __file__,
+    command = ['/usr/sbin/runuser', '-u', 'goodbyestarwars', '--', python, __file__,
                '--worker', str(root), '--runtime', str(runtime)]
     if codes:
         command += ['--codes', codes]
