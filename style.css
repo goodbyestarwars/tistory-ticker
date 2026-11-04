@@ -7798,10 +7798,10 @@ html body :is(.dmi-heading h2, .mt-page-title, .ps-title, .ss-title, .sc-title) 
   letter-spacing: 0 !important;
   font-size: var(--ui-title-size) !important;
 }
-html body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: var(--ui-title-size) !important; }
-/* 2026-11-02: 장중 홈도 휴장 화면처럼 블록 제목(국내 시장·경제 종합뉴스·실시간 종목판 등)은 같은 제목 크기 */
+html body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: var(--ui-section-size) !important; }
+/* KR/US dashboard card headings share the 17px section token with the closed-day schedule. */
 html body#tt-body-index .home-editorial-page :is(.ui-content-block .ui-section-title, .home-realtime-board .hrt-head > div > strong),
-html body#tt-body-index #homeEconomicNews .hen-head > div > strong { font-size: var(--ui-title-size) !important; }
+html body#tt-body-index #homeEconomicNews .hen-head > div > strong { font-size: var(--ui-section-size) !important; }
 html body :where(.ibd, .ui-data-table, .hrt-table, .wl-price, .hmb-etf-card) {
   font-variant-numeric: tabular-nums;
 }
@@ -8851,9 +8851,9 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
    기존 규칙이 @layer np 안쪽 np(하위 레이어)에서 !important 로 정해져 있어 같은 하위 레이어에 더 구체적인 선택자로 덮는다. */
 @layer np { @layer np { @media (max-width: 720px) {
   /* 홈 머리글 계층 */
-  html body#tt-body-index .home-editorial-page.home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: var(--ui-title-size) !important; line-height: 1.2 !important; }
+  html body#tt-body-index .home-editorial-page.home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: var(--ui-section-size) !important; line-height: 1.4 !important; }
   html body#tt-body-index .home-editorial-page.home-editorial-page .hen-head strong,
-  html body#tt-body-index .home-editorial-page.home-editorial-page .home-realtime-board .hrt-head strong { font-size: 18px !important; line-height: 1.25 !important; }
+  html body#tt-body-index .home-editorial-page.home-editorial-page .home-realtime-board .hrt-head strong { font-size: var(--ui-section-size) !important; line-height: 1.4 !important; }
   html body#tt-body-index .home-editorial-page.home-editorial-page .home-section-heading strong,
   html body#tt-body-index .briefing-intro strong { font-size: 22px !important; line-height: 1.25 !important; }
   html body .learn-intro h2 { font-size: 24px !important; line-height: 1.25 !important; }
