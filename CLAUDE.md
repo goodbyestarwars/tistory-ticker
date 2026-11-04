@@ -20,6 +20,7 @@
 - 수정 전 호출 관계와 배포 경로를 확인한다. 요청 범위 밖 변경을 섞지 않는다.
 - **같은 기능은 공통 모듈을 재사용한다.** 차트는 `js/chart-core.js`와 그 모듈
   (`chart-data`, `chart-drawing`, `chart-wave-overlay`, `chart-sr` 등), 호가는 `js/order-book.js`,
+  추세선은 같은 `chart-wave-overlay`에서 선택 규모의 숨겨진 방향 파동까지 구간별로 분석한다. 국소 채널은 양쪽 경계 접점을 검증하고 과거 구간 끝에서 멈추며, `up/down` 호환값과 `lines` 목록을 함께 유지한다.
   표는 `js/indicator-board.js`, 입력 효과/캐러셀은 `js/site-interactions.js`를 먼저 확인한다.
 - 공통 진입점 `js/skin-shell.js`의 `NineHttp.json`(전송)·`NineAPI`(정식 경로/공통 계약/fallback)·
   `NineUI`(포맷/로딩)를 재사용한다. 화면별 transport를 새로 만들지 않고 특수 단위·표시는 호출부가 소유한다.

@@ -65,6 +65,7 @@
     var lowerName = lv === 'major' ? 'medium' : (lv === 'medium' ? 'minor' : null);
     return {
       level: lv,
+      trendWaves: result.levels[lv] || [],
       lower: lowerName ? (result.levels[lowerName] || []) : [],   // 추세선 재료(스윙 고점·저점): 한 단계 아래 규모의 모든 파동(가려진 것 포함)
       waves: (result.levels[lv] || []).filter(function (w) { return !w.suppressed; }),
       parents: parentName ? (result.levels[parentName] || []).filter(function (w) { return !w.suppressed; }) : [],
@@ -125,13 +126,13 @@
   }
 
   // ---- 추세선 + 이탈 판정 ----
-  // 상승 추세는 스윙 저점끼리, 하락 추세는 스윙 고점끼리 잇는 한 줄이다(상승 붉은색·하락 파란색). 저점·고점이 딱 붙을 필요는 없고
+  // 각 파동의 국소 채널·횡보 경계를 보존하고 장기 스윙선(up/down 호환)을 보조로 겹친다. 저점·고점이 딱 붙을 필요는 없고
   // 변동성(ATR14) 기준 허용 오차 안이면 "닿았다"고 센다. 닿음 3회 이상이면 확정선(실선), 2회는 잠정선(점선).
   // 종가가 선에서 이탈 허용치 넘게 벗어난 봉이 2봉 연속이면 추세 이탈, 이탈 뒤 직전 스윙 극점까지 깨면 추세 전환이다.
   // 파동 엔진 결과는 바꾸지 않고 이미 정해진 고점·저점만 읽는다. 허용치는 아래 상수 한 곳에서 조정한다.
   var TREND = { atrPeriod: 14, touchAtr: 0.5, touchPct: 0.015, breakAtr: 1, breakPct: 0.025, breakBars: 2, minTouches: 2, solidTouches: 3, maxPivots: 8, staleBars: 120 };
   var TREND_COLOR = { up: '#d62524', down: '#1558c9' };
-  var TREND_TIP = '상승 추세는 스윙 저점끼리(붉은색), 하락 추세는 스윙 고점끼리(파란색) 이은 선입니다. 변동성(ATR) 안쪽으로 닿으면 같은 선으로 보고, 닿음 3회 이상은 실선·2회는 점선입니다. 종가가 허용치 넘게 2봉 연속 벗어나면 추세 이탈, 직전 극점까지 깨면 추세 전환으로 표시합니다. 관찰용이며 매수·매도 신호가 아닙니다.';
+  var TREND_TIP = '선택 규모의 과거·현재 파동마다 검증된 국소 추세선과 평행 채널·횡보 경계를 표시합니다. 과거 선은 구간 끝에서 멈춥니다. 현재 자료의 사후 재구성이며 진행 구간은 바뀔 수 있습니다. 상승 추세는 스윙 저점끼리(붉은색), 하락 추세는 스윙 고점끼리(파란색) 이은 선입니다. 변동성(ATR) 안쪽으로 닿으면 같은 선으로 보고, 닿음 3회 이상은 실선·2회는 점선입니다. 종가가 허용치 넘게 2봉 연속 벗어나면 추세 이탈, 직전 극점까지 깨면 추세 전환으로 표시합니다. 관찰용이며 매수·매도 신호가 아닙니다.';
 
   function atrAt(bars, i) {
     var n = TREND.atrPeriod, from = Math.max(1, i - n + 1), sum = 0, cnt = 0;
@@ -184,8 +185,61 @@
     }
     return best;
   }
+
+  // Local channels describe each existing wave; they never change wave detection.
+  // Regression proposes a direction, candle envelopes validate both parallel rails.
+  function waveChannels(bars, waves) {
+    var lines = [];
+    (waves || []).forEach(function(w) {
+      var start = Math.max(0, w.start), end = Math.min(bars.length - 1, w.end);
+      if (end - start < 8 || !/^(up|down|side|wide)$/.test(w.kind)) return;
+      var n = end - start + 1, sx = 0, sy = 0, sxx = 0, sxy = 0;
+      for (var i = start; i <= end; i++) {
+        var x = i - start, y = bars[i].close;
+        if (![y,bars[i].high,bars[i].low].every(Number.isFinite)) return;
+        sx += x; sy += y; sxx += x*x; sxy += x*y;
+      }
+      var m = (n*sxy-sx*sy)/(n*sxx-sx*sx);
+      var atr = atrAt(bars,end), side = w.kind === 'side' || w.kind === 'wide';
+      if (side) m = 0;
+      if (!side && (w.kind === 'up' ? m <= 0 : m >= 0)) return;
+      var lows = [], highs = [];
+      for (var j = start; j <= end; j++) {
+        lows.push(bars[j].low-m*j); highs.push(bars[j].high-m*j);
+      }
+      lows.sort(function(a,b){return a-b;}); highs.sort(function(a,b){return a-b;});
+      // Ignore isolated wick outliers, but never accept repeated close violations.
+      var lo = lows[Math.floor((n-1)*0.05)], hi = highs[Math.ceil((n-1)*0.95)];
+      var outside = 0;
+      for (var z=start;z<=end;z++) {
+        var residual=bars[z].close-m*z;
+        outside = residual < lo-atr || residual > hi+atr ? outside+1 : 0;
+        if(outside>=TREND.breakBars)return;
+      }
+      var width = hi-lo;
+      // Very broad envelopes do not describe a useful directional channel.
+      if (!(width > 0) || (!side && width > Math.max(6*atr,Math.abs(m)*(end-start)*1.25))) return;
+      var rails = [{b:lo,edge:'support'},{b:hi,edge:'resistance'}], valid = [];
+      rails.forEach(function(rail) {
+        var touches = [], tolerance = Math.max(atr*0.75,Math.abs(sy/n)*0.01);
+        for (var k = start; k <= end; k++) {
+          var price = rail.edge === 'support' ? bars[k].low : bars[k].high;
+          if (Math.abs(price-(m*k+rail.b)) <= tolerance &&
+              (!touches.length || k-touches[touches.length-1].i >= 3)) touches.push({i:k,p:price});
+        }
+        if (touches.length < 2 || touches[touches.length-1].i-touches[0].i < (end-start)*0.3) return;
+        valid.push({dir:side?'side':w.kind,m:m,b:rail.b,start:start,end:end,
+          touches:touches,solid:w.confirmed !== false && touches.length >= 3,
+          breakIndex:-1,reversed:false,reversalIndex:-1,local:true,edge:rail.edge});
+      });
+      // A channel is only shown when both boundaries have independent contacts.
+      if (valid.length === 2) lines = lines.concat(valid);
+    });
+    return lines;
+  }
+
   function trendLinesOf(bars, waves, lowerWaves) {
-    if (!bars || bars.length < 20) return { up: null, down: null };
+    if (!bars || bars.length < 20) return { up: null, down: null, lines: [] };
     var lows = [], highs = [], seen = {};
     function add(i, p, type) {
       var k = type + i;
@@ -199,7 +253,30 @@
       else { add(w.start, w.high, 'H'); add(w.end, w.low, 'L'); }
     });
     var byIndex = function (a, b) { return a.i - b.i; };
-    return { up: bestTrend(bars, lows.sort(byIndex), 'up'), down: bestTrend(bars, highs.sort(byIndex), 'down') };
+    lows.sort(byIndex); highs.sort(byIndex);
+    var up = bestTrend(bars,lows,'up'), down = bestTrend(bars,highs,'down');
+    var lines = waveChannels(bars,waves);
+    // Preserve older local support/resistance even when it has already broken.
+    (waves || []).forEach(function(w) {
+      if (w.kind !== 'up' && w.kind !== 'down') return;
+      var end = Math.min(bars.length-1,w.end), pts = w.kind === 'up' ? lows : highs;
+      var t = bestTrend(bars.slice(0,end+1),pts.filter(function(p){return p.i>=w.start && p.i<=end;}),w.kind);
+      if (t) { t.end = t.breakIndex >= 0 ? t.breakIndex : end; t.local = true; lines.push(t); }
+    });
+    // Long context remains secondary to local geometry; cap its extension after a break.
+    [up,down].forEach(function(t){if(t){t.end=t.breakIndex>=0?Math.min(t.end,t.breakIndex+8):t.end;lines.push(t);}});
+    var unique = [];
+    lines.forEach(function(t) {
+      var duplicate = unique.some(function(q) {
+        return q.dir===t.dir && (!q.edge || !t.edge || q.edge===t.edge) && Math.min(q.end,t.end)-Math.max(q.start,t.start) >=
+          Math.min(q.end-q.start,t.end-t.start)*0.75 &&
+          Math.abs(q.m-t.m)*Math.min(q.end-q.start,t.end-t.start)<Math.max(atrAt(bars,t.end),0.01) &&
+          Math.abs((q.m*t.start+q.b)-(t.m*t.start+t.b))<Math.max(atrAt(bars,t.start),0.01);
+      });
+      if(!duplicate)unique.push(t);
+    });
+    return { up:up, down:down, lines:unique };
+
   }
 
   // ---- 그리기(오버레이 층용) ----
@@ -260,19 +337,20 @@
       // 소파동은 박스가 아주 많아 라벨이 겹치므로 어느 정도 폭이 있을 때만 쓴다.
       if (x2 - lx > (level === 'minor' ? 34 : 12)) ctx.fillText(text, lx, y1 + 3);
     });
-    // 추세선: 상승 추세(저점끼리) 붉은색·하락 추세(고점끼리) 파란색. 현재 봉까지 이어 그리고, 이탈한 뒤는 점선으로 바꾼다.
+    // 구간별 추세/평행 채널 + 보조 장기선. 과거 선은 해당 구간까지만 그린다.
     if (picked.trend) {
-      if (!picked._trend || picked._trendBars !== bars.length) { picked._trend = trendLinesOf(bars, picked.waves, picked.lower); picked._trendBars = bars.length; }
-      ['up', 'down'].forEach(function (dir) {
-        var t = picked._trend[dir];
+      if (!picked._trend || picked._trendFingerprint !== fingerprintOf(bars)) { picked._trend = trendLinesOf(bars, picked.trendWaves || picked.waves, picked.lower); picked._trendFingerprint = fingerprintOf(bars); }
+      picked._trend.lines.forEach(function (t) {
+        var dir = t.dir;
         if (!t) return;
-        var color = TREND_COLOR[dir];
+        var color = TREND_COLOR[dir] || STYLE.side.stroke;
         function pt(i) { return view.coord({ time: bars[i].date, price: t.m * i + t.b }); }
         var p0 = pt(t.start), p1 = pt(t.end);
-        if (!p0 || !p1 || Math.max(p0.x, p1.x) < 0 || Math.min(p0.x, p1.x) > view.width) return;
+        if (!p0 || !p1 || Math.max(p0.x, p1.x) < 0 || Math.min(p0.x, p1.x) > view.width || (t.local && Math.abs(p1.x-p0.x)<18)) return;
         var brk = t.breakIndex >= 0 ? pt(t.breakIndex) : null;
         ctx.save();
-        ctx.strokeStyle = color; ctx.lineWidth = 2.6;
+        ctx.strokeStyle = color; ctx.lineWidth = t.local ? 2.2 : 1.4;
+        ctx.globalAlpha = t.local ? 0.95 : 0.55;
         // 살아 있는 구간: 확정선은 실선, 잠정선(닿음 2회)은 점선. 이탈 이후 구간은 옅은 점선.
         var liveEnd = brk || p1;
         ctx.setLineDash(t.solid ? [] : [8, 4]);
@@ -282,7 +360,7 @@
           ctx.beginPath(); ctx.moveTo(brk.x, brk.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
         }
         ctx.restore();
-        t.touches.forEach(function (q) {
+        (t.local ? [] : t.touches).forEach(function (q) {
           var tp = view.coord({ time: bars[q.i].date, price: q.p });
           if (!tp || tp.x < 0 || tp.x > view.width) return;
           ctx.beginPath(); ctx.arc(tp.x, tp.y, 3.6, 0, Math.PI * 2);
