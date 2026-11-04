@@ -132,7 +132,7 @@
   // 파동 엔진 결과는 바꾸지 않고 이미 정해진 고점·저점만 읽는다. 허용치는 아래 상수 한 곳에서 조정한다.
   var TREND = { atrPeriod: 14, touchAtr: 0.5, touchPct: 0.015, breakAtr: 1, breakPct: 0.025, breakBars: 2, minTouches: 2, solidTouches: 3, maxPivots: 8, staleBars: 120, minSpan: 14, projectionBars: 5, recentBars: 5 };
   var TREND_COLOR = { up: '#d62524', down: '#1558c9' };
-  var TREND_TIP = '선택 규모의 과거·현재 파동마다 검증된 국소 추세선과 평행 채널·횡보 경계를 표시합니다. 15봉 미만의 짧은 추세는 제외합니다. 과거 선은 구간 끝에서 멈추고, 현재 유효한 선은 기울기를 5봉 앞까지 점선으로 연장합니다(가격 예언이 아닌 추세 이탈 비교 기준). 현재 자료의 사후 재구성이며 진행 구간은 바뀔 수 있습니다. 상승 추세는 스윙 저점끼리(붉은색), 하락 추세는 스윙 고점끼리(파란색) 이은 선입니다. 변동성(ATR) 안쪽으로 닿으면 같은 선으로 보고, 닿음 3회 이상은 실선·2회는 점선입니다. 종가가 허용치 넘게 2봉 연속 벗어나면 추세 이탈, 직전 극점까지 깨면 추세 전환으로 표시합니다. 관찰용이며 매수·매도 신호가 아닙니다.';
+  var TREND_TIP = '선택 규모의 과거·현재 파동마다 검증된 국소 추세선과 평행 채널·횡보 경계를 표시합니다. 너무 짧은 잡음은 제외하고 고점·저점의 연결과 방향 일관성을 우선합니다. 과거 선은 구간 끝에서 멈추고, 현재 유효한 선은 기울기를 5봉 앞까지 점선으로 연장합니다(가격 예언이 아닌 추세 이탈 비교 기준). 현재 자료의 사후 재구성이며 진행 구간은 바뀔 수 있습니다. 상승 추세는 스윙 저점끼리(붉은색), 하락 추세는 스윙 고점끼리(파란색) 이은 선입니다. 변동성(ATR) 안쪽으로 닿으면 같은 선으로 보고, 닿음 3회 이상은 실선·2회는 점선입니다. 종가가 허용치 넘게 2봉 연속 벗어나면 추세 이탈, 직전 극점까지 깨면 추세 전환으로 표시합니다. 관찰용이며 매수·매도 신호가 아닙니다.';
 
   function atrAt(bars, i) {
     var n = TREND.atrPeriod, from = Math.max(1, i - n + 1), sum = 0, cnt = 0;
@@ -188,11 +188,19 @@
 
   // Local channels describe each existing wave; they never change wave detection.
   // Regression proposes a direction, candle envelopes validate both parallel rails.
+  function trendShape(bars,start,end) {
+    var AW=global.AutoWave, rows=bars.slice(start,end+1);
+    var shape=AW && AW.shapeOf ? AW.shapeOf(rows) : null;
+    // Tiny strokes remain noise; coherent shorter swings can survive the old 15-bar cutoff.
+    var useful=end-start>=TREND.minSpan || (end-start>=11 && shape && shape.coherence>=.8 && shape.efficiency>=.45);
+    if(shape && end-start>=TREND.minSpan && shape.coherence<.4 && shape.efficiency<.2)useful=false;
+    return {useful:useful,shape:shape};
+  }
   function waveChannels(bars, waves) {
     var lines = [];
     (waves || []).forEach(function(w) {
       var start = Math.max(0, w.start), end = Math.min(bars.length - 1, w.end);
-      if (end - start < TREND.minSpan || !/^(up|down|side|wide)$/.test(w.kind)) return;
+      if (!/^(up|down|side|wide)$/.test(w.kind) || !trendShape(bars,start,end).useful) return;
       var observedEnd = end, progressing = w.confirmed === false;
       // Hold the latest two closes out of the fit so a fresh break cannot pull the rail along.
       if (progressing && bars.length-1-end <= TREND.recentBars && end-start >= TREND.minSpan+2) end -= 2;
@@ -202,7 +210,8 @@
         if (![y,bars[i].high,bars[i].low].every(Number.isFinite)) return;
         sx += x; sy += y; sxx += x*x; sxy += x*y;
       }
-      var m = (n*sxy-sx*sy)/(n*sxx-sx*sx);
+      var structure=trendShape(bars,start,end).shape;
+      var m = structure && Number.isFinite(structure.slope) ? structure.slope : (n*sxy-sx*sy)/(n*sxx-sx*sx);
       var atr = atrAt(bars,end), side = w.kind === 'side' || w.kind === 'wide';
       if (side) m = 0;
       if (!side && (w.kind === 'up' ? m <= 0 : m >= 0)) return;
@@ -270,7 +279,7 @@
     [up,down].forEach(function(t){if(t){t.end=t.breakIndex>=0?Math.min(t.end,t.breakIndex+8):t.end;lines.push(t);}});
     var unique = [];
     lines.forEach(function(t) {
-      if (t.end-t.start < TREND.minSpan) return;
+      if (!trendShape(bars,t.start,t.end).useful) return;
       var duplicate = unique.some(function(q) {
         return q.dir===t.dir && (!q.edge || !t.edge || q.edge===t.edge) && Math.min(q.end,t.end)-Math.max(q.start,t.start) >=
           Math.min(q.end-q.start,t.end-t.start)*0.75 &&
@@ -562,7 +571,7 @@
   global.NineChartWave = {
     LEVELS: LEVELS, LEVEL_NAME: LEVEL_NAME, STYLE: STYLE, TIP: TIP,
     analysis: analysis, pickLevel: pickLevel, fingerprintOf: fingerprintOf,
-    levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, trendLinesOf: trendLinesOf, attach: attach, activeMajor:activeMajor, majorTooltipHtml:majorTooltipHtml,
+    trendShape: trendShape, levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, trendLinesOf: trendLinesOf, attach: attach, activeMajor:activeMajor, majorTooltipHtml:majorTooltipHtml,
     _cache: getCache
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartWave;

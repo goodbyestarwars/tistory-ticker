@@ -37,9 +37,9 @@
   var MODULES = {
     data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261022-order1' },
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261022-hline-preview' },
-    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261104-pullback-label', needs: ['data', 'autowave'] },
+    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261105-shape-context', needs: ['data', 'autowave'] },
     divergence: { file: 'js/chart-divergence.js', global: 'NineChartDivergence', v: '20261022-div1', needs: ['wave'] },
-    autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261104-pullback' },
+    autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261105-shape-context' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
     sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261021-sr-strength2' },
     vp: { file: 'js/volume-profile-analysis.js', global: 'NineVolumeProfile', v: '20261019-vp1' }

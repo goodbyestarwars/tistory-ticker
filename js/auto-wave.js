@@ -31,7 +31,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-11-04-pullback-label';
+  var VERSION = '2026-11-05-shape-context';
 
   var DEFAULTS = {
     atrPeriod: 14,
@@ -753,7 +753,58 @@
     });
   }
 
-  var api = { pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+
+  // Shared visual structure for chart rails and scanner close-series summaries.
+  // Bounded median-slope fit is scale invariant and resists a single price spike.
+  function shapeOf(rows) {
+    var unknown={type:'unknown',label:'모양 자료 부족',score:0,slope:null,coherence:0,efficiency:0,basis:'종가 흐름'};
+    if(!Array.isArray(rows) || rows.length<8)return unknown;
+    var values=rows.map(function(r){return typeof r==='number'?r:r && r.close;});
+    if(values.some(function(v){return !Number.isFinite(v)||v<=0;}))return unknown;
+    if(rows.some(function(r,i){return i && r && r.date && rows[i-1] && rows[i-1].date && String(r.date)<=String(rows[i-1].date);}))return unknown;
+    function median(a){a=a.slice().sort(function(x,y){return x-y;});var k=Math.floor(a.length/2);return a.length%2?a[k]:(a[k-1]+a[k])/2;}
+    function clip(v){return Math.max(0,Math.min(1,v));}
+    var n=values.length,changes=[],path=0;
+    for(var i=1;i<n;i++){var d=Math.abs(values[i]-values[i-1]);changes.push(d);path+=d;}
+    var range=Math.max.apply(null,values)-Math.min.apply(null,values),noise=median(changes);
+    if(!range)return {type:'range',label:'횡보·가격 안정',score:40,slope:0,coherence:1,efficiency:0,contraction:0,basis:'종가 흐름'};
+    var indexes=[],step=Math.max(1,Math.ceil((n-1)/24));
+    for(var j=0;j<n;j+=step)indexes.push(j);
+    if(indexes[indexes.length-1]!==n-1)indexes.push(n-1);
+    var slopes=[];
+    indexes.forEach(function(a){indexes.forEach(function(b){if(b-a>=Math.max(2,n/4))slopes.push((values[b]-values[a])/(b-a));});});
+    var slope=median(slopes),intercept=median(values.map(function(v,k){return v-slope*k;}));
+    var error=median(values.map(function(v,k){return Math.abs(v-(slope*k+intercept));}));
+    var coherence=clip(1-error/range*3),eff=path?Math.abs(values[n-1]-values[0])/path:0;
+    var blocks=[],size=Math.floor(n/4);
+    for(var q=0;q<4;q++){var chunk=values.slice(q*size,q===3?n:(q+1)*size);blocks.push({low:Math.min.apply(null,chunk),high:Math.max.apply(null,chunk)});}
+    var higher=0,lower=0;
+    for(var z=1;z<4;z++){if(blocks[z].low>blocks[z-1].low+noise*.25)higher++;if(blocks[z].high<blocks[z-1].high-noise*.25)lower++;}
+    var third=Math.max(2,Math.floor(changes.length/3)),early=median(changes.slice(0,third)),late=median(changes.slice(-third));
+    var contraction=early>0?late/early:null;
+    var peak=values.indexOf(Math.max.apply(null,values)),before=values.slice(0,peak+1);
+    var base=Math.min.apply(null,before),rise=values[peak]-base;
+    var after=values.slice(peak+1),afterLow=after.length?Math.min.apply(null,after):values[peak];
+    var dip=values[peak]-afterLow,tail=values[n-1],recovery=tail-afterLow;
+    var riseSteps=0,biggestRise=0;
+    for(var u=1;u<=peak;u++){if(values[u]>values[u-1])riseSteps++;biggestRise=Math.max(biggestRise,values[u]-values[u-1]);}
+    var realRise=peak>=2 && riseSteps>=Math.max(2,Math.floor(peak*.35)) &&
+      biggestRise<rise*.75 && rise>Math.max(noise*3,range*.25);
+    var pull=realRise && after.length>=2 && afterLow>base &&
+      dip>Math.max(noise,range*.08) && dip<rise && peak<n-2;
+    var type='range',label='횡보·방향 탐색',score=40+15*coherence;
+    if(pull){
+      type=recovery>Math.max(noise, dip*.3)?'rebound':'pullback';
+      label=type==='rebound'?'상승 뒤 조정·반등 시도':'상승 뒤 눌림 형성';
+      score=65+15*(1-dip/rise)+10*(contraction!=null?clip(1-contraction/2):.25);
+    }else if(slope>0 && higher>=2 && eff>.2){type='up';label='저점이 높아지는 상승 흐름';score=65+20*coherence+10*eff;}
+    else if(slope<0 && lower>=2 && eff>.2){type='down';label='고점이 낮아지는 하락 흐름';score=20+10*coherence;}
+    else if(contraction!=null && contraction<.8){type='compression';label='변동폭 축소·방향 대기';score=55+20*clip(1-contraction);}
+    return {type:type,label:label,score:Math.round(score),slope:slope,coherence:coherence,efficiency:eff,
+      higherLows:higher,lowerHighs:lower,contraction:contraction,basis:'종가 흐름'};
+  }
+
+  var api = { shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;

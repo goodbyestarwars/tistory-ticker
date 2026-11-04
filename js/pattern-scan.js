@@ -21,7 +21,7 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var PATTERN_SCRIPT_URL = document.currentScript && document.currentScript.src;
-  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261018-marker-wording', PATTERN_SCRIPT_URL).href
+  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261105-shape-context', PATTERN_SCRIPT_URL).href
     : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-rounded-labels1';
   var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
@@ -268,6 +268,13 @@
       if ((activeTab === 'ninepayLive' || activeTab === 'liveFlow') && !document.hidden && document.body.contains(container)) loadNinepay(container);
     }, 10000);
     loadScan(container);
+    loadPatternChartCore().then(function(core){return core.loadModule('autowave');}).then(function(){
+      shapeLoadState='ready';
+      if(rootContainer===container && document.body.contains(container))renderList(container);
+    }).catch(function(){
+      shapeLoadState='failed';
+      if(rootContainer===container && document.body.contains(container))renderList(container);
+    });
     syncLiveSurge(container);
   }
 
@@ -1382,7 +1389,7 @@
       pullbackRebreak:'이평 눌림·첫 눌림 재돌파·급락 후 첫 눌림의 단계별 후보를 함께 본다.',longTermQuality:'224일선·구름대 응축/돌파 중 최근 연간 영업이익·순이익 흑자와 최신 단독분기 비적자를 확인한 기업만 본다.'};
     var shortPurpose={liveFlow:'거래량·수급·재돌파 신호를 종목별로 확인합니다.',trendBreakout:'추세선 돌파와 이평 기울기 전환을 구분합니다.',bottomFormation:'저점상승·쌍바닥 등 바닥 형성 패턴을 함께 봅니다.',pullbackRebreak:'눌림과 재돌파 후보의 진행 단계를 확인합니다.',longTermQuality:'장기 기술 패턴과 재무 건전성을 함께 확인합니다.'};
     box.innerHTML='<details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
-      +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
+      +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 최근 일봉 종가의 모양·흐름을 우선 정렬합니다. 현재 검색 결과 안에서의 비교이며 확정·재무·주문 조건을 대신하지 않습니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
       +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
       +group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
     var history=container.querySelector('#psSourceHistory');
@@ -1460,6 +1467,25 @@
     if(member.key!=='angleMomentum' && pending[stage])return {key:'observation',reason:pending[stage]};
     return {key:'research',reason:review.mode==='shadow'?'Shadow 검증 · 주문 승인과 무관':'패턴 분석 자료 · 현재 신호 검증 미완료'};
   }
+
+  var shapeLoadState='loading';
+  function scannerShape(item) {
+    var AW=global.AutoWave;
+    if(!AW || !AW.shapeOf)return {type:'unknown',label:shapeLoadState==='failed'?'모양 분석을 불러오지 못함':'모양 분석 준비 중',score:0,basis:'최근 일봉 종가'};
+    // Do not coerce missing/null closes to zero or silently join gaps.
+    var d=detailFor(item), raw=d.closes_20d || d.closes20d || item && (item.miniChart || item.mini_chart || item.closeSeries);
+    if(!Array.isArray(raw))return AW.shapeOf([]);
+    var rows=raw.slice(-20).map(function(r){return typeof r==='number'?{close:r}:{date:r && r.date,close:r && (r.close!=null?r.close:r.price)};});
+    return AW.shapeOf(rows);
+  }
+  function shapeOrder(a,b) {
+    return (b.chartShape && b.chartShape.score || 0)-(a.chartShape && a.chartShape.score || 0);
+  }
+  function shapeHtml(item) {
+    var s=item.chartShape || scannerShape(item);
+    return '<div class="ps-shape-context"><b>'+escapeHtml(s.label)+'</b><br><small>최근 20일 일봉 종가 모양 · 거래량·실시간 흐름은 별도 확인</small></div>';
+  }
+
   function publicModel(rows,state,now) {
     var counts={confirmed:0,observation:0,research:0,excluded:0,expired:0};
     var priority=['confirmed','observation','research','excluded','expired'];
@@ -1469,9 +1495,10 @@
         return {member:m,status:classifyPublicMember(observed,state,now)};
       });
       classified.sort(function(a,b){return priority.indexOf(a.status.key)-priority.indexOf(b.status.key);});
-      var result=Object.assign({},row,{publicStatus:classified[0].status,classified:classified});
+      var result=Object.assign({},row,{publicStatus:classified[0].status,classified:classified,chartShape:scannerShape(row)});
       counts[result.publicStatus.key]++;return result;
     });
+    output.sort(function(a,b){return priority.indexOf(a.publicStatus.key)-priority.indexOf(b.publicStatus.key) || shapeOrder(a,b);});
     return {rows:output,counts:counts};
   }
   function renderUnifiedList(container) {
@@ -1512,7 +1539,7 @@
         var priceCopy=realtime?'현재가 '+(r.price==null?'미수신':fmt(r.price)):'현재가 미수신 · '+(it.track?'과거 관측가 ':'일봉 관측가 ')+(r.price==null?'미수신':fmt(r.price));
         return '<article class="ps-state-row" data-code="'+escapeHtml(r.code)+'">'
           + '<div class="ps-state-identity"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small><span class="ps-state-badge" data-state="'+k+'">'+PUBLIC_LABELS[k]+'</span></div>'
-          + '<div class="ps-state-patterns">'+escapeHtml(r.members.map(function(m){return sourceLabel(m.key);}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(' · '))+'</div><p>'+escapeHtml(r.publicStatus.reason)+'</p></div>'
+          + '<div class="ps-state-patterns">'+escapeHtml(r.members.map(function(m){return sourceLabel(m.key);}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(' · '))+'</div>'+shapeHtml(r)+'<p>'+escapeHtml(r.publicStatus.reason)+'</p></div>'
           + '<div class="ps-state-quotes">'+priceCopy+' · 기준가 '+(base?fmt(base):'미확인')+' · '+changeCopy+'<br>'+escapeHtml(realtime?'실시간 수신':it.track?'과거 기록':'일봉 자료')+' · <time>'+escapeHtml(time)+'</time>'+(proof.stop || review.invalidationPrice?'<br>무효화 기준 '+fmt(proof.stop || review.invalidationPrice):'')+'</div>'
           + '<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트·근거 보기</button></div></article>';
       }).join('')+'</section>';}).join('');
@@ -1529,7 +1556,7 @@
     ['#psViewTabs','#psTrackSummary','#psPriceBasis','[data-scanner-review]'].forEach(function(sel){var el=container.querySelector(sel);if(el)el.hidden=false;});
     if(trackView==='success'||trackView==='failed'){renderTrackedList(container);return;}
     ensureTrackMap(container);
-    var all=unifiedItems();
+    var all=unifiedItems().map(function(r){return Object.assign({},r,{chartShape:scannerShape(r)});}).sort(shapeOrder);
     var phaseTwo = activeTab === 'liveFlow' ? phaseTwoEvents() : null;
     if(phaseTwo)phaseTwo=phaseTwo.filter(publicStockVisible);
     var phaseTwoCodes = new Set((phaseTwo || []).map(function (e) { return String(e.code); }));
@@ -3029,7 +3056,7 @@
     }, { _sourceKey:snapshot.source.replace(/^pattern:/, '') }));
   }
 
-  global.PatternScan = { init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, referenceChange: referenceChange, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
+  global.PatternScan = { scannerShape: scannerShape, shapeOrder: shapeOrder, shapeHtml: shapeHtml, init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, referenceChange: referenceChange, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
 
   global.addEventListener && global.addEventListener('tistory-chart-resize',function(){
     var detail=document.getElementById('psDetail');
