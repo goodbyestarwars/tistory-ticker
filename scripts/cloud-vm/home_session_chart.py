@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import db_schema
 
 US_SPOT = {'NASDAQ_INDEX', 'SP500_INDEX', 'SOX'}
-US_FUTURES = {'NASDAQ100', 'SP500'}
+US_FUTURES = {'NASDAQ100', 'SP500', 'DOW'}
 KR_SPOT = {'KOSPI', 'KOSDAQ'}
 SYMBOLS = US_SPOT | US_FUTURES | KR_SPOT
 NY = ZoneInfo('America/New_York')

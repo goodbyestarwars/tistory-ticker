@@ -1762,10 +1762,13 @@ document.documentElement.classList.add('skin-ready');
         stopHomeChartMotion(element);
         var oldCaption = element.nextElementSibling;
         if (oldCaption && oldCaption.classList.contains('home-index-history-caption')) oldCaption.remove();
+        element.removeAttribute('data-history-count');
+        element.removeAttribute('data-history-range');
         renderHomeSessionChart(element, key === 'kospiNight' ? 'KOSPI200_NIGHT' : key, reference);
         return;
       }
       element.classList.remove('has-session-chart');
+      element.removeAttribute('data-session-symbol');
       var chartRows = homeChartRows(rows, key) || [];
       var monthlyMini = key !== 'kospiNight';
       if (monthlyMini) chartRows = chartRows.filter(function (row) {

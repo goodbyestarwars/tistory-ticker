@@ -1,3 +1,7 @@
+**2026-11-05 홈 다우 선물 30분 세션 차트 통일**
+
+목적: 미국 세 번째 카드의 DOW도 NASDAQ100/SP500과 같은 정보·30분 차트 표시. 변경: home_session_chart.US_FUTURES에 DOW 추가, 기존 foreign_futures 수집·DB/세션/기준가 저장 경로 재사용(추가 호출 없음). 프론트 DOW↔SOX 전환·관측값 없을 때만 일봉 fallback 유지, 전환 시 이전 일봉 기간/세션 속성 정리. 검증: Python 세션/API 17건, JS 10개 장 경계·공통 렌더 240/390폭·단일 관측·막대·결측/복귀, 기존 세션 차트 회귀 통과. Windows 테스트 개행·syslog 의존성 보정, API 종목 계약 9개 검증. 인접 single_status 테스트 4건은 기존 HEAD에서도 DOM mock classList.toggle 누락으로 동일 실패(이번 변경과 무관). 배포: master→Pages/Oracle 자동 배포, 운영 반영은 최종 보고 기준. 과거 관측값을 합성하지 않으며 최초 실제 관측 전만 일봉 허용.
+
 **2026-11-05 종목분석 차트 우선·파란 일목 구름·Clear Glass·Noto Serif KR**
 
 변경: 공통 chart-core의 MA/일목 9·26·52 재사용, 카드에 26봉 선행 파란 채우기만 표시(stroke none), 결측 창 분리·부족/실패 처리. 차트 첫 카드·전폭, 장문 판정/이평 해석/이격률 타일 제거, 판정표·심층 카드·캐러셀/기존 엔진 유지. 공통 clear 유리 토큰(PC4/모바일2px·정적 반사광), 접근성 폴백 유지. fonts.css 단일 Noto Serif KR 가변/부분집합/swap·기존 Bold400→실제700, 독립 학습 문서·파동 라벨 포함, 기존 UI 고딕 유지. 검증: 신규 카드 계산/26봉/결측·단기·상수·실패, 기존 stock_stories·chart_core·chart_studies 통과. Edge1440/390×라이트/다크 넘침0·JS오류0·구름stroke none·Noto Serif KR 실제700 로드, 투명도 축소 폴백·reduced-motion 확인. 배포: 1dbfdcf master→Pages 성공 확인. Tistory 구형 폰트 link 정리는 SKIN_HTML_PENDING 참고. 주문/실계좌/API 공급자 변경 없음.

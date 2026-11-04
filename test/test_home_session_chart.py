@@ -39,6 +39,22 @@ class SessionCharts(unittest.TestCase):
         r = self.get()['rows'][0]
         self.assertEqual((r['slot'], r['open'], r['high'], r['low'], r['close']), (1, 100, 110, 90, 110))
 
+    def test_dow_uses_same_futures_session_storage_and_reference(self):
+        for symbol in ('NASDAQ100', 'SP500', 'DOW'):
+            with self.subTest(symbol=symbol):
+                self.assertTrue(self.put(100, '2026-11-04T18:01:00-05:00', symbol, change=5))
+                self.assertTrue(self.put(110, '2026-11-04T18:20:00-05:00', symbol, change=15))
+                self.assertTrue(self.put(105, '2026-11-05T01:01:00-05:00', symbol, change=10))
+                result = self.get(symbol)
+                self.assertEqual(result['intervalMinutes'], 30)
+                self.assertEqual(result['reference'], 95)
+                self.assertEqual(result['session']['date'], '2026-11-04')
+                self.assertEqual(result['session']['slotCount'], 47)
+                self.assertEqual([r['slot'] for r in result['rows']], [0, 14])
+                self.assertEqual(result['rows'][0]['high'], 110)
+                self.assertEqual(result['rows'][0]['low'], 100)
+                self.assertIsNone(charts.session(symbol, datetime.fromisoformat('2026-11-05T17:30:00-05:00')))
+
     def test_cash_boundaries_missing_slots_and_market_separation(self):
         self.assertFalse(self.put(1, '2026-10-15T09:29:00-04:00'))
         self.put(100, '2026-10-15T09:30:00-04:00')
@@ -164,11 +180,16 @@ class SessionCharts(unittest.TestCase):
 
     def test_public_route_does_not_fetch_provider(self):
         from fastapi.testclient import TestClient
-        import main
+        with mock.patch('log_setup.configure'):
+            import main
         with mock.patch.object(foreign_futures, '_get_json', side_effect=AssertionError('provider call')):
             r = TestClient(main.app).get('/home-session-chart')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.json()['data']), 7)
+        data = r.json()['data']
+        self.assertEqual({item['symbol'] for item in data},
+                         {'KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX',
+                          'NASDAQ100', 'SP500', 'DOW', 'SOX', 'KOSPI200_NIGHT'})
+        self.assertTrue(all(item['intervalMinutes'] == 30 for item in data))
 
     def test_korean_regular_session_fourteen_slots_holiday_and_missing_timestamp(self):
         with mock.patch('market_clock.is_kr_trading_day', return_value=True):
