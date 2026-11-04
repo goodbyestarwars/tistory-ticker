@@ -1,3 +1,7 @@
+**2026-11-04 자동매매 14:00 절대 종료·영구 웹 중지·봇/엔진 주문 공통 방어**
+
+요청: 단타 2차 필터 실코드 확인, 14:00 시간 우선 종료, 웹 중지는 사용자 시작 명령 전까지 Runner·봇 주문 모두 차단, 매도 충돌 방지, 잘못된 웹 중지 문구 수정, 실거래 스윙/중장기 우선순위·신호 안전 경계 일치. 변경: `autotrader-private/main`의 `order_guard.py` 공통 14시·수동중지·STOP·OS 주문 잠금, `live_runner.py` 14시 종료, `live_engine.py` 검색기 화이트리스트·스윙 우선·진입 게이트, `ninepay_signal_client.py` shadow/무효·14시 이후 거부, `ninepay_trade.py` 최종 게이트, `bot.py` 엔진 보유 자동 매도 차단, `control/control_agent.py` 영구 중지·수동 시작 및 sudoers 명세, 텔레그램 안내. `tistory-ticker/master`의 `autotrader_control.py` 수동 재시작 허용, `auto-trader.js` 상태·확인창 및 테스트·규칙 문서 정합화. 단타 A/B가 기존 2차 신호이며 20일 거래대금/추세 최종 필터는 별도 검증 전 임의 추가하지 않음. 검증: [비공개 안전 CI](https://github.com/goodbyestarwars/autotrader-private/actions/runs/41847575107), [공개 제어 CI](https://github.com/goodbyestarwars/tistory-ticker/actions/runs/41847715113) 통과(모의/구문). 배포: GitHub 각 기본 브랜치 직접 반영, Pages 자동 빌드 대상, Google VM 자동 pull 대상. **미완료/운영 확인 필요**: VM git SHA·프로세스/장부·서버 설치 sudoers 재등록(기존 설치본은 교체되지 않음), 11/05 장중 신호·수동 중지·재시작 관측; VM 실계좌 주문·재시작 직접 실행 없음. `LIVE_SELL`·승인/계좌/.env/장부 값 변경 없음.
+
 **2026-11-04 파동 눌림목 계산·후보/확정 라벨**
 
 요청: 상승 후 조정 구간에 ‘눌림목’ 표시. 변경: 기존 auto-wave 파동·지표를 재사용해 상승폭·25~75% 되돌림·시작 저점 유지·거래량 변화·반등 확정을 계산하는 보조 메타데이터, 공통 오버레이의 눌림목/후보 라벨 및 대파동 툴팁 근거, 엔진/모듈 캐시 버전 갱신. 기존 극점·파동 label 계약·신호·색·추세선 유지. 검증: 신규 pullback 시험·기존 wave/차트/국소 추세 회귀 통과, 실제 27개 차트 32,604 파동 메타데이터 미래 안정성 검증, 실제 사례 PC1260/모바일374 라벨 표시 확인. 세부 기준: AUTO_WAVE_VALIDATION_2026-10-13.md. 배포: master→Pages 자동 배포, 운영 파일 확인은 최종 보고 기준. 실계좌·주문·API/VM 변경 없음.
