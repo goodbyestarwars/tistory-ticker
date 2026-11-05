@@ -2594,9 +2594,14 @@ document.documentElement.classList.add('skin-ready');
       var extrema = foreignMax && foreignMin ?
         '<div class="hmb-investor-extrema"><span>외국인 고점 <b>'+investorAmountText(foreignMax.frgn)+'</b></span>'
           +'<span>저점 <b>'+investorAmountText(foreignMin.frgn)+'</b></span></div>' : '';
+      // 기존 외국인 고점·저점 위치 마커는 같은 70px 차트 내부에 그대로 둔다.
+      function extremePoint(row, name) {
+        return row ? '<span class="hmb-investor-point is-'+name+'" style="left:'+x(row.slot).toFixed(2)+'%;top:'+(y(Number(row.frgn))/90*100).toFixed(2)+'%" aria-hidden="true"></span>' : '';
+      }
+      var points = extremePoint(foreignMax,'high') + (foreignMin && foreignMax && Number(foreignMin.frgn) !== Number(foreignMax.frgn) ? extremePoint(foreignMin,'low') : '');
       return '<div class="hmb-investor-spark-wrap" data-hover-points="'+homeHoverAttr(hover)+'"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 구간별 외국인 실선·기관 점선 누적 순매수, 확보 '+rows.length+'개">'
         +'<line x1="1" y1="'+zero+'" x2="99" y2="'+zero+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
-        +marks+'</svg></div>'
+        +marks+'</svg>'+points+'</div>'
         +'<div class="hmb-investor-axis"><span>09:00</span><span>12:00</span><span>15:30</span></div>'+extrema;
     }
 
