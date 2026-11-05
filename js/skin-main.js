@@ -1943,7 +1943,7 @@ document.documentElement.classList.add('skin-ready');
         var svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="'
           + (key === 'USDKRW' ? '원/달러' : 'KOSPI200 주간선물') + ' 최근 20거래일 '
           + (miniMode === 'bar' ? '막대' : '면적') + ' 차트">'
-          + axis + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + refY.toFixed(2)
+          + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + refY.toFixed(2)
           + '" y2="' + refY.toFixed(2) + '" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
           + metricParts + '</svg>';
         element.innerHTML = '<div class="hmb2-metric-plot">' + svg + '</div>';
