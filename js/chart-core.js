@@ -776,13 +776,17 @@
     if (opts.scaleId) hist.priceScaleId = opts.scaleId;
     var volume = chart.addSeries(LWC.HistogramSeries, hist, pane);
     if (opts.scaleId && opts.scaleOptions) chart.priceScale(opts.scaleId).applyOptions(opts.scaleOptions);
-    // 상승 빨강·하락 파랑은 그대로 두고, 평균 대비 2배↑는 진하게·3배↑는 가장 진하게(색 의미를 바꾸지 않는다).
+    // 거래량 급증(2배/3배) 강도 표시는 같은 부드러운 팔레트의 불투명도만 달리한다.
     var multiples = volumeSpikeMultiples(bars);
     var multiplesOn = opts.multiples === true;   // 켜고 끄는 옵션(setMultiples). 기본은 끔(호출자가 true 를 줄 때만 켠다)
     function volumeData() {
       return bars.map(function (d, i) {
-        var up = d.close >= d.open;
-        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: graphFill(up) };
+        var fill = graphFill(d.close >= d.open), m = multiplesOn ? multiples[i] : null;
+        var alpha = m == null ? 1 : m >= VOLUME_SPIKE.label ? 1 : m >= VOLUME_SPIKE.strong ? .92 : .78;
+        var color = fill;
+        if (alpha < 1) color = 'rgba(' + parseInt(fill.slice(1, 3), 16) + ',' + parseInt(fill.slice(3, 5), 16)
+          + ',' + parseInt(fill.slice(5, 7), 16) + ',' + alpha + ')';
+        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: color };
       });
     }
     volume.setData(volumeData());
