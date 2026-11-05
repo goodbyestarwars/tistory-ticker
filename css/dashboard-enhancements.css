@@ -214,17 +214,18 @@
 /* 독립 차트도 일봉·주봉과 같은 납작한 트랙. 저장/복사는 아래 전용 줄. */
 :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-expand-segment {
   display: flex;
-  padding: 4px 0 0;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: #fff;
 }
 :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-action-stack .de-expand-button.de-expand-inline {
   --chart-tool-radius: 0;
+  --chart-tool-height: 34px;
   float: none;
   width: 100%;
-  min-height: 26px;
-  height: 26px;
+  min-height: var(--chart-tool-height);
+  height: var(--chart-tool-height);
   margin: 0;
   padding: 0 9px;
   border: 1px solid transparent;

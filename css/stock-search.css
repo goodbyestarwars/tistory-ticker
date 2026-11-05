@@ -1683,8 +1683,8 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   html body .ss-stock-controls.ss-stock-controls button,
   html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn {
     box-sizing: border-box;
-    min-height: 26px !important;
-    height: 26px !important;
+    min-height: var(--chart-tool-height, 26px) !important;
+    height: var(--chart-tool-height, 26px) !important;
     padding: 0 9px !important;
     font-size: 12px !important;
     line-height: 1.2 !important;
