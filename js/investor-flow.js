@@ -196,7 +196,7 @@
       type: 'lines', dates: cum.dates,
       tipHeads: ['당일 순매수', '기간 누적'],
       meta: cum.dates.map(function (d, i) { return i === 0 ? { tip: (cum.hasBaselineDate ? mmdd(d) + ' · ' : '') + '누적 시작점(0)' } : null; }),
-      series: INVESTORS.map(function (inv) { return { key: inv.key, label: inv.label, color: inv.color, values: cum.series[inv.key], tipExtra: { label: '당일 순매수', values: cum.daily[inv.key] } }; }),
+      series: INVESTORS.map(function (inv) { return { key: inv.key, label: inv.label, color: inv.color, fillColor: inv.key === 'foreign' ? 'var(--chart-fill-up)' : inv.key === 'institution' ? 'var(--chart-fill-down)' : inv.color, values: cum.series[inv.key], tipExtra: { label: '당일 순매수', values: cum.daily[inv.key] } }; }),
       fmt: fmtEok, axisFmt: IB.util.fmtEokAxis, zero: true, ariaLabel: label + ' 투자자별 누적 순매수',
       axisTitles: hasIndex ? { left: '누적 순매수(원)', right: label + ' 지수(포인트)' } : { left: '누적 순매수(원)' },
       secondary: hasIndex ? { label: label + ' 지수', values: cum.index, fmt: function (v) { return IB.util.num(v, 2); }, axisFmt: function (v) { return IB.util.num(v, 0); } } : null
