@@ -1739,7 +1739,33 @@
     var legend = '<span class="is-close">종가</span>' + lines.slice().reverse().map(function (l) { return '<span class="is-' + l.key + '">' + l.label + '</span>'; }).join('')
       + '<span class="is-cloud">일목균형표(구름대)</span>';
     var note = !core ? '차트 보조선 로드 실패' : n < 52 ? '구름 계산에 52개 유효 일봉 필요' : !cloud.length ? '구름 계산용 OHLC 자료 부족' : '일목균형표 9·26·52 / 26거래일 선행';
-    return '<article class="ff-wide ff-wide--chart" data-story-number="01"><div class="ff-wide-grid is-chart"><div class="ff-wide-body">'
+    var lastClose = closes[n - 1], lastMA = {};
+    lines.forEach(function (l) { lastMA[l.key] = l.vals[n - 1]; });
+    function maPosition(period) {
+      var ma = lastMA['ma' + period];
+      if (!(lastClose > 0) || !(ma > 0)) return null;
+      return lastClose >= ma ? '위' : '아래';
+    }
+    function maDistance(period) {
+      var ma = lastMA['ma' + period];
+      if (!(lastClose > 0) || !(ma > 0)) return { label: period + '일선', value: '자료 부족', tone: '' };
+      var rate = (lastClose / ma - 1) * 100;
+      return { label: period + '일선 대비', value: (rate > 0 ? '+' : '') + rate.toFixed(1) + '%', tone: rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : '' };
+    }
+    var positions = [20, 60].map(function (period) {
+      var where = maPosition(period);
+      return where ? period + '일선 ' + where : null;
+    }).filter(Boolean);
+    var headline = positions.length ? positions.join(' · ') : '이동평균선 확인 중';
+    var distances = [20, 60, 224].map(maDistance).map(function (m) {
+      return '<span class="ff-chart-metric"><small>' + m.label + '</small><b class="' + m.tone + '">' + m.value + '</b></span>';
+    }).join('');
+    var explanation = '<div class="ff-chart-reading"><small>차트로 보면</small>'
+      + '<strong class="ff-chart-headline">' + escapeHtml(headline) + '</strong>'
+      + '<p>20일선은 단기, 60일선은 중기, 224일선은 장기 흐름입니다. 종가가 각 선의 위·아래 어디에 있는지 확인하세요.</p>'
+      + '<div class="ff-chart-metrics">' + distances + '</div>'
+      + '<small class="ff-chart-cloud-note">파란 음영은 일목균형표의 선행스팬 A·B 사이 구름대입니다.</small></div>';
+    return '<article class="ff-wide ff-wide--chart" data-story-number="01"><div class="ff-wide-grid is-chart">' + explanation + '<div class="ff-wide-body">'
       + '<div class="ff-wide-plot">' + svg + '</div><div class="ff-wide-axis"><span>' + escapeHtml(String(daily[from].date || '')) + '</span>'
       + '<span>' + escapeHtml(String(daily[n - 1].date || '')) + '</span></div>'
       + '<div class="ff-wide-legend" aria-label="차트 범례">' + legend + '</div></div></div>'
@@ -1749,7 +1775,8 @@
   // 종목 스토리 제목 아래 아주 작은 분봉(5분봉, 가장 최근 거래일 09:00~15:20). 선 하나와 전일 종가 점선만 그린다.
   function loadStoryMinute(mount, code, chartData) {
     var slot = mount.querySelector('[data-story-mini]');
-    if (!slot || !/^[0-9A-Z]{6}$/.test(String(code || ''))) return;
+    // Bonus in unused wide-screen gutter, avoiding extra minute requests elsewhere.
+    if (!slot || !/^[0-9A-Z]{6}$/.test(String(code || '')) || !global.matchMedia || !global.matchMedia('(min-width: 1600px)').matches) return;
     fetchJson('https://goodbyestar.cloud/ohlc-minute/' + encodeURIComponent(code) + '?tic_scope=5').then(function (res) {
       if (!mount.contains(slot)) return;
       var rows = (res && res.data) || [];
@@ -1765,10 +1792,10 @@
       var d = closes.map(function (v, k) { return (k ? 'L' : 'M') + (k / (n - 1) * W).toFixed(1) + ' ' + (3 + (1 - (v - lo) / range) * (H - 6)).toFixed(1); }).join('');
       var dayHigh = Math.max.apply(null, rows.map(function (r) { return Number(r.high) || Number(r.close); })), dayLow = Math.min.apply(null, rows.map(function (r) { return Number(r.low) || Number(r.close); }));
       var rate = prev ? (last / prev - 1) * 100 : null, tone = rate == null ? '' : rate > 0 ? 'is-up' : rate < 0 ? 'is-dn' : '';
-      slot.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="당일 5분봉">'
+      slot.innerHTML = '<small class="ff-story-mini-label">최근 거래일 · 5분봉</small><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 거래일 5분봉">'
         + (prev ? '<line class="ff-mini-prev" x1="0" x2="' + W + '" y1="' + (3 + (1 - (prev - lo) / range) * (H - 6)).toFixed(1) + '" y2="' + (3 + (1 - (prev - lo) / range) * (H - 6)).toFixed(1) + '"/>' : '')
         + '<path class="ff-mini-line ' + tone + '" d="' + d + '"/></svg>'
-        + '<div class="ff-story-mini-meta"><small>' + escapeHtml(day.slice(5)) + ' 분봉 · 5분</small>'
+        + '<div class="ff-story-mini-meta"><small>' + escapeHtml(day.slice(5)) + ' 기준 · 최근 분봉 종가 ' + Number(last).toLocaleString() + '</small>'
         + '<b><span class="is-up">고 ' + Number(dayHigh).toLocaleString() + '</span><span class="is-dn">저 ' + Number(dayLow).toLocaleString() + '</span></b></div>';
       slot.hidden = false;
     }).catch(function () {});
@@ -1827,7 +1854,7 @@
       if (swing && swingVm) swing.classList.add('is-in-story');
       mount.innerHTML = buildStockStoryHtml(st, wide, count, code, !!chartCard);
       mount.hidden = false;
-      if (!st.baselineOnly) loadStoryMinute(mount, code, chartData);
+      if (chartCard || !st.baselineOnly) loadStoryMinute(mount, code, chartData);
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !box.contains(mount)) return;
         var stage = mount.querySelector('[data-wide-stage]');
