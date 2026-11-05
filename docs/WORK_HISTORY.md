@@ -1,3 +1,7 @@
+**2026-11-05 정정: HTML 수동 반영 요구 취소·버전 URL 원상복구**
+
+사용자 운영 원칙과 `CLAUDE.md` 재확인: GitHub Pages 정적 경로의 `?v=`만 바꾸는 변경은 티스토리 관리자 수동 수정 사유가 아니다(기존 URL은 CDN 약 10분 내 갱신). 11/05 앞선 작업에서 저장소 `skin.html`의 CSS·JS 버전 문자열만 변경했으나 그 변경은 운영 HTML에 적용되지 않았고 필수도 아니므로 원상복구. `docs/SKIN_HTML_PENDING.md`에 추가했던 수동 반영 요구 삭제. JS/CSS 신규 기능과 Pages 배포 유지. 운영 브라우저 표시 검증은 별도이며, 캐시만으로 모든 미반영 현상을 단정하지 않는다.
+
 **2026-11-05 GitHub Pages 배포 완료와 티스토리 스킨 캐시 URL 불일치 점검**
 
 운영 미반영 신고 후 점검: GitHub Pages 코드는 배포됐으나 저장소 `skin.html`의 CSS `?v=20261027`, 홈 JS `?v=20261025`가 최신 UI 버전과 달랐다. 홈 CSS는 기존 `data-home-market-board-css`를 확인한 뒤 재로드를 생략하는 설계라 오래된 브라우저 캐시 가능. 스킨 원본의 두 정적 자산 버전과 `skin-main.js`의 동적 `dashboard-enhancements.js` 버전을 동기화, 누락 방지 정적 회귀 검사 추가. master→Pages 배포는 티스토리 스킨 적용이 아니므로 `docs/SKIN_HTML_PENDING.md`에 운영 수동 반영 필요를 명시. 실계좌·API·수집·거래 로직 변경 없음.
