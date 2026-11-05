@@ -9,9 +9,11 @@ function part(a,b) {
 }
 assert(skin.includes('skin-main.js?v=20261025-countdown-module6')); // no skin HTML change
 assert(src.includes('data-home-day-field="status"'));
-assert(src.includes('data-investor-actor="foreign"')&&src.includes('data-investor-actor="institution"'));
-assert(src.includes('data-investor-actor="compare" aria-pressed="true"'));
-assert(src.includes("homeInvestorActor = nextActor"));
+assert(src.includes('class="hmb-investor-mini-legend"'));
+assert(src.includes('HOME_INVESTOR_FLOW_SCRIPT_URL'));
+assert(src.includes('investor-trend/history?market=kospi&days=21'));
+assert(src.includes('investor-trend/history?market=kosdaq&days=21'));
+assert(src.includes("homeInvestorActor = nextActor")); // Existing intraday fallback preserved
 assert(src.includes("renderHomeMetricCharts(homeMetricQuotes)"));
 assert(css.includes('hmb2-day-heading'));
 assert(css.includes('.home-index-chart.hmb2-metric-chart'));
@@ -74,4 +76,4 @@ assert(chart.innerHTML.includes('추이 데이터 없음'));
 assert(!chart.innerHTML.includes('data-price-switch'));
 assert(src.includes("homeModeSegment('data-home-metric-mode', 'area', '시장 지표 그래프 표시 방식')"));
 assert(src.includes('homePriceModes[symbol] = metricMode'));
-console.log('PASS: futures status, actor selector 3 modes, FX/future daily area/bar, empty & unchanged skin');
+console.log('PASS: futures status, original investor fallback, FX/futures daily area/bar and unchanged skin');
