@@ -777,7 +777,7 @@ html.dark #foreign-flow .ff-rsi-mid { stroke: #a3a3a3; }
 }
 html.dark #foreign-flow .ff-chart-toggles { border-top-color: var(--dk-line); }
 #foreign-flow .ff-chart-toggles .ff-ichimoku-toggle { margin-bottom: 0; }
-#foreign-flow .ff-draw-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0; }
+#foreign-flow .ff-draw-tools { display:flex; flex-wrap:wrap; align-items:flex-start; gap:6px; margin:8px 0; }
 #foreign-flow .ff-price-chart-panel { width:100%; min-width:0; }
 #foreign-flow .ff-draw-tools span { font-size:12px; color:#64748b; }
 #foreign-flow .ff-draw-tools .is-active { background:#333; border-color:#333; color:#fff; }

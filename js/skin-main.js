@@ -1571,7 +1571,7 @@ document.documentElement.classList.add('skin-ready');
 
       var scale = homeVolumeScale(models);
 
-      target.innerHTML = models.map(function (model) {
+      target.innerHTML = '<div class="hmp-caption">거래량</div>' + models.map(function (model) {
 
         var volume = model.volume;
 
@@ -1597,11 +1597,11 @@ document.documentElement.classList.add('skin-ready');
 
           + '<div class="hmp-column-chart" role="img" aria-label="' + escapeHomeHtml(label) + '" title="' + escapeHomeHtml(tooltip) + '">'
 
-          + '<div class="hmp-column-track"><span class="hmp-baseline-label">100</span><span class="hmp-baseline"></span>'
+          + '<div class="hmp-column-track"><span class="hmp-baseline"></span>'
 
           + (delta !== null && Math.abs(delta) >= .000001 ? '<i class="hmp-column ' + (delta > 0 ? 'is-up' : 'is-down') + '" style="height:' + (Math.abs(delta) / scale * 50).toFixed(2) + '%"></i>' : '')
 
-          + '</div></div><div class="hmp-volume-value">거래량<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div>' + '</div>';
+          + '</div></div><div class="hmp-volume-value"><b class="' + tone + '">' + value + '</b>' + '</div>' + '</div>';
 
       }).join('');
 

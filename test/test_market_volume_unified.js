@@ -15,13 +15,17 @@ for(const m of ['domestic','us']){
  const e=entry();delete e.volumeIndex;e.turnoverIndex={status:'ok',index100:120};assert.equal(model(e,m).volume,null);
  const zero=entry();zero.volumeIndex.current=0;zero.volumeIndex.index100=0;assert.equal(model(zero,m).volume.index100,0);
  market=m;ctx.latestHomeParticipation[m]={byIndex:{KOSPI:entry(),KOSDAQ:entry(),SP500:entry(),NASDAQ:entry(),SOX:entry()}};ctx.renderMarketParticipation();
- assert(target.innerHTML.includes('>140</b> / 100'));assert(target.innerHTML.includes('거래량<br>'));assert(target.innerHTML.includes('hmp-column is-up'));
+ assert(target.innerHTML.includes('>140</b>'));assert.equal((target.innerHTML.match(/class="hmp-caption"/g)||[]).length,1);assert(target.innerHTML.includes('hmp-column is-up'));
+ assert(!target.innerHTML.includes('hmp-baseline-label'));assert(!target.innerHTML.includes('</b> / 100'));
  assert(!target.innerHTML.includes('거래대금'));assert(!target.innerHTML.includes('미연동'));assert(!target.innerHTML.includes('거래량 보조'));
  assert(basis.innerHTML.includes('10일 동시간대 5분봉 거래량 평균 100'));assert(basis.innerHTML.includes('원본 관측 날짜·시각 미제공'));
 }
 for(const [m,file] of [['domestic','../participation-domestic.json'],['us','../participation-us.json']]){
  const path=require('path').resolve(process.cwd(),file);if(!fs.existsSync(path))continue;
- market=m;ctx.latestHomeParticipation[m]=JSON.parse(fs.readFileSync(path,'utf8').replace(/^\uFEFF/,'')).data;ctx.renderMarketParticipation();
+ market=m;const data=JSON.parse(fs.readFileSync(path,'utf8').replace(/^\uFEFF/,'')).data;
+ const capturedAt=Math.max(...Object.values(data.byIndex).map(e=>Date.parse(e.retrievedAt)));
+ ctx.Date=class extends Date {static now(){return capturedAt+1000;}};
+ ctx.latestHomeParticipation[m]=data;ctx.renderMarketParticipation();
  assert(!target.innerHTML.includes('NaN'));assert(target.innerHTML.includes('hmp-column is-'),'live response draws volume bars');
 }
 console.log('PASS same KR/US volume, ratios, sample coverage, stale/missing/zero, no turnover mixing, shared UI and live API');
