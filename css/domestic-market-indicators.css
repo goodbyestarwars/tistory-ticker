@@ -579,9 +579,9 @@ html.dark .dmi-spot-table td { color: var(--dk-text); border-color: var(--dk-lin
 .dmi-mini-chart { height: 72px; margin: 10px 0 4px; overflow: visible; }
 .dmi-mini-chart-guide { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 2 3; }
 .dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }
-.dmi-mini-chart-area { opacity: .12; }
-.dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
-.dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: #1261c4; }
+.dmi-mini-chart-area { opacity: .95; }
+.dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: var(--chart-fill-up); }
+.dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: var(--chart-fill-down); }
 .dmi-mini-chart.dmi-flat .dmi-mini-chart-area { fill: #64748b; }
 .dmi-mini-chart-line { stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
 
