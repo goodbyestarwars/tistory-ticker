@@ -342,8 +342,8 @@
 #market-temp .mt-driver-label small { display: block; overflow: hidden; color: #9098a4; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 #market-temp .mt-driver-track { height: 7px; overflow: hidden; border-radius: 99px; background: #edf0f2; }
 #market-temp .mt-driver-fill { display: block; height: 100%; border-radius: inherit; }
-#market-temp .mt-driver-up .mt-driver-fill { background: #e7aaa5; }
-#market-temp .mt-driver-down .mt-driver-fill { background: #9dbbe0; }
+#market-temp .mt-driver-up .mt-driver-fill { background: var(--chart-fill-up); }
+#market-temp .mt-driver-down .mt-driver-fill { background: var(--chart-fill-down); }
 #market-temp .mt-driver-row b { font-size: 11px; text-align: right; }
 #market-temp .mt-driver-up b { color: var(--num-up); }
 #market-temp .mt-driver-down b { color: var(--num-down); }
@@ -368,12 +368,12 @@
 #market-temp .mt-score-method li small { color: #9aa1ab; font-size: 10px; }
 
 /* 색상 모디파이어(그리드 카드/오늘의전략 등 여러 base 클래스에서 공유) */
-#market-temp .mt-bar-vix { background: #e7aaa5; }
-#market-temp .mt-bar-flow { background: #9dbbe0; }
-#market-temp .mt-bar-rise { background: var(--mt-red); }
+#market-temp .mt-bar-vix { background: var(--chart-fill-up); }
+#market-temp .mt-bar-flow { background: var(--chart-fill-down); }
+#market-temp .mt-bar-rise { background: var(--chart-fill-up); }
 #market-temp .mt-bar-vol { background: var(--mt-yellow); }
-#market-temp .mt-bar-fx { background: var(--mt-blue); }
-#market-temp .mt-bar-risk { background: var(--mt-red); }
+#market-temp .mt-bar-fx { background: var(--chart-fill-down); }
+#market-temp .mt-bar-risk { background: var(--chart-fill-up); }
 
 /* 부호 색상 - 상승/개선=빨강, 하락/악화=파랑, 0=회색 (사이트 공통 컬러 컨벤션) */
 #market-temp .mt-val-pos { color: var(--num-up); font-weight: 600; }
@@ -451,9 +451,9 @@ html.dark #market-temp .mt-heat-note { color:var(--dk-text); }
 #market-temp .mt-history-chart-meta b { font-size: 11px; }
 #market-temp .mt-wave-spark { height: 142px; }
 #market-temp .mt-wave-zero { stroke: #9aa3ad; stroke-width: 1.2; stroke-dasharray: 4 4; }
-#market-temp .mt-wave-area { opacity: .2; pointer-events: none; }
-#market-temp .mt-wave-area-pos { fill: #d24f45; }
-#market-temp .mt-wave-area-neg { fill: #1261c4; }
+#market-temp .mt-wave-area { opacity: .95; pointer-events: none; }
+#market-temp .mt-wave-area-pos { fill: var(--chart-fill-up); }
+#market-temp .mt-wave-area-neg { fill: var(--chart-fill-down); }
 #market-temp .mt-wave-segment-pos { stroke: #d24f45; }
 #market-temp .mt-wave-segment-neg { stroke: #1261c4; }
 #market-temp .mt-wave-segment-zero { stroke: #8d96a1; }
@@ -930,9 +930,9 @@ html.dark #market-temp .mt-comp-visual-raw { color: var(--dk-text) !important; }
 html.dark #market-temp .mt-comp-bar-track { background: var(--dk-hover) !important; }
 html.dark #market-temp .mt-bar-vix,
 html.dark #market-temp .mt-bar-rise,
-html.dark #market-temp .mt-bar-risk { background: var(--dk-up) !important; }
+html.dark #market-temp .mt-bar-risk { background: var(--chart-fill-up) !important; }
 html.dark #market-temp .mt-bar-flow,
-html.dark #market-temp .mt-bar-fx { background: var(--dk-down) !important; }
+html.dark #market-temp .mt-bar-fx { background: var(--chart-fill-down) !important; }
 html.dark #market-temp .mt-bar-vol { background: #f2c35d !important; }
 html.dark #market-temp .mt-val-pos { color: var(--dk-up) !important; }
 html.dark #market-temp .mt-val-neg { color: var(--dk-down) !important; }
@@ -1443,9 +1443,9 @@ html.dark #market-temp .mt-axis-list { border-top-color: var(--dk-line) !importa
 #market-temp .mt-rib-svg { display: block; width: 100%; height: auto; overflow: visible; }
 #market-temp .mt-rib-border { stroke: var(--mt-standby); stroke-width: 1; opacity: .35; }
 #market-temp .mt-rib-band { pointer-events:none; }
-#market-temp .mt-rib-band-fear { fill:#1261c4; fill-opacity:.06; }
+#market-temp .mt-rib-band-fear { fill:var(--chart-fill-down); fill-opacity:.8; }
 #market-temp .mt-rib-band-neutral { fill:#8b95a5; fill-opacity:.1; }
-#market-temp .mt-rib-band-greed { fill:#d24f45; fill-opacity:.06; }
+#market-temp .mt-rib-band-greed { fill:var(--chart-fill-up); fill-opacity:.8; }
 #market-temp .mt-rib-avg { stroke: var(--mt-blue); stroke-width: 1.35; stroke-dasharray: none; opacity: .82; }
 #market-temp .mt-rib-avg5 { stroke: var(--mt-yellow); stroke-width: 2.4; stroke-dasharray: none; }
 #market-temp .mt-rib-area { fill: #1261c4; fill-opacity: .08; }
