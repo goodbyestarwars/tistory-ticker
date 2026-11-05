@@ -175,7 +175,7 @@
     var rows = COINS.map(coinRow);
     tokenPairs.forEach(function (pair) { rows.push(tokenRow(pair)); });
     var tokenHint = 'USDT 기준 · 등락률은 24시간 · '
-      + (tokenFetchFailed ? '조회 지연 · 마지막 수신 ' : tokenSource === 'server' ? '서버 저장값 · 수신 ' : '바이낸스 응답 수신 ')
+      + (tokenFetchFailed ? '조회 지연 · 마지막 수신 ' : tokenSource === 'server' ? '서버 저장값 · 저장 기준 ' : '바이낸스 응답 수신 ')
       + (tokenQuoteAt || '없음');
     board.setRows(rows, [
       { key: 'coin', label: '가상자산', hint: '원화 기준 · 전일 대비는 24시간' },
