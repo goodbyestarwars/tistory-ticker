@@ -1,5 +1,14 @@
 # 9Pay UI 가이드
 
+## MY 매물대 보조 그래프 (2026-11-05)
+
+MY 포트폴리오의 매물대는 종목분석 `ForeignFlow.renderVolumeProfileHtml`을 재사용한다.
+공통 매물대의 미니 SVG·색상·현재가/평단선 CSS는 `css/foreign-flow.css`의
+`:is(#foreign-flow, .ff-vp-host)`로 두 화면에 함께 적용한다. MY는 카드가
+2열의 한 칸이므로 `css/my-dashboard.css`에서 전체 매물대 미니 그래프만
+폭 120px(모바일 96px)으로 축소해 목록 아래에 둔다. SVG의 흑색 기본 채우기·
+무제한 크기로 되돌아가지 않도록 검사하고, 분석치·기간·기존 가격별 행은 바꾸지 않는다.
+
 ## 차트 캡처 (2026-11-05)
 
 실시간 시세 차트(국내·미국·지수)와 종목분석 차트는 공통 `NineChartCore`의

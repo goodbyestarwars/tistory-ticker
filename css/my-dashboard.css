@@ -304,6 +304,32 @@ html.dark .my-watchlist-icon img { background: var(--dk-inner); }
 .my-opinion-verdict p { font-size: 14px; }
 .my-volume-highlight { border: 1px solid #dbe5f2; font-size: 14px; }
 .my-volume-highlight strong { font-size: 22px; }
+/* MY는 분석 카드가 2열 중 한 칸이라, 공통 미니 매물대를 한정된 크기의 보조 썸네일로 내려 배치한다.
+   SVG/막대 색상·추세선 계산은 css/foreign-flow.css의 공통 .ff-vp-host 규칙이 소유한다. */
+#my-dashboard .ff-vp-host { min-width: 0; }
+#my-dashboard .ff-vp-host .ff-apt-split { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+#my-dashboard .ff-vp-host .ff-apt-mini {
+  position: static;
+  justify-self: center;
+  width: min(100%, 154px);
+  padding: 9px;
+  border-radius: 12px;
+}
+#my-dashboard .ff-vp-host .ff-apt-mini-svg {
+  display: block;
+  width: 120px;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+html.dark #my-dashboard .ff-vp-host .ff-apt-mini { background: var(--dk-inner); }
+html.dark #my-dashboard .ff-vp-host .ff-apt-mini-title { color: var(--dk-text); }
+html.dark #my-dashboard .ff-vp-host .ff-mini-cur { stroke: var(--dk-text); }
+html.dark #my-dashboard .ff-vp-host .ff-mini-cur-label { fill: var(--dk-text); }
+@media (max-width: 720px) {
+  #my-dashboard .ff-vp-host .ff-apt-mini-svg { width: 96px; }
+}
+
 .my-volume-chart { display: grid; gap: 6px; margin-top: 14px; }
 .my-volume-row { display: grid; grid-template-columns: 148px minmax(0, 1fr) 72px; gap: 8px; align-items: center; min-height: 22px; color: #64748b; font-size: 11px; font-variant-numeric: tabular-nums; }
 .my-volume-row > span { min-width: 0; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
