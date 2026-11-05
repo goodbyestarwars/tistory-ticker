@@ -7831,7 +7831,7 @@ html body :where(.home-section-heading, .mt-section-head, .ff-section-head, .dmi
   position: relative !important;
   padding-top: 10px !important;
 }
-html body :where(.home-section-heading, .mt-section-head, .ff-section-head, .dmi-heading)::before {
+html body :where(.home-section-heading:not(.briefing-intro), .mt-section-head, .ff-section-head, .dmi-heading)::before {
   content: "" !important;
   position: absolute !important;
   left: 0; right: 0; top: 0 !important;
