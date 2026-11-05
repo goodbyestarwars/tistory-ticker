@@ -272,8 +272,6 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures 
   display: block; margin-top: 3px; font: 400 10px/1.35 var(--font-ui); color: var(--hmb-faint); overflow-wrap: anywhere;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend .hmb-investor-trend-head { margin-bottom: 6px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { height: 70px; margin-top: 5px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-empty { height: 70px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > [data-home-night-futures] { grid-column: 1 / -1; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > [data-home-night-futures][hidden] { display: none; }
 /* 투자자 동향 */
@@ -308,6 +306,10 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-c
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-axis { display: flex; justify-content: space-between; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-asof { margin-top: 6px; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-spark-empty { display: flex; align-items: center; justify-content: center; height: 90px; color: var(--hmb-mute); font: 400 12px/1.5 var(--font-ui, system-ui, sans-serif); }
+/* 이 카드는 고정 높이 70px: 뒤쪽 공통 90px 규칙을 정확하게 한 번만 덮는다. */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { height: 70px; margin-top: 5px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-empty { height: 70px; }
+
 @media (pointer: coarse) {
   body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-switch { min-width: 44px; min-height: 44px; }
 }

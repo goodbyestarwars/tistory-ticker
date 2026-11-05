@@ -24,11 +24,15 @@ for(const source of [stock,flow]){
   const copy=source.indexOf('data-chart-capture="copy"',save);
   assert(clear>a&&groupEnd>clear&&actions>groupEnd&&save>actions&&copy>save);
 }
-assert(enhancer.includes("actionStack.insertBefore(button, actionStack.querySelector('.nine-chart-capture-actions'))"));
+assert(enhancer.includes("expandSegment.className = 'nine-chart-expand-segment'"));
+assert(enhancer.includes("actionStack.insertBefore(expandSegment, actionStack.querySelector('.nine-chart-capture-actions'))"));
 assert(enhancer.includes("controlRow.querySelector('.ss-drawing-tools')"));
 assert(css.includes('.ss-stock-controls.ss-stock-controls .nine-chart-drawing-segment button.is-active'));
 assert(css.includes('.ss-stock-controls.ss-stock-controls .nine-chart-drawing-segment button[aria-pressed="true"]'));
 assert(shared.includes('.nine-chart-action-stack .de-expand-button.de-expand-inline'));
 assert(shared.includes('.nine-chart-capture-actions > button'));
+assert(shared.includes('.nine-chart-expand-segment {'));
+assert(shared.includes('.nine-chart-expand-segment .de-expand-button.de-expand-inline'));
+
 assert(shared.includes('html.dark :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-drawing-segment'));
 console.log('chart toolbar segments/capture: domestic US index foreign flow, fullscreen/copy bindings and CSS contract ok');
