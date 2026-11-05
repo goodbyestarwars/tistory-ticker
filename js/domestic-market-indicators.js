@@ -519,7 +519,7 @@
 
   function volumeData(points) {
     return points.filter(function (p) { return p.volume > 0; }).map(function (p) {
-      return { time: p.time, value: p.volume, color: p.close >= p.open ? 'rgba(210,79,69,.45)' : 'rgba(18,97,196,.45)' };
+      return { time: p.time, value: p.volume, color: global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(p.close >= p.open) : (p.close >= p.open ? '#FAE8E7' : '#E4EDF8') };
     });
   }
 
@@ -576,8 +576,8 @@
           vertTouchDrag: false }
       }));
       var series = chart.addSeries(LWC.CandlestickSeries, {
-        upColor: '#d24f45',
-        downColor: '#1261c4',
+        upColor: global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(true) : '#FAE8E7',
+        downColor: global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(false) : '#E4EDF8',
         borderUpColor: '#d24f45',
         borderDownColor: '#1261c4',
         wickUpColor: '#d24f45',
