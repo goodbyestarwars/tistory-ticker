@@ -290,7 +290,7 @@
         return '<text class="ibd-axis" text-anchor="' + anchor + '" x="' + x(i).toFixed(1) + '" y="' + (height - 7) + '">' + esc(label) + '</text>';
       }).join('');
       host.innerHTML = '<svg class="ibd-svg" viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" role="img" aria-label="' + esc(row.title || row.name) + '">'
-        + grid + '<path class="ibd-area" d="' + area + '" fill="' + color + '"/><path class="ibd-line" d="' + path + '" stroke="' + color + '"/>' + xlabels
+        + grid + '<path class="ibd-area" d="' + area + '" fill="var(--chart-fill-' + (s.change >= 0 ? 'up' : 'down') + ')"/><path class="ibd-line" d="' + path + '" stroke="' + color + '"/>' + xlabels
         + '<circle class="ibd-last" cx="' + x(points.length - 1).toFixed(1) + '" cy="' + y(s.last).toFixed(1) + '" r="3.5" fill="' + color + '"/>'
         + '<line class="ibd-cross" data-ib-cross y1="' + m.t + '" y2="' + (height - m.b) + '" hidden/><circle class="ibd-dot" data-ib-dot r="4" hidden stroke="' + color + '"/>'
         + '<rect class="ibd-hit" x="' + m.l + '" y="' + m.t + '" width="' + (width - m.l - m.r) + '" height="' + (height - m.t - m.b) + '"/></svg>'
@@ -598,7 +598,7 @@
         s.values.forEach(function (v, i) {
           if (v == null || !isFinite(v) || v === 0) return;
           var x = geo.xc(i) - (bw * k) / 2 + bw * si, yv = y(v), h = Math.max(1, Math.abs(yv - y0)), top = v > 0 ? y0 - h : y0;   // 아주 작은 값도 1px 로 보이되 방향은 0선 기준 위·아래를 지킨다
-          svg += '<rect class="ibd-bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" style="fill:' + s.color + (dense ? ';shape-rendering:auto' : '') + '"/>';
+          svg += '<rect class="ibd-bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" style="fill:' + (s.fillColor || s.color) + (dense ? ';shape-rendering:auto' : '') + '"/>';
         });
       });
       return svg;
