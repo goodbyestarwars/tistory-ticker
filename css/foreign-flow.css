@@ -591,8 +591,8 @@
 }
 #foreign-flow .ff-apt-bar-slot-sell { justify-content: flex-end; }
 #foreign-flow .ff-apt-bar-slot-buy { justify-content: flex-start; }
-#foreign-flow .ff-apt-bar-sell { background: #4A90E2; transform-origin: right center; }
-#foreign-flow .ff-apt-bar-buy { background: #FF5B6E; transform-origin: left center; }
+#foreign-flow .ff-apt-bar-sell { background: var(--chart-fill-down); transform-origin: right center; }
+#foreign-flow .ff-apt-bar-buy { background: var(--chart-fill-up); transform-origin: left center; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-in .ff-apt-bar { transform: scaleX(1); }
 #foreign-flow .ff-apt-elevator-car-up { animation-direction: reverse; }
 
@@ -731,9 +731,9 @@
 #foreign-flow .ff-rsi-band { stroke-dasharray: 3 3; }
 #foreign-flow .ff-rsi-mid { stroke: #6b7280; stroke-width: 1.2; }   /* 2026-10-18: RSI 50 선을 70·30보다 진하게 */
 html.dark #foreign-flow .ff-rsi-mid { stroke: #a3a3a3; }
-#foreign-flow .ff-rsi-fill { fill-opacity: 0.55; stroke: none; }
-#foreign-flow .ff-rsi-fill-above { fill: #e7aaa5; }
-#foreign-flow .ff-rsi-fill-below { fill: #9dbbe0; }
+#foreign-flow .ff-rsi-fill { fill-opacity: 0.95; stroke: none; }
+#foreign-flow .ff-rsi-fill-above { fill: var(--chart-fill-up); }
+#foreign-flow .ff-rsi-fill-below { fill: var(--chart-fill-down); }
 /* 2026-07-20: 업종/테마 분리 - 각 줄(.ff-sector-row)이 라벨("업종"/"테마") + 태그 목록을
    한 줄에 놓는다. 예전엔 .ff-sector-tags 하나가 라벨 없이 업종만 보여줬음. */
 #foreign-flow .ff-sector-row {
@@ -1649,8 +1649,8 @@ html.dark #foreign-flow .ff-apt-totals { color: var(--dk-sub) !important; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
 html.dark #foreign-flow .ff-apt-mini-window { background: var(--dk-hover) !important; border-color: var(--dk-line) !important; }
 html.dark #foreign-flow .ff-apt-mini-window::after { background: var(--dk-active) !important; }
-html.dark #foreign-flow .ff-apt-bar-sell { background: #5b9ee8 !important; }
-html.dark #foreign-flow .ff-apt-bar-buy { background: #ff7d8e !important; }
+html.dark #foreign-flow .ff-apt-bar-sell { background: var(--chart-fill-down) !important; }
+html.dark #foreign-flow .ff-apt-bar-buy { background: var(--chart-fill-up) !important; }
 html.dark #foreign-flow .ff-apt-zoom-btn { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; color: var(--dk-sub) !important; }
 html.dark #foreign-flow .ff-apt-zoom-btn:disabled { opacity: 0.35 !important; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-empty { color: var(--dk-sub) !important; }
