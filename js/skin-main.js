@@ -1639,6 +1639,15 @@ document.documentElement.classList.add('skin-ready');
       var pct = (value / base - 1) * 100;
       return (pct > 0 ? '+' : '') + pct.toFixed(2) + '%';
     }
+    function homePriceSwitchControls(key, periodLabel) {
+      var mode = homeModeOf(key);
+      return '<div class="hmb-price-controls"><span>' + periodLabel + '</span>'
+        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
+        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">‹</button><span>'
+        + (mode === 'bar' ? '막대' : '면적') + '</span>'
+        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
+        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">›</button></div>';
+    }
     function renderHomeSessionChart(element, key, reference) {
       var result = homeSessionCharts[key] || {}, meta = result.session;
       var rows = (result.rows || []).filter(function (r) {
@@ -1647,13 +1656,8 @@ document.documentElement.classList.add('skin-ready');
       element.classList.add('has-session-chart');
       element.setAttribute('data-session-symbol', key);
       var mode = homeModeOf(key);
-      var controls = '<div class="hmb-price-controls"><span>30분 · '
-        + (['KOSPI', 'KOSDAQ', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간') + '</span>'
-        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
-        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">‹</button><span>'
-        + (mode === 'bar' ? '막대' : '면적') + '</span>'
-        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
-        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">›</button></div>';
+      var controls = homePriceSwitchControls(key,
+        '30분 · ' + (['KOSPI', 'KOSDAQ', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간'));
       if (!meta || !rows.length) {
         element.innerHTML = controls + '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
         return;
@@ -1716,6 +1720,12 @@ document.documentElement.classList.add('skin-ready');
       if (!event.target.closest('[data-price-switch]')) return;
       var chart = event.target.closest('.home-index-chart');
       var key = chart && chart.getAttribute && chart.getAttribute('data-session-symbol');
+      var metricKey = chart && chart.getAttribute && chart.getAttribute('data-metric-symbol');
+      if (metricKey) {
+        homePriceModes[metricKey] = homeModeOf(metricKey) === 'bar' ? 'area' : 'bar';
+        renderHomeMetricCharts(homeMetricQuotes);
+        return;
+      }
       if (key) {
         homePriceModes[key] = homeModeOf(key) === 'bar' ? 'area' : 'bar';
         renderHomeSessionChart(chart, key, null);
@@ -1782,6 +1792,8 @@ document.documentElement.classList.add('skin-ready');
 
     function renderHomeIndexChart(element, rows, key, reference) {
       if (!element) return;
+      var metricMini = key === 'USDKRW' || key === 'KOSPI200_DAY';
+      if (metricMini) element.setAttribute('data-metric-symbol', key);
       // 다우 선물의 30분 관측값이 없는 경우 일봉 차트를 정확한 기간 표기와 함께 사용한다.
       if (['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'SOX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0
           || (key === 'DOW' && homeSessionCharts.DOW && homeSessionCharts.DOW.rows && homeSessionCharts.DOW.rows.length)) {
@@ -1826,11 +1838,12 @@ document.documentElement.classList.add('skin-ready');
       if (values.length < 2) {
         stopHomeChartMotion(element);
         homeChartMotion.delete(element);
-        element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
+        element.innerHTML = (metricMini ? homePriceSwitchControls(key, '최근 20거래일') : '')
+          + '<span class="home-index-chart-empty">추이 데이터 없음</span>';
         return;
       }
       var width = element.clientWidth || 240;
-      var height = element.clientHeight || 48;
+      var height = metricMini ? 56 : element.clientHeight || 48;
       var pad = monthlyMini ? 38 : 2;
       var topPad = monthlyMini ? 5 : 2;
       var bottom = monthlyMini ? height - 16 : height - 2;
