@@ -838,12 +838,12 @@ document.documentElement.classList.add('skin-ready');
         + '<dl class="hmb-list hmb2-core">'
         + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd>'
         + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="USDKRW" aria-label="원/달러 최근 거래일 추이"></div></div>'
-        + '<div class="hmb2-day-futures" data-home-day-futures aria-label="코스피200 주간선물 시세"><dt>KOSPI200 주간선물</dt>'
+        + '<div class="hmb2-day-futures" data-home-day-futures aria-label="코스피200 주간선물 시세"><dt class="hmb2-day-heading"><span>KOSPI200 주간선물</span><small data-home-day-field="status">확인 중</small></dt>'
         + '<dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small>'
         + '<small class="hmb-day-futures-meta" data-home-day-field="time">09:00~15:45 · 수신 확인 중</small>'
         + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인·기관 순매수 추이">'
-        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>외국인·기관 · 30분 누적</span>'
+        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>30분 누적</span><div class="hmb-investor-actor-filter" role="group" aria-label="투자자 구분"><button type="button" data-investor-actor="foreign" aria-pressed="false">외국인</button><button type="button" data-investor-actor="institution" aria-pressed="false">기관</button><button type="button" data-investor-actor="compare" aria-pressed="true">비교</button></div>'
         + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">‹</button>'
         + '<span data-investor-mode>면적</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">›</button></div></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
@@ -2102,8 +2102,9 @@ document.documentElement.classList.add('skin-ready');
         rate == null ? '-' : (change > 0 ? '▲' : change < 0 ? '▼' : '')
           + (rate > 0 ? '+' : rate < 0 ? '-' : '') + Math.abs(rate).toFixed(2) + '%',
         homeTone(change));
+      homeFill(card, 'data-home-day-field', 'status', status, 'home-neutral');
       homeFill(card, 'data-home-day-field', 'time',
-        status + (stamp ? ' · ' + stamp : ' · 기준시각 없음'), 'home-neutral');
+        stamp ? '수신 ' + stamp : '기준시각 없음', 'home-neutral');
     }
     function renderHomeMetricCharts(bySymbol) {
       ['USDKRW', 'KOSPI200_DAY'].forEach(function (symbol) {
@@ -2516,6 +2517,7 @@ document.documentElement.classList.add('skin-ready');
     }
 
     var homeInvestorMode = 'area';  // 2026-10-16 사용자 요청: 면적/막대 전환 지표의 기본값은 면적
+    var homeInvestorActor = 'compare'; // 외국인·기관·비교, 기본 비교
     var homeInvestorResults = null;
     var homeInvestorLoading = false;
 
@@ -2623,9 +2625,10 @@ document.documentElement.classList.add('skin-ready');
         var institution = lastRow && lastRow.orgn != null ? Number(lastRow.orgn) : null;
         return '<div class="hmb-investor-row">'
           + '<div class="hmb-investor-row-top"><strong>' + market.label + '</strong>'
-          + '<span class="hmb-investor-amounts"><span title="외국인(실선)"><small>외</small><b class="' + homeTone(foreign) + '">' + investorAmountText(foreign) + '</b></span>'
-          + '<span title="기관(점선)"><small>기</small><b class="' + homeTone(institution) + '">' + investorAmountText(institution) + '</b></span></span></div>'
-          + investorSparkline(result, homeInvestorMode, market.key)
+          + '<span class="hmb-investor-amounts">'
+          + '<span class="' + (homeInvestorActor === 'institution' ? 'is-unselected' : '') + '" title="외국인 누적 순매수"><small class="hmb-investor-actor-name is-foreign">외국인</small><b class="' + homeTone(foreign) + '">' + investorAmountText(foreign) + '</b></span>'
+          + '<span class="' + (homeInvestorActor === 'foreign' ? 'is-unselected' : '') + '" title="기관 누적 순매수"><small class="hmb-investor-actor-name is-institution">기관</small><b class="' + homeTone(institution) + '">' + investorAmountText(institution) + '</b></span></span></div>'
+          + investorSparkline(result, homeInvestorMode, market.key, homeInvestorActor)
           + '<div class="hmb-investor-asof">' + String(result.date || '').replace(/[^0-9-]/g, '') + ' · '
           + (rows.length ? '관측 ' + investorTimeText(result.asOf) + ' · ' + rows.length + '/14개' : '일별 최근값 · 장중 기록 없음') + '</div>'
           + '</div>';
@@ -2635,6 +2638,17 @@ document.documentElement.classList.add('skin-ready');
 
     var investorHost = dashboardSection.querySelector('[data-home-investor-trend]');
     if (investorHost) investorHost.addEventListener('click', function (event) {
+      var actorButton = event.target.closest('[data-investor-actor]');
+      if (actorButton) {
+        var nextActor = actorButton.getAttribute('data-investor-actor');
+        if (['foreign', 'institution', 'compare'].indexOf(nextActor) < 0) return;
+        homeInvestorActor = nextActor;
+        investorHost.querySelectorAll('[data-investor-actor]').forEach(function (button) {
+          button.setAttribute('aria-pressed', String(button.getAttribute('data-investor-actor') === nextActor));
+        });
+        if (homeInvestorResults) renderHomeInvestorTrend(homeInvestorResults);
+        return;
+      }
       if (!event.target.closest('[data-investor-switch]')) return;
       homeInvestorMode = homeInvestorMode === 'bar' ? 'area' : 'bar';
       var name = investorHost.querySelector('[data-investor-mode]');
