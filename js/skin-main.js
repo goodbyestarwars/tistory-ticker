@@ -678,7 +678,7 @@ document.documentElement.classList.add('skin-ready');
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261105-home-cumulative-mini';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261106-home-intraday-mini';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
@@ -846,12 +846,12 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-quote"><dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small></div>'
         + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div>'
         + '<small class="hmb-metric-asof" data-home-day-field="time">기준시각 확인 중</small></div>'
-        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 최근 20거래일 누적 순매수 추이">'
+        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 당일 30분 슬롯별 누적 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt>'
-        + '<div class="hmb-investor-mini-legend" data-home-investor-mini-legend><span class="hmb-mini-period">최근 20거래일 누적</span>'
+        + '<div class="hmb-investor-mini-legend" data-home-investor-mini-legend><span class="hmb-mini-period">당일 30분 누적</span>'
         + '<span class="is-foreign"><i aria-hidden="true"></i>외국인</span><span class="is-inst"><i aria-hidden="true"></i>기관</span>'
-        + '<span class="is-indiv"><i aria-hidden="true"></i>개인</span><span class="is-index"><i aria-hidden="true"></i>지수(별도 축)</span></div>'
-        + '<small class="hmb-investor-mini-fallback" data-home-investor-mini-fallback hidden>일별 수급 지연 · 장중 30분 흐름</small></div>'
+        + '<span class="is-indiv"><i aria-hidden="true"></i>개인</span></div>'
+        + '<small class="hmb-investor-mini-fallback" data-home-investor-mini-fallback>장중 지수 미제공 · 수급만 표시</small></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
@@ -2605,7 +2605,7 @@ document.documentElement.classList.add('skin-ready');
       return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
     }
 
-    // 30분 당일 누적은 일별 이력 실패 시에만 표시하는 기존 폴백이다. 누적 미니 차트가 기본.
+    // 홈은 당일 누적 관측값만 사용한다. 원본 일별 누적 차트/장중 렌더러는 별도 계약으로 보존.
     var homeInvestorMiniHistory = null;
     var homeInvestorMiniLastAttempt = 0;
     var homeInvestorMiniInterval = 5 * 60 * 1000;
@@ -2718,21 +2718,25 @@ document.documentElement.classList.add('skin-ready');
       var host = dashboardSection.querySelector('[data-home-investor-trend]');
       var body = host && host.querySelector('.hmb-investor-trend-body');
       var shared = window.InvestorFlow;
-      if (!body || !shared || typeof shared.miniChart !== 'function') return;
-      showHomeInvestorMiniMode(false);
+      if (!body || !shared || typeof shared.intradayRows !== 'function') return;
+      var now = new Date(), kst = new Date(now.getTime() + 9*60*60*1000);
+      var today = kst.toISOString().slice(0,10), minute = kst.getUTCHours()*60 + kst.getUTCMinutes();
+      var session = homeMarketSession();
+      var active = session.market === 'domestic' && !session.closed && minute >= 540 && minute <= 930;
       body.innerHTML = ['kospi', 'kosdaq'].map(function (market, index) {
-        var result = history[index] || {};
-        var data = result && result.data ? result.data : result;
-        var rows = Array.isArray(data.rows) ? data.rows : [];
-        var label = market === 'kospi' ? 'KOSPI' : 'KOSDAQ';
-        var date = data.latestDate || (rows.length ? rows[rows.length - 1].date : null);
-        var caption = date ? date.slice(5) + ' 기준' : '기준일 없음';
-        if (data.provisional) caption += ' · 잠정';
-        if (isCached) caption += ' · 갱신 지연';
+        var response = history[index] || {}, result = response.data || response;
+        var rows = shared.intradayRows(result.rows, result.date), label = market.toUpperCase();
+        var last = rows.length ? rows[rows.length-1] : null;
+        var caption = rows.length ? result.date + ' · 관측 ' + investorTimeText(last.asOf) + ' KST' : '장중 저장 관측값 없음';
+        if (rows.length) {
+          var delayed = active && (result.date !== today || now.getTime() - Date.parse(last.asOf) > 10*60*1000);
+          caption += ' · ' + (isCached || response._homeCached ? '조회 지연 · 저장값' : delayed ? '관측 지연 · 저장값' : active && result.date === today ? '장중 잠정' : '마지막 저장 관측값');
+          caption += ' · ' + rows.length + '/14슬롯';
+        }
         return '<div class="hmb-investor-row hmb-investor-mini-row"><div class="hmb-investor-row-top"><strong>' + label + '</strong></div>'
-          + shared.miniChart(rows, {days:20, market:label, showIndex:true})
-          + '<div class="hmb-investor-asof">' + escapeHomeHtml(caption)
-          + (rows.length ? ' · ' + Math.min(rows.length, 20) + '거래일' : '') + '</div></div>';
+          + shared.miniChart(rows, {period:'intraday', date:result.date, market:label, showIndex:false})
+          + '<div class="hmb-investor-asof">' + escapeHomeHtml(caption) + '</div>'
+          + '<div class="hmb-investor-asof">당일 누적 순매수 · 슬롯 내 마지막 관측 · 억원</div></div>';
       }).join('');
     }
 
@@ -2789,13 +2793,6 @@ document.documentElement.classList.add('skin-ready');
       if (homeInvestorResults) renderHomeInvestorTrend(homeInvestorResults);
     });
 
-    function loadHomeInvestorIntradayFallback() {
-      showHomeInvestorMiniMode(true);
-      return Promise.all([
-        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=intraday&market=kospi', 12000),
-        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=intraday&market=kosdaq', 12000)
-      ]).then(renderHomeInvestorTrend);
-    }
     loadHomeInvestorTrend = function () {
       var host = dashboardSection.querySelector('[data-home-investor-trend]');
       if (!host || host.hidden || homeInvestorLoading || homeMarketSession().market !== 'domestic') return;
@@ -2803,38 +2800,33 @@ document.documentElement.classList.add('skin-ready');
       homeInvestorMiniLastAttempt = Date.now();
       homeInvestorLoading = true;
       var body = host.querySelector('.hmb-investor-trend-body');
-      if (body && !body.querySelector('.hmb-investor-row')) body.innerHTML = '<span class="hmb-investor-loading">누적 순매수 자료 확인 중</span>';
       loadHomeScript(HOME_INVESTOR_FLOW_SCRIPT_URL, 'InvestorFlow').then(function () {
-        // 새 페이지/네트워크 지연일 때만 마지막 성공 이력으로 먼저 그린다. 기준일을 숨기지 않는다.
+        if (typeof window.InvestorFlow.intradayRows !== 'function') throw new Error('장중 공통 모듈 대기');
         if (!homeInvestorMiniHistory) {
-          var cached = readHomeDataCache('home-investor-mini-history-v1', 24 * 60 * 60 * 1000);
-          if (Array.isArray(cached) && cached.length === 2) {
-            homeInvestorMiniHistory = cached;
-            renderHomeInvestorMiniHistory(cached, true);
-          }
+          var cached = readHomeDataCache('home-investor-mini-intraday-v2', 7 * 24 * 60 * 60 * 1000);
+          if (Array.isArray(cached) && cached.length === 2) homeInvestorMiniHistory = cached;
         }
-        return Promise.all([
-          fetchHomeJson('https://goodbyestar.cloud/investor-trend/history?market=kospi&days=21', 12000),
-          fetchHomeJson('https://goodbyestar.cloud/investor-trend/history?market=kosdaq&days=21', 12000)
-        ]);
+        if (homeInvestorMiniHistory) renderHomeInvestorMiniHistory(homeInvestorMiniHistory, true);
+        // Market failures are independent: retain only that market's last valid dated observations.
+        return Promise.all(['kospi','kosdaq'].map(function (market,index) {
+          return fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=intraday&market=' + market, 12000)
+            .then(function (response) {
+              var d = response && response.data;
+              if (!response || response.success !== true || !d || d.period !== 'intraday' || d.market !== market || !Array.isArray(d.rows)) throw new Error('장중 응답 오류');
+              var rows = window.InvestorFlow.intradayRows(d.rows,d.date);
+              if (!rows.length) throw new Error('저장 관측값 없음');
+              return response;
+            }).catch(function () {
+              var old = homeInvestorMiniHistory && homeInvestorMiniHistory[index];
+              return old ? Object.assign({},old,{_homeCached:true}) : {data:{period:'intraday',market:market,rows:[]}};
+            });
+        }));
       }).then(function (results) {
-        var valid = results.every(function (response) {
-          var body = response && response.data;
-          return response && response.success === true && body && Array.isArray(body.rows);
-        });
-        if (!valid) throw new Error('일별 투자자 이력 응답 형식 오류');
         homeInvestorMiniHistory = results;
-        writeHomeDataCache('home-investor-mini-history-v1', results);
+        writeHomeDataCache('home-investor-mini-intraday-v2', results);
         renderHomeInvestorMiniHistory(results, false);
       }).catch(function () {
-        if (homeInvestorMiniHistory && window.InvestorFlow) {
-          renderHomeInvestorMiniHistory(homeInvestorMiniHistory, true);
-          return;
-        }
-        // 기존 장중 그래프는 삭제하지 않고, 일별 데이터가 없을 때 출처/주기가 다른 폴백으로만 노출한다.
-        return loadHomeInvestorIntradayFallback().catch(function () {
-          if (body) body.innerHTML = '<span class="hmb-investor-loading">일별·장중 수급 자료 없음</span>';
-        });
+        if (body) body.innerHTML = '<span class="hmb-investor-loading">장중 수급 표시 모듈 확인 필요</span>';
       }).then(function () { homeInvestorLoading = false; });
     };
 
@@ -3876,3 +3868,4 @@ document.documentElement.classList.add('skin-ready');
   })();
 
 /* 2026-10-05: 업종 로테이션은 홈에서 시장 > 증시온도 페이지(js/market-temp.js)로 옮겼다. */
+

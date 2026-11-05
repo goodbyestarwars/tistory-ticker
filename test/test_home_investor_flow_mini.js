@@ -1,83 +1,51 @@
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs');
-const original=fs.readFileSync('js/investor-flow.js','utf8');
-const home=fs.readFileSync('js/skin-main.js','utf8');
-const css=fs.readFileSync('css/home-market-board.css','utf8');
-const skin=fs.readFileSync('skin.html','utf8');
-const hostWindow={};
-new Function('window', original+';return window.InvestorFlow;')(hostWindow);
-const InvestorFlow=hostWindow.InvestorFlow;
-assert(InvestorFlow&&typeof InvestorFlow.miniChart==='function');
-const rows=[];
-let utc=Date.UTC(2026,9,6);
-while(rows.length<21){
- const d=new Date(utc);
- if(d.getUTCDay()!==0&&d.getUTCDay()!==6){
-   rows.push({date:d.toISOString().slice(0,10),
-     foreign:-100, institution:50,individual:50,indexClose:2500+rows.length*3});
- }
- utc+=86400000;
-}
-const ref=InvestorFlow._calc.cumulative(rows,20);
-assert.equal(ref.days,20);
-assert.equal(ref.series.foreign[0],0);
-assert.equal(ref.series.foreign.at(-1),-2000);
-assert.equal(ref.series.institution.at(-1),1000);
-assert.equal(ref.series.individual.at(-1),1000);
-const svg=InvestorFlow.miniChart(rows,{days:20,market:'KOSPI',showIndex:true});
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const home=fs.readFileSync('js/skin-main.js','utf8'), shared=fs.readFileSync('js/investor-flow.js','utf8');
+const window={};new Function('window',shared)(window);const flow=window.InvestorFlow;
+const row=(slot,extra={})=>({slot,frgn:-100*(slot+1),orgn:50*(slot+1),ind:50*(slot+1),asOf:`2026-11-05T${String(9+Math.floor(slot/2)).padStart(2,'0')}:${slot%2?'59':'29'}:00+09:00`,...extra});
+const date='2026-11-05', rows=[row(0),row(1),row(3),row(4,{ind:null})];
+const svg=flow.miniChart(rows,{period:'intraday',date,market:'KOSPI'});
 assert(svg.includes('viewBox="0 0 240 70"'));
-assert(svg.includes('hmb-investor-mini-cumulative'));
-assert(svg.includes('data-hover-points='));
-assert(svg.includes('외국인 누적 -2,000억'));
-assert(svg.includes('기관 누적 +1,000억'));
-assert(svg.includes('개인 누적 +1,000억'));
-assert(svg.includes('stroke-dasharray="3 3"'));
-assert(svg.includes('지수(별도 축)'));
-assert.equal((svg.match(/<polyline /g)||[]).length,4);
-assert.equal((svg.match(/<circle /g)||[]).length,3);
-assert(!svg.includes('NaN')&&!svg.includes('undefined'));
-assert(!svg.includes('data-investor-mode-select'));
-assert(InvestorFlow.miniChart([],{}).includes('자료 없음'));
-const limited=InvestorFlow.miniChart(rows.map(r=>Object.assign({},r,{indexClose:null})),{market:'KOSDAQ'});
-assert(!limited.includes('stroke-dasharray="3 3"')); // index is genuinely absent, no fake index
-const sparse=InvestorFlow.miniChart(rows.map((r,i)=>i===10?Object.assign({},r,{individual:null}):r),{market:'KOSPI'});
-assert(!sparse.includes('NaN'));
+assert(svg.includes('외국인 누적 -200억'));assert(!svg.includes('외국인 누적 -300억'),'already cumulative; never summed again');
+assert.equal((svg.match(/<polyline /g)||[]).length,5,'3 series across 0/1 and 2 series across 3/4');
+assert.equal((svg.match(/<circle /g)||[]).length,11,'isolated individual slot remains visible');
+assert(svg.includes('개인 누적 미관측'));assert(svg.includes('實際')===false);
+assert(svg.includes('실제 관측 2026-11-05T09:29'));
+assert(!svg.includes('stroke-dasharray'));assert(!svg.includes('NaN'));
+assert(svg.includes('09:00')&&svg.includes('15:30'));
+assert.equal(flow.intradayRows([row(0),row(0,{asOf:'2026-11-05T09:28:00+09:00'}),row(2,{asOf:'2026-11-04T10:29:00+09:00'}),row(14),row(3,{asOf:null})],date).length,1);
+assert.equal(flow.intradayRows([row(13,{asOf:'2026-11-05T15:30:44+09:00'})],date).length,1);
+assert(flow.miniChart([],{period:'intraday',date}).includes('관측값 없음'));
+const daily=Array.from({length:21},(_,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,foreign:-100,institution:50,individual:50,indexClose:2500+i}));
+assert.equal(flow._calc.cumulative(daily,20).series.foreign.at(-1),-2000);
+assert(flow.miniChart(daily,{days:20}).includes('stroke-dasharray'),'original daily index chart preserved');
 
-const frag=home.slice(home.indexOf('    function showHomeInvestorMiniMode('),
-                      home.indexOf('    function renderHomeInvestorTrend('));
-assert(frag.includes('renderHomeInvestorMiniHistory'));
-const legend={hidden:false},fallback={hidden:true},body={innerHTML:''};
-const wrapper={
- querySelector(selector){
-  return selector==='[data-home-investor-mini-legend]'?legend:
-   selector==='[data-home-investor-mini-fallback]'?fallback:
-   selector==='.hmb-investor-trend-body'?body:null;
- }};
-const render=new Function('dashboardSection','window','escapeHomeHtml',
-  frag+';return {renderHomeInvestorMiniHistory,showHomeInvestorMiniMode};')(
-    {querySelector:()=>wrapper},{InvestorFlow},x=>String(x).replace(/</g,'&lt;'));
-const make=(rows,market)=>({success:true,data:{market,latestDate:rows.at(-1).date,rows,provisional:true}});
-render.renderHomeInvestorMiniHistory([make(rows,'KOSPI'),make(rows,'KOSDAQ')],false);
-assert(body.innerHTML.includes('KOSPI')&&body.innerHTML.includes('KOSDAQ'));
-assert.equal((body.innerHTML.match(/hmb-investor-mini-cumulative/g)||[]).length,2);
-assert(body.innerHTML.includes('잠정'));
-render.renderHomeInvestorMiniHistory([make(rows,'KOSPI'),make(rows,'KOSDAQ')],true);
-assert(body.innerHTML.includes('갱신 지연'));
-render.showHomeInvestorMiniMode(true);
-assert(legend.hidden&& !fallback.hidden);
-render.showHomeInvestorMiniMode(false);
-assert(!legend.hidden&&fallback.hidden);
-
-assert(home.includes('loadHomeScript(HOME_INVESTOR_FLOW_SCRIPT_URL'));
-assert(home.includes('homeInvestorMiniInterval = 5 * 60 * 1000'));
-assert(home.includes('readHomeDataCache('));
-assert(home.includes("writeHomeDataCache('home-investor-mini-history-v1'"));
-assert(home.includes('loadHomeInvestorIntradayFallback'));
-assert(home.includes('investor-trend?period=intraday&market=kospi'));
-assert(home.includes('investor-trend/history?market=kospi&days=21'));
-assert(!home.includes('data-investor-actor="foreign"'));
-assert(!home.includes("homeModeSegment('data-investor-mode-select', 'area'"));
-assert(css.includes('.hmb-investor-mini-row .hmb-investor-spark-wrap'));
-assert(css.includes('height: 70px; margin-top: 3px'));
-assert(skin.includes('skin-main.js?v=20261025-countdown-module6'));
-console.log('PASS InvestorFlow common 20-day cumulative / three series / index separate scale / fallback / 70px / KOSPI+KOSDAQ');
+const body={innerHTML:''},host={hidden:false,querySelector:()=>body,addEventListener(){}};
+let clock=Date.parse('2026-11-06T01:00:00+09:00'), cache=null,fail=false, empty=false,calls=[];
+class Clock extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
+const sample=market=>({success:true,updatedAt:'2099-01-01',data:{period:'intraday',market,date,rows:rows.slice().reverse()}});
+const context={window,Date:Clock,console,dashboardSection:{querySelector:()=>host},homeMarketSession:()=>({market:'domestic',closed:false}),
+ escapeHomeHtml:x=>String(x).replace(/</g,'&lt;'),loadHomeScript:()=>Promise.resolve(),HOME_INVESTOR_FLOW_SCRIPT_URL:'shared',
+ readHomeDataCache:()=>cache,writeHomeDataCache:(key,value)=>{assert.equal(key,'home-investor-mini-intraday-v2');cache=value;},
+ fetchHomeJson:url=>{calls.push(url);const market=url.split('=').at(-1);return fail&&market==='kospi'?Promise.reject(Error('offline')):Promise.resolve(empty?{success:true,data:{period:'intraday',market,date:'2026-11-06',rows:[]}}:sample(market));}};
+vm.createContext(context);
+const start=home.indexOf('    function investorAmountText'),end=home.indexOf('    loadSummaryForSession(homeMarketSession());',start);
+vm.runInContext(home.slice(start,end),context);
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+(async()=>{
+ context.loadHomeInvestorTrend();context.loadHomeInvestorTrend();await flush();
+ assert.equal(calls.length,2,'overlapping requests deduplicated');assert(calls.every(u=>u.includes('period=intraday')));
+ assert(body.innerHTML.includes('2026-11-05 · 관측 11:29 KST'),'actual latest slot timestamp, not envelope updatedAt');
+ assert(body.innerHTML.includes('마지막 저장 관측값'));assert(!body.innerHTML.includes('20거래일'));
+ assert.equal((body.innerHTML.match(/viewBox="0 0 240 70"/g)||[]).length,2);
+ clock+=301000;fail=true;context.loadHomeInvestorTrend();await flush();
+ assert(body.innerHTML.includes('조회 지연 · 저장값'));assert.equal(calls.length,4);
+ clock=Date.parse('2026-11-06T10:00:00+09:00');empty=true;context.loadHomeInvestorTrend();await flush();
+ assert(body.innerHTML.includes('2026-11-05'),'empty new trading day retains explicitly dated last observations');
+ assert(body.innerHTML.includes('조회 지연 · 저장값'));
+ vm.runInContext('renderHomeInvestorMiniHistory([{data:{rows:[]}},{data:{rows:[]}}],false)',context);
+ assert(body.innerHTML.includes('관측값 없음'));assert(!body.innerHTML.includes('0억'));
+ assert(!home.includes('investor-trend/history?market=kospi&days=21'));
+ assert(!home.includes('home-investor-mini-history-v1'));
+ console.log('PASS daily preservation; intraday values/colors/gaps/singletons/date/slot validation; home cache/partial failure/rollover/empty/concurrency');
+})().catch(e=>{console.error(e);process.exitCode=1;});

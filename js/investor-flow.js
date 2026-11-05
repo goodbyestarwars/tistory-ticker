@@ -408,22 +408,34 @@
   /* 홈 요약(작은 카드): 원본 '누적 순매수 추이'의 동일한 20거래일 누적 계산을 사용.
      진입점 하나로 지수/시장별 차트 모두 그리며 대시보드에 계산식 복제 금지. */
   function miniChart(rows, options) {
-    var opts = options || {}, data = Array.isArray(rows) ? rows.filter(function (r) {
-      return r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.date || ''))
-        && INVESTORS.every(function (i) { return r[i.key] != null && isFinite(Number(r[i.key])); });
-    }) : [];
-    if (!data.length) return '<div class="hmb-investor-spark-empty">누적 수급 자료 없음</div>';
-    var cum = cumulative(data, opts.days || 20), n = cum.dates.length;
-    if (n < 2) return '<div class="hmb-investor-spark-empty">누적 수급 자료 없음</div>';
+    var opts = options || {}, intraday = opts.period === 'intraday';
+    var data = Array.isArray(rows) ? rows : [], cum;
+    if (intraday) {
+      data = intradayRows(data, opts.date);
+      if (!data.length) return '<div class="hmb-investor-spark-empty">장중 저장 관측값 없음</div>';
+      cum = {dates: data.map(function (r) { return slotLabel(r.slot); }), series: {}, index: [], days: 1};
+      INVESTORS.forEach(function (inv, i) {
+        cum.series[inv.key] = data.map(function (r) { return validAmount(r[['frgn','orgn','ind'][i]]) ? Number(r[['frgn','orgn','ind'][i]]) : null; });
+      });
+    } else {
+      data = data.filter(function (r) {
+        return r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.date || ''))
+          && INVESTORS.every(function (i) { return validAmount(r[i.key]); });
+      });
+      if (!data.length) return '<div class="hmb-investor-spark-empty">누적 수급 자료 없음</div>';
+      cum = cumulative(data, opts.days || 20);
+    }
+    var n = cum.dates.length;
+    if (!intraday && n < 2) return '<div class="hmb-investor-spark-empty">누적 수급 자료 없음</div>';
     var width = 240, height = 70, left = 3, right = width - 3, top = 5, bottom = height - 5;
     var amounts = [0];
     INVESTORS.forEach(function (inv) {
-      cum.series[inv.key].forEach(function (v) { if (isFinite(v)) amounts.push(v); });
+      cum.series[inv.key].forEach(function (v) { if (validAmount(v)) amounts.push(v); });
     });
     var min = Math.min.apply(Math, amounts), max = Math.max.apply(Math, amounts);
     var gap = Math.max(1, (max - min) * .08);
     min -= gap; max += gap;
-    function x(i) { return left + (right - left) * i / (n - 1); }
+    function x(i) { return left + (right - left) * (intraday ? data[i].slot / 13 : i / (n - 1)); }
     function y(v) { return bottom - (v - min) / (max - min) * (bottom - top); }
     function fmt(v) {
       var a = Math.abs(v);
@@ -432,16 +444,28 @@
     var svg = '<line x1="' + left + '" x2="' + right + '" y1="' + y(0).toFixed(2)
       + '" y2="' + y(0).toFixed(2) + '" stroke="var(--hmb-line, #e0e4e8)" stroke-width=".8" vector-effect="non-scaling-stroke"/>';
     INVESTORS.forEach(function (inv) {
-      var arr = cum.series[inv.key], pts = arr.map(function (v, i) {
-        return x(i).toFixed(2) + ',' + y(v).toFixed(2);
-      }).join(' '), px = x(n - 1).toFixed(2), py = y(arr[n - 1]).toFixed(2);
-      svg += '<polyline points="' + pts + '" fill="none" stroke="' + inv.color
-        + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke">'
-        + '<title>' + inv.label + ' 누적 ' + fmt(arr[n - 1]) + '</title></polyline>'
-        + '<circle cx="' + px + '" cy="' + py + '" r="1.8" fill="' + inv.color + '"/>';
+      var arr = cum.series[inv.key], groups = [], group = [];
+      arr.forEach(function (v, i) {
+        if (!validAmount(v)) { if (group.length) groups.push(group); group = []; return; }
+        if (intraday && group.length && data[i].slot !== data[group[group.length-1]].slot + 1) { groups.push(group); group = []; }
+        group.push(i);
+      });
+      if (group.length) groups.push(group);
+      groups.forEach(function (g) {
+        if (g.length < 2) return;
+        svg += '<polyline points="' + g.map(function (i) { return x(i).toFixed(2) + ',' + y(arr[i]).toFixed(2); }).join(' ')
+          + '" fill="none" stroke="' + inv.color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke">'
+          + '<title>' + inv.label + ' 누적 ' + fmt(arr[g[g.length-1]]) + '</title></polyline>';
+      });
+      arr.forEach(function (v, i) {
+        if (!validAmount(v)) return;
+        // Isolated samples remain visible; never join missing slots or fields.
+        if (intraday || i === n-1) svg += '<circle cx="' + x(i).toFixed(2) + '" cy="' + y(v).toFixed(2) + '" r="1.8" fill="' + inv.color + '"><title>'
+          + esc(cum.dates[i] + ' · ' + inv.label + ' 누적 ' + fmt(v)) + '</title></circle>';
+      });
     });
     var indexes = cum.index.filter(function (v) { return v != null && isFinite(Number(v)); });
-    var showIndex = opts.showIndex !== false && indexes.length >= 2;
+    var showIndex = !intraday && opts.showIndex !== false && indexes.length >= 2;
     if (showIndex) {
       var low = Math.min.apply(Math, indexes), high = Math.max.apply(Math, indexes);
       var span = high - low || 1, paths = [], group = [];
@@ -460,29 +484,55 @@
           + '<title>' + esc(opts.market || '시장') + ' 지수(별도 축)</title></polyline>';
       });
     }
-    var points = cum.dates.map(function (date, i) {
-      var tip = date + '\n' + INVESTORS.map(function (inv) {
-        return inv.label + ' 누적 ' + fmt(cum.series[inv.key][i]);
+    var points = [];
+    cum.dates.forEach(function (date, i) {
+      var tip = (intraday ? opts.date + ' · ' + date + ' KST 슬롯' : date) + '\n' + INVESTORS.map(function (inv) {
+        return inv.label + ' 누적 ' + (validAmount(cum.series[inv.key][i]) ? fmt(cum.series[inv.key][i]) : '미관측');
       }).join(' · ');
-      if (cum.index[i] != null && isFinite(cum.index[i])) tip += '\n지수 ' + Number(cum.index[i]).toLocaleString('ko-KR', {maximumFractionDigits:2}) + ' (별도 축)';
-      return [Math.round(x(i) / width * 10000) / 100, Math.round(y(cum.series.foreign[i]) / height * 10000) / 100, tip];
+      if (intraday) tip += '\n실제 관측 ' + data[i].asOf;
+      else if (cum.index[i] != null && isFinite(cum.index[i])) tip += '\n지수 ' + Number(cum.index[i]).toLocaleString('ko-KR', {maximumFractionDigits:2}) + ' (별도 축)';
+      INVESTORS.forEach(function (inv) {
+        var v = cum.series[inv.key][i];
+        if (validAmount(v)) points.push([Math.round(x(i) / width * 10000) / 100, Math.round(y(v) / height * 10000) / 100, tip]);
+      });
     });
     var first = cum.dates[0], last = cum.dates[n - 1];
+    var label = (opts.market || '시장') + (intraday ? ' ' + opts.date + ' 당일 30분 슬롯별 누적 순매수 (재합산 없음)' : ' 최근 ' + cum.days + '거래일 누적 순매수');
     return '<div class="hmb-investor-spark-wrap hmb-investor-mini-cumulative" data-hover-points="' + esc(JSON.stringify(points))
       + '"><svg class="hmb-investor-spark" viewBox="0 0 ' + width + ' ' + height
-      + '" preserveAspectRatio="none" role="img" aria-label="' + esc((opts.market || '시장') + ' 최근 ' + cum.days
-      + '거래일 누적 순매수: 외국인 ' + fmt(cum.series.foreign[n-1]) + ', 기관 '
-      + fmt(cum.series.institution[n-1]) + ', 개인 ' + fmt(cum.series.individual[n-1])) + '">'
+      + '" preserveAspectRatio="none" role="img" aria-label="' + esc(label) + '">'
       + svg + '</svg></div>'
-      + '<div class="hmb-investor-mini-dates"><span>' + esc(first === '기간 시작' ? '누적 시작' : first.slice(5)) + '</span>'
-      + '<span>' + esc(last.slice(5)) + '</span></div>';
+      + (intraday ? '<div class="hmb-investor-mini-dates"><span>09:00</span><span>12:00</span><span>15:30</span></div>'
+        : '<div class="hmb-investor-mini-dates"><span>' + esc(first === '기간 시작' ? '누적 시작' : first.slice(5)) + '</span><span>' + esc(last.slice(5)) + '</span></div>');
+  }
+
+  function validAmount(v) { return v != null && v !== '' && typeof v !== 'boolean' && isFinite(Number(v)); }
+  function slotLabel(slot) {
+    var minutes = 540 + slot * 30;
+    return String(Math.floor(minutes/60)).padStart(2, '0') + ':' + String(minutes%60).padStart(2, '0');
+  }
+  function intradayRows(rows, date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) return [];
+    var slots = {};
+    (Array.isArray(rows) ? rows : []).forEach(function (r) {
+      if (!r || !Number.isInteger(r.slot) || r.slot < 0 || r.slot > 13 || !r.asOf) return;
+      var stamp = Date.parse(r.asOf), start = Date.parse(date + 'T09:00:00+09:00');
+      var minute = (stamp - start) / 60000;
+      // Backend stores each slot's last observation, including the final 15:30 minute.
+      if (!isFinite(stamp) || minute < r.slot*30 || minute >= (r.slot === 13 ? 391 : (r.slot+1)*30)) return;
+      if (!['frgn','orgn','ind'].some(function (k) { return validAmount(r[k]); })) return;
+      if (!slots[r.slot] || stamp > Date.parse(slots[r.slot].asOf)) slots[r.slot] = r;
+    });
+    return Object.keys(slots).map(function (k) { return slots[k]; }).sort(function (a,b) { return a.slot-b.slot; });
   }
 
   global.InvestorFlow = {
     mount: mount,
     miniChart: miniChart,
+    intradayRows: intradayRows,
     mountBalance: mountBalance,
     _calc: { cumulative: cumulative, streak: streak, balanceStats: balanceStats, balanceSeries: balanceSeries, summarize: summarize, summarizeInvestors: summarizeInvestors, summarizeBalances: summarizeBalances, lastRows: lastRows, sumOf: sumOf, PERIODS: PERIODS, TREND_PCT: TREND_PCT, INVESTORS: INVESTORS,
       mmdd: mmdd, lineSpec: lineSpec }
   };
 })(window);
+
