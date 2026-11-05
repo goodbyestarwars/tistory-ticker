@@ -5,7 +5,9 @@ let source=fs.readFileSync('js/foreign-flow.js','utf8').replace('global.ForeignF
 vm.runInNewContext(source,{window:win,document:{readyState:'loading',addEventListener(){}},console,setTimeout,clearTimeout});
 const card=win.__cards.buildTrendChartCard;
 const daily=Array.from({length:300},(_,i)=>{let date=new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10),c=100+i*.3+Math.sin(i/7)*12;return {date,open:c-1,close:c,high:c+5,low:c-6,volume:1000};});
-const h=card({daily});assert(h.includes('ff-wide-cloud'));assert(!/NaN|Infinity/.test(h));assert(!h.includes('대비'));assert(!h.includes('ff-wide-lead'));
+const h=card({daily});assert(h.includes('ff-wide-cloud'));assert(!/NaN|Infinity/.test(h));assert(!h.includes('ff-wide-lead'));
+assert(h.includes('ff-chart-reading') && h.includes('ff-chart-headline') && h.includes('ff-chart-metrics'));
+assert(h.includes('20일선 대비') && h.includes('60일선 대비') && h.includes('224일선 대비'));
 assert(h.includes('일목균형표(구름대)'));assert(!h.includes('일목 구름'));assert(h.includes('aria-label="차트 범례"'));
 assert(h.indexOf('ff-wide-axis') < h.indexOf('ff-wide-legend'));
 for (const key of ['ma20','ma60','ma224','close']) assert(h.includes('is-'+key));
