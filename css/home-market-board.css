@@ -205,6 +205,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column.is-up 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column.is-down { top: 50%; background: var(--num-down); border-radius: 0 0 3px 3px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-volume-value { color: var(--hmb-mute); font: 400 9px/1.5 var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-volume-value b { font-weight: 600; font-size: 11px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-volume-secondary { display: block; margin-top: 3px; color: var(--hmb-faint); font: 400 9px/1.4 var(--font-ui); font-variant-numeric: tabular-nums; white-space: normal; overflow-wrap: anywhere; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-note { margin-top: 2px; color: var(--hmb-faint); font: 400 10px/1.5 var(--font-ui); overflow-wrap: anywhere; }
 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmp-basis { grid-column: 1 / -1; order: 4; margin-top: 0; }
