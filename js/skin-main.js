@@ -809,6 +809,10 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hus-rot-col" data-us-rot="leaders"><strong>주도 업종 <small>유입·주도 · 등락률 / 거래대금 강도</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
         + '<div class="hus-rot-col" data-us-rot="cautions"><strong>주의 업종 <small>둔화·이탈 · 등락률 / 거래대금 강도</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
         + '<p class="ui-kpi-source" data-us-rot-meta>업종은 섹터 ETF 기반 · 정규장 종가 기준</p></div>'
+        + '<div class="hus-rotation hkr-rotation" data-home-kr-rotation hidden aria-label="국내 주도·주의 업종">'
+        + '<div class="hus-rot-col" data-kr-rot="leaders"><strong>주도 업종 <small>종목별 평균 등락률</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<div class="hus-rot-col" data-kr-rot="cautions"><strong>주의 업종 <small>종목별 평균 등락률</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<p class="ui-kpi-source">국내 업종 분류 종목 표본 · 등락률 단순평균 · 지연 가능</p></div>'
         // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
         + '</div>'
@@ -832,14 +836,14 @@ document.documentElement.classList.add('skin-ready');
         + '</div>'
         + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list hmb2-core">'
-        + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
-        + '<div class="hmb2-leaders"><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
-        + '<div class="hmb2-cautions"><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd>'
+        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="USDKRW" aria-label="원/달러 최근 거래일 추이"></div></div>'
         + '<div class="hmb2-day-futures" data-home-day-futures aria-label="코스피200 주간선물 시세"><dt>KOSPI200 주간선물</dt>'
         + '<dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small>'
-        + '<small class="hmb-day-futures-meta" data-home-day-field="time">09:00~15:45 · 수신 확인 중</small></div>'
-        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인 순매수 추이">'
-        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>외국인 · 30분 누적</span>'
+        + '<small class="hmb-day-futures-meta" data-home-day-field="time">09:00~15:45 · 수신 확인 중</small>'
+        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div></div>'
+        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인·기관 순매수 추이">'
+        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>외국인·기관 · 30분 누적</span>'
         + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">‹</button>'
         + '<span data-investor-mode>면적</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">›</button></div></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
@@ -955,6 +959,8 @@ document.documentElement.classList.add('skin-ready');
       if (soxCard) soxCard.hidden = !isUs;
       var rotationBox = dashboardSection.querySelector('[data-home-us-rotation]');
       if (rotationBox) rotationBox.hidden = !isUs;
+      var domesticRotation = dashboardSection.querySelector('[data-home-kr-rotation]');
+      if (domesticRotation) domesticRotation.hidden = isUs;
       var globalBlock = dashboardSection.querySelector('[data-home-global]');
       if (globalBlock) globalBlock.hidden = !isUs;
       // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(기존 핵심 지표 목록은 국내 모드 전용).
@@ -1036,7 +1042,7 @@ document.documentElement.classList.add('skin-ready');
         });
       });
       var rows = Object.keys(groups).map(function (sector) {
-        return { sector: sector, average: groups[sector].total / groups[sector].count };
+        return { sector: sector, average: groups[sector].total / groups[sector].count, count: groups[sector].count };
       }).sort(function (a, b) { return b.average - a.average; });
       return {
         leaders: rows.filter(function (item) { return item.average > 0; }).slice(0, 3),
@@ -1593,8 +1599,24 @@ document.documentElement.classList.add('skin-ready');
 
     function renderMarketSectors(bubble) {
       var summary = sectorSummary(bubble);
-      setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
-      setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
+      // 기존 시총 버블 업종 집계를 미국시장과 같은 두 칸 목록/0선 막대로 표시한다.
+      // 미국 섹터 ETF 로테이션과 공급자·표본이 다르므로 별도 설명을 유지한다.
+      var rotation = dashboardSection.querySelector('[data-home-kr-rotation]');
+      if (!rotation) return;
+      var scale = Math.max(0.5, summary.leaders.concat(summary.cautions).reduce(function (max, row) {
+        return Math.max(max, Math.abs(row.average));
+      }, 0));
+      [['leaders', summary.leaders], ['cautions', summary.cautions]].forEach(function (group) {
+        var list = rotation.querySelector('[data-kr-rot="' + group[0] + '"] .hus-rot-list');
+        if (!list) return;
+        list.innerHTML = group[1].length ? group[1].map(function (row) {
+          var rate = row.average, width = Math.min(50, Math.abs(rate) / scale * 50);
+          return '<li><span class="hus-name">' + escapeHomeHtml(row.sector) + '</span>'
+            + '<span class="hus-bar" role="img" aria-label="' + escapeHomeHtml(row.sector + ' 평균 ' + rate.toFixed(2) + '%') + '"><i class="' + (rate >= 0 ? 'is-up' : 'is-down') + '" style="width:' + width.toFixed(1) + '%"></i></span>'
+            + '<b class="' + homeTone(rate) + '">' + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%</b>'
+            + '<small>' + row.count + '종목</small></li>';
+        }).join('') : '<li class="ui-kpi-empty">해당 업종 데이터 없음</li>';
+      });
     }
 
     function homeIndexCard(slot) {
@@ -2082,19 +2104,35 @@ document.documentElement.classList.add('skin-ready');
       homeFill(card, 'data-home-day-field', 'time',
         status + (stamp ? ' · ' + stamp : ' · 기준시각 없음'), 'home-neutral');
     }
+    function renderHomeMetricCharts(bySymbol) {
+      ['USDKRW', 'KOSPI200_DAY'].forEach(function (symbol) {
+        var chart = dashboardSection.querySelector('[data-home-metric-chart="' + symbol + '"]');
+        if (!chart) return;
+        var item = bySymbol && bySymbol[symbol];
+        var p = item && homeNum(item.price), c = item && homeNum(item.change);
+        // 현재 보이는 대표지수와 같은 SVG·펜촉·기준선·20거래일 차트. 실제 과거 일봉만 사용.
+        renderHomeIndexChart(chart, item && item.chart, symbol, p != null && c != null ? p - c : null);
+      });
+    }
     function loadHomeDayFutures() {
       if (homeMarketSession().market !== 'domestic' || document.hidden) return;
       if (homeDayFutureLoading || Date.now() - homeDayFutureRequestedAt < 50000) return;
       homeDayFutureLoading = true;
       homeDayFutureRequestedAt = Date.now();
-      // 전체 페이지 공통 20초 지수 요청은 늘리지 않는다. 국내 홈에서만 1분 조회.
-      fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI200_DAY&stored_only=true', 12000)
+      // 기존 응답의 일봉 차트 2종을 함께 가져와 추가 주기/수집 프로세스를 만들지 않는다.
+      fetchHomeJson('https://goodbyestar.cloud/futures?symbols=USDKRW%2CKOSPI200_DAY&days=30&stored_only=true', 12000)
         .then(function (response) {
           var rows = response && Array.isArray(response.data) ? response.data : [];
-          homeDayFutureQuote = rows.find(function (row) { return row && row.symbol === 'KOSPI200_DAY'; }) || null;
+          var by = {};
+          rows.forEach(function (row) {
+            if (row && (row.symbol === 'USDKRW' || row.symbol === 'KOSPI200_DAY')) by[row.symbol] = row;
+          });
+          homeDayFutureQuote = by.KOSPI200_DAY || null;
           renderHomeDayFutures(homeDayFutureQuote, false);
+          renderHomeMetricCharts(by);
         }).catch(function () {
           renderHomeDayFutures(homeDayFutureQuote, true);
+          renderHomeMetricCharts(null);
         }).then(function () { homeDayFutureLoading = false; });
     }
 
@@ -2434,8 +2472,8 @@ document.documentElement.classList.add('skin-ready');
         })
         .catch(function () {
           if (!cachedMarketSectors) {
-            setField('leaders', '일시 지연', 'home-neutral');
-            setField('cautions', '일시 지연', 'home-neutral');
+            var lists = dashboardSection.querySelectorAll('[data-home-kr-rotation] .hus-rot-list');
+            lists.forEach(function (list) { list.innerHTML = '<li class="ui-kpi-empty">업종 수신 지연</li>'; });
           }
       });
     };
@@ -2487,69 +2525,77 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function investorSparkline(result, mode, marketKey) {
-      // Retain real slot positions: never compress gaps or invent missing bars.
       var rows = (result.rows || []).filter(function (r) {
         return Number.isInteger(r.slot) && r.slot >= 0 && r.slot < 14
-          && r.frgn != null && isFinite(Number(r.frgn));
+          && (r.frgn != null && isFinite(Number(r.frgn)) || r.orgn != null && isFinite(Number(r.orgn)));
       }).slice().sort(function (a, b) { return a.slot - b.slot; });
       if (!rows.length) return '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
-      var high = result.extrema && result.extrema.high;
-      var low = result.extrema && result.extrema.low;
-      if (!high || high.value == null || !isFinite(Number(high.value))) high = rows.reduce(function (a, r) { return r.frgn > a.value ? { slot: r.slot, value: Number(r.frgn) } : a; }, { slot: rows[0].slot, value: Number(rows[0].frgn) });
-      if (!low || low.value == null || !isFinite(Number(low.value))) low = rows.reduce(function (a, r) { return r.frgn < a.value ? { slot: r.slot, value: Number(r.frgn) } : a; }, { slot: rows[0].slot, value: Number(rows[0].frgn) });
-      var nums = rows.map(function (r) { return Number(r.frgn); }).concat([Number(high.value), Number(low.value), 0]);
+      var foreigners = rows.filter(function (r) { return r.frgn != null && isFinite(Number(r.frgn)); });
+      var institutions = rows.filter(function (r) { return r.orgn != null && isFinite(Number(r.orgn)); });
+      var nums = [0].concat(foreigners.map(function (r) { return Number(r.frgn); }))
+        .concat(institutions.map(function (r) { return Number(r.orgn); }));
       var min = Math.min.apply(Math, nums), max = Math.max.apply(Math, nums);
       if (min === max) { min -= 1; max += 1; }
       function y(value) { return 78 - (value - min) / (max - min) * 66; }
       function x(slot) { return 4 + slot * 92 / 13; }
-      var zero = y(0), marks = '';
-      var prefix = 'home-investor-' + marketKey;
+      var zero = y(0), marks = '', id = 'home-investor-' + marketKey;
+      var foreignMax = foreigners.length ? foreigners.reduce(function(a,b){ return Number(b.frgn) > Number(a.frgn) ? b : a; }) : null;
+      var foreignMin = foreigners.length ? foreigners.reduce(function(a,b){ return Number(b.frgn) < Number(a.frgn) ? b : a; }) : null;
       if (mode === 'area') {
+        marks = '<defs><clipPath id="' + id + '-positive"><rect x="0" y="0" width="100" height="' + zero + '"/></clipPath>'
+          + '<clipPath id="' + id + '-negative"><rect x="0" y="' + zero + '" width="100" height="' + (90 - zero) + '"/></clipPath></defs>';
+      }
+      [['frgn',foreigners,false],['orgn',institutions,true]].forEach(function (series) {
+        var field = series[0], valid = series[1], institution = series[2];
+        if (mode === 'bar') {
+          valid.forEach(function (r) {
+            var v = Number(r[field]), side = v > 0 ? 'buy' : v < 0 ? 'sell' : 'flat';
+            var minute = 540 + r.slot * 30, label = Math.floor(minute / 60) + ':' + String(minute % 60).padStart(2, '0');
+            marks += '<rect x="' + (x(r.slot) + (institution ? 0.3 : -2.4)).toFixed(2) + '" y="' + (v === 0 ? zero - .3 : Math.min(zero, y(v))) + '" width="2.3" height="' + Math.max(.6, Math.abs(y(v) - zero)) + '" rx=".3" class="hmb-investor-' + side + (institution ? ' hmb-investor-institution' : '') + '"><title>'
+              + (institution ? '기관' : '외국인') + ' ' + label + ' · ' + investorAmountText(v) + '</title></rect>';
+          });
+          return;
+        }
         var groups = [];
-        rows.forEach(function (r) {
-          var group = groups[groups.length - 1];
-          if (!group || r.slot !== group[group.length - 1].slot + 1) { group = []; groups.push(group); }
-          group.push(r);
+        valid.forEach(function (r) {
+          var last = groups[groups.length-1];
+          if (!last || r.slot !== last[last.length-1].slot + 1) { last=[];groups.push(last); }
+          last.push(r);
         });
-        marks = '<defs><clipPath id="' + prefix + '-buy"><rect x="0" y="0" width="100" height="' + zero + '"/></clipPath>'
-          + '<clipPath id="' + prefix + '-sell"><rect x="0" y="' + zero + '" width="100" height="' + (90 - zero) + '"/></clipPath></defs>';
         groups.forEach(function (group) {
-          var points = group.map(function (r) { return x(r.slot).toFixed(2) + ',' + y(Number(r.frgn)).toFixed(2); }).join(' ');
-          if (group.length > 1) {
-            var area = x(group[0].slot) + ',' + zero + ' ' + points + ' ' + x(group[group.length - 1].slot) + ',' + zero;
-            ['buy', 'sell'].forEach(function (side) {
-              marks += '<g clip-path="url(#' + prefix + '-' + side + ')" class="hmb-investor-' + side + '">'
-                + '<polygon points="' + area + '" class="hmb-investor-area"/>'
-                + '<polyline points="' + points + '" class="hmb-investor-line" vector-effect="non-scaling-stroke"/></g>';
+          if (group.length < 2) return;
+          var pts=group.map(function(r){return x(r.slot).toFixed(2)+','+y(Number(r[field])).toFixed(2);}).join(' ');
+          if (!institution) {
+            var area=x(group[0].slot)+','+zero+' '+pts+' '+x(group[group.length-1].slot)+','+zero;
+            ['positive','negative'].forEach(function(side,index){
+              marks+='<g clip-path="url(#'+id+'-'+side+')" class="hmb-investor-'+(index?'sell':'buy')+'">'
+                +'<polygon points="'+area+'" class="hmb-investor-area"/>'
+                +'<polyline points="'+pts+'" class="hmb-investor-line" vector-effect="non-scaling-stroke"/></g>';
+            });
+          } else {
+            ['positive','negative'].forEach(function(side,index){
+              marks+='<g clip-path="url(#'+id+'-'+side+')" class="hmb-investor-'+(index?'sell':'buy')+'">'
+                +'<polyline points="'+pts+'" class="hmb-investor-line hmb-investor-institution" vector-effect="non-scaling-stroke"/></g>';
             });
           }
         });
-      }
-      rows.forEach(function (r) {
-        var value = Number(r.frgn), side = value > 0 ? 'buy' : value < 0 ? 'sell' : 'flat';
-        var minute = 540 + r.slot * 30;
-        var label = Math.floor(minute / 60) + ':' + String(minute % 60).padStart(2, '0');
-        var title = '<title>' + label + ' 구간 · 누적 ' + investorAmountText(value) + ' · 수집 ' + investorTimeText(r.asOf) + '</title>';
-        if (mode === 'area') {
-          marks += '<circle cx="' + x(r.slot) + '" cy="' + y(value) + '" r=".8" class="hmb-investor-' + side + '">' + title + '</circle>';
-        } else {
-          marks += '<rect data-investor-slot="' + r.slot + '" x="' + (x(r.slot) - 2.3) + '" y="' + (value === 0 ? zero - .3 : Math.min(zero, y(value))) + '" width="4.6" height="' + Math.max(.6, Math.abs(y(value) - zero)) + '" rx=".4" class="hmb-investor-' + side + '">' + title + '</rect>';
-        }
       });
-      function point(extreme, name) {
-        return '<span class="hmb-investor-point is-' + name + '" style="left:' + x(extreme.slot).toFixed(2) + '%;top:' + (y(extreme.value) / 90 * 100).toFixed(2) + '%" aria-hidden="true"></span>';
-      }
-      var investorHover = rows.map(function (r) {
-        var minute = 540 + r.slot * 30;
-        return [x(r.slot), y(Number(r.frgn)) / 90 * 100,
-          Math.floor(minute / 60) + ':' + String(minute % 60).padStart(2, '0') + ' KST 구간 · 외국인 누적 ' + investorAmountText(Number(r.frgn))
-            + '\n수집 ' + investorTimeText(r.asOf)];
+      var hover = [];
+      rows.forEach(function(r){
+        var minute=540+r.slot*30,label=Math.floor(minute/60)+':'+String(minute%60).padStart(2,'0');
+        ['frgn','orgn'].forEach(function(field){
+          if(r[field]==null||!isFinite(Number(r[field])))return;
+          hover.push([x(r.slot),y(Number(r[field]))/90*100,
+            label+' KST 구간 · '+(field==='frgn'?'외국인':'기관')+' 누적 '+investorAmountText(r[field])+'\n수집 '+investorTimeText(r.asOf)]);
+        });
       });
-      return '<div class="hmb-investor-spark-wrap" data-hover-points="' + homeHoverAttr(investorHover) + '"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 구간별 누적 외국인 순매수, 확보 ' + rows.length + '개, 관측 고점 ' + investorAmountText(high.value) + ', 저점 ' + investorAmountText(low.value) + '">'
-        + '<line x1="1" y1="' + zero + '" x2="99" y2="' + zero + '" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
-        + marks + '</svg>' + point(high, 'high') + (high.value !== low.value ? point(low, 'low') : '') + '</div>'
-        + '<div class="hmb-investor-axis"><span>09:00</span><span>12:00</span><span>15:30</span></div>'
-        + '<div class="hmb-investor-extrema"><span>고점 <b>' + investorAmountText(high.value) + '</b></span><span>저점 <b>' + investorAmountText(low.value) + '</b></span></div>';
+      var extrema = foreignMax && foreignMin ?
+        '<div class="hmb-investor-extrema"><span>외국인 고점 <b>'+investorAmountText(foreignMax.frgn)+'</b></span>'
+          +'<span>저점 <b>'+investorAmountText(foreignMin.frgn)+'</b></span></div>' : '';
+      return '<div class="hmb-investor-spark-wrap" data-hover-points="'+homeHoverAttr(hover)+'"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 구간별 외국인 실선·기관 점선 누적 순매수, 확보 '+rows.length+'개">'
+        +'<line x1="1" y1="'+zero+'" x2="99" y2="'+zero+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
+        +marks+'</svg></div>'
+        +'<div class="hmb-investor-axis"><span>09:00</span><span>12:00</span><span>15:30</span></div>'+extrema;
     }
 
     function renderHomeInvestorTrend(results) {
@@ -2565,10 +2611,13 @@ document.documentElement.classList.add('skin-ready');
       var html = markets.map(function (market, index) {
         var result = results[index] && results[index].data ? results[index].data : (results[index] || {});
         var rows = Array.isArray(result.rows) ? result.rows : [];
-        var latest = result.latest;
-        var tone = latest > 0 ? 'home-positive' : latest < 0 ? 'home-negative' : 'home-neutral';
+        var lastRow = rows.length ? rows[rows.length - 1] : null;
+        var foreign = lastRow && lastRow.frgn != null ? Number(lastRow.frgn) : result.latest;
+        var institution = lastRow && lastRow.orgn != null ? Number(lastRow.orgn) : null;
         return '<div class="hmb-investor-row">'
-          + '<div class="hmb-investor-row-top"><strong>' + market.label + '</strong><b class="' + tone + '">' + investorAmountText(latest) + '</b></div>'
+          + '<div class="hmb-investor-row-top"><strong>' + market.label + '</strong>'
+          + '<span class="hmb-investor-amounts"><span><small>실선 외국인</small><b class="' + homeTone(foreign) + '">' + investorAmountText(foreign) + '</b></span>'
+          + '<span><small>점선 기관</small><b class="' + homeTone(institution) + '">' + investorAmountText(institution) + '</b></span></span></div>'
           + investorSparkline(result, homeInvestorMode, market.key)
           + '<div class="hmb-investor-asof">' + String(result.date || '').replace(/[^0-9-]/g, '') + ' · '
           + (rows.length ? '관측 ' + investorTimeText(result.asOf) + ' · ' + rows.length + '/14개' : '일별 최근값 · 장중 기록 없음') + '</div>'

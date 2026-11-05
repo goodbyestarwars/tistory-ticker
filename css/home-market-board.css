@@ -256,7 +256,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core {
-  display: grid; grid-template-columns: minmax(0, .75fr) repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin: 10px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; margin: 10px 0 0; padding: 0;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > div { display: block; min-width: 0; margin: 0; padding: 0; border: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core dt { margin: 0 0 3px; font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
@@ -268,6 +268,10 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core dd {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb-day-futures-change {
   display: block; margin-top: 1px; font: 600 12px/1.4 var(--font-data, var(--font-ui)); font-variant-numeric: tabular-nums;
 }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core .hmb2-metric-chart {
+  height: 56px; margin-top: 7px; min-width: 0; overflow: hidden;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core .hmb2-metric-chart .home-chart-axis { font-size: 9px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb-day-futures-meta {
   display: block; margin-top: 3px; font: 400 10px/1.35 var(--font-ui); color: var(--hmb-faint); overflow-wrap: anywhere;
 }
@@ -283,6 +287,12 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-tren
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 22px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top strong { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts { display: flex; flex-wrap: nowrap; align-items: center; gap: 5px 10px; min-width: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts > span { display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts small { color: var(--hmb-faint); font: 500 10px/1.3 var(--font-ui); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts b { font-size: 12px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-line.hmb-investor-institution { stroke-dasharray: 4 3; stroke-width: 1.6; opacity: .85; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 rect.hmb-investor-institution { opacity: .5; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top b { font: 700 14px/1.4 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-spark-wrap { position: relative; width: 100%; height: 90px; margin-top: 8px; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-spark { width: 100%; height: 100%; margin: 0; }
@@ -409,6 +419,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card,
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card { padding: var(--ui-card-padding); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-body { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts { gap: 6px; }
 }
 
 /* style.css @layer np 안의 !important(카드 border-image·띠 margin-top·머리말 min-height)를 같은 층에서 덮는다. */

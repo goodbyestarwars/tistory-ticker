@@ -1,3 +1,7 @@
+**2026-11-05 KR 업종 이동·두 미니 차트·기관 수급 동시 표시**
+
+국내시장 박스로 주도/주의 업종을 이동하고 기존 미국시장 `hus-rotation`을 공유(국내 업종별 표본 평균률·표본 건수, 별도 공급처 설명). ‘시장 핵심 지표’는 원/달러/주간선물 2칸+기존 대표지수 미니차트 렌더러를 재사용한 실제 일봉(20개) 그래프, 기존 1분 /futures 요청에 USDKRW만 추가. 투자자 동향 KOSPI/KOSDAQ 카드/차트 70px는 그대로 두고 기존 /investor-trend의 `frgn` 외국인 실선+ `orgn` 기관 점선(같은 축, 30분 단위, 결측 유지), 두 총액과 면적/막대 전환 표시. API 신규 수집·VM·주문·Tistory HTML 없음. 테스트/배포 상태는 GitHub run 기준으로 기록.
+
 **2026-11-05 운영 UI 반영 점검: 차트 확장 CSS 버전 동기화**
 
 차트 독립 버튼 스타일은 공통 `dashboard-enhancements.css`에 추가됐지만 이를 로드하는 `dashboard-enhancements.js`의 `ENHANCEMENT_VERSION`이 이전 그리기 툴바 값으로 남아 CSS 캐시의 구버전 재사용 가능. JS 소유 CSS 링크를 최신 expand-segment 버전으로 동기화하고 같은 data 표식의 오래된 CSS 링크는 중복 주입하지 않고 href만 최신 버전으로 변경한다. 차트 마크업·캡처·홈 주간선물·주문/VM 및 티스토리 `skin.html`은 수정하지 않았다. 코드·CSS 계약 검증 및 기존 링크 재사용 테스트 추가. GitHub Pages 배포와 운영 브라우저 실제 화면을 구분한다.
