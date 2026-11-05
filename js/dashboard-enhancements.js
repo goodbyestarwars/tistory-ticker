@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261020-us-chart-layout';
+  var ENHANCEMENT_VERSION = '20261105-chart-toolbar-groups';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -230,7 +230,14 @@
       controlRow.classList.add('de-chart-control-row');
       button.classList.add('de-expand-inline');
       var drawingGroup = controlRow.querySelector('.ss-drawing-tools');
-      (drawingGroup || controlRow).appendChild(button);
+      var actionStack = controlRow.querySelector('.nine-chart-action-stack');
+      if (actionStack) {
+        // 독립 차트가 위, 이미지 저장·복사가 바로 아래에 고정된다.
+        // 원본 차트 버튼과 이벤트는 DOM 이동으로 끊기지 않는다.
+        actionStack.insertBefore(button, actionStack.querySelector('.nine-chart-capture-actions'));
+      } else {
+        (drawingGroup || controlRow).appendChild(button);
+      }
       if (!target.classList.contains('ss-index-chart')) moveDrawingControlsBelowFullscreen(controlRow);
     } else if (anchor) {
       anchor.insertBefore(button, target);

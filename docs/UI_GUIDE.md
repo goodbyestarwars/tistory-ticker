@@ -9,6 +9,17 @@ MY 포트폴리오의 매물대는 종목분석 `ForeignFlow.renderVolumeProfile
 폭 120px(모바일 96px)으로 축소해 목록 아래에 둔다. SVG의 흑색 기본 채우기·
 무제한 크기로 되돌아가지 않도록 검사하고, 분석치·기간·기존 가격별 행은 바꾸지 않는다.
 
+## 차트 툴바 세그먼트 및 캡처 배치 (2026-11-05)
+
+국내·미국·지수 차트의 `ss-drawing-tools`와 종목분석 `ff-draw-tools`는
+`nine-chart-drawing-segment`에 메모~지우기 기능을 순서 그대로 묶는다.
+봉 주기/기간 세그먼트와 동일한 사각 트랙·선택 배경을 사용한다.
+`nine-chart-action-stack`은 오른쪽 별도 세로 묶음으로, 공통
+`dashboard-enhancements.addExpandButton`가 '독립 차트'를 첫 행에,
+`nine-chart-capture-actions`가 그 아래 '📷 저장/복사'를 표시한다.
+버튼 ID/기능·캡처 핸들러·차트 모달 DOM 이동은 유지한다.
+모바일은 그리기 세그먼트 안에서 줄바꿈하고 동작/버튼은 숨기지 않는다.
+
 ## 차트 캡처 (2026-11-05)
 
 실시간 시세 차트(국내·미국·지수)와 종목분석 차트는 공통 `NineChartCore`의
