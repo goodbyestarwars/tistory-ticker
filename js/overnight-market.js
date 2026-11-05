@@ -477,6 +477,8 @@
   // 허용한다(Access-Control-Allow-Origin: *, 실측) - 방문자 브라우저가 직접 조회해 서버 부하 없이 보여준다.
   // 브라우저에서도 막히면(방문자 지역 제한 등) 서버 수집 결과로 물러나고, 그것도 제한이면 섹션을 숨긴다.
   var BINANCE_FAPI = 'https://fapi.binance.com/fapi/v1';
+  // 공식 가격 티커의 time은 거래 시각이다. /ticker/24hr.closeTime은 24시간 통계 종료 시각이므로 혼용 금지.
+  var BINANCE_PRICE_TICKER = 'https://fapi.binance.com/fapi/v2/ticker/price';
   // 휴장 홈의 LIVE_KR_TOKENS와 같은 종목. 브라우저 직접 조회라 VM 수집은 늘리지 않는다.
   var BINANCE_SYMBOLS = [
     ['SAMSUNGUSDT', '삼성전자'], ['SKHYNIXUSDT', 'SK하이닉스'],
@@ -580,10 +582,16 @@
     return Promise.all([
       binanceGet(BINANCE_FAPI + '/ticker/24hr?symbol=' + q),
       quotesOnly ? Promise.resolve(null) : binanceGet(BINANCE_FAPI + '/premiumIndex?symbol=' + q).catch(function () { return null; }),
-      quotesOnly ? Promise.resolve([]) : binanceKlines(symbol)
+      quotesOnly ? Promise.resolve([]) : binanceKlines(symbol),
+      // 가격과 실제 거래 시각을 동일한 응답에서 받는다. 실패하면 24hr 가격만 사용하고 체결시각은 미확인.
+      binanceGet(BINANCE_PRICE_TICKER + '?symbol=' + q, 6000).catch(function () { return null; })
     ]).then(function (res) {
       var ticker = res[0] || {};
-      var price = Number(ticker.lastPrice);
+      var latest = res[3], now = Date.now();
+      var tradePrice = latest && Number(latest.price), tradeTime = latest && Number(latest.time);
+      var tradeVerified = !!(latest && latest.symbol === symbol && isFinite(tradePrice) && tradePrice > 0
+        && isFinite(tradeTime) && tradeTime > 0 && tradeTime <= now + 60000);
+      var price = tradeVerified ? tradePrice : Number(ticker.lastPrice);
       var rate = ticker.priceChangePercent;
       if (!isFinite(price) || price <= 0 || ticker.symbol !== symbol) return null;
       return {
@@ -597,7 +605,9 @@
         markPrice: res[1] ? Number(res[1].markPrice) : null,
         fundingRate: res[1] ? Number(res[1].lastFundingRate) : null,
         quoteAsset: 'USDT',
-        quoteTime: Number(ticker.closeTime) || null,
+        tradeTime: tradeVerified ? tradeTime : null,
+        receivedAt: new Date(now).toISOString(),
+        statsWindowEndAt: Number(ticker.closeTime) || null,
         klines: res[2]
       };
     }).catch(function () { return null; });   // 미상장·지역 제한 등은 그 종목만 조용히 뺀다
