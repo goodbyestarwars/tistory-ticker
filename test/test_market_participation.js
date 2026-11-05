@@ -15,7 +15,11 @@ assert.equal(context.homeParticipationModel('domestic',null)[0].participation,nu
 module.exports={extract,entry,source};
 console.log('PASS domestic participation validation, independent markets and sample boundaries');
 // Preserve the US aggregate model contract.
-const usEntry=entry();const us=context.homeParticipationModel('us',{byIndex:{SP500:usEntry,NASDAQ:usEntry}});assert.equal(us[0].volume.index100,110);assert.equal(us[1].label,'나스닥 종합');
+// US does not inherit the Korean KIS market turnover or TradingView share-volume.
+const usEntry=entry();
+const us=context.homeParticipationModel('us',{byIndex:{SP500:usEntry,NASDAQ:usEntry}});
+assert.equal(us[0].volume,null);
+assert.equal(us[1].label,'나스닥 종합');
 // During a domestic weekday session, an eight-minute-old HTTP cache is suppressed.
 const fixed=Date.parse('2026-10-28T02:00:00Z');
 const dated={Date:class extends Date {static now(){return fixed;}},isFinite};vm.createContext(dated);vm.runInContext(extract('homeParticipationModel'),dated);
