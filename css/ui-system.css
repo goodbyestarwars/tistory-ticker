@@ -5,6 +5,9 @@
  * 의미색(--up/--down)은 시세·상태 데이터에만 사용하고, 버튼 구조색과 섞지 않는다.
  */
 :root {
+  /* Chart fills only: labels, prices, outlines and indicator lines retain their semantic colors. */
+  --chart-fill-up: #FAE8E7;
+  --chart-fill-down: #E4EDF8;
   --ui-ink: var(--text-main);
   --ui-muted: var(--text-sub);
   --ui-rule: var(--rule);
