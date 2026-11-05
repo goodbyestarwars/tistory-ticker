@@ -1742,7 +1742,7 @@
     return '<article class="ff-wide ff-wide--chart" data-story-number="01"><div class="ff-wide-grid is-chart"><div class="ff-wide-body">'
       + '<div class="ff-wide-plot">' + svg + '</div><div class="ff-wide-axis"><span>' + escapeHtml(String(daily[from].date || '')) + '</span>'
       + '<span>' + escapeHtml(String(daily[n - 1].date || '')) + '</span></div>'
-      + '<div class="ff-wide-legend" aria-label="차트 범례">' + legend + '</div></div></div>
+      + '<div class="ff-wide-legend" aria-label="차트 범례">' + legend + '</div></div></div>'
       + '<footer class="ff-wide-foot"><small>최근 ' + span + '거래일 · ' + note + '</small></footer></article>';
   }
 
