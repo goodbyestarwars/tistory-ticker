@@ -1,5 +1,9 @@
 # 글로벌 시장지표 해석과 휴장 지표
 
+## 바이낸스 거래 시각·응답 수신 구분 (2026-11-05)
+
+`js/overnight-market.js` 공통 브라우저 조회는 `/fapi/v1/ticker/24hr`의 24시간 통계와 `/fapi/v2/ticker/price`의 최신 가격·거래 시각을 결합한다. 24시간 통계의 `closeTime`은 거래 시각이 아니다. 시각 조회가 실패하면 24시간 통계 가격만 유지하고 거래 시각은 미확인으로 둔다. 가상자산 탭의 `js/crypto-market.js`는 종목명 아래 체결 시각·경과시간(5분 이상 거래 공백), 표 상단에는 실제 응답 수신시각·서버 폴백·조회 지연 여부를 분리한다. 인디케이터 공통 표 `js/indicator-board.js`는 재조회 시 `sub` 문자열만 갱신하며 포커스·선택을 보존한다. 30초 조회 주기/기존 chart-history 캐시는 불변. 공식 응답 필드 참조: https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Symbol-Price-Ticker-v2
+
 2026-10-07: `js/overnight-market.js`, `css/overnight-market.css`, `js/us-macro-indicators.js`, `css/us-macro-indicators.css`.
 
 - 바이낸스 국내주식 토큰은 휴장 홈과 같은 삼성전자·SK하이닉스·현대차·삼성전기·한미반도체·LG전자·NAVER·KODEX 200의 8종목이다. 가격·24시간 등락·마크가격·펀딩비를 방문자 브라우저에서 직접 조회한다. 홈의 금요일 이후 등락과 글로벌 카드의 24시간 등락은 기준이 다르므로 카드에 24시간을 유지한다. 실제 국내 주식 가격/수급으로 취급하지 않는다.
