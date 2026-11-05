@@ -276,7 +276,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb-day-futures-change {
   display: block; margin-top: 1px; font: 600 12px/1.4 var(--font-data, var(--font-ui)); font-variant-numeric: tabular-nums;
 }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core .hmb2-metric-chart {
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core .home-index-chart.hmb2-metric-chart {
   height: auto; margin-top: 7px; min-width: 0; overflow: hidden;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-metric-chart .hmb-price-controls {
