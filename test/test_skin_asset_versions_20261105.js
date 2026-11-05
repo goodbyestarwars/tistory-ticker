@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('node:fs'), assert=require('node:assert/strict');
+const skin=fs.readFileSync('skin.html','utf8');
+const main=fs.readFileSync('js/skin-main.js','utf8');
+const enhanced=fs.readFileSync('js/dashboard-enhancements.js','utf8');
+const css=fs.readFileSync('css/home-market-board.css','utf8');
+assert(skin.includes('data-home-market-board-css="1" href="https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261105-day-futures-compact"'));
+assert(skin.includes('js/skin-main.js?v=20261105-home-day-futures-fullscreen-segment'));
+assert(main.includes('css/home-market-board.css?v=20261105-day-futures-compact'));
+assert(main.includes('js/dashboard-enhancements.js?v=20261105-chart-expand-segment'));
+assert(main.includes("if (!document.querySelector('link[data-home-market-board-css]'))"));
+assert(css.includes('grid-template-columns: minmax(0, .75fr) repeat(3, minmax(0, 1fr));'));
+assert(main.includes('KOSPI200_DAY&stored_only=true'));
+assert(enhanced.includes("expandSegment.className = 'nine-chart-expand-segment'"));
+console.log('PASS: skin/main CSS/JS URLs synchronized with Nov 5 features');

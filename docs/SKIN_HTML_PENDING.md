@@ -1,5 +1,26 @@
 # skin.html 미반영 항목
 
+## 2026-11-05 홈 핵심지표·독립 차트 미반영: 스킨 정적 자산 버전 갱신 필요
+
+GitHub Pages 배포와 티스토리 스킨 적용은 별개다. 저장소 `skin.html`의 정적
+`home-market-board.css` 링크가 `?v=20261027-open-block-columns`로 남아있어,
+런타임 `skin-main.js`는 `data-home-market-board-css` 링크의 존재만 검사하고
+새 `20261105` CSS 주소를 로드하지 않는다. `skin-main.js` 자체도 운영 스킨의
+정적 `?v=20261025-countdown-module6` 참조가 최신 코드 배포와 별개로 캐시될 수
+있다. 이번 저장소 스킨 템플릿에서 다음 두 줄의 `?v`만 바꾸고,
+`skin-main.js`의 `dashboard-enhancements.js` 동적 로드 버전도 올렸다.
+
+- `css/home-market-board.css?v=20261105-day-futures-compact`
+- `js/skin-main.js?v=20261105-home-day-futures-fullscreen-segment`
+- `js/dashboard-enhancements.js?v=20261105-chart-expand-segment` (JS 로더 내부)
+
+**티스토리 운영 반영은 미확인/수동 필요:** 관리자 → 꾸미기 → 스킨 편집 →
+HTML 편집에서 해당 두 링크의 쿼리 문자열만 수정하고 저장·적용한다.
+전체 `skin.html`을 덮어써 사용자 쪽 최근 변경을 잃지 않는다.
+실제 운영 링크·상호작용·CSS는 작업 완료 후 브라우저로 확인해야 한다.
+HTML 계약을 해결하려는 런타임 URL 강제 변경/중복 CSS 추가는 하지 않는다.
+
+
 `skin.html`은 티스토리 관리자(스킨 편집기)에서만 고칠 수 있다. git push로는 운영 화면에
 닿지 않는다. 이 문서는 **리포의 `skin.html`은 이미 맞는데 운영 스킨이 낡아서 생기는
 문제**와, 그것 때문에 임시로 넣어둔 런타임 우회를 모아 둔다.
