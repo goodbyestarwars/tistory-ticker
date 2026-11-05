@@ -193,7 +193,10 @@
   border-radius: 7px;
   background: transparent;
   color: #333;
-  font: 600 12px/1.2 inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
 }
 :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-drawing-segment > button:is(.is-active, [aria-pressed="true"]) {
@@ -234,7 +237,10 @@
   border-radius: 7px;
   background: #fff;
   color: #405266;
-  font: 600 11px/1.2 inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
 }
 html.dark :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-drawing-segment {
