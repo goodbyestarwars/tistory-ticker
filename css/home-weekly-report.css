@@ -192,6 +192,7 @@ body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-c
 
 .weekend-dashboard .wd-index {
   --wd-tone: var(--wd-sub);
+  --wd-fill-tone: var(--wd-sub);
   position: relative;
   box-sizing: border-box;
   height: 135px;
@@ -209,10 +210,12 @@ body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-c
 
 .weekend-dashboard .wd-index.is-up {
   --wd-tone: var(--num-up);
+  --wd-fill-tone: var(--chart-fill-up);
 }
 
 .weekend-dashboard .wd-index.is-down {
   --wd-tone: var(--num-down);
+  --wd-fill-tone: var(--chart-fill-down);
 }
 
 .weekend-dashboard .wd-index > strong {
@@ -277,13 +280,13 @@ body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-c
 }
 
 .weekend-dashboard .hwr-glow-top {
-  stop-color: var(--wd-tone);
-  stop-opacity: .22;
+  stop-color: var(--wd-fill-tone);
+  stop-opacity: .95;
 }
 
 .weekend-dashboard .hwr-glow-bottom {
-  stop-color: var(--wd-tone);
-  stop-opacity: .02;
+  stop-color: var(--wd-fill-tone);
+  stop-opacity: .12;
 }
 
 .weekend-dashboard .hwr-glow-dot {
