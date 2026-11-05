@@ -1,13 +1,14 @@
 /* Common liquid-glass material. Layout, type, page backgrounds and semantic colors
    belong to their existing components. Opaque material is the default fallback. */
 :root {
-  --ui-clear-surface: rgba(255,255,255,.08);
-  --ui-clear-sheen: radial-gradient(ellipse at 8% 0, rgba(255,255,255,.5), transparent 42%), radial-gradient(ellipse at 96% 100%, rgba(255,255,255,.28), transparent 36%);
-  --ui-clear-edge: rgba(93,111,133,.3);
-  --ui-clear-rim: linear-gradient(145deg, rgba(255,255,255,.96) 4%, rgba(153,171,190,.24) 22%, rgba(255,255,255,.82) 40%, rgba(255,255,255,.08) 62%, rgba(117,137,158,.22) 82%, rgba(255,255,255,.9));
-  --ui-clear-shadow: 0 2px 5px rgba(15,23,42,.06), 0 8px 20px rgba(15,23,42,.04), inset 0 1px 1px rgba(255,255,255,.96), inset 1px 0 2px rgba(255,255,255,.64), inset 0 -2px 4px rgba(83,103,125,.1);
-  --ui-clear-inner-edge: rgba(255,255,255,.76);
-  --ui-clear-inner-shade: rgba(100,120,143,.14);
+  /* Clear lenses need contrast at the perimeter, not a milky opaque center. */
+  --ui-clear-surface: rgba(255,255,255,.12);
+  --ui-clear-sheen: radial-gradient(ellipse at 8% 2%, rgba(255,255,255,.65), transparent 45%), radial-gradient(ellipse at 94% 96%, rgba(155,193,229,.19), transparent 44%), linear-gradient(115deg, rgba(255,255,255,.10), transparent 62%);
+  --ui-clear-edge: rgba(80,111,148,.46);
+  --ui-clear-rim: linear-gradient(130deg, rgba(255,255,255,.99) 2%, rgba(96,136,178,.42) 20%, rgba(255,255,255,.96) 39%, rgba(90,124,165,.34) 64%, rgba(255,255,255,.92) 84%, rgba(87,128,174,.3));
+  --ui-clear-shadow: 0 2px 6px rgba(20,34,61,.08), 0 12px 30px rgba(22,45,83,.10), inset 0 2px 2px rgba(255,255,255,.98), inset 2px 0 3px rgba(255,255,255,.82), inset -2px -2px 4px rgba(74,113,153,.20);
+  --ui-clear-inner-edge: rgba(255,255,255,.94);
+  --ui-clear-inner-shade: rgba(65,105,155,.27);
   --ui-clear-filter: blur(4px);
   --ui-glass-surface: #fff;
   --ui-glass-panel: #f8f7f4;
@@ -24,6 +25,13 @@
   --wd-glass-shadow: var(--ui-glass-shadow);
 }
 html.dark {
+  --ui-clear-surface: rgba(24,32,47,.22);
+  --ui-clear-sheen: radial-gradient(ellipse at 8% 2%, rgba(191,219,250,.16), transparent 45%), radial-gradient(ellipse at 94% 96%, rgba(97,143,196,.18), transparent 44%);
+  --ui-clear-edge: rgba(175,207,239,.44);
+  --ui-clear-rim: linear-gradient(130deg, rgba(246,251,255,.75), rgba(97,147,204,.35) 24%, rgba(229,241,255,.7) 41%, rgba(72,117,179,.23) 69%, rgba(234,243,255,.68));
+  --ui-clear-shadow: 0 10px 28px rgba(0,0,0,.28), inset 0 1px 2px rgba(230,241,255,.2), inset 0 -2px 4px rgba(25,48,84,.32);
+  --ui-clear-inner-edge: rgba(214,231,252,.63);
+  --ui-clear-inner-shade: rgba(29,49,77,.55);
   --ui-glass-surface: var(--dk-card);
   --ui-glass-panel: var(--dk-panel);
   --ui-glass-sheen: linear-gradient(135deg, rgba(255,255,255,.075), transparent 44%, rgba(255,255,255,.025));
@@ -73,6 +81,7 @@ html.dark {
 }
 @media (prefers-reduced-transparency: reduce) {
   :root { --ui-clear-surface: rgba(255,255,255,.28); --ui-clear-filter: none; }
+  html.dark { --ui-clear-surface: rgba(29,39,53,.75); --ui-clear-filter: none; }
 }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active), print {
   :root, html.dark, body:not([id]) {
