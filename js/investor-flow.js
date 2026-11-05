@@ -540,7 +540,7 @@
         var width = known ? Math.min(100, Math.abs(value)/maximum*100) : 0;
         var amount = known ? (value > 0 ? '+' : value < 0 ? '−' : '') + Math.round(Math.abs(value)).toLocaleString('ko-KR') + '억' : '미관측';
         var direction = known ? value > 0 ? '순매수' : value < 0 ? '순매도' : '보합' : '';
-        return '<div class="hmb-investor-bar-row" role="listitem" style="--investor-color:' + inv.color + '">'
+        return '<div class="hmb-investor-bar-row" role="listitem" style="--investor-color:' + inv.color + ';--investor-fill:' + (i === 0 ? 'var(--chart-fill-up)' : i === 1 ? 'var(--chart-fill-down)' : 'color-mix(in srgb, var(--investor-color) 13%, transparent)') + '">'
           + '<span class="hmb-investor-bar-name">' + inv.label + '</span>'
           + '<div class="hmb-investor-bar-track"><i aria-hidden="true" style="width:' + width.toFixed(2) + '%"></i>'
           + '<span class="hmb-investor-bar-value">' + amount + '<small>' + direction + '</small></span></div></div>';
