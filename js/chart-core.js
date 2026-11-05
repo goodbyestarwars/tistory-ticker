@@ -16,9 +16,9 @@
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
-  function graphFill(up) {
-    return global.NineUI && typeof global.NineUI.chartFill === 'function'
-      ? global.NineUI.chartFill(up) : (up ? '#FAE8E7' : '#E4EDF8');
+  function ohlcFill(up) {
+    return global.NineUI && typeof global.NineUI.chartOhlcFill === 'function'
+      ? global.NineUI.chartOhlcFill(up) : (up ? '#E88D86' : '#79A7DE');
   }
   var ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)';
   var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
@@ -716,7 +716,7 @@
   // ---- 시리즈 부품(옵션·호출 순서는 두 화면이 쓰던 그대로 - 화면은 필요한 순서로 호출만 한다) ----
   function candleOptions(priceFormat) {
     return {
-      upColor: graphFill(true), downColor: graphFill(false),
+      upColor: ohlcFill(true), downColor: ohlcFill(false),
       borderUpColor: CANDLE_UP, borderDownColor: CANDLE_DOWN,
       wickUpColor: CANDLE_UP, wickDownColor: CANDLE_DOWN,
       priceLineStyle: global.LightweightCharts.LineStyle.Solid,
@@ -726,7 +726,15 @@
 
   // scaleMargins 를 주면 시리즈 생성 직후·데이터 입력 전에 가격축 여백을 적용한다(두 화면이 쓰던 순서 그대로).
   function addCandles(chart, LWC, bars, priceFormat, scaleMargins) {
-    var series = chart.addSeries(LWC.CandlestickSeries, candleOptions(priceFormat));
+    var options = candleOptions(priceFormat);
+    var last = bars[bars.length - 1];
+    // LWC otherwise uses the candle body fill for the price line and axis badge.
+    if (last) {
+      var up = last.close >= last.open;
+      options.priceLineColor = global.NineUI && global.NineUI.chartFill
+        ? global.NineUI.chartFill(up) : (up ? '#FAE8E7' : '#E4EDF8');
+    }
+    var series = chart.addSeries(LWC.CandlestickSeries, options);
     if (scaleMargins) series.priceScale().applyOptions({ scaleMargins: scaleMargins });
     series.setData(bars.map(function (d) { return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close }; }));
     return series;
@@ -776,12 +784,13 @@
     if (opts.scaleId) hist.priceScaleId = opts.scaleId;
     var volume = chart.addSeries(LWC.HistogramSeries, hist, pane);
     if (opts.scaleId && opts.scaleOptions) chart.priceScale(opts.scaleId).applyOptions(opts.scaleOptions);
-    // 거래량 급증(2배/3배) 강도 표시는 같은 부드러운 팔레트의 불투명도만 달리한다.
+    // 거래량 급증(2배/3배) 강도는 OHLC 팔레트의 불투명도로 구분한다.
     var multiples = volumeSpikeMultiples(bars);
     var multiplesOn = opts.multiples === true;   // 켜고 끄는 옵션(setMultiples). 기본은 끔(호출자가 true 를 줄 때만 켠다)
     function volumeData() {
+      var up = ohlcFill(true), down = ohlcFill(false);
       return bars.map(function (d, i) {
-        var fill = graphFill(d.close >= d.open), m = multiplesOn ? multiples[i] : null;
+        var fill = d.close >= d.open ? up : down, m = multiplesOn ? multiples[i] : null;
         var alpha = m == null ? 1 : m >= VOLUME_SPIKE.label ? 1 : m >= VOLUME_SPIKE.strong ? .92 : .78;
         var color = fill;
         if (alpha < 1) color = 'rgba(' + parseInt(fill.slice(1, 3), 16) + ',' + parseInt(fill.slice(3, 5), 16)

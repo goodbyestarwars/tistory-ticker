@@ -157,7 +157,7 @@ assert.strictEqual(Core.chartOptions(LWC, 'search', { timeframe: 'day' }).timeSc
   const bars = real.daily.slice(-60);
   Core.addCandles(chart, LWC, bars, { type: 'custom', minMove: 1, formatter: (v) => v }, { top: 0.06, bottom: 0.08 });
   assert.deepStrictEqual(calls.map((c) => c[0]), ['add', 'seriesScale', 'setData'], '생성 → 가격축 여백 → 데이터 순서');
-  assert.strictEqual(calls[0][2].upColor, '#d24f45'); assert.strictEqual(calls[0][2].downColor, '#1261c4');
+  assert.strictEqual(calls[0][2].upColor, '#E88D86'); assert.strictEqual(calls[0][2].downColor, '#79A7DE');
   calls.length = 0;
   const vol = Core.addVolumePane(chart, LWC, bars, { pane: 1, scaleId: 'volume', ma5: true, scaleOptions: { drawTicks: false } });
   assert.deepStrictEqual(calls.map((c) => c[0] + ':' + (c[1] && c[1].slice ? c[1].slice(0, 4) : '')), ['add:hist', 'scale:volu', 'setData:hist', 'add:line', 'setData:line', 'add:line', 'setData:line']);

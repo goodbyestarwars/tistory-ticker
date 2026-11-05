@@ -517,9 +517,29 @@
     return global.NineUI.number(v, {round:true});
   }
 
+  function ohlcFill(up) {
+    return global.NineUI && typeof global.NineUI.chartOhlcFill === 'function'
+      ? global.NineUI.chartOhlcFill(up) : (up ? '#E88D86' : '#79A7DE');
+  }
+
+  // Preserve the existing LWC line and axis-badge colors independently of bar fills.
+  function axisColor(point) {
+    var up = point.close >= point.open;
+    return global.NineUI && global.NineUI.chartFill
+      ? global.NineUI.chartFill(up) : (up ? '#FAE8E7' : '#E4EDF8');
+  }
+
+  function volumeAxisColor(points) {
+    for (var i = points.length - 1; i >= 0; i--) {
+      if (points[i].volume > 0) return axisColor(points[i]);
+    }
+    return '';
+  }
+
   function volumeData(points) {
+    var up = ohlcFill(true), down = ohlcFill(false);
     return points.filter(function (p) { return p.volume > 0; }).map(function (p) {
-      return { time: p.time, value: p.volume, color: global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(p.close >= p.open) : (p.close >= p.open ? '#FAE8E7' : '#E4EDF8') };
+      return { time: p.time, value: p.volume, color: p.close >= p.open ? up : down };
     });
   }
 
@@ -552,8 +572,14 @@
       if (!document.body.contains(element)) return;
       var current = chartInstances[key];
       if (current && current.interval === interval) {
+        current.series.applyOptions({ priceLineColor: axisColor(points[points.length - 1]) });
         current.series.setData(points);
-        if (current.volSeries) { current.volSeries.setData(volumeData(points)); current.points = points; }
+        if (current.volSeries) {
+          var nextVolRows = volumeData(points);
+          if (nextVolRows.length) current.volSeries.applyOptions({ priceLineColor: volumeAxisColor(points) });
+          current.volSeries.setData(nextVolRows);
+          current.points = points;
+        }
         refreshDrawing(key, points);
         return;
       }
@@ -576,8 +602,9 @@
           vertTouchDrag: false }
       }));
       var series = chart.addSeries(LWC.CandlestickSeries, {
-        upColor: global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(true) : '#FAE8E7',
-        downColor: global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(false) : '#E4EDF8',
+        upColor: ohlcFill(true),
+        downColor: ohlcFill(false),
+        priceLineColor: axisColor(points[points.length - 1]),
         borderUpColor: '#d24f45',
         borderDownColor: '#1261c4',
         wickUpColor: '#d24f45',
@@ -592,7 +619,8 @@
         series.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.25 } });
         volSeries = chart.addSeries(LWC.HistogramSeries, {
           priceFormat: { type: 'custom', formatter: formatVolume },
-          priceScaleId: 'dmi-vol', lastValueVisible: true, priceLineVisible: false
+          priceScaleId: 'dmi-vol', lastValueVisible: true, priceLineVisible: false,
+          priceLineColor: volumeAxisColor(points)
         });
         volSeries.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
         volSeries.setData(volRows);

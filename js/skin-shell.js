@@ -152,13 +152,17 @@
     return (n > 0 || (n === 0 && options.plusZero) ? '+' : '') + n.toFixed(digits) + '%';
   }
   // Only chart fills use this palette; semantic number/line colors remain unchanged.
-  function chartFill(up) {
-    var name = up === false || up === 'down' ? '--chart-fill-down' : '--chart-fill-up';
-    var fallback = name === '--chart-fill-up' ? '#FAE8E7' : '#E4EDF8';
+  function chartFill(up, ohlc) {
+    var down = up === false || up === 'down';
+    var name = (ohlc ? '--chart-ohlc-fill-' : '--chart-fill-') + (down ? 'down' : 'up');
+    var fallback = ohlc ? (down ? '#79A7DE' : '#E88D86') : (down ? '#E4EDF8' : '#FAE8E7');
     var doc = global.document;
     if (!doc || !doc.documentElement || typeof global.getComputedStyle !== 'function') return fallback;
     var value = global.getComputedStyle(doc.documentElement).getPropertyValue(name).trim();
     return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+  }
+  function chartOhlcFill(up) {
+    return chartFill(up, true);
   }
   function spinner() {
     return '<svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>';
@@ -242,7 +246,7 @@
       details.appendChild(row);
     });
   }
-  global.NineUI = { chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, loadStyle: loadStyle, persistPrefs: persistPrefs };
+  global.NineUI = { chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, persistPrefs: persistPrefs };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 

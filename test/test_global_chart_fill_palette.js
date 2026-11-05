@@ -3,18 +3,53 @@
 // while numeric text, linework, and neutral/third-party series stay semantic.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const vm = require('node:vm');
 const read = path => fs.readFileSync(path,'utf8');
 const ui=read('css/ui-system.css');
 assert.match(ui,/--chart-fill-up:\s*#FAE8E7;/i);
 assert.match(ui,/--chart-fill-down:\s*#E4EDF8;/i);
 const shell=read('js/skin-shell.js');
-assert.match(shell,/function chartFill\(up\)/);
-assert.match(shell,/chartFill: chartFill/);
+const palette = Object.fromEntries([...ui.matchAll(/(--chart-(?:ohlc-)?fill-(?:up|down)):\s*(#[0-9a-f]{6});/gi)]
+  .map(([, name, value]) => [name, value]));
+assert.equal(palette['--chart-ohlc-fill-up'], '#E88D86');
+assert.equal(palette['--chart-ohlc-fill-down'], '#79A7DE');
 const core=read('js/chart-core.js');
-assert.match(core,/upColor: graphFill\(true\), downColor: graphFill\(false\)/);
-assert.match(core,/borderUpColor: CANDLE_UP, borderDownColor: CANDLE_DOWN/);
-assert.match(core,/wickUpColor: CANDLE_UP, wickDownColor: CANDLE_DOWN/);
-assert.match(core,/color: graphFill|color: color/);
+const lwc = { LineStyle: { Solid: 0 }, CandlestickSeries: 'candle', HistogramSeries: 'volume', LineSeries: 'line' };
+const window = { LightweightCharts: lwc, document: { documentElement: {} } };
+window.getComputedStyle = () => ({ getPropertyValue: name => palette[name] || '' });
+const context = vm.createContext({ window, global: window });
+vm.runInContext(shell.match(/\/\* NineUI:[\s\S]+?\/\* End NineUI \*\//)[0], context);
+vm.runInContext(core, context);
+const uiApi = window.NineUI;
+const engine = window.NineChartCore;
+assert.equal(uiApi.chartFill(true), '#FAE8E7');
+assert.equal(uiApi.chartFill('down'), '#E4EDF8');
+assert.equal(uiApi.chartOhlcFill('down'), '#79A7DE');
+assert.equal(engine.candleOptions().upColor, '#E88D86');
+assert.equal(engine.candleOptions().downColor, '#79A7DE');
+assert.equal(engine.candleOptions().borderUpColor, '#d24f45');
+assert.equal(engine.candleOptions().wickDownColor, '#1261c4');
+const bars = [
+  {date: '2026-11-04', open: 9, high: 12, low: 8, close: 11, volume: 50},
+  {date: '2026-11-05', open: 11, high: 12, low: 9, close: 10, volume: 60}
+];
+const chart = {
+  addSeries(type, options) {
+    return { type, options, setData(data) { this.data = data; } };
+  },
+  timeScale() { return { getVisibleLogicalRange: () => null }; }
+};
+assert.equal(engine.addCandles(chart, lwc, bars, {}).options.priceLineColor, '#E4EDF8');
+const pane = engine.addVolumePane(chart, lwc, bars);
+assert.equal(pane.volume.data[0].color, '#E88D86');
+assert.equal(pane.volume.data[1].color, '#79A7DE');
+assert.equal(pane.volume.data[1].value, 60);
+pane.updateData(bars.slice(1));
+assert.equal(pane.volume.data[0].color, '#79A7DE');
+window.getComputedStyle = () => ({ getPropertyValue: () => 'invalid' });
+assert.equal(uiApi.chartOhlcFill(false), '#79A7DE');
+delete window.NineUI;
+assert.equal(engine.candleOptions().upColor, '#E88D86');
 const indicator=read('js/indicator-board.js');
 assert.match(indicator,/var\(--chart-fill-/);
 assert.match(indicator,/s\.fillColor \|\| s\.color/);
@@ -38,7 +73,18 @@ for(const path of ['css/domestic-market-indicators.css','css/market-temp.css',
 const dmi=read('js/domestic-market-indicators.js');
 const fast=read('js/quick-indices.js');
 const overnight=read('js/overnight-market.js');
-assert.match(dmi,/chartFill\(p\.close >= p\.open\)/);
+const dmiColors = vm.runInContext(dmi.slice(dmi.indexOf('  function ohlcFill('), dmi.indexOf('  function makeChart('))
+  + '\n({ volumeData, volumeAxisColor })', context);
+window.NineUI = uiApi;
+const points = bars.map(bar => ({ ...bar, time: bar.date }));
+points.push({ open: 1, close: 2, volume: 0 });
+assert.equal(dmiColors.volumeData(points).length, 2);
+assert.equal(dmiColors.volumeData(points)[0].color, '#E88D86');
+assert.equal(dmiColors.volumeData(points)[1].color, '#79A7DE');
+assert.equal(dmiColors.volumeAxisColor(points), '#E4EDF8');
+assert.match(dmi,/upColor: ohlcFill\(true\),\s+downColor: ohlcFill\(false\)/);
+assert.match(dmi,/current\.series\.applyOptions\(\{ priceLineColor: axisColor/);
+assert.match(dmi,/current\.volSeries\.applyOptions\(\{ priceLineColor: volumeAxisColor/);
 assert.match(fast,/topColor: fillColor/);
 assert.match(overnight,/topColor: fillColor/);
 assert.match(fast,/lineColor: color/);
