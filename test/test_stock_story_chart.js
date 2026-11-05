@@ -6,6 +6,8 @@ vm.runInNewContext(source,{window:win,document:{readyState:'loading',addEventLis
 const card=win.__cards.buildTrendChartCard;
 const daily=Array.from({length:300},(_,i)=>{let date=new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10),c=100+i*.3+Math.sin(i/7)*12;return {date,open:c-1,close:c,high:c+5,low:c-6,volume:1000};});
 const h=card({daily});assert(h.includes('ff-wide-cloud'));assert(!/NaN|Infinity/.test(h));assert(!h.includes('대비'));assert(!h.includes('ff-wide-lead'));
+assert(h.includes('일목균형표(구름대)'));assert(!h.includes('일목 구름'));assert(h.includes('aria-label="차트 범례"'));
+assert(h.indexOf('ff-wide-axis') < h.indexOf('ff-wide-legend'));
 for (const key of ['ma20','ma60','ma224','close']) assert(h.includes('is-'+key));
 const clouds=core.ichimokuCloudPoints(daily,'day');
 const midpoint=(i,p)=>(Math.max(...daily.slice(i-p+1,i+1).map(x=>x.high))+Math.min(...daily.slice(i-p+1,i+1).map(x=>x.low)))/2;
@@ -16,5 +18,11 @@ for(const n of [0,1,29,51,52,77,224]) {const s=card({daily:daily.slice(0,n)});as
 const bad=daily.map(x=>({...x}));bad[150].high=null;bad[151].close=null;const bh=card({daily:bad});assert(!/NaN|Infinity/.test(bh));assert.equal((bh.match(/class="ff-wide-cloud"/g)||[]).length,2);
 const flat=daily.map(x=>({...x,open:100,high:100,low:100,close:100}));assert(!/NaN|Infinity/.test(card({daily:flat})));
 delete win.NineChartCore;assert(card({daily}).includes('로드 실패'));win.NineChartCore=core;
+const story={name:'테스트',written:'2026-11-05',asOf:'2026-11-05',cards:[{title:'기존 심층 스토리',sub:'데이터 보존'}]};
+const chartOnly=win.__cards.buildStockStoryHtml(story,h,1,'005930',true);
+assert(chartOnly.includes('ff-wide--chart'));assert(!chartOnly.includes('ff-wide--story'));assert(!chartOnly.includes('data-wide-prev'));
+assert.equal(story.cards.length,1,'authored story data must remain unchanged');
+const storyFallback=win.__cards.buildStockStoryHtml(story,'',0,'005930',false);
+assert(storyFallback.includes('ff-wide--story'),'no-chart fallback retains original stories');
 if(process.env.CARD_QA_HTML){const real=JSON.parse(fs.readFileSync('test/fixtures/chart_core/flow_chart_005930.json','utf8'));const body=win.__cards.buildStockStoryHtml({name:'삼성전자',baselineOnly:true,cards:[]},card(real),1,'005930');fs.writeFileSync('card-qa.html','<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="css/foreign-flow.css"><style>body{padding:24px 0} #foreign-flow{max-width:1180px;margin:0 auto} .qa-title{font-family:var(--font-serif);font-weight:700;font-size:24px;margin:24px} .qa-regular{font-family:var(--font-serif);font-weight:400;margin:24px}</style><h1 class="qa-title">종목분석 — 흐름을 읽는 투자</h1><p class="qa-regular">Noto Serif KR 기본 글꼴과 굵은 제목의 시각적 위계</p><main id="foreign-flow">'+body+'</main>');}
 console.log('PASS card: OHLC 9/26/52, +26 bars, MA, gaps, empty/flat/short/failure, real data');
