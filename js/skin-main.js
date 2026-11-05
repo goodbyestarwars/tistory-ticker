@@ -798,7 +798,7 @@ document.documentElement.classList.add('skin-ready');
         + '<dl class="hmb-list hmb2-verdict">'
         + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
-        + '<div class="hmb2-participation" data-home-participation aria-label="평균 100 대비 거래대금"></div>'
+        + '<div class="hmb2-participation" data-home-participation aria-label="평균 100 대비 거래량"></div>'
         + '<div class="hmb2-market-ratios" data-domestic-ratios>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
@@ -1484,76 +1484,68 @@ document.documentElement.classList.add('skin-ready');
     var latestHomeParticipation = {domestic: null, us: null};
 
     function homeParticipationModel(market, body) {
-      var definitions = market === 'us' ? [['SP500', 'S&P 500'], ['NASDAQ', '나스닥 종합'], ['SOX', '필라델피아 반도체']]
-        : [['KOSPI', '코스피'], ['KOSDAQ', '코스닥']];
+      var definitions = market === 'us' ? [['SP500','S&P 500'],['NASDAQ','나스닥 종합'],['SOX','필라델피아 반도체']]
+        : [['KOSPI','코스피'],['KOSDAQ','코스닥']];
+      var number = function (v) { return typeof v === 'number' && isFinite(v) && v >= 0; };
       return definitions.map(function (definition) {
-        var entry = body && body.byIndex && body.byIndex[definition[0]];
-        // Headline bars mean actual traded notional in BOTH markets, never share volume.
-        var volume = entry && entry.turnoverIndex;
-        var valid = false;
+        var entry = body && body.byIndex && body.byIndex[definition[0]], volume = entry && entry.volumeIndex;
+        var stamp = entry ? Date.parse(entry.retrievedAt) : NaN, age = (Date.now()-stamp)/1000;
+        var clock = new Date(Date.now()+9*3600000), minutes = clock.getUTCHours()*60+clock.getUTCMinutes();
+        var active = clock.getUTCDay()>0 && clock.getUTCDay()<6 && minutes>=540 && minutes<940;
+        var ttl = market === 'us' ? 900 : active ? 300 : 3600;
+        var fresh = isFinite(stamp) && age>=-60 && age<=ttl;
+        var ready = false, participation = null;
         if (market === 'domestic') {
           var participation = entry && entry.volumeParticipation;
-          var number = function (value) { return typeof value === 'number' && isFinite(value); };
-          var integer = function (value) { return number(value) && Math.floor(value) === value; };
+
+          var pNumber = function (value) { return typeof value === 'number' && isFinite(value); };
+
+          var integer = function (value) { return pNumber(value) && Math.floor(value) === value; };
+
           var sample = participation && integer(participation.total) && participation.total > 0
+
             && participation.total === entry.total && integer(participation.eligible)
+
             && participation.eligible > 0 && participation.eligible <= participation.total
+
             && participation.eligible / participation.total >= .95;
+
           var collected = entry ? Date.parse(entry.retrievedAt) : NaN;
+
           var age = (Date.now() - collected) / 1000;
+
           // Match the server's longest cache TTL; never relabel retrieval as a quote timestamp.
+
           var clock = new Date(Date.now() + 9 * 3600000);
+
           var minutes = clock.getUTCHours() * 60 + clock.getUTCMinutes();
+
           var active = clock.getUTCDay() > 0 && clock.getUTCDay() < 6 && minutes >= 540 && minutes < 940;
+
           var fresh = isFinite(collected) && age >= -60 && age <= (active ? 300 : 3600);
+
           var ready = entry && entry.status === 'ok' && fresh && sample
+
             && participation.status === 'ok' && participation.basis === 'same-time-5m' && participation.lookbackDays === 10
-            && number(participation.ratio) && participation.ratio >= 0 && participation.ratio <= 1
-            && number(participation.median) && participation.median >= 0
+
+            && pNumber(participation.ratio) && participation.ratio >= 0 && participation.ratio <= 1
+
+            && pNumber(participation.median) && participation.median >= 0
+
             && integer(participation.increased) && participation.increased >= 0 && participation.increased <= participation.eligible
+
             && Math.abs(participation.ratio - participation.increased / participation.eligible) < .000001;
-          var turnoverStamp = volume ? Date.parse(volume.retrievedAt) : NaN;
-          var turnoverAge = (Date.now() - turnoverStamp) / 1000;
-          var asOf = volume ? Date.parse(volume.asOf) : NaN;
-          var observationAge = (Date.now() - asOf) / 1000;
-          valid = volume && volume.status === 'ok' && volume.basis === 'same-time-cumulative-30m'
-            && volume.unit === 'KRW' && volume.source === 'KIS' && volume.market === 'KRX'
-            && volume.lookbackDays === 5 && volume.sampleDays === 5
-            && number(volume.current) && volume.current >= 0 && number(volume.baseline) && volume.baseline > 0
-            && number(volume.index100) && volume.index100 >= 0
-            && Math.abs(volume.index100 - volume.current / volume.baseline * 100) < .000001
-            && isFinite(turnoverStamp) && turnoverAge >= -60 && turnoverAge <= (active ? 300 : 3600)
-            && isFinite(asOf) && observationAge >= 0 && (!active || observationAge <= 2100);
-          return {label: definition[1], volume: valid ? volume : null, participation: ready ? participation : null,
-            entry: entry, status: volume ? ((volume.status === 'stale' || (isFinite(turnoverStamp) && (turnoverAge > (active ? 300 : 3600) || (active && observationAge > 2100)))) ? 'stale' : volume.status) : 'unavailable',
-            participationStatus: entry && (entry.status === 'stale' || !fresh ? 'stale' : entry.status)};
+
+
         }
-        // US dollar turnover needs five equivalent intraday sessions and public-display permission.
-        // TradingView volumeIndex is shares, not a dollar turnover feed.
-        var amount = function (v) { return typeof v === 'number' && isFinite(v) && v >= 0; };
-        var stamp = volume ? Date.parse(volume.retrievedAt) : NaN;
-        var cutoff = volume ? Date.parse(volume.asOf) : NaN;
-        var age = (Date.now() - stamp) / 1000;
-        var observationAge = (Date.now() - cutoff) / 1000;
-        valid = !!(volume && volume.status === 'ok' && volume.basis === 'same-time-cumulative-30m'
-          && volume.market === 'US' && volume.unit === 'USD'
-          && volume.lookbackDays === 5 && volume.sampleDays === 5
-          && volume.publicDisplayAuthorized === true
-          && amount(volume.current) && amount(volume.baseline) && volume.baseline > 0
-          && amount(volume.index100) && Math.abs(volume.index100 - volume.current / volume.baseline * 100) < .000001
-          && isFinite(stamp) && age >= -60 && age <= 900
-          && isFinite(cutoff) && observationAge >= 0 && observationAge <= 3600);
-        var shares = entry && entry.volumeIndex;
-        var sample = entry && entry.status === 'ok' && shares && shares.status === 'ok'
-          && shares.basis === 'same-time-5m-volume-sum' && shares.lookbackDays === 10
-          && Number.isInteger(shares.eligible) && Number.isInteger(shares.total)
-          && shares.total > 0 && shares.eligible / shares.total >= .95
-          && amount(shares.current) && amount(shares.baseline) && shares.baseline > 0
-          && amount(shares.index100)
-          && Math.abs(shares.index100 - shares.current / shares.baseline * 100) < .000001;
-        return {label: definition[1], volume: valid ? volume : null,
-          secondaryVolume: sample ? shares : null, entry: entry,
-          status: volume ? (valid ? 'ok' : volume.status === 'ok' ? 'stale' : volume.status) : 'unavailable'};
+        var valid = entry && entry.status === 'ok' && fresh && volume && volume.status === 'ok'
+          && volume.basis === 'same-time-5m-volume-sum' && volume.lookbackDays === 10
+          && Number.isInteger(volume.eligible) && Number.isInteger(volume.total)
+          && volume.total>0 && volume.total === entry.total && volume.eligible>0 && volume.eligible<=volume.total
+          && volume.eligible/volume.total>=.95 && number(volume.current) && volume.current>=0 && number(volume.baseline) && volume.baseline>0
+          && number(volume.index100) && volume.index100>=0 && Math.abs(volume.index100-volume.current/volume.baseline*100)<.000001;
+        return {label:definition[1],volume:valid ? volume : null,entry:entry, participation:ready ? participation : null,
+          status:entry && (entry.status === 'stale' || !fresh) ? 'stale' : 'unavailable'};
       });
     }
 
@@ -1566,85 +1558,92 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function renderMarketParticipation() {
+
       var target = dashboardSection.querySelector('[data-home-participation]');
+
       if (!target) return;
+
       var market = homeMarketSession().market === 'us' ? 'us' : 'domestic';
+
       target.hidden = market === 'us' && !usRegularSessionState().open;
+
       var models = homeParticipationModel(market, (latestHomeParticipation || {})[market]);
+
       var scale = homeVolumeScale(models);
+
       target.innerHTML = models.map(function (model) {
+
         var volume = model.volume;
+
         var normalized = volume ? Math.round(volume.index100 * 10) / 10 : null;
+
         var value = volume ? normalized.toFixed(1).replace(/\.0$/, '')
-          : market === 'us' ? (model.status === 'stale' ? '갱신 지연' : '미연동')
+
+          : market === 'us' ? (model.status === 'stale' ? '갱신 지연' : '확인 중')
+
           : model.status === 'stale' ? '갱신 지연' : '확인 중';
+
         var delta = volume ? normalized - 100 : null;
+
         var tone = delta === null || Math.abs(delta) < .000001 ? 'home-neutral' : delta > 0 ? 'home-positive' : 'home-negative';
-        var label = model.label + ' 동시간대 누적 거래대금 ' + value + (volume ? ' / 평균 100' : '');
-        var tooltip = volume ? '최근 5거래일 동시간대 누적 거래대금 평균 100 · 30분 구간 완료 기준 · ' + volume.asOf
-          : market === 'us' ? label + ' · 공개 재배포 가능한 미국 거래대금 자료 미확보' : label;
-        var secondary = market === 'us' && model.secondaryVolume
-          ? '<small class="hmp-volume-secondary">거래량 보조 ' + (Math.round(model.secondaryVolume.index100 * 10) / 10).toFixed(1) + ' / 100</small>' : '';
+
+        var label = model.label + ' 동시간대 5분봉 거래량 ' + value + (volume ? ' / 평균 100' : '');
+
+        var tooltip = volume ? '최근 10거래일 동시간대 5분봉 거래량 평균 100 · 수집 ' + model.entry.retrievedAt
+
+          : label;
+
         return '<div class="hmp-item"><div class="hmp-heading">' + escapeHomeHtml(model.label) + '</div>'
+
           + '<div class="hmp-column-chart" role="img" aria-label="' + escapeHomeHtml(label) + '" title="' + escapeHomeHtml(tooltip) + '">'
+
           + '<div class="hmp-column-track"><span class="hmp-baseline-label">100</span><span class="hmp-baseline"></span>'
+
           + (delta !== null && Math.abs(delta) >= .000001 ? '<i class="hmp-column ' + (delta > 0 ? 'is-up' : 'is-down') + '" style="height:' + (Math.abs(delta) / scale * 50).toFixed(2) + '%"></i>' : '')
-          + '</div></div><div class="hmp-volume-value">누적<br>거래대금<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div>' + secondary + '</div>';
+
+          + '</div></div><div class="hmp-volume-value">거래량<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div>' + '</div>';
+
       }).join('');
+
       // 게이지가 3개면(미국: 필라델피아 반도체 추가) 칸 폭을 넓히는 표시 클래스.
+
       if (target.parentElement) target.parentElement.classList.toggle('has-three-gauges', models.length > 2);
+
       var basis = dashboardSection.querySelector('[data-participation-basis]');
+
       if (basis) {
+
         basis.hidden = target.hidden;
+
         if (market === 'domestic') basis.innerHTML = renderDomesticParticipation(models);
+
         else basis.innerHTML = renderUsParticipation(models);
+
       }
+
     }
 
+
+
+    function renderParticipationBasis(models) {
+      return '<details class="hmp-details"><summary>10일 동시간대 5분봉 거래량 평균 100 · 자세히</summary>'
+        + models.map(function (model) {
+          var e = model.entry, v = model.volume;
+          var time = e && isFinite(Date.parse(e.retrievedAt)) ? new Date(e.retrievedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' KST' : '시각 미확인';
+          var lag = e && typeof e.delaySeconds === 'number' && isFinite(e.delaySeconds) && e.delaySeconds>=0
+            ? ' · 공급자 '+Math.round(e.delaySeconds/60)+'분 지연' : ' · 지연 확인 필요';
+          return '<div>'+escapeHomeHtml(model.label)+' · '+(v ? '유효 '+v.eligible+'/'+v.total+'종목' : model.status === 'stale' ? '갱신 지연' : '자료 확인 중')
+            +' · 수집 '+escapeHomeHtml(time+lag)
+            +(model.participation ? '<br>거래량 증가 종목 '+(model.participation.ratio*100).toFixed(1)+'% · 상대 거래량 중앙값 '+model.participation.median.toFixed(2)+'배' : '')+'</div>';
+        }).join('')
+        + '<div>한국·미국 동일 기준: TradingView 지수 구성종목의 거래량 합산 / 최근 10거래일 동시간대 5분봉 평균 ×100. 유효 표본 95% 이상만 표시. '
+        + '하루 누적·거래대금·매수 우위가 아님. 수집 시각은 체결 시각이 아니며 원본 관측 날짜·시각 미제공. 장외에는 공급자의 마지막 5분봉 자료.</div></details>';
+    }
     function renderUsParticipation(models) {
-      var available = models.some(function (model) { return !!model.volume; });
-      var detail = models.map(function (model) {
-        var sample = model.secondaryVolume, entry = model.entry;
-        var value = sample ? (Math.round(sample.index100 * 10) / 10).toFixed(1) + ' / 100' : '확인 불가';
-        var counts = sample ? ' · 유효 ' + sample.eligible + ' / ' + sample.total + '종목' : '';
-        var lag = entry && typeof entry.delaySeconds === 'number' && entry.delaySeconds > 0
-          ? ' · 공급자 약 ' + Math.round(entry.delaySeconds / 60) + '분 지연' : ' · 공급자 지연 확인 필요';
-        return '<div>' + escapeHomeHtml(model.label) + ' · 보조 거래량 ' + escapeHomeHtml(value + counts + lag) + '</div>';
-      }).join('');
-      return '<details class="hmp-details"><summary>'
-        + (available ? '5일 동시간대 누적 거래대금 평균 100' : '미국 누적 거래대금 미연동')
-        + ' · 거래량 보조 · 자세히</summary>' + detail
-        + '<div>거래대금: 실제 체결금액·과거 5거래일 동시간대 누적 이력·공개 표시 권한을 갖춘 공급원 확인 전에는 표시하지 않음. '
-        + '보조 거래량: TradingView 지수 구성종목 합산, 최근 10거래일 동시간대 5분봉 평균=100(하루 누적 아님). '
-        + '거래량은 매수 자금 유입이나 거래대금과 동일하지 않음.</div></details>';
+      return renderParticipationBasis(models);
     }
-
     function renderDomesticParticipation(models) {
-      // Supplementary text stays outside the original chart grid and its 100-based scale.
-      var closing = models.some(function (model) { return model.volume && model.volume.sessionClosed; });
-      return '<details class="hmp-details"><summary>5일 동시간대 평균 100 · '
-        + (closing ? '정규장 마감 기준' : '30분 구간 기준') + ' · 자세히</summary>' + models.map(function (model) {
-        var p = model.participation, entry = model.entry;
-        var state = model.participationStatus === 'stale' ? '갱신 지연' : '확인 중';
-        var percent = p ? (p.ratio * 100).toFixed(1).replace(/\.0$/, '') : null;
-        var sample = entry && entry.volumeParticipation;
-        var counts = sample && Number.isInteger(sample.eligible) && Number.isInteger(sample.total)
-          && sample.eligible >= 0 && sample.eligible <= sample.total ? '유효 ' + sample.eligible + ' / 구성 ' + sample.total + '종목' : '표본 확인 중';
-        var delay = entry && typeof entry.delaySeconds === 'number' && isFinite(entry.delaySeconds) && entry.delaySeconds >= 0
-          ? (entry.delaySeconds > 0 ? '거래량 공급자 ' + (entry.delaySeconds / 60) + '분 지연' : '거래량 공급자 실시간 모드') : '거래량 공급자 지연 확인 중';
-        var stamp = entry ? Date.parse(entry.retrievedAt) : NaN;
-        var time = isFinite(stamp) ? new Date(stamp).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' : '확인 중';
-        var turnover = model.volume;
-        var amount = turnover ? (turnover.current / 1000000000000).toLocaleString('ko-KR', {maximumFractionDigits: 2}) + '조원' : model.status === 'stale' ? '갱신 지연' : '확인 중';
-        var cutoff = turnover ? new Date(turnover.asOf).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' + (turnover.sessionClosed ? ' · 정규장 마감 기준' : '') : '확인 중';
-        return '<div data-volume-participation="' + (model.label === '코스피' ? 'KOSPI' : 'KOSDAQ') + '">'
-          + escapeHomeHtml(model.label) + ' · 누적 거래대금 ' + escapeHomeHtml(amount) + ' · 기준 ' + escapeHomeHtml(cutoff) + ' (KIS·KRX)'
-          + '<br>거래량 증가 종목 ' + (p ? percent + '%' : state)
-          + ' · 상대 거래량 중앙값 ' + (p ? p.median.toFixed(2) + '배' : state)
-          + '<br>' + (p ? '기준 대비 증가 ' + p.increased + ' / ' + p.eligible + '종목 · ' : '') + escapeHomeHtml(counts)
-          + ' · ' + escapeHomeHtml(delay + ' · 수집 ' + time) + '</div>';
-      }).join('') + '<div>막대: 최근 5거래일 동시간대 누적 거래대금 평균=100 · 완료된 30분 구간 기준(장중 최대 약 32분 전). '
-        + '거래량 보조 수치: TradingView 최근 10일 동시간대 5분봉·종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 거래량 공급자 실제 관측 시각 미제공.</div></details>';
+      return renderParticipationBasis(models);
     }
 
     function loadDomesticParticipation() {
