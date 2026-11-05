@@ -776,10 +776,11 @@
       }
       var baseline = (typeof price === 'number' && typeof change === 'number') ? price - change : rows[0].close;
       var color = positive ? '#d24f45' : '#1261c4';
+      var fillColor = global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(positive) : (positive ? '#FAE8E7' : '#E4EDF8');
 
       var existing = chartInstances[key];
       if (existing) {
-        existing.series.applyOptions({ lineColor: color, topColor: hexToRgba(color, 0.2), bottomColor: hexToRgba(color, 0.02) });
+        existing.series.applyOptions({ lineColor: color, topColor: fillColor, bottomColor: hexToRgba(fillColor, 0.12) });
         existing.series.setData(seriesData);
         existing.priceLine.applyOptions({ price: baseline });
         existing.chart.timeScale().fitContent();
@@ -799,8 +800,8 @@
 
       var series = chart.addSeries(LWC.AreaSeries, {
         lineColor: color,
-        topColor: hexToRgba(color, 0.2),
-        bottomColor: hexToRgba(color, 0.02),
+        topColor: fillColor,
+        bottomColor: hexToRgba(fillColor, 0.12),
         // 2026-07-17(10차): 1.5 -> 1 (사용자 피드백: "차트 선이 너무 굵어")
         lineWidth: 1,
         priceLineVisible: false,
