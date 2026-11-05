@@ -201,8 +201,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column-track 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-baseline { position: absolute; top: 50%; left: -4px; right: -4px; height: 1px; background: var(--hmb-mute); z-index: 1; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-baseline-label { position: absolute; right: calc(100% + 5px); top: 50%; transform: translateY(-50%); color: var(--hmb-faint); font: 400 8px/1 var(--font-data); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column { position: absolute; display: block; left: 0; width: 100%; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column.is-up { bottom: 50%; background: var(--num-up); border-radius: 3px 3px 0 0; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column.is-down { top: 50%; background: var(--num-down); border-radius: 0 0 3px 3px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column.is-up { bottom: 50%; background: var(--chart-fill-up); border-radius: 3px 3px 0 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-column.is-down { top: 50%; background: var(--chart-fill-down); border-radius: 0 0 3px 3px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-volume-value { color: var(--hmb-mute); font: 400 9px/1.5 var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-volume-value b { font-weight: 600; font-size: 11px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-volume-secondary { display: block; margin-top: 3px; color: var(--hmb-faint); font: 400 9px/1.4 var(--font-ui); font-variant-numeric: tabular-nums; white-space: normal; overflow-wrap: anywhere; }
@@ -375,7 +375,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bars
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-row { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; font: 500 11px/1.2 var(--font-ui); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-name { color: var(--hmb-mute); white-space: nowrap; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-track { position: relative; min-width: 0; height: 100%; border-radius: 5px; isolation: isolate; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-track > i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: color-mix(in srgb, var(--investor-color) 13%, transparent); z-index: -1; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-track > i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--investor-fill, color-mix(in srgb, var(--investor-color) 13%, transparent)); z-index: -1; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-value { display: flex; align-items: center; gap: 5px; height: 100%; padding: 0 7px; color: var(--investor-color); white-space: nowrap; font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-value small { color: var(--hmb-mute); font: 400 9px/1 var(--font-ui); }
 
@@ -433,10 +433,12 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-c
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-buy { fill: var(--hmb-chart-up); color: var(--hmb-chart-up); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-sell { fill: var(--hmb-chart-down); color: var(--hmb-chart-down); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-buy { fill: var(--chart-fill-up); color: var(--hmb-chart-up); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-sell { fill: var(--chart-fill-down); color: var(--hmb-chart-down); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-flat { fill: var(--hmb-flat); color: var(--hmb-flat); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-area { fill: currentColor; opacity: .14; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-area { fill: currentColor; opacity: .95; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-buy .hmb-investor-area { fill: var(--chart-fill-up); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-sell .hmb-investor-area { fill: var(--chart-fill-down); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-line { stroke: currentColor; stroke-width: 1.5; fill: none; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-zero { stroke: var(--hmb-line); stroke-width: 1; stroke-dasharray: none; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-axis { display: flex; justify-content: space-between; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
@@ -502,8 +504,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-rot-list smal
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar { position: relative; display: block; height: 8px; border-radius: 4px; background: rgba(var(--np-ink, 26, 26, 26), .06); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar::before { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--hmb-line); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-up { left: 50%; border-radius: 0 4px 4px 0; background: color-mix(in srgb, var(--num-up) 65%, var(--np-paper, #fff)); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-down { right: 50%; border-radius: 4px 0 0 4px; background: color-mix(in srgb, var(--num-down) 65%, var(--np-paper, #fff)); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-up { left: 50%; border-radius: 0 4px 4px 0; background: var(--chart-fill-up); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-down { right: 50%; border-radius: 4px 0 0 4px; background: var(--chart-fill-down); }
 /* 글로벌 지수: 지표 4종(WTI·원/달러·미 10년물·VIX) */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl { display: grid; gap: 12px; margin-top: 12px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -639,8 +641,8 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-c
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar { display: flex; flex: 0 0 120px; align-self: center; width: 120px; height: 8px; overflow: hidden; border-radius: 4px; background: rgba(var(--np-ink), .08); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar[hidden] { display: none !important; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar i { display: block; height: 100%; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up { background: color-mix(in srgb, var(--num-up) 65%, var(--np-paper, #fff)); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: color-mix(in srgb, var(--num-down) 65%, var(--np-paper, #fff)); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up { background: var(--chart-fill-up); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: var(--chart-fill-down); }
 
 /* KOSPI200 야간선물 카드 축소(2026-11-04): 가격·등락·고저는 왼쪽, 30분 차트는 오른쪽에 나란히 두고 차트 높이를 줄인다. 고가·저가가 위에 있어 차트 아래 '관측 고점/저점' 줄은 숨긴다. */
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content:not([hidden]) { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); column-gap: 20px; align-items: start; }
