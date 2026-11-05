@@ -205,6 +205,15 @@
         for (var i = 0; i < trs.length; i++) if (trs[i].getAttribute('data-id') === row.id) { tr = trs[i]; break; }
         if (!tr) return;
         tr.classList.toggle('is-loading', !!row.loading);
+        // Live rows may update a small time/source subtitle without rebuilding the table or losing focus.
+        var heading = tr.querySelector('.ibd-name');
+        if (heading) {
+          var subtitle = heading.querySelector('.ibd-sub');
+          if (row.sub) {
+            if (!subtitle) { subtitle = document.createElement('span'); subtitle.className = 'ibd-sub'; heading.appendChild(subtitle); }
+            if (subtitle.textContent !== row.sub) subtitle.textContent = row.sub;
+          } else if (subtitle) subtitle.remove();
+        }
         var tds = tr.querySelectorAll('td');
         columns.forEach(function (col, idx) {
           var td = tds[idx];
