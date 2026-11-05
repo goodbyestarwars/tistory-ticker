@@ -526,9 +526,31 @@
     return Object.keys(slots).map(function (k) { return slots[k]; }).sort(function (a,b) { return a.slot-b.slot; });
   }
 
+
+  // Compact summary of the same validated intraday snapshot; never sum cumulative slots.
+  function miniBars(rows, options) {
+    var opts = options || {}, valid = intradayRows(rows, opts.date);
+    if (!valid.length) return '<div class="hmb-investor-spark-empty">장중 저장 관측값 없음</div>';
+    var last = valid[valid.length-1], fields = ['frgn','orgn','ind'];
+    var maximum = Math.max(1, Number(opts.maxAbs) || 0);
+    fields.forEach(function (key) { if (validAmount(last[key])) maximum = Math.max(maximum, Math.abs(Number(last[key]))); });
+    return '<div class="hmb-investor-bars" role="list" aria-label="' + esc((opts.market || '시장') + ' ' + opts.date + ' 당일 누적 순매수; 막대 길이는 절대금액') + '">'
+      + INVESTORS.map(function (inv,i) {
+        var raw = last[fields[i]], known = validAmount(raw), value = known ? Number(raw) : null;
+        var width = known ? Math.min(100, Math.abs(value)/maximum*100) : 0;
+        var amount = known ? (value > 0 ? '+' : value < 0 ? '−' : '') + Math.round(Math.abs(value)).toLocaleString('ko-KR') + '억' : '미관측';
+        var direction = known ? value > 0 ? '순매수' : value < 0 ? '순매도' : '보합' : '';
+        return '<div class="hmb-investor-bar-row" role="listitem" style="--investor-color:' + inv.color + '">'
+          + '<span class="hmb-investor-bar-name">' + inv.label + '</span>'
+          + '<div class="hmb-investor-bar-track"><i aria-hidden="true" style="width:' + width.toFixed(2) + '%"></i>'
+          + '<span class="hmb-investor-bar-value">' + amount + '<small>' + direction + '</small></span></div></div>';
+      }).join('') + '</div>';
+  }
+
   global.InvestorFlow = {
     mount: mount,
     miniChart: miniChart,
+    miniBars: miniBars,
     intradayRows: intradayRows,
     mountBalance: mountBalance,
     _calc: { cumulative: cumulative, streak: streak, balanceStats: balanceStats, balanceSeries: balanceSeries, summarize: summarize, summarizeInvestors: summarizeInvestors, summarizeBalances: summarizeBalances, lastRows: lastRows, sumOf: sumOf, PERIODS: PERIODS, TREND_PCT: TREND_PCT, INVESTORS: INVESTORS,

@@ -678,7 +678,7 @@ document.documentElement.classList.add('skin-ready');
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261106-home-intraday-mini';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261106-home-investor-bars';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
@@ -846,12 +846,12 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-quote"><dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small></div>'
         + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div>'
         + '<small class="hmb-metric-asof" data-home-day-field="time">기준시각 확인 중</small></div>'
-        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 당일 30분 슬롯별 누적 순매수 추이">'
+        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 당일 누적 순매수 비교">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt>'
-        + '<div class="hmb-investor-mini-legend" data-home-investor-mini-legend><span class="hmb-mini-period">당일 30분 누적</span>'
+        + '<div class="hmb-investor-mini-legend" data-home-investor-mini-legend><span class="hmb-mini-period">당일 누적 순매수</span>'
         + '<span class="is-foreign"><i aria-hidden="true"></i>외국인</span><span class="is-inst"><i aria-hidden="true"></i>기관</span>'
         + '<span class="is-indiv"><i aria-hidden="true"></i>개인</span></div>'
-        + '<small class="hmb-investor-mini-fallback" data-home-investor-mini-fallback>장중 지수 미제공 · 수급만 표시</small></div>'
+        + '<small class="hmb-investor-mini-fallback" data-home-investor-mini-fallback>막대 길이: 절대금액 · 두 시장 동일 눈금</small></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
@@ -2764,11 +2764,19 @@ document.documentElement.classList.add('skin-ready');
       var host = dashboardSection.querySelector('[data-home-investor-trend]');
       var body = host && host.querySelector('.hmb-investor-trend-body');
       var shared = window.InvestorFlow;
-      if (!body || !shared || typeof shared.intradayRows !== 'function') return;
+      if (!body || !shared || typeof shared.miniBars !== 'function') return;
       var now = new Date(), kst = new Date(now.getTime() + 9*60*60*1000);
       var today = kst.toISOString().slice(0,10), minute = kst.getUTCHours()*60 + kst.getUTCMinutes();
       var session = homeMarketSession();
       var active = session.market === 'domestic' && !session.closed && minute >= 540 && minute <= 930;
+      var maxAbs = 1;
+      history.forEach(function (response) {
+        var d = response && (response.data || response) || {}, rs = shared.intradayRows(d.rows,d.date);
+        var last = rs[rs.length-1];
+        if (last) ['frgn','orgn','ind'].forEach(function (key) {
+          if (last[key] != null && last[key] !== '' && isFinite(Number(last[key]))) maxAbs = Math.max(maxAbs,Math.abs(Number(last[key])));
+        });
+      });
       body.innerHTML = ['kospi', 'kosdaq'].map(function (market, index) {
         var response = history[index] || {}, result = response.data || response;
         var rows = shared.intradayRows(result.rows, result.date), label = market.toUpperCase();
@@ -2780,9 +2788,9 @@ document.documentElement.classList.add('skin-ready');
           caption += ' · ' + rows.length + '/14슬롯';
         }
         return '<div class="hmb-investor-row hmb-investor-mini-row"><div class="hmb-investor-row-top"><strong>' + label + '</strong></div>'
-          + shared.miniChart(rows, {period:'intraday', date:result.date, market:label, showIndex:false})
+          + shared.miniBars(rows, {date:result.date, market:label, maxAbs:maxAbs})
           + '<div class="hmb-investor-asof">' + escapeHomeHtml(caption) + '</div>'
-          + '<div class="hmb-investor-asof">당일 누적 순매수 · 슬롯 내 마지막 관측 · 억원</div></div>';
+          + '<div class="hmb-investor-asof">당일 누적 · 마지막 관측 · 억원</div></div>';
       }).join('');
     }
 
@@ -2847,7 +2855,7 @@ document.documentElement.classList.add('skin-ready');
       homeInvestorLoading = true;
       var body = host.querySelector('.hmb-investor-trend-body');
       loadHomeScript(HOME_INVESTOR_FLOW_SCRIPT_URL, 'InvestorFlow').then(function () {
-        if (typeof window.InvestorFlow.intradayRows !== 'function') throw new Error('장중 공통 모듈 대기');
+        if (typeof window.InvestorFlow.miniBars !== 'function') throw new Error('장중 공통 모듈 대기');
         if (!homeInvestorMiniHistory) {
           var cached = readHomeDataCache('home-investor-mini-intraday-v2', 7 * 24 * 60 * 60 * 1000);
           if (Array.isArray(cached) && cached.length === 2) homeInvestorMiniHistory = cached;
