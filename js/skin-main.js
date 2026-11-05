@@ -798,7 +798,7 @@ document.documentElement.classList.add('skin-ready');
         + '<dl class="hmb-list hmb2-verdict">'
         + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
-        + '<div class="hmb2-participation" data-home-participation aria-label="평균 100 대비 거래량"></div>'
+        + '<div class="hmb2-participation" data-home-participation aria-label="평균 100 대비 거래대금"></div>'
         + '<div class="hmb2-market-ratios" data-domestic-ratios>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
@@ -1488,10 +1488,9 @@ document.documentElement.classList.add('skin-ready');
         : [['KOSPI', '코스피'], ['KOSDAQ', '코스닥']];
       return definitions.map(function (definition) {
         var entry = body && body.byIndex && body.byIndex[definition[0]];
-        var volume = entry && (market === 'domestic' ? entry.turnoverIndex : entry.volumeIndex);
-        var valid = entry && entry.status === 'ok' && volume && volume.status === 'ok'
-          && volume.basis === 'same-time-5m-volume-sum' && volume.baseline > 0 && volume.eligible > 0
-          && typeof volume.index100 === 'number' && isFinite(volume.index100) && volume.index100 >= 0;
+        // Headline bars mean actual traded notional in BOTH markets, never share volume.
+        var volume = entry && entry.turnoverIndex;
+        var valid = false;
         if (market === 'domestic') {
           var participation = entry && entry.volumeParticipation;
           var number = function (value) { return typeof value === 'number' && isFinite(value); };
@@ -1529,7 +1528,32 @@ document.documentElement.classList.add('skin-ready');
             entry: entry, status: volume ? ((volume.status === 'stale' || (isFinite(turnoverStamp) && (turnoverAge > (active ? 300 : 3600) || (active && observationAge > 2100)))) ? 'stale' : volume.status) : 'unavailable',
             participationStatus: entry && (entry.status === 'stale' || !fresh ? 'stale' : entry.status)};
         }
-        return {label: definition[1], volume: valid ? volume : null, status: entry && entry.status};
+        // US dollar turnover needs five equivalent intraday sessions and public-display permission.
+        // TradingView volumeIndex is shares, not a dollar turnover feed.
+        var amount = function (v) { return typeof v === 'number' && isFinite(v) && v >= 0; };
+        var stamp = volume ? Date.parse(volume.retrievedAt) : NaN;
+        var cutoff = volume ? Date.parse(volume.asOf) : NaN;
+        var age = (Date.now() - stamp) / 1000;
+        var observationAge = (Date.now() - cutoff) / 1000;
+        valid = !!(volume && volume.status === 'ok' && volume.basis === 'same-time-cumulative-30m'
+          && volume.market === 'US' && volume.unit === 'USD'
+          && volume.lookbackDays === 5 && volume.sampleDays === 5
+          && volume.publicDisplayAuthorized === true
+          && amount(volume.current) && amount(volume.baseline) && volume.baseline > 0
+          && amount(volume.index100) && Math.abs(volume.index100 - volume.current / volume.baseline * 100) < .000001
+          && isFinite(stamp) && age >= -60 && age <= 900
+          && isFinite(cutoff) && observationAge >= 0 && observationAge <= 3600);
+        var shares = entry && entry.volumeIndex;
+        var sample = entry && entry.status === 'ok' && shares && shares.status === 'ok'
+          && shares.basis === 'same-time-5m-volume-sum' && shares.lookbackDays === 10
+          && Number.isInteger(shares.eligible) && Number.isInteger(shares.total)
+          && shares.total > 0 && shares.eligible / shares.total >= .95
+          && amount(shares.current) && amount(shares.baseline) && shares.baseline > 0
+          && amount(shares.index100)
+          && Math.abs(shares.index100 - shares.current / shares.baseline * 100) < .000001;
+        return {label: definition[1], volume: valid ? volume : null,
+          secondaryVolume: sample ? shares : null, entry: entry,
+          status: volume ? (valid ? 'ok' : volume.status === 'ok' ? 'stale' : volume.status) : 'unavailable'};
       });
     }
 
@@ -1551,26 +1575,48 @@ document.documentElement.classList.add('skin-ready');
       target.innerHTML = models.map(function (model) {
         var volume = model.volume;
         var normalized = volume ? Math.round(volume.index100 * 10) / 10 : null;
-        var value = volume ? normalized.toFixed(1).replace(/\.0$/, '') : model.status === 'stale' ? '갱신 지연' : '확인 중';
+        var value = volume ? normalized.toFixed(1).replace(/\.0$/, '')
+          : market === 'us' ? (model.status === 'stale' ? '갱신 지연' : '미연동')
+          : model.status === 'stale' ? '갱신 지연' : '확인 중';
         var delta = volume ? normalized - 100 : null;
         var tone = delta === null || Math.abs(delta) < .000001 ? 'home-neutral' : delta > 0 ? 'home-positive' : 'home-negative';
-        var volumeLabel = market === 'domestic' ? '동시간대 누적 거래대금' : '거래량';
-        var label = model.label + ' ' + volumeLabel + ' ' + value + (volume ? ' / 평균 100' : '');
-        var tooltip = volume ? (market === 'domestic' ? '최근 5거래일 동시간대 누적 거래대금 평균 100 · 30분 구간 완료 기준 · ' + volume.asOf : '평균 100 · 동일 눈금 ±' + scale + ' · 분석 ' + volume.eligible + '/' + volume.total + '종목') : label;
+        var label = model.label + ' 동시간대 누적 거래대금 ' + value + (volume ? ' / 평균 100' : '');
+        var tooltip = volume ? '최근 5거래일 동시간대 누적 거래대금 평균 100 · 30분 구간 완료 기준 · ' + volume.asOf
+          : market === 'us' ? label + ' · 공개 재배포 가능한 미국 거래대금 자료 미확보' : label;
+        var secondary = market === 'us' && model.secondaryVolume
+          ? '<small class="hmp-volume-secondary">거래량 보조 ' + (Math.round(model.secondaryVolume.index100 * 10) / 10).toFixed(1) + ' / 100</small>' : '';
         return '<div class="hmp-item"><div class="hmp-heading">' + escapeHomeHtml(model.label) + '</div>'
           + '<div class="hmp-column-chart" role="img" aria-label="' + escapeHomeHtml(label) + '" title="' + escapeHomeHtml(tooltip) + '">'
           + '<div class="hmp-column-track"><span class="hmp-baseline-label">100</span><span class="hmp-baseline"></span>'
           + (delta !== null && Math.abs(delta) >= .000001 ? '<i class="hmp-column ' + (delta > 0 ? 'is-up' : 'is-down') + '" style="height:' + (Math.abs(delta) / scale * 50).toFixed(2) + '%"></i>' : '')
-          + '</div></div><div class="hmp-volume-value">' + (market === 'domestic' ? '누적<br>거래대금' : '거래량') + '<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div></div>';
+          + '</div></div><div class="hmp-volume-value">누적<br>거래대금<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div>' + secondary + '</div>';
       }).join('');
       // 게이지가 3개면(미국: 필라델피아 반도체 추가) 칸 폭을 넓히는 표시 클래스.
       if (target.parentElement) target.parentElement.classList.toggle('has-three-gauges', models.length > 2);
       var basis = dashboardSection.querySelector('[data-participation-basis]');
       if (basis) {
         basis.hidden = target.hidden;
-        basis.textContent = '거래량: 지수 구성종목 합산 · 동시각 5분봉/최근 10거래일 평균=100 · ' + (market === 'us' ? '15분' : '20분') + ' 지연';
         if (market === 'domestic') basis.innerHTML = renderDomesticParticipation(models);
+        else basis.innerHTML = renderUsParticipation(models);
       }
+    }
+
+    function renderUsParticipation(models) {
+      var available = models.some(function (model) { return !!model.volume; });
+      var detail = models.map(function (model) {
+        var sample = model.secondaryVolume, entry = model.entry;
+        var value = sample ? (Math.round(sample.index100 * 10) / 10).toFixed(1) + ' / 100' : '확인 불가';
+        var counts = sample ? ' · 유효 ' + sample.eligible + ' / ' + sample.total + '종목' : '';
+        var lag = entry && typeof entry.delaySeconds === 'number' && entry.delaySeconds > 0
+          ? ' · 공급자 약 ' + Math.round(entry.delaySeconds / 60) + '분 지연' : ' · 공급자 지연 확인 필요';
+        return '<div>' + escapeHomeHtml(model.label) + ' · 보조 거래량 ' + escapeHomeHtml(value + counts + lag) + '</div>';
+      }).join('');
+      return '<details class="hmp-details"><summary>'
+        + (available ? '5일 동시간대 누적 거래대금 평균 100' : '미국 누적 거래대금 미연동')
+        + ' · 거래량 보조 · 자세히</summary>' + detail
+        + '<div>거래대금: 실제 체결금액·과거 5거래일 동시간대 누적 이력·공개 표시 권한을 갖춘 공급원 확인 전에는 표시하지 않음. '
+        + '보조 거래량: TradingView 지수 구성종목 합산, 최근 10거래일 동시간대 5분봉 평균=100(하루 누적 아님). '
+        + '거래량은 매수 자금 유입이나 거래대금과 동일하지 않음.</div></details>';
     }
 
     function renderDomesticParticipation(models) {
