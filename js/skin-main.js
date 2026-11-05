@@ -835,6 +835,9 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div class="hmb2-leaders"><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div class="hmb2-cautions"><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-day-futures" data-home-day-futures aria-label="코스피200 주간선물 시세"><dt>KOSPI200 주간선물</dt>'
+        + '<dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small>'
+        + '<small class="hmb-day-futures-meta" data-home-day-field="time">09:00~15:45 · 수신 확인 중</small></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>외국인 · 30분 누적</span>'
         + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">‹</button>'
@@ -884,7 +887,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261027-open-block-columns';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261105-day-futures-compact';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -957,6 +960,7 @@ document.documentElement.classList.add('skin-ready');
       // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(기존 핵심 지표 목록은 국내 모드 전용).
       var coreList = dashboardSection.querySelector('.hmb2-core');
       if (coreList) coreList.hidden = isUs;
+      if (!isUs) renderHomeDayFutures(homeDayFutureQuote, false);
       if (isUs) { loadHomeUsRotation(); renderHomeUsPanels(); }
       var verdict = dashboardSection.querySelector('.hmb2-verdict');
       if (verdict) verdict.classList.toggle('has-market-breadth', !isUs || !!(usSession && usSession.open));
@@ -2050,6 +2054,50 @@ document.documentElement.classList.add('skin-ready');
     }
 
     // 코스피200 야간선물 독립 카드. 값은 /futures(KOSPI200_NIGHT)에 있는 것만 쓰고 없으면 '미수신'으로 둔다.
+    // 기존 저장된 KOSPI200_DAY 선물 시세만 한국 홈에서 조회(새 VM 수집기 없음).
+    var homeDayFutureQuote = null;
+    var homeDayFutureRequestedAt = 0;
+    var homeDayFutureLoading = false;
+    function renderHomeDayFutures(item, failed) {
+      var card = dashboardSection.querySelector('[data-home-day-futures]');
+      if (!card) return;
+      var price = item ? homeNum(item.price) : null;
+      if (price != null && price <= 0) price = null;
+      var change = price != null ? homeNum(item.change) : null;
+      var rate = price != null ? homeNum(item.change_rate) : null;
+      var stamp = item && homeKstTime(item.updated_at);
+      var hours = window.MarketHours;
+      var state = hours && typeof hours.krFutures === 'function' ? hours.krFutures() : null;
+      var holiday = !!(hours && typeof hours.isKrHoliday === 'function' && hours.isKrHoliday());
+      var open = !holiday && !!(state && state.phase === 'regular');
+      var fresh = !!(item && !item.stale && homeFresh(item, 5));
+      var status = holiday ? '휴장' : price == null ? (failed ? '수신 지연' : '미수신')
+        : open ? (fresh && !item.market_closed ? '거래중' : '시세 지연') : '장 마감';
+      homeFill(card, 'data-home-day-field', 'price', price == null ? '-' : homeFmt(price, 2),
+        price == null ? 'home-neutral' : homeTone(change));
+      homeFill(card, 'data-home-day-field', 'change',
+        rate == null ? '-' : (change > 0 ? '▲' : change < 0 ? '▼' : '')
+          + (rate > 0 ? '+' : rate < 0 ? '-' : '') + Math.abs(rate).toFixed(2) + '%',
+        homeTone(change));
+      homeFill(card, 'data-home-day-field', 'time',
+        status + (stamp ? ' · ' + stamp : ' · 기준시각 없음'), 'home-neutral');
+    }
+    function loadHomeDayFutures() {
+      if (homeMarketSession().market !== 'domestic' || document.hidden) return;
+      if (homeDayFutureLoading || Date.now() - homeDayFutureRequestedAt < 50000) return;
+      homeDayFutureLoading = true;
+      homeDayFutureRequestedAt = Date.now();
+      // 전체 페이지 공통 20초 지수 요청은 늘리지 않는다. 국내 홈에서만 1분 조회.
+      fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI200_DAY&stored_only=true', 12000)
+        .then(function (response) {
+          var rows = response && Array.isArray(response.data) ? response.data : [];
+          homeDayFutureQuote = rows.find(function (row) { return row && row.symbol === 'KOSPI200_DAY'; }) || null;
+          renderHomeDayFutures(homeDayFutureQuote, false);
+        }).catch(function () {
+          renderHomeDayFutures(homeDayFutureQuote, true);
+        }).then(function () { homeDayFutureLoading = false; });
+    }
+
     function renderHomeNightCard(item) {
       var card = dashboardSection.querySelector('[data-home-night-futures]');
       if (!card) return;
@@ -2245,6 +2293,7 @@ document.documentElement.classList.add('skin-ready');
       var session = homeMarketSession();
       loadHomeHistory(session);
       applyHomeMarketSession(session);
+      if (session.market === 'domestic') loadHomeDayFutures();
       if (session.closed) return;
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()

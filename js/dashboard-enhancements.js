@@ -234,7 +234,10 @@
       if (actionStack) {
         // 독립 차트가 위, 이미지 저장·복사가 바로 아래에 고정된다.
         // 원본 차트 버튼과 이벤트는 DOM 이동으로 끊기지 않는다.
-        actionStack.insertBefore(button, actionStack.querySelector('.nine-chart-capture-actions'));
+        var expandSegment = document.createElement('div');
+        expandSegment.className = 'nine-chart-expand-segment';
+        expandSegment.appendChild(button);
+        actionStack.insertBefore(expandSegment, actionStack.querySelector('.nine-chart-capture-actions'));
       } else {
         (drawingGroup || controlRow).appendChild(button);
       }

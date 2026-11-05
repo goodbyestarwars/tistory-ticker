@@ -256,7 +256,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core {
-  display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.1fr) minmax(0, 1.1fr); gap: 14px 22px; margin: 12px 0 0; padding: 0;
+  display: grid; grid-template-columns: minmax(0, .75fr) repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin: 10px 0 0; padding: 0;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > div { display: block; min-width: 0; margin: 0; padding: 0; border: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core dt { margin: 0 0 3px; font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
@@ -264,10 +264,20 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core dd {
   margin: 0; font: 600 14px/1.45 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums;
   overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; word-break: keep-all;
 }
+/* 한국증시 요약 4번째 칸. 미니 수급차트 공간은 70px로 줄인다. */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb-day-futures-change {
+  display: block; margin-top: 1px; font: 600 12px/1.4 var(--font-data, var(--font-ui)); font-variant-numeric: tabular-nums;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb-day-futures-meta {
+  display: block; margin-top: 3px; font: 400 10px/1.35 var(--font-ui); color: var(--hmb-faint); overflow-wrap: anywhere;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend .hmb-investor-trend-head { margin-bottom: 6px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { height: 70px; margin-top: 5px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-empty { height: 70px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > [data-home-night-futures] { grid-column: 1 / -1; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > [data-home-night-futures][hidden] { display: none; }
 /* 투자자 동향 */
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid var(--hmb-line); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend { grid-column: 1 / -1; padding-top: 10px; border-top: 1px solid var(--hmb-line); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head dt { margin: 0; }
@@ -383,12 +393,12 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
 /* ── 반응형 ── */
 @media (max-width: 1100px) and (min-width: 721px) {
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-fx { grid-column: 1 / -1; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-fx { grid-column: auto; }
 }
 @media (max-width: 720px) {
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row strong { font-size: 24px; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-fx { grid-column: 1 / -1; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-fx { grid-column: auto; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row { grid-template-columns: 46px minmax(0, 1fr); row-gap: 2px; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-nums { grid-column: 2; }
 }
@@ -417,7 +427,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
     font-size: clamp(19px, 1.7vw, 22px) !important; line-height: 1.2 !important;
   }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.hmb2-verdict, .hmb2-core) > div { min-height: 0 !important; padding: 0 !important; border: 0 !important; }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > .hmb-investor-trend { border-top: 1px solid var(--hmb-line) !important; padding-top: 14px !important; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > .hmb-investor-trend { border-top: 1px solid var(--hmb-line) !important; padding-top: 10px !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row { justify-content: flex-start !important; }
   /* 왼쪽 위젯 높이가 바뀌어도 경제뉴스 카드 안의 목록이 남는 높이를 채우도록만 맞춘다(뉴스 항목 디자인·데이터는 그대로). */
   body#tt-body-index .home-editorial-page #homeEconomicNews { display: flex !important; flex-direction: column !important; }
