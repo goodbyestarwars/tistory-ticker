@@ -815,10 +815,11 @@
       }, chartThemeOptions()));
 
       var color = positive ? '#d24f45' : '#1261c4';
+      var fillColor = global.NineUI && global.NineUI.chartFill ? global.NineUI.chartFill(positive) : (positive ? '#FAE8E7' : '#E4EDF8');
       var series = chart.addSeries(LWC.AreaSeries, {
         lineColor: color,
-        topColor: hexToRgba(color, 0.2),
-        bottomColor: hexToRgba(color, 0.02),
+        topColor: fillColor,
+        bottomColor: hexToRgba(fillColor, 0.12),
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
