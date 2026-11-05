@@ -16,6 +16,10 @@
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
+  function graphFill(up) {
+    return global.NineUI && typeof global.NineUI.chartFill === 'function'
+      ? global.NineUI.chartFill(up) : (up ? '#FAE8E7' : '#E4EDF8');
+  }
   var ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)';
   var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
   var ICHIMOKU = { tenkan: 9, kijun: 26, senkouB: 52, displacement: 26 };
@@ -712,7 +716,7 @@
   // ---- 시리즈 부품(옵션·호출 순서는 두 화면이 쓰던 그대로 - 화면은 필요한 순서로 호출만 한다) ----
   function candleOptions(priceFormat) {
     return {
-      upColor: CANDLE_UP, downColor: CANDLE_DOWN,
+      upColor: graphFill(true), downColor: graphFill(false),
       borderUpColor: CANDLE_UP, borderDownColor: CANDLE_DOWN,
       wickUpColor: CANDLE_UP, wickDownColor: CANDLE_DOWN,
       priceLineStyle: global.LightweightCharts.LineStyle.Solid,
@@ -777,9 +781,8 @@
     var multiplesOn = opts.multiples === true;   // 켜고 끄는 옵션(setMultiples). 기본은 끔(호출자가 true 를 줄 때만 켠다)
     function volumeData() {
       return bars.map(function (d, i) {
-        var m = multiplesOn ? multiples[i] : null, up = d.close >= d.open;
-        var alpha = m != null && m >= VOLUME_SPIKE.label ? 1 : (m != null && m >= VOLUME_SPIKE.strong ? 0.85 : 0.5);
-        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: (up ? 'rgba(210,79,69,' : 'rgba(18,97,196,') + alpha + ')' };
+        var up = d.close >= d.open;
+        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: graphFill(up) };
       });
     }
     volume.setData(volumeData());
