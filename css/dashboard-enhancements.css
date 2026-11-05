@@ -214,12 +214,13 @@
 /* 독립 차트도 일봉·주봉과 같은 납작한 트랙. 저장/복사는 아래 전용 줄. */
 :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-expand-segment {
   display: flex;
-  padding: 3px;
-  border: 1px solid #d9dfe8;
+  padding: 0;
+  border: 0;
   border-radius: 0;
   background: #fff;
 }
 :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-action-stack .de-expand-button.de-expand-inline {
+  --chart-tool-radius: 0;
   float: none;
   width: 100%;
   min-height: 26px;
@@ -227,7 +228,7 @@
   margin: 0;
   padding: 0 9px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 0;
   background: transparent;
   color: #333;
   box-shadow: none;
@@ -239,13 +240,14 @@
   gap: 3px;
 }
 :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-capture-actions > button {
+  --chart-tool-radius: 0;
   box-sizing: border-box;
   flex: 1 1 0;
   min-height: 26px;
   height: 26px;
   padding: 0 7px;
   border: 1px solid #d9dfe8;
-  border-radius: 7px;
+  border-radius: 0;
   background: #fff;
   color: #405266;
   font: inherit;
@@ -266,8 +268,8 @@ html.dark :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-drawi
   border-color: var(--dk-line);
 }
 html.dark :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-expand-segment {
-  border-color: var(--dk-line);
-  background: var(--dk-card);
+  border-color: transparent;
+  background: transparent;
 }
 html.dark :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-expand-segment .de-expand-button.de-expand-inline {
   background: transparent;

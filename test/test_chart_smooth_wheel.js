@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const core = require('../js/chart-core.js');
 const source = fs.readFileSync('js/stock-search.js', 'utf8');
 assert(source.includes('stockWheelCleanup = core.installSmoothWheelZoom(chart, container, { bars: bars.length, priceSeries: function () { return lwcCandleSeries; } })'));
-assert(source.includes('indexWheelCleanup = global.NineChartCore.installSmoothWheelZoom(indexChart, host, { bars: bars.length })'));
+assert(source.includes('indexWheelCleanup = core.installSmoothWheelZoom(indexChart, host, { bars:bars.length, priceSeries:function () { return indexSeries; } })'));
 assert(source.includes('options.handleScale.mouseWheel = false;'));
 assert(source.includes('options.handleScroll.mouseWheel = false;'));
 
@@ -203,6 +203,24 @@ assert.equal(events.touchstart, undefined);
   cl3();
   if (perf2) Object.defineProperty(global, 'performance', { value: perf2, configurable: true });
 }
+
+// Same common price-axis gesture for stock/index/expanded charts; independent of time range.
+{
+ const ev={}, axis={from:90,to:110}; let prevented=false, captured=null;
+ const host={clientWidth:600,clientHeight:400,getBoundingClientRect:()=>({left:0,right:600,top:0}),
+  addEventListener:(k,fn)=>ev[k]=fn,removeEventListener:k=>delete ev[k],
+  setPointerCapture:id=>captured=id,hasPointerCapture:id=>captured===id,releasePointerCapture:()=>captured=null};
+ const ps={width:()=>60,getVisibleRange:()=>({...axis}),setVisibleRange:r=>Object.assign(axis,r)};
+ const detach=core.installSmoothWheelZoom({timeScale:()=>scale,priceScale:()=>ps},host,{bars:300});
+ ev.pointerdown({button:0,pointerId:4,clientX:580,clientY:100,preventDefault:()=>prevented=true,stopPropagation(){}});
+ ev.pointermove({pointerId:4,clientY:150});
+ assert(axis.to-axis.from>20,'axis drag expands price range');assert.equal((axis.to+axis.from)/2,100);
+ assert(prevented);ev.pointerup();assert.equal(captured,null);
+ const before={...axis};ev.pointermove({pointerId:4,clientY:200});assert.deepEqual(axis,before,'release stops scaling');
+ ev.pointerdown({button:0,pointerType:'touch',pointerId:5,clientX:580,clientY:100});ev.pointermove({pointerId:5,clientY:200});assert.deepEqual(axis,before,'touch retains native handling');
+ detach();assert(!ev.pointermove,'axis handler cleaned up');
+}
+
 global.requestAnimationFrame = prevRaf;
 global.cancelAnimationFrame = prevCancel;
 console.log('chart smooth wheel: ok');

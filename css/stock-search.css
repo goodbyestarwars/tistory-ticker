@@ -1531,7 +1531,7 @@ html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs .ss
 html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs button {
   min-height: 30px;
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: 0;
   background: #fff;
   font-family: inherit;
   font-size: 12px;
@@ -1624,7 +1624,7 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     width: 100% !important;
     max-width: 100% !important;
     padding: 8px 12px !important;
-    gap: 6px 10px !important;
+    gap: 3px 10px !important;
     flex-wrap: wrap !important;
     justify-content: flex-start !important;
     overflow-x: visible !important;
@@ -1637,9 +1637,10 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   }
   /* 봉 주기·기간·메모~지우기 모두 동일한 세그먼트 트랙.
      독립 차트와 캡처 두 버튼은 그리기 그룹과 분리된 오른쪽 세로 스택을 사용한다. */
-  html body .ss-stock-controls.ss-stock-controls .ss-drawing-tools { flex-wrap: wrap !important; align-items: flex-start; }
+  html body .ss-stock-controls.ss-stock-controls .ss-drawing-tools { flex-wrap: wrap !important; align-items: center; }
   html body .ss-stock-controls.ss-stock-controls .nine-chart-drawing-segment { flex-wrap: wrap; max-width: 100%; }
   html body .ss-stock-controls.ss-stock-controls .nine-chart-action-stack { flex: 0 0 auto; }
+  html body .ss-stock-controls.ss-stock-controls .nine-chart-capture-actions > button { border-radius: 0; }
   html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools,
   html body .ss-stock-controls.ss-stock-controls .nine-chart-drawing-segment,
   html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges {
@@ -1697,8 +1698,8 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     overflow: visible !important;
   }
   html body .ss-stock-controls.ss-stock-controls.ss-index-controls > .nine-chart-ranges.nine-chart-ranges {
-    margin: 0 16px 10px !important;
-    max-width: calc(100% - 32px) !important;
+    margin: -5px 12px 4px !important;
+    max-width: calc(100% - 24px) !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies {
     border-top: 0 !important;
@@ -1718,10 +1719,10 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     height: 16px !important;
   }
   /* 봉·작도 도구와 기간 묶음은 줄을 나누되 가로 구분선을 표시하지 않는다. */
-  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs { align-items: center !important; }
+  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs { position: relative; align-items: flex-start !important; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-timeframe-tools { order: 1; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-minute-scope-wrap { order: 2; margin: 0 !important; padding: 0 !important; }
-  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { order: 3; margin-left: auto !important; justify-content: flex-end !important; }
+  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { position: absolute; right: 12px; top: 8px; order: 3; margin-left: auto !important; justify-content: flex-end !important; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs::after {
     content: '';
     order: 4;
@@ -1732,8 +1733,8 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     border-top: 0;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .nine-chart-ranges.nine-chart-ranges { order: 5; }
-  @media (max-width: 720px) {
-    html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { margin-left: 0 !important; justify-content: flex-start !important; }
+  @media (max-width: 900px) {
+    html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { position: static; margin-left: 0 !important; justify-content: flex-start !important; }
   }
   /* 좁은 화면: 묶음이 화면 폭을 넘으면 묶음 안에서 줄바꿈한다(가로 스크롤 없음). */
   @media (max-width: 520px) {

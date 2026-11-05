@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-11-05-chart-capture-1';
+  var VERSION = '2026-11-06-axis-drag-1';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -443,14 +443,42 @@
       drag.samples.push({ t: t, from: r.from, span: r.to - r.from });
       while (drag.samples.length > 2 && t - drag.samples[0].t > 120) drag.samples.shift();
     }
+    var priceDrag = null;
+    function movePriceAxis(event) {
+      if (!priceDrag || event.pointerId !== priceDrag.id) return;
+      var factor = Math.exp(Math.max(-400,Math.min(400,event.clientY-priceDrag.y))*0.006);
+      var half = (priceDrag.to-priceDrag.from)*factor/2, center = (priceDrag.to+priceDrag.from)/2;
+      priceDrag.scale.setVisibleRange({from:center-half,to:center+half});
+      if (event.cancelable && event.preventDefault) event.preventDefault();
+    }
     function onPointerDown(event) {
       stop();
       // Lightweight Charts already provides native touch inertia. Applying our
       // mouse momentum to touch as well causes a second glide on mobile.
       if (event && event.pointerType === 'touch') return;
+      // Own price-axis scaling in the common engine, including when the drawing layer is active.
+      var rect = element.getBoundingClientRect && element.getBoundingClientRect();
+      var ps = chart.priceScale && chart.priceScale('right');
+      if (event.button === 0 && rect && ps && ps.width && ps.getVisibleRange && ps.setVisibleRange
+          && event.clientX >= rect.right-ps.width() && event.clientX <= rect.right) {
+        var range = ps.getVisibleRange();
+        if (range && Number.isFinite(range.from) && Number.isFinite(range.to) && range.to>range.from) {
+          priceDrag = {id:event.pointerId,y:event.clientY,from:range.from,to:range.to,scale:ps};
+          drag = null;
+          if (element.setPointerCapture) element.setPointerCapture(event.pointerId);
+          if (event.preventDefault) event.preventDefault();
+          if (event.stopPropagation) event.stopPropagation();
+          return;
+        }
+      }
       drag = { samples: [] };
     }
     function onPointerUp() {
+      if (priceDrag) {
+        if (element.hasPointerCapture && element.hasPointerCapture(priceDrag.id)) element.releasePointerCapture(priceDrag.id);
+        priceDrag = null;
+        return;
+      }
       var d = drag;
       drag = null;
       if (!d || d.samples.length < 2 || disposed) return;
@@ -488,7 +516,8 @@
     var rangeSub = typeof scale.subscribeVisibleLogicalRangeChange === 'function';
     if (rangeSub) scale.subscribeVisibleLogicalRangeChange(onRangeChange);
     element.addEventListener('wheel', onWheel, { passive: false });
-    element.addEventListener('pointerdown', onPointerDown, { passive: true });
+    element.addEventListener('pointerdown', onPointerDown, { passive: false, capture:true });
+    upTarget.addEventListener('pointermove', movePriceAxis, { passive:false });
     element.addEventListener('touchstart', stop, { passive: true });
     upTarget.addEventListener('pointerup', onPointerUp, { passive: true });
     upTarget.addEventListener('pointercancel', onPointerUp, { passive: true });
@@ -497,7 +526,8 @@
       stop();
       if (rangeSub && typeof scale.unsubscribeVisibleLogicalRangeChange === 'function') scale.unsubscribeVisibleLogicalRangeChange(onRangeChange);
       element.removeEventListener('wheel', onWheel);
-      element.removeEventListener('pointerdown', onPointerDown);
+      element.removeEventListener('pointerdown', onPointerDown, true);
+      upTarget.removeEventListener('pointermove', movePriceAxis);
       element.removeEventListener('touchstart', stop);
       upTarget.removeEventListener('pointerup', onPointerUp);
       upTarget.removeEventListener('pointercancel', onPointerUp);

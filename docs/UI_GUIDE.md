@@ -90,16 +90,16 @@ MY 포트폴리오의 매물대는 종목분석 `ForeignFlow.renderVolumeProfile
 폭 120px(모바일 96px)으로 축소해 목록 아래에 둔다. SVG의 흑색 기본 채우기·
 무제한 크기로 되돌아가지 않도록 검사하고, 분석치·기간·기존 가격별 행은 바꾸지 않는다.
 
-## 차트 툴바 세그먼트 및 캡처 배치 (2026-11-05)
+## 차트 공통 축·툴바 (2026-11-06)
 
-국내·미국·지수 차트의 `ss-drawing-tools`와 종목분석 `ff-draw-tools`는
-`nine-chart-drawing-segment`에 메모~지우기 기능을 순서 그대로 묶는다.
-봉 주기/기간 세그먼트와 동일한 사각 트랙·선택 배경을 사용한다.
-`nine-chart-action-stack`은 오른쪽 별도 세로 묶음으로, 공통
-`dashboard-enhancements.addExpandButton`가 '독립 차트'를 첫 행에,
-`nine-chart-capture-actions`가 그 아래 '📷 저장/복사'를 표시한다.
-버튼 ID/기능·캡처 핸들러·차트 모달 DOM 이동은 유지한다.
-모바일은 그리기 세그먼트 안에서 줄바꿈하고 동작/버튼은 숨기지 않는다.
+지수 6종(KOSPI/KOSDAQ/NASDAQ/S&P500/SOX/DOW)의 차트 생성도 종목과 같은
+chart-core.chartOptions(search)·registerChart·installVerticalPan·installSmoothWheelZoom을 쓴다.
+공통 휠 모듈은 오른쪽 축의 마우스 드래그를 포인터 캡처로 처리하고 중심 가격을
+고정한 채 범위를 확대/축소한다. 축 밖/터치는 기존 동작을 유지하며 해제 시 정리한다.
+봉 주기·기간은 왼쪽에 촘촘한 2줄, PC의 작도/독립/캡처는 오른쪽, 900px 이하에서는
+흐름 안에서 줄바꿈한다. 독립차트 외곽 트랙 테두리는 0, 저장·복사는 직사각형이다.
+style.css의 기존 공통 차트 버튼 반경 규칙은 --chart-tool-radius를 읽어 화면별 중복
+중요도 규칙 없이 액션 버튼만 반경0으로 제어한다. 기존 캡처/그리기/체크/저장 계약은 보존한다.
 
 ## 차트 캡처 (2026-11-05)
 

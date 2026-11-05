@@ -8815,7 +8815,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     min-height: 26px !important;
     padding: 0 9px !important;
     font-size: 12px !important;
-    border-radius: 7px !important;
+    border-radius: var(--chart-tool-radius, 7px) !important;
   }
   html body :where(.ss-chart-tabs, .ss-index-tools, .ff-draw-tools, .dmi-draw-buttons, .kf-draw-buttons) { gap: 4px !important; }
 }

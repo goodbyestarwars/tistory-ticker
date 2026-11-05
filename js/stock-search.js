@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261105-capture1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261106-shared-axis-toolbar';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -1114,14 +1114,16 @@
       var dark = document.documentElement.classList.contains('dark');
       syncIndexCapabilities(panel, bars);
       host.textContent = '';
-      indexChart = LWC.createChart(host, { autoSize: true, height: 440,
-        layout: { background: { color: dark ? '#202731' : '#ffffff' }, textColor: dark ? '#a6b5c5' : '#606b78', attributionLogo: false },
-        // 기본 십자선(Magnet)은 가로줄이 봉 가격에 붙어 마우스를 따라가지 않는다. 종목 차트처럼 자유롭게 따라가게 한다.
-        crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { borderVisible: false },
-        handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true },
-        handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: true } });
-      indexWheelCleanup = global.NineChartCore.installSmoothWheelZoom(indexChart, host, { bars: bars.length });
+      var options = core.chartOptions(LWC, 'search', { autoSize:true, height:440, timeframe:indexTimeframe });
+      options.handleScale.mouseWheel = false;
+      options.handleScroll.mouseWheel = false;
+      indexChart = LWC.createChart(host, options);
+      indexWheelCleanup = core.installSmoothWheelZoom(indexChart, host, { bars:bars.length, priceSeries:function () { return indexSeries; } });
+      indexExtraCleanup.push(core.registerChart(host,indexChart,{bars:bars.length,timeframe:indexTimeframe}));
+      indexExtraCleanup.push(core.installVerticalPan(indexChart,host,{
+        priceSeries:function () { return indexSeries; },
+        isDrawing:function () { return !!(indexDrawingCtl && indexDrawingCtl.mode()); }
+      }));
       var series = indexChart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4', borderVisible: false,
         wickUpColor: '#d24f45', wickDownColor: '#1261c4',
