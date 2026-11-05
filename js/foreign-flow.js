@@ -125,7 +125,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vpcolor';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261105-capture1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -4655,6 +4655,8 @@
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="pencil" aria-pressed="false" disabled>연필</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="measure" aria-pressed="false" disabled title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button>'
         + '<span>도구 선택 후 왼쪽에서 오른쪽으로 드래그 · 종목별 자동 저장</span></div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + '</div></div>'
@@ -6488,6 +6490,12 @@
 
       setupFlowOverlays(container, chart, candleSeries, daily, code, fontFamily);
       setupFlowMemo(container, chart, candleSeries, daily, code);
+      core.wireChartCaptureButtons(container.parentElement, function () {
+        var heading = document.querySelector('#foreign-flow .ff-header');
+        return { chart: lwcChart, container: lwcChartContainer, code: code,
+          name: (chartData && chartData.name) || (heading && heading.textContent.trim()) || code,
+          timeframe: 'day' };
+      });
 
       // html.dark 토글에는 클래스만 바뀌므로 캔버스 차트 색도 같이 갱신한다(공용 감시자 - 차트 수와 무관하게 관찰자는 하나).
       scope.theme(function () {

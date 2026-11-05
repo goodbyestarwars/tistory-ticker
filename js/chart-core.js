@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-21-summary-ui-9';
+  var VERSION = '2026-11-05-chart-capture-1';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -1469,11 +1469,135 @@
     return counts;
   }
 
+
+  // Lightweight Charts 원본 + 외부 캔버스(자동 파동/수동 그리기) 합성. 화면·지표 설정 변경 없음.
+  var CAPTURE_LAYERS='.ss-drawing-layer,.ff-drawing-layer,.nc-drawing-layer,.ss-ichimoku-cloud,.ss-rsi-zones,.ss-sr-zones';
+  var CAPTURE_LABELS='.ss-price-study-label,.ss-volume-study-label,.ss-lwc-pane-labels,.ff-volume-study-label,.ff-lwc-pane-labels,.nine-trace-legend,.ss-memo-pin';
+  var CAPTURE_TF={day:'일봉',week:'주봉',month:'월봉',minute:'분봉'};
+  function captureClock(now){
+    var parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now||new Date());
+    var out={};parts.forEach(function(p){out[p.type]=p.value;});return out;
+  }
+  function captureFileName(o,now){
+    var d=captureClock(now), code=String(o.code||'CHART').replace(/^(US|INDEX):/i,'').replace(/[^A-Z0-9가-힣._-]+/gi,'_').slice(0,36)||'CHART';
+    var tf=CAPTURE_TF[o.timeframe]||'차트';
+    if(o.timeframe==='minute'&&/^\d+$/.test(String(o.minuteScope||'')))tf=o.minuteScope+'분봉';
+    return code+'_'+tf+'_'+d.year+'-'+d.month+'-'+d.day+'.png';
+  }
+  function captureTitle(o){
+    var code=String(o.code||'').replace(/^(US|INDEX):/i,''),name=String(o.name||'').trim();
+    var tf=CAPTURE_TF[o.timeframe]||'차트';
+    if(o.timeframe==='minute'&&/^\d+$/.test(String(o.minuteScope||'')))tf=o.minuteScope+'분봉';
+    return (name&&name!==code?name+' ('+code+')':code||'차트')+' · '+tf+(o.period?' · '+String(o.period).trim().slice(0,20):'');
+  }
+  function paintCaptureLabels(ctx,host,rect){
+    if(!document.createTreeWalker||!document.createRange)return;
+    host.querySelectorAll(CAPTURE_LABELS).forEach(function(el){
+      var topStyle=global.getComputedStyle(el);
+      if(topStyle.display==='none'||topStyle.visibility==='hidden'||topStyle.opacity==='0')return;
+      var walker=document.createTreeWalker(el,4),node;
+      while((node=walker.nextNode())){
+        var value=String(node.textContent||'').replace(/\s+/g,' ').trim();
+        if(!value||!node.parentElement)continue;
+        var st=global.getComputedStyle(node.parentElement);
+        if(st.display==='none'||st.visibility==='hidden')continue;
+        var range=document.createRange();range.selectNodeContents(node);
+        var r=range.getBoundingClientRect();if(range.detach)range.detach();
+        if(!r||!r.width||!r.height)continue;
+        var x=r.left-rect.left,y=r.top-rect.top;
+        if(x>=rect.width||y>=rect.height||x+r.width<=0||y+r.height<=0)continue;
+        ctx.font=(st.fontWeight||'400')+' '+(st.fontSize||'11px')+' '+(st.fontFamily||'sans-serif');
+        ctx.fillStyle=st.color||'#64748b';ctx.textBaseline='alphabetic';
+        ctx.fillText(value,x,y+Math.min(r.height,(parseFloat(st.fontSize)||11)*1.1));
+      }
+    });
+  }
+  function captureChartCanvas(o){
+    if(!o||!o.chart||!o.container||typeof o.chart.takeScreenshot!=='function')throw Error('캡처할 차트가 준비되지 않았습니다.');
+    var host=o.container,r=host.getBoundingClientRect(),w=Math.round(r.width||host.clientWidth||0),h=Math.round(r.height||host.clientHeight||0);
+    if(!w||!h)throw Error('보이는 차트가 없습니다.');
+    var base=o.chart.takeScreenshot();
+    if(!base||!base.width||!base.height)throw Error('차트 이미지를 생성하지 못했습니다.');
+    var top=54,ratio=2,dark=isDark(),canvas=document.createElement('canvas');
+    canvas.width=w*ratio;canvas.height=(h+top)*ratio;
+    var ctx=canvas.getContext('2d');if(!ctx)throw Error('이미지 캔버스를 사용할 수 없습니다.');
+    ctx.setTransform(ratio,0,0,ratio,0,0);
+    ctx.fillStyle=dark?'#171b22':'#ffffff';ctx.fillRect(0,0,w,h+top);
+    ctx.fillStyle=dark?'#eef2f7':'#1f2937';
+    ctx.font='600 15px Pretendard Variable, Pretendard, sans-serif';
+    var title=captureTitle(o);
+    while(title.length>2&&ctx.measureText(title).width>w-24)title=title.slice(0,-2)+'…';
+    ctx.fillText(title,12,23);
+    var d=captureClock();ctx.fillStyle=dark?'#aebccc':'#64748b';
+    ctx.font='11px Pretendard Variable, Pretendard, sans-serif';
+    ctx.fillText('캡처 '+d.year+'-'+d.month+'-'+d.day+' '+d.hour+':'+d.minute+' KST',12,42);
+    ctx.strokeStyle=dark?'#3a4350':'#e5e7eb';
+    ctx.beginPath();ctx.moveTo(0,top-.5);ctx.lineTo(w,top-.5);ctx.stroke();
+    ctx.drawImage(base,0,top,w,h);
+    ctx.save();ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
+    // LWC 안쪽 캔버스를 다시 그리면 캔들/가격축이 중복된다. 외부 오버레이만 합성한다.
+    var layers=Array.prototype.slice.call(host.querySelectorAll(CAPTURE_LAYERS));
+    layers.sort(function(a,b){return (parseInt(global.getComputedStyle(a).zIndex,10)||0)-(parseInt(global.getComputedStyle(b).zIndex,10)||0);});
+    layers.forEach(function(layer){
+      var st=global.getComputedStyle(layer);
+      if(st.display==='none'||st.visibility==='hidden'||st.opacity==='0'||!layer.width||!layer.height)return;
+      var pos=layer.getBoundingClientRect();
+      if(pos.width<=0||pos.height<=0)return;
+      try{ctx.globalAlpha=isFinite(Number(st.opacity))?Number(st.opacity):1;ctx.drawImage(layer,pos.left-r.left,top+pos.top-r.top,pos.width,pos.height);}
+      catch(ignore){/* 한 레이어 실패로 전체 차트 저장을 중단하지 않는다 */}
+      ctx.globalAlpha=1;
+    });
+    ctx.translate(0,top);paintCaptureLabels(ctx,host,r);ctx.restore();
+    return canvas;
+  }
+  function saveChartPng(o){
+    var canvas=captureChartCanvas(o);
+    return new Promise(function(resolve,reject){
+      canvas.toBlob(function(blob){
+        if(!blob){reject(Error('PNG 생성 실패'));return;}
+        var url=URL.createObjectURL(blob),a=document.createElement('a');
+        a.href=url;a.download=captureFileName(o);document.body.appendChild(a);a.click();a.remove();
+        global.setTimeout(function(){URL.revokeObjectURL(url);},2000);
+        resolve(a.download);
+      },'image/png');
+    });
+  }
+  function copyChartPng(o){
+    if(!global.isSecureContext||!global.navigator||!global.navigator.clipboard||!global.ClipboardItem||typeof global.navigator.clipboard.write!=='function')
+      return Promise.reject(Error('이 브라우저에서 이미지 복사를 지원하지 않습니다. PNG 저장을 이용해 주세요.'));
+    var canvas=captureChartCanvas(o);
+    // 사용자 클릭 제스처가 사라지기 전에 write를 호출하고, Blob은 Promise로 공급한다.
+    var png=new Promise(function(resolve,reject){canvas.toBlob(function(blob){blob?resolve(blob):reject(Error('PNG 생성 실패'));},'image/png');});
+    return global.navigator.clipboard.write([new global.ClipboardItem({'image/png':png})]);
+  }
+  function wireChartCaptureButtons(root,getOptions){
+    if(!root||typeof getOptions!=='function')return;
+    root.querySelectorAll('[data-chart-capture]').forEach(function(button){
+      button.onclick=function(){
+        var mode=button.getAttribute('data-chart-capture'),original=button.textContent,p;
+        try{
+          var o=getOptions();
+          if(!o||!o.chart||!o.container)throw Error('차트가 로딩 중입니다.');
+          if(!o.period){
+            var selected=root.querySelector('.nine-chart-ranges .active, .nine-chart-ranges [aria-pressed="true"]');
+            if(selected)o.period=selected.textContent;
+          }
+          p=mode==='copy'?copyChartPng(o):saveChartPng(o);
+        }catch(err){p=Promise.reject(err);}
+        button.disabled=true;
+        Promise.resolve(p).then(function(){if(button.isConnected)button.textContent=mode==='copy'?'✓ 복사됨':'✓ 저장됨';})
+        .catch(function(err){if(button.isConnected){button.title=err&&err.message||'캡처 실패';button.textContent='캡처 실패';}})
+        .then(function(){global.setTimeout(function(){if(button.isConnected){button.disabled=false;button.textContent=original;}},1700);});
+      };
+    });
+  }
+
   global.NineChartCore = {
     REGIME:REGIME,trendRegimes:trendRegimes,trendRegimeLegendHtml:trendRegimeLegendHtml,majorWaveContext:majorWaveContext,
     SUPPLY_DISPLAY:SUPPLY_DISPLAY,supplyDisplayEvents:supplyDisplayEvents,supplyDisplayMarkers:supplyDisplayMarkers,
     SUPPLY_TRACES: SUPPLY_TRACES, supplyTraceBars: supplyTraceBars, supplyTraceMarkers: supplyTraceMarkers, supplyTraceSummary: supplyTraceSummary, supplyTraceLegendHtml: supplyTraceLegendHtml, supplyTraceTooltipHtml: supplyTraceTooltipHtml, attachSupplyTraceTooltip: attachSupplyTraceTooltip, setSupplyTraceMarkers: setSupplyTraceMarkers,
     VERSION: VERSION, ROOT: ROOT, LWC_URL: LWC_URL,
+    captureChartCanvas: captureChartCanvas, captureFileName: captureFileName, saveChartPng: saveChartPng, copyChartPng: copyChartPng, wireChartCaptureButtons: wireChartCaptureButtons,
     CANDLE_UP: CANDLE_UP, CANDLE_DOWN: CANDLE_DOWN, ICHIMOKU: ICHIMOKU,
     ICHIMOKU_CLOUD_FILL: ICHIMOKU_CLOUD_FILL, ICHIMOKU_BORDER_COLOR: ICHIMOKU_BORDER_COLOR,
     loadLibrary: loadLibrary, loadModule: loadModule, moduleUrl: moduleUrl, ready: ready, prefetch: prefetch,

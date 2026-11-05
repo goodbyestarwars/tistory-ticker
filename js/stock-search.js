@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261024-volume-update';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261105-capture1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -612,6 +612,8 @@
       + '<button type="button" class="ss-measure-toggle" aria-pressed="false" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
+      + '<button type="button" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
+      + '<button type="button" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button>'
       + '</div></div>'
       + '<div class="ss-chart-studies">'
       + '<label title="3·5·20·60일선"><input type="checkbox" data-chart-ma-short-toggle checked /> 단기 이평선(3·5·20·60)</label>'
@@ -1207,6 +1209,11 @@
         buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
         style: { stroke: '#e11d48', dots: true, previewDash: true }, sync: false
       });
+      global.NineChartCore.wireChartCaptureButtons(panel, function () {
+        return { chart: indexChart, container: host, code: 'INDEX:' + symbol,
+          name: (panel.querySelector('.ss-index-heading strong') || {}).textContent || symbol,
+          timeframe: indexTimeframe };
+      });
       var initializingIndexStudies = true;
       indexStudyUpdate = function () {
         if (renderId !== indexRenderId) return;
@@ -1352,7 +1359,9 @@
             + '<button type="button" class="ss-hline-toggle">가로선</button>'
             + '<button type="button" class="ss-measure-toggle" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
             + '<button type="button" class="ss-pencil-toggle">연필</button>'
-            + '<button type="button" class="ss-draw-clear">지우기</button></div></div>'
+            + '<button type="button" class="ss-draw-clear">지우기</button>'
+            + '<button type="button" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
+            + '<button type="button" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button></div></div>'
             + '<div class="nine-chart-ranges">' + [[30, '1개월'], [90, '3개월'], [180, '6개월'], [365, '1년'], [1095, '3년'], [0, '전체']].map(function (range) { return '<button type="button" class="nine-range-btn" data-index-range="' + range[0] + '">' + range[1] + '</button>'; }).join('') + '</div>'
             + '<div class="ss-chart-studies ss-index-studies" role="group" aria-label="차트 보조지표">'
             + [['maShort', '단기 이평선(3·5·20·60)'], ['maLong', '장기 이평선(112·224·448)'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
@@ -2460,6 +2469,8 @@
       + '<button type="button" class="ss-measure-toggle" aria-pressed="false" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
+      + '<button type="button" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
+      + '<button type="button" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button>'
       + '</div></div>'
       + '<div class="ss-chart-studies">'
       + '<label title="3·5·20·60일선"><input type="checkbox" data-chart-ma-short-toggle checked /> 단기 이평선(3·5·20·60)</label>'
@@ -3272,6 +3283,10 @@
         lwcDivergenceCleanup = global.NineChartDivergence.install({ container: container, chart: chart, candleSeries: candleSeries, rsiSeries: rsiSeries, panes: panes, bars: bars, list: divList });
       }
       setupStockOverlays(container, chart, candleSeries, timeframe, bars);
+      core.wireChartCaptureButtons(container.parentElement, function () {
+        return { chart: lwcChart, container: lwcChartContainer, code: state.selectedCode,
+          name: state.selectedName, timeframe: state.timeframe, minuteScope: state.minuteScope };
+      });
       resizeStockChart();
     }).catch(function () {
       if (renderId !== lwcRenderId) return;
