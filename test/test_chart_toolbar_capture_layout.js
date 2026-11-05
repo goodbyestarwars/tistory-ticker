@@ -33,6 +33,8 @@ assert(shared.includes('.nine-chart-action-stack .de-expand-button.de-expand-inl
 assert(shared.includes('.nine-chart-capture-actions > button'));
 assert(shared.includes('.nine-chart-expand-segment {'));
 assert(shared.includes('.nine-chart-expand-segment .de-expand-button.de-expand-inline'));
+assert(enhancer.includes("ENHANCEMENT_VERSION = '20261105-chart-expand-segment-css'"));
+assert(enhancer.includes('if (existing.href !== STYLE_HREF) existing.href = STYLE_HREF'));
 
 assert(shared.includes('html.dark :is(#stock-search, #foreign-flow, .de-chart-overlay) .nine-chart-drawing-segment'));
 console.log('chart toolbar segments/capture: domestic US index foreign flow, fullscreen/copy bindings and CSS contract ok');

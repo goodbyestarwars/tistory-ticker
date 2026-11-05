@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261105-chart-toolbar-groups';
+  var ENHANCEMENT_VERSION = '20261105-chart-expand-segment-css';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -29,7 +29,12 @@
   }
 
   function loadStyle() {
-    if (document.querySelector('link[data-dashboard-enhancements-style]')) return;
+    var existing = document.querySelector('link[data-dashboard-enhancements-style]');
+    // JS 모듈이 소유하는 CSS 링크가 이전 버전이면 중복 생성 없이 갱신한다.
+    if (existing) {
+      if (existing.href !== STYLE_HREF) existing.href = STYLE_HREF;
+      return;
+    }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = STYLE_HREF;

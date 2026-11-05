@@ -1,3 +1,7 @@
+**2026-11-05 운영 UI 반영 점검: 차트 확장 CSS 버전 동기화**
+
+차트 독립 버튼 스타일은 공통 `dashboard-enhancements.css`에 추가됐지만 이를 로드하는 `dashboard-enhancements.js`의 `ENHANCEMENT_VERSION`이 이전 그리기 툴바 값으로 남아 CSS 캐시의 구버전 재사용 가능. JS 소유 CSS 링크를 최신 expand-segment 버전으로 동기화하고 같은 data 표식의 오래된 CSS 링크는 중복 주입하지 않고 href만 최신 버전으로 변경한다. 차트 마크업·캡처·홈 주간선물·주문/VM 및 티스토리 `skin.html`은 수정하지 않았다. 코드·CSS 계약 검증 및 기존 링크 재사용 테스트 추가. GitHub Pages 배포와 운영 브라우저 실제 화면을 구분한다.
+
 **2026-11-05 정정: HTML 수동 반영 요구 취소·버전 URL 원상복구**
 
 사용자 운영 원칙과 `CLAUDE.md` 재확인: GitHub Pages 정적 경로의 `?v=`만 바꾸는 변경은 티스토리 관리자 수동 수정 사유가 아니다(기존 URL은 CDN 약 10분 내 갱신). 11/05 앞선 작업에서 저장소 `skin.html`의 CSS·JS 버전 문자열만 변경했으나 그 변경은 운영 HTML에 적용되지 않았고 필수도 아니므로 원상복구. `docs/SKIN_HTML_PENDING.md`에 추가했던 수동 반영 요구 삭제. JS/CSS 신규 기능과 Pages 배포 유지. 운영 브라우저 표시 검증은 별도이며, 캐시만으로 모든 미반영 현상을 단정하지 않는다.
