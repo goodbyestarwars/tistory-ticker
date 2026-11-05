@@ -2633,7 +2633,7 @@ document.documentElement.classList.add('skin-ready');
         groups.forEach(function (group) {
           if (group.length < 2) return;
           var pts=group.map(function(r){return x(r.slot).toFixed(2)+','+y(Number(r[field])).toFixed(2);}).join(' ');
-          if (!institution) {
+          if (!institution || actor === 'institution') {
             var area=x(group[0].slot)+','+zero+' '+pts+' '+x(group[group.length-1].slot)+','+zero;
             ['positive','negative'].forEach(function(side,index){
               marks+='<g clip-path="url(#'+id+'-'+side+')" class="hmb-investor-'+(index?'sell':'buy')+'">'
