@@ -1724,7 +1724,7 @@
       }
       return d;
     }
-    var svg = '<svg class="ff-wide-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="종가, 20·60·224일 이동평균선과 파란 일목 구름대, 오른쪽 26거래일 선행 영역" preserveAspectRatio="none">';
+    var svg = '<svg class="ff-wide-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="종가, 20·60·224일 이동평균선과 파란색 일목균형표 구름대, 오른쪽 26거래일 선행 영역" preserveAspectRatio="none">';
     // One polygon per contiguous valid run. Fill only, with no span lines or perimeter stroke.
     var runs = [];
     cloud.forEach(function (p) { var run = runs[runs.length - 1]; if (!run || p.index !== run[run.length - 1].index + 1) runs.push(run = []); run.push(p); });
@@ -1736,12 +1736,13 @@
     });
     lines.forEach(function (l) { var d = path(l.vals); if (d) svg += '<path class="ff-wide-ma is-' + l.key + '" d="' + d + '"/>'; });
     svg += '<path class="ff-wide-close" d="' + path(closes) + '"/></svg>';
-    var legend = lines.slice().reverse().map(function (l) { return '<span class="is-' + l.key + '">' + l.label + '</span>'; }).join('')
-      + '<span class="is-close">종가</span><span class="is-cloud">일목 구름</span>';
-    var note = !core ? '차트 보조선 로드 실패' : n < 52 ? '구름 계산에 52개 유효 일봉 필요' : !cloud.length ? '구름 계산용 OHLC 자료 부족' : '일목 9·26·52 / 26거래일 선행';
+    var legend = '<span class="is-close">종가</span>' + lines.slice().reverse().map(function (l) { return '<span class="is-' + l.key + '">' + l.label + '</span>'; }).join('')
+      + '<span class="is-cloud">일목균형표(구름대)</span>';
+    var note = !core ? '차트 보조선 로드 실패' : n < 52 ? '구름 계산에 52개 유효 일봉 필요' : !cloud.length ? '구름 계산용 OHLC 자료 부족' : '일목균형표 9·26·52 / 26거래일 선행';
     return '<article class="ff-wide ff-wide--chart" data-story-number="01"><div class="ff-wide-grid is-chart"><div class="ff-wide-body">'
       + '<div class="ff-wide-plot">' + svg + '</div><div class="ff-wide-axis"><span>' + escapeHtml(String(daily[from].date || '')) + '</span>'
-      + '<span class="ff-wide-legend">' + legend + '</span><span>' + escapeHtml(String(daily[n - 1].date || '')) + '</span></div></div></div>'
+      + '<span>' + escapeHtml(String(daily[n - 1].date || '')) + '</span></div>'
+      + '<div class="ff-wide-legend" aria-label="차트 범례">' + legend + '</div></div></div>
       + '<footer class="ff-wide-foot"><small>최근 ' + span + '거래일 · ' + note + '</small></footer></article>';
   }
 
@@ -1773,23 +1774,27 @@
     }).catch(function () {});
   }
 
-  function buildStockStoryHtml(st, wideHtml, wideCount, code) {
+  function buildStockStoryHtml(st, wideHtml, wideCount, code, chartOnly) {
     var baseline = !!st.baselineOnly;
     var asOf = baseline ? '' : ((window.NineTime && window.NineTime.asOf(st.asOf)) || (st.asOf + ' 기준'));
-    var cards = (st.cards || []).map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
-    var total = wideCount + (st.cards || []).length;
+    // UI policy only: do not delete generated story data or existing renderers.
+    var visibleStories = chartOnly ? [] : (st.cards || []);
+    var cards = visibleStories.map(function (c, i) { return buildStockStoryCard(c, i, wideCount); }).join('');
+    var total = wideCount + visibleStories.length;
     return '<div class="ff-wide-stage" data-wide-stage>'
       + '<div class="ff-story-head"><span class="ff-panel-title">' + (baseline ? '종목 분석 : ' : '종목 스토리 : ') + escapeHtml(st.name) + (code ? ' (' + escapeHtml(code) + ')' : '') + '</span>'
-      + '<small>' + (baseline ? '기본 분석 · 심층 스토리 미제공' : '작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf)) + '</small>'
+      + '<small>' + (chartOnly ? '일봉 차트 · 조회 데이터 기준' : (baseline ? '기본 분석 · 심층 스토리 미제공' : '작성 ' + escapeHtml(st.written) + ' · ' + escapeHtml(asOf))) + '</small>'
       + '<div class="ff-story-mini" data-story-mini hidden></div></div>'
       + '<div class="ff-wide-track" tabindex="0" role="region" aria-label="' + escapeAttr(st.name) + ' 스토리 카드">' + wideHtml + cards + '</div>'
       + (total > 1 ? '<button type="button" class="ff-story-nav is-prev" data-wide-prev aria-label="이전 카드">‹</button>'
         + '<button type="button" class="ff-story-nav is-next" data-wide-next aria-label="다음 카드">›</button>'
         + '<div class="ff-wide-dots" data-wide-dots><button type="button" class="ff-wide-pause" data-wide-pause aria-label="자동 넘김 일시정지"></button>' + Array.apply(null, Array(total)).map(function (_, i) { return '<button type="button" aria-label="' + (i + 1) + '번 카드"' + (i ? '' : ' class="is-on"') + '></button>'; }).join('') + '</div>' : '')
       + '</div>'
-      + '<small class="ff-story-note">' + (baseline
-        ? '판정·차트는 조회된 일봉 기준으로 계산한다. 심층 스토리 미제공은 매수·매도 신호가 아니다.'
-        : '작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 조회 데이터로 계산). 사라는 말도 팔라는 말도 아니다.') + '</small>';
+      + '<small class="ff-story-note">' + (chartOnly
+        ? '조회된 일봉 기준 차트이며, 일목균형표 선행 구름대는 미래 주가 예측값이 아니다.'
+        : baseline
+          ? '판정·차트는 조회된 일봉 기준으로 계산한다. 심층 스토리 미제공은 매수·매도 신호가 아니다.'
+          : '작성 시점 값이라 실시간으로 바뀌지 않는다(판정·차트 카드만 조회 데이터로 계산). 사라는 말도 팔라는 말도 아니다.') + '</small>';
   }
 
   // 자동 생성 종목은 종목별 파일(data/stories/<코드>.js)로 나눠 두고, 메인 파일의 색인(STOCK_STORY_INDEX)에 있을 때만 받는다.
@@ -1814,12 +1819,13 @@
       var wide = '', count = 0;
       var chartCard = buildTrendChartCard(chartData);
       if (chartCard) { wide += chartCard; count++; }
-      if (swingVm) { wide += buildVerdictCard(swingVm); count++; }
+      // With chart available, display only the chart; preserve verdict in no-chart fallback.
+      if (!chartCard && swingVm) { wide += buildVerdictCard(swingVm); count++; }
       if (!st && !count) return; // 일봉·스윙마저 없으면 빈 분석을 만들지 않는다.
       if (!st) st = { name: stockName || code, cards: [], baselineOnly: true };
       var swing = box.querySelector('.ff-swing-summary');
       if (swing && swingVm) swing.classList.add('is-in-story');
-      mount.innerHTML = buildStockStoryHtml(st, wide, count, code);
+      mount.innerHTML = buildStockStoryHtml(st, wide, count, code, !!chartCard);
       mount.hidden = false;
       if (!st.baselineOnly) loadStoryMinute(mount, code, chartData);
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
