@@ -834,14 +834,17 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
-        + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
+        + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span>'
+        + '<div class="hmb-metric-controls" data-home-metric-controls role="group" aria-label="시장 지표 차트 표시 방식" hidden><span>최근 20거래일</span>'
+        + '<button type="button" data-home-metric-mode="area" aria-pressed="true">면적</button><button type="button" data-home-metric-mode="bar" aria-pressed="false">막대</button></div></div>'
         + '<dl class="hmb-list hmb2-core">'
-        + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd>'
-        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="USDKRW" aria-label="원/달러 최근 거래일 추이"></div></div>'
+        + '<div class="hmb2-fx"><dt>원/달러</dt><div class="hmb2-quote"><dd data-market-field="exchange">데이터 확인 중</dd></div>'
+        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="USDKRW" aria-label="원/달러 최근 거래일 추이"></div>'
+        + '<small class="hmb-metric-asof" data-home-metric-asof="USDKRW">기준시각 확인 중</small></div>'
         + '<div class="hmb2-day-futures" data-home-day-futures aria-label="코스피200 주간선물 시세"><dt class="hmb2-day-heading"><span>KOSPI200 주간선물</span><small data-home-day-field="status">확인 중</small></dt>'
-        + '<dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small>'
-        + '<small class="hmb-day-futures-meta" data-home-day-field="time">09:00~15:45 · 수신 확인 중</small>'
-        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div></div>'
+        + '<div class="hmb2-quote"><dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small></div>'
+        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div>'
+        + '<small class="hmb-metric-asof" data-home-day-field="time">기준시각 확인 중</small></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인·기관 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>30분 누적</span><div class="hmb-investor-actor-filter" role="group" aria-label="투자자 구분"><button type="button" data-investor-actor="foreign" aria-pressed="false">외국인</button><button type="button" data-investor-actor="institution" aria-pressed="false">기관</button><button type="button" data-investor-actor="compare" aria-pressed="true">비교</button></div>'
         + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">‹</button>'
@@ -938,7 +941,12 @@ document.documentElement.classList.add('skin-ready');
       // 그 빈 칸에 채운다(국내 시장 요약에서는 이미 투자자 동향이 있어 굳이 안 보여줌).
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
       if (title) title.textContent = isUs ? '글로벌 지수' : '시장 핵심 지표';
-      if (meta) meta.textContent = isUs ? '지표별 수집 시각' : '증시온도·업종 기준';
+      if (meta) {
+        meta.textContent = '지표별 수집 시각';
+        meta.hidden = !isUs;
+      }
+      var metricControls = dashboardSection.querySelector('[data-home-metric-controls]');
+      if (metricControls) metricControls.hidden = isUs;
       if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : '상승 종목 비율';
       // Outside the US cash session, the large "시장 방향" headline already
       // shows the same "본장 개장 전 / 본장 마감 / 미국장 휴장" label.
@@ -1717,15 +1725,20 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb-investor-asof">' + result.basis + (hasReference ? ' · 전일 종가 ' + amount(base) : ' · 전일 종가 미확인(중립색)') + '</div>';
     }
     dashboardSection.addEventListener('click', function (event) {
-      if (!event.target.closest('[data-price-switch]')) return;
-      var chart = event.target.closest('.home-index-chart');
-      var key = chart && chart.getAttribute && chart.getAttribute('data-session-symbol');
-      var metricKey = chart && chart.getAttribute && chart.getAttribute('data-metric-symbol');
-      if (metricKey) {
-        homePriceModes[metricKey] = homeModeOf(metricKey) === 'bar' ? 'area' : 'bar';
+      var metricModeButton = event.target.closest('[data-home-metric-mode]');
+      if (metricModeButton) {
+        var metricMode = metricModeButton.getAttribute('data-home-metric-mode');
+        if (metricMode !== 'area' && metricMode !== 'bar') return;
+        ['USDKRW', 'KOSPI200_DAY'].forEach(function (symbol) { homePriceModes[symbol] = metricMode; });
+        dashboardSection.querySelectorAll('[data-home-metric-mode]').forEach(function (button) {
+          button.setAttribute('aria-pressed', String(button.getAttribute('data-home-metric-mode') === metricMode));
+        });
         renderHomeMetricCharts(homeMetricQuotes);
         return;
       }
+      if (!event.target.closest('[data-price-switch]')) return;
+      var chart = event.target.closest('.home-index-chart');
+      var key = chart && chart.getAttribute && chart.getAttribute('data-session-symbol');
       if (key) {
         homePriceModes[key] = homeModeOf(key) === 'bar' ? 'area' : 'bar';
         renderHomeSessionChart(chart, key, null);
@@ -1831,15 +1844,20 @@ document.documentElement.classList.add('skin-ready');
       element.setAttribute('data-history-count', String(values.length));
       element.setAttribute('data-history-range', caption);
       var note = element.nextElementSibling;
-      if (!note || !note.classList.contains('home-index-history-caption')) {
-        note = document.createElement('small'); note.className = 'home-index-history-caption'; element.insertAdjacentElement('afterend', note);
+      if (metricMini) {
+        // 사용자 화면에 중복 날짜 설명을 쌓지 않는다. 원래 이력 정보는 tooltip/속성에 유지.
+        if (note && note.classList.contains('home-index-history-caption')) note.remove();
+        element.setAttribute('title', caption);
+      } else {
+        if (!note || !note.classList.contains('home-index-history-caption')) {
+          note = document.createElement('small'); note.className = 'home-index-history-caption'; element.insertAdjacentElement('afterend', note);
+        }
+        note.textContent = caption;
       }
-      note.textContent = caption;
       if (values.length < 2) {
         stopHomeChartMotion(element);
         homeChartMotion.delete(element);
-        element.innerHTML = (metricMini ? homePriceSwitchControls(key, '최근 20거래일') : '')
-          + '<span class="home-index-chart-empty">추이 데이터 없음</span>';
+        element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
         return;
       }
       var width = element.clientWidth || 240;
@@ -1928,8 +1946,7 @@ document.documentElement.classList.add('skin-ready');
           + axis + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + refY.toFixed(2)
           + '" y2="' + refY.toFixed(2) + '" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
           + metricParts + '</svg>';
-        element.innerHTML = homePriceSwitchControls(key, '최근 20거래일')
-          + '<div class="hmb2-metric-plot">' + svg + '</div>';
+        element.innerHTML = '<div class="hmb2-metric-plot">' + svg + '</div>';
         return;
       }
       stopHomeChartMotion(element);
@@ -2163,7 +2180,7 @@ document.documentElement.classList.add('skin-ready');
         homeTone(change));
       homeFill(card, 'data-home-day-field', 'status', status, 'home-neutral');
       homeFill(card, 'data-home-day-field', 'time',
-        stamp ? '수신 ' + stamp : '기준시각 없음', 'home-neutral');
+        stamp || '기준시각 없음', 'home-neutral');
     }
     function renderHomeMetricCharts(bySymbol) {
       ['USDKRW', 'KOSPI200_DAY'].forEach(function (symbol) {
@@ -2171,7 +2188,11 @@ document.documentElement.classList.add('skin-ready');
         if (!chart) return;
         var item = bySymbol && bySymbol[symbol];
         var p = item && homeNum(item.price), c = item && homeNum(item.change);
-        // 현재 보이는 대표지수와 같은 SVG·펜촉·기준선·20거래일 차트. 실제 과거 일봉만 사용.
+        if (symbol === 'USDKRW') {
+          homeFill(dashboardSection, 'data-home-metric-asof', symbol,
+            (item && homeKstTime(item.updated_at)) || '기준시각 없음', 'home-neutral');
+        }
+        // 대표지수 공통 일봉 축·가격대비 의미색을 쓰고, 면적/막대는 핵심지표 제목에서 한 번만 전환.
         renderHomeIndexChart(chart, item && item.chart, symbol, p != null && c != null ? p - c : null);
       });
     }
