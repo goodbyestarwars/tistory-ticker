@@ -835,8 +835,8 @@ document.documentElement.classList.add('skin-ready');
         + '</article>'
         + '</div>'
         + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span>'
-        + '<div class="hmb-metric-controls" data-home-metric-controls role="group" aria-label="시장 지표 차트 표시 방식" hidden><span>최근 20거래일</span>'
-        + '<button type="button" data-home-metric-mode="area" aria-pressed="true">면적</button><button type="button" data-home-metric-mode="bar" aria-pressed="false">막대</button></div></div>'
+        + '<div class="hmb-metric-controls" data-home-metric-controls hidden><span>최근 20거래일</span>'
+        + homeModeSegment('data-home-metric-mode', 'area', '시장 지표 그래프 표시 방식') + '</div></div>'
         + '<dl class="hmb-list hmb2-core">'
         + '<div class="hmb2-fx"><dt>원/달러</dt><div class="hmb2-quote"><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="USDKRW" aria-label="원/달러 최근 거래일 추이"></div>'
@@ -847,8 +847,7 @@ document.documentElement.classList.add('skin-ready');
         + '<small class="hmb-metric-asof" data-home-day-field="time">기준시각 확인 중</small></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인·기관 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>30분 누적</span><div class="hmb-investor-actor-filter" role="group" aria-label="투자자 구분"><button type="button" data-investor-actor="foreign" aria-pressed="false">외국인</button><button type="button" data-investor-actor="institution" aria-pressed="false">기관</button><button type="button" data-investor-actor="compare" aria-pressed="true">비교</button></div>'
-        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">‹</button>'
-        + '<span data-investor-mode>면적</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">›</button></div></div>'
+        + homeModeSegment('data-investor-mode-select', 'area', '투자자 동향 그래프 표시 방식') + '</div></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
@@ -1647,14 +1646,17 @@ document.documentElement.classList.add('skin-ready');
       var pct = (value / base - 1) * 100;
       return (pct > 0 ? '+' : '') + pct.toFixed(2) + '%';
     }
+    // 홈 KR/US의 모든 면적·막대 전환에 사용되는 동일한 두 버튼 컴포넌트.
+    // 이벤트 연결은 차트별 기존 위임 핸들러가 소유하고, 선택값은 aria-pressed로 표현한다.
+    function homeModeSegment(attribute, selected, ariaLabel) {
+      return '<div class="hmb-mode-segment" role="group" aria-label="' + ariaLabel + '">'
+        + '<button type="button" ' + attribute + '="area" aria-pressed="' + (selected === 'area') + '">면적</button>'
+        + '<button type="button" ' + attribute + '="bar" aria-pressed="' + (selected === 'bar') + '">막대</button></div>';
+    }
+
     function homePriceSwitchControls(key, periodLabel) {
-      var mode = homeModeOf(key);
       return '<div class="hmb-price-controls"><span>' + periodLabel + '</span>'
-        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
-        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">‹</button><span>'
-        + (mode === 'bar' ? '막대' : '면적') + '</span>'
-        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
-        + (mode === 'bar' ? '면적' : '막대') + ' 차트로 전환">›</button></div>';
+        + homeModeSegment('data-price-mode', homeModeOf(key), '가격 추이 그래프 표시 방식') + '</div>';
     }
     function renderHomeSessionChart(element, key, reference) {
       var result = homeSessionCharts[key] || {}, meta = result.session;
@@ -1736,15 +1738,18 @@ document.documentElement.classList.add('skin-ready');
         renderHomeMetricCharts(homeMetricQuotes);
         return;
       }
-      if (!event.target.closest('[data-price-switch]')) return;
+      var priceButton = event.target.closest('[data-price-mode]');
+      if (!priceButton) return;
+      var selectedMode = priceButton.getAttribute('data-price-mode');
+      if (selectedMode !== 'area' && selectedMode !== 'bar') return;
       var chart = event.target.closest('.home-index-chart');
       var key = chart && chart.getAttribute && chart.getAttribute('data-session-symbol');
       if (key) {
-        homePriceModes[key] = homeModeOf(key) === 'bar' ? 'area' : 'bar';
+        homePriceModes[key] = selectedMode;
         renderHomeSessionChart(chart, key, null);
         return;
       }
-      homePriceMode = homePriceMode === 'bar' ? 'area' : 'bar';
+      homePriceMode = selectedMode;
       if (latestHomeIndices) renderHomeIndices(latestHomeIndices);
     });
     var homeChartMotion = new WeakMap();
@@ -2734,12 +2739,13 @@ document.documentElement.classList.add('skin-ready');
         if (homeInvestorResults) renderHomeInvestorTrend(homeInvestorResults);
         return;
       }
-      if (!event.target.closest('[data-investor-switch]')) return;
-      homeInvestorMode = homeInvestorMode === 'bar' ? 'area' : 'bar';
-      var name = investorHost.querySelector('[data-investor-mode]');
-      if (name) name.textContent = homeInvestorMode === 'bar' ? '막대' : '면적';
-      investorHost.querySelectorAll('[data-investor-switch]').forEach(function (button) {
-        button.setAttribute('aria-label', (homeInvestorMode === 'bar' ? '면적' : '막대') + ' 차트로 전환');
+      var modeButton = event.target.closest('[data-investor-mode-select]');
+      if (!modeButton) return;
+      var selectedMode = modeButton.getAttribute('data-investor-mode-select');
+      if (selectedMode !== 'area' && selectedMode !== 'bar') return;
+      homeInvestorMode = selectedMode;
+      investorHost.querySelectorAll('[data-investor-mode-select]').forEach(function (button) {
+        button.setAttribute('aria-pressed', String(button.getAttribute('data-investor-mode-select') === selectedMode));
       });
       if (homeInvestorResults) renderHomeInvestorTrend(homeInvestorResults);
     });

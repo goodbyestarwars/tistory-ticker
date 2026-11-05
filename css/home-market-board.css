@@ -271,15 +271,27 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head 
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head .hmb-metric-controls[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-metric-controls > span { margin-right: 6px; white-space: nowrap; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-metric-controls > button {
-  border: 1px solid var(--hmb-line); background: transparent; color: var(--hmb-mute);
-  font: 600 10px/1.3 var(--font-ui); padding: 3px 8px; cursor: pointer;
+/* 공통 면적/막대 세그먼트: 홈 KR/US 대표지수, 세션 가격, 투자자 수급, 원/달러·주간선물.
+   기존 봉 주기처럼 두 개의 직접 선택 버튼만 두어 화살표·중복 선택 문구를 제거한다. */
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-mode-segment {
+  display: inline-flex; align-items: stretch; flex: 0 0 auto; gap: 2px;
 }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-metric-controls > button[aria-pressed="true"] {
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-mode-segment > button {
+  min-width: 0; min-height: 22px; padding: 3px 8px;
+  border: 1px solid var(--hmb-line); border-radius: 0; background: transparent;
+  color: var(--hmb-mute); font: 600 10px/1.3 var(--font-ui); cursor: pointer;
+  white-space: nowrap;
+}
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-mode-segment > button[aria-pressed="true"] {
   background: var(--hmb-line); color: var(--hmb-ink);
 }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-metric-controls > button:focus-visible {
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-mode-segment > button:focus-visible {
   outline: 2px solid var(--hmb-chart-down); outline-offset: 1px;
+}
+@media (pointer: coarse) {
+  body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-mode-segment > button {
+    min-height: 32px; padding-inline: 10px;
+  }
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > :is(.hmb2-fx, .hmb2-day-futures) {
   display: grid; grid-template-rows: 18px 24px 56px 15px; align-items: start; min-width: 0;
@@ -365,8 +377,9 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-c
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-extrema span:first-child b { color: var(--hmb-chart-up-text); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-extrema span:last-child b { color: var(--hmb-chart-down-text); }
 html.dark body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-point { box-shadow: 0 0 0 2px var(--dk-bg); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-controls { display: flex; align-items: center; gap: 8px; }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-controls [data-investor-mode] { min-width: 24px; text-align: center; color: var(--hmb-ink); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-controls {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-buy { fill: var(--hmb-chart-up); color: var(--hmb-chart-up); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-sell { fill: var(--hmb-chart-down); color: var(--hmb-chart-down); }
