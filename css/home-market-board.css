@@ -335,6 +335,48 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-tren
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head dt { margin: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+/* 원본 InvestorFlow(20거래일 누적)의 3주체 선·별도 지수 점선을 카드에 축소.
+   30분 선택 버튼과 겹치는 라벨을 제거하고 기존 투자자 차트의 70px 높이·2열 유지. */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend {
+  display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 3px 8px;
+  color: var(--hmb-mute); font: 500 10px/1.3 var(--font-ui);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend[hidden],
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-fallback[hidden] { display: none; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend > span {
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  font: inherit; color: var(--hmb-mute);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend > .hmb-mini-period { margin-right: 3px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend i {
+  display: inline-block; width: 12px; height: 0; border-top: 2px solid var(--hmb-mute);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend .is-foreign i {
+  border-color: var(--mi-inv-foreign, #D94F45);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend .is-inst i {
+  border-color: var(--mi-inv-inst, #3273C8);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend .is-indiv i {
+  border-color: var(--mi-inv-indiv, #168B70);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend .is-index i {
+  border-top-style: dashed; border-top-width: 1px;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-fallback {
+  color: var(--hmb-faint); font: 400 10px/1.4 var(--font-ui);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-row .hmb-investor-spark-wrap {
+  height: 70px; margin-top: 3px;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-row .hmb-investor-asof {
+  margin-top: 2px; font: 400 10px/1.35 var(--font-ui); color: var(--hmb-faint);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-dates {
+  display: flex; justify-content: space-between; gap: 8px;
+  color: var(--hmb-faint); font: 400 10px/1.4 var(--font-ui);
+}
+
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 22px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top strong { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); }
