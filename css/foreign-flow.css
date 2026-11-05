@@ -3250,7 +3250,7 @@ html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-
 
 @media (min-width: 1600px) {
   /* 내용 폭 바깥 왼쪽 빈 공간에 제목을 둔다(카드 내용 위치는 그대로) */
-  #foreign-flow .ff-story-head { position: absolute; z-index: 2; top: 14px; left: calc((100% - 100vw) / 2 + 18px); width: max(120px, calc((100vw - 100%) / 2 - 36px)); padding: 0; }
+  #foreign-flow .ff-story-head { position: absolute; z-index: 2; top: 14px; left: calc(50% - 50vw + 18px); width: max(120px, calc(50vw - 50% - 36px)); padding: 0; }
   
 }
 /* 관심종목 서랍이 열려 본문이 줄면 제목(종목 스토리 : 이름)이 잘리므로 제목만 숨기고 카드는 그대로 둔다 */
