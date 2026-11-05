@@ -40,16 +40,19 @@ assert(appended.length===0);
  const swingEl={classList:{add(c){mw.cls=c;}}};
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?mw:/ff-swing-summary/.test(sel)?swingEl:null;},contains(){return true;},closest(){return null;}},'042660',vm0,{daily});
  await new Promise(setImmediate);
- assert(mw.innerHTML.includes('ff-wide--verdict'));
  assert(mw.innerHTML.includes('ff-wide--chart'));
  assert(mw.innerHTML.includes('<path class="ff-wide-close"'));
- assert(mw.innerHTML.includes('ff-wide--story'));assert(!mw.innerHTML.includes('data-story-more'));
+ assert(mw.innerHTML.includes('일목균형표(구름대)'));
+ assert(!mw.innerHTML.includes('ff-wide--verdict'));
+ assert(!mw.innerHTML.includes('ff-wide--story'));
+ assert(!mw.innerHTML.includes('data-wide-prev'));
+ assert(Array.isArray(win.STOCK_STORIES['042660'].cards)); // original story data preserved
  assert.equal(mw.cls,'is-in-story');
  const mx={hidden:true,innerHTML:''};
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?mx:null;},contains(){return true;},closest(){return null;}},'042660',null,{daily:daily.slice(0,10)});
  await new Promise(setImmediate);
  assert(!mx.innerHTML.includes('ff-wide--verdict'));assert(mx.innerHTML.includes('ff-wide--chart'));
- assert(mx.innerHTML.includes('ff-wide--story'));
+ assert(!mx.innerHTML.includes('ff-wide--story'));
  const m2={hidden:true,innerHTML:''};
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?m2:null;},contains(){return true;},closest(){return null;}},'999999');
  await new Promise(setImmediate);
@@ -58,16 +61,18 @@ assert(appended.length===0);
  api.loadStockStory({querySelector(sel){return /data-ff-story/.test(sel)?m3:null;},contains(){return false;},closest(){return null;}},'042660');
  await new Promise(setImmediate);
  assert.equal(m3.hidden,true);
- // 셀트리온처럼 심층 데이터가 없어도 이미 계산한 스윙·차트 카드가 보인다.
+ // 셀트리온처럼 심층 데이터가 없어도 차트 하나가 표시되고 판정·스토리 원본은 보존된다.
  const m4={hidden:true,innerHTML:''}, m4s={classList:{add(c){m4s.cls=c;}}};
  const box4={querySelector(sel){return /data-ff-story/.test(sel)?m4:/ff-swing-summary/.test(sel)?m4s:null;},contains(){return true;},closest(){return null;}};
  api.loadStockStory(box4,'068270',vm0,{daily},'셀트리온');
  await new Promise(setImmediate);
  assert.equal(m4.hidden,false);
  assert(m4.innerHTML.includes('종목 분석 : 셀트리온'));
- assert(m4.innerHTML.includes('ff-wide--verdict') && m4.innerHTML.includes('ff-wide--chart'));
+ assert(m4.innerHTML.includes('ff-wide--chart'));
+ assert(!m4.innerHTML.includes('ff-wide--verdict'));
  assert(!m4.innerHTML.includes('ff-wide--story'));
- assert(m4.innerHTML.includes('심층 스토리 미제공'));
+ assert(!m4.innerHTML.includes('data-wide-next'));
+ assert(m4.innerHTML.includes('일봉 차트 · 조회 데이터 기준'));
  assert.equal(m4s.cls,'is-in-story');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 '''
