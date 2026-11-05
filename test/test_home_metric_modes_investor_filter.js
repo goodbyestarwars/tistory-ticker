@@ -15,7 +15,7 @@ assert(src.includes("homeInvestorActor = nextActor"));
 assert(src.includes("renderHomeMetricCharts(homeMetricQuotes)"));
 assert(css.includes('hmb2-day-heading'));
 assert(css.includes('.home-index-chart.hmb2-metric-chart'));
-assert(css.includes('height: auto; margin-top: 7px'));
+assert(css.includes('grid-template-rows: 18px 24px 56px 15px'));
 assert(css.includes('.hmb-investor-actor-filter'));
 assert(css.includes('.hmb-investor-spark-wrap { height: 70px;'));
 
@@ -54,7 +54,9 @@ const chart={
 };
 const prices=[1400,1402,1398,1405].map((close,i)=>({date:'2026110'+(i+1),close}));
 plot(chart,prices,'USDKRW',1400);
-assert(chart.innerHTML.includes('data-price-switch'));
+assert(!chart.innerHTML.includes('data-price-switch'));
+assert(chart.attrs.title && chart.attrs.title.includes('거래일'));
+assert(!chart.nextElementSibling, 'no per-card duplicate date footer');
 assert(chart.innerHTML.includes('hmb-investor-area'));
 assert(chart.innerHTML.includes('hmb2-metric-plot'));
 assert(!chart.innerHTML.includes('home-chart-pen'));
@@ -65,5 +67,7 @@ assert(!chart.innerHTML.includes('hmb-investor-area'));
 assert((chart.innerHTML.match(/<rect class="hmb-investor-/g)||[]).length===4);
 mode='area';plot(chart,[], 'KOSPI200_DAY',null);
 assert(chart.innerHTML.includes('추이 데이터 없음'));
-assert(chart.innerHTML.includes('data-price-switch'));
+assert(!chart.innerHTML.includes('data-price-switch'));
+assert(src.includes('data-home-metric-mode="area"') && src.includes('data-home-metric-mode="bar"'));
+assert(src.includes('homePriceModes[symbol] = metricMode'));
 console.log('PASS: futures status, actor selector 3 modes, FX/future daily area/bar, empty & unchanged skin');

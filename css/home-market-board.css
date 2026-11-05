@@ -476,6 +476,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-nums { grid-column: 2; }
 }
 @media (max-width: 420px) {
+  /* 좁은 화면에서는 한 줄에 2개를 억지로 넣지 않는다. 그래프의 56px 높이는 유지. */
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core { grid-template-columns: minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card,
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card { padding: var(--ui-card-padding); }

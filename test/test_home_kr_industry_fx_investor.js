@@ -34,9 +34,9 @@ const gaps=spark({rows:[{slot:0,frgn:5},{slot:2,orgn:6}]},'bar','kospi');
 assert.equal((gaps.match(/<rect /g)||[]).length,2);
 assert(spark({rows:[]},'area','kospi').includes('수집 전'));
 const traces=[];
-const graph=new Function('dashboardSection','homeNum','renderHomeIndexChart',
+const graph=new Function('dashboardSection','homeNum','homeFill','homeKstTime','renderHomeIndexChart',
   piece('renderHomeMetricCharts','loadHomeDayFutures')+'return renderHomeMetricCharts;')(
-  {querySelector:()=>({})},v=>v==null?null:Number(v),
+  {querySelector:()=>({})},v=>v==null?null:Number(v),()=>{},()=>null,
   (el,chart,symbol,ref)=>traces.push([symbol,ref]));
 graph({USDKRW:{price:1405,change:5,chart:[{close:1405}]},
   KOSPI200_DAY:{price:352,change:2,chart:[{close:352}]}});
