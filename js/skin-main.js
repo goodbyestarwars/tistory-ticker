@@ -1886,6 +1886,52 @@ document.documentElement.classList.add('skin-ready');
           axis += '<text class="home-chart-axis" x="' + (index ? lineEnd : pad) + '" y="' + (height - 2) + '" text-anchor="' + (index ? 'end' : 'start') + '">' + date.slice(4, 6) + '/' + date.slice(6, 8) + '</text>';
         });
       }
+      // Two daily metric charts share the index axes and session-chart buy/sell fills and mode controls.
+      if (metricMini) {
+        stopHomeChartMotion(element);
+        homeChartMotion.delete(element);
+        var miniMode = homeModeOf(key), refY = guideY, metricParts = '';
+        var neutral = !hasReference;
+        if (miniMode === 'area') {
+          var region = pad + ',' + refY.toFixed(2) + ' ' + points + ' ' + lineEnd + ',' + refY.toFixed(2);
+          if (neutral) {
+            metricParts = '<g class="hmb-investor-flat"><polygon class="hmb-investor-area" points="' + region
+              + '"/><polyline class="hmb-investor-line" points="' + points + '" vector-effect="non-scaling-stroke"/></g>';
+          } else {
+            var clipId = 'hmb-metric-' + key;
+            metricParts = '<defs><clipPath id="' + clipId + '-up"><rect width="' + width + '" height="' + refY
+              + '"/></clipPath><clipPath id="' + clipId + '-down"><rect y="' + refY + '" width="' + width
+              + '" height="' + (height - refY) + '"/></clipPath></defs>';
+            [['up','buy'],['down','sell']].forEach(function (entry) {
+              metricParts += '<g class="hmb-investor-' + entry[1] + '" clip-path="url(#' + clipId + '-' + entry[0]
+                + ')"><polygon class="hmb-investor-area" points="' + region
+                + '"/><polyline class="hmb-investor-line" points="' + points
+                + '" vector-effect="non-scaling-stroke"/></g>';
+            });
+          }
+        } else {
+          var cell = (lineEnd - pad) / Math.max(1, coords.length - 1);
+          var barWidth = Math.max(2, Math.min(8, cell * .55));
+          coords.forEach(function (p, index) {
+            var val = values[index];
+            var side = neutral ? 'flat' : val > baseline ? 'buy' : val < baseline ? 'sell' : 'flat';
+            metricParts += '<rect class="hmb-investor-' + side + '" x="' + (p[0] - barWidth / 2).toFixed(2)
+              + '" y="' + Math.min(p[1], refY).toFixed(2) + '" width="' + barWidth.toFixed(2)
+              + '" height="' + Math.max(.6, Math.abs(p[1] - refY)).toFixed(2) + '" rx="1"><title>'
+              + String(chartRows[index].date || '') + ' · ' + val.toLocaleString('ko-KR', {maximumFractionDigits: 2})
+              + '</title></rect>';
+          });
+        }
+        var svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="'
+          + (key === 'USDKRW' ? '원/달러' : 'KOSPI200 주간선물') + ' 최근 20거래일 '
+          + (miniMode === 'bar' ? '막대' : '면적') + ' 차트">'
+          + axis + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + refY.toFixed(2)
+          + '" y2="' + refY.toFixed(2) + '" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
+          + metricParts + '</svg>';
+        element.innerHTML = homePriceSwitchControls(key, '최근 20거래일')
+          + '<div class="hmb2-metric-plot">' + svg + '</div>';
+        return;
+      }
       stopHomeChartMotion(element);
       var append = old && sameSize && chartRows.length > old.count && signature.indexOf(old.signature + '|') === 0;
       var reviseLast = old && sameSize && chartRows.length === old.count && old.signature.split('|').slice(0, -1).join('|') === signature.split('|').slice(0, -1).join('|');
