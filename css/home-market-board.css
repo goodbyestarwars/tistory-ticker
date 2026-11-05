@@ -264,12 +264,35 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core dd {
   margin: 0; font: 600 14px/1.45 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums;
   overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; word-break: keep-all;
 }
-/* 한국증시 요약 4번째 칸. 미니 수급차트 공간은 70px로 줄인다. */
+/* 한국증시 주간선물 상태를 제목 끝에 정렬하고, 실제 일봉 차트만 면적/막대로 전환한다. */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb2-day-heading {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 4px 8px;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb2-day-heading > span { min-width: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb2-day-heading > small {
+  flex: 0 0 auto; margin-left: auto; white-space: nowrap;
+  color: var(--hmb-mute); font: 500 10px/1.4 var(--font-ui);
+}
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb-day-futures-change {
   display: block; margin-top: 1px; font: 600 12px/1.4 var(--font-data, var(--font-ui)); font-variant-numeric: tabular-nums;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core .hmb2-metric-chart {
-  height: 56px; margin-top: 7px; min-width: 0; overflow: hidden;
+  height: auto; margin-top: 7px; min-width: 0; overflow: hidden;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-metric-chart .hmb-price-controls {
+  min-height: 22px; gap: 3px; font-size: 10px;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-metric-chart .hmb-investor-switch {
+  min-width: 22px; min-height: 22px; font-size: 15px;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-metric-plot {
+  height: 56px; min-width: 0; overflow: hidden;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-metric-plot svg {
+  display: block; width: 100%; height: 100%;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-metric-chart > .home-index-chart-empty {
+  display: flex; min-height: 56px; align-items: center;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core .hmb2-metric-chart .home-chart-axis { font-size: 9px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-day-futures .hmb-day-futures-meta {
@@ -291,6 +314,28 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amou
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts > span { display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts small { color: var(--hmb-faint); font: 500 10px/1.3 var(--font-ui); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts b { font-size: 12px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts .is-unselected { opacity: .48; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-name {
+  display: inline-flex; gap: 3px; align-items: center; white-space: nowrap;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-name::before {
+  content: '●'; font-size: 8px; color: var(--hmb-mute);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-name.is-institution::before { content: '◇'; font-size: 11px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-filter {
+  display: inline-flex; align-items: stretch; gap: 1px; border: 1px solid var(--hmb-line);
+  padding: 2px; background: transparent;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-filter button {
+  min-height: 23px; padding: 2px 7px; border: 0; border-radius: 2px;
+  background: transparent; color: var(--hmb-mute); font: 600 10px/1.3 var(--font-ui); cursor: pointer;
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-filter button[aria-pressed="true"] {
+  background: var(--hmb-line); color: var(--hmb-ink);
+}
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-filter button:focus-visible {
+  outline: 2px solid var(--hmb-chart-down); outline-offset: 1px;
+}
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-line.hmb-investor-institution { stroke-dasharray: 4 3; stroke-width: 1.6; opacity: .85; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 rect.hmb-investor-institution { opacity: .5; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top b { font: 700 14px/1.4 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
