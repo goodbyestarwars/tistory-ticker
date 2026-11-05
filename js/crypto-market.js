@@ -21,7 +21,7 @@
     return memo.promise;
   }
   var COIN_DIGITS = { BTC: 0, ETH: 0, USDT: 2 };
-  var coinItems = {}, tokenItems = {}, tokenPairs = [], tokenQuoteAt = '';
+  var coinItems = {}, tokenItems = {}, tokenPairs = [], tokenQuoteAt = '', tokenSource = 'direct', tokenFetchFailed = false;
   var COLUMNS = [
     { label: '현재값', short: '현재' }, { label: '전일 대비', short: '전일' }, { label: '등락률', short: '등락' },
     { label: '고가', short: '고가' }, { label: '저가', short: '저가' }
@@ -107,6 +107,17 @@
     var kst = new Date(time + 9 * 3600000).toISOString();
     return kst.slice(0, 10).replace(/-/g, '.') + ' ' + kst.slice(11, 19) + ' KST';
   }
+  // /fapi/v2/ticker/price.time is a transaction timestamp. The 24h ticker's closeTime is NOT.
+  function tokenTradeSummary(item) {
+    var stamp = item && Number(item.tradeTime);
+    if (!isFinite(stamp) || stamp <= 0 || stamp > Date.now() + 60000) return '체결시각 미확인';
+    var age = Math.max(0, Date.now() - stamp);
+    var kst = new Date(stamp + 9 * 3600000).toISOString().slice(11, 19);
+    var elapsed = age < 60000 ? Math.floor(age / 1000) + '초 전'
+      : age < 3600000 ? Math.floor(age / 60000) + '분 전'
+      : Math.floor(age / 3600000) + '시간 전';
+    return '체결 ' + kst + ' · ' + elapsed + (age >= 300000 ? ' (거래 공백)' : '');
+  }
 
   // 일봉 이력 + 오늘 값. 코인(원화)은 한국 날짜, 토큰은 UTC 날짜 기준(기존 차트와 같다).
   function withToday(points, price, utc) {
@@ -143,7 +154,9 @@
       fmt: function (v) { return fmtNum(v, 2) + ' USDT'; }, axisFmt: function (v) { return fmtNum(v, 2); },
       title: pair[1] + ' 토큰 추이 (USDT)',
       note: '<div class="ibd-ln">국내 주식 이름을 붙인 바이낸스 무기한선물 토큰의 참고 가격입니다. 실제 주식 시세·수급과 다르며 원화로 환산하지 않았습니다.</div>' };
+    row.sub = (tokenSource === 'server' ? '서버 저장 · ' : '') + tokenTradeSummary(item);
     if (!item) { row.loading = !tokenItems.__failed; row.cells = [{ t: '확인 불가' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }]; return row; }
+    row.note += '<div class="ibd-ln"><small>' + esc(row.sub) + ' · 수신 ' + esc(tokenQuoteAt || '시각 미확인') + '</small></div>';
     var price = Number(item.price), rate = Number(item.changeRate), t = toneOf(rate), arrow = rate > 0 ? '▲ ' : rate < 0 ? '▼ ' : '';
     // 24시간 등락률에서 거슬러 계산한 금액(원자료에는 등락 금액이 없다).
     var change = isFinite(price) && isFinite(rate) && rate > -100 ? price - price / (1 + rate / 100) : NaN;
@@ -161,7 +174,9 @@
     if (!board || !global.IndicatorBoard) return;
     var rows = COINS.map(coinRow);
     tokenPairs.forEach(function (pair) { rows.push(tokenRow(pair)); });
-    var tokenHint = 'USDT 기준 · 등락률은 24시간 · ' + (tokenQuoteAt ? '마지막 시세 수신 ' + tokenQuoteAt : '시세 수신 전');
+    var tokenHint = 'USDT 기준 · 등락률은 24시간 · '
+      + (tokenFetchFailed ? '조회 지연 · 마지막 수신 ' : tokenSource === 'server' ? '서버 저장값 · 수신 ' : '바이낸스 응답 수신 ')
+      + (tokenQuoteAt || '없음');
     board.setRows(rows, [
       { key: 'coin', label: '가상자산', hint: '원화 기준 · 전일 대비는 24시간' },
       { key: 'token', label: '바이낸스 국내주식 토큰', hint: tokenHint }
@@ -172,7 +187,7 @@
   }
 
   function shell() {
-    return '<div class="cm-status" role="status">30초마다 시세 갱신 · 추이는 완료 일봉 기준</div>'
+    return '<div class="cm-status" role="status">30초마다 조회 · 체결시각은 종목별 표시 · 추이는 완료 일봉 기준</div>'
       +'<p class="cm-note mi-tab-explainer">코인은 원화, 토큰은 USDT 기준입니다. 국내주식 토큰은 무기한선물 참고 가격으로 실제 주식 시세와 다릅니다. 차트의 평균은 선택한 기간의 종가 평균입니다.</p>'
       +'<div class="cm-board" data-cm-board></div>'
       +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div class="app-news-timeline" data-news-list></div></section>';
@@ -189,19 +204,26 @@
   }
   function tokens() {
     return tools.fetchTokens().then(function(data){
-      if(data&&data.items.length)return data;
-      return tools.get(api+'/binance-kr-equity').then(function(json){return json.data;});
-    }).then(function(data){
-      var items=data&&data.items||[], index=0;
+      if(data && Array.isArray(data.items) && data.items.length) return { data: data, fromServer: false };
+      return tools.get(api+'/binance-kr-equity').then(function(json){ return { data: json.data || {}, fromServer: true }; });
+    }).then(function(result){
+      var data = result.data, items = Array.isArray(data.items) ? data.items : [], index = 0;
+      tokenSource = result.fromServer ? 'server' : 'direct';
+      tokenFetchFailed = !items.length;
       tokenPairs = tools.symbols;
-      tokenItems = { __failed: false };
+      tokenItems = { __failed: !items.length };
       items.forEach(function(item){tokenItems[item.symbol]=item;});
-      if(items.length) tokenQuoteAt=tokenQuoteTime(data.updatedAt);
+      tokenQuoteAt = items.length ? tokenQuoteTime(data.updatedAt) : '';
       renderBoard();
       // Three concurrent histories instead of an eight-request burst.
       function worker(){var item=items[index++];if(!item)return Promise.resolve();return tokenHistory(item.symbol).then(function(){renderBoard();}).then(worker);}
       return Promise.all([worker(),worker(),worker()]);
-    }).catch(function(){tokenPairs = tools.symbols; if(!Object.keys(tokenItems).length)tokenItems.__failed=true; renderBoard();});
+    }).catch(function(){
+      tokenFetchFailed = true;
+      tokenPairs = tools.symbols;
+      if (!Object.keys(tokenItems).length) tokenItems.__failed=true;
+      renderBoard();
+    });
   }
   function news(force) {
     if(!force&&Date.now()-newsAt<300000)return Promise.resolve();
@@ -221,7 +243,7 @@
       root.querySelector('[data-news-status]').textContent=data.stale?'최근 저장 뉴스 · 공급자 응답 지연':'가상자산 전문 매체 · 최근 기사';newsAt=Date.now();
     }).catch(function(){root.querySelector('[data-news-status]').textContent='뉴스 조회 지연 · 새로고침으로 다시 확인';});
   }
-  function refresh(){if(!active()||busy)return;busy=true;Promise.allSettled([coins(),tokens(),news(false)]).then(function(){busy=false;root.querySelector('.cm-status').textContent='30초마다 시세 갱신 · 확인 '+new Date().toLocaleTimeString('ko-KR');});}
+  function refresh(){if(!active()||busy)return;busy=true;Promise.allSettled([coins(),tokens(),news(false)]).then(function(){busy=false;root.querySelector('.cm-status').textContent='30초마다 조회 · 마지막 조회 종료 '+new Date().toLocaleTimeString('ko-KR')+' · 거래 시각은 종목별 표시';});}
   function init() {
     root=document.getElementById('crypto-market');if(!active())return;
     if(tools&&board){board.redraw();refresh();return;}
