@@ -72,6 +72,6 @@ assert((chart.innerHTML.match(/<rect class="hmb-investor-/g)||[]).length===4);
 mode='area';plot(chart,[], 'KOSPI200_DAY',null);
 assert(chart.innerHTML.includes('추이 데이터 없음'));
 assert(!chart.innerHTML.includes('data-price-switch'));
-assert(src.includes('data-home-metric-mode="area"') && src.includes('data-home-metric-mode="bar"'));
+assert(src.includes("homeModeSegment('data-home-metric-mode', 'area', '시장 지표 그래프 표시 방식')"));
 assert(src.includes('homePriceModes[symbol] = metricMode'));
 console.log('PASS: futures status, actor selector 3 modes, FX/future daily area/bar, empty & unchanged skin');
