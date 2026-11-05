@@ -11,9 +11,9 @@ assert(skin.includes('css/home-market-board.css?v=20261027-open-block-columns'))
 assert(skin.includes('js/skin-main.js?v=20261025-countdown-module6'));
 // 기존 경로를 유지하면서 JS/CSS 원본에 새 기능이 있어야 한다.
 assert(main.includes('data-home-day-futures'));
-assert(main.includes('KOSPI200_DAY&stored_only=true'));
+assert(main.includes('USDKRW%2CKOSPI200_DAY&days=30&stored_only=true'));
 assert(main.includes('dashboard-enhancements.js?v=20261105-chart-expand-segment'));
 assert(enhancements.includes("expandSegment.className = 'nine-chart-expand-segment'"));
-assert(css.includes('grid-template-columns: minmax(0, .75fr) repeat(3, minmax(0, 1fr));'));
+assert(css.includes('grid-template-columns: repeat(2, minmax(0, 1fr));'));
 assert(!pending.includes('스킨 정적 자산 버전 갱신 필요'));
 console.log('PASS: HTML URL unchanged, features deployed through JS/CSS, no forced Tistory manual change');
