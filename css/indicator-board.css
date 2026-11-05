@@ -50,7 +50,7 @@ html.dark .ibd .ibd-range-btn.is-active { color:var(--dk-bg); }
 .ibd .ibd-grid { stroke:var(--ibd-line); stroke-width:1; }
 .ibd .ibd-axis { fill:var(--ibd-sub); font-size:11px; font-family:"Pretendard Variable", Pretendard,"Malgun Gothic",sans-serif; }
 .ibd .ibd-line { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
-.ibd .ibd-area { opacity:.08; stroke:none; }
+.ibd .ibd-area { opacity:.95; stroke:none; }
 .ibd .ibd-cross { stroke:var(--ibd-sub); stroke-width:1; stroke-dasharray:3 3; }
 .ibd .ibd-dot { fill:#fff; stroke-width:2; }
 html.dark .ibd .ibd-dot { fill:var(--dk-bg); }
