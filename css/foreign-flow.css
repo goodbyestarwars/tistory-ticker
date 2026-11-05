@@ -3295,8 +3295,8 @@ html.dark #foreign-flow .ff-story-head { background: var(--dk-card); border-colo
 /* 데스크톱: 판정 카드 영역을 본문 폭 밖으로 넓혀 화면 가로 끝까지 쓴다(좌우 16px만 비움 - 세로 스크롤바 폭 보호). 플로팅 버튼은 카드 위에 겹쳐 뜬다. */
 /* 2026-11-02: 띠 배너형 - 사이트 카드면(흰색)과 가는 위아래 선의 띠가 화면 가로 전체를 채우고, 글은 가운데 고정 폭 안에 둔다(--ff-band-side). */
 html:has(#foreign-flow .ff-wide-stage) { overflow-x: clip; }
-#foreign-flow .ff-wide-stage { --ff-band-side: max(64px, calc((100% - 1180px) / 2)); width: 100vw; margin-left: calc(50% - 50vw); box-sizing: border-box; }
-#foreign-flow .ff-wide-track { display: flex; align-items: stretch; gap: var(--ui-section-gap); padding: 4px calc(var(--ui-card-padding) / 2) 10px; scroll-padding-inline: calc(var(--ui-card-padding) / 2); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: grab; }
+#foreign-flow .ff-wide-stage { --ff-band-side: max(64px, calc((100% - 1180px) / 2)); width: 100vw; margin-left: calc(50% - 50vw); box-sizing: border-box; background: radial-gradient(ellipse at 12% 6%, rgba(91, 155, 220, .14), transparent 43%), radial-gradient(ellipse at 86% 96%, rgba(135, 166, 207, .11), transparent 42%); }
+#foreign-flow .ff-wide-track { display: flex; align-items: stretch; gap: var(--ui-section-gap); padding: 10px calc(var(--ui-card-padding) / 2) 18px; scroll-padding-inline: calc(var(--ui-card-padding) / 2); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: grab; }
 #foreign-flow .ff-wide-track::-webkit-scrollbar { display: none; }
 #foreign-flow .ff-wide-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 #foreign-flow .ff-wide-track .ff-wide { flex: 0 0 100%; scroll-snap-align: start; }
@@ -3361,9 +3361,10 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-wide-ma.is-ma20 { stroke: #1261c4; }
 #foreign-flow .ff-wide-ma.is-ma60 { stroke: #0ca678; }
 #foreign-flow .ff-wide-ma.is-ma224 { stroke: #d24f45; stroke-width: 2.6; }
-#foreign-flow .ff-wide-axis { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; color: #86868b; font-size: 12px; }
-#foreign-flow .ff-wide-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; }
-#foreign-flow .ff-wide-legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin: 0 5px 2px 0; border-radius: 2px; background: currentColor; }
+#foreign-flow .ff-wide-axis { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 7px; color: #86868b; font-size: 11px; }
+#foreign-flow .ff-wide-legend { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 4px 8px; margin-top: 7px; font-size: 10.5px; line-height: 1.35; }
+#foreign-flow .ff-wide-legend span::before { content: ""; display: inline-block; width: 10px; height: 2px; margin: 0 4px 2px 0; border-radius: 2px; background: currentColor; }
+#foreign-flow .ff-wide-legend .is-cloud::before { width: 12px; height: 7px; background: rgba(65, 139, 220, .27); }
 #foreign-flow .ff-wide-legend .is-ma20 { color: #1261c4; }
 #foreign-flow .ff-wide-legend .is-ma60 { color: #0ca678; }
 #foreign-flow .ff-wide-legend .is-ma224 { color: #d24f45; }
@@ -3378,6 +3379,7 @@ html.dark #foreign-flow .ff-story-bar b.is-up { background: #ff8a80; }
 html.dark #foreign-flow .ff-story-bar b.is-dn { background: #7fb3ff; }
 html.dark #foreign-flow .ff-story-row em, html.dark #foreign-flow .ff-story-head small, html.dark #foreign-flow .ff-story-note { color: var(--dk-sub); }
 html.dark #foreign-flow .ff-story-bar { background: var(--dk-bg); }
+html.dark #foreign-flow .ff-wide-stage { background: radial-gradient(ellipse at 12% 6%, rgba(71, 123, 185, .16), transparent 43%), radial-gradient(ellipse at 86% 96%, rgba(90, 118, 162, .12), transparent 42%); }
 html.dark #foreign-flow .ff-wide { background: var(--ui-clear-sheen), var(--ui-clear-surface); border-color: var(--ui-clear-edge); }
 html.dark #foreign-flow .ff-wide :is(.ff-wide-lead, .ff-wide-row, .ff-wide-row > div + div, .ff-wide-foot, .ff-wide-tiles, .ff-wide-tiles > div + div) { border-color: rgba(255, 255, 255, .09); }
 html.dark #foreign-flow .ff-wide strong, html.dark #foreign-flow .ff-wide strong.is-big, html.dark #foreign-flow .ff-wide strong.is-num, html.dark #foreign-flow .ff-wide-facts b, html.dark #foreign-flow .ff-wide-foot b { color: var(--dk-text); }
@@ -3403,7 +3405,7 @@ html.dark #foreign-flow .ff-wide-legend .is-close { color: var(--dk-text); }
   #foreign-flow .ff-wide-row > div + div { padding-left: 12px; }
   #foreign-flow .ff-wide-plot { height: 230px; }
   #foreign-flow .ff-wide-axis { flex-wrap: wrap; }
-  #foreign-flow .ff-wide-legend { order: -1; flex-basis: 100%; column-gap: 6px; }
+  #foreign-flow .ff-wide-legend { gap: 4px 6px; font-size: 10px; }
 }
 html.dark #foreign-flow .ff-story-nav { background: var(--dk-card); color: var(--dk-text); }
 
