@@ -2528,14 +2528,19 @@ document.documentElement.classList.add('skin-ready');
       }) : '-';
     }
 
-    function investorSparkline(result, mode, marketKey) {
+    function investorSparkline(result, mode, marketKey, actor) {
+      actor = actor || 'compare';
       var rows = (result.rows || []).filter(function (r) {
         return Number.isInteger(r.slot) && r.slot >= 0 && r.slot < 14
           && (r.frgn != null && isFinite(Number(r.frgn)) || r.orgn != null && isFinite(Number(r.orgn)));
       }).slice().sort(function (a, b) { return a.slot - b.slot; });
       if (!rows.length) return '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
-      var foreigners = rows.filter(function (r) { return r.frgn != null && isFinite(Number(r.frgn)); });
-      var institutions = rows.filter(function (r) { return r.orgn != null && isFinite(Number(r.orgn)); });
+      var foreigners = actor === 'institution' ? [] : rows.filter(function (r) { return r.frgn != null && isFinite(Number(r.frgn)); });
+      var institutions = actor === 'foreign' ? [] : rows.filter(function (r) { return r.orgn != null && isFinite(Number(r.orgn)); });
+      if (!foreigners.length && !institutions.length) return '<div class="hmb-investor-spark-empty">선택한 투자자 관측값 없음</div>';
+      var extremaField = actor === 'institution' ? 'orgn' : 'frgn';
+      var extremaRows = actor === 'institution' ? institutions : foreigners;
+      var extremaLabel = actor === 'institution' ? '기관' : '외국인';
       var nums = [0].concat(foreigners.map(function (r) { return Number(r.frgn); }))
         .concat(institutions.map(function (r) { return Number(r.orgn); }));
       var min = Math.min.apply(Math, nums), max = Math.max.apply(Math, nums);
@@ -2543,8 +2548,8 @@ document.documentElement.classList.add('skin-ready');
       function y(value) { return 78 - (value - min) / (max - min) * 66; }
       function x(slot) { return 4 + slot * 92 / 13; }
       var zero = y(0), marks = '', id = 'home-investor-' + marketKey;
-      var foreignMax = foreigners.length ? foreigners.reduce(function(a,b){ return Number(b.frgn) > Number(a.frgn) ? b : a; }) : null;
-      var foreignMin = foreigners.length ? foreigners.reduce(function(a,b){ return Number(b.frgn) < Number(a.frgn) ? b : a; }) : null;
+      var foreignMax = extremaRows.length ? extremaRows.reduce(function(a,b){ return Number(b[extremaField]) > Number(a[extremaField]) ? b : a; }) : null;
+      var foreignMin = extremaRows.length ? extremaRows.reduce(function(a,b){ return Number(b[extremaField]) < Number(a[extremaField]) ? b : a; }) : null;
       if (mode === 'area') {
         marks = '<defs><clipPath id="' + id + '-positive"><rect x="0" y="0" width="100" height="' + zero + '"/></clipPath>'
           + '<clipPath id="' + id + '-negative"><rect x="0" y="' + zero + '" width="100" height="' + (90 - zero) + '"/></clipPath></defs>';
@@ -2587,21 +2592,21 @@ document.documentElement.classList.add('skin-ready');
       var hover = [];
       rows.forEach(function(r){
         var minute=540+r.slot*30,label=Math.floor(minute/60)+':'+String(minute%60).padStart(2,'0');
-        ['frgn','orgn'].forEach(function(field){
+        (actor === 'foreign' ? ['frgn'] : actor === 'institution' ? ['orgn'] : ['frgn','orgn']).forEach(function(field){
           if(r[field]==null||!isFinite(Number(r[field])))return;
           hover.push([x(r.slot),y(Number(r[field]))/90*100,
             label+' KST 구간 · '+(field==='frgn'?'외국인':'기관')+' 누적 '+investorAmountText(r[field])+'\n수집 '+investorTimeText(r.asOf)]);
         });
       });
       var extrema = foreignMax && foreignMin ?
-        '<div class="hmb-investor-extrema"><span>외국인 고점 <b>'+investorAmountText(foreignMax.frgn)+'</b></span>'
-          +'<span>저점 <b>'+investorAmountText(foreignMin.frgn)+'</b></span></div>' : '';
+        '<div class="hmb-investor-extrema"><span>'+extremaLabel+' 고점 <b>'+investorAmountText(foreignMax[extremaField])+'</b></span>'
+          +'<span>저점 <b>'+investorAmountText(foreignMin[extremaField])+'</b></span></div>' : '';
       // 기존 외국인 고점·저점 위치 마커는 같은 70px 차트 내부에 그대로 둔다.
       function extremePoint(row, name) {
-        return row ? '<span class="hmb-investor-point is-'+name+'" style="left:'+x(row.slot).toFixed(2)+'%;top:'+(y(Number(row.frgn))/90*100).toFixed(2)+'%" aria-hidden="true"></span>' : '';
+        return row ? '<span class="hmb-investor-point is-'+name+'" style="left:'+x(row.slot).toFixed(2)+'%;top:'+(y(Number(row[extremaField]))/90*100).toFixed(2)+'%" aria-hidden="true"></span>' : '';
       }
-      var points = extremePoint(foreignMax,'high') + (foreignMin && foreignMax && Number(foreignMin.frgn) !== Number(foreignMax.frgn) ? extremePoint(foreignMin,'low') : '');
-      return '<div class="hmb-investor-spark-wrap" data-hover-points="'+homeHoverAttr(hover)+'"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 구간별 외국인 실선·기관 점선 누적 순매수, 확보 '+rows.length+'개">'
+      var points = extremePoint(foreignMax,'high') + (foreignMin && foreignMax && Number(foreignMin[extremaField]) !== Number(foreignMax[extremaField]) ? extremePoint(foreignMin,'low') : '');
+      return '<div class="hmb-investor-spark-wrap" data-hover-points="'+homeHoverAttr(hover)+'"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 누적 순매수 · '+(actor === 'foreign' ? '외국인' : actor === 'institution' ? '기관' : '외국인 실선·기관 점선')+' · 확보 '+rows.length+'개">'
         +'<line x1="1" y1="'+zero+'" x2="99" y2="'+zero+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
         +marks+'</svg>'+points+'</div>'
         +'<div class="hmb-investor-axis"><span>09:00</span><span>12:00</span><span>15:30</span></div>'+extrema;
