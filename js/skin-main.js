@@ -2078,6 +2078,7 @@ document.documentElement.classList.add('skin-ready');
     // 코스피200 야간선물 독립 카드. 값은 /futures(KOSPI200_NIGHT)에 있는 것만 쓰고 없으면 '미수신'으로 둔다.
     // 기존 저장된 KOSPI200_DAY 선물 시세만 한국 홈에서 조회(새 VM 수집기 없음).
     var homeDayFutureQuote = null;
+    var homeMetricQuotes = {};
     var homeDayFutureRequestedAt = 0;
     var homeDayFutureLoading = false;
     function renderHomeDayFutures(item, failed) {
@@ -2127,12 +2128,13 @@ document.documentElement.classList.add('skin-ready');
           rows.forEach(function (row) {
             if (row && (row.symbol === 'USDKRW' || row.symbol === 'KOSPI200_DAY')) by[row.symbol] = row;
           });
+          homeMetricQuotes = Object.assign({}, homeMetricQuotes, by);
           homeDayFutureQuote = by.KOSPI200_DAY || null;
           renderHomeDayFutures(homeDayFutureQuote, false);
-          renderHomeMetricCharts(by);
+          renderHomeMetricCharts(homeMetricQuotes);
         }).catch(function () {
           renderHomeDayFutures(homeDayFutureQuote, true);
-          renderHomeMetricCharts(null);
+          renderHomeMetricCharts(homeMetricQuotes);
         }).then(function () { homeDayFutureLoading = false; });
     }
 
@@ -2616,8 +2618,8 @@ document.documentElement.classList.add('skin-ready');
         var institution = lastRow && lastRow.orgn != null ? Number(lastRow.orgn) : null;
         return '<div class="hmb-investor-row">'
           + '<div class="hmb-investor-row-top"><strong>' + market.label + '</strong>'
-          + '<span class="hmb-investor-amounts"><span><small>실선 외국인</small><b class="' + homeTone(foreign) + '">' + investorAmountText(foreign) + '</b></span>'
-          + '<span><small>점선 기관</small><b class="' + homeTone(institution) + '">' + investorAmountText(institution) + '</b></span></span></div>'
+          + '<span class="hmb-investor-amounts"><span title="외국인(실선)"><small>외</small><b class="' + homeTone(foreign) + '">' + investorAmountText(foreign) + '</b></span>'
+          + '<span title="기관(점선)"><small>기</small><b class="' + homeTone(institution) + '">' + investorAmountText(institution) + '</b></span></span></div>'
           + investorSparkline(result, homeInvestorMode, market.key)
           + '<div class="hmb-investor-asof">' + String(result.date || '').replace(/[^0-9-]/g, '') + ' · '
           + (rows.length ? '관측 ' + investorTimeText(result.asOf) + ' · ' + rows.length + '/14개' : '일별 최근값 · 장중 기록 없음') + '</div>'
