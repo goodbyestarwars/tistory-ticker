@@ -8326,7 +8326,7 @@ html.search-open body .nav-search-suggest {
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
     box-sizing: border-box;
     width: 100%;
-    max-width: calc(var(--home-content-max) + 32px);
+    max-width: none; /* 푸터는 메뉴와 같은 전체 가로폭을 사용한다. */
     margin-inline: auto !important;
     padding-inline: 16px !important;
     /* 마켓브리핑과 이야기 시리즈 사이는 홈 공통 카드 간격(--ui-section-gap, 페이지 아래 여백이 이미 포함)만 둔다(휴장 화면과 동일). 푸터 위 구분선·윗여백은 이 구간에서 쓰지 않는다. */
