@@ -2020,6 +2020,7 @@
     if (requestPattern === 'longTermQuality') requestPattern = 'maCloudBreakout';
     currentDetailItem = item;
     destroyPsChart();
+    psIchimokuEnabled = false;
     detail.hidden = false;
     detail.innerHTML = global.NineUI.state('loading', item.name + ' 차트를 불러오는 중...', 'ps-loading', {spinner:false});
     placeInlineDetail(container,item);
@@ -2198,23 +2199,22 @@
         +Object.keys(review.checks || {}).map(function(k){return escapeHtml(labels[k] || k)+': '+(review.checks[k]?'확인':'미충족·미확인');}).join(' · ')
         +'</p><p>무효화 기준 '+(review.invalidationPrice>0?fmt(review.invalidationPrice)+'원 이하':'미확인')+' · 수익성 미입증 · 실제 체결·비용은 별도 기록</p></details>';
     }
-    html += '</details>';
-    html += '<div class="ps-chart-tools" aria-label="차트 도구">'+[['line','직선'],['pencil','연필'],['circle','원'],['box','박스'],['hline','가로선'],['measure','측정'],['clear','지우기']].map(function(tool){return '<button type="button" class="ui-btn ui-btn-secondary" data-ps-draw="'+tool[0]+'" aria-pressed="false" disabled>'+tool[1]+'</button>';}).join('')
-      + '<button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="0.7" disabled>확대</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="1.4" disabled>축소</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-fit disabled>전체 보기</button><span data-ps-tools-status role="status">도구 준비 중</span></div>';
-    html += '<div class="ps-pattern-legend">'
-      + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
-      + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
-      + '</div>';
-    html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
-    html += '<div class="ps-autotrade-bar" data-ps-autotrade hidden></div>';
-    html += '<div class="ps-chart-options" role="group" aria-labelledby="psIndicatorsLabel"><strong id="psIndicatorsLabel">지표 표시</strong>';
+    html += '</details><div class="ps-chart-options" aria-label="차트 표시 옵션">';
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psBollingerToggle"' + (psBollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>';
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psSupportResistanceToggle"' + (psSrEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>';
     var volumeKnown=hasPsVolume(data.daily);
     html += '<label><input type="checkbox" data-ps-volume'+(psVolumeEnabled && volumeKnown?' checked':'')+(volumeKnown?'':' disabled')+'> 거래량'+(volumeKnown?'':' (자료 미확인)')+'</label></div>';
+    html += '<div class="ps-chart-tools" aria-label="차트 도구">'+[['line','직선'],['pencil','연필'],['circle','원'],['box','박스'],['hline','가로선'],['measure','측정'],['clear','지우기']].map(function(tool){return '<button type="button" class="ui-btn ui-btn-secondary" data-ps-draw="'+tool[0]+'" aria-pressed="false" disabled>'+tool[1]+'</button>';}).join('')
+      + '<button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="0.7" disabled>확대</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="1.4" disabled>축소</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-fit disabled>전체 보기</button><span data-ps-tools-status role="status">도구 준비 중</span></div>';
     html += buildIchimokuLegend();
+    html += '<div class="ps-pattern-legend">'
+      + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
+      + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
+      + '</div>';
+    html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
+    html += '<div class="ps-autotrade-bar" data-ps-autotrade hidden></div>';
     html += '<div class="ps-chart" id="psChart" style="height:' + chartHeight + 'px"></div>';
     html += (currentDetailItem && currentDetailItem._sourceKey || activeTab) === 'firstPullbackBreakout'
       ? '<div class="ps-footnote">장 마감 후 일봉 종가로 재돌파를 확인한 결과입니다. 다음 거래일 가격과 눌림 저점 이탈 여부를 다시 확인하세요. 테스트 중인 검색 조건이며 1시간 상승 예측이나 승률을 뜻하지 않습니다.</div>'
@@ -2793,7 +2793,15 @@
         addEnvelopeLine(chart, daily, 46, 1.12, RESIST_COLOR);
       }
 
-      addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
+      if (pattern === 'shape:pullbackRebreak') {
+        global.NineChartCore.loadModule('autowave').then(function (wave) {
+          if (psLwcChart !== chart || !container.isConnected) return;
+          var points = observedPullbackPoints(daily, detail, wave);
+          if (points.length) addPatternOverlay(LWC, chart, candleSeries, daily, pattern, { points: points });
+        }).catch(function () { /* 원본 캔들과 기존 차트 도구는 계속 표시한다. */ });
+      } else {
+        addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
+      }
       addTrackMarkers(LWC, candleSeries, daily, psTrackCtx);
 
       if (psIchimokuEnabled) addIchimokuOverlay(daily);
@@ -2855,6 +2863,18 @@
 
   // 패턴별 지지/저항선 + 스윙 포인트 dot + 확인(signal) 지점을 라인 시리즈/마커로 오버레이.
   // (예전 SVG 버전의 polyline/hline/dot/signalRing을 Lightweight Charts 프리미티브로 대체)
+  function observedPullbackPoints(daily, detail, wave) {
+    if (!detail || !detail.signal || !detail.shape || !wave || typeof wave.shapeOf !== 'function') return [];
+    var count = detail.windowBars, end = daily.findIndex(function (bar) { return bar.date === detail.signal.date; });
+    if (!Number.isInteger(count) || count < 8 || end + 1 < count || Number(daily[end].close) !== Number(detail.signal.price)) return [];
+    var rows = daily.slice(end + 1 - count, end + 1);
+    var shape = wave.shapeOf(rows);
+    if (shape.type !== detail.shape.type || !Array.isArray(shape.pullbackIndexes)) return [];
+    return shape.pullbackIndexes.map(function (index) {
+      return { date: rows[index].date, price: rows[index].close };
+    });
+  }
+
   function addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail) {
     if (!detail) return;
     var markers = [];
@@ -2961,6 +2981,8 @@
       }
       if (detail.breakoutDate) addDot({ date: detail.breakoutDate, price: (daily.filter(function (d) { return d.date === detail.breakoutDate; })[0] || {}).high }, RESIST_COLOR, 'aboveBar', 1.8);
       if (detail.signal) addSignal(detail.signal);
+    } else if (pattern === 'shape:pullbackRebreak') {
+      addLine(detail.points, SUPPORT_COLOR, { bold: true });
     } else if (pattern === 'pullback') {
       // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
       // 눌렸는지"를 한눈에 보여준다. 이평선은 addMaLine으로 배경에 이미 그림.

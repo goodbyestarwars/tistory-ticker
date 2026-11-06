@@ -792,16 +792,19 @@
       biggestRise<rise*.75 && rise>Math.max(noise*3,range*.25);
     var pull=realRise && after.length>=2 && afterLow>base &&
       dip>Math.max(noise,range*.08) && dip<rise && peak<n-2;
-    var type='range',label='횡보·방향 탐색',score=40+15*coherence;
+    var type='range',label='횡보·방향 탐색',score=40+15*coherence, pullbackIndexes;
     if(pull){
       type=recovery>Math.max(noise, dip*.3)?'rebound':'pullback';
       label=type==='rebound'?'상승 뒤 조정·반등 시도':'상승 뒤 눌림 형성';
       score=65+15*(1-dip/rise)+10*(contraction!=null?clip(1-contraction/2):.25);
+      var lowIndex=peak+1+after.indexOf(afterLow);
+      pullbackIndexes=[before.indexOf(base),peak,lowIndex];
+      if(type==='rebound' && lowIndex<n-1)pullbackIndexes.push(n-1);
     }else if(slope>0 && higher>=2 && eff>.2){type='up';label='저점이 높아지는 상승 흐름';score=65+20*coherence+10*eff;}
     else if(slope<0 && lower>=2 && eff>.2){type='down';label='고점이 낮아지는 하락 흐름';score=20+10*coherence;}
     else if(contraction!=null && contraction<.8){type='compression';label='변동폭 축소·방향 대기';score=55+20*clip(1-contraction);}
     return {type:type,label:label,score:Math.round(score),slope:slope,coherence:coherence,efficiency:eff,
-      higherLows:higher,lowerHighs:lower,contraction:contraction,basis:'종가 흐름'};
+      higherLows:higher,lowerHighs:lower,contraction:contraction,basis:'종가 흐름',pullbackIndexes:pullbackIndexes};
   }
 
 
