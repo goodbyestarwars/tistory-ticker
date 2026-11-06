@@ -15,7 +15,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   --hmb-chart-line: #b0bbc8;
   --hmb-chart-down: #9dbbe0;
   --hmb-chart-up-text: #ad706b;
-  --hmb-chart-down-text: #6386b2;
+  --hmb-chart-down-text: #44709f;
   --hmb-up: #d24f45;
   --hmb-down: #1261c4;
   --hmb-flat: rgba(var(--np-ink, 26, 26, 26), .22);
@@ -41,7 +41,7 @@ body#tt-body-index .home-editorial-page .home-switch-countdown {
 body#tt-body-index .home-editorial-page .home-switch-countdown[hidden] { display: none; }
 /* The closed tab always uses its own weekend clock, never the white toolbar clock. */
 .home-dashboard.is-market-closed > .home-market-toolbar > .home-switch-countdown { display: none !important; }
-body#tt-body-index .home-editorial-page .hsc-label { display: block; margin: 0; color: #77808b; font: 500 11px/1.35 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page .hsc-label { display: block; margin: 0; color: #69727e; font: 500 11px/1.35 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page .hsc-clock { display: flex; align-items: flex-start; justify-content: center; gap: 7px; }
 body#tt-body-index .home-editorial-page .hsc-unit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 body#tt-body-index .home-editorial-page .hsc-unit small { color: #8a9099; font: 500 9px/1.2 var(--font-ui, system-ui, sans-serif); }
@@ -79,7 +79,7 @@ body#tt-body-index .home-editorial-page .hsc-face-bottom { border-bottom-width: 
 body#tt-body-index .home-editorial-page .hsc-digit::after {
   content: ""; position: absolute; z-index: 3; left: 0; right: 0; top: 50%; border-top: 1px solid rgba(60, 68, 78, .14);
 }
-body#tt-body-index .home-editorial-page .hsc-separator { margin-top: 5px; color: #9ba2aa; font: 500 17px/1 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page .hsc-separator { margin-top: 5px; color: #79828d; font: 500 17px/1 var(--font-ui, system-ui, sans-serif); }
 html.dark body#tt-body-index .home-editorial-page .home-switch-countdown { background: transparent !important; color: #20252b !important; border: 0 !important; box-shadow: none !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-label, html.dark body#tt-body-index .home-editorial-page .hsc-unit small { color: #77808b !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-digit { color: #26303b !important; }
@@ -466,7 +466,7 @@ body#tt-body-index .home-editorial-page .home-night-content {
   --hmb-mute: rgba(var(--np-ink, 26, 26, 26), .56);
   --hmb-faint: rgba(var(--np-ink, 26, 26, 26), .38);
   --hmb-line: rgba(var(--np-ink, 26, 26, 26), .1);
-  --hmb-chart-up: #e7aaa5; --hmb-chart-line: #b0bbc8; --hmb-chart-down: #9dbbe0; --hmb-chart-up-text: #ad706b; --hmb-chart-down-text: #6386b2; --hmb-flat: rgba(var(--np-ink, 26, 26, 26), .22);
+  --hmb-chart-up: #e7aaa5; --hmb-chart-line: #b0bbc8; --hmb-chart-down: #9dbbe0; --hmb-chart-up-text: #ad706b; --hmb-chart-down-text: #44709f; --hmb-flat: rgba(var(--np-ink, 26, 26, 26), .22);
   min-width: 0; margin-top: var(--ui-section-gap);
 }
 html.dark body#tt-body-index .home-editorial-page .home-night-content {

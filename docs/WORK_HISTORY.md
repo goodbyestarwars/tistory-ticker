@@ -1,3 +1,7 @@
+**2026-11-06 라이트모드 저대비 회색 글자 7곳 보정 (모바일 375px 실측 기준)**
+
+점검: 운영 홈을 375px에서 다크·라이트 각각 텍스트 대비(WCAG AA) 측정. 가로 스크롤 없음, 다크는 2곳(4.35:1) 경미. 라이트는 7곳 미달(2.4~3.9:1): 미국 정규장 시각 문구, 실시간 표 순위·종목 보조 문구, 카운트다운 라벨/구분자, 관심종목 `>>`, 차트 하락 글자색. 변경: `style.css`(hrt/hen 보조 회색→#6b7684, 다크 전용 규칙 추가), `css/home-market-board.css`(hsc 라벨/구분자, `--hmb-chart-down-text` 라이트값만), `css/watchlist.css`. 다크 값·!important 개수 불변(래칫 통과). 검증: 반영 후 재측정 필요(Pages 약 10분). 미완: 모바일 10px 이하 글자 14곳, 터치영역 28px 미만 8개.
+
 **2026-11-06 중복 정리 1차: 차트 라이브러리 로더 단일화 · 고아 임시파일 정리 · !important 래칫**
 
 점검 결과: ① `quick-indices`·`overnight-market`·`kospi-futures`·`pattern-scan`이 chart-core와 별개로 Lightweight Charts 로더를 각자 보유(같은 스크립트 중복 다운로드 위험). ② `snapshot_io` 임시파일(`.*.tmp`)이 쓰던 프로세스 사망 시 남음(Oracle `.earnings_calendar_store.json.*.tmp` 4MB, 11/1) - 유지보수가 청소하지 않음. ③ `!important` 5,125개(style.css 2,371·market-temp 1,141 등), 최근 30일 +3,412/-2,474. 변경: `NineUI.loadChartLibrary`(skin-shell.js, chart-core와 같은 `__nineChartLoads.lwc` 약속) 추가, 4개 모듈은 이를 우선 사용(없으면 기존 경로 유지, 테스트 하네스용). `maintenance.sweep_orphan_temp_files`(24시간 이상 된 점-시작 `.tmp`만) 추가. `test/test_important_ratchet.py`+`important_baseline.json`: 파일별 !important 증가 시 실패. 검증: node --check, 로컬 서버에서 로더 2회 호출 시 스크립트 태그 1개·같은 객체, pytest 13건. 미완: 직접 `LWC.createChart` 8개 파일의 옵션·테마 통합, 지역 escapeHtml 30곳 → NineUI.escapeHtml, !important 실제 삭제는 화면 검증이 필요해 보류. 배포: master → Pages/VM 자동.
