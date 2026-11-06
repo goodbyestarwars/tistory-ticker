@@ -3680,11 +3680,7 @@ document.documentElement.classList.add('skin-ready');
       if (isNaN(d.getTime())) return '-';
       return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Seoul' });
     }
-    function esc(s) {
-      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-      });
-    }
+    function esc(s) { return window.NineUI.escapeHtml(s); }
     function isDomesticCard() {
       var selection = window.HomeMarketSelection;
       return !!selection && typeof selection.get === 'function' && selection.get() === 'domestic';

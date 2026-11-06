@@ -24,11 +24,7 @@
   var DEFAULT_RANGES = [{ key: '1m', label: '1개월', days: 31 }, { key: '3m', label: '3개월', days: 92 }, { key: '1y', label: '1년', days: 366 }];
   var SEQ = 0;
 
-  function esc(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function esc(value) { return global.NineUI.escapeHtml(value); }
 
   function num(value, digits) {
     if (value == null || !isFinite(value)) return '-';

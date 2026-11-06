@@ -24,11 +24,7 @@
   var cache = {};
   function isUs() { return !!host && host.getAttribute('data-us') === '1'; }
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function esc(s) { return global.NineUI.escapeHtml(s); }
 
   // 순위는 숫자가 작을수록 좋다. 서버가 (과거 순위 - 현재 순위)로 줘서 양수 = 순위 상승(↑)이다.
   function changeText(n) {

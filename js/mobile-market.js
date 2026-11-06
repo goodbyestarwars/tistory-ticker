@@ -20,7 +20,7 @@
 
   function isMobile() { return !!(global.matchMedia && global.matchMedia(MQ).matches); }
   function reduceMotion() { return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches); }
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function esc(s) { return global.NineUI.escapeHtml(s); }
   function el(tag, cls, html) { var n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; }
   function text(node) { return node ? String(node.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
 

@@ -24,11 +24,7 @@
   var scheduleExpanded = false;
   var activityOpen = { orders: false, candidates: false };   // 접힘 상태는 갱신(다시 그리기)에도 유지한다
 
-  function esc(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function esc(value) { return global.NineUI.escapeHtml(value); }
   function fmtPrice(v) { return v == null || v === 0 ? '-' : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 0 }); }
   function fmtWon(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
   function signed(v) { return v == null ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(Math.round(v)).toLocaleString('ko-KR'); }

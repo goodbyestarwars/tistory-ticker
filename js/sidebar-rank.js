@@ -253,11 +253,7 @@
     return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
 
   function fetchRank(limit) {
     var url = API_URL + (limit ? '?limit=' + encodeURIComponent(limit) : '');

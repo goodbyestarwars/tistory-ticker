@@ -30,9 +30,7 @@
   var TREND_PCT = 1.0;      // 20거래일 변화율이 이 값(%) 이상이면 증가 추세, 이하(음수)면 감소 추세, 안쪽이면 보합권
   var STREAK_MIN = 5;       // 문장에서 '연속'을 언급하는 최소 거래일 수
 
-  function esc(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
-  }
+  function esc(value) { return global.NineUI.escapeHtml(value); }
 
   /* ───────────── 계산(순수 함수, 테스트 대상) ───────────── */
   function fmtEok(v, signed) { return global.IndicatorBoard ? global.IndicatorBoard.util.fmtEok(v, signed) : String(v); }

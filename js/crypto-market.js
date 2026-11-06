@@ -30,7 +30,7 @@
     { key: '1m', label: '1개월', days: 31 }, { key: '3m', label: '3개월', days: 92 },
     { key: '1y', label: '1년', days: 366 }, { key: '5y', label: '5년', days: 1830 }
   ];
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function esc(s) { return global.NineUI.escapeHtml(s); }
   function active() { return root && !document.hidden && !root.closest('[hidden]'); }
   var helperJob;
   function helpers(requireListedQuotes) {
