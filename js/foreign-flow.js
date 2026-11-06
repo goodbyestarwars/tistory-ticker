@@ -4031,8 +4031,7 @@
   function loadStockMembers_(box, code) {
     var mount = box.querySelector('[data-ff-members]');
     if (!mount || !/^[0-9A-Z]{6}$/i.test(String(code || ''))) return;
-    fetch(STOCK_MEMBERS_URL + encodeURIComponent(code))
-      .then(function (res) { if (!res.ok) throw new Error('members ' + res.status); return res.json(); })
+    window.NineHttp.json(STOCK_MEMBERS_URL + encodeURIComponent(code))
       .then(function (payload) {
         var d = payload && payload.data;
         if (!d || (!(d.buy || []).length && !(d.sell || []).length)) return;

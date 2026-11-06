@@ -720,8 +720,7 @@
     apply();
     if (!symbols.length) return;
     symbols.forEach(function (symbol) { week52Pending[symbol] = true; });
-    fetch('https://goodbyestar.cloud/us-quotes?symbols=' + encodeURIComponent(symbols.join(',')))
-      .then(function (response) { if (!response.ok) throw new Error('52주 시세 조회'); return response.json(); })
+    window.NineHttp.json('https://goodbyestar.cloud/us-quotes?symbols=' + encodeURIComponent(symbols.join(',')))
       .then(function (response) {
         var items = (response.data || response).items || [];
         items.forEach(function (item) {

@@ -121,7 +121,7 @@
       + '</div><div class="hsr-leaders" data-hsr-leaders></div>'
       + '<div class="hsr-note">시장 대비 상대수익 기준(업종 구성종목 수익률의 중앙값). 투자 권유가 아닙니다.</div>';
     box.hidden = false;
-    fetch(API + '/' + encodeURIComponent(sector)).then(function (r) { return r.json(); }).then(function (env) {
+    window.NineHttp.json(API + '/' + encodeURIComponent(sector)).then(function (env) {
       var d = env && env.data ? env.data : env;
       var el = box.querySelector('[data-hsr-leaders]');
       if (!el || box.getAttribute('data-sector') !== sector || !d || !d.leaders || !d.leaders.length) return;
@@ -134,7 +134,7 @@
   function load() {
     var url = isUs() ? US_API : API;
     if (cache[url] && Date.now() - cache[url].t < 600000) { data = cache[url].data; render(); return; }
-    fetch(url).then(function (r) { return r.json(); }).then(function (env) {
+    window.NineHttp.json(url).then(function (env) {
       var next = env && env.data ? env.data : env;
       cache[url] = { t: Date.now(), data: next };
       if ((isUs() ? US_API : API) !== url) return; // 그 사이 시장 탭이 바뀐 경우

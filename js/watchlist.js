@@ -1421,11 +1421,7 @@
     var symbols = codes.map(function (code) {
       return String(code).replace(/^US:/i, '').toUpperCase();
     });
-    return fetch(API_BASE_URL + '/us-quotes?symbols=' + encodeURIComponent(symbols.join(',')))
-      .then(function (response) {
-        if (!response.ok) throw new Error('미국주식 일괄 시세 오류: ' + response.status);
-        return response.json();
-      })
+    return global.NineHttp.json(API_BASE_URL + '/us-quotes?symbols=' + encodeURIComponent(symbols.join(',')))
       .then(function (body) {
         var payload = body && body.data ? body.data : body;
         var rows = payload && Array.isArray(payload.items) ? payload.items : [];
@@ -1461,11 +1457,7 @@
   function fetchUsQuotesIndividually(codes) {
     return Promise.all(codes.map(function (code) {
       var symbol = String(code).replace(/^US:/i, '').toUpperCase();
-      return fetch(API_BASE_URL + '/us-quote/' + encodeURIComponent(symbol))
-        .then(function (response) {
-          if (!response.ok) throw new Error('미국주식 시세 오류: ' + response.status);
-          return response.json();
-        })
+      return global.NineHttp.json(API_BASE_URL + '/us-quote/' + encodeURIComponent(symbol))
         .then(function (body) {
           var data = body && body.data ? body.data : body;
           return normalizeUsQuote(symbol, data);

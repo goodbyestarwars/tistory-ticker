@@ -411,10 +411,7 @@
     });
     overlay.querySelector('.it-close').addEventListener('click', close);
     document.addEventListener('keydown', onKey);
-    fetch('https://goodbyestar.cloud/fx-rates', { cache: 'no-store' }).then(function (response) {
-      if (!response.ok) throw new Error('fx ' + response.status);
-      return response.json();
-    }).then(function (payload) {
+    window.NineHttp.json('https://goodbyestar.cloud/fx-rates', { fetchOptions: { cache: 'no-store' } }).then(function (payload) {
       var data = payload && payload.data;
       var usd = data && (data.currencies || []).filter(function (item) { return item.code === 'USD'; })[0];
       var buyRate = Number(usd && (usd.tts || usd.dealBasR));

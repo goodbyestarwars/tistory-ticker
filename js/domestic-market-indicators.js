@@ -190,10 +190,7 @@
   // domesticFundsAnalysis)가 Groq로 생성한 문장을 그대로 받아온다. GAS가 이 화면과 같은
   // VM 응답을 유일한 소스로 프롬프트를 만들어서 화면 숫자와 AI 문장이 어긋나지 않는다.
   function fetchFundsAnalysis() {
-    return fetch(GAS_TICKER_URL + '?action=domesticFundsAnalysis').then(function (r) {
-      if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-      return r.json();
-    }).then(function (data) {
+    return window.NineHttp.json(GAS_TICKER_URL + '?action=domesticFundsAnalysis').then(function (data) {
       return data && data.analysis;
     });
   }
@@ -1091,10 +1088,7 @@
     }).catch(function () {
       root.querySelector('.dmi-flow-grid').textContent = '투자자 수급 데이터를 불러오지 못했습니다.';
     });
-    fetch('https://goodbyestar.cloud/investor-trend/stock-ranks').then(function (response) {
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return response.json();
-    }).then(function (payload) {
+    window.NineHttp.json('https://goodbyestar.cloud/investor-trend/stock-ranks').then(function (payload) {
       var data = payload && payload.success && payload.data;
       if (!data || data.source !== 'KIS FHPTJ04400000' || data.metric !== 'shares') throw new Error('invalid rank data');
       var labels = { foreign: '외국인', institution: '기관' };

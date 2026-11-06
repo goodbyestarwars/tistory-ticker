@@ -803,8 +803,7 @@
     });
     Promise.all(months.map(function (period) {
       if (window.EarningsCalendarFeed) return window.EarningsCalendarFeed.month(period.year, period.month);
-      return fetch(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month)
-        .then(function (response) { if (!response.ok) throw new Error('일정 응답 오류'); return response.json(); })
+      return window.NineHttp.json(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month)
         .then(function (payload) { return Array.isArray(payload) ? payload : (payload && payload.data) || []; })
         .catch(function () { return []; });
     })).then(function (groups) {

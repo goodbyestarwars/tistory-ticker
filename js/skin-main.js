@@ -994,7 +994,7 @@ document.documentElement.classList.add('skin-ready');
     function loadHomeUsEtfs(box) {
       if (Date.now() - homeUsEtfsAt < 600000 && box.getAttribute('data-loaded') === '1') { box.hidden = false; return; }
       homeUsEtfsAt = Date.now();
-      fetch('https://goodbyestar.cloud/us-etf-returns').then(function (r) { return r.json(); }).then(function (env) {
+      window.NineHttp.json('https://goodbyestar.cloud/us-etf-returns').then(function (env) {
         var d = env && env.data ? env.data : env;
         var items = d && d.items || [];
         var list = box.querySelector('[data-home-us-etfs-list]');

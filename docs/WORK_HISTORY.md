@@ -1,3 +1,7 @@
+**2026-11-07 직접 fetch 읽기 조회 11곳을 NineHttp.json으로 통일**
+
+목적: 화면마다 따로 쓰던 읽기 전용 공개 GET 조회의 타임아웃(15초)·중복 요청 공유·HTTP 오류 처리를 공통 전송으로 일원화. 변경: home-sector-rotation(2)·skin-main(미국 ETF)·invest-tools(환율)·home-realtime-table(52주)·home-weekly-report(실적 폴백)·domestic-market-indicators(2)·foreign-flow(회원사)·watchlist(미국 시세 2)에서 `fetch`+수동 ok/json 처리를 `NineHttp.json`으로 교체. 응답 가공·단위·폴백 판단은 호출부 그대로. 제외(의도적 유지): 쓰기(PUT/DELETE)·로그인 쿠키(credentials) 요청(chart-drawing·memo·chart-memo·market-temp 사용자 카드·auth), 텍스트 응답(dcf·GAS 공시), 자체 타이머/중단(pattern-scan·미국 검색 4곳), 번역(home-economic-news), us-macro-indicators 갱신(PUT). 검증: node --check, 관련 테스트 557건 중 실패 15건은 변경 전과 동일(Windows 기준선, 전후 diff 동일). 한계: 화면 실측 미실시. 배포: master → Pages.
+
 **2026-11-07 !important 929개 제거 (style.css 377·market-temp.css 552) · escapeHtml 복사본 13곳 통합**
 
 목적: 정책(새 !important 금지)에 맞게 기존 누적분을 화면 비교로 안전하게 정리. 방법: 운영 화면 16개 페이지 x PC(1400)/모바일(375) x 라이트/다크 = 64개 상태에서 요소별 계산 스타일(+::before/::after) 해시를 비교. 스타일 시트를 메모리에서 교체해 후보를 24개씩 묶어 제거하고 달라지면 이분 탐색으로 원인 규칙을 가려내 남김(보수적: 어느 한 상태에서라도 달라지면 유지, 호버·포커스 등 동적 의사클래스·미디어 조건 불일치·화면에 없는 요소는 검증 불가라 유지). 3회 라운드 + 전 상태 교차 검증. 결과: 후보 1,966 중 929 제거, 1,037 유지. !important 5,125→약 4,200. 홈 모바일 라이트/미국 종목 PC·모바일 다크 각 1~7곳은 규칙과 무관한 시간 변동 요소로 판단(규칙을 걸러내도 불변). 변경: `style.css`·`css/market-temp.css`, `test/important_baseline.json`(래칫 기준선 하향). 별도: `esc`/`escapeHtml` 동일 구현 13곳을 `NineUI.escapeHtml` 위임으로 교체(dcf.js·learn-search.js는 독립/변형이라 제외), 달력 테스트에 NineUI 대역 추가. 검증: 위 비교(최종 교차 후 안정 상태 차이 0), 괄호 균형, 래칫 테스트. 한계: 로그인·호버·모달·미방문 페이지는 미검증이라 해당 규칙은 유지. 배포: master → Pages, 반영 후 라이브 육안 확인 필요.
