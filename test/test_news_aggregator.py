@@ -349,6 +349,56 @@ class NewsAggregatorTests(unittest.TestCase):
         self.assertEqual(items[0]['kind'], 'disclosure')
         self.assertEqual(items[0]['market'], 'us')
 
+    def test_sec_filing_titles_get_readable_korean_from_form_items(self):
+        xml = news_aggregator.ET.fromstring('''
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <title>8-K - Fox Corp (0001754301) (Filer)</title>
+                <updated>2026-11-06T16:21:00-05:00</updated>
+                <category term="8-K" />
+                <link href="https://www.sec.gov/Archives/edgar/data/1754301/a-index.htm" />
+                <summary type="html"> &lt;b&gt;Filed:&lt;/b&gt; 2026-11-06 &lt;b&gt;Size:&lt;/b&gt; 2 MB
+&lt;br&gt;Item 1.01: Entry into a Material Definitive Agreement
+&lt;br&gt;Item 2.01: Completion of Acquisition or Disposition of Assets
+&lt;br&gt;Item 2.03: Creation of a Direct Financial Obligation
+&lt;br&gt;Item 9.01: Financial Statements and Exhibits</summary>
+              </entry>
+              <entry>
+                <title>8-K - Example Inc. (0000000001) (Filer)</title>
+                <updated>2026-11-06T16:20:00-05:00</updated>
+                <category term="8-K" />
+                <link href="https://www.sec.gov/Archives/edgar/data/1/b-index.htm" />
+                <summary type="html">&lt;br&gt;Item 2.02: Results of Operations
+&lt;br&gt;Item 9.01: Financial Statements and Exhibits</summary>
+              </entry>
+              <entry>
+                <title>10-Q - Apple Inc. (0000320193) (Filer)</title>
+                <updated>2026-11-06T16:19:00-05:00</updated>
+                <category term="10-Q" />
+                <link href="https://www.sec.gov/Archives/edgar/data/320193/c-index.htm" />
+              </entry>
+            </feed>
+        ''')
+        with mock.patch.object(news_aggregator.ET, 'fromstring', return_value=xml), \
+                mock.patch.object(news_aggregator.urllib.request, 'urlopen') as urlopen:
+            response = mock.Mock()
+            response.read.return_value = b'<feed />'
+            response.__enter__ = mock.Mock(return_value=response)
+            response.__exit__ = mock.Mock(return_value=False)
+            urlopen.return_value = response
+            news_aggregator._sec_filings_cache = (0, [])
+            items = news_aggregator.get_sec_filings(limit=30, ttl_sec=0)
+        news_aggregator._sec_filings_cache = (0, [])
+        fox, example, apple = items
+        self.assertEqual(fox['title'], '8-K - Fox Corp (0001754301) (Filer)')
+        self.assertEqual(fox['company'], 'Fox Corp')
+        self.assertEqual(fox['items'], ['1.01', '2.01', '2.03', '9.01'])
+        self.assertEqual(fox['title_ko'], 'Fox Corp 수시공시: 중요 계약 체결, 자산 인수·처분 완료 외 1건')
+        self.assertEqual(fox['category'], '공시')
+        self.assertEqual(example['title_ko'], 'Example Inc. 수시공시: 실적 발표')
+        self.assertEqual(example['category'], '실적')
+        self.assertEqual(apple['title_ko'], 'Apple Inc. 분기보고서(10-Q) 제출')
+
 
 if __name__ == '__main__':
     unittest.main()

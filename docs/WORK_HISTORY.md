@@ -1,3 +1,7 @@
+**2026-11-07 미국 SEC 공시 제목 한국어 변환**
+
+문제: 홈 경제 종합뉴스 속보 레일에 `8-K - Fox Corp (0001754301) (Filer)` 원문이 그대로 노출(서식·CIK만 있어 내용 파악 불가). 변경: `news_aggregator.get_sec_filings`가 EDGAR 피드 요약의 8-K Item 번호를 공식 항목표로 한국어화해 `title_ko`(예: `Fox Corp 수시공시: 중요 계약 체결, 자산 인수·처분 완료 외 1건`, 10-Q는 `분기보고서(10-Q) 제출`)와 `company`·`items`를 추가. 9.01(첨부서류)은 다른 항목이 있으면 제목에서 제외, Item 2.02는 `category='실적'`. 원문 `title`·링크 보존, 화면은 기존 `title_ko` 우선 표시 재사용. 검증: `test_news_aggregator.py` 23개 통과(신규 1), 실제 EDGAR 피드 변환 확인. 배포: master → VM.
+
 **2026-11-07 목표가 매수 금액 기준 입력**
 
 요청: 금액 기준으로 매매할 수 있는 UI. 변경: `js/auto-trader.js` 목표가 매수 폼에 주문 기준(금액/수량, 기본 금액) 선택과 투자금액 입력, 실시간 계산 줄(주문 주 수·예상 주문금액·남는 금액) 추가. 금액 기준은 투자금액÷목표가 내림 주 수를 계산해 기존 `{action:'target-add', code, price, qty}` 그대로 전송(VM 계약·주문 경계 불변), 1주 미만·100,000주 초과는 전송 차단, 확인창에 금액×수량 표시. `css/auto-trader.css` select·계산 줄. 검증: `test_auto_trader_target_search.js`(금액 계산 4건 추가)·orders 테스트 통과, 로컬 목업 하네스 PC/375px(가로 스크롤 없음, 전송 qty=17 확인, 모드 전환). 미확인: 운영 관리자 화면, 실제 등록·주문. 배포: master → Pages.
