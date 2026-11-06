@@ -1,6 +1,6 @@
 **2026-11-07 모의진단(OWASP) 후속: API 문서 비공개 · nginx 보안 헤더 스니펫**
 
-목적: 진단 결과 M1(보안 헤더 없음)·M2(`/docs`·`/openapi.json` 공개, 운영 경로 109개 노출) 조치. 변경: `scripts/cloud-vm/main.py` FastAPI 문서 경로를 기본 비활성(`ENABLE_API_DOCS=1`일 때만 개발용 활성), `ops/nginx/security-headers.conf` 신규(HSTS·nosniff·DENY·no-referrer·CSP, server_tokens off, 80→443 리다이렉트 안내). 미조치(별도 확인): M3 uvicorn `--proxy-headers`로 인한 IP별 제한 무력화 가능성(VM 서비스 파일 확인 필요), innerHTML 샘플 점검, Google API 키 허용 API 한정. 검증: 구문 검사만. 배포: main.py는 master → VM 자동(문서 경로 404 확인 필요), nginx 스니펫은 VM에서 수동 적용(`nginx -t` 후 reload), 미적용.
+목적: 진단 결과 M1(보안 헤더 없음)·M2(`/docs`·`/openapi.json` 공개, 운영 경로 109개 노출) 조치. 변경: `scripts/cloud-vm/main.py` FastAPI 문서 경로를 기본 비활성(`ENABLE_API_DOCS=1`일 때만 개발용 활성), `ops/nginx/security-headers.conf` 신규(HSTS·nosniff·DENY·no-referrer·CSP, server_tokens off, 80→443 리다이렉트 안내). M3는 서버 확인 결과 문제 없음(nginx가 X-Forwarded-For 설정, uvicorn 기본이 127.0.0.1 신뢰). 미조치: innerHTML 샘플 점검, Google API 키 허용 API 한정. 검증: 구문 검사만. 배포: main.py는 master → VM 자동(문서 경로 404 확인 필요), nginx는 2026-11-07 Oracle VM에 적용·reload 완료(백업 /root/kiwoom-api.nginx.bak-20261107): 보안 헤더(HSTS·nosniff·X-Frame SAMEORIGIN·no-referrer, /kis-tool 때문에 CSP 제외), server_tokens off, goodbyestar.cloud 80→443 301, 통합 에러페이지 include(API JSON 오류는 유지, nginx 자체 오류만 HTML). 실측: 헤더·301·CORS·401 JSON 정상.
 
 **2026-11-07 직접 fetch 읽기 조회 11곳을 NineHttp.json으로 통일**
 
