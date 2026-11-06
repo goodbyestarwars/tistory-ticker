@@ -2206,14 +2206,11 @@
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psSupportResistanceToggle"' + (psSrEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>';
     var volumeKnown=hasPsVolume(data.daily);
     html += '<label><input type="checkbox" data-ps-volume'+(psVolumeEnabled && volumeKnown?' checked':'')+(volumeKnown?'':' disabled')+'> 거래량'+(volumeKnown?'':' (자료 미확인)')+'</label></div>';
-    html += '<div class="ps-chart-tools" aria-label="차트 도구">'+[['line','직선'],['pencil','연필'],['circle','원'],['box','박스'],['hline','가로선'],['measure','측정'],['clear','지우기']].map(function(tool){return '<button type="button" class="ui-btn ui-btn-secondary" data-ps-draw="'+tool[0]+'" aria-pressed="false" disabled>'+tool[1]+'</button>';}).join('')
-      + '<button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="0.7" disabled>확대</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="1.4" disabled>축소</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-fit disabled>전체 보기</button><span data-ps-tools-status role="status">도구 준비 중</span></div>';
     html += buildIchimokuLegend();
     html += '<div class="ps-pattern-legend">'
       + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
       + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
       + '</div>';
-    html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
     html += '<div class="ps-autotrade-bar" data-ps-autotrade hidden></div>';
     html += '<div class="ps-chart" id="psChart" style="height:' + chartHeight + 'px"></div>';
     html += (currentDetailItem && currentDetailItem._sourceKey || activeTab) === 'firstPullbackBreakout'
@@ -2261,7 +2258,6 @@
     box.onchange=function(event){var input=event.target;if(!input.hasAttribute('data-ps-ma'))return;var period=input.getAttribute('data-ps-ma');psMaVisibility[period]=input.checked;if(psMaSeries[period])psMaSeries[period].applyOptions({visible:input.checked});};
     var volumeToggle=box.querySelector('[data-ps-volume]');
     if(volumeToggle)volumeToggle.addEventListener('change',function(){psVolumeEnabled=volumeToggle.checked;setPsVolume(data.daily);});
-    psMemoItem = item;
     psTrackCtx = item.track || null;
     wireAutoTradeBar(box, item);
     var chartContainer = box.querySelector('#psChart');
@@ -2430,49 +2426,6 @@
     return psCorePromise;
   }
 
-  // 차트 메모(2026-10-03): 종목분석과 같은 공용 모듈(js/chart-memo.js)을 지연 로드한다.
-  var psMemoItem = null;
-  var psMemo = null;
-  var psMemoPromise = null;
-  function loadPsMemoModule() {
-    if (window.NineChartMemo) return Promise.resolve(window.NineChartMemo);
-    if (psMemoPromise) return psMemoPromise;
-    psMemoPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-memo.js';
-      s.onload = function () { resolve(window.NineChartMemo); };
-      s.onerror = function () { psMemoPromise = null; reject(new Error('chart-memo load failed')); };
-      document.head.appendChild(s);
-    });
-    return psMemoPromise;
-  }
-  function setupPsMemo(container, chart, series, daily) {
-    var button = document.querySelector('[data-ps-memo]');
-    var item = psMemoItem;
-    if (!button || !item) return;
-    button.disabled = true;
-    loadPsMemoModule().then(function (api) {
-      if (!document.body.contains(container) || psLwcChart !== chart) return;
-      psMemo = api.install({
-        container: container, chart: chart, series: series, bars: daily, code: item.code, name: item.name,
-        formatPrice: function (p) { return Number(p).toLocaleString() + '원'; }
-      });
-      button.disabled = false;
-      button.onclick = function () {
-        var on = !psMemo.isMode();
-        if(on && psDrawingCtl)psDrawingCtl.setMode(null);
-        psMemo.setMode(on);
-        button.classList.toggle('is-active', on);
-        button.setAttribute('aria-pressed', String(on));
-      };
-    }).catch(function () { /* 메모 모듈을 못 받아도 차트는 그대로 */ });
-  }
-  function destroyPsMemo() {
-    if (psMemo) { psMemo.dispose(); psMemo = null; }
-    var b = document.querySelector('[data-ps-memo]');
-    if (b) { b.onclick = null; b.disabled = true; b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); }
-  }
-
   // 지지·저항(공용 모듈 js/chart-sr.js): 실시간 검색·종목분석 차트와 같은 계산·그림(2026-10-04 사용자 지적:
   // 차트검색에는 지지/저항이 적용돼 있지 않았다). 지지=붉은색, 저항=파란색.
   var psSrPromise = null;
@@ -2504,12 +2457,10 @@
 
   function destroyPsChart() {
     psChartGeneration++;
-    if(psDrawingCtl){psDrawingCtl.detach();psDrawingCtl=null;}
     clearPsVolume();psMaSeries={};
     if (psChartRegistryOff) { psChartRegistryOff(); psChartRegistryOff = null; }
     if (psPanCleanup) { psPanCleanup(); psPanCleanup = null; }
     if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
-    destroyPsMemo();
     if (psLwcThemeObserver) { psLwcThemeObserver.disconnect(); psLwcThemeObserver = null; }
     if (psLwcChart) {
       try { psLwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
@@ -2710,7 +2661,7 @@
 
   // 실제 트레이딩뷰 엔진으로 캔들 + MA(눌림목만) + 패턴 오버레이를 렌더링.
   var psPanCleanup = null;
-  var psChartGeneration=0, psDrawingCtl=null, psVolumeCtl=null;
+  var psChartGeneration=0, psVolumeCtl=null;
   var psVolumeEnabled=true, psMaVisibility={}, psMaSeries={};
   function hasPsVolume(daily) {
     return daily.length>0 && daily.every(function(bar){
@@ -2730,28 +2681,10 @@
     psVolumeCtl=global.NineChartCore.addVolumePane(psLwcChart,global.LightweightCharts,daily,{pane:1});
     var panes=psLwcChart.panes();if(panes[1])panes[1].setHeight(90);
   }
-  function setupPsChartTools(container,chart,series,daily) {
-    var core=global.NineChartCore, box=container.closest('.ps-detail');
-    box.querySelectorAll('[data-ps-ma]').forEach(function(input){input.disabled=!psMaSeries[input.getAttribute('data-ps-ma')];});
-    box.querySelectorAll('[data-ps-zoom]').forEach(function(button){button.disabled=false;button.onclick=function(){core.zoomBars(container,Number(button.getAttribute('data-ps-zoom')));};});
-    var fit=box.querySelector('[data-ps-fit]');fit.disabled=false;fit.onclick=function(){core.fitBars(container);};
-    var status=box.querySelector('[data-ps-tools-status]');
-    core.loadModule('drawing').then(function(Drawing){
-      if(psLwcChart!==chart || !container.isConnected)return;
-      var buttons={};box.querySelectorAll('[data-ps-draw]').forEach(function(button){buttons[button.getAttribute('data-ps-draw')]=button;});
-      psDrawingCtl=Drawing.attach({core:core,container:container,chart:chart,series:series,bars:daily,key:String(currentDetailItem.code),timeframe:'day',
-        className:'ps-drawing-layer',bounds:'pricePane',point:'anchored',tools:['line','pencil','circle','box','hline','measure'],buttons:buttons,
-        store:{key:function(code,tf){return 'tistory-ticker:pattern-drawings:'+code+':'+tf;},kinds:['lines','paths','circles','hlines','boxes'],legacyArray:true},
-        sync:false,disableButtonsOnDetach:true});
-      Object.keys(buttons).forEach(function(key){
-        var button=buttons[key], handler=button.onclick;
-        button.onclick=function(){
-          if(psMemo && psMemo.isMode()){psMemo.setMode(false);var memo=box.querySelector('[data-ps-memo]');memo.classList.remove('is-active');memo.setAttribute('aria-pressed','false');}
-          if(handler)handler.call(button);
-        };
-      });
-      status.textContent='이 브라우저에 저장 · 우클릭으로 그리기 해제';
-    }).catch(function(){if(psLwcChart===chart)status.textContent='그리기 도구를 불러오지 못했습니다. 차트를 다시 열어 주세요.';});
+  function enablePsIndicators(container) {
+    container.closest('.ps-detail').querySelectorAll('[data-ps-ma]').forEach(function (input) {
+      input.disabled = !psMaSeries[input.getAttribute('data-ps-ma')];
+    });
   }
   // 가로 스크롤 없이 컨테이너 폭에 autoSize로 맞춰 한눈에 들어오게 한다.
   function renderPatternChart(container, daily, pattern, detail, currentPrice) {
@@ -2793,11 +2726,11 @@
         addEnvelopeLine(chart, daily, 46, 1.12, RESIST_COLOR);
       }
 
-      if (pattern === 'shape:pullbackRebreak') {
+      if (typeof pattern === 'string' && pattern.indexOf('shape:') === 0) {
         global.NineChartCore.loadModule('autowave').then(function (wave) {
           if (psLwcChart !== chart || !container.isConnected) return;
-          var points = observedPullbackPoints(daily, detail, wave);
-          if (points.length) addPatternOverlay(LWC, chart, candleSeries, daily, pattern, { points: points });
+          var lines = observedPatternLines(daily, pattern.slice(6), detail, wave);
+          if (lines.length) addPatternOverlay(LWC, chart, candleSeries, daily, pattern, { lines: lines });
         }).catch(function () { /* 원본 캔들과 기존 차트 도구는 계속 표시한다. */ });
       } else {
         addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
@@ -2822,8 +2755,7 @@
       }).catch(function () { /* 기존 500봉 뷰 유지 */ });
 
       setPsVolume(daily);
-      setupPsChartTools(container,chart,candleSeries,daily);
-      setupPsMemo(container, chart, candleSeries, daily);
+      enablePsIndicators(container);
       setupPsSupportResistance(container, chart, candleSeries, daily, currentPrice);
 
       psLwcThemeObserver = new MutationObserver(function () {
@@ -2863,16 +2795,24 @@
 
   // 패턴별 지지/저항선 + 스윙 포인트 dot + 확인(signal) 지점을 라인 시리즈/마커로 오버레이.
   // (예전 SVG 버전의 polyline/hline/dot/signalRing을 Lightweight Charts 프리미티브로 대체)
-  function observedPullbackPoints(daily, detail, wave) {
-    if (!detail || !detail.signal || !detail.shape || !wave || typeof wave.shapeOf !== 'function') return [];
+  function observedPatternLines(daily, key, detail, wave) {
+    if (!detail || !detail.signal || !detail.shape || !wave) return [];
     var count = detail.windowBars, end = daily.findIndex(function (bar) { return bar.date === detail.signal.date; });
     if (!Number.isInteger(count) || count < 8 || end + 1 < count || Number(daily[end].close) !== Number(detail.signal.price)) return [];
     var rows = daily.slice(end + 1 - count, end + 1);
-    var shape = wave.shapeOf(rows);
-    if (shape.type !== detail.shape.type || !Array.isArray(shape.pullbackIndexes)) return [];
-    return shape.pullbackIndexes.map(function (index) {
-      return { date: rows[index].date, price: rows[index].close };
-    });
+    if (key === 'pullbackRebreak') {
+      if (typeof wave.shapeOf !== 'function') return [];
+      var shape = wave.shapeOf(rows);
+      if (shape.type !== detail.shape.type || !Array.isArray(shape.pullbackIndexes)) return [];
+      return [{tone:'shape',points:shape.pullbackIndexes.map(function (index) {
+        return {date:rows[index].date,price:rows[index].close};
+      })}];
+    }
+    if (typeof wave.selectShapesOf !== 'function') return [];
+    var candidate = (wave.selectShapesOf(rows)[key] || [])[0];
+    return candidate && candidate.windowBars === count && candidate.status === detail.status &&
+      candidate.shape.type === detail.shape.type && candidate.score === detail.score
+      ? candidate.patternLines || [] : [];
   }
 
   function addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail) {
@@ -2981,8 +2921,10 @@
       }
       if (detail.breakoutDate) addDot({ date: detail.breakoutDate, price: (daily.filter(function (d) { return d.date === detail.breakoutDate; })[0] || {}).high }, RESIST_COLOR, 'aboveBar', 1.8);
       if (detail.signal) addSignal(detail.signal);
-    } else if (pattern === 'shape:pullbackRebreak') {
-      addLine(detail.points, SUPPORT_COLOR, { bold: true });
+    } else if (typeof pattern === 'string' && pattern.indexOf('shape:') === 0) {
+      (detail.lines || []).forEach(function (line) {
+        addLine(line.points, line.tone === 'resistance' ? RESIST_COLOR : SUPPORT_COLOR);
+      });
     } else if (pattern === 'pullback') {
       // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
       // 눌렸는지"를 한눈에 보여준다. 이평선은 addMaLine으로 배경에 이미 그림.

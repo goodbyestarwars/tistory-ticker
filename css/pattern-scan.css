@@ -383,7 +383,7 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); col
 }
 /* ---- 상세(캔들차트) ---- */
 #pattern-scan .ps-list > .ps-detail,#pattern-scan .ps-state-section > .ps-detail { margin:0 0 var(--ui-paragraph-gap); }
-#pattern-scan .ps-chart-options,#pattern-scan .ps-chart-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin:8px 0; font-size:13px; }
+#pattern-scan .ps-chart-options { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin:8px 0; font-size:13px; }
 #pattern-scan .ps-chart-options label { display:inline-flex; align-items:center; gap:4px; margin:0; }
 #pattern-scan .ps-detail-evidence { margin:8px 0; font-size:13px; }
 #pattern-scan .ps-detail-evidence p { margin:3px 0; }
@@ -391,10 +391,6 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); col
 #pattern-scan .ps-reference-change { white-space:nowrap; font-weight:600; }
 #pattern-scan .ps-analysis-notes { margin:8px 0; font-size:13px; }
 #pattern-scan .ps-analysis-notes > summary { cursor:pointer; }
-#pattern-scan .ps-drawing-layer { position:absolute; z-index:6; inset:0; width:100%; height:100%; pointer-events:none; touch-action:none; }
-#pattern-scan .ps-drawing-layer.is-active { pointer-events:auto; cursor:crosshair; }
-#pattern-scan .ps-chart-tools [aria-pressed="true"] { background:#6D233F; border-color:#6D233F; color:#fff; }
-html.dark #pattern-scan .ps-chart-tools [aria-pressed="true"] { background:var(--dk-active); border-color:var(--dk-line); color:var(--dk-text); }
 
 
 #pattern-scan .ps-detail {
@@ -834,8 +830,6 @@ html.dark #pattern-scan .ps-footnote b {
 }
 
 /* 차트 메모 줄(2026-10-03) */
-#pattern-scan .ps-memo-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
-#pattern-scan .ps-memo-bar span { color: #94a3b8; font-size: 11px; }
 #pattern-scan .ps-autotrade-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
 #pattern-scan .ps-autotrade-bar[hidden] { display: none; }
 #pattern-scan .ps-autotrade-bar span { color: #94a3b8; font-size: 11px; }

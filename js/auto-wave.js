@@ -817,6 +817,12 @@
       b.close<=0 || b.volume<0 || b.low>Math.min(b.open,b.close) || b.high<Math.max(b.open,b.close) ||
       i && String(b.date)<=String(bars[i-1].date);}))return groups;
     function med(a){a=a.slice().sort(function(x,y){return x-y;});var k=Math.floor(a.length/2);return a.length%2?a[k]:(a[k-1]+a[k])/2;}
+    function points(rows, indexes, field) {
+      return indexes.map(function (index) { return {date:rows[index].date,price:rows[index][field]}; });
+    }
+    function level(rows, start, price) {
+      return [{date:rows[start].date,price:price},{date:rows[rows.length-1].date,price:price}];
+    }
     function emit(key,win,shape,label,stage,reasons,extra) {
       var last=win[win.length-1], detail=Object.assign({status:stage,shapeLabel:label,shape:shape,
         observationOnly:true,orderAuthorized:false,selectionVersion:'shape-selection-v1',
@@ -841,6 +847,7 @@
       var quietVolume=riseVolume>0 && correctionVolume>0 && correctionVolume<riseVolume;
       var calm=tailTR<headTR;
       var priorHigh=Math.max.apply(null,win.slice(0,-3).map(function(b){return b.high;}));
+      var priorHighIndex=win.findIndex(function(bar){return bar.high===priorHigh;});
       var priorLow=Math.min.apply(null,head.map(function(b){return b.low;}));
       var recentLow=Math.min.apply(null,tail.map(function(b){return b.low;}));
       var stable=recentLow>priorLow-atr*.5;
@@ -860,11 +867,15 @@
       var structuralRise=shape.higherLows>=2 && shape.slope>0 && shape.coherence>.5;
       var reasons=[shape.label,calm?'최근 봉 변동폭 축소':'최근 봉 변동폭 유지',
         quietVolume?'조정 거래량 감소':'거래량 감소 미확인'];
-      if(stable && !panic && (highBreak || descendingBreak) && risingTail)
-        emit('trendBreakout',win,shape,'고점 연결 저항을 넘어서는 전환','SHAPE_BREAKOUT',reasons.concat('직전 저항을 종가로 회복'),{resistance:resistance || priorHigh});
+      if(stable && !panic && (highBreak || descendingBreak) && risingTail) {
+        var rail=descendingBreak ? points(win,[a,b],'high').concat({date:last.date,price:resistance})
+          : level(win,priorHighIndex,priorHigh);
+        emit('trendBreakout',win,shape,'고점 연결 저항을 넘어서는 전환','SHAPE_BREAKOUT',reasons.concat('직전 저항을 종가로 회복'),
+          {resistance:resistance || priorHigh,patternLines:[{tone:'resistance',points:rail}]});
+      }
       if(stable && !panic && ['pullback','rebound'].indexOf(shape.type)>=0 && (calm || quietVolume)) {
         emit('pullbackRebreak',win,shape,shape.type==='rebound'?'상승 뒤 눌림·반등 시도':'상승 뒤 눌림 형성',
-          shape.type==='rebound'?'SHAPE_REBOUND':'SHAPE_FORMING',reasons);
+          shape.type==='rebound'?'SHAPE_REBOUND':'SHAPE_FORMING',reasons,{patternLines:[{tone:'shape',points:points(win,shape.pullbackIndexes,'close')}]});
       }
       // Base: decline first, then repeated low tests without a fresh close breakdown.
       var middle=win.slice(Math.floor(n*.35),Math.floor(n*.75));
@@ -873,14 +884,21 @@
       var tested=win.slice(Math.floor(n*.35)).filter(function(b){return b.low<=middleLow+atr;}).length>=3;
       if(earlierHigh-middleLow>atr*3 && tested && recentLow>=middleLow-atr*.5 &&
           last.close>middleLow+atr*.5 && (calm || shape.higherLows>=2) && !panic)
-        emit('bottomFormation',win,shape,'하락 뒤 저점 지지·바닥 다지기','SHAPE_FORMING',reasons,{support:middleLow});
+        emit('bottomFormation',win,shape,'하락 뒤 저점 지지·바닥 다지기','SHAPE_FORMING',reasons,{support:middleLow,patternLines:[{tone:'shape',points:level(win,
+          Math.floor(n*.35)+middle.findIndex(function(bar){return bar.low===middleLow;}),middleLow)}]});
       var recentVol=med(win.slice(-5,-1).map(function(b){return b.volume;}));
       if(stable && !panic && risingTail && (highBreak || structuralRise) &&
-          recentVol>0 && last.volume>recentVol && last.close>win[n-2].high)
-        emit('liveFlow',win,shape,'가격 지지 뒤 거래량 재확장','SHAPE_REBOUND',reasons.concat('일봉 거래량과 가격 동반 회복'));
+          recentVol>0 && last.volume>recentVol && last.close>win[n-2].high) {
+        var supportBar=tail.slice(0,-1).reduce(function(low,bar){return bar.low<low.low?bar:low;});
+        emit('liveFlow',win,shape,'가격 지지 뒤 거래량 재확장','SHAPE_REBOUND',reasons.concat('일봉 거래량과 가격 동반 회복'),
+          {patternLines:[{tone:'shape',points:[{date:supportBar.date,price:supportBar.low},{date:last.date,price:last.close}]}]});
+      }
       if(length>=160 && !panic && stable && (shape.type==='compression' || structuralRise || highBreak) &&
           (calm || quietVolume || highBreak))
-        emit('longTermQuality',win,shape,'장기 저점 지지·응축 또는 저항 회복','SHAPE_FORMING',reasons,{resistance:priorHigh});
+        emit('longTermQuality',win,shape,'장기 저점 지지·응축 또는 저항 회복','SHAPE_FORMING',reasons,{resistance:priorHigh,patternLines:[
+          {tone:'shape',points:level(win,head.findIndex(function(bar){return bar.low===priorLow;}),priorLow)},
+          {tone:'resistance',points:level(win,priorHighIndex,priorHigh)}
+        ]});
     });
     return groups;
   }
