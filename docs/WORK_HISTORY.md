@@ -1,3 +1,7 @@
+**2026-11-07 모의진단(OWASP) 후속: API 문서 비공개 · nginx 보안 헤더 스니펫**
+
+목적: 진단 결과 M1(보안 헤더 없음)·M2(`/docs`·`/openapi.json` 공개, 운영 경로 109개 노출) 조치. 변경: `scripts/cloud-vm/main.py` FastAPI 문서 경로를 기본 비활성(`ENABLE_API_DOCS=1`일 때만 개발용 활성), `ops/nginx/security-headers.conf` 신규(HSTS·nosniff·DENY·no-referrer·CSP, server_tokens off, 80→443 리다이렉트 안내). 미조치(별도 확인): M3 uvicorn `--proxy-headers`로 인한 IP별 제한 무력화 가능성(VM 서비스 파일 확인 필요), innerHTML 샘플 점검, Google API 키 허용 API 한정. 검증: 구문 검사만. 배포: main.py는 master → VM 자동(문서 경로 404 확인 필요), nginx 스니펫은 VM에서 수동 적용(`nginx -t` 후 reload), 미적용.
+
 **2026-11-07 직접 fetch 읽기 조회 11곳을 NineHttp.json으로 통일**
 
 목적: 화면마다 따로 쓰던 읽기 전용 공개 GET 조회의 타임아웃(15초)·중복 요청 공유·HTTP 오류 처리를 공통 전송으로 일원화. 변경: home-sector-rotation(2)·skin-main(미국 ETF)·invest-tools(환율)·home-realtime-table(52주)·home-weekly-report(실적 폴백)·domestic-market-indicators(2)·foreign-flow(회원사)·watchlist(미국 시세 2)에서 `fetch`+수동 ok/json 처리를 `NineHttp.json`으로 교체. 응답 가공·단위·폴백 판단은 호출부 그대로. 제외(의도적 유지): 쓰기(PUT/DELETE)·로그인 쿠키(credentials) 요청(chart-drawing·memo·chart-memo·market-temp 사용자 카드·auth), 텍스트 응답(dcf·GAS 공시), 자체 타이머/중단(pattern-scan·미국 검색 4곳), 번역(home-economic-news), us-macro-indicators 갱신(PUT). 검증: node --check, 관련 테스트 557건 중 실패 15건은 변경 전과 동일(Windows 기준선, 전후 diff 동일). 한계: 화면 실측 미실시. 배포: master → Pages.

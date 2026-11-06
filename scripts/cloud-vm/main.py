@@ -108,7 +108,15 @@ except ImportError:
     # 임포트 실패로 서버 전체가 죽지 않도록 방어.
     night_futures_ws = None
 
-app = FastAPI(title="kiwoom-readonly-api")
+# 2026-11-07 모의진단: Swagger/OpenAPI는 운영 경로 지도를 공개하므로 기본 비활성.
+# 개발 중 필요하면 환경변수 ENABLE_API_DOCS=1로만 켠다.
+_API_DOCS_ON = os.environ.get('ENABLE_API_DOCS') == '1'
+app = FastAPI(
+    title="kiwoom-readonly-api",
+    docs_url='/docs' if _API_DOCS_ON else None,
+    redoc_url='/redoc' if _API_DOCS_ON else None,
+    openapi_url='/openapi.json' if _API_DOCS_ON else None,
+)
 
 # 2026-08-21 코드 감사: /quote, /order-book, /investor-flow 등 다수 동기(def) 라우트가
 # 최대 15초 블로킹되는 외부 API 호출(urllib)을 한다. anyio 기본 스레드풀(기본 40 토큰)을
