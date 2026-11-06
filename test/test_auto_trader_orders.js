@@ -19,7 +19,7 @@ const code = [
   grab('  function daysInMonth'), grab('  function shiftMonth'), grab('  function pad2'), grab('  function monthAggregate'), grab('  function monthSummaryHtml'),
   grab('  function csvCell'), grab('  function ordersCsv'), grab('  function ordersHtml')
 ].join('\n');
-const sb = { global: {}, document: {}, Object, Number, String, Array, Date, RegExp };
+const sb = { global: { NineUI: { escapeHtml: (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) } }, document: {}, Object, Number, String, Array, Date, RegExp };
 vm.runInNewContext(code + '\nthis.f = { ordersHtml, monthAggregate, monthSummaryHtml, ordersCsv, shiftMonth, daysInMonth, orderMetric, setDay: function (d) { selDay = d; }, setMonth: function (m) { selMonth = m; }, getLoads: function () { return loads; } };', sb);
 sb.global.KRX_MAP = { '삼성전자': '005930' };
 const strip = (h) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
@@ -107,14 +107,25 @@ console.log('auto-trader 체결가 표시 검증 통과');
 const activitySource = [
   grab('  var ACT_REASON'), grab('  var ACT_STATE'), grab('  var SCANNER_LABEL'), src.match(/  var ORDERS_FIRST = \d+;/)[0],
   'var activityRange = { from: "", to: "" }; var activityOpen = { orders: false, candidates: false };',
+  'var posQuotes = { map: {} }; function loadPositionQuotes() {}',
+  grab('  function positionsHtml('),
   grab('  function actName('), grab('  function orderRows('), grab('  function orderTable('), grab('  function activityHtml(')
 ].join('\n');
-vm.runInNewContext(activitySource + '\nthis.activity = activityHtml;', sb);
+vm.runInNewContext(activitySource + '\nthis.activity = activityHtml; this.posQuotes = posQuotes; this.positionsHtml = positionsHtml;', sb);
 sb.global.KRX_MAP = { 삼성전자: '005930' };
 const activity = sb.activity({
   positions: [{ code: '005930', name: '삼성전자', qty: 3, avg: 200000, state: 'OPEN', buyDay: '2026-11-06' }],
   orders: [{ code: '005930', name: '삼성전자', qty: 3, price: 200000, side: 'BUY' }]
 });
-assert.match(activity, /<h3>보유 종목<\/h3>[\s\S]*평단가\(추정\)[\s\S]*<h3>주문 내역<\/h3>[\s\S]*data-act-dl="orders"/);
+assert.match(activity, /<h3>보유 종목<\/h3>[\s\S]*매입가\(추정\)[\s\S]*<h3>주문 내역<\/h3>[\s\S]*data-act-dl="orders"/);
+// 시세 미수신: 0원으로 대체하지 않고 '-'와 합계 제외 안내
+assert.match(activity, /총평가<\/small><b>-<\/b>[\s\S]*1종목은 합계에서 뺐습니다/);
+const pos = strip(sb.positionsHtml([
+  { code: '005930', name: '삼성전자', qty: 64, avg: 200000, state: 'OPEN', buyDay: '2026-11-06' },
+  { code: '035420', name: 'NAVER', qty: 82, avg: 207669, state: 'OPEN', buyDay: '2026-11-05' }
+], { '005930': { code: '005930', price: 193400, changeRate: -4.02, quote_time: '2026-11-06T20:00:00+09:00' },
+     '035420': { code: '035420', price: 188300, changeRate: 1.84 } }));
+['193,400', '-4.02%', '12,377,600', '-422,400', '-3.30%', '+1.84%', '15,440,600', '-1,588,258', '총매입(추정)', '29,828,858', '27,818,200', '-2,010,658', '-6.74%', '11-06 20:00']
+  .forEach((k) => assert.ok(pos.includes(k), k));
 assert.match(sb.activity({}), /열린 보유 종목이 없습니다[\s\S]*아직 주문 기록이 없습니다/);
 assert.match(sb.activity(null), /에이전트가 아직 내역을 올리지 않았습니다/);
