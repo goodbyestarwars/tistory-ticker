@@ -398,6 +398,10 @@ class NewsAggregatorTests(unittest.TestCase):
         self.assertEqual(example['title_ko'], 'Example Inc. 수시공시: 실적 발표')
         self.assertEqual(example['category'], '실적')
         self.assertEqual(apple['title_ko'], 'Apple Inc. 분기보고서(10-Q) 제출')
+        self.assertEqual(news_aggregator._sec_company_name('8-K - FB Bancorp, Inc. /MD/ (0001) (Filer)', '8-K'),
+                         'FB Bancorp, Inc.')
+        self.assertEqual(news_aggregator._sec_company_name('10-Q - California BanCorp \\ CA (0002) (Filer)', '10-Q'),
+                         'California BanCorp')
 
 
 if __name__ == '__main__':
