@@ -126,6 +126,7 @@
     lineHighlight: {},   // 범례를 눌러 굵게 표시한 선(키: ma5·ma224·bollinger 등), 종목을 바꿔도 유지
     movingAverageShortEnabled: true,   // 단기 이동평균선 3·5·20·60일
     movingAverageLongEnabled: true,    // 장기 이동평균선 112·224·448일
+    customMaPeriods: '',               // 사용자 지정 이평선 기간(쉼표 구분, 최대 6개). 비어 있으면 기본 단기·장기 묶음
     ichimokuEnabled: false,
     bollingerEnabled: false,
     accumulationEnabled: false,
@@ -144,10 +145,19 @@
     externalMinuteLoader: null,
     liveQuotes: {}
   };
+  var CUSTOM_MA_COLORS = ['#f08c00', '#d24f45', '#1261c4', '#0ca678', '#7048e8', '#6b7280'];
+  function parseCustomMaPeriods(text) {
+    var seen = {}, out = [];
+    String(text || '').split(/[\s,]+/).forEach(function (t) {
+      var n = parseInt(t, 10);
+      if (n >= 2 && n <= 600 && !seen[n] && out.length < 6) { seen[n] = true; out.push(n); }
+    });
+    return out;
+  }
   // 지표 구성(이동평균·일목·볼린저·지지저항·RSI·파동 등)을 기억해 다시 열어도 그대로 보이게 한다(2026-11-01).
   if (global.NineUI && global.NineUI.persistPrefs) {
     var prefAccessors = {};
-    ['studyOrder', 'lineHighlight', 'movingAverageShortEnabled', 'movingAverageLongEnabled', 'ichimokuEnabled', 'bollingerEnabled',
+    ['studyOrder', 'lineHighlight', 'movingAverageShortEnabled', 'movingAverageLongEnabled', 'customMaPeriods', 'ichimokuEnabled', 'bollingerEnabled',
      'accumulationEnabled', 'supplyMode', 'volumeProfileEnabled', 'supportResistanceEnabled', 'rsiEnabled', 'rsiDivergenceEnabled',
      'volumeMultipleEnabled', 'wave'].forEach(function (key) {
       prefAccessors[key] = { get: function () { return state[key]; }, set: function (value) {
@@ -2043,6 +2053,15 @@
     }
     wireMaToggle(maShortToggle, 'movingAverageShortEnabled');
     wireMaToggle(maLongToggle, 'movingAverageLongEnabled');
+    var maCustomInput = container.querySelector('[data-chart-ma-custom]');
+    if (maCustomInput) {
+      maCustomInput.value = state.customMaPeriods || '';
+      maCustomInput.onchange = function () {
+        state.customMaPeriods = parseCustomMaPeriods(maCustomInput.value).join(',');
+        maCustomInput.value = state.customMaPeriods;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
     var ichimokuToggle = container.querySelector('#ssIchimokuToggle, [data-chart-ichimoku-toggle]');
     if (ichimokuToggle) {
       ichimokuToggle.checked = state.ichimokuEnabled;
@@ -2501,6 +2520,7 @@
       + '<div class="ss-chart-studies">'
       + '<label title="3·5·20·60일선"><input type="checkbox" data-chart-ma-short-toggle checked /> 단기 이평선(3·5·20·60)</label>'
       + '<label title="112·224·448일선. 224일선은 굵은 검정"><input type="checkbox" data-chart-ma-long-toggle checked /> 장기 이평선(112·224·448)</label>'
+      + '<label title="직접 정한 기간으로 이평선을 그립니다. 쉼표로 구분, 최대 6개(예: 10,30,120). 비우면 위 기본 이평선을 씁니다."> 내 이평선 <input type="text" inputmode="numeric" data-chart-ma-custom maxlength="24" placeholder="10,30,120" style="width:84px" /></label>'
       + '<label title="전환선(9)·기준선(26)·선행스팬(52, 26봉 앞)으로 그린 구름대입니다. 구름 위는 상승 우위, 아래는 하락 우위로 읽습니다. 참고용이며 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
       + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
@@ -3118,8 +3138,9 @@
       var maGroups = [];
       if (state.movingAverageShortEnabled) maGroups.push('short');
       if (state.movingAverageLongEnabled) maGroups.push('long');
-      if (maGroups.length) {
-        core.maStudies(undefined, maGroups).forEach(function (study) {
+      var customMa = parseCustomMaPeriods(state.customMaPeriods);
+      if (customMa.length || maGroups.length) {
+        (customMa.length ? customMa.map(function (n, i) { return { key: 'ma' + n, period: n, width: 1.5, color: CUSTOM_MA_COLORS[i] }; }) : core.maStudies(undefined, maGroups)).forEach(function (study) {
           var points = core.movingAveragePoints(bars, 'close', study.period);
           if (!points.length) return;   // 봉이 모자라(예: 448일선) 그릴 수 없는 선은 범례도 만들지 않는다
           var maSeries = core.addMovingAverageLine(chart, LWC, study, points, {
