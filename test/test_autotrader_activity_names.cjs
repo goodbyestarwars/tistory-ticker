@@ -26,7 +26,7 @@ function grab(marker) {
 
 const scripts = [];
 const ctx = {
-  global: { KRX_MAP: null },
+  global: { KRX_MAP: null, NineUI: { escapeHtml: (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) } },
   document: {
     createElement: () => ({}),
     head: { appendChild: (sc) => { scripts.push(sc); } }
@@ -36,6 +36,12 @@ const ctx = {
 const functions = [
   '  function esc(',
   '  function fmtPrice(',
+  '  function fmtWon(',
+  '  function signed(',
+  '  function pct(',
+  '  function tone(',
+  '  function loadPositionQuotes(',
+  '  function positionsHtml(',
   '  function loadKrxMap(',
   '  function krxName(',
   '  function actName(',
@@ -52,6 +58,7 @@ const setup = [
   'var activityRange={from:"",to:""}, lastActivity=null, lastControl=null;',
   'var ACT_REASON={ENTRY:"신규 진입"}, ACT_STATE={ACK:"접수됨 · 체결 확인 전"};',
   'var SCANNER_LABEL={doubleBottom:"쌍바닥"};',
+  'var POS_QUOTE_TTL_MS=30000, posQuotes={key:"",at:0,map:{},loading:false};',
   'var reRenders=0, lastHtml="", csvSaved=null;',
   'function renderControl(c){reRenders++;lastHtml=activityHtml(c.activity);}',
   'function saveCsv(name,header,lines){csvSaved={name,header,lines};}'
