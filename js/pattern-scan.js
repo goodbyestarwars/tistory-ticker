@@ -2020,7 +2020,6 @@
     if (requestPattern === 'longTermQuality') requestPattern = 'maCloudBreakout';
     currentDetailItem = item;
     destroyPsChart();
-    psIchimokuEnabled = false;
     detail.hidden = false;
     detail.innerHTML = global.NineUI.state('loading', item.name + ' 차트를 불러오는 중...', 'ps-loading', {spinner:false});
     placeInlineDetail(container,item);
@@ -2199,22 +2198,23 @@
         +Object.keys(review.checks || {}).map(function(k){return escapeHtml(labels[k] || k)+': '+(review.checks[k]?'확인':'미충족·미확인');}).join(' · ')
         +'</p><p>무효화 기준 '+(review.invalidationPrice>0?fmt(review.invalidationPrice)+'원 이하':'미확인')+' · 수익성 미입증 · 실제 체결·비용은 별도 기록</p></details>';
     }
-    html += '</details><div class="ps-chart-options" aria-label="차트 표시 옵션">';
-    html += buildMovingAverageLegend(data.daily);
-    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
-    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psBollingerToggle"' + (psBollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>';
-    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psSupportResistanceToggle"' + (psSrEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>';
-    var volumeKnown=hasPsVolume(data.daily);
-    html += '<label><input type="checkbox" data-ps-volume'+(psVolumeEnabled && volumeKnown?' checked':'')+(volumeKnown?'':' disabled')+'> 거래량'+(volumeKnown?'':' (자료 미확인)')+'</label></div>';
+    html += '</details>';
     html += '<div class="ps-chart-tools" aria-label="차트 도구">'+[['line','직선'],['pencil','연필'],['circle','원'],['box','박스'],['hline','가로선'],['measure','측정'],['clear','지우기']].map(function(tool){return '<button type="button" class="ui-btn ui-btn-secondary" data-ps-draw="'+tool[0]+'" aria-pressed="false" disabled>'+tool[1]+'</button>';}).join('')
       + '<button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="0.7" disabled>확대</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="1.4" disabled>축소</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-fit disabled>전체 보기</button><span data-ps-tools-status role="status">도구 준비 중</span></div>';
-    html += buildIchimokuLegend();
     html += '<div class="ps-pattern-legend">'
       + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
       + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
       + '</div>';
     html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
     html += '<div class="ps-autotrade-bar" data-ps-autotrade hidden></div>';
+    html += '<div class="ps-chart-options" role="group" aria-labelledby="psIndicatorsLabel"><strong id="psIndicatorsLabel">지표 표시</strong>';
+    html += buildMovingAverageLegend(data.daily);
+    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
+    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psBollingerToggle"' + (psBollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>';
+    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psSupportResistanceToggle"' + (psSrEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>';
+    var volumeKnown=hasPsVolume(data.daily);
+    html += '<label><input type="checkbox" data-ps-volume'+(psVolumeEnabled && volumeKnown?' checked':'')+(volumeKnown?'':' disabled')+'> 거래량'+(volumeKnown?'':' (자료 미확인)')+'</label></div>';
+    html += buildIchimokuLegend();
     html += '<div class="ps-chart" id="psChart" style="height:' + chartHeight + 'px"></div>';
     html += (currentDetailItem && currentDetailItem._sourceKey || activeTab) === 'firstPullbackBreakout'
       ? '<div class="ps-footnote">장 마감 후 일봉 종가로 재돌파를 확인한 결과입니다. 다음 거래일 가격과 눌림 저점 이탈 여부를 다시 확인하세요. 테스트 중인 검색 조건이며 1시간 상승 예측이나 승률을 뜻하지 않습니다.</div>'
