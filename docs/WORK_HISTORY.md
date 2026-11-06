@@ -1,3 +1,7 @@
+**2026-11-07 자동매매 VM 목표가 매수 활성화 (사용자 승인)**
+
+요청: 운영센터에 수동매매(목표가 매수)가 안 보임. 원인: 코드(`autotrader-private` ce30232, Pages 073a3fcb·c76fbabc)는 반영됐으나 기본 비활성 설정이라 에이전트가 `target-buy-v1`을 보고하지 않음. 조치: 사용자 승인 후 자동매매 Google VM `/home/autotrader/autotrader/.env`에 `TARGET_BUY_ENABLED=1` 추가(백업 `.env.bak-targetbuy-20261107`, 소유 autotrader·600), 토요일 장외 05:03 KST. 서비스 재시작·주문 없음. 검증: `main.load_env()` 후 `target_buy.enabled()`=True, 제어 에이전트 05:04:25 정상 종료(0)·`read_env`=1. 미확인: 관리자 로그인 화면의 등록 폼 표시, 실제 조건 등록·주문(첫 거래일 11/09). 기존 계좌 승인·MANUAL_STOP·HOLD_BUY·예산·14:00 경계는 그대로.
+
 **2026-11-07 모의진단 후속: 뉴스 링크 스킴 검증(javascript: 차단)**
 
 목적: 외부 뉴스 피드의 link가 http(s)가 아니면(javascript: 등) 클릭 시 스크립트가 실행될 수 있어 방어. 점검: innerHTML 싱크 중 메모·종목명·본문은 escapeHtml 적용 확인(메모 위젯·차트 메모·관심종목 메시지는 textContent). 변경: `NineUI.safeUrl` 추가(skin-shell.js), stock-news(4곳)·main-news·home-economic-news(2곳) href에 적용, 비-http(s)는 빈 값/#. 검증: node --check, 관련 테스트 중 chart 관련 3건 실패는 별도 세션의 미커밋 chart-core 변경 영향으로 이 변경과 무관(미확인). 한계: 화면 실측 미실시. 미조치: Google API 키(js/stock-calendar.js)를 콘솔에서 Calendar API 한정·쿼터 상한 설정(사용자 수동). 배포: master → Pages.
