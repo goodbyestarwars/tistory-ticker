@@ -1,3 +1,7 @@
+**2026-11-07 반복 포맷 함수 8곳을 NineUI.number/signedPercent 위임으로 통일**
+
+목적: 본문이 NineUI와 같은 지역 포맷 함수 제거. 변경: auto-trader(pct·fmtWon)·home-sector-rotation(pct)·investor-flow(pctText)·crypto-market(fmtNum)·strategy-search(pctSigned·fmt, 결측 '—'은 missing 옵션)·skin-main(미국 ETF pct)을 `NineUI.signedPercent`/`number` 위임으로 교체. 의도적 유지: 결측을 0으로 표시하거나(market-temp), 0을 '-'로 표시하거나(skin-main fmtPct), 단위·자릿수·부호 규칙이 NineUI와 다른 함수(foreign-flow·learn-inflation·stock-search 등)는 호출부 소유. 차이: 숫자가 아닌 값(NaN 등)은 이전 'NaN%' 대신 '-'. 검증: node --check, 전체 py/js 테스트 변경 전후 실패 목록 동일(auto-trader 2개 테스트는 샌드박스에 실제 NineUI 로드하도록 보정). 한계: 화면 실측 미실시. 배포: master → Pages.
+
 **2026-11-07 자동매매 VM 목표가 매수 활성화 (사용자 승인)**
 
 요청: 운영센터에 수동매매(목표가 매수)가 안 보임. 원인: 코드(`autotrader-private` ce30232, Pages 073a3fcb·c76fbabc)는 반영됐으나 기본 비활성 설정이라 에이전트가 `target-buy-v1`을 보고하지 않음. 조치: 사용자 승인 후 자동매매 Google VM `/home/autotrader/autotrader/.env`에 `TARGET_BUY_ENABLED=1` 추가(백업 `.env.bak-targetbuy-20261107`, 소유 autotrader·600), 토요일 장외 05:03 KST. 서비스 재시작·주문 없음. 검증: `main.load_env()` 후 `target_buy.enabled()`=True, 제어 에이전트 05:04:25 정상 종료(0)·`read_env`=1. 미확인: 관리자 로그인 화면의 등록 폼 표시, 실제 조건 등록·주문(첫 거래일 11/09). 기존 계좌 승인·MANUAL_STOP·HOLD_BUY·예산·14:00 경계는 그대로.

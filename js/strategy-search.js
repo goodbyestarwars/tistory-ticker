@@ -509,7 +509,7 @@
   // 전략별 핵심 KPI 2개 + 보조 1줄. 데이터에 없는 값(국민연금 지분 변화, ETF 총보수 등)은 만들지 않고 있는 값으로 대신한다.
   function topKpis(key, item) {
     function kpi(label, value, cls) { return { label: label, value: value, cls: cls || '' }; }
-    function pctSigned(v) { return v == null || isNaN(Number(v)) ? '—' : (Number(v) > 0 ? '+' : '') + Number(v).toFixed(1) + '%'; }
+    function pctSigned(v) { return global.NineUI.signedPercent(v, { digits: 1, missing: '—' }); }
     var sub = [];
     if (key === 'undervalued') {
       var dis = item.disparity != null ? Number(item.disparity) - 100 : null;
@@ -1607,7 +1607,7 @@
     return arrow + Math.abs(r).toFixed(2) + '%';
   }
   function fmtChange(rt) { return rt == null || isNaN(Number(rt)) ? '—' : chgSign(rt); }
-  function fmt(n) { return n == null || isNaN(Number(n)) ? '—' : Math.round(Number(n)).toLocaleString('ko-KR'); }
+  function fmt(n) { return global.NineUI.number(n, { round: true, missing: '—' }); }
   function fmtWon(n) { return n == null || isNaN(Number(n)) ? '—' : fmt(n) + '원'; }
   function fmtPct(n) { return n == null || isNaN(Number(n)) ? '—' : Number(n).toFixed(1) + '%'; }
   function fmtPctExact(n) { return n == null || isNaN(Number(n)) ? '—' : Number(n).toFixed(2) + '%'; }

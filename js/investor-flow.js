@@ -377,7 +377,7 @@
       }
       charts.deposit.update(chartSpec(depositPts, '고객예탁금'));
       charts.credit.update(chartSpec(creditPts, '신용잔고'));
-      function pctText(v) { return v == null ? '-' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'; }
+      function pctText(v) { return global.NineUI.signedPercent(v); }
       function chg(change, pct) {
         if (change == null) return '<td class="num">-</td>';
         return '<td class="num ' + (change > 0 ? 'up' : change < 0 ? 'down' : '') + '">' + esc(fmtEok(change, true)) + '<small> (' + pctText(pct) + ')</small></td>';

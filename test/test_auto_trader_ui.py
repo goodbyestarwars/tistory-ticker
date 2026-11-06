@@ -14,7 +14,10 @@ const src = fs.readFileSync('js/auto-trader.js', 'utf8');
 const ctx = {window: {}, document: {readyState: 'loading', addEventListener() {}, getElementById() { return null; }}, console,
              localStorage: {getItem() { return ''; }, setItem() {}, removeItem() {}}};
 ctx.window.localStorage = ctx.localStorage;
-vm.runInNewContext(src, ctx);
+const shell = fs.readFileSync('js/skin-shell.js', 'utf8');
+vm.createContext(ctx);
+vm.runInContext(shell.slice(shell.indexOf('/* NineUI:'), shell.indexOf('/* End NineUI */')), ctx);
+vm.runInContext(src, ctx);
 const cases = JSON.parse(fs.readFileSync(0, 'utf8'));
 console.log(JSON.stringify(cases.map(c => { const r = ctx.window.AutoTraderPage.analyze(c); return {state: r.state, label: r.label, points: r.points, reasons: r.reasons.map(x => x.t), levels: r.levels}; })));
 '''

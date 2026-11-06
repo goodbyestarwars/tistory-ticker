@@ -19,7 +19,9 @@ const code = [
   grab('  function daysInMonth'), grab('  function shiftMonth'), grab('  function pad2'), grab('  function monthAggregate'), grab('  function monthSummaryHtml'),
   grab('  function csvCell'), grab('  function ordersCsv'), grab('  function ordersHtml')
 ].join('\n');
-const sb = { global: { NineUI: { escapeHtml: (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) } }, document: {}, Object, Number, String, Array, Date, RegExp };
+const sb = { global: {}, document: {}, Object, Number, String, Array, Date, RegExp };
+const shellSrc = fs.readFileSync('js/skin-shell.js', 'utf8');
+vm.runInNewContext(shellSrc.slice(shellSrc.indexOf('/* NineUI:'), shellSrc.indexOf('/* End NineUI */')), { window: sb.global, document: {} });
 vm.runInNewContext(code + '\nthis.f = { ordersHtml, monthAggregate, monthSummaryHtml, ordersCsv, shiftMonth, daysInMonth, orderMetric, setDay: function (d) { selDay = d; }, setMonth: function (m) { selMonth = m; }, getLoads: function () { return loads; } };', sb);
 sb.global.KRX_MAP = { '삼성전자': '005930' };
 const strip = (h) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');

@@ -999,7 +999,7 @@ document.documentElement.classList.add('skin-ready');
         var items = d && d.items || [];
         var list = box.querySelector('[data-home-us-etfs-list]');
         if (!items.length || !list) return;
-        function pct(v) { return v == null ? '-' : (v > 0 ? '+' : '') + Number(v).toFixed(2) + '%'; }
+        function pct(v) { return window.NineUI.signedPercent(v); }
         function tone(v) { return v > 0 ? 'home-positive' : v < 0 ? 'home-negative' : 'home-neutral'; }
         list.innerHTML = items.map(function (it) {
           var title = it.symbol + ' ' + it.name + ' · 1주 ' + pct(it.return1w) + ' · 1개월 ' + pct(it.return1m) + ' · 연초 이후 ' + pct(it.returnYtd);

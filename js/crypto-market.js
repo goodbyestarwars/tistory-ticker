@@ -98,7 +98,7 @@
   }
 
   /* ---- 표 ---- */
-  function fmtNum(v, digits) { return v == null || !isFinite(Number(v)) ? '-' : Number(v).toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits }); }
+  function fmtNum(v, digits) { return global.NineUI.number(v, { digits: digits }); }
   function signedNum(v, digits) { return v == null || !isFinite(Number(v)) ? '-' : (Number(v) > 0 ? '+' : '') + fmtNum(v, digits); }
   function toneOf(v) { return v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; }
   function tokenQuoteTime(stamp) {

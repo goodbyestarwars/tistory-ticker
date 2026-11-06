@@ -26,9 +26,9 @@
 
   function esc(value) { return global.NineUI.escapeHtml(value); }
   function fmtPrice(v) { return v == null || v === 0 ? '-' : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 0 }); }
-  function fmtWon(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
+  function fmtWon(v) { return global.NineUI.number(v, { round: true }); }
   function signed(v) { return v == null ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(Math.round(v)).toLocaleString('ko-KR'); }
-  function pct(v) { return v == null ? '-' : (v > 0 ? '+' : '') + Number(v).toFixed(2) + '%'; }
+  function pct(v) { return global.NineUI.signedPercent(v); }
   function tone(v) { return v > 0 ? 'at-up' : v < 0 ? 'at-down' : ''; }
   function hhmm(ts) { return ts ? String(ts).slice(11, 19) : '-'; }
 

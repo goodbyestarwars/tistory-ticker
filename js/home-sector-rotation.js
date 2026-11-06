@@ -34,7 +34,7 @@
     return '–';
   }
   function changeCls(n) { return n > 0 ? 'is-up' : (n < 0 ? 'is-down' : 'is-flat'); }
-  function pct(v, d) { return v == null ? '-' : (v > 0 ? '+' : '') + Number(v).toFixed(d == null ? 1 : d) + '%'; }
+  function pct(v, d) { return global.NineUI.signedPercent(v, { digits: d == null ? 1 : d }); }
   function ratio(v) { return v == null ? '-' : Math.round(v * 100) + '%'; }
 
   function ensureCss() {
