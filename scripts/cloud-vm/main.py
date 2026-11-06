@@ -367,11 +367,11 @@ _market_board_cache = {}
 _market_board_inflight = {}  # (market, limit) -> threading.Event
 _market_board_inflight_lock = threading.Lock()
 # KIS 순위 API가 3~4초 걸려서, 30초 캐시가 만료되는 순간의 첫 방문자가 매번 그 지연을
-# 그대로 맞는다. 실제 방문이 최근(3분 이내)일 때만 백그라운드로 캐시를 미리 데워
+# 그대로 맞는다. 실제 방문이 최근(10분 이내)일 때만 백그라운드로 캐시를 미리 데워
 # 방문자는 항상 캐시 히트가 되게 한다. 조회/폴백 로직 중복을 피하려고 루프백 HTTP로
 # 기존 엔드포인트 경로를 그대로 태운다(실패해도 온디맨드 경로가 그대로 동작 - 무해).
 _MARKET_BOARD_WARM_INTERVAL_SEC = 20
-_MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC = 180
+_MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC = 600
 _market_board_last_real_hit = 0.0
 _market_board_warmer_started = False
 # 2026-08-30: /domestic-news도 같은 이유로 워머를 붙인다. 이 엔드포인트는 캐시 미스마다

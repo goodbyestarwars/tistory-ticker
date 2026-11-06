@@ -16,7 +16,7 @@ class MarketBoardWarmerTest(unittest.TestCase):
         # 루프백으로 기존 엔드포인트 경로를 그대로 태운다(조회/폴백 로직 중복 방지).
         self.assertIn("http://127.0.0.1:%s/market-board?market=%s&limit=40&fresh=1", src)
         # 트래픽이 있을 때만(마지막 실제 방문 3분 이내) 데운다.
-        self.assertIn("_MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC = 180", src)
+        self.assertIn("_MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC = 600", src)
         self.assertIn(
             "if time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC:",
             src,
