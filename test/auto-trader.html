@@ -16,10 +16,11 @@
 <body>
 <div class="wrap"><p style="font-size:12px;color:#888">시나리오: ?s=ok | stopped | stale | blocked | forbidden — 서버 제어 API(/autotrader/*) 응답을 흉내 낸 mock(주문·계좌·서비스 연결 없음)</p>
 <div id="auto-trader"></div></div>
+<script src="../js/skin-shell.js"></script>
 <script>
   var scenario = (location.search.match(/s=([\w-]+)/) || [0, 'ok'])[1];
   window.T = { config: { IS_LOGIN: true, ROLE: 'owner' } };
-  var vm = { timerState: 'enabled', serviceState: 'inactive', lastResult: { result: 'success', exitStatus: '0', at: 'Fri 2026-10-30 15:21:04 KST' },
+  var vm = { capabilities: ['hold', 'target-buy-v1'], targetBuys: [{ code: '005930', name: '삼성전자', price: 190000, qty: 5, state: 'WAIT' }], timerState: 'enabled', serviceState: 'inactive', lastResult: { result: 'success', exitStatus: '0', at: 'Fri 2026-10-30 15:21:04 KST' },
     flags: { liveTrading: true, ninepayLive: true, liveSell: false, approval: { present: true, date: '2026-10-19' } },
     ledger: { unknownOrders: 0, openPositions: 1, todayOrders: 2 }, feed: { state: 'OK', reason: null }, runnerProcs: 0, tgConflict: false };
   var mockStatus = { configured: true, received: true, ageSec: 7, tradingDay: true, vm: vm, startBlockers: ['타이머가 이미 켜져 있음'], canStart: false, pending: null, lastCommand: null };
@@ -32,7 +33,6 @@
     { code: '042660', name: '한화오션', qty: 95, avg: 115311, state: 'OPEN', buyDay: '2026-10-21' },
     { code: '068270', name: '셀트리온', qty: 9, avg: 213000, state: 'OPEN', buyDay: '2026-11-05' },
     { code: '000000', name: '시세미수신', qty: 10, avg: 10000, state: 'OPEN', buyDay: '2026-11-06' }] };
-  window.NineUI = { escapeHtml: function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } };
   window.NineHttp = { json: function () { return Promise.resolve({}); } };
   window.NineAPI = { vmUrl: 'https://mock.invalid', data: function (url, opt) {
     var err = function (code) { var e = new Error('HTTP ' + code); e.status = code; return Promise.reject(e); };
