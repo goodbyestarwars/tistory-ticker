@@ -1,3 +1,7 @@
+**2026-11-07 목표가 매수 금액 기준 입력**
+
+요청: 금액 기준으로 매매할 수 있는 UI. 변경: `js/auto-trader.js` 목표가 매수 폼에 주문 기준(금액/수량, 기본 금액) 선택과 투자금액 입력, 실시간 계산 줄(주문 주 수·예상 주문금액·남는 금액) 추가. 금액 기준은 투자금액÷목표가 내림 주 수를 계산해 기존 `{action:'target-add', code, price, qty}` 그대로 전송(VM 계약·주문 경계 불변), 1주 미만·100,000주 초과는 전송 차단, 확인창에 금액×수량 표시. `css/auto-trader.css` select·계산 줄. 검증: `test_auto_trader_target_search.js`(금액 계산 4건 추가)·orders 테스트 통과, 로컬 목업 하네스 PC/375px(가로 스크롤 없음, 전송 qty=17 확인, 모드 전환). 미확인: 운영 관리자 화면, 실제 등록·주문. 배포: master → Pages.
+
 **2026-11-07 KIS 도구 웹 백테스터 제거 (전략 빌더만 유지)**
 
 요청: 백테스트는 명령으로 돌리므로 불필요한 기능 정리. 명령 연구(`run-history.sh`→`analysis/history_*.py`)는 웹 백테스터와 무관함 확인. 변경: `scripts/kis-lab/gateway.py`(backtest 경로·18802 중계 제거, 404), `portal.html`(메뉴·기본 화면을 빌더로), 테스트·README(PR #1154). Oracle 운영: `web-gateway`에 반영(백업 `backups/web-gateway-20261107`), `ninepay-kis-web` 재시작, 사용자 서비스 `ninepay-kis-backtest-ui`(18301)·`-api`(18802) 중지·비활성화. 소스·빌드·Lean 데이터 보존. 검증: `test_gateway.py` 10개 통과, 서버 내부 빌더 UI/API 200·백테스터 API 응답 없음, 외부 미인증 차단 유지, 메모리 사용 1,537→1,363MB. 미확인: 관리자 로그인 화면 표시. 복구: 두 서비스 `systemctl --user enable --now` + 백업 게이트웨이 복원.
