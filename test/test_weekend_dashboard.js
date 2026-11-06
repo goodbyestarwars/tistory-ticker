@@ -35,7 +35,8 @@ test('partial quote failure preserves only last valid prices and timestamps; hid
   f.api.live(f.root,'2026-10-23',true);await flush();
   assert.deepEqual(f.requests,['shared-coins']);
   assert.match(mount.innerHTML,/USDT/);assert.match(mount.innerHTML,/100원/);assert.doesNotMatch(mount.innerHTML,/Binance|\$/);
-  assert.equal((mount.innerHTML.match(/<svg/g)||[]).length,3);
+  assert.equal((mount.innerHTML.match(/class="wd-coin-icon"/g)||[]).length,3);
+  assert.equal((mount.innerHTML.match(/class="wd-direction"/g)||[]).length,1);
   f.handler(async()=>{throw new Error('offline');});
   f.api.live(f.root,'2026-10-23',true);await flush();
   assert.equal((mount.innerHTML.match(/갱신 지연 · 마지막 가격/g)||[]).length,1);
