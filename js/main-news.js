@@ -75,6 +75,7 @@
   };
 
   function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
+  function safeHref(url) { return global.NineUI && global.NineUI.safeUrl ? global.NineUI.safeUrl(url) : (/^https?:\/\//i.test(String(url || '').trim()) ? String(url).trim() : ''); }
   function sourceNoteText() { return global.NineUI && global.NineUI.sourceNote ? global.NineUI.sourceNote('naver') : ''; }
 
   /* 국내 공시는 YYYYMMDD로 오고 뉴스는 RFC 문자열로 온다(홈 뉴스 모듈과 같은 규약). */
@@ -171,7 +172,7 @@
     var title = displayTitle(item);
     if (!title) return '';
     var market = marketOf(item);
-    var href = String((item && item.link) || '').trim();
+    var href = safeHref(item && item.link);
     var time = timeLabel(item && item.pubDate, market.key);
     var source = sourceLabel(item);
     var open = href ? '<a class="mn-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' : '<div class="mn-row">';

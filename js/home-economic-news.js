@@ -25,6 +25,7 @@
   };
 
   function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
+  function safeHref(url) { return global.NineUI && global.NineUI.safeUrl ? global.NineUI.safeUrl(url) : (/^https?:\/\//i.test(String(url || '').trim()) ? String(url).trim() : ''); }
 
   function parseDate(value) {
     var text = String(value || '').trim();
@@ -146,7 +147,7 @@
     var list = state.mount && state.mount.querySelector('[data-hen-breaking-list]');
     if (!list || !item) return;
     var label = item.flashType || (item.kind === 'disclosure' ? '공시' : '속보');
-    var href = item.link || '#';
+    var href = safeHref(item.link) || '#';
     list.innerHTML = '<div class="app-news-timeline hen-breaking-timeline" aria-live="polite">'
       + '<a class="app-news-event hen-breaking-row hen-breaking-row--active" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
       + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate, currentMarket())) + '</strong><small>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</small></div>'
@@ -236,7 +237,7 @@
         var quote = quoteFor(item);
         var tone = quote && quote.rate > 0 ? 'is-up' : quote && quote.rate < 0 ? 'is-down' : '';
         var type = kindLabel(item);
-        return '<a class="app-news-event hen-row hen-regular ' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
+        return '<a class="app-news-event hen-row hen-regular ' + tone + '" href="' + escapeHtml(safeHref(item.link) || '#') + '" target="_blank" rel="noopener">'
           + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate, market)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate, market)) + '</small></div>'
           + '<div class="app-news-rail"><i></i></div>'
           + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--' + (market === 'us' ? '미국' : '한국') + '">' + (market === 'us' ? '미국' : '한국') + '</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'

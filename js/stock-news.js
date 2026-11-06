@@ -270,7 +270,7 @@
       return;
     }
     grid.innerHTML = items.map(function (it, idx) {
-      return '<a class="sn-rank-item" href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener">'
+      return '<a class="sn-rank-item" href="' + escapeAttr(safeHref(it.link)) + '" target="_blank" rel="noopener">'
         + '<span class="sn-rank-num">' + (idx + 1) + '</span>'
         + '<span class="sn-rank-body">'
         + '<span class="sn-rank-title">' + escapeHtml(it.title) + '</span>'
@@ -674,7 +674,7 @@
       var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
       var sourceLabel = it.sourceStatus === 'dart-confirmed' ? 'DART 확인'
         : it.sourceStatus === 'kind-only' ? 'KIND 속보' : it.market;
-      return '<a href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener" class="sn-disc-item">'
+      return '<a href="' + escapeAttr(safeHref(it.link)) + '" target="_blank" rel="noopener" class="sn-disc-item">'
         + '<span class="sn-disc-market ' + cls + '" title="' + escapeAttr(sourceLabel) + '">' + escapeHtml(sourceLabel) + '</span>'
         + (corp ? '<span class="sn-disc-corp">' + stockIconHtml((global.KRX_MAP || {})[corp], 'sn-disc-icon') + '<span>' + escapeHtml(corp) + '</span></span>' : '')
         + '<span class="sn-disc-text">' + escapeHtml(disc) + '</span>'
@@ -686,7 +686,7 @@
     if (!list) return;
     if (!items.length) { list.innerHTML = '<div class="sn-hint">속보가 없어요.</div>'; return; }
     list.innerHTML = items.slice(0, 20).map(function (it) {
-      return '<a href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener" class="sn-disc-item">'
+      return '<a href="' + escapeAttr(safeHref(it.link)) + '" target="_blank" rel="noopener" class="sn-disc-item">'
         + '<span class="sn-disc-market sn-disc-news">뉴스</span>'
         + '<span class="sn-disc-text">' + escapeHtml(it.title) + '</span>'
         + '</a>';
@@ -908,7 +908,7 @@
       + '<div class="sn-modal-meta">' + formatDatetime(item.datetime) + '</div>'
       + (item.image ? '<img class="sn-modal-img" src="' + escapeAttr(item.image) + '" alt="" />' : '')
       + '<div class="sn-modal-body">' + escapeHtml(item.body) + '</div>'
-      + '<a class="sn-modal-link" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">원문 보기 ↗</a>'
+      + '<a class="sn-modal-link" href="' + escapeAttr(safeHref(item.link)) + '" target="_blank" rel="noopener">원문 보기 ↗</a>'
       + '</div>';
 
     document.body.appendChild(m);
@@ -929,6 +929,7 @@
 
   function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
+  function safeHref(url) { return global.NineUI && global.NineUI.safeUrl ? global.NineUI.safeUrl(url) : (/^https?:\/\//i.test(String(url || '').trim()) ? String(url).trim() : ''); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

@@ -271,7 +271,9 @@
     });
     return loads.lwc;
   }
-  global.NineUI = { chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, persistPrefs: persistPrefs, loadChartLibrary: loadChartLibrary };
+  // 외부 피드의 링크가 javascript: 등 비-http(s) 스킴이면 빈 문자열(2026-11-07 모의진단).
+  function safeUrl(url) { var v = String(url == null ? '' : url).trim(); return /^https?:\/\//i.test(v) ? v : ''; }
+  global.NineUI = { safeUrl: safeUrl, chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, persistPrefs: persistPrefs, loadChartLibrary: loadChartLibrary };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 

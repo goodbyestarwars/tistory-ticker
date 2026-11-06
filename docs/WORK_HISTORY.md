@@ -1,3 +1,7 @@
+**2026-11-07 모의진단 후속: 뉴스 링크 스킴 검증(javascript: 차단)**
+
+목적: 외부 뉴스 피드의 link가 http(s)가 아니면(javascript: 등) 클릭 시 스크립트가 실행될 수 있어 방어. 점검: innerHTML 싱크 중 메모·종목명·본문은 escapeHtml 적용 확인(메모 위젯·차트 메모·관심종목 메시지는 textContent). 변경: `NineUI.safeUrl` 추가(skin-shell.js), stock-news(4곳)·main-news·home-economic-news(2곳) href에 적용, 비-http(s)는 빈 값/#. 검증: node --check, 관련 테스트 중 chart 관련 3건 실패는 별도 세션의 미커밋 chart-core 변경 영향으로 이 변경과 무관(미확인). 한계: 화면 실측 미실시. 미조치: Google API 키(js/stock-calendar.js)를 콘솔에서 Calendar API 한정·쿼터 상한 설정(사용자 수동). 배포: master → Pages.
+
 **2026-11-07 모의진단(OWASP) 후속: API 문서 비공개 · nginx 보안 헤더 스니펫**
 
 목적: 진단 결과 M1(보안 헤더 없음)·M2(`/docs`·`/openapi.json` 공개, 운영 경로 109개 노출) 조치. 변경: `scripts/cloud-vm/main.py` FastAPI 문서 경로를 기본 비활성(`ENABLE_API_DOCS=1`일 때만 개발용 활성), `ops/nginx/security-headers.conf` 신규(HSTS·nosniff·DENY·no-referrer·CSP, server_tokens off, 80→443 리다이렉트 안내). M3는 서버 확인 결과 문제 없음(nginx가 X-Forwarded-For 설정, uvicorn 기본이 127.0.0.1 신뢰). 미조치: innerHTML 샘플 점검, Google API 키 허용 API 한정. 검증: 구문 검사만. 배포: main.py는 master → VM 자동(문서 경로 404 확인 필요), nginx는 2026-11-07 Oracle VM에 적용·reload 완료(백업 /root/kiwoom-api.nginx.bak-20261107): 보안 헤더(HSTS·nosniff·X-Frame SAMEORIGIN·no-referrer, /kis-tool 때문에 CSP 제외), server_tokens off, goodbyestar.cloud 80→443 301, 통합 에러페이지 include(API JSON 오류는 유지, nginx 자체 오류만 HTML). 실측: 헤더·301·CORS·401 JSON 정상.
