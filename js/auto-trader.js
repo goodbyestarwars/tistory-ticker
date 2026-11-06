@@ -629,9 +629,10 @@
     return h.supported ? '정상(보류 없음)' : '미지원(에이전트 업데이트 필요)';
   }
   function holdBtns(c) {
-    var h = c.hold || {}, ok = c.configured && h.supported && !c.pending && !busy;
-    return '<button type="button" class="at-ctl-btn is-stop" data-ctl="hold"' + (ok && !h.active ? '' : ' disabled') + '>오늘 신규 매수 보류</button>'
-      + '<button type="button" class="at-ctl-btn is-go" data-ctl="resume"' + (ok && h.active ? '' : ' disabled') + '>보류 해제</button>';
+    var h = c.hold || {}, ok = c.configured && h.supported && !busy;
+    var targetPending = c.pending && /^target-/.test(c.pending.action);
+    return '<button type="button" class="at-ctl-btn is-stop" data-ctl="hold"' + (ok && !h.active && (!c.pending || targetPending) ? '' : ' disabled') + '>오늘 신규 매수 보류</button>'
+      + '<button type="button" class="at-ctl-btn is-go" data-ctl="resume"' + (ok && h.active && !c.pending ? '' : ' disabled') + '>보류 해제</button>';
   }
 
   function controlHtml(c) {
@@ -690,7 +691,7 @@
     return { text: '대기 중' + next };
   }
 
-  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제' };
+  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제', 'target-add': '목표가 조건 등록', 'target-cancel': '목표가 조건 취소' };
   var LOG_RESULT = { QUEUED: '접수', DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)', REFUSED: '거부' };
   function logHtml(rows) {
     if (!rows || !rows.length) return '<h3 class="at-subhead">명령 기록</h3><p class="at-empty">아직 기록이 없습니다.</p>';
@@ -799,11 +800,66 @@
     stop: '자동 주문을 중지합니다.\n\n엔진 Runner를 정지하고 봇 매도도 차단합니다. 수동 시작 전까지 다음 거래일에도 차단을 유지하며, 예약 타이머를 끄도록 요청합니다. 이미 접수된 주문은 취소되지 않습니다.\n계속할까요?'
   };
 
+  var targetDraft = { code: '', price: '', qty: '' };
+  function targetBuyHtml(c) {
+    var vm = c.vm || {};
+    if (!(vm.capabilities || []).includes('target-buy-v1')) {
+      return '<section class="at-card"><div class="at-hd"><h3>목표가 매수</h3></div><p class="at-empty">실계좌 목표가 매수 비활성</p></section>';
+    }
+    var locked = busy || c.pending ? ' disabled' : '';
+    var states = { WAIT: '감시 대기', CANCELLED: '취소', ATTEMPTED: '주문 확인 필요', ACK: '접수 · 체결 확인 전', UNKNOWN: '주문 확인 필요' };
+    var rows = (vm.targetBuys || []).map(function (row) {
+      return '<tr><td>' + esc(row.code) + '</td><td class="n">' + fmtPrice(row.price) + '</td><td class="n">' + esc(row.qty)
+        + '</td><td>' + esc(states[row.state] || '확인 필요') + '</td><td>' + (row.state === 'WAIT'
+          ? '<button type="button" class="at-mini" data-target-cancel="' + esc(row.code) + '"' + locked + '>조건 취소</button>' : '') + '</td></tr>';
+    }).join('');
+    return '<section class="at-card at-act"><div class="at-hd"><h3>목표가 매수</h3><span class="at-sub">당일 14:00 KST 만료</span></div>'
+      + '<form class="at-dl" data-target-form><label>종목코드 <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required value="' + esc(targetDraft.code) + '"></label>'
+      + '<label>목표가(원) <input name="price" type="number" min="1" max="10000000" step="1" required value="' + esc(targetDraft.price) + '"></label>'
+      + '<label>수량(주) <input name="qty" type="number" min="1" max="100000" step="1" required value="' + esc(targetDraft.qty) + '"></label>'
+      + '<button class="at-mini" type="submit"' + locked + '>조건 등록</button></form>'
+      + '<p class="at-note">목표가 이하에서 등록 가격으로 지정가 주문을 한 번 시도합니다. 조건 취소는 제출 전 감시만 취소합니다.</p>'
+      + (rows ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목코드</th><th>목표가</th><th>수량</th><th>상태</th><th>관리</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '')
+      + '</section>';
+  }
+
+  function sendTargetCommand(body) {
+    if (busy || !lastControl || lastControl.pending) return;
+    busy = true;
+    lastError = '';
+    renderControl(lastControl);
+    controlRequest('/autotrader/command', body).then(function () {
+      if (body.action === 'target-add') targetDraft = { code: '', price: '', qty: '' };
+    }).catch(function () {
+      lastError = '목표가 조건 요청을 보내지 못했습니다.';
+      global.alert(lastError);
+    }).then(function () {
+      busy = false;
+      refresh();
+    });
+  }
+
   function renderControl(c) {
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
-    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + scheduleHtml(scheduleCache);
+    root.innerHTML = controlHtml(c) + targetBuyHtml(c) + activityHtml(c.activity) + scheduleHtml(scheduleCache);
+    var targetForm = root.querySelector('[data-target-form]');
+    if (targetForm) {
+      targetForm.addEventListener('input', function (event) { targetDraft[event.target.name] = event.target.value; });
+      targetForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var code = targetForm.elements.code.value, price = Number(targetForm.elements.price.value), qty = Number(targetForm.elements.qty.value);
+        if (global.confirm(code + ' · ' + price + '원 · ' + qty + '주 목표가 조건을 등록할까요? 조건이 맞으면 실계좌 주문이 제출됩니다.')) {
+          sendTargetCommand({ action: 'target-add', code: code, price: price, qty: qty });
+        }
+      });
+    }
+    root.querySelectorAll('[data-target-cancel]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        sendTargetCommand({ action: 'target-cancel', code: button.getAttribute('data-target-cancel') });
+      });
+    });
     var details = root.querySelector('[data-schedule-details]');
     if (details) details.addEventListener('toggle', function () { scheduleExpanded = details.open; });
     var from = root.querySelector('[data-act-from]'), to = root.querySelector('[data-act-to]');
@@ -851,7 +907,7 @@
     widen();
     refresh();
     if (timer) clearInterval(timer);
-    timer = setInterval(function () { if (!document.hidden && !busy) refresh(); }, REFRESH_MS);
+    timer = setInterval(function () { if (!document.hidden && !busy && !(document.activeElement && document.activeElement.closest('[data-target-form]'))) refresh(); }, REFRESH_MS);
   }
 
   global.AutoTraderPage = { init: init, analyze: analyze, widen: function (el) { root = el; widen(); } };

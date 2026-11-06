@@ -33,6 +33,29 @@ class ControlTest(unittest.TestCase):
     def seed(self, snap):
         ac._save({'snapshot': snap})
 
+    def test_target_commands_require_fresh_capability_and_keep_exact_order_fields(self):
+        now = MON.replace(hour=9)
+        params = {'code': '005930', 'price': 70000, 'qty': 3, 'unexpected': True}
+        self.seed(good(now))
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('target-add', 'admin', now, params=params)
+        snapshot = good(now, capabilities=['target-buy-v1'])
+        self.seed(snapshot)
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('target-add', 'admin', now, params=dict(params, qty=True))
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('target-add', 'admin', now.replace(hour=14), params=params)
+        queued = ac.queue_command('target-add', 'admin', now, params=params)
+        command = ac.agent_sync({'snapshot': snapshot}, now)['command']
+        self.assertEqual(command, {'id': queued['id'], 'action': 'target-add',
+                                   'day': now.date().isoformat(), 'code': '005930',
+                                   'price': 70000, 'qty': 3})
+        ac.agent_sync({'snapshot': snapshot, 'ack': {'id': queued['id'], 'ok': True}}, now)
+        ac.queue_command('target-cancel', 'admin', now, params=params)
+        command = ac.agent_sync({'snapshot': snapshot}, now)['command']
+        self.assertNotIn('price', command)
+        self.assertNotIn('qty', command)
+
     def test_start_allowed_only_when_everything_is_known_and_clear(self):
         self.assertEqual(ac.start_blockers(good(MON), MON), [])
 

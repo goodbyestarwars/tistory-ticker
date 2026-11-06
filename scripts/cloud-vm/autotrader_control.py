@@ -24,7 +24,8 @@ STATE_PATH = os.path.join(HERE, 'autotrader_control_state.json')
 AUDIT_PATH = os.path.join(HERE, 'autotrader_control_audit.jsonl')
 AUDIT_MAX_BYTES = 1024 * 1024
 
-ACTIONS = ('start', 'stop', 'hold', 'resume')
+TARGET_ACTIONS = ('target-add', 'target-cancel')
+ACTIONS = ('start', 'stop', 'hold', 'resume') + TARGET_ACTIONS
 HOLD_SCOPE = 'buy'            # 신규 매수만 보류한다. 보유분 청산 점검은 막지 않는다.
 HOLD_CAPABILITY = 'hold'      # 에이전트가 snapshot.capabilities에 이 값을 올려야 hold/resume을 접수한다.
 STALE_AFTER_SEC = 90        # 에이전트는 20초 주기. 이보다 오래되면 미수신으로 본다.
@@ -190,7 +191,7 @@ def public_status(now=None):
     snapshot = state.get('snapshot') or {}
     age = _fresh(snapshot, now)
     received = age is not None and age <= STALE_AFTER_SEC
-    keep = ('timerState', 'serviceState', 'lastResult', 'flags', 'ledger', 'feed', 'runnerProcs', 'tgConflict', 'liveStatus', 'capabilities')
+    keep = ('timerState', 'serviceState', 'lastResult', 'flags', 'ledger', 'feed', 'runnerProcs', 'tgConflict', 'liveStatus', 'capabilities', 'targetBuys')
     view = {key: snapshot.get(key) for key in keep} if received else {key: None for key in keep}
     pending = state.get('pending')
     if pending and (time.time() - pending.get('queuedAt', 0)) > COMMAND_TTL_SEC:
@@ -207,7 +208,7 @@ def public_status(now=None):
             'lastCommand': state.get('last')}
 
 
-def queue_command(action, account, now=None):
+def queue_command(action, account, now=None, params=None):
     now = now or _now()
     if action not in ACTIONS:
         raise ControlError(400, '허용되지 않는 명령')
@@ -218,8 +219,11 @@ def queue_command(action, account, now=None):
         state = _load()
         pending = state.get('pending')
         if pending and (time.time() - pending.get('queuedAt', 0)) <= COMMAND_TTL_SEC:
-            audit(account, action, 'REFUSED', '대기 중인 명령 있음')
-            raise ControlError(409, '이전 명령이 아직 처리 중입니다.')
+            if action in ('stop', 'hold') and pending.get('action') in TARGET_ACTIONS:
+                audit(pending.get('account'), pending['action'], 'REFUSED', '중지·보류 요청 우선')
+            else:
+                audit(account, action, 'REFUSED', '대기 중인 명령 있음')
+                raise ControlError(409, '이전 명령이 아직 처리 중입니다.')
         if action == 'start':
             blockers = start_blockers(state.get('snapshot'), now)
             if blockers:
@@ -231,6 +235,23 @@ def queue_command(action, account, now=None):
             raise ControlError(409, '에이전트가 아직 보류 기능을 지원하지 않습니다.')
         command = {'id': '%d-%s' % (int(time.time()), os.urandom(4).hex()), 'action': action,
                    'queuedAt': time.time(), 'account': account}
+        if action in TARGET_ACTIONS:
+            snapshot = state.get('snapshot') or {}
+            age = _fresh(snapshot, now)
+            if age is None or age > STALE_AFTER_SEC or 'target-buy-v1' not in (snapshot.get('capabilities') or []):
+                raise ControlError(409, '목표가 매수가 비활성이거나 에이전트 상태가 지연됐습니다.')
+            if now.hour >= 14 or now.year not in KNOWN_CALENDAR_YEARS or not market_calendar.is_kr_trading_day(now):
+                raise ControlError(409, '당일 등록 시간이 지났거나 휴장입니다.')
+            params = params or {}
+            code = params.get('code')
+            if not isinstance(code, str) or not re.fullmatch(r'[0-9]{6}', code):
+                raise ControlError(400, '종목코드는 숫자 6자리여야 합니다.')
+            command.update(code=code, day=now.date().isoformat())
+            if action == 'target-add':
+                price, qty = params.get('price'), params.get('qty')
+                if type(price) is not int or type(qty) is not int or not 1 <= price <= 10_000_000 or not 1 <= qty <= 100_000:
+                    raise ControlError(400, '가격과 수량은 양의 정수여야 합니다.')
+                command.update(price=price, qty=qty)
         if action == 'hold':
             command['day'] = now.strftime('%Y-%m-%d')    # 에이전트는 이 날짜의 플래그만 쓴다(자정 이후 자동 무효).
             command['scope'] = HOLD_SCOPE
@@ -335,6 +356,6 @@ def agent_sync(payload, now=None):
                                  'at': now.isoformat(timespec='seconds'), 'reason': '에이전트가 시간 안에 가져가지 못함'}
                 state['pending'] = None
             else:
-                command = {key: pending[key] for key in ('id', 'action', 'day', 'scope') if key in pending}
+                command = {key: pending[key] for key in ('id', 'action', 'day', 'scope', 'code', 'price', 'qty') if key in pending}
         _save(state)
     return {'command': command}

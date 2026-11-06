@@ -1010,7 +1010,7 @@ async def autotrader_command(request: Request):
         raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
     action = body.get('action') if isinstance(body, dict) else None
     try:
-        return envelope(autotrader_control.queue_command(action, session.get('email')))
+        return envelope(autotrader_control.queue_command(action, session.get('email'), params=body if isinstance(body, dict) else None))
     except autotrader_control.ControlError as exc:
         raise HTTPException(status_code=exc.status, detail=exc.detail) from None
 
