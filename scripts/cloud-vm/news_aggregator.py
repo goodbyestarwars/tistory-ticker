@@ -808,6 +808,74 @@ def start_translation_prewarmer(alpha_api_key='', finnhub_api_key=''):
     logger.info('news translation prewarmer started')
 
 
+# SEC 공시 제목은 "8-K - Fox Corp (0001754301) (Filer)"처럼 서식·CIK만 담고 있어
+# 사용자가 무슨 공시인지 알 수 없다. 기계 번역 대신 공식 서식명과 피드 요약의
+# 8-K Item 번호(SEC Form 8-K 일반 지침의 고정 목록)를 한국어로 대응시킨다.
+SEC_FORM_LABELS_KO = {
+    '8-K': '수시공시',
+    '10-K': '연간보고서',
+    '10-Q': '분기보고서',
+    '20-F': '외국기업 연간보고서',
+    '40-F': '캐나다기업 연간보고서',
+    '6-K': '외국기업 수시보고',
+}
+SEC_8K_ITEMS_KO = {
+    '1.01': '중요 계약 체결', '1.02': '중요 계약 해지', '1.03': '파산·회생 절차',
+    '1.04': '광산 안전 사고', '1.05': '사이버보안 사고',
+    '2.01': '자산 인수·처분 완료', '2.02': '실적 발표', '2.03': '신규 채무 발생',
+    '2.04': '채무 상환 가속', '2.05': '구조조정 비용', '2.06': '자산 손상',
+    '3.01': '상장폐지·상장요건 미달 통지', '3.02': '비공개 주식 발행', '3.03': '주주 권리 변경',
+    '4.01': '감사인 변경', '4.02': '과거 재무제표 정정',
+    '5.01': '지배권 변경', '5.02': '임원·이사 변동', '5.03': '정관·회계연도 변경',
+    '5.04': '퇴직연금 거래 정지', '5.05': '윤리강령 변경', '5.06': '셸컴퍼니 상태 변경',
+    '5.07': '주주총회 결과', '5.08': '주주 이사 후보 추천',
+    '7.01': '투자자 공정공시', '8.01': '기타 주요 사항', '9.01': '재무제표·첨부서류',
+}
+SEC_ITEM_DISPLAY_MAX = 2
+
+
+def _sec_company_name(title, form):
+    name = str(title or '').strip()
+    prefix = (form or '') + ' - '
+    if form and name.startswith(prefix):
+        name = name[len(prefix):]
+    name = re.sub(r'\s*\((?:Filer|Subject|Reporting|Filed by|Issuer)\)\s*$', '', name, flags=re.I)
+    name = re.sub(r'\s*\(\d{6,10}\)\s*$', '', name)
+    return name.strip()
+
+
+def _sec_item_codes(summary):
+    codes = []
+    for code in re.findall(r'Item\s+(\d+\.\d{2})', html.unescape(str(summary or ''))):
+        if code not in codes:
+            codes.append(code)
+    return codes
+
+
+def _sec_filing_title_ko(company, form, codes):
+    """공시 서식·Item 번호로 사람이 읽을 수 있는 한국어 제목을 만든다."""
+    label = SEC_FORM_LABELS_KO.get(form)
+    if not company or not label:
+        return ''
+    if form != '8-K':
+        return '%s %s(%s) 제출' % (company, label, form)
+    # 9.01(첨부서류)은 거의 모든 8-K에 붙으므로 다른 항목이 있으면 제목에서 뺀다.
+    main = [code for code in codes if code != '9.01'] or codes
+    if any(code.startswith('6.') for code in main):
+        names = ['자산유동화증권 보고']
+    else:
+        names = []
+        for code in main:
+            text = SEC_8K_ITEMS_KO.get(code)
+            if text and text not in names:
+                names.append(text)
+    if not names:
+        return '%s %s(8-K)' % (company, label)
+    shown = ', '.join(names[:SEC_ITEM_DISPLAY_MAX])
+    rest = len(names) - SEC_ITEM_DISPLAY_MAX
+    return '%s %s: %s%s' % (company, label, shown, (' 외 %d건' % rest) if rest > 0 else '')
+
+
 def get_sec_filings(limit=30, ttl_sec=None):
     """Return recent US corporate filings from the official SEC EDGAR feed.
 
@@ -868,18 +936,26 @@ def get_sec_filings(limit=30, ttl_sec=None):
             if not link:
                 continue
             pub_date = _xml_text(entry, 'updated') or _xml_text(entry, 'published')
-            items.append({
+            company = _sec_company_name(title, form)
+            codes = _sec_item_codes(_xml_text(entry, 'summary'))
+            title_ko = _sec_filing_title_ko(company, form, codes)
+            item = {
                 'title': title,
                 'link': link,
                 'pubDate': pub_date,
                 'source': 'SEC EDGAR',
                 'provider': 'SEC EDGAR',
-                'category': '공시',
+                'category': '실적' if '2.02' in codes else '공시',
                 'kind': 'disclosure',
                 'market': 'us',
                 'form': form,
+                'company': company,
+                'items': codes,
                 '_published_ts': _parse_date(pub_date),
-            })
+            }
+            if title_ko:
+                item['title_ko'] = title_ko
+            items.append(item)
         items.sort(key=lambda item: item.get('_published_ts', 0), reverse=True)
         for item in items:
             item.pop('_published_ts', None)
