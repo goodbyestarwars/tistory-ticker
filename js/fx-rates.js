@@ -24,11 +24,7 @@
   var snapshot = null, snapshotAt = 0, selected = 'USD', range = '3m';
   var historyCache = {}, chartState = null;
 
-  function esc(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function esc(value) { return global.NineUI.escapeHtml(value); }
 
   function num(value, digits) {
     if (value == null || !isFinite(value)) return '-';

@@ -139,11 +139,7 @@
   // 그대로 삽입되고 있었다(로컬 목록은 신뢰할 수 있지만, findUsSuggestions가 /us-search
   // 응답의 row.name을 그대로 옮겨 쓰는 경로도 같은 함수를 거침) - 다른 위젯(stock-news.js
   // 등)과 동일하게 이스케이프 후 삽입한다.
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return window.NineUI.escapeHtml(s); }
 
   function closeSuggestions() {
     suggestionBox.classList.remove('is-open');

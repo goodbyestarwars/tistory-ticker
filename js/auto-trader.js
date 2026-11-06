@@ -24,11 +24,7 @@
   var scheduleExpanded = false;
   var activityOpen = { orders: false, candidates: false };   // 접힘 상태는 갱신(다시 그리기)에도 유지한다
 
-  function esc(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function esc(value) { return global.NineUI.escapeHtml(value); }
   function fmtPrice(v) { return v == null || v === 0 ? '-' : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 0 }); }
   function fmtWon(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
   function signed(v) { return v == null ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(Math.round(v)).toLocaleString('ko-KR'); }
@@ -732,17 +728,67 @@
     return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th class="n">번호</th><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">주문가</th><th>사유</th><th>상태</th></tr></thead><tbody>'
       + orderRows(rows) + '</tbody></table></div>';
   }
+  // 보유 종목 잔고 표(증권사 실시간 잔고 형식). 장부는 수량·평단(추정)만 주므로 현재가·등락률은 공통 NineAPI.domesticQuotes로 붙인다.
+  // 시세를 못 받은 종목은 '-'로 두고 합계에서 빼며, 0원·전일값으로 대체하지 않는다. 계좌 잔고·실현손익·예수금은 VM이 받지 않으므로 표시하지 않는다.
+  var POS_QUOTE_TTL_MS = 30000;
+  var posQuotes = { key: '', at: 0, map: {}, loading: false };
+  function loadPositionQuotes(positions) {
+    var codes = positions.map(function (p) { return p.code; }).filter(function (c, i, all) { return all.indexOf(c) === i; }).sort();
+    var key = codes.join(',');
+    if (posQuotes.loading || !codes.length || !global.NineAPI || !global.NineAPI.domesticQuotes) return;
+    if (posQuotes.key === key && Date.now() - posQuotes.at < POS_QUOTE_TTL_MS) return;
+    posQuotes.loading = true;
+    global.NineAPI.domesticQuotes(codes).then(function (rows) {
+      var map = {};
+      (rows || []).forEach(function (r) { map[r.code] = r; });
+      posQuotes = { key: key, at: Date.now(), map: map, loading: false };
+    }, function () {
+      // 실패는 직전 시세를 오래된 값으로 유지하고 30초 뒤 재시도한다(새로 받지 못한 종목은 '-').
+      posQuotes.loading = false; posQuotes.at = Date.now(); posQuotes.key = key; posQuotes.failed = true;
+    }).then(function () {
+      if (lastControl && root && !busy && !(document.activeElement && document.activeElement.closest('[data-target-form]'))) renderControl(lastControl);
+    });
+  }
+  function positionsHtml(positions, quotes) {
+    var buyTotal = 0, valueTotal = 0, priced = 0, unpriced = 0, asOf = '';
+    var body = positions.map(function (p) {
+      var q = quotes && quotes[p.code], price = q ? Number(q.price) : null, qty = p.qty, avg = p.avg;
+      var ok = price > 0 && qty > 0 && avg > 0;
+      var value = price > 0 && qty > 0 ? price * qty : null, cost = avg > 0 && qty > 0 ? avg * qty : null;
+      var pnl = ok ? value - cost : null, rate = ok ? (price / avg - 1) * 100 : null;
+      if (ok) { buyTotal += cost; valueTotal += value; priced++; } else unpriced++;
+      if (q && q.quote_time && String(q.quote_time) > asOf) asOf = String(q.quote_time);
+      var chg = q && isFinite(Number(q.changeRate)) ? Number(q.changeRate) : null;
+      return '<tr><td>' + actName(p) + '</td><td class="n">' + (qty == null ? '-' : fmtWon(qty)) + '</td><td class="n">' + fmtPrice(avg) + '</td>'
+        + '<td class="n ' + (chg == null ? '' : tone(chg)) + '">' + (price > 0 ? fmtPrice(price) : '-') + '</td>'
+        + '<td class="n ' + (chg == null ? '' : tone(chg)) + '">' + (chg == null ? '-' : pct(chg)) + '</td>'
+        + '<td class="n">' + (value == null ? '-' : fmtWon(value)) + '</td>'
+        + '<td class="n ' + tone(pnl) + '">' + signed(pnl) + '</td><td class="n ' + tone(rate) + '">' + pct(rate) + '</td>'
+        + '<td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>';
+    }).join('');
+    var pnlTotal = priced ? valueTotal - buyTotal : null, rateTotal = buyTotal > 0 ? pnlTotal / buyTotal * 100 : null;
+    function cell(label, val, cls) { return '<div><small>' + label + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</b></div>'; }
+    var note = '매입가는 보유수량을 채우는 최근 매수 주문가의 평균 추정이며 증권사 실제 평단과 다를 수 있습니다. 손익은 수수료·세금 제외입니다.'
+      + (asOf ? ' 시세 기준 ' + esc(asOf.slice(5, 16).replace('T', ' ')) + ' KST.' : '')
+      + (unpriced ? ' 시세·평단을 확인하지 못한 ' + unpriced + '종목은 합계에서 뺐습니다.' : '');
+    return '<section class="at-kpi at-pos-kpi">'
+      + cell('총매입(추정)', priced ? fmtWon(buyTotal) : '-')
+      + cell('총평가', priced ? fmtWon(valueTotal) : '-')
+      + cell('총손익', signed(pnlTotal), tone(pnlTotal))
+      + cell('총수익률', pct(rateTotal), tone(rateTotal))
+      + '</section><div class="at-table-wrap"><table class="at-table at-pos"><thead><tr><th>종목명</th><th class="n">보유수량</th><th class="n">매입가(추정)</th><th class="n">현재가</th><th class="n">등락률</th>'
+      + '<th class="n">평가금액</th><th class="n">평가손익</th><th class="n">수익률</th><th>상태</th><th>매수일</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+      + '<p class="at-note">' + note + '</p>';
+  }
   function activityHtml(a) {
     if (!a) return '<section class="at-card at-act"><h3>주문 내역</h3><p class="at-empty">에이전트가 아직 내역을 올리지 않았습니다. 설치 직후에는 최대 1분 걸립니다.</p></section>';
     var orders = a.orders || [], positions = a.positions || [], cand = a.candidates || {}, rows = cand.rows || [];
     // The private VM name cache is not exhaustive; resolve missing names from the
     // shared site dictionary for orders, open positions and research candidates.
     if (!global.KRX_MAP && orders.concat(positions, rows).some(function (r) { return r && r.code && !r.name; })) loadKrxMap();
-    var html = '<section class="at-card at-act"><div class="at-hd"><h3>보유 종목</h3><span class="at-sub">장부의 열린 포지션</span></div>';
-    html += positions.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">보유수량</th><th class="n">평단가(추정)</th><th>상태</th><th>매수일</th></tr></thead><tbody>'
-      + positions.map(function (p) { return '<tr><td>' + actName(p) + '</td><td class="n">' + (p.qty == null ? '-' : esc(p.qty)) + '</td><td class="n">' + fmtPrice(p.avg) + '</td><td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>'; }).join('')
-      + '</tbody></table></div>' : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
-    if (positions.length) html += '<p class="at-note">평단가는 보유수량을 채우는 최근 매수 주문가의 평균 추정이며 증권사 실제 평단과 다를 수 있습니다.</p>';
+    var html = '<section class="at-card at-act"><div class="at-hd"><h3>보유 종목</h3><span class="at-sub">장부의 열린 포지션 · 현재가는 사이트 시세</span></div>';
+    if (positions.length) loadPositionQuotes(positions);
+    html += positions.length ? positionsHtml(positions, posQuotes.map) : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
     html += '<div class="at-hd at-subhead"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
     html += '<div class="at-dl"><label>기간 <input type="date" data-act-from value="' + esc(activityRange.from) + '"> ~ <input type="date" data-act-to value="' + esc(activityRange.to) + '"></label>'
       + '<button type="button" class="at-mini" data-act-dl="orders">주문 내역 CSV</button><button type="button" class="at-mini" data-act-dl="cands">추천 종목 CSV</button>'

@@ -6,7 +6,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 HARNESS = r"""
-const fs=require('fs'),vm=require('vm');const window={};
+const fs=require('fs'),vm=require('vm');const window={NineUI:{escapeHtml:v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}};
 let source=fs.readFileSync('js/stock-calendar.js','utf8').replace('global.StockCalendar = StockCalendar;', 'global.StockCalendar = StockCalendar; global.completedCards=renderCompletedDisclosures;');
 vm.runInNewContext(source,{window,document:{readyState:'loading',addEventListener(){}},console,URLSearchParams,Date,Set});
 const base={title:'$삼성전자 실적공시 완료',start:'2026-10-02',source:'dart',status:'reported',symbol:'005930',receipt_no:'one',link:'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=one'};

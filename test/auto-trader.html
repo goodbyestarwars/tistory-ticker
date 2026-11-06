@@ -26,12 +26,22 @@
   if (scenario === 'stopped') { vm.timerState = 'disabled'; mockStatus.startBlockers = []; mockStatus.canStart = true; mockStatus.lastCommand = { action: 'stop', result: 'DONE', at: '2026-11-01T22:10:00+09:00', reason: '' }; }
   if (scenario === 'stale') { mockStatus.received = false; mockStatus.ageSec = 412; mockStatus.canStart = false; mockStatus.vm = { flags: null, ledger: null, feed: null, lastResult: null }; mockStatus.startBlockers = ['VM 상태 미수신(에이전트 응답 없음)']; }
   if (scenario === 'blocked') { vm.timerState = 'disabled'; vm.ledger.unknownOrders = 2; mockStatus.tradingDay = false; mockStatus.canStart = false; mockStatus.startBlockers = ['휴장일(주말·공휴일)', 'UNKNOWN 주문 2건']; }
+  mockStatus.activity = { orders: [], candidates: { rows: [] }, positions: [
+    { code: '005930', name: '삼성전자', qty: 64, avg: 200000, state: 'OPEN', buyDay: '2026-11-03' },
+    { code: '035420', name: 'NAVER', qty: 82, avg: 207669, state: 'OPEN', buyDay: '2026-11-04' },
+    { code: '042660', name: '한화오션', qty: 95, avg: 115311, state: 'OPEN', buyDay: '2026-10-21' },
+    { code: '068270', name: '셀트리온', qty: 9, avg: 213000, state: 'OPEN', buyDay: '2026-11-05' },
+    { code: '000000', name: '시세미수신', qty: 10, avg: 10000, state: 'OPEN', buyDay: '2026-11-06' }] };
+  window.NineUI = { escapeHtml: function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } };
   window.NineHttp = { json: function () { return Promise.resolve({}); } };
   window.NineAPI = { vmUrl: 'https://mock.invalid', data: function (url, opt) {
     var err = function (code) { var e = new Error('HTTP ' + code); e.status = code; return Promise.reject(e); };
     if (scenario === 'forbidden') return err(403);
     if (url.indexOf('/autotrader/command') >= 0) { window.lastCommand = JSON.parse(opt.fetchOptions.body); return Promise.resolve({ id: 'x', action: window.lastCommand.action }); }
     return Promise.resolve(mockStatus);
+  }, domesticQuotes: function () {
+    return Promise.resolve([{ code: '005930', price: 193400, changeRate: -4.02, quote_time: '2026-11-06T20:00:00+09:00' },
+      { code: '035420', price: 188300, changeRate: 1.84 }, { code: '042660', price: 47650, changeRate: -3.25 }, { code: '068270', price: 208500, changeRate: -3.02 }]);
   } };
 </script>
 <script src="../js/auto-trader.js"></script>
