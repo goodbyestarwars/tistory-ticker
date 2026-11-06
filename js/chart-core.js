@@ -760,6 +760,46 @@
     });
   }
 
+  // 사용자 이평선 목록(2026-11-07): 보조지표 설정 팝오버가 기간·색·굵기·기준가를 선마다 정한다.
+  // color가 null이면 기본 색(224일선은 테마 색)을 쓴다. 같은 기간·기준가는 한 번만 남긴다.
+  var MA_LINE_LIMIT = 8;
+  var MA_SOURCES = { close: '종가', open: '시가', high: '고가', low: '저가' };
+  var MA_EXTRA_COLORS = ['#f08c00', '#d24f45', '#1261c4', '#0ca678', '#7048e8', '#6b7280', '#c2255c', '#0b7285'];
+  function defaultMaLines(groups) {
+    return MA_STUDIES.filter(function (s) { return !groups || groups.indexOf(s.group) >= 0; })
+      .map(function (s) { return { period: s.period, color: s.color, width: s.width, source: 'close' }; });
+  }
+  function normalizeMaLines(lines) {
+    var seen = {}, out = [];
+    (Array.isArray(lines) ? lines : []).forEach(function (line) {
+      if (!line || out.length >= MA_LINE_LIMIT) return;
+      var period = Math.round(Number(line.period));
+      if (!(period >= 2 && period <= 600)) return;
+      var source = MA_SOURCES[line.source] ? line.source : 'close';
+      var width = Number(line.width);
+      width = width >= 1 && width <= 4 ? Math.round(width * 2) / 2 : 1;
+      var color = /^#[0-9a-f]{6}$/i.test(String(line.color || '')) ? String(line.color).toLowerCase() : null;
+      var id = period + ':' + source;
+      if (seen[id]) return;
+      seen[id] = true;
+      out.push({ period: period, color: color, width: width, source: source });
+    });
+    return out;
+  }
+  function maLineColor(line, index, dark) {
+    if (line.color) return line.color;
+    var preset = MA_STUDIES.filter(function (s) { return s.period === line.period; })[0];
+    if (preset) return preset.key === 'ma224' ? ma224Color(dark) : preset.color;
+    return MA_EXTRA_COLORS[index % MA_EXTRA_COLORS.length];
+  }
+  function maLineStudies(lines, dark) {
+    return normalizeMaLines(lines).map(function (line, i) {
+      var suffix = line.source === 'close' ? '' : '_' + line.source;
+      return { key: 'ma' + line.period + suffix, period: line.period, width: line.width, source: line.source,
+        color: maLineColor(line, i, dark), label: 'MA' + line.period + (suffix ? '(' + MA_SOURCES[line.source] + ')' : '') };
+    });
+  }
+
   // 거래량 체감 배수(2026-10-21): 그 봉의 거래량 / 직전 20봉 평균. 그날 알 수 있는 값만 쓰며(오늘 봉은 평균에서 뺀다)
   // 직전 봉이 10개 미만이거나 평균이 0이면 null. 막대 진하기(2배↑·3배↑)와 3배↑ 숫자 라벨에 쓴다.
   var VOLUME_SPIKE = { strong: 2, label: 3, maxLabels: 60, labelPx: 44 };
@@ -1649,6 +1689,7 @@
     loadLibrary: loadLibrary, loadModule: loadModule, moduleUrl: moduleUrl, ready: ready, prefetch: prefetch,
     isDark: isDark, themeColors: themeColors, chartOptions: chartOptions, themeUpdateOptions: themeUpdateOptions, profiles: PROFILES,
     ma224Color: ma224Color, maStudies: maStudies,
+    MA_LINE_LIMIT: MA_LINE_LIMIT, MA_SOURCES: MA_SOURCES, defaultMaLines: defaultMaLines, normalizeMaLines: normalizeMaLines, maLineColor: maLineColor, maLineStudies: maLineStudies,
     onThemeChange: onThemeChange, observeResize: observeResize, createScope: createScope,
     registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars, installSmoothWheelZoom: installSmoothWheelZoom,
     movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,

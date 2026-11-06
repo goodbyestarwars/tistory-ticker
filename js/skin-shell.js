@@ -231,19 +231,109 @@
   function marketSessionLabel(value) {
     return {pre: '프리마켓', regular: '정규장', post: '정규장 마감 · 애프터마켓', closed: '장 마감'}[value] || '시장 상태 확인 중';
   }
-  function chartOptions(root) {
+  /* 차트 보조지표 설정(2026-11-07): 각 차트의 체크박스 줄을 '+ 보조지표' 팝오버로 옮긴다.
+     왼쪽은 기존 label/체크박스 노드를 그대로 옮긴 목록(화면별 id·data-* 와 change 처리 유지), 오른쪽은 선택한 지표의
+     설명과 상세 설정이다. 상세 설정은 화면이 opts.details = { 이름: function (host) {} } 로 넘기고,
+     label[data-study-detail="이름"] 과 짝을 이룬다. 여러 번 불러도 한 번만 감싸며 details 는 덧붙인다. */
+  var openStudyPopover = null;
+  function closeStudyPopover(focusTrigger) {
+    var wrap = openStudyPopover;
+    if (!wrap) return;
+    openStudyPopover = null;
+    wrap.classList.remove('is-open');
+    wrap.__pop.hidden = true;
+    wrap.__trigger.setAttribute('aria-expanded', 'false');
+    if (focusTrigger) wrap.__trigger.focus();
+  }
+  function buildStudyPopover(row) {
+    var doc = global.document;
+    var wrap = doc.createElement('div');
+    wrap.className = 'nine-chart-options';
+    wrap.innerHTML = '<button type="button" class="nine-chart-options-trigger" aria-haspopup="dialog" aria-expanded="false"><span aria-hidden="true">+</span> 보조지표</button>'
+      + '<div class="nine-studies-backdrop" aria-hidden="true"></div>'
+      + '<div class="nine-studies-pop" role="dialog" aria-label="보조지표 설정" hidden>'
+      + '<div class="nine-studies-list"><div class="nine-studies-head"><strong>보조지표</strong><button type="button" class="nine-studies-close" aria-label="닫기">×</button></div></div>'
+      + '<div class="nine-studies-detail" aria-live="polite"></div></div>';
+    row.parentNode.insertBefore(wrap, row);
+    var trigger = wrap.querySelector('.nine-chart-options-trigger'), pop = wrap.querySelector('.nine-studies-pop');
+    var detail = wrap.querySelector('.nine-studies-detail');
+    wrap.__trigger = trigger; wrap.__pop = pop; wrap.__details = {};
+    row.classList.add('nine-studies-items');
+    wrap.querySelector('.nine-studies-list').appendChild(row);
+    var labels = Array.prototype.slice.call(row.querySelectorAll('label'));
+    labels.forEach(function (label) {
+      label.classList.add('nine-study-item');
+      // 설명은 오른쪽 상세에 보여 주므로 팝오버 위에 겹치는 기본 툴팁은 쓰지 않는다.
+      if (label.title) { label.setAttribute('data-study-desc', label.title); label.removeAttribute('title'); }
+    });
+    var selected = labels[0] || null;
+    function nameOf(label) {
+      return Array.prototype.map.call(label.childNodes, function (n) { return n.nodeType === 3 ? n.textContent : ''; }).join('').trim() || label.textContent.trim();
+    }
+    function render() {
+      labels.forEach(function (label) { label.classList.toggle('is-selected', label === selected); });
+      if (!selected) { detail.innerHTML = ''; return; }
+      var key = selected.getAttribute('data-study-detail'), renderer = key && wrap.__details[key];
+      var desc = selected.getAttribute('data-study-desc') || '';
+      detail.innerHTML = '<div class="nine-studies-detail-head"><strong></strong><p></p></div><div class="nine-studies-detail-body"></div>';
+      detail.querySelector('strong').textContent = nameOf(selected);
+      detail.querySelector('p').textContent = desc;
+      if (!desc) detail.querySelector('p').remove();
+      var body = detail.querySelector('.nine-studies-detail-body');
+      if (renderer) renderer(body);
+      else body.innerHTML = '<p class="nine-studies-note">왼쪽 동그라미를 눌러 차트에 표시하거나 끕니다.</p>';
+    }
+    wrap.__refresh = render;
+    // 차트 패널의 overflow 에 잘리지 않도록 PC 에서는 버튼 위치 기준 fixed 로 띄운다(720px 이하는 CSS 하단 시트).
+    wrap.__place = function () {
+      var narrow = global.matchMedia && global.matchMedia('(max-width: 720px)').matches;
+      if (narrow) { pop.style.top = pop.style.left = ''; return; }
+      var r = trigger.getBoundingClientRect(), vw = doc.documentElement.clientWidth;
+      var width = Math.min(660, vw - 32);
+      pop.style.top = Math.round(r.bottom + 4) + 'px';
+      pop.style.left = Math.round(Math.max(16, Math.min(r.right - width, vw - 16 - width))) + 'px';
+    };
+    // 항목 이름을 누르면 상세를 보여 주고, 체크(동그라미)·선택 상자는 원래대로 동작한다.
+    row.addEventListener('click', function (event) {
+      var label = event.target.closest && event.target.closest('label');
+      if (!label || !row.contains(label)) return;
+      if (!/^(INPUT|SELECT|OPTION|BUTTON)$/.test(event.target.tagName)) event.preventDefault();
+      if (selected !== label) { selected = label; render(); }
+    });
+    trigger.addEventListener('click', function () {
+      if (openStudyPopover === wrap) { closeStudyPopover(false); return; }
+      closeStudyPopover(false);
+      openStudyPopover = wrap;
+      wrap.classList.add('is-open');
+      pop.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      render();
+      wrap.__place();
+    });
+    wrap.querySelector('.nine-studies-close').addEventListener('click', function () { closeStudyPopover(true); });
+    wrap.querySelector('.nine-studies-backdrop').addEventListener('click', function () { closeStudyPopover(false); });
+    return wrap;
+  }
+  if (global.document && global.document.addEventListener) {
+    global.document.addEventListener('mousedown', function (event) {
+      if (openStudyPopover && !openStudyPopover.contains(event.target)) closeStudyPopover(false);
+    }, true);
+    global.document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && openStudyPopover) closeStudyPopover(true);
+    });
+    var placeOpen = function () { if (openStudyPopover) openStudyPopover.__place(); };
+    global.addEventListener('resize', placeOpen);
+    global.addEventListener('scroll', placeOpen, true);
+  }
+  function chartOptions(root, opts) {
     if (!root || !root.querySelectorAll) return;
+    var details = opts && opts.details;
     root.querySelectorAll('.ff-chart-toggles, .ss-chart-studies').forEach(function (row) {
-      if (row.closest('.nine-chart-options')) return;
-      var details = global.document.createElement('details');
-      details.className = 'nine-chart-options';
-      details.open = !global.matchMedia || !global.matchMedia('(max-width: 760px)').matches;
-      var summary = global.document.createElement('summary');
-      summary.className = 'nine-chart-options-ribbon';
-      summary.innerHTML = '<span>차트 옵션</span><span class="nine-chart-options-action"><span class="when-open">접기</span><span class="when-closed">펼치기</span><i aria-hidden="true"></i></span>';
-      row.parentNode.insertBefore(details, row);
-      details.appendChild(summary);
-      details.appendChild(row);
+      var wrap = row.closest('.nine-chart-options') || buildStudyPopover(row);
+      if (details) {
+        Object.keys(details).forEach(function (k) { wrap.__details[k] = details[k]; });
+        if (wrap.classList.contains('is-open')) wrap.__refresh();
+      }
     });
   }
   /* 차트 라이브러리(Lightweight Charts) 공용 로더. chart-core.js 와 같은 약속(__nineChartLoads.lwc)을 써서

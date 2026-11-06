@@ -24,23 +24,97 @@
   --ui-control-gap: 8px;
 }
 
-/* Chart study disclosure: native keyboard/touch controls; checkbox nodes stay mounted. */
-.nine-chart-options { width: 100%; min-width: 0; margin-block: var(--ui-control-gap); }
-.nine-chart-options-ribbon {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--ui-control-gap);
-  min-height: var(--ui-control-height); box-sizing: border-box; padding: 0 12px;
-  border: 1px solid var(--ui-rule); border-radius: var(--ui-radius-control);
-  background: var(--ui-surface); color: var(--ui-ink);
-  font: 600 13px/1.4 var(--font-ui); cursor: pointer; list-style: none;
+/* Chart studies popover (NineUI.chartOptions, 2026-11-07): '+ 보조지표' 버튼 → 왼쪽 지표 목록 · 오른쪽 설명/상세.
+   목록은 화면의 기존 checkbox label 노드를 그대로 옮긴 것이다. 720px 이하는 아래에서 올라오는 시트로 쌓는다. */
+.nine-chart-options { position: relative; display: flex; justify-content: flex-end; min-width: 0; margin-block: 4px; padding-inline: 12px; }
+.nine-chart-options-trigger {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 10px;
+  border: 0; border-radius: 6px; background: transparent; color: var(--ui-ink);
+  font: 600 13px/1 var(--font-ui); cursor: pointer;
 }
-.nine-chart-options-ribbon::-webkit-details-marker { display: none; }
-.nine-chart-options-ribbon:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 3px; }
-.nine-chart-options-action { display: inline-flex; align-items: center; gap: 8px; color: var(--ui-muted); font-size: 12px; }
-.nine-chart-options-action i { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
-.nine-chart-options[open] .nine-chart-options-action i { transform: rotate(225deg); }
-.nine-chart-options:not([open]) .when-open, .nine-chart-options[open] .when-closed { display: none; }
-html.dark .nine-chart-options-ribbon { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); }
-html.dark .nine-chart-options-action { color: var(--dk-sub); }
+.nine-chart-options-trigger span { font-size: 16px; font-weight: 500; }
+.nine-chart-options-trigger:hover, .nine-chart-options.is-open .nine-chart-options-trigger { background: var(--ui-accent-soft); }
+.nine-chart-options-trigger:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+.nine-studies-backdrop { display: none; }
+.nine-studies-pop {
+  position: fixed; z-index: 1001; top: 0; left: 0;
+  display: grid; grid-template-columns: 200px minmax(0, 1fr);
+  width: min(660px, calc(100vw - 32px)); max-height: min(480px, 70vh); box-sizing: border-box;
+  border: 1px solid var(--ui-rule); border-radius: 14px; background: var(--ui-surface); color: var(--ui-ink);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, .14); overflow: hidden; font-family: var(--font-ui); text-align: left;
+}
+.nine-studies-pop[hidden] { display: none; }
+.nine-studies-list { min-height: 0; overflow-y: auto; padding: 14px 8px 12px; border-right: 1px solid var(--ui-rule); }
+.nine-studies-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px; }
+.nine-studies-head strong { font-size: 13px; font-weight: 600; color: var(--ui-muted); }
+.nine-studies-close { display: none; width: 30px; height: 30px; border: 0; background: transparent; color: var(--ui-muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.nine-studies-items { display: flex; flex-direction: column; align-items: stretch; gap: 2px; margin: 0; padding: 0; border: 0; }
+.nine-studies-items label {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
+  min-height: 38px; margin: 0; padding: 6px 10px; border-radius: 8px;
+  font-size: 13.5px; line-height: 1.35; white-space: normal; cursor: pointer;
+}
+.nine-studies-items label:hover { background: var(--ui-accent-soft); }
+.nine-studies-items label.is-selected { background: #eef2f7; color: var(--ui-ink); font-weight: 600; }
+.nine-studies-items input[type="checkbox"] {
+  order: 2; flex: 0 0 auto; appearance: none; -webkit-appearance: none;
+  width: 18px; height: 18px; margin: 0; border: 1.5px solid #c4cad3; border-radius: 50%;
+  background: transparent; cursor: pointer;
+}
+.nine-studies-items input[type="checkbox"]:checked {
+  border-color: #2563eb;
+  background: #2563eb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.2l2.6 2.6L12 5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+.nine-studies-items input[type="checkbox"]:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+.nine-studies-items input[type="checkbox"]:disabled { opacity: .4; cursor: not-allowed; }
+.nine-studies-detail { min-height: 0; overflow-y: auto; padding: 16px 18px 18px; }
+.nine-studies-detail-head strong { display: block; font-size: 15px; font-weight: 600; }
+.nine-studies-detail-head p { margin: 4px 0 0; color: var(--ui-muted); font-size: 12.5px; line-height: 1.5; }
+.nine-studies-detail-body { margin-top: 14px; }
+.nine-studies-note { margin: 0; color: var(--ui-muted); font-size: 12.5px; line-height: 1.5; }
+.nine-ma-lines { display: flex; flex-direction: column; gap: 8px; }
+.nine-ma-line { display: grid; grid-template-columns: 44px 40px 68px 72px minmax(56px, 1fr) 28px; align-items: center; gap: 6px; }
+.nine-ma-name { color: var(--ui-muted); font-size: 12.5px; }
+.nine-ma-line select, .nine-ma-line input[type="number"] {
+  box-sizing: border-box; width: 100%; height: 34px; margin: 0; padding: 0 8px;
+  border: 1px solid var(--ui-rule); border-radius: 8px; background: var(--ui-surface); color: var(--ui-ink);
+  font: 500 13px/1 var(--font-ui);
+}
+.nine-ma-line input[type="number"]:focus, .nine-ma-line select:focus { outline: 0; border-color: var(--ui-ink); }
+.nine-ma-line input[type="color"] { box-sizing: border-box; width: 40px; height: 34px; margin: 0; padding: 3px; border: 1px solid var(--ui-rule); border-radius: 8px; background: var(--ui-surface); cursor: pointer; }
+.nine-ma-remove { width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--ui-muted); font-size: 18px; line-height: 1; cursor: pointer; }
+.nine-ma-remove:hover { background: var(--ui-accent-soft); color: var(--ui-ink); }
+.nine-ma-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.nine-ma-add, .nine-ma-reset { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--ui-ink); font: 600 13px/1 var(--font-ui); cursor: pointer; }
+.nine-ma-add span { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #e8eefb; color: #2563eb; font-size: 16px; }
+.nine-ma-reset { color: var(--ui-muted); font-weight: 500; }
+.nine-ma-add:hover, .nine-ma-reset:hover { background: var(--ui-accent-soft); }
+@media (max-width: 720px) {
+  .nine-chart-options.is-open .nine-studies-backdrop { display: block; position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .32); }
+  .nine-studies-pop {
+    position: fixed; z-index: 1001; top: auto; right: 0; bottom: 0; left: 0;
+    grid-template-columns: 1fr; grid-template-rows: auto auto;
+    width: 100%; max-height: 82vh; border-radius: 16px 16px 0 0; overflow-y: auto;
+  }
+  .nine-studies-list { border-right: 0; border-bottom: 1px solid var(--ui-rule); padding: 12px 12px 10px; overflow: visible; }
+  .nine-studies-close { display: inline-block; }
+  .nine-studies-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 6px; }
+  .nine-studies-detail { padding: 14px 16px 20px; overflow: visible; }
+  .nine-ma-line { grid-template-columns: 36px 36px 66px 60px minmax(44px, 1fr) 24px; gap: 5px; }
+  .nine-ma-line select, .nine-ma-line input[type="number"] { padding: 0 6px; }
+  .nine-ma-line input[type="color"] { width: 36px; }
+}
+html.dark .nine-chart-options-trigger { color: var(--dk-text); }
+html.dark .nine-chart-options-trigger:hover, html.dark .nine-chart-options.is-open .nine-chart-options-trigger,
+html.dark .nine-studies-items label:hover, html.dark .nine-ma-remove:hover, html.dark .nine-ma-add:hover, html.dark .nine-ma-reset:hover { background: var(--dk-inner); }
+html.dark .nine-studies-pop { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }
+html.dark .nine-studies-list { border-color: var(--dk-line); }
+html.dark .nine-studies-items label.is-selected { background: var(--dk-inner); color: var(--dk-text); }
+html.dark .nine-studies-items input[type="checkbox"] { border-color: var(--dk-line); }
+html.dark .nine-studies-head strong, html.dark .nine-studies-detail-head p, html.dark .nine-studies-note, html.dark .nine-ma-name, html.dark .nine-ma-remove, html.dark .nine-ma-reset { color: var(--dk-sub); }
+html.dark .nine-ma-line select, html.dark .nine-ma-line input[type="number"], html.dark .nine-ma-line input[type="color"] { background: var(--dk-inner); border-color: var(--dk-line); color: var(--dk-text); }
+html.dark .nine-ma-add { color: var(--dk-text); }
+html.dark .nine-ma-add span { background: var(--dk-inner); }
 
 /* ── 버튼 표준 ── */
 .ui-btn {

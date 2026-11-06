@@ -412,23 +412,9 @@ html body .ss-chart-tabs.ss-chart-tabs {
   touch-action: none;
 }
 #stock-search .ss-drawing-layer.is-active { pointer-events: auto; cursor: crosshair; }
-#stock-search .ss-chart-studies {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 18px;
-  margin: 8px 0 8px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(0, 0, 0, .08);   /* 기간 버튼 아래·옵션 위 구분선(2026-10-22) */
-}
-html.dark #stock-search .ss-chart-studies { border-top-color: var(--dk-line); }
+/* 보조지표 줄은 NineUI.chartOptions 팝오버의 왼쪽 목록(.nine-studies-items, css/ui-system.css)으로 옮겨진다(2026-11-07). */
 #stock-search .ss-chart-studies label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
   color: #555;
-  cursor: pointer;
 }
 #stock-search .ss-chart {  height: 420px; }
 @media (min-width: 861px) {
@@ -979,34 +965,12 @@ html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .
   line-height: 1.35;
   white-space: nowrap;
 }
-#stock-search .ss-index-controls .ss-index-studies {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px 14px;
-  margin: 0;
-  padding: 8px 10px;
-  border-top: 1px solid #e3e8ef;
-}
-#stock-search .ss-index-studies label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-#stock-search .ss-index-studies input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: #2563eb;
-}
+/* 지수 보조지표 목록 모양은 종목 차트와 같은 팝오버 목록(css/ui-system.css .nine-studies-items)을 쓴다. */
 #stock-search .ss-index-wave-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
 }
 #stock-search .ss-index-wave-group [data-index-wave-level] {
   display: block;
@@ -1014,6 +978,7 @@ html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .
   width: 124px;
   min-width: 124px;
   max-width: none;
+  margin: 0 0 4px 10px;
   height: 32px;
   padding: 4px 9px;
   border: 1px solid #cbd5e1;
@@ -1029,9 +994,6 @@ html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .
 html.dark #stock-search .ss-index-controls {
   border-color: var(--dk-line);
   background: var(--dk-card);
-}
-html.dark #stock-search .ss-index-controls .ss-index-studies {
-  border-top-color: var(--dk-line);
 }
 html.dark #stock-search .ss-index-tools button {
   background: var(--dk-inner);
@@ -1539,36 +1501,9 @@ html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs but
   line-height: 1.35;
   white-space: nowrap;
 }
-html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-studies {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px 14px;
-  margin: 0;
-  padding: 8px 10px;
-  border-top: 1px solid #e3e8ef;
-}
-html body :is(#stock-search, .de-chart-overlay) .ss-chart-studies label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-html body :is(#stock-search, .de-chart-overlay) .ss-chart-studies input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: #2563eb;
-}
-
 html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls {
   border-color: var(--dk-line);
   background: var(--dk-card);
-}
-html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-studies {
-  border-top-color: var(--dk-line);
 }
 html.dark body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs button {
   background: var(--dk-card);
@@ -1700,23 +1635,6 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   html body .ss-stock-controls.ss-stock-controls.ss-index-controls > .nine-chart-ranges.nine-chart-ranges {
     margin: -5px 12px 4px !important;
     max-width: calc(100% - 24px) !important;
-  }
-  html body .ss-stock-controls.ss-stock-controls .ss-chart-studies {
-    border-top: 0 !important;
-    padding: 8px 12px !important;
-    gap: 8px 14px !important;
-    flex-wrap: wrap !important;
-    overflow-x: visible !important;
-  }
-  html body .ss-stock-controls.ss-stock-controls .ss-chart-studies label {
-    flex: 0 0 auto;
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    gap: 6px !important;
-  }
-  html body .ss-stock-controls.ss-stock-controls .ss-chart-studies input[type="checkbox"] {
-    width: 16px !important;
-    height: 16px !important;
   }
   /* 봉·작도 도구와 기간 묶음은 줄을 나누되 가로 구분선을 표시하지 않는다. */
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs { position: relative; align-items: flex-start !important; }
