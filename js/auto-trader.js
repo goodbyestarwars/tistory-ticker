@@ -382,13 +382,20 @@
   }
 
   // 종목명: 서버가 준 name → 보유·감시 목록 → 사이트 종목 사전(data/krx_map.js, 없으면 한 번만 불러와 다시 그린다) 순서로 찾는다.
-  var krxByCode = null, krxLoading = false;
+  var krxByCode = null, krxLoading = false, krxRetryAt = 0;
   function loadKrxMap() {
-    if (global.KRX_MAP || krxLoading) return;
+    if (global.KRX_MAP || krxLoading || Date.now() < krxRetryAt) return;
     krxLoading = true;
     var sc = document.createElement('script');
     sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-    sc.onload = function () { krxByCode = null; };
+    sc.onload = function () {
+      krxLoading = false;
+      krxByCode = null;
+      // The control page reuses the same static dictionary as the legacy order table.
+      // Re-render the already received activity; do not request the VM or touch orders.
+      if (global.KRX_MAP && lastControl && root && !busy) renderControl(lastControl);
+    };
+    sc.onerror = function () { krxLoading = false; krxRetryAt = Date.now() + 60000; };
     document.head.appendChild(sc);
   }
   function krxName(code) {
@@ -703,7 +710,8 @@
   var lastActivity = null;
 
   function actName(row) {
-    return row.name ? '<b>' + esc(row.name) + '</b><small class="at-sub">' + esc(row.code) + '</small>' : '<b>' + esc(row.code) + '</b>';
+    var name = row.name || krxName(row.code);
+    return name ? '<b>' + esc(name) + '</b><small class="at-sub">' + esc(row.code) + '</small>' : '<b>' + esc(row.code) + '</b>';
   }
   function orderRows(rows) {
     return rows.map(function (o) {
@@ -721,6 +729,9 @@
   function activityHtml(a) {
     if (!a) return '<section class="at-card at-act"><h3>주문 내역</h3><p class="at-empty">에이전트가 아직 내역을 올리지 않았습니다. 설치 직후에는 최대 1분 걸립니다.</p></section>';
     var orders = a.orders || [], positions = a.positions || [], cand = a.candidates || {}, rows = cand.rows || [];
+    // The private VM name cache is not exhaustive; resolve missing names from the
+    // shared site dictionary for orders, open positions and research candidates.
+    if (!global.KRX_MAP && orders.concat(positions, rows).some(function (r) { return r && r.code && !r.name; })) loadKrxMap();
     var html = '<section class="at-card at-act"><div class="at-hd"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
     html += '<div class="at-dl"><label>기간 <input type="date" data-act-from value="' + esc(activityRange.from) + '"> ~ <input type="date" data-act-to value="' + esc(activityRange.to) + '"></label>'
       + '<button type="button" class="at-mini" data-act-dl="orders">주문 내역 CSV</button><button type="button" class="at-mini" data-act-dl="cands">추천 종목 CSV</button>'
@@ -766,7 +777,7 @@
     if (kind === 'orders') {
       var list = (a.orders || []).filter(function (o) { return inRange(String(o.ts || '').slice(0, 10)); }).reverse();
       saveCsv('autotrader-orders_' + span + '.csv', '번호,시각,종목코드,종목명,구분,수량,주문가,사유,상태', list.map(function (o) {
-        return [o.no, o.ts, o.code, o.name, o.side === 'BUY' ? '매수' : '매도', o.qty, o.price, ACT_REASON[o.reason] || o.reason, ACT_STATE[o.state] || o.state].map(csvCell).join(',');
+        return [o.no, o.ts, o.code, o.name || krxName(o.code), o.side === 'BUY' ? '매수' : '매도', o.qty, o.price, ACT_REASON[o.reason] || o.reason, ACT_STATE[o.state] || o.state].map(csvCell).join(',');
       }));
       return;
     }
@@ -774,7 +785,7 @@
     days.forEach(function (d) {
       if (!d.scanDate || !inRange(d.scanDate)) return;
       (d.rows || []).forEach(function (r) {
-        lines.push([d.scanDate, SCANNER_LABEL[r.scanner] || r.scanner, r.code, r.name, r.score == null ? '' : Math.round(r.score), r.basePrice, (r.reasons || []).join(' | ')].map(csvCell).join(','));
+        lines.push([d.scanDate, SCANNER_LABEL[r.scanner] || r.scanner, r.code, r.name || krxName(r.code), r.score == null ? '' : Math.round(r.score), r.basePrice, (r.reasons || []).join(' | ')].map(csvCell).join(','));
       });
     });
     saveCsv('autotrader-candidates_' + span + '.csv', '스캔일,검색기,종목코드,종목명,점수,추천단가,선정이유', lines);
