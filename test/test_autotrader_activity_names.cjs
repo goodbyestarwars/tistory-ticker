@@ -26,13 +26,15 @@ function grab(marker) {
 
 const scripts = [];
 const ctx = {
-  global: { KRX_MAP: null, NineUI: { escapeHtml: (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) } },
+  global: { KRX_MAP: null },
   document: {
     createElement: () => ({}),
     head: { appendChild: (sc) => { scripts.push(sc); } }
   },
   Date, Number, String, Array, Object, Math
 };
+const shellSrc = fs.readFileSync('js/skin-shell.js', 'utf8');
+vm.runInNewContext(shellSrc.slice(shellSrc.indexOf('/* NineUI:'), shellSrc.indexOf('/* End NineUI */')), { window: ctx.global, document: {} });
 const functions = [
   '  function esc(',
   '  function fmtPrice(',

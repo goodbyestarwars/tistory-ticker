@@ -1,6 +1,6 @@
-**2026-11-07 자동매매 VM 목표가 매수 활성화 (사용자 승인)**
+**2026-11-07 KIS 도구 웹 백테스터 제거 (전략 빌더만 유지)**
 
-요청: 운영센터에 수동매매(목표가 매수)가 안 보임. 원인: 코드(`autotrader-private` ce30232, Pages 073a3fcb·c76fbabc)는 반영됐으나 기본 비활성 설정이라 에이전트가 `target-buy-v1`을 보고하지 않음. 조치: 사용자 승인 후 자동매매 Google VM `/home/autotrader/autotrader/.env`에 `TARGET_BUY_ENABLED=1` 추가(백업 `.env.bak-targetbuy-20261107`, 소유 autotrader·600), 토요일 장외 05:03 KST. 서비스 재시작·주문 없음. 검증: `main.load_env()` 후 `target_buy.enabled()`=True, 제어 에이전트 05:04:25 정상 종료(0)·`read_env`=1. 미확인: 관리자 로그인 화면의 등록 폼 표시, 실제 조건 등록·주문(첫 거래일 11/09). 기존 계좌 승인·MANUAL_STOP·HOLD_BUY·예산·14:00 경계는 그대로.
+요청: 백테스트는 명령으로 돌리므로 불필요한 기능 정리. 명령 연구(`run-history.sh`→`analysis/history_*.py`)는 웹 백테스터와 무관함 확인. 변경: `scripts/kis-lab/gateway.py`(backtest 경로·18802 중계 제거, 404), `portal.html`(메뉴·기본 화면을 빌더로), 테스트·README(PR #1154). Oracle 운영: `web-gateway`에 반영(백업 `backups/web-gateway-20261107`), `ninepay-kis-web` 재시작, 사용자 서비스 `ninepay-kis-backtest-ui`(18301)·`-api`(18802) 중지·비활성화. 소스·빌드·Lean 데이터 보존. 검증: `test_gateway.py` 10개 통과, 서버 내부 빌더 UI/API 200·백테스터 API 응답 없음, 외부 미인증 차단 유지, 메모리 사용 1,537→1,363MB. 미확인: 관리자 로그인 화면 표시. 복구: 두 서비스 `systemctl --user enable --now` + 백업 게이트웨이 복원.
 
 **2026-11-07 차트 보조지표 설정 팝오버 · 이동평균선 선별 설정(종목·미국·지수 공통)**
 
