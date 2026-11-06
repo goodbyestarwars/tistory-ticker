@@ -1,3 +1,7 @@
+**2026-11-07 자동매매 VM 목표가 매수 활성화 (사용자 승인)**
+
+요청: 운영센터에 수동매매(목표가 매수)가 안 보임. 원인: 코드(`autotrader-private` ce30232, Pages 073a3fcb·c76fbabc)는 반영됐으나 기본 비활성 설정이라 에이전트가 `target-buy-v1`을 보고하지 않음. 조치: 사용자 승인 후 자동매매 Google VM `/home/autotrader/autotrader/.env`에 `TARGET_BUY_ENABLED=1` 추가(백업 `.env.bak-targetbuy-20261107`, 소유 autotrader·600), 토요일 장외 05:03 KST. 서비스 재시작·주문 없음. 검증: `main.load_env()` 후 `target_buy.enabled()`=True, 제어 에이전트 05:04:25 정상 종료(0)·`read_env`=1. 미확인: 관리자 로그인 화면의 등록 폼 표시, 실제 조건 등록·주문(첫 거래일 11/09). 기존 계좌 승인·MANUAL_STOP·HOLD_BUY·예산·14:00 경계는 그대로.
+
 **2026-11-07 차트 보조지표 설정 팝오버 · 이동평균선 선별 설정(종목·미국·지수 공통)**
 
 원인: '내 이평선' 입력(11-06)이 미국 차트 템플릿에만 추가돼 국내·지수 차트에 없었음(보조지표 줄 HTML이 세 곳에 따로 복사돼 있었음). 변경: 공통 `NineUI.chartOptions`(skin-shell.js)를 접기 줄 대신 '+ 보조지표' 팝오버로 교체(왼쪽은 기존 체크박스 label 노드를 그대로 옮긴 목록, 오른쪽은 설명·상세, 720px 이하 하단 시트, Esc·바깥·× 닫기, PC는 패널 overflow를 피해 버튼 기준 fixed). 화면별 상세는 `opts.details`로 등록. `chart-core.js`에 `defaultMaLines`·`normalizeMaLines`·`maLineStudies`(최대 8선, 기간 2~600, 굵기 1~4, 기준가 종가·시가·고가·저가, 색 미지정 시 기본/224 테마색). `stock-search.js`는 국내·미국·지수 차트가 공통 `maToggleHtml`·`maDetailRenderer`·`state.maLines`를 사용하고, 예전 단기/장기·'내 이평선' 저장값은 지우지 않고 처음 한 번 옮김. 보조지표 줄 전용 배치 CSS(stock-search·foreign-flow)는 제거, 목록 모양은 ui-system.css 한 곳. 이용방법 6-3 갱신. 미적용: 종목분석(foreign-flow) 차트는 팝오버만 공유하고 이평선은 기존 단기/장기 토글(서버 MA 값 사용) 유지. 검증: 로컬 서버에서 국내 종목(목업)·지수(합성 응답) PC 1280/모바일 375·다크 실측(기간·기준가·추가·삭제·저장·토글·닫기), JS 테스트 150개 전후 비교 신규 실패 0(기준선 실패 41개 동일, site_guide는 통과로 바뀜), Playwright 테스트 2개(팝오버·종목 툴바)는 재작성했으나 로컬에 playwright가 없어 미실행. 배포: master → Pages.

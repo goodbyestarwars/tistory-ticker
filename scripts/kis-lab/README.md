@@ -1,6 +1,6 @@
 # 임시 KIS Trading Tool
 
-기존 Oracle Lab의 KIS Strategy Builder/Backtester 화면을 `https://goodbyestar.cloud/kis-tool/`에서 사용한다. 분석 엔진을 운영 앱 안에 복사하지 않고, 임시 메뉴와 독립 게이트웨이만 연결한다.
+기존 Oracle Lab의 KIS Strategy Builder 화면을 `https://goodbyestar.cloud/kis-tool/`에서 사용한다. 분석 엔진을 운영 앱 안에 복사하지 않고, 임시 메뉴와 독립 게이트웨이만 연결한다.
 
 ## 접근·주문 경계
 
@@ -14,7 +14,8 @@
 ## 운영
 
 - Lab: `/home/ubuntu/ninepay-lab/`, 서비스 `ninepay-kis-web.service`(ubuntu 사용자, 127.0.0.1:18870).
-- 원본 UI를 보존하고 `frontend-web` 복제에 Next basePath와 `NEXT_PUBLIC_API_URL`을 적용해 빌드했다. 기존 Lab UI 서비스 18300/18301이 새 빌드를 사용한다. API 18800/18802는 그대로다.
+- 원본 UI를 보존하고 `frontend-web` 복제에 Next basePath와 `NEXT_PUBLIC_API_URL`을 적용해 빌드했다. 기존 Lab UI 서비스 18300이 새 빌드를 사용한다. API 18800은 그대로다.
+- 2026-11-07 웹 백테스터 제거: 백테스트는 Lab 명령(`run-history.sh` 등)으로 실행한다. 게이트웨이·포털에서 `backtest` 경로를 뺐고 사용자 서비스 `ninepay-kis-backtest-ui`(18301)·`ninepay-kis-backtest-api`(18802)를 중지·비활성화했다. 소스·빌드·Lean 데이터(`backtester/.lean-workspace`, 빌더 종목 검색이 사용)는 보존한다. 복구는 두 서비스 `enable --now`와 게이트웨이 이전 버전 복원.
 - `oracle_guard.py`는 기존 Lab 어댑터의 추적 가능한 원본이다(서버 `app-20261101/lab_guard.py`). 원래 종목 검색 함수를 재사용하며 과거 목록에 `exchange=krx`/`exchange_name=KRX` 계약을 보충한다. 거래소 세부 분류는 확인되지 않아 추정하지 않고 상태에 `exchangeBreakdownAvailable=false`를 명시한다. 저장된 3,917개 종목을 표시하며 신규 마스터 수집은 차단한다.
 - `patch_ui.py`는 원본을 보존한 `frontend-web`에서만 미인증 배지를 백데이터로 바꾸고 브로커 설정 버튼을 제거한다. 실제 증권 인증 상태를 참으로 위장하지 않는다.
 - nginx `/kis-tool/`만 게이트웨이로 전달한다. 기존 운영 API 서비스/인증/자동매매 설정 변경·재시작 없음. nginx는 검사 후 reload.
