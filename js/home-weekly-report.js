@@ -127,7 +127,7 @@
       return x.toFixed(1) + ',' + y.toFixed(1);
     }).join(' ');
     var glow = glowParts(poly, 32, className);
-    return '<svg class="' + escapeHtml(className || '') + '" viewBox="0 0 100 32" width="100%" height="38" preserveAspectRatio="none" aria-hidden="true">'
+    return '<svg class="wd-spark ' + escapeHtml(className || '') + '" viewBox="0 0 100 32" width="100%" height="38" preserveAspectRatio="none" aria-hidden="true">'
       + glow.svg
       + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(className, '#2563eb') + '" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline></svg>' + glow.dot;
   }
@@ -332,7 +332,7 @@
       var delayed = !tokenState.current[pair[0]];
       return '<li class="wd-token" data-token-symbol="' + escapeHtml(pair[0]) + '"><span class="wd-token-name"><strong>' + escapeHtml(pair[1]) + '</strong><small>' + escapeHtml(pair[0]) + '</small></span>'
         + '<span class="wd-token-quote"><b>' + (row ? global.NineUI.number(row.price,{digits:row.price < 1 ? 4 : 2}) + ' <small>USDT</small>' : '미수신') + '</b>'
-        + '<em class="' + signClass(rate) + '">' + (rate == null ? '등락 미제공' : direction(rate) + ' ' + signed(rate)) + '</em></span>'
+        + '<em class="' + signClass(rate) + '">' + (rate == null ? '등락 미제공' : directionIcon(rate) + ' ' + signed(rate)) + '</em></span>'
         + (delayed ? '<small class="wd-token-status">갱신 지연' + (row && row.retrievedAt ? ' · 마지막 조회 ' + escapeHtml(kstTime(Date.parse(row.retrievedAt))) : '') + '</small>' : '') + '</li>';
     }).join('') + '</ul>';
   }
@@ -348,7 +348,7 @@
   function officialFxMarkup() {
     var row = lastOfficialFx, change = row && row.change;
     return '<dt title="1 USD당 원화 매매기준율">원/달러 · 고시</dt><dd>' + (row ? global.NineUI.number(row.price,{digits:2}) + '<small>원</small>' : '미수신') + '</dd>'
-      + '<b class="' + signClass(change) + '">' + (change == null ? '변화 미제공' : direction(change) + ' ' + (change > 0 ? '+' : '') + global.NineUI.number(change,{digits:2}) + '원') + '</b>'
+      + '<b class="' + signClass(change) + '">' + (change == null ? '변화 미제공' : directionIcon(change) + ' ' + (change > 0 ? '+' : '') + global.NineUI.number(change,{digits:2}) + '원') + '</b>'
       + '<small>' + (row ? row.date.replace(/-/g,'.') + ' 고시' : '고시일 미제공') + (officialFxDelayed ? ' · 갱신 지연' : '') + '</small>';
   }
   function loadOfficialFx(root) {
@@ -390,7 +390,7 @@
         var delayed = failed || !latest || latest.stale || !treasurySnapshot(latest);
         var change = row && row.change;
         return '<div data-rate-symbol="' + spec.symbol + '"><dt>' + spec.name + '</dt><dd>' + (row ? global.NineUI.number(row.price,{digits:2}) + '<small>%</small>' : '미수신') + '</dd>'
-          + '<b class="' + signClass(change) + '">' + (change == null ? '변화 미제공' : direction(change) + ' ' + (change > 0 ? '+' : '') + global.NineUI.number(change,{digits:2}) + '%p') + '</b>'
+          + '<b class="' + signClass(change) + '">' + (change == null ? '변화 미제공' : directionIcon(change) + ' ' + (change > 0 ? '+' : '') + global.NineUI.number(change,{digits:2}) + '%p') + '</b>'
           + '<small>' + (row ? row.date.replace(/-/g,'.') + ' 관측' : '관측일 미제공') + (delayed ? ' · 갱신 지연' : '') + '</small></div>';
       }).join('') + '<div data-hwr-fx aria-label="1 USD당 원화 일별 고시환율">' + officialFxMarkup() + '</div></dl><p class="wd-note">직전 관측/고시일 대비 · 연준 기준금리와 다른 국채 수익률입니다.</p></section>';
   }
@@ -424,7 +424,7 @@
         + '<div class="wd-commodity-label"><strong>' + spec.name + '</strong><small>' + spec.symbol + '</small></div>'
         + '<span class="wd-commodity-value">' + (price > 0 ? '$' + global.NineUI.number(price, {digits:2}) : '미수신') + '</span>'
         + '<span class="wd-commodity-unit">' + spec.unit + '</span>'
-        + '<b class="wd-commodity-change ' + signClass(rate) + '">' + (rate == null ? '등락 미제공' : direction(rate) + ' ' + signed(rate)) + '<small>전일 대비</small></b>'
+        + '<b class="wd-commodity-change ' + signClass(rate) + '">' + (rate == null ? '등락 미제공' : directionIcon(rate) + ' ' + signed(rate)) + '<small>전일 대비</small></b>'
         + '<div class="wd-commodity-chart">' + sparkline(series, signClass(rate)) + '<small>최근 ' + series.length + '개 일봉</small></div>'
         + '<div class="wd-commodity-meta"><span>' + state + '</span><time>' + escapeHtml(commodityTime(row && row.updated_at)) + '</time>'
         + '<small>' + spec.source + (row && row.contract_code ? ' · ' + escapeHtml(row.contract_code) : '') + '</small></div></article>';
@@ -467,7 +467,7 @@
       if (!document.body.contains(mount)) return;
       var rows = pairs.map(function (pair) {
         var row = lastLiveQuotes[pair[0]], fresh = currentCoins[pair[0]], rate = row && row.change_rate;
-        return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : direction(rate) + ' ' + signed(rate)) + '</b><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span></li>';
+        return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : directionIcon(rate) + ' ' + signed(rate)) + '</b><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span></li>';
       }).join('');
       mount.innerHTML = '<div class="wd-live-split"><section class="wd-panel wd-live-group">' + panelHeading('24시간 가상자산', '업비트 · 원화 · 30초마다 조회')
         + '<ul class="wd-list">' + rows + '</ul><a class="wd-more" href="/pages/kospi-futures?tab=crypto">가상자산 자세히 →</a></section>'
@@ -929,7 +929,6 @@
   function kstTime(ms) {
     return new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour12: false }) + ' KST';
   }
-  function direction(value) { return value == null ? '' : Number(value) > 0 ? '▲' : Number(value) < 0 ? '▼' : '―'; }
   function panelHeading(title, sub) { return '<header class="wd-panel-head"><h3' + (['원유·금','이번 주 주요 일정','다음 주 주요 일정','24시간 가상자산','바이낸스 주식·ETF 선물'].indexOf(title) !== -1 ? ' class="ui-section-title"' : '') + '>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small></header>'; }
   function newsPanelHeading(sub) {
     var icon = '<svg class="wd-news-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>';

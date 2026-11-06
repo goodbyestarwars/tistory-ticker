@@ -26,6 +26,10 @@ test('three contracts retain units, order, actual daily change and source time',
   assert.ok(html.indexOf('WTI 원유')<html.indexOf('브렌트유'));
   assert.ok(html.indexOf('브렌트유')<html.indexOf('금 선물'));
   assert.match(html,/\$4,007\.90/);assert.match(html,/배럴/);assert.match(html,/트로이온스/);
+  assert.equal((html.match(/class="wd-direction"/g)||[]).length,3);
+  assert.equal((html.match(/class="wd-spark is-up"/g)||[]).length,2);
+  assert.match(html,/class="wd-spark is-down"/);
+  assert.doesNotMatch(html,/[▲▼]/);
   assert.match(html,/-1\.29%/);assert.match(html,/10\.24 06:59 KST/);
   assert.match(html,/주말 수익률이 아닙니다/);assert.match(html,/최근 2개 일봉/);
 });
