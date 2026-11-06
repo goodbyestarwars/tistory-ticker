@@ -732,7 +732,12 @@
     // The private VM name cache is not exhaustive; resolve missing names from the
     // shared site dictionary for orders, open positions and research candidates.
     if (!global.KRX_MAP && orders.concat(positions, rows).some(function (r) { return r && r.code && !r.name; })) loadKrxMap();
-    var html = '<section class="at-card at-act"><div class="at-hd"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
+    var html = '<section class="at-card at-act"><div class="at-hd"><h3>보유 종목</h3><span class="at-sub">장부의 열린 포지션</span></div>';
+    html += positions.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">보유수량</th><th class="n">평단가(추정)</th><th>상태</th><th>매수일</th></tr></thead><tbody>'
+      + positions.map(function (p) { return '<tr><td>' + actName(p) + '</td><td class="n">' + (p.qty == null ? '-' : esc(p.qty)) + '</td><td class="n">' + fmtPrice(p.avg) + '</td><td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>'; }).join('')
+      + '</tbody></table></div>' : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
+    if (positions.length) html += '<p class="at-note">평단가는 보유수량을 채우는 최근 매수 주문가의 평균 추정이며 증권사 실제 평단과 다를 수 있습니다.</p>';
+    html += '<div class="at-hd at-subhead"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
     html += '<div class="at-dl"><label>기간 <input type="date" data-act-from value="' + esc(activityRange.from) + '"> ~ <input type="date" data-act-to value="' + esc(activityRange.to) + '"></label>'
       + '<button type="button" class="at-mini" data-act-dl="orders">주문 내역 CSV</button><button type="button" class="at-mini" data-act-dl="cands">추천 종목 CSV</button>'
       + '<span class="at-sub">비워 두면 전체 기간</span></div>';
@@ -741,11 +746,7 @@
       html += '<details class="at-more" data-act-more="orders"' + (activityOpen.orders ? ' open' : '') + '><summary>더 보기 (' + (orders.length - ORDERS_FIRST) + '건)</summary>'
         + orderTable(orders.slice(ORDERS_FIRST)) + '</details>';
     }
-    html += '<p class="at-note">번호는 장부의 주문 순번이고, 종목 아래 숫자가 종목코드입니다. "접수됨 · 체결 확인 전"은 주문이 접수된 것까지만 확인된 상태입니다. 평단가는 보유수량을 채우는 최근 매수 주문가의 평균 추정이며 증권사 실제 평단과 다를 수 있습니다. 체결가·손익·주문번호·계좌·잔고는 장부에 없거나 올라오지 않습니다.</p>';
-    html += '<h3 class="at-subhead">보유 종목 <small>장부의 열린 포지션</small></h3>';
-    html += positions.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">보유수량</th><th class="n">평단가(추정)</th><th>상태</th><th>매수일</th></tr></thead><tbody>'
-      + positions.map(function (p) { return '<tr><td>' + actName(p) + '</td><td class="n">' + (p.qty == null ? '-' : esc(p.qty)) + '</td><td class="n">' + fmtPrice(p.avg) + '</td><td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>'; }).join('')
-      + '</tbody></table></div>' : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
+    html += '<p class="at-note">번호는 장부의 주문 순번이고, 종목 아래 숫자가 종목코드입니다. "접수됨 · 체결 확인 전"은 주문이 접수된 것까지만 확인된 상태입니다. 체결가·손익·주문번호·계좌·잔고는 장부에 없거나 올라오지 않습니다.</p>';
     var groups = {}, order = [];
     rows.forEach(function (r) { if (!groups[r.scanner]) { groups[r.scanner] = []; order.push(r.scanner); } groups[r.scanner].push(r); });
     html += '<details class="at-more at-ribbon" data-act-more="candidates"' + (activityOpen.candidates ? ' open' : '') + '><summary>텔레그램 추천 종목 (' + rows.length + '종목'

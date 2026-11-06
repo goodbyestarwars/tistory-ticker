@@ -102,3 +102,19 @@ const ta = strip(sb.f.ordersHtml(actual, '2026-10-16', D));
 ['LG유플러스', '14,750', '14,820', '체결가', '체결 확인(키움 일지)', '수동 거래', '+0.47%'].forEach((k) => assert.ok(ta.includes(k), k));
 assert.ok(sb.f.ordersCsv(actual, D).includes(',LG유플러스,032640,매도,13,14750,14820,체결가,0.47,'), 'CSV에 체결가 구분');
 console.log('auto-trader 체결가 표시 검증 통과');
+
+// The live activity card places the open positions table before order controls.
+const activitySource = [
+  grab('  var ACT_REASON'), grab('  var ACT_STATE'), grab('  var SCANNER_LABEL'), src.match(/  var ORDERS_FIRST = \d+;/)[0],
+  'var activityRange = { from: "", to: "" }; var activityOpen = { orders: false, candidates: false };',
+  grab('  function actName('), grab('  function orderRows('), grab('  function orderTable('), grab('  function activityHtml(')
+].join('\n');
+vm.runInNewContext(activitySource + '\nthis.activity = activityHtml;', sb);
+sb.global.KRX_MAP = { 삼성전자: '005930' };
+const activity = sb.activity({
+  positions: [{ code: '005930', name: '삼성전자', qty: 3, avg: 200000, state: 'OPEN', buyDay: '2026-11-06' }],
+  orders: [{ code: '005930', name: '삼성전자', qty: 3, price: 200000, side: 'BUY' }]
+});
+assert.match(activity, /<h3>보유 종목<\/h3>[\s\S]*평단가\(추정\)[\s\S]*<h3>주문 내역<\/h3>[\s\S]*data-act-dl="orders"/);
+assert.match(sb.activity({}), /열린 보유 종목이 없습니다[\s\S]*아직 주문 기록이 없습니다/);
+assert.match(sb.activity(null), /에이전트가 아직 내역을 올리지 않았습니다/);
