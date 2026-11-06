@@ -127,6 +127,9 @@
     movingAverageShortEnabled: true,   // 단기 이동평균선 3·5·20·60일
     movingAverageLongEnabled: true,    // 장기 이동평균선 112·224·448일
     customMaPeriods: '',               // 사용자 지정 이평선 기간(쉼표 구분, 최대 6개). 비어 있으면 기본 단기·장기 묶음
+    // 2026-11-07 보조지표 팝오버: 종목·미국·지수 차트가 함께 쓰는 이평선 목록. 비어 있으면 위 예전 설정에서 한 번 옮긴다.
+    maEnabled: true,
+    maLines: [],
     ichimokuEnabled: false,
     bollingerEnabled: false,
     accumulationEnabled: false,
@@ -157,7 +160,7 @@
   // 지표 구성(이동평균·일목·볼린저·지지저항·RSI·파동 등)을 기억해 다시 열어도 그대로 보이게 한다(2026-11-01).
   if (global.NineUI && global.NineUI.persistPrefs) {
     var prefAccessors = {};
-    ['studyOrder', 'lineHighlight', 'movingAverageShortEnabled', 'movingAverageLongEnabled', 'customMaPeriods', 'ichimokuEnabled', 'bollingerEnabled',
+    ['studyOrder', 'lineHighlight', 'movingAverageShortEnabled', 'movingAverageLongEnabled', 'customMaPeriods', 'maEnabled', 'maLines', 'ichimokuEnabled', 'bollingerEnabled',
      'accumulationEnabled', 'supplyMode', 'volumeProfileEnabled', 'supportResistanceEnabled', 'rsiEnabled', 'rsiDivergenceEnabled',
      'volumeMultipleEnabled', 'wave'].forEach(function (key) {
       prefAccessors[key] = { get: function () { return state[key]; }, set: function (value) {
@@ -199,6 +202,96 @@
       el.classList.toggle('is-on', !!state.lineHighlight[el.getAttribute('data-line-key')]);
     });
   }
+  // 예전 단기·장기 묶음과 '내 이평선' 문자열은 지우지 않고, 새 목록이 비어 있을 때만 한 번 옮긴다.
+  var maLinesMigrated = false;
+  function ensureMaLines() {
+    var core = global.NineChartCore;
+    if (!core || !core.normalizeMaLines) return [];
+    var lines = core.normalizeMaLines(state.maLines);
+    if (!lines.length && !maLinesMigrated) {
+      maLinesMigrated = true;
+      var custom = parseCustomMaPeriods(state.customMaPeriods);
+      var groups = [];
+      if (state.movingAverageShortEnabled) groups.push('short');
+      if (state.movingAverageLongEnabled) groups.push('long');
+      lines = custom.length
+        ? custom.map(function (n, i) { return { period: n, color: CUSTOM_MA_COLORS[i], width: 1.5, source: 'close' }; })
+        : core.defaultMaLines(groups.length ? groups : null);
+      state.maEnabled = !!(custom.length || groups.length);
+    }
+    if (!lines.length) lines = core.defaultMaLines(null);
+    state.maLines = lines;
+    return lines;
+  }
+  function maToggleHtml(attr) {
+    ensureMaLines();
+    return '<label data-study-detail="ma" title="지난 n봉 동안의 평균 가격을 이은 선입니다. 선마다 기간·색·굵기·기준가를 정할 수 있고 종목·미국·지수 차트에 함께 적용됩니다."><input type="checkbox" ' + attr + (state.maEnabled ? ' checked' : '') + ' /> 이동평균선</label>';
+  }
+  // 보조지표 팝오버 오른쪽의 이동평균선 상세 편집기. onChange는 각 차트가 다시 그리는 함수다.
+  function maDetailRenderer(onChange) {
+    return function (host) {
+      var core = global.NineChartCore;
+      if (!core || !core.normalizeMaLines) { host.innerHTML = '<p class="nine-studies-note">차트를 불러온 뒤 설정할 수 있습니다.</p>'; return; }
+      var dark = document.documentElement.classList.contains('dark');
+      function draw() {
+        var lines = ensureMaLines();
+        var sources = core.MA_SOURCES;
+        host.innerHTML = '<div class="nine-ma-lines">' + lines.map(function (line, i) {
+          var color = core.maLineColor(line, i, dark);
+          return '<div class="nine-ma-line" data-ma-index="' + i + '">'
+            + '<span class="nine-ma-name">기간' + (i + 1) + '</span>'
+            + '<input type="color" data-ma-field="color" value="' + color + '" aria-label="기간' + (i + 1) + ' 색" />'
+            + '<select data-ma-field="width" aria-label="기간' + (i + 1) + ' 굵기">' + [1, 1.5, 2, 3, 4].map(function (w) {
+              return '<option value="' + w + '"' + (w === line.width ? ' selected' : '') + '>' + w + 'px</option>';
+            }).join('') + '</select>'
+            + '<select data-ma-field="source" aria-label="기간' + (i + 1) + ' 기준가">' + Object.keys(sources).map(function (k) {
+              return '<option value="' + k + '"' + (k === line.source ? ' selected' : '') + '>' + sources[k] + '</option>';
+            }).join('') + '</select>'
+            + '<input type="number" data-ma-field="period" min="2" max="600" step="1" inputmode="numeric" value="' + line.period + '" aria-label="기간' + (i + 1) + ' 봉 수" />'
+            + (lines.length > 1 ? '<button type="button" class="nine-ma-remove" data-ma-remove aria-label="기간' + (i + 1) + ' 삭제">×</button>' : '<span class="nine-ma-remove-gap"></span>')
+            + '</div>';
+        }).join('') + '</div>'
+          + '<div class="nine-ma-actions">'
+          + (lines.length < core.MA_LINE_LIMIT ? '<button type="button" class="nine-ma-add" data-ma-add><span aria-hidden="true">+</span> 기간 추가</button>' : '<span class="nine-studies-note">최대 ' + core.MA_LINE_LIMIT + '개까지 설정할 수 있습니다.</span>')
+          + '<button type="button" class="nine-ma-reset" data-ma-reset>기본값</button>'
+          + '</div>';
+      }
+      function commit(lines) {
+        var next = core.normalizeMaLines(lines);
+        state.maLines = next.length ? next : core.defaultMaLines(null);
+        draw();
+        onChange();
+      }
+      host.onchange = function (event) {
+        var field = event.target.getAttribute('data-ma-field');
+        var row = event.target.closest('[data-ma-index]');
+        if (!field || !row) return;
+        var lines = ensureMaLines().map(function (l) { return Object.assign({}, l); });
+        var line = lines[Number(row.getAttribute('data-ma-index'))];
+        if (!line) return;
+        line[field] = field === 'source' || field === 'color' ? event.target.value : Number(event.target.value);
+        commit(lines);
+      };
+      host.onclick = function (event) {
+        var lines = ensureMaLines().slice();
+        if (event.target.closest('[data-ma-remove]')) {
+          lines.splice(Number(event.target.closest('[data-ma-index]').getAttribute('data-ma-index')), 1);
+          commit(lines);
+        } else if (event.target.closest('[data-ma-add]')) {
+          var used = {};
+          lines.forEach(function (l) { used[l.period] = true; });
+          var period = [10, 30, 50, 120, 200, 240, 300, 360].filter(function (n) { return !used[n]; })[0] || 2;
+          lines.push({ period: period, color: null, width: 1, source: 'close' });
+          commit(lines);
+          var inputs = host.querySelectorAll('[data-ma-field="period"]');
+          if (inputs.length) inputs[inputs.length - 1].focus();
+        } else if (event.target.closest('[data-ma-reset]')) {
+          commit(core.defaultMaLines(null));
+        }
+      };
+      draw();
+    };
+  }
   function rememberStudyToggle(key,enabled) {
     var i=state.studyOrder.indexOf(key);if(i>=0)state.studyOrder.splice(i,1);
     if(enabled)state.studyOrder.push(key);
@@ -221,7 +314,7 @@
     { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
     { code: 'SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
-  var indexStudies = { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false, rsi: false, divergence: false, volmult: false, vp: false, trace: false };   // 이동평균선은 단기(3·5·20·60)·장기(112·224·448) 두 옵션
+  var indexStudies = { cloud: false, bollinger: false, sr: false, rsi: false, divergence: false, volmult: false, vp: false, trace: false };   // 이동평균선은 단기(3·5·20·60)·장기(112·224·448) 두 옵션
   var indexWaveState = { enabled: false, level: 'medium', trend: false };   // trend: 파동 박스 안 추세선
   var indexStudySeries = [];
   var indexSrCleanup = null;
@@ -629,8 +722,7 @@
       + '<button type="button" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button>'
       + '</div></div></div></div>'
       + '<div class="ss-chart-studies">'
-      + '<label title="3·5·20·60일선"><input type="checkbox" data-chart-ma-short-toggle checked /> 단기 이평선(3·5·20·60)</label>'
-      + '<label title="112·224·448일선. 224일선은 굵은 검정"><input type="checkbox" data-chart-ma-long-toggle checked /> 장기 이평선(112·224·448)</label>'
+      + maToggleHtml('data-chart-ma-toggle')
       + '<label title="전환선(9)·기준선(26)·선행스팬(52, 26봉 앞)으로 그린 구름대입니다. 구름 위는 상승 우위, 아래는 하락 우위로 읽습니다. 참고용이며 매수·매도 신호가 아닙니다."><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
@@ -1246,11 +1338,9 @@
         var currentBars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
         indexStudySeries.forEach(function (line) { indexChart.removeSeries(line); });
         indexStudySeries = [];
-        var indexMaGroups = [];
-        if (indexStudies.maShort) indexMaGroups.push('short');
-        if (indexStudies.maLong) indexMaGroups.push('long');
-        if (indexMaGroups.length) core.maStudies(dark, indexMaGroups).forEach(function (study) {
-          var maPoints = core.movingAveragePoints(currentBars, 'close', study.period);
+        // 이평선은 종목·미국 차트와 같은 보조지표 설정(state.maLines)을 쓴다.
+        if (state.maEnabled) core.maLineStudies(ensureMaLines(), dark).forEach(function (study) {
+          var maPoints = core.movingAveragePoints(currentBars, study.source, study.period);
           if (!maPoints.length) return;   // 봉이 모자라 계산할 수 없는 선(예: 448일)은 그리지 않는다
           indexStudySeries.push(core.addMovingAverageLine(indexChart, LWC, study, maPoints));
         });
@@ -1398,7 +1488,8 @@
             + '</div></div></div></div>'
             + '<div class="nine-chart-ranges">' + [[30, '1개월'], [90, '3개월'], [180, '6개월'], [365, '1년'], [1095, '3년'], [0, '전체']].map(function (range) { return '<button type="button" class="nine-range-btn" data-index-range="' + range[0] + '">' + range[1] + '</button>'; }).join('') + '</div>'
             + '<div class="ss-chart-studies ss-index-studies" role="group" aria-label="차트 보조지표">'
-            + [['maShort', '단기 이평선(3·5·20·60)'], ['maLong', '장기 이평선(112·224·448)'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
+            + maToggleHtml('data-index-study="ma"')
+            + [['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
               return '<label><input type="checkbox" data-index-study="' + option[0] + '"' + (indexStudies[option[0]] ? ' checked' : '') + ' /> ' + option[1] + '</label>';
             }).join('')
             + '<span class="ss-index-wave-group"><label><input type="checkbox" data-index-study="wave"' + (indexWaveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
@@ -1411,16 +1502,19 @@
             }).join('') + '</div>'
             + '</div>'
             + '<div class="ss-index-chart" id="ssIndexChart"></div>';
-          if (global.NineUI.chartOptions) global.NineUI.chartOptions(panel);
+          if (global.NineUI.chartOptions) global.NineUI.chartOptions(panel, { details: {
+            ma: maDetailRenderer(function () { if (indexChart && indexBars.length) renderIndexChart(panel, row.code); })
+          } });
           syncIndexCapabilities(panel, bars);
           panel.querySelectorAll('[data-index-study]').forEach(function (input) {
             input.addEventListener('change', function () {
               var key = input.getAttribute('data-index-study');
               if (key === 'wave') indexWaveState.enabled = input.checked;
+              else if (key === 'ma') state.maEnabled = input.checked;
               else indexStudies[key] = input.checked;
               if (key === 'divergence' && input.checked) indexStudies.rsi = true;
               if (key === 'rsi' && !input.checked) indexStudies.divergence = false;
-              panel.querySelectorAll('[data-index-study]').forEach(function (control) { var name = control.getAttribute('data-index-study'); control.checked = name === 'wave' ? indexWaveState.enabled : !!indexStudies[name]; });
+              panel.querySelectorAll('[data-index-study]').forEach(function (control) { var name = control.getAttribute('data-index-study'); control.checked = name === 'wave' ? indexWaveState.enabled : name === 'ma' ? state.maEnabled : !!indexStudies[name]; });
               renderIndexChart(panel, row.code);
             });
           });
@@ -2040,28 +2134,19 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
-    var maShortToggle = container.querySelector('[data-chart-ma-short-toggle]');
-    var maLongToggle = container.querySelector('[data-chart-ma-long-toggle]');
-    function wireMaToggle(toggle, key) {
-      if (!toggle) return;
-      toggle.checked = state[key];
-      toggle.onchange = function () {
-        state[key] = toggle.checked;
-        rememberStudyToggle('ma', state.movingAverageShortEnabled || state.movingAverageLongEnabled);
+    var maToggle = container.querySelector('[data-chart-ma-toggle]');
+    if (maToggle) {
+      ensureMaLines();
+      maToggle.checked = state.maEnabled;
+      maToggle.onchange = function () {
+        state.maEnabled = maToggle.checked;
+        rememberStudyToggle('ma', state.maEnabled);
         renderChartForCode(container, state.selectedCode);
       };
     }
-    wireMaToggle(maShortToggle, 'movingAverageShortEnabled');
-    wireMaToggle(maLongToggle, 'movingAverageLongEnabled');
-    var maCustomInput = container.querySelector('[data-chart-ma-custom]');
-    if (maCustomInput) {
-      maCustomInput.value = state.customMaPeriods || '';
-      maCustomInput.onchange = function () {
-        state.customMaPeriods = parseCustomMaPeriods(maCustomInput.value).join(',');
-        maCustomInput.value = state.customMaPeriods;
-        renderChartForCode(container, state.selectedCode);
-      };
-    }
+    if (global.NineUI && global.NineUI.chartOptions) global.NineUI.chartOptions(container, { details: {
+      ma: maDetailRenderer(function () { if (state.selectedCode) renderChartForCode(container, state.selectedCode); })
+    } });
     var ichimokuToggle = container.querySelector('#ssIchimokuToggle, [data-chart-ichimoku-toggle]');
     if (ichimokuToggle) {
       ichimokuToggle.checked = state.ichimokuEnabled;
@@ -2518,9 +2603,7 @@
       + '<button type="button" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button>'
       + '</div></div></div></div>'
       + '<div class="ss-chart-studies">'
-      + '<label title="3·5·20·60일선"><input type="checkbox" data-chart-ma-short-toggle checked /> 단기 이평선(3·5·20·60)</label>'
-      + '<label title="112·224·448일선. 224일선은 굵은 검정"><input type="checkbox" data-chart-ma-long-toggle checked /> 장기 이평선(112·224·448)</label>'
-      + '<label title="직접 정한 기간으로 이평선을 그립니다. 쉼표로 구분, 최대 6개(예: 10,30,120). 비우면 위 기본 이평선을 씁니다."> 내 이평선 <input type="text" inputmode="numeric" data-chart-ma-custom maxlength="24" placeholder="10,30,120" style="width:84px" /></label>'
+      + maToggleHtml('data-chart-ma-toggle')
       + '<label title="전환선(9)·기준선(26)·선행스팬(52, 26봉 앞)으로 그린 구름대입니다. 구름 위는 상승 우위, 아래는 하락 우위로 읽습니다. 참고용이며 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
       + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
@@ -3135,13 +3218,9 @@
 
       var priceLegendHtml = [];
       var legendLines = {};   // 범례 키 -> 선 시리즈(굵게 표시용)
-      var maGroups = [];
-      if (state.movingAverageShortEnabled) maGroups.push('short');
-      if (state.movingAverageLongEnabled) maGroups.push('long');
-      var customMa = parseCustomMaPeriods(state.customMaPeriods);
-      if (customMa.length || maGroups.length) {
-        (customMa.length ? customMa.map(function (n, i) { return { key: 'ma' + n, period: n, width: 1.5, color: CUSTOM_MA_COLORS[i] }; }) : core.maStudies(undefined, maGroups)).forEach(function (study) {
-          var points = core.movingAveragePoints(bars, 'close', study.period);
+      if (state.maEnabled) {
+        core.maLineStudies(ensureMaLines(), document.documentElement.classList.contains('dark')).forEach(function (study) {
+          var points = core.movingAveragePoints(bars, study.source, study.period);
           if (!points.length) return;   // 봉이 모자라(예: 448일선) 그릴 수 없는 선은 범례도 만들지 않는다
           var maSeries = core.addMovingAverageLine(chart, LWC, study, points, {
             priceScaleId: 'right',
@@ -3153,7 +3232,7 @@
           });
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
           legendLines[study.key] = lineEntries(maSeries);
-          priceLegendHtml.push('<span data-study="ma" data-line-key="' + study.key + '" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
+          priceLegendHtml.push('<span data-study="ma" data-line-key="' + study.key + '" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:' + study.color + '">' + study.label + ' <b>' + latest + '</b></span>');
         });
       }
       var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, studyOrder:state.studyOrder, timeframe:timeframe };

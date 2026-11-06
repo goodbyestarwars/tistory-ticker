@@ -19,15 +19,17 @@ function renderIndexControls() {
   assert(from !== -1 && to > from, 'index chart markup found');
   const expr = js.slice(from + "panel.innerHTML = ".length, to);
   const makeHtml = new Function('row', 'item', 'signClass', 'escapeHtml', 'fmtSignedPct',
-    'indexStudies', 'indexWaveState', 'window', 'return ' + expr + ';');
+    'indexStudies', 'indexWaveState', 'window', 'maToggleHtml', 'return ' + expr + ';');
   return makeHtml(
     { code: 'NASDAQ_INDEX', name: '나스닥' },
     { price: 26424.82, change_rate: -0.02, updated_at: '2026-10-21T06:30:53Z' },
     () => 'ss-down',
     s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'),
     n => String(n) + '%',
-    { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false },
-    { enabled: true, level: 'medium', trend: false }, {}
+    { cloud: false, bollinger: false, sr: false },
+    { enabled: true, level: 'medium', trend: false }, {},
+    // 이동평균선 체크는 종목 차트와 같은 공통 maToggleHtml 이 만든다(아래에서 실제 함수 존재를 확인).
+    attr => '<label data-study-detail="ma"><input type="checkbox" ' + attr + ' checked /> 이동평균선</label>'
   );
 }
 
@@ -41,14 +43,15 @@ test('toolbar really has two contained rows, saved controls and no missing tools
   const c = html.indexOf('class="ss-index-chart"');
   assert(a < b && b < c, 'timeframe/actions first; indicators second; chart below');
   for (const label of ['일봉', '주봉', '월봉', '분봉', '직선', '동그라미', '박스',
-    '가로선', '측정', '연필', '지우기', '단기 이평선(3·5·20·60)', '장기 이평선(112·224·448)', '일목균형표(구름) 표시',
+    '가로선', '측정', '연필', '지우기', '이동평균선', '일목균형표(구름) 표시',
     '볼린저 밴드', '지지·저항 표시', '파동 분석', '추세선', '거래량 배수 표시', '매물대 표시', '거래량·가격 흔적']) {
     assert(html.includes(label), 'missing control: ' + label);
   }
   assert(html.includes('class="ss-index-wave-group"'), 'wave checkbox and level grouped');
   assert(html.includes('data-index-wave-level'), 'native select preserved');
-  assert(html.includes('data-index-study="maShort" checked'));
-  assert(html.includes('data-index-study="maLong" checked'));
+  assert(html.includes('data-index-study="ma" checked'));
+  assert(js.includes("maToggleHtml('data-index-study=\"ma\"')"), 'index uses the shared MA toggle');
+  assert(js.includes("maToggleHtml('data-chart-ma-toggle')"), 'stock charts use the shared MA toggle');
   assert(html.includes('data-index-study="wave" checked'));
   assert(html.includes('<option value="medium">중파동</option>'));
   assert(html.includes('disabled title="이 지수의 실제 분봉 원본이 없습니다"'), 'no fabricated minute data');
@@ -64,7 +67,9 @@ test('toolbar really has two contained rows, saved controls and no missing tools
 test('compact style fits wave name, dark mode and narrow screens', () => {
   assert(css.includes('#stock-search .ss-index-controls'));
   assert(css.includes('#stock-search .ss-index-controls .ss-index-tools'));
-  assert(css.includes('#stock-search .ss-index-controls .ss-index-studies'));
+  // 보조지표 줄은 공통 팝오버 목록으로 옮겨지므로 지수 전용 줄 배치 규칙은 두지 않는다.
+  assert(!css.includes('#stock-search .ss-index-controls .ss-index-studies'));
+  assert(fs.readFileSync('css/ui-system.css', 'utf8').includes('.nine-studies-items'));
   assert.match(css, /#stock-search \.ss-index-wave-group \[data-index-wave-level\][\s\S]*?width: 124px;[\s\S]*?min-width: 124px;/);
   assert(css.includes('flex-wrap: wrap;'), 'responsive wrapping retained');
   assert(css.includes('@media (max-width: 900px)'));

@@ -143,6 +143,21 @@ assert.strictEqual(Core.chartOptions(LWC, 'search', { timeframe: 'day' }).timeSc
   }
   assert.strictEqual(Core.maStudies(true)[3].color, '#f1f3f5'); assert.strictEqual(Core.maStudies(false)[3].color, '#000000');
   assert.deepStrictEqual(Core.maStudies(false).map((s) => s.width), [1, 1, 1, 3], '224일선만 굵게');
+  // 보조지표 팝오버의 사용자 이평선 목록(2026-11-07)
+  assert.deepStrictEqual(Core.defaultMaLines(null).map((l) => l.period), [3, 5, 20, 60, 112, 224, 448], '기본 7선');
+  assert.deepStrictEqual(Core.defaultMaLines(['long']).map((l) => l.period), [112, 224, 448]);
+  const norm = Core.normalizeMaLines([{ period: '20', width: 9, source: 'x', color: 'red' }, { period: 20, source: 'close' },
+    { period: 20, source: 'high', color: '#ABCDEF', width: 2 }, { period: 1 }, { period: 601 }, null]);
+  assert.deepStrictEqual(norm, [{ period: 20, color: null, width: 1, source: 'close' }, { period: 20, color: '#abcdef', width: 2, source: 'high' }],
+    '범위 밖 기간·같은 기간+기준가·잘못된 색/굵기/기준가 정리');
+  assert.strictEqual(Core.normalizeMaLines(Array.from({ length: 12 }, (_, i) => ({ period: i + 2 }))).length, Core.MA_LINE_LIMIT, '최대 개수');
+  const lineStudies = Core.maLineStudies([{ period: 224 }, { period: 20, source: 'low' }, { period: 33 }], true);
+  assert.deepStrictEqual(lineStudies.map((s) => s.key), ['ma224', 'ma20_low', 'ma33'], '기준가가 다르면 범례 키가 겹치지 않는다');
+  assert.strictEqual(lineStudies[0].color, '#f1f3f5', '색을 안 정한 224일선은 테마 색');
+  assert.strictEqual(lineStudies[1].label, 'MA20(저가)');
+  assert(/^#[0-9a-f]{6}$/.test(lineStudies[2].color), '기본 목록에 없는 기간도 색을 받는다');
+  const srcBars = [{ date: '2026-01-01', close: 1, high: 3 }, { date: '2026-01-02', close: 3, high: 5 }];
+  assert.strictEqual(Core.movingAveragePoints(srcBars, lineStudies[1].source === 'low' ? 'high' : 'close', 2)[0].value, 4, '기준가 필드로 계산');
 
   // 일목 구름 점: 공통화 전 차트검색 구현의 결과와 완전히 같다
   for (const tf of ['day', 'week', 'month']) {
