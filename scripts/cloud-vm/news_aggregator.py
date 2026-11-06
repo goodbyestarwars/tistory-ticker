@@ -841,6 +841,8 @@ def _sec_company_name(title, form):
         name = name[len(prefix):]
     name = re.sub(r'\s*\((?:Filer|Subject|Reporting|Filed by|Issuer)\)\s*$', '', name, flags=re.I)
     name = re.sub(r'\s*\(\d{6,10}\)\s*$', '', name)
+    # EDGAR 등록명 뒤의 주 표기(`/MD/`, `/DE`, `\ CA`)는 사용자에게 의미가 없다.
+    name = re.sub(r'\s*(?:/[A-Z]{2,3}/?|\\\s*[A-Z]{2})\s*$', '', name)
     return name.strip()
 
 
