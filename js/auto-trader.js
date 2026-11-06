@@ -393,7 +393,12 @@
       krxByCode = null;
       // The control page reuses the same static dictionary as the legacy order table.
       // Re-render the already received activity; do not request the VM or touch orders.
-      if (global.KRX_MAP && lastControl && root && !busy) renderControl(lastControl);
+      if (global.KRX_MAP && lastControl && root && !busy) {
+        var active = document.activeElement;
+        var targetForm = active && active.closest('[data-target-form]');
+        if (targetForm) updateTargetSymbols(targetForm);
+        else renderControl(lastControl);
+      }
     };
     sc.onerror = function () { krxLoading = false; krxRetryAt = Date.now() + 60000; };
     document.head.appendChild(sc);
@@ -800,7 +805,49 @@
     stop: '자동 주문을 중지합니다.\n\n엔진 Runner를 정지하고 봇 매도도 차단합니다. 수동 시작 전까지 다음 거래일에도 차단을 유지하며, 예약 타이머를 끄도록 요청합니다. 이미 접수된 주문은 취소되지 않습니다.\n계속할까요?'
   };
 
-  var targetDraft = { code: '', price: '', qty: '' };
+  function normalizeTargetSymbol(value) {
+    return value.trim().replace(/\s+/g, '').toLowerCase();
+  }
+
+  function targetSymbolMatches(query) {
+    var key = normalizeTargetSymbol(query);
+    if (!key || !global.KRX_MAP) return [];
+    return Object.keys(global.KRX_MAP).map(function (name) {
+      return { name: name, code: String(global.KRX_MAP[name]) };
+    }).filter(function (row) {
+      return /^[0-9]{6}$/.test(row.code) && (normalizeTargetSymbol(row.name).includes(key) || row.code.includes(key));
+    }).sort(function (a, b) {
+      return Number(b.code === key || normalizeTargetSymbol(b.name) === key)
+        - Number(a.code === key || normalizeTargetSymbol(a.name) === key);
+    }).slice(0, 12);
+  }
+
+  function resolveTargetSymbol(query) {
+    var value = query.trim();
+    var selected = value.match(/^(.*) · ([0-9]{6})$/);
+    var key = normalizeTargetSymbol(selected ? selected[1] : value);
+    return targetSymbolMatches(key).find(function (row) {
+      return selected ? row.code === selected[2] && normalizeTargetSymbol(row.name) === key
+        : row.code === key || normalizeTargetSymbol(row.name) === key;
+    });
+  }
+
+  function updateTargetSymbols(form) {
+    var input = form.elements.symbol;
+    if (global.KRX_MAP) input.setCustomValidity('');
+    form.querySelector('datalist').innerHTML = targetSymbolMatches(input.value).map(function (row) {
+      return '<option value="' + esc(row.name + ' · ' + row.code) + '"></option>';
+    }).join('');
+  }
+
+  function bindTargetSymbolSearch(form) {
+    var input = form.elements.symbol;
+    input.addEventListener('focus', function () { input.setCustomValidity(''); loadKrxMap(); updateTargetSymbols(form); });
+    input.addEventListener('input', function () { input.setCustomValidity(''); updateTargetSymbols(form); });
+    updateTargetSymbols(form);
+  }
+
+  var targetDraft = { symbol: '', price: '', qty: '' };
   function targetBuyHtml(c) {
     var vm = c.vm || {};
     if (!(vm.capabilities || []).includes('target-buy-v1')) {
@@ -809,17 +856,17 @@
     var locked = busy || c.pending ? ' disabled' : '';
     var states = { WAIT: '감시 대기', CANCELLED: '취소', ATTEMPTED: '주문 확인 필요', ACK: '접수 · 체결 확인 전', UNKNOWN: '주문 확인 필요' };
     var rows = (vm.targetBuys || []).map(function (row) {
-      return '<tr><td>' + esc(row.code) + '</td><td class="n">' + fmtPrice(row.price) + '</td><td class="n">' + esc(row.qty)
+      return '<tr><td>' + actName(row) + '</td><td class="n">' + fmtPrice(row.price) + '</td><td class="n">' + esc(row.qty)
         + '</td><td>' + esc(states[row.state] || '확인 필요') + '</td><td>' + (row.state === 'WAIT'
           ? '<button type="button" class="at-mini" data-target-cancel="' + esc(row.code) + '"' + locked + '>조건 취소</button>' : '') + '</td></tr>';
     }).join('');
     return '<section class="at-card at-act"><div class="at-hd"><h3>목표가 매수</h3><span class="at-sub">당일 14:00 KST 만료</span></div>'
-      + '<form class="at-dl" data-target-form><label>종목코드 <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required value="' + esc(targetDraft.code) + '"></label>'
+      + '<form class="at-dl" data-target-form><label>종목명·코드 <input name="symbol" list="at-target-symbols" autocomplete="off" placeholder="예: 삼성전자 또는 005930" required value="' + esc(targetDraft.symbol) + '"></label><datalist id="at-target-symbols"></datalist>'
       + '<label>목표가(원) <input name="price" type="number" min="1" max="10000000" step="1" required value="' + esc(targetDraft.price) + '"></label>'
       + '<label>수량(주) <input name="qty" type="number" min="1" max="100000" step="1" required value="' + esc(targetDraft.qty) + '"></label>'
       + '<button class="at-mini" type="submit"' + locked + '>조건 등록</button></form>'
       + '<p class="at-note">목표가 이하에서 등록 가격으로 지정가 주문을 한 번 시도합니다. 조건 취소는 제출 전 감시만 취소합니다.</p>'
-      + (rows ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목코드</th><th>목표가</th><th>수량</th><th>상태</th><th>관리</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '')
+      + (rows ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th>목표가</th><th>수량</th><th>상태</th><th>관리</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '')
       + '</section>';
   }
 
@@ -829,7 +876,7 @@
     lastError = '';
     renderControl(lastControl);
     controlRequest('/autotrader/command', body).then(function () {
-      if (body.action === 'target-add') targetDraft = { code: '', price: '', qty: '' };
+      if (body.action === 'target-add') targetDraft = { symbol: '', price: '', qty: '' };
     }).catch(function () {
       lastError = '목표가 조건 요청을 보내지 못했습니다.';
       global.alert(lastError);
@@ -846,12 +893,21 @@
     root.innerHTML = controlHtml(c) + targetBuyHtml(c) + activityHtml(c.activity) + scheduleHtml(scheduleCache);
     var targetForm = root.querySelector('[data-target-form]');
     if (targetForm) {
+      bindTargetSymbolSearch(targetForm);
+      loadKrxMap();
       targetForm.addEventListener('input', function (event) { targetDraft[event.target.name] = event.target.value; });
       targetForm.addEventListener('submit', function (event) {
         event.preventDefault();
-        var code = targetForm.elements.code.value, price = Number(targetForm.elements.price.value), qty = Number(targetForm.elements.qty.value);
-        if (global.confirm(code + ' · ' + price + '원 · ' + qty + '주 목표가 조건을 등록할까요? 조건이 맞으면 실계좌 주문이 제출됩니다.')) {
-          sendTargetCommand({ action: 'target-add', code: code, price: price, qty: qty });
+        var input = targetForm.elements.symbol;
+        var stock = resolveTargetSymbol(input.value);
+        if (!stock) {
+          input.setCustomValidity(global.KRX_MAP ? '검색 결과에서 종목을 선택하거나 정확한 종목명·코드를 입력하세요.' : '종목 사전을 아직 불러오지 못했습니다.');
+          input.reportValidity();
+          return;
+        }
+        var price = Number(targetForm.elements.price.value), qty = Number(targetForm.elements.qty.value);
+        if (global.confirm(stock.name + ' (' + stock.code + ') · ' + price + '원 · ' + qty + '주 목표가 조건을 등록할까요? 조건이 맞으면 실계좌 주문이 제출됩니다.')) {
+          sendTargetCommand({ action: 'target-add', code: stock.code, price: price, qty: qty });
         }
       });
     }
