@@ -269,6 +269,31 @@ def _checkpoint_sqlite(path):
         conn.close()
 
 
+def sweep_orphan_temp_files(directory, max_age_sec=86400, now=None):
+    """snapshot_io 가 만든 `.<이름>.xxxx.tmp` 중 쓰던 프로세스가 죽어 남은 것(예: 11/1 4MB)을 지운다.
+
+    하루 이상 안 바뀐 것만, 앱 폴더 바로 아래 점으로 시작하는 `.tmp` 만 대상으로 한다.
+    쓰는 중인 파일은 최근에 바뀌므로 건드리지 않는다.
+    """
+    now = time.time() if now is None else now
+    removed = []
+    try:
+        names = os.listdir(directory)
+    except OSError:
+        return removed
+    for name in names:
+        if not (name.startswith('.') and name.endswith('.tmp')):
+            continue
+        path = os.path.join(directory, name)
+        try:
+            if os.path.isfile(path) and now - os.path.getmtime(path) >= max_age_sec:
+                os.remove(path)
+                removed.append(name)
+        except OSError:
+            continue
+    return removed
+
+
 def run(force=False):
     if not force and not is_off_hours():
         raise RuntimeError('장외 시간이 아니므로 유지보수를 실행하지 않습니다.')
@@ -288,6 +313,7 @@ def run(force=False):
     result = {
         'dateKst': _kst_now().date().isoformat(),
         'logsTrimmed': trimmed,
+        'orphanTempRemoved': sweep_orphan_temp_files(app_dir),
         'systemLogs': system_logs,
         'newsMomentum': _maintenance_news_momentum(),
         'volumeProfile': _maintenance_volume_profile(),

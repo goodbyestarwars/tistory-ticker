@@ -715,6 +715,8 @@
 
   function loadLightweightCharts() {
     if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
+    // 공용 로더(skin-shell.js)가 있으면 그쪽 약속을 쓴다 - 다른 모듈과 같은 스크립트를 두 번 받지 않는다.
+    if (global.NineUI && global.NineUI.loadChartLibrary) return global.NineUI.loadChartLibrary();
     if (lwcLoadPromise) return lwcLoadPromise;
     lwcLoadPromise = new Promise(function (resolve, reject) {
       var s = document.createElement('script');

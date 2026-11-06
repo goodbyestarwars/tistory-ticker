@@ -1,3 +1,7 @@
+**2026-11-06 중복 정리 1차: 차트 라이브러리 로더 단일화 · 고아 임시파일 정리 · !important 래칫**
+
+점검 결과: ① `quick-indices`·`overnight-market`·`kospi-futures`·`pattern-scan`이 chart-core와 별개로 Lightweight Charts 로더를 각자 보유(같은 스크립트 중복 다운로드 위험). ② `snapshot_io` 임시파일(`.*.tmp`)이 쓰던 프로세스 사망 시 남음(Oracle `.earnings_calendar_store.json.*.tmp` 4MB, 11/1) - 유지보수가 청소하지 않음. ③ `!important` 5,125개(style.css 2,371·market-temp 1,141 등), 최근 30일 +3,412/-2,474. 변경: `NineUI.loadChartLibrary`(skin-shell.js, chart-core와 같은 `__nineChartLoads.lwc` 약속) 추가, 4개 모듈은 이를 우선 사용(없으면 기존 경로 유지, 테스트 하네스용). `maintenance.sweep_orphan_temp_files`(24시간 이상 된 점-시작 `.tmp`만) 추가. `test/test_important_ratchet.py`+`important_baseline.json`: 파일별 !important 증가 시 실패. 검증: node --check, 로컬 서버에서 로더 2회 호출 시 스크립트 태그 1개·같은 객체, pytest 13건. 미완: 직접 `LWC.createChart` 8개 파일의 옵션·테마 통합, 지역 escapeHtml 30곳 → NineUI.escapeHtml, !important 실제 삭제는 화면 검증이 필요해 보류. 배포: master → Pages/VM 자동.
+
 **2026-11-06 종목판 캐시 워머 유지 180초→600초**
 
 목적: 3분 이상 방문이 없던 뒤 첫 방문자가 `/market-board?market=us` 캐시 미스(실측 5.3초, 히트 0.3~0.7초)를 맞던 지연 완화. 변경: `scripts/cloud-vm/main.py` `_MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC` 600, 테스트 기대값 동기화. 영향: 방문 후 10분간 20초 주기로 외부 순위 API 호출 지속(주기·휴장 판정 불변). 검증: 워머 테스트. 배포: master → VM 자동(장중 재시작 금지 규칙은 deploy_check 소관), 반영 후 `/health` 확인 필요.

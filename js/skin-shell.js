@@ -246,7 +246,32 @@
       details.appendChild(row);
     });
   }
-  global.NineUI = { chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, persistPrefs: persistPrefs };
+  /* 차트 라이브러리(Lightweight Charts) 공용 로더. chart-core.js 와 같은 약속(__nineChartLoads.lwc)을 써서
+     화면 모듈 여러 개가 동시에 불러도 스크립트를 한 번만 받는다. 버전은 chart-core.js 의 LWC_URL 과 같아야 한다. */
+  var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
+  function loadChartLibrary() {
+    if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
+    var loads = global.__nineChartLoads = global.__nineChartLoads || {};
+    if (loads.lwc) return loads.lwc;
+    var existing = global.document.querySelector('script[src*="lightweight-charts"]');
+    loads.lwc = new Promise(function (resolve, reject) {
+      function inject() {
+        var tag = global.document.createElement('script');
+        tag.src = LWC_URL; tag.async = true; tag.setAttribute('data-nine-chart', 'lwc');
+        tag.onload = function () { resolve(global.LightweightCharts); };
+        tag.onerror = function () { tag.remove(); loads.lwc = null; reject(new Error('차트 라이브러리 로드 실패')); };
+        global.document.head.appendChild(tag);
+      }
+      function done() { global.LightweightCharts ? resolve(global.LightweightCharts) : inject(); }
+      if (existing) {
+        existing.addEventListener('load', done);
+        existing.addEventListener('error', inject);
+        if (global.LightweightCharts) done();
+      } else inject();
+    });
+    return loads.lwc;
+  }
+  global.NineUI = { chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, persistPrefs: persistPrefs, loadChartLibrary: loadChartLibrary };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 

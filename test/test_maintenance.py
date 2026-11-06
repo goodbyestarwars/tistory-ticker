@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import time
 import unittest
 from datetime import datetime
 
@@ -173,3 +174,18 @@ class RetentionCoverageTests(unittest.TestCase):
         훨씬 길어야 안전하다."""
         import domestic_news
         self.assertGreaterEqual(domestic_news.RETENTION_DAYS, 30)
+
+
+class SweepOrphanTempTests(unittest.TestCase):
+    def test_removes_only_old_dot_tmp_files(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            old, new, keep = (os.path.join(d, n) for n in ('.a.json.x1.tmp', '.b.json.x2.tmp', 'real.json'))
+            for path in (old, new, keep):
+                open(path, 'w').write('x')
+            past = time.time() - 3 * 86400
+            os.utime(old, (past, past))
+            os.utime(keep, (past, past))
+            removed = maintenance.sweep_orphan_temp_files(d)
+            self.assertEqual(removed, ['.a.json.x1.tmp'])
+            self.assertTrue(os.path.exists(new) and os.path.exists(keep))
