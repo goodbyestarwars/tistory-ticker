@@ -282,6 +282,9 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 #auto-trader .at-dl input { box-sizing: border-box; height: 34px; padding: 0 10px; border: 1px solid var(--at-line); border-radius: 8px; background: transparent; color: var(--at-ink); font: inherit; }
 #auto-trader .at-dl input[name="symbol"] { width: 220px; }
 #auto-trader .at-dl input[type="number"] { width: 120px; text-align: right; }
+#auto-trader .at-dl select { box-sizing: border-box; height: 34px; padding: 0 8px; border: 1px solid var(--at-line); border-radius: 8px; background: transparent; color: var(--at-ink); font: inherit; }
+#auto-trader .at-dl label[hidden] { display: none; }
+#auto-trader .at-target-calc { flex-basis: 100%; color: var(--at-ink); font-size: 13px; }
 #auto-trader .at-dl .at-mini { height: 34px; padding: 0 14px; }
 #auto-trader [data-target-form] + .at-note { margin-top: 10px; }
 @media (max-width: 640px) {

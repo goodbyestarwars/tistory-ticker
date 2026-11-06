@@ -18,3 +18,9 @@ assert.equal(context.resolveTargetSymbol('미지원'), undefined);
 assert.equal(context.resolveTargetSymbol('999999'), undefined);
 assert.match(source, /code: stock\.code, price: price, qty: qty/);
 
+// 금액 기준: 투자금액 / 목표가 내림, 남는 금액 표시, 잘못된 입력은 null
+assert.deepEqual({...context.targetQtyFromAmount(58500, 1000000)}, {qty: 17, cost: 994500, rest: 5500});
+assert.equal(context.targetQtyFromAmount(58500, 50000).qty, 0);
+assert.equal(context.targetQtyFromAmount(0, 1000000), null);
+assert.equal(context.targetQtyFromAmount(58500, ''), null);
+assert.match(source, /qty = plan\.qty;/);

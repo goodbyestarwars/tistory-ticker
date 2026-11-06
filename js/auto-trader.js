@@ -893,13 +893,33 @@
     updateTargetSymbols(form);
   }
 
-  var targetDraft = { symbol: '', price: '', qty: '' };
+  // 금액 기준 주문: 투자금액 / 목표가를 내림한 주 수만 보낸다(주문 계약은 기존 qty 그대로).
+  function targetQtyFromAmount(price, amount) {
+    price = Number(price); amount = Number(amount);
+    if (!(price > 0) || !(amount > 0)) return null;
+    var qty = Math.floor(amount / price);
+    return { qty: qty, cost: qty * price, rest: amount - qty * price };
+  }
+
+  var targetDraft = { symbol: '', price: '', qty: '', mode: 'amount', amount: '' };
+  function targetCalcHtml(d) {
+    var price = Number(d.price);
+    if (d.mode === 'amount') {
+      var r = targetQtyFromAmount(price, d.amount);
+      if (!r) return '목표가와 투자금액을 넣으면 주문 수량을 계산합니다.';
+      if (r.qty < 1) return '<span class="at-warn-text">투자금액이 목표가 1주보다 적습니다.</span>';
+      return '주문 <b>' + fmtWon(r.qty) + '주</b> · 예상 주문금액 ' + fmtWon(r.cost) + '원 · 남는 금액 ' + fmtWon(r.rest) + '원';
+    }
+    var qty = Number(d.qty);
+    return price > 0 && qty > 0 ? '예상 주문금액 <b>' + fmtWon(price * qty) + '원</b>' : '목표가와 수량을 넣으면 주문금액을 계산합니다.';
+  }
   function targetBuyHtml(c) {
     var vm = c.vm || {};
     if (!(vm.capabilities || []).includes('target-buy-v1')) {
       return '<section class="at-card"><div class="at-hd"><h3>목표가 매수</h3></div><p class="at-empty">실계좌 목표가 매수 비활성</p></section>';
     }
     var locked = busy || c.pending ? ' disabled' : '';
+    var amountMode = targetDraft.mode !== 'qty';
     var states = { WAIT: '감시 대기', CANCELLED: '취소', ATTEMPTED: '주문 확인 필요', ACK: '접수 · 체결 확인 전', UNKNOWN: '주문 확인 필요' };
     var rows = (vm.targetBuys || []).map(function (row) {
       return '<tr><td>' + actName(row) + '</td><td class="n">' + fmtPrice(row.price) + '</td><td class="n">' + esc(row.qty)
@@ -909,9 +929,12 @@
     return '<section class="at-card at-act"><div class="at-hd"><h3>목표가 매수</h3><span class="at-sub">당일 14:00 KST 만료</span></div>'
       + '<form class="at-dl" data-target-form><label>종목명·코드 <input name="symbol" list="at-target-symbols" autocomplete="off" placeholder="예: 삼성전자 또는 005930" required value="' + esc(targetDraft.symbol) + '"></label><datalist id="at-target-symbols"></datalist>'
       + '<label>목표가(원) <input name="price" type="number" min="1" max="10000000" step="1" required value="' + esc(targetDraft.price) + '"></label>'
-      + '<label>수량(주) <input name="qty" type="number" min="1" max="100000" step="1" required value="' + esc(targetDraft.qty) + '"></label>'
-      + '<button class="at-mini" type="submit"' + locked + '>조건 등록</button></form>'
-      + '<p class="at-note">목표가 이하에서 등록 가격으로 지정가 주문을 한 번 시도합니다. 조건 취소는 제출 전 감시만 취소합니다.</p>'
+      + '<label>주문 기준 <select name="mode"><option value="amount"' + (amountMode ? ' selected' : '') + '>금액</option><option value="qty"' + (amountMode ? '' : ' selected') + '>수량</option></select></label>'
+      + '<label data-target-amount' + (amountMode ? '' : ' hidden') + '>투자금액(원) <input name="amount" type="number" min="1" max="1000000000" step="1" inputmode="numeric" required' + (amountMode ? '' : ' disabled') + ' value="' + esc(targetDraft.amount) + '"></label>'
+      + '<label data-target-qty' + (amountMode ? ' hidden' : '') + '>수량(주) <input name="qty" type="number" min="1" max="100000" step="1" required' + (amountMode ? ' disabled' : '') + ' value="' + esc(targetDraft.qty) + '"></label>'
+      + '<button class="at-mini" type="submit"' + locked + '>조건 등록</button>'
+      + '<output class="at-target-calc" data-target-calc aria-live="polite">' + targetCalcHtml(targetDraft) + '</output></form>'
+      + '<p class="at-note">목표가 이하에서 등록 가격으로 지정가 주문을 한 번 시도합니다. 금액 기준은 투자금액 ÷ 목표가를 내림한 주 수로 등록하며 수수료·세금은 빠져 있습니다. 조건 취소는 제출 전 감시만 취소합니다.</p>'
       + (rows ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th>목표가</th><th>수량</th><th>상태</th><th>관리</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '')
       + '</section>';
   }
@@ -922,7 +945,7 @@
     lastError = '';
     renderControl(lastControl);
     controlRequest('/autotrader/command', body).then(function () {
-      if (body.action === 'target-add') targetDraft = { symbol: '', price: '', qty: '' };
+      if (body.action === 'target-add') targetDraft = { symbol: '', price: '', qty: '', mode: targetDraft.mode, amount: '' };
     }).catch(function () {
       lastError = '목표가 조건 요청을 보내지 못했습니다.';
       global.alert(lastError);
@@ -941,7 +964,21 @@
     if (targetForm) {
       bindTargetSymbolSearch(targetForm);
       loadKrxMap();
-      targetForm.addEventListener('input', function (event) { targetDraft[event.target.name] = event.target.value; });
+      var syncTargetMode = function () {
+        var amountMode = targetDraft.mode !== 'qty';
+        targetForm.querySelector('[data-target-amount]').hidden = !amountMode;
+        targetForm.querySelector('[data-target-qty]').hidden = amountMode;
+        targetForm.elements.amount.disabled = !amountMode;
+        targetForm.elements.qty.disabled = amountMode;
+      };
+      var onTargetInput = function (event) {
+        if (!event.target.name) return;
+        targetDraft[event.target.name] = event.target.value;
+        if (event.target.name === 'mode') syncTargetMode();
+        targetForm.querySelector('[data-target-calc]').innerHTML = targetCalcHtml(targetDraft);
+      };
+      targetForm.addEventListener('input', onTargetInput);
+      targetForm.addEventListener('change', onTargetInput);
       targetForm.addEventListener('submit', function (event) {
         event.preventDefault();
         var input = targetForm.elements.symbol;
@@ -951,8 +988,19 @@
           input.reportValidity();
           return;
         }
-        var price = Number(targetForm.elements.price.value), qty = Number(targetForm.elements.qty.value);
-        if (global.confirm(stock.name + ' (' + stock.code + ') · ' + price + '원 · ' + qty + '주 목표가 조건을 등록할까요? 조건이 맞으면 실계좌 주문이 제출됩니다.')) {
+        var price = Number(targetForm.elements.price.value), qty = Number(targetForm.elements.qty.value), basis = '';
+        if (targetDraft.mode !== 'qty') {
+          var amountInput = targetForm.elements.amount, plan = targetQtyFromAmount(price, amountInput.value);
+          if (!plan || plan.qty < 1 || plan.qty > 100000) {
+            amountInput.setCustomValidity(plan && plan.qty > 100000 ? '한 번에 100,000주까지 등록할 수 있습니다.' : '투자금액이 목표가 1주보다 적습니다.');
+            amountInput.reportValidity();
+            amountInput.setCustomValidity('');
+            return;
+          }
+          qty = plan.qty;
+          basis = '투자금액 ' + fmtWon(Number(amountInput.value)) + '원 기준 · ';
+        }
+        if (global.confirm(stock.name + ' (' + stock.code + ') · ' + basis + fmtWon(price) + '원 × ' + fmtWon(qty) + '주 = 약 ' + fmtWon(price * qty) + '원\n목표가 조건을 등록할까요? 조건이 맞으면 실계좌 주문이 제출됩니다.')) {
           sendTargetCommand({ action: 'target-add', code: stock.code, price: price, qty: qty });
         }
       });
