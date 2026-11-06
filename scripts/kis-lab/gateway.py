@@ -9,7 +9,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 PREFIX = '/kis-tool'
 SITE_ORIGIN = 'https://goodbyestar.cloud'
 AUTH_URL = 'http://127.0.0.1:8080/auth/google/me'
-UPSTREAMS = {'builder': 'http://127.0.0.1:18300', 'backtest': 'http://127.0.0.1:18301'}
+# 2026-11-07 웹 백테스터 제거(백테스트는 Lab 명령 실행). 전략 빌더만 중계한다.
+UPSTREAMS = {'builder': 'http://127.0.0.1:18300'}
+API_PORTS = {'builder': '18800'}
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=['https://ghlee.tistory.com'],
                    allow_credentials=True, allow_methods=['GET'], allow_headers=[])
@@ -69,7 +71,7 @@ async def gateway(request: Request, path: str):
     if len(body) > 20 * 1024 * 1024:
         return Response(status_code=413)
     if tail.startswith('/api/'):
-        target = 'http://127.0.0.1:' + ('18800' if part == 'builder' else '18802') + tail
+        target = 'http://127.0.0.1:' + API_PORTS[part] + tail
     else:
         target = UPSTREAMS[part] + PREFIX + '/' + path
     if request.url.query:

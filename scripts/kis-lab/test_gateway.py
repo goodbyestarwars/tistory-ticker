@@ -35,7 +35,7 @@ class GatewayTests(unittest.TestCase):
         self.mock.stop()
 
     def test_anonymous_cannot_read_ui_assets_or_api(self):
-        for path in ('backtest/backtest', 'builder/_next/static/app.js', 'backtest/api/strategies'):
+        for path in ('builder/builder', 'builder/_next/static/app.js', 'builder/api/strategies'):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get('/kis-tool/' + path).status_code, 403)
         self.assertFalse(self.calls)
@@ -73,11 +73,19 @@ class GatewayTests(unittest.TestCase):
         self.assertNotIn('cookie',self.calls[-1].headers)
         self.assertNotIn('authorization',self.calls[-1].headers)
         self.assertNotIn('set-cookie',r.headers)
-        self.client.get('/kis-tool/backtest/api/strategies', headers=self.headers)
-        self.assertEqual(str(self.calls[-1].url),'http://127.0.0.1:18802/api/strategies')
+        self.client.get('/kis-tool/builder/api/strategies', headers=self.headers)
+        self.assertEqual(str(self.calls[-1].url),'http://127.0.0.1:18800/api/strategies')
+
+    def test_backtester_removed(self):
+        n = len(self.calls)
+        for path in ('backtest/backtest','backtest/api/strategies','backtest/api/backtest/run'):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get('/kis-tool/'+path,headers=self.headers).status_code,404)
+        self.assertFalse(any('18301' in str(r.url) or '18802' in str(r.url) for r in self.calls[n:]))
+        self.assertNotIn('backtest',self.client.get('/kis-tool/',headers=self.headers).text)
 
     def test_orders_and_broker_mutations_blocked(self):
-        for path in ('builder/api/orders/execute','builder/api/orders/cancel','backtest/api/account/info','builder/api/auth/login','backtest/api/symbols/collect'):
+        for path in ('builder/api/orders/execute','builder/api/orders/cancel','builder/api/account/info','builder/api/auth/login','builder/api/symbols/collect'):
             with self.subTest(path=path):
                 r = self.client.post('/kis-tool/'+path, headers={**self.headers,'Origin':gateway.SITE_ORIGIN},json={})
                 self.assertEqual(r.status_code,403)
@@ -87,8 +95,8 @@ class GatewayTests(unittest.TestCase):
         for origin in ('https://attacker.example',None):
             headers = dict(self.headers)
             if origin: headers['Origin']=origin
-            self.assertEqual(self.client.post('/kis-tool/backtest/api/backtest/run',headers=headers,json={}).status_code,403)
-        self.assertEqual(self.client.post('/kis-tool/backtest/api/backtest/run',headers={**self.headers,'Origin':gateway.SITE_ORIGIN},json={}).status_code,200)
+            self.assertEqual(self.client.post('/kis-tool/builder/api/strategies',headers=headers,json={}).status_code,403)
+        self.assertEqual(self.client.post('/kis-tool/builder/api/strategies',headers={**self.headers,'Origin':gateway.SITE_ORIGIN},json={}).status_code,200)
 
     def test_traversal_and_unknown_upstream(self):
         for path in ('builder/%252e%252e/auth','builder/a%255cb','https://external.example'):
