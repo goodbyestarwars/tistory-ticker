@@ -6,6 +6,7 @@ on:
       - 'scripts/cloud-vm/autotrader_control.py'
       - 'test/test_autotrader_control.py'
       - 'js/auto-trader.js'
+      - 'test/test_autotrader_activity_names.cjs'
       - '.github/workflows/autotrader-control-regression.yml'
   workflow_dispatch:
 
@@ -24,3 +25,4 @@ jobs:
       - run: python -m py_compile scripts/cloud-vm/autotrader_control.py
       - run: python test/test_autotrader_control.py
       - run: node --check js/auto-trader.js
+      - run: node test/test_autotrader_activity_names.cjs
