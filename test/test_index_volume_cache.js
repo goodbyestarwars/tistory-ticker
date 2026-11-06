@@ -7,8 +7,9 @@ function fixture(){
   let now=100000,requests=[];
   const code=source.slice(source.indexOf('  function loadIndexVolume('),source.indexOf('  function renderIndexChart('));
   const context=vm.createContext({Promise,Date:{now:()=>now},isFinite,Object,Number,String,
+    indexChartRows: rows => rows.filter(row => row.open > 0),
     fetchJson:url=>new Promise((resolve,reject)=>requests.push({url,resolve,reject}))});
-  vm.runInContext(code+';globalThis.api={ensureIndexVolume,applyIndexVolume,indexVolumeState};',context);
+  vm.runInContext(code+';globalThis.api={ensureIndexVolume,applyIndexVolume,indexVolumeState,appendCurrentIndexBar};',context);
   return {api:context.api,requests,advance(ms){now+=ms;}};
 }
 const payload=(date,value,meta={})=>({data:{source:'kis',rows:[{date,volume:value}],cache:meta}});
@@ -48,4 +49,24 @@ test('callbacks guard full opening generation, including A to B to A; volume res
   const volume=open.slice(open.indexOf('    function refreshVolume()'),open.indexOf('    function refresh()'));
   assert.match(volume,/indexOpenId !== stockSearchRequestId/);assert.match(volume,/indexVolumeUpdate\(\)/);
   assert.doesNotMatch(volume,/renderIndexChart\(/);
+});
+
+test('reuses the KIS OHLC row when the quote history stops at the previous close',async()=>{
+  const f=fixture();
+  const pending=f.api.ensureIndexVolume('KOSPI',()=>{});
+  const today='2026-11-06', yesterday='2026-11-05';
+  const row={date:today,open:5263.26,high:5269.10,low:4911.28,close:4974.92,volume:55117};
+  f.requests[0].resolve({data:{source:'kis',rows:[row],cache:{}}});
+  await pending;
+  const latest=f.api.indexVolumeState.KOSPI.latest;
+  const bars=[{date:yesterday,close:5383.8}];
+  f.api.appendCurrentIndexBar(bars,latest,today);
+  assert.equal(bars.length,2);
+  assert.equal(bars[0].close,5383.8);
+  assert.equal(bars[1].open,row.open);
+  assert.equal(bars[1].volume,row.volume);
+  f.api.appendCurrentIndexBar(bars,latest,today);
+  f.api.appendCurrentIndexBar(bars,latest,'2026-11-09');
+  assert.equal(bars.length,2);
+  assert.equal(f.requests.length,1);
 });

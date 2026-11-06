@@ -27,6 +27,7 @@
   var socketGeneration = 0;
   var staleTimer = null;
   var dmiRoot = null;
+  var nextDayRefresh = 0;
 
   function resizeDmiCharts() {
     global.requestAnimationFrame(function () {
@@ -108,6 +109,24 @@
     if (reconnect) scheduleReconnect();
   }
 
+  function refreshDayBars() {
+    var now = Date.now();
+    if (now < nextDayRefresh) return;
+    nextDayRefresh = now + 30000;
+    var root = dmiRoot;
+    fetchJson().then(function (data) {
+      if (root !== dmiRoot) return;
+      var indices = root._dmiData.indices;
+      Object.keys(data.indices || {}).forEach(function (market) {
+        var day = data.indices[market].intervals && data.indices[market].intervals.day;
+        if (indices[market] && indices[market].intervals && day && day.rows && day.rows.length) {
+          indices[market].intervals.day = day;
+        }
+      });
+      renderCharts(root, indices);
+    }).catch(function () {});
+  }
+
   function applyLiveSnapshot(packet) {
     if (!dmiRoot || !dmiRoot._dmiData || !Array.isArray(packet.data)) return;
     var data = dmiRoot._dmiData;
@@ -120,14 +139,18 @@
       index.quote.change = quote.change;
       index.quote.change_rate = quote.change_rate;
       index.quote.updated_at = quote.updated_at;
-      Object.keys(index.intervals).forEach(function (interval) {
-        var rows = index.intervals[interval].rows || [];
-        if (!rows.length) return;
-        var last = rows[rows.length - 1];
-        last.close = quote.price;
-        last.high = Math.max(Number(last.high) || quote.price, quote.price);
-        last.low = Math.min(Number(last.low) || quote.price, quote.price);
-      });
+      var daily = index.intervals.day && index.intervals.day.rows || [];
+      var last = daily[daily.length - 1];
+      var quoteTime = Date.parse(quote.updated_at);
+      if (!last || !isFinite(quoteTime)) return;
+      var quoteDay = new Date(quoteTime + KST_OFFSET_SEC * 1000).toISOString().slice(0, 10);
+      if (last.date !== quoteDay) {
+        if (last.date < quoteDay) refreshDayBars();
+        return;
+      }
+      last.close = quote.price;
+      last.high = Math.max(Number(last.high) || quote.price, quote.price);
+      last.low = Math.min(Number(last.low) || quote.price, quote.price);
     });
     renderCharts(dmiRoot, data.indices || {});
     renderSpotQuotes(dmiRoot, data.indices || {});
@@ -553,7 +576,11 @@
     if (global.MarketChartHistory) {
       var note = element.parentNode.querySelector('.market-history-caption');
       if (!note) { note=document.createElement('small'); note.className='market-history-caption'; element.insertAdjacentElement('afterend',note); }
-      note.textContent=interval === 'minute' ? '최근 분봉' : global.MarketChartHistory.caption(rows);
+      var lastRow = rows && rows[rows.length - 1];
+      var lastMinute = lastRow && Number(lastRow.ts);
+      note.textContent = interval === 'minute'
+        ? (lastMinute > 0 ? '마지막 분봉 · ' + new Date((lastMinute + KST_OFFSET_SEC) * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' KST' : '분봉 시각 미확인')
+        : global.MarketChartHistory.caption(rows);
     }
     var points = (rows || []).map(function (row) {
       var point = pointFor(row, interval);

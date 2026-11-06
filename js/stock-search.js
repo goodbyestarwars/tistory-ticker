@@ -1046,7 +1046,9 @@
           var d = String(r.date || '').replace(/-/g, '');
           if (/^\d{8}$/.test(d) && r.volume != null && isFinite(Number(r.volume)) && Number(r.volume) >= 0) map[d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6)] = Number(r.volume);
         });
-        return {map: Object.keys(map).length ? map : null, meta: data.cache || {asOf: (data.rows || []).slice(-1)[0] && data.rows.slice(-1)[0].date}};
+        var latest = indexChartRows((data.rows || []).slice(-1))[0];
+        return {map: Object.keys(map).length ? map : null, latest: latest,
+          meta: data.cache || {asOf: (data.rows || []).slice(-1)[0] && data.rows.slice(-1)[0].date}};
       });
   }
   // Independent per-index cache and shared pending requests. Empty backfill
@@ -1059,6 +1061,7 @@
     if (!st.job && Date.now() >= st.next) {
       st.job = loadIndexVolume(symbol).then(function (result) {
         if (result.map) st.map = result.map;
+        if (result.latest) st.latest = result.latest;
         st.meta = result.meta;
         st.next = Date.now() + Math.max(1000, Number(st.meta.retryAfterMs) || 60000);
       }).catch(function () {
@@ -1078,6 +1081,12 @@
   function applyIndexVolume(bars, volumeMap) {
     if (!volumeMap) return bars;
     bars.forEach(function (bar) { if (Object.prototype.hasOwnProperty.call(volumeMap, bar.date)) bar.volume = volumeMap[bar.date]; });
+    return bars;
+  }
+
+  function appendCurrentIndexBar(bars, latest, today) {
+    var last = bars[bars.length - 1];
+    if (latest && latest.date === today && (!last || last.date < today)) bars.push(Object.assign({}, latest));
     return bars;
   }
 
@@ -1313,13 +1322,21 @@
       Promise.all([
         fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500'),
         loadIndexHistory(row.code).catch(function () { return null; })
-      ]).then(function (results) {
+      ]).then(async function (results) {
           var body = results[0], history = results[1];
-          var volumeMap = indexVolumeState[row.code] && indexVolumeState[row.code].map;
           if (indexOpenId !== stockSearchRequestId || state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
           var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
           if (!item) throw new Error('index missing');
-          var bars = applyIndexVolume(indexChartRows(indexThreeYearRows(row.code, item.chart, history)), volumeMap);
+          var bars = indexChartRows(indexThreeYearRows(row.code, item.chart, history));
+          var today = kstToday();
+          var volumeState = indexVolumeState[row.code];
+          // The quote endpoint may still end at the previous close. Reuse the
+          // actual OHLC in the existing KIS volume request for the current bar.
+          var last = bars[bars.length - 1];
+          if (volumeState && (!last || last.date < today) && volumeState.job) await volumeState.job;
+          if (indexOpenId !== stockSearchRequestId || state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
+          appendCurrentIndexBar(bars, volumeState && volumeState.latest, today);
+          applyIndexVolume(bars, volumeState && volumeState.map);
           if (panel.querySelector('.ss-index-heading')) {
             var quote = panel.querySelector('.ss-index-quote');
             var note = panel.querySelector('.ss-index-note');
@@ -1419,7 +1436,6 @@
             });
           });
           indexBars = bars;
-          var volumeState = indexVolumeState[row.code];
           if (volumeState) { var status = panel.querySelector('[data-index-volume-status]'); if (status) status.textContent = indexVolumeStatus(volumeState.meta); }
           if (bars.length) renderIndexChart(panel, row.code);
           else panel.querySelector('#ssIndexChart').textContent = '차트 이력이 없습니다.';
