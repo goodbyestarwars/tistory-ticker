@@ -835,17 +835,10 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
-        + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span>'
-        + '<div class="hmb-metric-controls" data-home-metric-controls hidden><span>최근 20거래일</span>'
-        + homeModeSegment('data-home-metric-mode', 'area', '시장 지표 그래프 표시 방식') + '</div></div>'
+        // 2026-11-07 사용자 요청: 국내 모드의 '시장 핵심 지표'를 나눠 투자자 동향은 이 자리에 두고,
+        // 원/달러·KOSPI200 주간선물은 경제 종합뉴스 아래 '시장 보조 지표'(#homeMarketAux)로 옮긴다.
+        + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">투자자 동향</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list hmb2-core">'
-        + '<div class="hmb2-fx"><dt>원/달러</dt><div class="hmb2-quote"><dd data-market-field="exchange">데이터 확인 중</dd></div>'
-        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="USDKRW" aria-label="원/달러 최근 거래일 추이"></div>'
-        + '<small class="hmb-metric-asof" data-home-metric-asof="USDKRW">기준시각 확인 중</small></div>'
-        + '<div class="hmb2-day-futures" data-home-day-futures aria-label="코스피200 주간선물 시세"><dt class="hmb2-day-heading"><span>KOSPI200 주간선물</span><small data-home-day-field="status">확인 중</small></dt>'
-        + '<div class="hmb2-quote"><dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small></div>'
-        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div>'
-        + '<small class="hmb-metric-asof" data-home-day-field="time">기준시각 확인 중</small></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 당일 누적 순매수 비교">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt>'
         + '<div class="hmb-investor-mini-legend" data-home-investor-mini-legend><span class="hmb-mini-period">당일 누적 순매수</span>'
@@ -882,6 +875,20 @@ document.documentElement.classList.add('skin-ready');
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</section>'
+        // 2026-11-07 시장 보조 지표(국내 모드 전용): 원/달러·KOSPI200 주간선물 2열과 20거래일 [면적][막대] 공통 버튼.
+        // 기존 data-market-field·data-home-day-*·data-home-metric-* 계약과 렌더러를 그대로 쓰고 위치만 종합뉴스 아래로 옮겼다.
+        + '<section class="home-market-aux ui-content-block" id="homeMarketAux" data-home-market-aux aria-label="시장 보조 지표"><div class="hmb-summary-head"><strong class="ui-section-title">시장 보조 지표</strong>'
+        + '<div class="hmb-metric-controls" data-home-metric-controls hidden><span>최근 20거래일</span>'
+        + homeModeSegment('data-home-metric-mode', 'area', '시장 지표 그래프 표시 방식') + '</div></div>'
+        + '<dl class="hmb-list hmb2-core">'
+        + '<div class="hmb2-fx"><dt>원/달러</dt><div class="hmb2-quote"><dd data-market-field="exchange">데이터 확인 중</dd></div>'
+        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="USDKRW" aria-label="원/달러 최근 거래일 추이"></div>'
+        + '<small class="hmb-metric-asof" data-home-metric-asof="USDKRW">기준시각 확인 중</small></div>'
+        + '<div class="hmb2-day-futures" data-home-day-futures aria-label="코스피200 주간선물 시세"><dt class="hmb2-day-heading"><span>KOSPI200 주간선물</span><small data-home-day-field="status">확인 중</small></dt>'
+        + '<div class="hmb2-quote"><dd data-home-day-field="price">확인 중</dd><small class="hmb-day-futures-change" data-home-day-field="change">-</small></div>'
+        + '<div class="home-index-chart hmb2-metric-chart" data-home-metric-chart="KOSPI200_DAY" aria-label="코스피200 주간선물 최근 거래일 추이"></div>'
+        + '<small class="hmb-metric-asof" data-home-day-field="time">기준시각 확인 중</small></div>'
+        + '</dl></section>'
         // 2026-11-04 코스피200 야간선물 독립 카드: 경제 종합뉴스 바로 아래(같은 열, 미국 모드에서만). 기존 data-market-field·차트 계약을 그대로 옮겼다.
         + '<section class="home-night-content ui-content-block" data-home-night-futures hidden aria-label="KOSPI200 야간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 야간선물</strong><span data-night-field="status">확인 중</span></div>'
         + '<div class="ui-kpi-value-row"><strong data-market-field="nightFutures">데이터 확인 중</strong></div>'
@@ -897,7 +904,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261105-day-futures-compact';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261107-market-aux';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -943,7 +950,9 @@ document.documentElement.classList.add('skin-ready');
       // 국내 장이 열려 있을 시간대라 다음날 코스피 방향을 가늠할 수 있는 코스피 야간선물을
       // 그 빈 칸에 채운다(국내 시장 요약에서는 이미 투자자 동향이 있어 굳이 안 보여줌).
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
-      if (title) title.textContent = isUs ? '글로벌 지수' : '시장 핵심 지표';
+      if (title) title.textContent = isUs ? '글로벌 지수' : '투자자 동향';
+      var marketAux = dashboardSection.querySelector('[data-home-market-aux]');
+      if (marketAux) marketAux.hidden = isUs;
       if (meta) {
         meta.textContent = '지표별 수집 시각';
         meta.hidden = !isUs;
@@ -974,8 +983,8 @@ document.documentElement.classList.add('skin-ready');
       if (domesticRotation) domesticRotation.hidden = isUs;
       var globalBlock = dashboardSection.querySelector('[data-home-global]');
       if (globalBlock) globalBlock.hidden = !isUs;
-      // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(기존 핵심 지표 목록은 국내 모드 전용).
-      var coreList = dashboardSection.querySelector('.hmb2-core');
+      // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(투자자 동향 목록은 국내 모드 전용).
+      var coreList = dashboardSection.querySelector('#homeMarketBoard .hmb2-core');
       if (coreList) coreList.hidden = isUs;
       if (!isUs) renderHomeDayFutures(homeDayFutureQuote, false);
       if (isUs) { loadHomeUsRotation(); renderHomeUsPanels(); }
