@@ -1,3 +1,7 @@
+**2026-11-07 자동매매 슬롯형+위험한도 배분(계산·미리보기, 실계좌 값 불변)**
+
+목적: 금액당 1종목 방식은 가격대(1주>한도면 매수 불가)·흔들림 차이를 반영 못 함 → 사용자 선택 "슬롯형 + 위험한도". 변경: `quant-autotrade/local_bot/live_sizing.py` 신설(종목 한도·현금·남은 예산·위험한도 중 최소 ÷ 현재가, 위험한도 = 예산×% ÷ max(비상손절 5%, 20봉 평균 고저폭, 모르면 8%)), `live_engine.py`·`ninepay_trade.py` 수량 계산을 이 모듈로(기본 `SLOTS/RISK_PCT/CARRY`=None/None/False라 기존 수량과 동일, 장부 `note.sizing` 추가), `bot.py` 정책 표시에 allocation, `js/auto-trader.js` 운영센터 "종목 배분 미리보기"(서버 전송 없음). 설계 `quant-autotrade/docs/SLOT_RISK_ALLOCATION_2026-11-07.md`. 검증: `test_live_sizing.py`(기존 공식과 3,000건 일치 포함)·기존 엔진 테스트 포함 126개 통과, `test_autotrader_allocation.cjs`(JS=Python 40건)·`test_autotrader_activity_names.cjs` 통과, 로컬 하네스 PC/375px 확인. 미완료: 값 결정·비공개 운영본/Google VM 반영·웹 설정 변경 명령은 별도 승인. 배포: 병합 보류(자동매매 병합은 명시 승인).
+
 **2026-11-07 !important 929개 제거 되돌림 (`e8682338` revert)**
 
 현상: 증시온도 '시장 브리핑' 결론 박스가 모서리 직각·안쪽 여백 0·배경 투명·파란 테두리만 남고, 항목 번호 원이 글자와 겹침(모바일 실화면 캡처). 원인: `@layer np.np` 안의 규칙은 레이어 밖 규칙(`#market-temp .mt-tm-verdict{padding:0;border-radius:0;background:transparent}`·`style.css`의 `*{margin:0;padding:0}`)에 !important 없이는 지므로, '불필요' 판정으로 제거한 레이어 안 !important가 필요했음. 변경: `e8682338` 전체 revert(css/market-temp.css·style.css·test/important_baseline.json). 검증: 운영 모바일 계산 스타일로 재현(padding 0·radius 0·display flex), 되돌린 뒤 재확인은 아래 배포 후. 후속: 제거 재시도는 레이어 밖/안을 구분하고 레이어 안 규칙은 제외하며 렌더링 대상에 브리핑 확정 상태·번호 목록을 포함할 것.

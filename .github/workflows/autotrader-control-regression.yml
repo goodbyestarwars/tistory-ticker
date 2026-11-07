@@ -7,6 +7,10 @@ on:
       - 'test/test_autotrader_control.py'
       - 'js/auto-trader.js'
       - 'test/test_autotrader_activity_names.cjs'
+      - 'test/test_autotrader_allocation.cjs'
+      - 'test/autotrader_allocation_vectors.json'
+      - 'quant-autotrade/local_bot/live_sizing.py'
+      - 'quant-autotrade/local_bot/test_live_sizing.py'
       - '.github/workflows/autotrader-control-regression.yml'
   workflow_dispatch:
 
@@ -26,3 +30,5 @@ jobs:
       - run: python test/test_autotrader_control.py
       - run: node --check js/auto-trader.js
       - run: node test/test_autotrader_activity_names.cjs
+      - run: node test/test_autotrader_allocation.cjs
+      - run: python quant-autotrade/local_bot/test_live_sizing.py

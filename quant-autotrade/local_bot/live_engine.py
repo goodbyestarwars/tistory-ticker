@@ -9,15 +9,21 @@ import json
 import os
 import re
 import sqlite3
+import sys
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+
+import live_sizing
 
 KST = timezone(timedelta(hours=9))
 BUDGET = 1_000_000
 RESERVE = 100_000
-# 2026-10-22 user rule: budget <=1M -> 1 stock, <=2M -> 2 stocks, <=3M -> 3 stocks (one stock per started 1M).
-MAX_STOCKS = -(-BUDGET // 1_000_000)
-PER_STOCK = (BUDGET - RESERVE) // MAX_STOCKS  # reserve is taken once from the whole budget
+# 2026-11-07 슬롯형+위험한도 배분(live_sizing.py). 아래 기본값(None/None/False)은 2026-10-22 규칙과 같다:
+# budget <=1M -> 1 stock, <=2M -> 2 stocks (one stock per started 1M), reserve taken once from the whole budget.
+# 값을 바꾸는 것은 실계좌 정책 변경이므로 별도 구체 승인 없이는 바꾸지 않는다.
+SLOTS = None          # None = 100만 원당 1종목 자동
+RISK_PCT = None       # None = 위험한도 끔. 예: 3.0 = 1종목 손절 시 예상 손실을 예산의 3%로 제한
+CARRY = False         # True = 앞 종목이 슬롯을 덜 쓰면 남은 금액을 남은 슬롯에 나눠 준다
 # Conservative round-trip cost allowance until actual account fees/taxes are verified.
 COST_PCT = 0.7
 CODE_RE = re.compile(r'^\d{6}$')
@@ -74,6 +80,15 @@ EMERGENCY_STOP_PCT = 5.0
 TRAIL_ARM_PCT = 3.0
 TRAIL_PCT = 2.5
 CONFIRM_CHECKS = 2
+
+ALLOCATION = live_sizing.plan(BUDGET, RESERVE, SLOTS, RISK_PCT, CARRY, risk_floor_pct=EMERGENCY_STOP_PCT)
+MAX_STOCKS = ALLOCATION['slots']
+PER_STOCK = ALLOCATION['per_stock']
+
+
+def entry_size(price, cash, committed, slots_used, range_pct=None):
+    """신규 1종목 수량(live_sizing.size_entry). 호출 시점의 모듈 상수를 읽어 MAX_STOCKS=None(무제한) 계약을 유지한다."""
+    return live_sizing.size_entry(live_sizing.from_policy(sys.modules[__name__]), price, cash, committed, slots_used, range_pct)
 
 
 def exit_decision(price, avg, peak, hits):
@@ -384,16 +399,20 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None, *,
         if price >= _number(base) * 1.02:
             ledger.skip(today, code, 'GAP_UP_OVER_2PCT', 'price=%s base=%s' % (price, base))
             continue
-        qty = min(PER_STOCK, cash - RESERVE, BUDGET - RESERVE - committed) // int(price)
-        if qty < 1 or qty * int(price) > PER_STOCK:
-            ledger.skip(today, code, 'QTY_OR_PER_STOCK_LIMIT', 'price=%s qty=%s' % (price, qty))
+        range_pct = live_sizing.avg_range_pct(
+            [b for b in get_daily(code) if b['date'] <= scan_date]) if RISK_PCT else None
+        size = entry_size(price, cash, committed, slots_used, range_pct)
+        qty = size['qty']
+        if qty < 1:
+            ledger.skip(today, code, 'QTY_OR_PER_STOCK_LIMIT', 'price=%s qty=%s limit=%s' % (price, qty, size['limit']))
             continue
         note = {'rank': rank, 'ranked_total': len(ranked), 'scanner': scanner,
                 'priority_group': priority_group, 'candidate_pool_by_group': pool_counts, 'scan_date': scan_date,
                 'base': base, 'entry_vs_base_pct': round((price / _number(base) - 1) * 100, 2) if _number(base) else None,
                 'score': {'traded_value_eok': round(score[0] * 10, 2), 'avg_value_eok': round(score[1] * 10, 2),
                           'volatility_penalty': round(score[2], 4), 'trend_vs_20d': round(score[3], 4)},
-                'slots_used': slots_used, 'candidates': len(candidate_rows)}
+                'slots_used': slots_used, 'candidates': len(candidate_rows),
+                'sizing': {k: size[k] for k in ('limit', 'slot_cap', 'risk_cap', 'move_pct', 'range_pct', 'worst_loss')}}
         intent = ledger.reserve(code, 'BUY', qty, int(price), reason='ENTRY', note=note)
         result = client.buy_limit(code, qty, int(price))
         ledger.acknowledge(intent, result)
