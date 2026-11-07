@@ -103,4 +103,18 @@ class ShapeSelection(unittest.TestCase):
         self.assertEqual(live['generatedAt'],original['generatedAt'])
         self.assertIs(live['shapeSelection'],result)
 
+    def test_record_tracks_uses_separate_keys_and_is_idempotent(self):
+        import sqlite3
+        conn=sqlite3.connect(':memory:')
+        conn.execute('CREATE TABLE daily_prices (code TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume REAL)')
+        for r in self.rows:conn.execute('INSERT INTO daily_prices VALUES (?,?,?,?,?,?,?)',('123450',r['date'],r['open'],r['high'],r['low'],r['close'],r['volume']))
+        row=dict(code='123450',name='일반기업',price=10000,score=80,patternDetail={'status':'SHAPE_FORMING','support':9990})
+        groups={k:[] for k in self.module.GROUPS};groups['pullbackRebreak']=[row];groups['bottomFormation']=[dict(row)]
+        snap=dict(dataDate='2026-10-24',groups=groups)
+        self.assertEqual(self.module.record_tracks(snap,conn=conn)['pullbackRebreak'],1)
+        self.assertEqual(sum(self.module.record_tracks(snap,conn=conn).values()),0)
+        keys=sorted(r[0] for r in conn.execute('SELECT scanner FROM pattern_tracks'))
+        self.assertEqual(keys,['pattern:shape:bottomFormation','pattern:shape:pullbackRebreak'])
+        self.assertEqual(conn.execute("SELECT detected_date,detected_close,status FROM pattern_tracks WHERE scanner='pattern:shape:pullbackRebreak'").fetchone(),('2026-10-24',10000.0,'NEW'))
+
 if __name__=='__main__':unittest.main()
