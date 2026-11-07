@@ -249,6 +249,10 @@ def _read_live_policy(path):
         spec.loader.exec_module(mod)
         policy = {'budget': int(mod.BUDGET), 'reserve': int(mod.RESERVE), 'per_stock': int(mod.PER_STOCK),
                   'max_stocks': int(mod.MAX_STOCKS), 'cost_pct': float(mod.COST_PCT), 'source': 'live_engine.py'}
+        # 2026-11-07 슬롯형+위험한도(allocation.py). 구버전 엔진에는 값이 없어 None/False로 보낸다.
+        risk = getattr(mod, 'RISK_PCT', None)
+        policy['allocation'] = {'slots_auto': getattr(mod, 'SLOTS', None) is None, 'risk_pct': float(risk) if risk else None,
+                                'carry': bool(getattr(mod, 'CARRY', False))}
         # 2026-10-16 청산 규칙(손절 짧게·익절 길게): 상수와 exit_decision() 경계값이 기대와 맞을 때만 화면에 보여 준다.
         stop, emergency, arm, trail, confirm = (float(mod.STOP_PCT), float(mod.EMERGENCY_STOP_PCT), float(mod.TRAIL_ARM_PCT),
                                                 float(mod.TRAIL_PCT), int(mod.CONFIRM_CHECKS))
