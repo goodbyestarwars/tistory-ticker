@@ -110,7 +110,7 @@ class PublicScanRouteTests(unittest.TestCase):
         self.assertEqual(sorted(data), ['angleMomentumBacktest', 'angleMomentumScannedAt', 'firstPullbackBreakoutReady', 'gongpasanBacktest',
                                         'gongpasanScannedAt', 'gongpasanStages', 'longTermFilter', 'patterns',
                                         'pullbackScanned', 'pullbackScannedAt', 'scanned', 'scannedAt',
-                                        'universe', 'volumeBreakoutScannedAt'])
+                                        'shapeSelection', 'universe', 'volumeBreakoutScannedAt'])
         self.assertEqual(sorted(data['patterns']),
                          ['angleMomentum', 'boxRangeLow', 'doubleBottom', 'firstPullbackBreakout', 'gongpasan', 'invHeadShoulders',
                           'longTermQuality', 'maCloudBreakout', 'openingGap', 'pullback', 'risingLows', 'shortTermMaBreakout', 'volumeBreakout'])

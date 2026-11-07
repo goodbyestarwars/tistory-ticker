@@ -18,6 +18,7 @@ function marketFixture(){
         {symbol:'OTHERUSDT',status:'TRADING',quoteAsset:'USDT',contractType:'PERPETUAL'}]};
       else if(url.includes('/klines'))data=[[1,0,0,0,100],[2,0,0,0,101]];
       else if(url.includes('/premiumIndex'))data={markPrice:'164',lastFundingRate:'.0001'};
+      else if(url.includes('/ticker/price'))data={symbol,price:'164.125',time:100};
       else data={symbol,lastPrice:'164.125',priceChangePercent:'1.25',highPrice:'170',lowPrice:'160',closeTime:123456};
       return{ok:true,json:async()=>data};
     }};
@@ -29,9 +30,11 @@ test('compact shared client validates listings/units, dedupes and fetches only c
   assert.equal(a,b);const result=await a;
   assert.deepEqual(Array.from(result.symbols,p=>p[0]),['SAMSUNGUSDT','KODEX200USDT']);
   assert.equal(result.items[0].quoteAsset,'USDT');assert.equal(result.items[0].price,164.125);
-  assert.equal(f.calls.length,3);assert.ok(f.calls.every(u=>!/premiumIndex|klines/.test(u)));
-  await f.api.fetchTokens({quotesOnly:true});assert.equal(f.calls.length,3);
-  f.time(25000);await f.api.fetchTokens({quotesOnly:true});assert.equal(f.calls.length,5);
+  // 호출: exchangeInfo 1 + 종목당 24hr 통계 1 + 체결시각용 가격 티커 1(2종목 -> 5).
+  assert.equal(result.items[0].tradeTime,100);
+  assert.equal(f.calls.length,5);assert.ok(f.calls.every(u=>!/premiumIndex|klines/.test(u)));
+  await f.api.fetchTokens({quotesOnly:true});assert.equal(f.calls.length,5);
+  f.time(25000);await f.api.fetchTokens({quotesOnly:true});assert.equal(f.calls.length,9);
   assert.equal(f.calls.filter(u=>u.endsWith('/exchangeInfo')).length,1);
   f.time(3600000);f.delist();const changed=await f.api.fetchTokens({quotesOnly:true});
   assert.deepEqual(Array.from(changed.symbols,p=>p[0]),['KODEX200USDT']);

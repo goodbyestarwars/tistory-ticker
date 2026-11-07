@@ -1,6 +1,6 @@
 **2026-11-07 CI 3종 실패(regression·offline·calendar-browser) 낡은 테스트 정리**
 
-원인: 코드 결함이 아니라 테스트가 바뀐 제품을 따라가지 못함. regression=캘린더가 쓰는 NineUI.escapeHtml을 테스트가 싣지 않음. offline=test_market_participation_bars.js가 폐기된 거래대금 화면을 검증(거래량 통일 후 test_market_volume_unified.js가 반대로 검증). calendar-browser=검색기 합성 데이터에 shapeSelection 없음 + 폐기된 그리기 도구·패턴 선택 검증(0fff2d1f). 변경: test/test_calendar_market_tabs.js, test/test_market_participation_bars.js(API 오류 시 캐시 제거 검증만 유지), test/scanner-states.html(inline 모드 shapeSelection 3종목), test/qa_scanner_inline_chart.py(그리기 제거·모바일 행 높이 250). 제품 코드 변경 없음. 검증: 로컬에서 3개 모두 통과(캘린더 4/4, participation 2종, inline QA 4케이스). CI 나머지 단계는 앞 단계 실패로 미실행 상태였으므로 PR CI로 확인.
+원인: 코드 결함이 아니라 테스트가 바뀐 제품을 따라가지 못함. regression=캘린더가 쓰는 NineUI.escapeHtml을 테스트가 싣지 않음. offline=test_market_participation_bars.js가 폐기된 거래대금 화면을 검증(거래량 통일 후 test_market_volume_unified.js가 반대로 검증). calendar-browser=검색기 합성 데이터에 shapeSelection 없음 + 폐기된 그리기 도구·패턴 선택 검증(0fff2d1f). 변경: test/test_calendar_market_tabs.js, test/test_market_participation_bars.js(API 오류 시 캐시 제거 검증만 유지), test/scanner-states.html(inline 모드 shapeSelection 3종목), test/qa_scanner_inline_chart.py(그리기 제거·모바일 행 높이 250). 제품 코드 변경 없음. 검증: 로컬에서 3개 모두 통과(캘린더 4/4, participation 2종, inline QA 4케이스). CI 나머지 단계가 처음 실행되며 추가로 드러난 2건도 같은 유형: test_binance_shared_quotes.js(e58e4a90이 종목당 체결시각용 가격 티커 요청을 추가했는데 기대 호출 수 3·5가 그대로 → 5·9, 가격 티커 모의 응답 추가), test_public_scan_routes.py(/pattern-scan 응답 키 목록에 shapeSelection 누락, Windows는 AF_UNIX 없어 로컬 미실행·CI로 확인).
 
 **2026-11-07 !important 정리 보정: @layer 안 선언만 복원 (정리분 유지)**
 
