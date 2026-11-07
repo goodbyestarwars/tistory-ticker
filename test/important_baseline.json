@@ -15,7 +15,7 @@
  "css/investor-trend-widget.css": 26,
  "css/kospi-futures.css": 38,
  "css/market-indicators.css": 28,
- "css/market-temp.css": 589,
+ "css/market-temp.css": 1141,
  "css/marketcap-bubble.css": 8,
  "css/mobile-market.css": 92,
  "css/my-dashboard.css": 3,
@@ -37,5 +37,5 @@
  "css/ui-system.css": 3,
  "css/us-stocks.css": 3,
  "css/watchlist.css": 43,
- "style.css": 1994
+ "style.css": 2371
 }
