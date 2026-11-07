@@ -1,5 +1,7 @@
 """Bounded, DB-only morphology selection for the public web scanner.
 Legacy patterns, signal reviews, hits, tracks and order feeds are untouched.
+Selected rows are also kept as observation tracks under their own
+`pattern:shape:<group>` keys so the menus can be judged by later highs.
 """
 import json
 import math
@@ -14,6 +16,25 @@ import pattern_detect as pd
 
 VERSION = 'shape-selection-v1'
 GROUPS = ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'longTermQuality')
+TRACK_PREFIX = 'pattern:shape:'
+
+
+def record_tracks(snapshot, conn=None):
+    """Reuse pattern_tracker for observation-only follow-up of each selected row.
+
+    Separate scanner keys keep legacy tracker statistics unchanged; existing open
+    tracks and same-day reruns are left as they are (record_new is idempotent).
+    """
+    import pattern_tracker
+    own = conn is None
+    conn = conn or db_schema.get_conn()
+    try:
+        groups = snapshot.get('groups') or {}
+        return {key: pattern_tracker.record_new(conn, snapshot['dataDate'], TRACK_PREFIX + key, groups.get(key) or [])
+                for key in GROUPS}
+    finally:
+        if own:
+            conn.close()
 
 
 def eligible(stock, rows, basis):
@@ -93,6 +114,12 @@ def refresh():
             raise ValueError('Daily snapshot changed during shape scan')
         cache['shapeSelection'] = snapshot
     daily_scan_cache.update(apply)
+    try:
+        record_tracks(snapshot)
+    except Exception as error:
+        # Tracking is a follow-up record; never lose the published snapshot over it.
+        import logging
+        logging.getLogger('shape_scan').warning('shape track record failed: %s', type(error).__name__)
     return snapshot
 
 

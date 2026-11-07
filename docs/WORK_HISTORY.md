@@ -1,3 +1,7 @@
+**2026-11-07 검색기 모양 선정 5개 메뉴 포착 추적 기록**
+
+목적: 고가 기준(포착가 대비 이후 20거래일 최고가 상승률) 평가에서 현재 화면의 모양 선정 메뉴만 기록이 없어 판정 불가. 같은 날 원래 검색기 11개 판정(관측 10/06~11/06, 지수 대비 초과 고가 상승률): 유지 단기이평돌파·역헤드앤숄더·쌍바닥, 관찰 눌림·저점상승, 수정 이평구름·박스하단·시초갭·매집봉·장기224(폭락장 1개월 표본). 변경: `scripts/cloud-vm/shape_scan.py` `record_tracks` - 모양 선정 스냅샷 저장 후 공통 `pattern_tracker.record_new`로 `pattern:shape:<메뉴>` 키에 관찰 추적 등록(기존 검색기 통계·scan_hits·주문 피드 불변, 같은 날 재실행·열린 추적 중복 없음, 실패해도 스냅샷 유지). 갱신은 기존 `update_tracks`가 담당하고 조회는 기존 공개 `/pattern-tracks?scanner=pattern:shape:<메뉴>`. 참고: 메뉴별 공개 목록 60개 상한은 `shape_scan.js`. 검증: `test_shape_selection.py`(신규 1건)·`test_pattern_tracker.py` 16개, `test_shape_selection.js` 통과. 미확인: 첫 기록은 다음 일봉 스캔(11/09 장마감 후). 배포: master → VM 자동.
+
 **2026-11-07 미국 SEC 공시 제목 한국어 변환**
 
 문제: 홈 경제 종합뉴스 속보 레일에 `8-K - Fox Corp (0001754301) (Filer)` 원문이 그대로 노출(서식·CIK만 있어 내용 파악 불가). 변경: `news_aggregator.get_sec_filings`가 EDGAR 피드 요약의 8-K Item 번호를 공식 항목표로 한국어화해 `title_ko`(예: `Fox Corp 수시공시: 중요 계약 체결, 자산 인수·처분 완료 외 1건`, 10-Q는 `분기보고서(10-Q) 제출`)와 `company`·`items`를 추가. 9.01(첨부서류)은 다른 항목이 있으면 제목에서 제외, Item 2.02는 `category='실적'`. 원문 `title`·링크 보존, 화면은 기존 `title_ko` 우선 표시 재사용. 검증: `test_news_aggregator.py` 23개 통과(신규 1), 실제 EDGAR 피드 변환 확인. 배포: master → VM.
