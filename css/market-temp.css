@@ -869,16 +869,16 @@ html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { backgrou
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. 공포/탐욕 톤 그라데이션·지표별 색상(mt-bar-*)·등락색은
    전부 의미가 있는 색이라 그대로 유지. */
-html.dark #market-temp { color: var(--dk-text) !important; }
+html.dark #market-temp { color: var(--dk-text); }
 html.dark #market-temp .mt-hint,
 html.dark #market-temp .mt-error { color: var(--dk-mute) !important; }
-html.dark #market-temp .mt-section-block + .mt-section-block { border-top-color: var(--dk-line) !important; }
-html.dark #market-temp .mt-section-head h2 { color: var(--dk-text) !important; }
-html.dark #market-temp .mt-section-head p { color: var(--dk-mute) !important; }
+html.dark #market-temp .mt-section-block + .mt-section-block { border-top-color: var(--dk-line); }
+html.dark #market-temp .mt-section-head h2 { color: var(--dk-text); }
+html.dark #market-temp .mt-section-head p { color: var(--dk-mute); }
 html.dark #market-temp .mt-card,
 html.dark #market-temp .mt-hero-card {
-  background: var(--dk-card) !important;
-  border-color: var(--dk-line) !important;
+  background: var(--dk-card);
+  border-color: var(--dk-line);
 }
 html.dark #market-temp .mt-card-title { color: var(--dk-sub) !important; }
 html.dark #market-temp .mt-gauge-title { color: var(--dk-mute) !important; }
@@ -901,12 +901,12 @@ html.dark #market-temp .mt-hero-signal-label { color: var(--dk-mute) !important;
 html.dark #market-temp .mt-hero-history::before { border-color: var(--dk-line) !important; }
 html.dark #market-temp .mt-history-tail-direction { color: var(--dk-mute) !important; }
 html.dark #market-temp .mt-history-tail-summary { color: #e6b74a !important; }
-html.dark #market-temp .mt-briefing-strategy-card { background: var(--dk-card) !important; }
+html.dark #market-temp .mt-briefing-strategy-card { background: var(--dk-card); }
 html.dark #market-temp .mt-briefing-panel,
 html.dark #market-temp .mt-strategy-panel { border-color:var(--dk-line); background:var(--dk-inner); }
 html.dark #market-temp .mt-briefing-panel-title,
-html.dark #market-temp .mt-strategy-panel-title { color: var(--dk-sub) !important; }
-html.dark #market-temp .mt-strategy-panel { border-color: var(--dk-line) !important; }
+html.dark #market-temp .mt-strategy-panel-title { color: var(--dk-sub); }
+html.dark #market-temp .mt-strategy-panel { border-color: var(--dk-line); }
 
 html.dark #market-temp .mt-ai-text { color: var(--dk-text) !important; }
 html.dark #market-temp .mt-ai-empty { color: var(--dk-mute) !important; }
@@ -935,7 +935,7 @@ html.dark #market-temp .mt-bar-flow,
 html.dark #market-temp .mt-bar-fx { background: var(--chart-fill-down) !important; }
 html.dark #market-temp .mt-bar-vol { background: #f2c35d !important; }
 html.dark #market-temp .mt-val-pos { color: var(--dk-up) !important; }
-html.dark #market-temp .mt-val-neg { color: var(--dk-down) !important; }
+html.dark #market-temp .mt-val-neg { color: var(--dk-down); }
 html.dark #market-temp .mt-hero-breadth { color: var(--dk-mute) !important; }
 html.dark #market-temp .mt-breadth-up { color: var(--dk-up) !important; }
 html.dark #market-temp .mt-breadth-down { color: var(--dk-down) !important; }
@@ -980,10 +980,10 @@ html.dark #market-temp .mt-radar-score { fill: var(--dk-text) !important; }
    없어 "오늘 투자전략" 문구 박스가 다크모드에서도 계속 밝게 떠 있었다. .mt-val-zero
    변형은 이미 아래에서 배경을 transparent로 따로 처리하므로(그쪽이 더 구체적이라
    이 규칙을 그대로 이긴다) 그대로 둔다. */
-html.dark #market-temp .mt-strategy-action { background: var(--dk-inner) !important; }
-html.dark #market-temp .mt-ant-guide .mt-strategy-action { color: var(--dk-text) !important; }
+html.dark #market-temp .mt-strategy-action { background: var(--dk-inner); }
+html.dark #market-temp .mt-ant-guide .mt-strategy-action { color: var(--dk-text); }
 html.dark #market-temp .mt-ant-list li { color: var(--dk-text) !important; }
-html.dark #market-temp .mt-ant-mood { color: var(--dk-mute) !important; }
+html.dark #market-temp .mt-ant-mood { color: var(--dk-mute); }
 html.dark #market-temp .mt-strategy-note { color: var(--dk-mute) !important; }
 html.dark #market-temp .mt-strategy-action.mt-val-zero {
   border: 0 !important;
@@ -1000,8 +1000,8 @@ html.dark #market-temp .mt-guide-stars-empty { color: var(--dk-mute) !important;
 
 html.dark #market-temp .mt-updated { color: var(--dk-mute) !important; }
 
-html.dark #market-temp .mt-view-btn { background: var(--dk-inner) !important; color: var(--dk-mute) !important; border-color: var(--dk-line) !important; }
-html.dark #market-temp .mt-view-btn.active { background: var(--dk-text) !important; color: var(--dk-bg) !important; border-color: var(--dk-text) !important; }
+html.dark #market-temp .mt-view-btn { background: var(--dk-inner); color: var(--dk-mute); border-color: var(--dk-line); }
+html.dark #market-temp .mt-view-btn.active { background: var(--dk-text); color: var(--dk-bg); border-color: var(--dk-text); }
 html.dark #market-temp .mt-all-stock-head strong,
 html.dark #market-temp .mt-all-stock-head span,
 html.dark #market-temp .mt-all-stock-legend,
@@ -1096,12 +1096,12 @@ html.dark #market-temp .mt-sector-editor-auth { background:var(--dk-inner); bord
   #market-temp .mt-sector-editor-actions > button { flex:1 1 calc(50% - 7px); min-width:0; }
 }
 
-html.dark #market-temp .sector-card { background: var(--dk-card) !important; border-color: var(--dk-line) !important; box-shadow: none !important; }
-html.dark #market-temp .sector-card-title { color: var(--dk-text) !important; }
-html.dark #market-temp .sector-row { border-bottom-color: var(--dk-line) !important; }
-html.dark #market-temp .sector-row-name { color: var(--dk-text) !important; }
-html.dark #market-temp .sector-row-rate.sector-up { color: var(--dk-up) !important; }
-html.dark #market-temp .sector-row-rate.sector-down { color: var(--dk-down) !important; }
+html.dark #market-temp .sector-card { background: var(--dk-card); border-color: var(--dk-line); box-shadow: none; }
+html.dark #market-temp .sector-card-title { color: var(--dk-text); }
+html.dark #market-temp .sector-row { border-bottom-color: var(--dk-line); }
+html.dark #market-temp .sector-row-name { color: var(--dk-text); }
+html.dark #market-temp .sector-row-rate.sector-up { color: var(--dk-up); }
+html.dark #market-temp .sector-row-rate.sector-down { color: var(--dk-down); }
 html.dark #market-temp .sector-detail-head > div strong,
 html.dark #market-temp .sector-detail-section-head strong { color: var(--dk-text) !important; }
 html.dark #market-temp .sector-detail-section { border-color: var(--dk-line); background: var(--dk-card); }
@@ -1230,19 +1230,19 @@ html.dark #market-temp .mt-industry-flow-stock .is-flat { color: var(--dk-mute);
 #market-temp .mt-sf-derived b { padding: 3px 8px; border: 1px solid #e5edf6; border-radius: 999px; background: #f8fbff; color: #334155; font-size: 11px; font-weight: 600; }
 #market-temp .mt-sf-derived b small { color: #94a3b8; font-size: 10px; font-weight: 500; }
 
-html.dark #market-temp .mt-sf-row b, html.dark #market-temp .mt-sf-mult { color: var(--dk-text) !important; }
-html.dark #market-temp .mt-sf-visual-head span { color: var(--dk-text) !important; }
+html.dark #market-temp .mt-sf-row b, html.dark #market-temp .mt-sf-mult { color: var(--dk-text); }
+html.dark #market-temp .mt-sf-visual-head span { color: var(--dk-text); }
 html.dark #market-temp .mt-sf-fill.is-up { background:linear-gradient(90deg, rgba(var(--dk-up-rgb),0.28) 0%, rgba(var(--dk-up-rgb),0.09) 86%, rgba(var(--dk-up-rgb),0.02) 100%) !important; }
 html.dark #market-temp .mt-sf-fill.is-down { background:linear-gradient(90deg, rgba(var(--dk-down-rgb),0.28) 0%, rgba(var(--dk-down-rgb),0.09) 86%, rgba(var(--dk-down-rgb),0.02) 100%) !important; }
 html.dark #market-temp .mt-sf-fill.is-flat { background:linear-gradient(90deg, rgba(148,163,184,.2) 0%, rgba(148,163,184,.07) 86%, rgba(148,163,184,.02) 100%) !important; }
-html.dark #market-temp .mt-sf-item { border-bottom-color: var(--dk-line) !important; }
+html.dark #market-temp .mt-sf-item { border-bottom-color: var(--dk-line); }
 html.dark #market-temp .mt-sf-row:hover, html.dark #market-temp .mt-sf-row.is-open { background: var(--dk-inner) !important; }
-html.dark #market-temp .mt-sf-row.is-up .mt-sf-rate, html.dark #market-temp .mt-sf-stock-val .is-up { color: var(--num-up) !important; }
-html.dark #market-temp .mt-sf-row.is-down .mt-sf-rate, html.dark #market-temp .mt-sf-stock-val .is-down { color: var(--num-down) !important; }
-html.dark #market-temp .mt-sf-stock { border-top-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark #market-temp .mt-sf-row.is-up .mt-sf-rate, html.dark #market-temp .mt-sf-stock-val .is-up { color: var(--num-up); }
+html.dark #market-temp .mt-sf-row.is-down .mt-sf-rate, html.dark #market-temp .mt-sf-stock-val .is-down { color: var(--num-down); }
+html.dark #market-temp .mt-sf-stock { border-top-color: var(--dk-line); color: var(--dk-text); }
 html.dark #market-temp .mt-sf-stock:hover { color: var(--dk-down) !important; }
-html.dark #market-temp .mt-sf-derived { border-top-color: var(--dk-line) !important; }
-html.dark #market-temp .mt-sf-derived b { border-color: var(--dk-line) !important; background: var(--dk-inner) !important; color: var(--dk-text) !important; }
+html.dark #market-temp .mt-sf-derived { border-top-color: var(--dk-line); }
+html.dark #market-temp .mt-sf-derived b { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
 
 /* 국내 주요종목의 흐름은 관심카드 자금을 확인하는 일반 표다. */
 #market-temp .mt-money-flow-table { overflow:hidden; border:1px solid #e2e8f0; border-radius:0; background:#fff; }
@@ -1692,10 +1692,10 @@ html.dark #market-temp .mt-axis-risk-high { background: #ef7773 !important; }
 }
 html.dark #market-temp .mt-summary-card,
 html.dark #market-temp .mt-history-tail.mt-card {
-  border-color: #e2e6ea !important;
-  background: #fff !important;
-  color: #20262d !important;
-  box-shadow: 0 6px 22px rgba(34, 47, 62, .055) !important;
+  border-color: #e2e6ea;
+  background: #fff;
+  color: #20262d;
+  box-shadow: 0 6px 22px rgba(34, 47, 62, .055);
 }
 html.dark #market-temp .mt-summary-topline,
 html.dark #market-temp .mt-summary-topline .mt-summary-kicker,
@@ -1788,7 +1788,7 @@ html.dark #market-temp .mt-history-tail.mt-card .mt-history-metrics b { color: #
 #market-temp .mt-top-hm-title { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; color: #111827; font-size: 13px; font-weight: 700; }
 #market-temp .mt-top-hm-title em { font-style: normal; font-size: 12px; }
 #market-temp #marketcap-bubble[data-theme-filter] .mcb-filter-bar { display: none; }
-html.dark #market-temp .mt-top-note, html.dark #market-temp .mt-top-sub { color: var(--dk-mute) !important; }
+html.dark #market-temp .mt-top-note, html.dark #market-temp .mt-top-sub { color: var(--dk-mute); }
 html.dark #market-temp .mt-top-rank { background: var(--dk-text) !important; color: var(--dk-bg) !important; }
 html.dark #market-temp .mt-top-hm-title { color: var(--dk-text) !important; }
 html.dark #market-temp .mt-top-derived { border-top-color: var(--dk-line) !important; }
@@ -1847,7 +1847,7 @@ html.dark #market-temp .mt-pick-add.is-picked { background: var(--dk-text) !impo
 #market-temp .mt-adopt-pop small { display: block; margin-top: 6px; color: #94a3b8; }
 html.dark #market-temp .mt-money-row { border-bottom-color: var(--dk-line) !important; }
 html.dark #market-temp .mt-money-main b, html.dark #market-temp .mt-money-amount { color: var(--dk-text) !important; }
-html.dark #market-temp .mt-money-badge { background: rgba(var(--dk-up-rgb),0.16) !important; color: var(--num-up) !important; }
+html.dark #market-temp .mt-money-badge { background: rgba(var(--dk-up-rgb),0.16); color: var(--num-up); }
 html.dark #market-temp .mt-all-stock-divider, html.dark #market-temp .mt-theme-picker, html.dark #market-temp .mt-adopt-pop { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
 html.dark #market-temp .mt-all-stock-divider b { color: var(--dk-text) !important; }
 html.dark #market-temp .mt-theme-picker-item { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
@@ -1891,11 +1891,11 @@ html.dark #market-temp .mt-theme-picker-item { background: var(--dk-card) !impor
 #market-temp .mt-money-chip.is-mapped { border-color: #16a34a; background: #f0fdf4; }
 
 html.dark #market-temp .mt-sf-picks a { color: var(--dk-text) !important; }
-html.dark #market-temp .mt-sf-disclaimer { background: rgba(251,191,36,.12) !important; color: #fcd34d !important; }
-html.dark #market-temp .mt-sf-track > summary, html.dark #market-temp .mt-money-head strong { color: var(--dk-text) !important; }
-html.dark #market-temp .mt-money-chip { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
-html.dark #market-temp .mt-money-chip.is-mapped { background: rgba(22,163,74,.16) !important; border-color: #16a34a !important; }
-html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { border-bottom-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark #market-temp .mt-sf-disclaimer { background: rgba(251,191,36,.12); color: #fcd34d; }
+html.dark #market-temp .mt-sf-track > summary, html.dark #market-temp .mt-money-head strong { color: var(--dk-text); }
+html.dark #market-temp .mt-money-chip { background: var(--dk-inner); border-color: var(--dk-line); color: var(--dk-text); }
+html.dark #market-temp .mt-money-chip.is-mapped { background: rgba(22,163,74,.16); border-color: #16a34a; }
+html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { border-bottom-color: var(--dk-line); color: var(--dk-text); }
 @media (max-width: 640px) {
   #market-temp .mt-sf-picks { margin-left: 0; }
   #market-temp .mt-track-row { grid-template-columns: minmax(0, 1fr) 62px; }
@@ -1955,7 +1955,7 @@ html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { bor
 #market-temp .mt-axis-reason { flex: 0 0 100%; margin: 3px 0 8px; color: #64748b; font-size: 11.8px; line-height: 1.55; }
 #market-temp .mt-axis-reason .mt-axis-warn { color: #b42318; font-weight: 600; }
 #market-temp .mt-card-title small { margin-left: 8px; color: #94a3b8; font-size: 11px; font-weight: 400; }
-#market-temp .mt-briefing-single { display: block !important; }
+#market-temp .mt-briefing-single { display: block; }
 #market-temp .mt-ai-fold { margin-top: 12px; padding: 10px 16px; border: 1px solid rgba(17, 17, 17, .08); border-radius: 14px; }
 #market-temp .mt-ai-fold > summary { cursor: pointer; font-size: 12.5px; color: #475569; }
 #market-temp .mt-ai-fold > summary small { color: #94a3b8; margin-left: 6px; }
@@ -2016,17 +2016,17 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 .post-single:has(#market-temp) .post-single-meta { display: none; }
 #market-temp .mt-page-head { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: -4px 0 -8px; color: var(--mt2-sub); font-size: 13.5px; }
 
-#market-temp .mt-wrap { gap: var(--ui-section-gap) !important; }
-#market-temp .mt-card, #market-temp .mt-section.mt-card { padding: var(--ui-card-padding) !important; border: 1px solid var(--mt2-line) !important; border-radius: 12px !important; background: var(--mt2-bg) !important; box-shadow: none !important; }
+#market-temp .mt-wrap { gap: var(--ui-section-gap); }
+#market-temp .mt-card, #market-temp .mt-section.mt-card { padding: var(--ui-card-padding); border: 1px solid var(--mt2-line); border-radius: 12px; background: var(--mt2-bg); box-shadow: none; }
 
 /* Market Call: 리서치 리포트의 summary strip - 옅은 방향색 + 왼쪽 3px 선 */
-#market-temp .mt-tomorrow-card { padding: 20px 28px 16px !important; border: 0 !important; border-left: 3px solid #8b95a5 !important; border-radius: 4px !important; background: rgba(100, 116, 139, .06) !important; }
+#market-temp .mt-tomorrow-card { padding: 20px 28px 16px; border: 0; border-left: 3px solid #8b95a5; border-radius: 4px; background: rgba(100, 116, 139, .06); }
 #market-temp .mt-tomorrow-card:has(.mt-tm-up) { border-left-color: var(--mt2-up) !important; background: rgba(210, 79, 69, .05) !important; }
-#market-temp .mt-tomorrow-card:has(.mt-tm-down) { border-left-color: var(--mt2-down) !important; background: rgba(18, 97, 196, .05) !important; }
+#market-temp .mt-tomorrow-card:has(.mt-tm-down) { border-left-color: var(--mt2-down); background: rgba(18, 97, 196, .05); }
 #market-temp .mt-tm-head { margin-bottom: 8px; }
 #market-temp .mt-tm-head strong { font-size: 15px; color: var(--mt2-sub); font-weight: 600; letter-spacing: 0; }
 #market-temp .mt-tm-head small { font-size: 12.5px; color: var(--mt2-sub); }
-#market-temp .mt-tm-verdict, #market-temp .mt-tm-verdict.mt-tm-up, #market-temp .mt-tm-verdict.mt-tm-down { padding: 0; border-radius: 0; background: transparent !important; gap: 4px 16px; align-items: baseline; }
+#market-temp .mt-tm-verdict, #market-temp .mt-tm-verdict.mt-tm-up, #market-temp .mt-tm-verdict.mt-tm-down { padding: 0; border-radius: 0; background: transparent; gap: 4px 16px; align-items: baseline; }
 #market-temp .mt-tm-verdict b { font-size: 26px; font-weight: 700; }
 #market-temp .mt-tm-verdict span { font-size: 14.5px; color: var(--mt2-sub); }
 #market-temp .mt-tm-why { display: grid; grid-template-columns: repeat(var(--mt-tm-cols, 4), minmax(0, 1fr)); gap: 0; margin: 16px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--mt2-line); }
@@ -2049,8 +2049,8 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 #market-temp .mt-kpi-tone-greed { color: var(--num-up); }
 
 /* 2열 분석: 같은 grid, 높이 stretch */
-#market-temp .mt-summary-trend-row { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-section-gap); align-items: stretch; }
-#market-temp .mt-summary-trend-row > .mt-card { display: flex; flex-direction: column; min-width: 0; height: auto !important; }
+#market-temp .mt-summary-trend-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-section-gap); align-items: stretch; }
+#market-temp .mt-summary-trend-row > .mt-card { display: flex; flex-direction: column; min-width: 0; height: auto; }
 #market-temp .mt-summary-topline { margin-bottom: 4px; font-size: 13px; }
 #market-temp .mt-summary-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 240px); align-items: center; gap: 12px; margin-bottom: 8px; }
 #market-temp .mt-summary-score { font-size: 42px; font-weight: 700; line-height: 1; }
@@ -2079,12 +2079,12 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 #market-temp .mt-history-metrics { gap: 24px; margin-top: 12px; padding-top: 12px;  font-size: 13px; }
 
 /* 오늘 투자 체크포인트: 독립 section - 두 열(지금 할 것 | 주의할 것), 구분선만 */
-#market-temp .mt-briefing-strategy-card { padding: 28px !important; }
-#market-temp .mt-ant-guide { display: grid !important;  column-gap: 0; row-gap: 0; padding: 0 !important; border: 0 !important; background: transparent !important; }
+#market-temp .mt-briefing-strategy-card { padding: 28px; }
+#market-temp .mt-ant-guide { display: grid;  column-gap: 0; row-gap: 0; padding: 0; border: 0; background: transparent; }
 #market-temp .mt-ant-guide > .mt-strategy-panel-title, #market-temp .mt-ant-guide > .mt-strategy-action, #market-temp .mt-ant-guide > .mt-ant-mood, #market-temp .mt-ant-guide > .mt-ant-context, #market-temp .mt-ant-guide > .mt-strategy-note { grid-column: 1 / -1; }
 #market-temp .mt-strategy-panel-title { margin-bottom: 4px; font-size: 20px; font-weight: 700; }
 #market-temp .mt-strategy-panel-title small { display: block; margin-top: 4px; font-size: 13px; font-weight: 400; color: var(--mt2-sub); }
-#market-temp .mt-strategy-action { margin: 16px 0 4px; padding: 0 !important; border: 0 !important; background: transparent !important; font-size: 20px; font-weight: 700; line-height: 1.35; }
+#market-temp .mt-strategy-action { margin: 16px 0 4px; padding: 0; border: 0; background: transparent; font-size: 20px; font-weight: 700; line-height: 1.35; }
 #market-temp .mt-ant-mood { font-size: 14px; color: var(--mt2-text); }
 #market-temp .mt-ant-context { margin-bottom: 16px; font-size: 13px; color: var(--mt2-sub); }
 #market-temp .mt-ant-list { padding: 16px 28px 0 0 !important; border: 0 !important; background: transparent !important; border-top: 1px solid var(--mt2-line) !important; }
@@ -2101,15 +2101,15 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 #market-temp .mt-section-head p { margin: 0; font-size: 14px; color: var(--mt2-sub); }
 
 /* 오늘 많이 오른 섹터: 카드 10개가 아니라 순위표(왼쪽 1~5위, 오른쪽 6~10위). 색은 등락률 숫자에만 */
-#market-temp .mt-sf-card { padding: 0 !important; border: 0 !important; background: transparent !important; }
+#market-temp .mt-sf-card { padding: 0; border: 0; background: transparent; }
 #market-temp .mt-sf-visual-head { margin-bottom: 4px; }
 #market-temp .mt-sf-visual-head span { display: none; }
 #market-temp .mt-sf-visual-head small { font-size: 12.5px; color: var(--mt2-sub); }
-#market-temp .mt-sf-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(5, auto); grid-auto-flow: column; column-gap: 48px; row-gap: 0; margin-top: 0; align-items: start; }
-#market-temp .mt-sf-item, #market-temp .mt-sf-item:last-of-type { border: 0 !important; border-bottom: 1px solid var(--mt2-line) !important; border-radius: 0 !important; background: transparent !important; padding: 0 !important; }
-#market-temp .mt-sf-row { display: grid !important; grid-template-columns: 28px minmax(0, 1fr) auto 84px 16px; align-items: center; gap: 4px 12px;  padding: 14px 0 8px !important;  }
-#market-temp .mt-sf-rank { grid-column: 1; grid-row: 1; width: auto; height: auto; border-radius: 0; background: transparent !important;    line-height: 1.2; text-align: left; }
-#market-temp .mt-sf-row b { grid-column: 2; grid-row: 1; font-size: 14px;  color: var(--mt2-text) !important; }
+#market-temp .mt-sf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(5, auto); grid-auto-flow: column; column-gap: 48px; row-gap: 0; margin-top: 0; align-items: start; }
+#market-temp .mt-sf-item, #market-temp .mt-sf-item:last-of-type { border: 0; border-bottom: 1px solid var(--mt2-line); border-radius: 0; background: transparent; padding: 0; }
+#market-temp .mt-sf-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto 84px 16px; align-items: center; gap: 4px 12px;  padding: 14px 0 8px;  }
+#market-temp .mt-sf-rank { grid-column: 1; grid-row: 1; width: auto; height: auto; border-radius: 0; background: transparent;    line-height: 1.2; text-align: left; }
+#market-temp .mt-sf-row b { grid-column: 2; grid-row: 1; font-size: 14px;  color: var(--mt2-text); }
 #market-temp .mt-sf-mult { grid-column: 3; grid-row: 1; margin: 0; font-size: 12px; font-weight: 400;  }
 #market-temp .mt-sf-rate { grid-column: 4; grid-row: 1; margin: 0; font-size: 18px;  text-align: right; letter-spacing: -.01em; }
 #market-temp .mt-sf-row.is-up .mt-sf-rate::before { content: "▲ "; font-size: 11px; }
@@ -2120,7 +2120,7 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 #market-temp .mt-sf-picks > span { font-size: 12px; }
 #market-temp .mt-sf-picks a { color: var(--mt2-sub) !important; }
 #market-temp .mt-sf-note, #market-temp .mt-sf-disclaimer { margin-top: 16px; font-size: 12px; color: var(--mt2-sub); }
-#market-temp .mt-sf-track { margin-top: 24px; padding: 20px 24px !important; border: 1px solid var(--mt2-line) !important; border-radius: 12px !important; background: var(--mt2-bg) !important; }
+#market-temp .mt-sf-track { margin-top: 24px; padding: 20px 24px; border: 1px solid var(--mt2-line); border-radius: 12px; background: var(--mt2-bg); }
 
 /* 대표 지수 흐름 */
 #market-temp .mt-index-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
@@ -2152,9 +2152,9 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 }
 /* 모바일: 2열 -> 1열, 본문 폰트 13px 이상 */
 @media (max-width: 720px) {
-  #market-temp .mt-wrap { gap: var(--ui-section-gap) !important; }
-  #market-temp .mt-card, #market-temp .mt-section.mt-card { padding: var(--ui-card-padding) !important; }
-  #market-temp .mt-tomorrow-card { padding: 16px !important; }
+  #market-temp .mt-wrap { gap: var(--ui-section-gap); }
+  #market-temp .mt-card, #market-temp .mt-section.mt-card { padding: var(--ui-card-padding); }
+  #market-temp .mt-tomorrow-card { padding: 16px; }
   #market-temp .mt-tm-verdict b { font-size: 22px; }
   #market-temp .mt-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #market-temp .mt-kpi { padding: 14px 16px; }
@@ -2213,18 +2213,18 @@ html.dark #market-temp .mt-score-zone-label.is-active { color: var(--mt2-text) !
 html.dark #market-temp .mt-axis-bar { background: var(--dk-hover) !important; }
 html.dark #market-temp .mt-axis-list, html.dark #market-temp .mt-history-metrics { border-color: var(--mt2-line) !important; }
 html.dark #market-temp .mt-val-pos { color: var(--num-up) !important; }
-html.dark #market-temp .mt-val-neg { color: var(--num-down) !important; }
-html.dark #market-temp .mt-strategy-action, html.dark #market-temp .mt-ant-guide .mt-strategy-action { background: transparent !important; border: 0 !important; color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-val-neg { color: var(--num-down); }
+html.dark #market-temp .mt-strategy-action, html.dark #market-temp .mt-ant-guide .mt-strategy-action { background: transparent; border: 0; color: var(--mt2-text); }
 html.dark #market-temp .mt-ant-list li { color: var(--mt2-text) !important; }
-html.dark #market-temp .mt-tomorrow-card { background: var(--dk-card) !important; }
+html.dark #market-temp .mt-tomorrow-card { background: var(--dk-card); }
 html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-up) { background: rgba(var(--dk-up-rgb),0.08) !important; }
-html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(var(--dk-down-rgb),0.08) !important; }
+html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(var(--dk-down-rgb),0.08); }
 
 /* 체크포인트 헤드라인: 가운데 정렬 박스가 아니라 왼쪽 정렬 문장 */
 #market-temp .mt-ant-guide .mt-strategy-action { text-align: left; margin: 16px 0 4px; color: var(--mt2-text); }
 
 /* 섹터 순위표 압축: 행 높이를 줄이고 대표 종목은 한 줄 */
-#market-temp .mt-sf-row { padding: 12px 0 4px !important; }
+#market-temp .mt-sf-row { padding: 12px 0 4px; }
 #market-temp .mt-sf-picks { flex-wrap: nowrap; overflow: hidden; margin: 0 0 8px 40px !important; white-space: nowrap; }
 #market-temp .mt-sf-picks a { overflow: hidden; text-overflow: ellipsis; }
 
@@ -2275,7 +2275,7 @@ html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(var
 #market-temp .mt-rib-zone-label, #market-temp .mt-rib-avg-label { font-size: 11.5px; }
 
 /* 오늘 투자 체크포인트: 핵심 메시지 → 구분선 → 2열 행동 가이드(번호 리스트), 카드 안 박스 없음 */
-#market-temp .mt-briefing-strategy-card { padding: 28px 32px !important; }
+#market-temp .mt-briefing-strategy-card { padding: 28px 32px; }
 #market-temp .mt-ant-guide { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 #market-temp .mt-ant-guide > .mt-strategy-message { grid-column: 1 / -1; margin: 20px 0 24px; padding: 0; }
 #market-temp .mt-strategy-message .mt-strategy-action { margin: 0 0 8px; font-size: 20px; font-weight: 700; line-height: 1.35; text-align: left; }
@@ -2305,7 +2305,7 @@ html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(var
   #market-temp .mt-history-metrics > span:nth-child(n+3) { border-top: 1px solid var(--mt2-line); }
 }
 @media (max-width: 720px) {
-  #market-temp .mt-briefing-strategy-card { padding: 22px 16px !important; }
+  #market-temp .mt-briefing-strategy-card { padding: 22px 16px; }
   #market-temp .mt-ant-list, #market-temp .mt-ant-avoid { padding: 0 0 8px !important; border-left: 0 !important; margin-bottom: 16px; }
   #market-temp .mt-breadth-stats > span { padding: 0 10px; }
   #market-temp .mt-history-balance > span, #market-temp .mt-history-metrics > span { padding: 12px 10px; }
@@ -2316,8 +2316,8 @@ html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(var
 #market-temp .mt-history-balance > span, #market-temp .mt-history-balance > span.fear, #market-temp .mt-history-balance > span.neutral, #market-temp .mt-history-balance > span.greed { border: 0 !important; border-left: 1px solid var(--mt2-line) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; text-align: left; }
 #market-temp .mt-history-balance > span:first-child { border-left: 0 !important; }
 html.dark #market-temp .mt-history-balance > span { background: transparent !important; }
-#market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action, html.dark #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; outline: 0 !important; text-align: left !important; }
-#market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::before, #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::after { content: none !important; }
+#market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action, html.dark #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; outline: 0; text-align: left; }
+#market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::before, #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::after { content: none; }
 
 /* 오늘의 HOT 테마 한 줄 (2026-10-04): 데이터가 바뀌면 문구도 바뀐다 */
 #market-temp .mt-hot-strip { display: flex; align-items: center; gap: 12px; margin: 0 0 -8px; padding: 6px 4px; cursor: pointer; min-width: 0; }
@@ -2339,8 +2339,8 @@ html.dark #market-temp .mt-history-balance > span { background: transparent !imp
 /* ── 30. /page/market-temp 리디자인 (2026-10-04, 사용자 지시서): 체크포인트 = 판단+점수 | 지금 할 것 | 주의할 것 한 줄,
    AI 해석은 접힌 보조 링크, 돈이 몰린 섹터는 1~10위 단일 표(거래대금 집중도 막대).
    데이터·계산·문구 로직은 그대로, 카드 안 카드를 걷고 숫자를 주인공으로. 온도 게이지(buildSummaryCard)는 건드리지 않는다. ── */
-#market-temp .mt-briefing-strategy-card { padding: 28px 32px 22px !important; border-radius: 18px !important; }
-#market-temp .mt-ant-guide { display: block !important; }
+#market-temp .mt-briefing-strategy-card { padding: 28px 32px 22px; border-radius: 18px; }
+#market-temp .mt-ant-guide { display: block; }
 #market-temp .mt-cp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 #market-temp .mt-cp-head .mt-strategy-panel-title { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
 #market-temp .mt-cp-head .mt-strategy-panel-title small { margin-top: 6px; font-size: 12.5px; line-height: 1.5; }
@@ -2374,13 +2374,13 @@ html.dark #market-temp .mt-history-balance > span { background: transparent !imp
 #market-temp .mt-sf-thead, #market-temp .mt-sf-row { display: grid; grid-template-columns: 44px minmax(150px, 1.6fr) 96px 104px minmax(140px, 1.2fr) minmax(190px, 1.5fr) 18px; column-gap: 16px; align-items: center; }
 #market-temp .mt-sf-thead {  border-bottom: 1px solid var(--mt2-line); font-size: 12.5px; color: var(--mt2-sub); }
 #market-temp .mt-sf-th-meta { display: contents; }
-#market-temp .mt-sf-grid { display: block !important; grid-template-columns: none !important; grid-template-rows: none !important; }
-#market-temp .mt-sf-row { width: 100%; min-height: 60px; padding: 10px 0 !important; border: 0; background: transparent !important; text-align: left; cursor: pointer; font: inherit; }
-#market-temp .mt-sf-row > * { grid-column: auto !important; grid-row: auto !important; margin: 0; }
-#market-temp .mt-sf-rank { font-size: 14px; font-weight: 700; color: var(--mt2-sub) !important; }
+#market-temp .mt-sf-grid { display: block; grid-template-columns: none; grid-template-rows: none; }
+#market-temp .mt-sf-row { width: 100%; min-height: 60px; padding: 10px 0; border: 0; background: transparent; text-align: left; cursor: pointer; font: inherit; }
+#market-temp .mt-sf-row > * { grid-column: auto; grid-row: auto; margin: 0; }
+#market-temp .mt-sf-rank { font-size: 14px; font-weight: 700; color: var(--mt2-sub); }
 
 #market-temp .mt-sf-meta { display: contents; }
-#market-temp .mt-sf-mult {  color: var(--mt2-text) !important; font-variant-numeric: tabular-nums; }
+#market-temp .mt-sf-mult {  color: var(--mt2-text); font-variant-numeric: tabular-nums; }
 #market-temp .mt-sf-rate { font-size: 17px; font-weight: 700; text-align: left; }
 #market-temp .mt-sf-conc { display: flex; align-items: center; gap: 10px; min-width: 0; }
 #market-temp .mt-sf-bar { flex: 1 1 auto; height: 6px; border-radius: 3px; background: var(--mt2-line); overflow: hidden; }
@@ -2402,7 +2402,7 @@ html.dark #market-temp .mt-sf-bar i { background: #8a96a8; }
   #market-temp .mt-cp-body > .mt-ant-todo { padding-left: 0 !important; border-left: 0 !important; }
 }
 @media (max-width: 720px) {
-  #market-temp .mt-briefing-strategy-card { padding: 22px 18px 16px !important; }
+  #market-temp .mt-briefing-strategy-card { padding: 22px 18px 16px; }
   #market-temp .mt-cp-head { flex-direction: column; gap: 4px; }
   #market-temp .mt-cp-call .mt-strategy-action { font-size: 25px; }
   #market-temp .mt-cp-metric { padding: 0 12px; }
@@ -2414,29 +2414,29 @@ html.dark #market-temp .mt-sf-bar i { background: #8a96a8; }
   #market-temp .mt-cp-foot { flex-direction: column; align-items: flex-start; gap: 8px; }
   #market-temp .mt-sf-visual-head { text-align: left; }
   #market-temp .mt-sf-thead { display: none; }
-  #market-temp .mt-sf-row {  grid-template-areas: "rank name caret" ". meta ." ". conc ." ". picks ."; row-gap: 6px; padding: 14px 0 !important; }
-  #market-temp .mt-sf-rank { grid-area: rank !important; }
-  #market-temp .mt-sf-row > b { grid-area: name !important; }
-  #market-temp .mt-sf-meta { display: flex; grid-area: meta !important; align-items: baseline; gap: 8px; }
-  #market-temp .mt-sf-mult { display: inline !important; font-size: 13px; color: var(--mt2-sub) !important; }
+  #market-temp .mt-sf-row {  grid-template-areas: "rank name caret" ". meta ." ". conc ." ". picks ."; row-gap: 6px; padding: 14px 0; }
+  #market-temp .mt-sf-rank { grid-area: rank; }
+  #market-temp .mt-sf-row > b { grid-area: name; }
+  #market-temp .mt-sf-meta { display: flex; grid-area: meta; align-items: baseline; gap: 8px; }
+  #market-temp .mt-sf-mult { display: inline; font-size: 13px; color: var(--mt2-sub); }
   #market-temp .mt-sf-mult::after { content: " ·"; }
   #market-temp .mt-sf-rate { font-size: 16px; }
-  #market-temp .mt-sf-conc { grid-area: conc !important; }
-  #market-temp .mt-sf-picks-col { grid-area: picks !important; margin-top: 4px; }
-  #market-temp .mt-sf-caret { grid-area: caret !important; }
+  #market-temp .mt-sf-conc { grid-area: conc; }
+  #market-temp .mt-sf-picks-col { grid-area: picks; margin-top: 4px; }
+  #market-temp .mt-sf-caret { grid-area: caret; }
   #market-temp .mt-sf-detail { padding-left: 30px; }
 }
 
 /* ── 30-b. 보정 (2026-10-04, 사용자 지적) ──
    style.css 13번 공통 규칙이 .mt-strategy-panel·.mt-strategy-action·.mt-sf-disclaimer에 상자 테두리를 !important로 씌워
    체크포인트 안에 상자가 또 생겼다. 같은 !important로 걷고, 단어는 중간에 끊지 않으며, 대표 종목은 가로로 늘어놓는다. */
-html body #market-temp .mt-ant-guide.mt-strategy-panel { border: 0 !important; border-radius: 0 !important; background-color: transparent !important; padding: 0 !important; }
-html body #market-temp .mt-strategy-message { border: 0 !important; background: transparent !important; padding: 0 !important; }
+html body #market-temp .mt-ant-guide.mt-strategy-panel { border: 0; border-radius: 0; background-color: transparent; padding: 0; }
+html body #market-temp .mt-strategy-message { border: 0; background: transparent; padding: 0; }
 html body #market-temp .mt-ant-guide .mt-strategy-action {
-  padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; text-align: left !important;
+  padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; text-align: left;
 }
-html body #market-temp .mt-cp-head .mt-strategy-panel-title { border-bottom: 0 !important; padding-bottom: 0 !important; }
-html body #market-temp .mt-briefing-strategy-card { padding: 32px 40px 24px !important; }
+html body #market-temp .mt-cp-head .mt-strategy-panel-title { border-bottom: 0; padding-bottom: 0; }
+html body #market-temp .mt-briefing-strategy-card { padding: 32px 40px 24px; }
 #market-temp .mt-cp-body { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.3fr) minmax(0, 1.1fr); margin-top: 28px; }
 #market-temp .mt-cp-call { padding-right: 32px; }
 #market-temp .mt-cp-body > .mt-ant-list { padding-left: 28px !important; padding-right: 8px !important; }
@@ -2452,16 +2452,16 @@ html body #market-temp .mt-briefing-strategy-card { padding: 32px 40px 24px !imp
 #market-temp .mt-sf-pick > span { max-width: 130px; }
 
 /* 안내문: 상자 안쪽 여백과 줄 간격 */
-html body #market-temp .mt-sf-card { padding: 28px 32px 24px !important; }
-html body #market-temp .mt-sf-disclaimer { margin-top: 22px; padding: 16px 20px !important; font-size: 12.5px; line-height: 1.75; }
+html body #market-temp .mt-sf-card { padding: 28px 32px 24px; }
+html body #market-temp .mt-sf-disclaimer { margin-top: 22px; padding: 16px 20px; font-size: 12.5px; line-height: 1.75; }
 #market-temp .mt-sf-note { margin-top: 22px; line-height: 1.75; }
 #market-temp .mt-sf-track { margin-top: 28px; }
 @media (max-width: 1100px) {
   #market-temp .mt-cp-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 @media (max-width: 720px) {
-  html body #market-temp .mt-briefing-strategy-card { padding: 22px 18px 16px !important; }
-  html body #market-temp .mt-sf-card { padding: 18px 16px !important; }
+  html body #market-temp .mt-briefing-strategy-card { padding: 22px 18px 16px; }
+  html body #market-temp .mt-sf-card { padding: 18px 16px; }
   #market-temp .mt-sf-picks-col { gap: 4px 16px; }
   #market-temp .mt-cp-body { grid-template-columns: minmax(0, 1fr); }
 }
@@ -2488,15 +2488,15 @@ html body #market-temp .mt-sf-disclaimer {  overflow: hidden; text-overflow: ell
 #market-temp .mt-temperature-money-flow .mt-section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 14px; }
 #market-temp .mt-temperature-money-flow .mt-section-head h2 { margin: 0; }
 #market-temp .mt-temperature-money-flow .mt-section-head p { margin: 0; }
-html body #market-temp .mt-sf-card { padding: 18px 28px 20px !important; }
+html body #market-temp .mt-sf-card { padding: 18px 28px 20px; }
 #market-temp .mt-sf-visual-head { margin: 0 0 6px; }
 #market-temp .mt-sf-visual-head small { font-size: 12px; }
 #market-temp .mt-sf-thead, #market-temp .mt-sf-row { grid-template-columns: 52px minmax(150px, 1.5fr) 96px 116px minmax(150px, 1.15fr) minmax(250px, 1.7fr) 16px; column-gap: 14px; }
 #market-temp .mt-sf-thead { padding: 10px 0; }
-#market-temp .mt-sf-row { min-height: 52px; padding: 6px 0 !important; }
-#market-temp .mt-sf-rank { font-size: 15px; font-weight: 600; color: var(--mt2-text) !important; text-align: center; }
+#market-temp .mt-sf-row { min-height: 52px; padding: 6px 0; }
+#market-temp .mt-sf-rank { font-size: 15px; font-weight: 600; color: var(--mt2-text); text-align: center; }
 #market-temp .mt-sf-row b { font-size: 15px; font-weight: 600; }
-#market-temp .mt-sf-mult { font-size: 14px; color: var(--mt2-sub) !important; }
+#market-temp .mt-sf-mult { font-size: 14px; color: var(--mt2-sub); }
 #market-temp .mt-sf-rate { font-size: 16px; }
 #market-temp .mt-sf-bar { height: 8px; border-radius: 4px; background: #e6e9ef; }
 #market-temp .mt-sf-bar i { border-radius: 4px; background: #566078; }
@@ -2508,7 +2508,7 @@ html.dark #market-temp .mt-sf-bar i { background: #8f9bb3; }
 #market-temp .mt-sf-pick + .mt-sf-pick::before { content: "|"; margin: 0 12px; color: var(--mt2-line); font-weight: 400; }
 #market-temp .mt-sf-pick > span { max-width: 110px; }
 @media (max-width: 720px) {
-  html body #market-temp .mt-sf-card { padding: 14px 16px !important; }
+  html body #market-temp .mt-sf-card { padding: 14px 16px; }
   #market-temp .mt-sf-row { grid-template-columns: 30px minmax(0, 1fr) 16px; }
   #market-temp .mt-sf-picks-col { flex-wrap: wrap; }
 }
@@ -2588,7 +2588,7 @@ html.dark #market-temp .mt-kpi-gauge .mt-gauge-seg:not(.is-lit) { stroke: var(--
 }
 
 /* ── 30-h (2026-10-05) 종목 > 오늘 돈이 몰린 섹터: 들쭉날쭉 줄바꿈되던 칩을 같은 폭 순위 타일로 ── */
-#market-temp .mt-money-card { padding: 20px 22px 16px !important; }
+#market-temp .mt-money-card { padding: 20px 22px 16px; }
 #market-temp .mt-money-head { align-items: center; margin-bottom: 14px; }
 #market-temp .mt-money-head strong { font-size: 16px; font-weight: 700; }
 #market-temp .mt-money-head a { padding: 5px 12px; border: 1px solid var(--mt2-line, #e5e7eb); border-radius: 999px; color: var(--mt2-sub, #64748b); font-size: 12px; font-weight: 600; }
@@ -2608,12 +2608,12 @@ html.dark #market-temp .mt-kpi-gauge .mt-gauge-seg:not(.is-lit) { stroke: var(--
 #market-temp .mt-money-key { display: inline-block; width: 12px; height: 10px; border: 1px solid #cbd5e1; border-radius: 3px; }
 #market-temp .mt-money-key.is-mapped { border-color: var(--mt2-line, #e5e7eb); box-shadow: inset 3px 0 0 #16a34a; }
 #market-temp .mt-money-key.is-add { margin-left: 8px; border-style: dashed; }
-html.dark #market-temp .mt-money-chip, html.dark #market-temp .mt-money-chip.is-mapped { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; }
+html.dark #market-temp .mt-money-chip, html.dark #market-temp .mt-money-chip.is-mapped { background: var(--dk-inner); border-color: var(--dk-line); }
 html.dark #market-temp .mt-money-chip.is-mapped { box-shadow: inset 3px 0 0 #22c55e; }
 html.dark #market-temp .mt-money-chip i { background: var(--dk-inner); color: var(--dk-sub); }
 html.dark #market-temp .mt-money-chip .mt-money-name { color: var(--dk-text); }
 @media (max-width: 1080px) { #market-temp .mt-money-chips { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 640px) { #market-temp .mt-money-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); } #market-temp .mt-money-card { padding: 16px !important; } }
+@media (max-width: 640px) { #market-temp .mt-money-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); } #market-temp .mt-money-card { padding: 16px; } }
 /* 링크로 들어왔을 때 상단 고정 메뉴(약 64px)에 제목이 가리지 않게 */
 #market-temp #mt-money-flow { scroll-margin-top: 88px; }
 /* "그래서?" 줄: 라이브에선 상자(테두리·배경)로 그려지는데 좌우 안쪽 여백이 0이라 글자가 테두리에 붙었다 */
@@ -2668,7 +2668,7 @@ html.dark #market-temp .mt-history-tail.mt-card .mt-history-chart-meta b.mt-rib-
 
 /* 2026-10-16 사용자 요청: 체크포인트 판단 문구(굵기 유지)를 한 줄로. 칸 너비(container query)에 맞춰 글자 크기를 줄이고 최대 24px. */
 #market-temp .mt-cp-call { container-type: inline-size; }
-html body #market-temp .mt-cp-call .mt-strategy-action { white-space: nowrap !important; letter-spacing: -.04em; font-size: clamp(10px, 3.4cqw, 24px) !important; }
+html body #market-temp .mt-cp-call .mt-strategy-action { white-space: nowrap; letter-spacing: -.04em; font-size: clamp(10px, 3.4cqw, 24px); }
 /* 모바일은 cqw가 기대 폭으로 풀리지 않아(320px에서 끝이 잘림) 뷰포트 폭 기준으로 직접 계산한다. */
 /* mobile-market.css의 15px !important가 @layer np 안에 있어 레이어 밖 !important는 진다. 같은 레이어에 넣고 특이도로 이긴다. */
 @layer np {
@@ -3105,7 +3105,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
 
 /* 2026-10-23 사용자 지시: 모바일에서는 "데이터 출처·기준 안내" 접힘 영역을 보여주지 않는다(PC는 그대로). */
 @media (max-width: 720px) {
-  html body #market-temp .mt-front-details { display: none !important; }
+  html body #market-temp .mt-front-details { display: none; }
 }
 
 /* 2026-10-23 최근 시장 흐름 그래프: 기준선(거래량 100% · 순매수 0) 위 옅은 붉은, 아래 옅은 파랑(홈 차트와 같은 토큰). 기준 없는 항목은 기존 색 유지 */
@@ -3444,7 +3444,7 @@ html body #market-temp .mt-xsay { min-height: 1.5em; }
 html body #market-temp .mt-tomorrow-card .mt-tm-say { min-height: 1.4em; }
 html body #market-temp .mt-ai-asof { margin-left: 4px; font-size: 10px; font-weight: 400; opacity: .75; }
 
-html.dark #market-temp .mt-hot-go { color: var(--dk-bg) !important; }
+html.dark #market-temp .mt-hot-go { color: var(--dk-bg); }
 html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
 
 /* 2026-10-24 시장 한눈에 수치 강조: 코멘트가 빠진 만큼 핵심 수치(금액·비중)를 한 단계 키워 한눈에 보이게 한다(PC만, 모바일 줄 수 규칙은 그대로) */

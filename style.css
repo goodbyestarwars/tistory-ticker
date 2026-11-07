@@ -245,7 +245,7 @@ a { text-decoration: none; color: inherit; }
 .nav-logo-text { line-height: 1; }
 .nav-logo-name {
   display: block;
-  font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important;
+  font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif);
   color: #1f2937;
   font-size: 17px;
   font-weight: 800;
@@ -365,8 +365,8 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
    position:fixed가 되는 순간 .main-layout(flex) 흐름에서 빠지므로 .feed가 자동으로
    풀폭이 되고 별도 구조 변경이 불필요했다(skin.html 재배포 없이 push만으로 반영 가능). */
 .sidebar-left {
-  position: fixed !important;
-  top: 56px !important; /* navbar 높이 바로 아래 */
+  position: fixed;
+  top: 56px; /* navbar 높이 바로 아래 */
   left: 0; right: 0;
   width: auto;
   height: var(--topbar-height);
@@ -751,11 +751,11 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
 .home-briefing-more:hover { background:rgb(255, 254, 252); transform:translateY(-1px); box-shadow:6px 8px 17px rgba(79,69,54,.1), -3px -3px 10px rgba(255,255,255,.8), inset 0 1px 0 #fff; }
 .home-briefing-more:focus-visible { outline:2px solid #706d69; outline-offset:4px; }
 .home-briefing-more:active { transform:translateY(0); box-shadow:inset 2px 3px 7px rgba(79,69,54,.09); }
-html.dark .home-section-heading strong { color: var(--dk-text) !important; }
-html.dark .home-section-heading span { color: var(--dk-mute) !important; }
-html.dark .home-briefing-more { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; box-shadow:5px 6px 14px rgba(0,0,0,.28), inset 0 1px 0 var(--dk-line); }
+html.dark .home-section-heading strong { color: var(--dk-text); }
+html.dark .home-section-heading span { color: var(--dk-mute); }
+html.dark .home-briefing-more { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); box-shadow:5px 6px 14px rgba(0,0,0,.28), inset 0 1px 0 var(--dk-line); }
 html.dark .home-briefing-more strong { color: var(--dk-text) !important; }
-html.dark .home-briefing-more span { color: var(--dk-mute) !important; }
+html.dark .home-briefing-more span { color: var(--dk-mute); }
 html.dark .home-briefing-more i { background:var(--dk-card); border-color:var(--dk-line); color:var(--dk-text); box-shadow:7px 8px 13px rgba(0,0,0,.35), -2px -2px 6px var(--dk-line); }
 @media (max-width:640px) {
   .home-briefing-more { min-height:64px; padding-inline:60px; }
@@ -1226,7 +1226,7 @@ html.dark .home-cb-dropdown li.is-released time { color: var(--dk-mute) !importa
   font-size: 10px;
 }
 .home-positive { color: var(--num-up) !important; }
-.home-negative { color: var(--num-down) !important; }
+.home-negative { color: var(--num-down); }
 .home-neutral { color: #555 !important; }
 .hmb-interpretation {
   margin-top: auto;
@@ -1577,9 +1577,9 @@ html.dark .home-index-card { background: var(--dk-inner) !important; }
 html.dark .home-index-top strong,
 html.dark .home-index-price-row strong { color: var(--dk-text) !important; }
 html.dark .home-index-top span,
-html.dark .home-index-chart-empty { color: var(--dk-mute) !important; }
-html.dark .home-market-live { color: var(--dk-up) !important; }
-html.dark .home-top-disclosures-head strong { color: var(--dk-text) !important; }
+html.dark .home-index-chart-empty { color: var(--dk-mute); }
+html.dark .home-market-live { color: var(--dk-up); }
+html.dark .home-top-disclosures-head strong { color: var(--dk-text); }
 html.dark .home-top-disclosures-head span,
 html.dark .home-top-disclosures .home-disclosure-row time { color: var(--dk-mute) !important; }
 html.dark .home-top-disclosures .home-disclosure-source { color: #e6b74a !important; }
@@ -1591,7 +1591,7 @@ html.dark .home-card-heading strong,
 html.dark .home-pattern-row strong,
 html.dark .home-pattern-preview-heading strong,
 html.dark .home-pattern-stock strong,
-html.dark .home-schedule-title { color: var(--dk-text) !important; }
+html.dark .home-schedule-title { color: var(--dk-text); }
 html.dark .home-card-heading span,
 html.dark .home-card-state,
   html.dark .hmb-list dt { color: var(--dk-mute) !important; }
@@ -1600,17 +1600,17 @@ html.dark .home-card-state,
      미국 시장 요약 칸만 카드·페이지 배경과 다른 톤(옅은 크림색 틴트)으로 보였다(사용자
      리포트: "뒤에 배경색이 다르지? 검은색으로 통일시켜줘"). 편집판 밖(다른 화면)의
      .hmb-list는 이 파일에 없어 배경을 지워도 영향 없음. */
-  html.dark .hmb-summary-head strong { color: var(--dk-text) !important; }
+  html.dark .hmb-summary-head strong { color: var(--dk-text); }
   html.dark .hmb-summary-head span { color: var(--dk-mute) !important; }
 html.dark .hmb-list > div,
 html.dark .home-pattern-row,
 html.dark .home-pattern-preview-heading,
 html.dark .home-pattern-stock,
 html.dark .home-schedule-row,
-html.dark .home-card-more { border-color: var(--dk-line) !important; }
+html.dark .home-card-more { border-color: var(--dk-line); }
 html.dark .hmb-list dd,
 html.dark .home-pattern-row,
-html.dark .home-schedule-row time { color: var(--dk-text) !important; }
+html.dark .home-schedule-row time { color: var(--dk-text); }
 html.dark .hmb-investor-trend-head span,
 html.dark .hmb-investor-loading,
 html.dark .hmb-investor-spark-empty { color: var(--dk-mute) !important; }
@@ -1657,7 +1657,7 @@ html.dark .home-pattern-stock small { color: var(--dk-mute) !important; }
 }
 
 /* ============ 홈 위젯 대시보드 v3 ============ */
-body#tt-body-index .sidebar-right[hidden] { display: none !important; }
+body#tt-body-index .sidebar-right[hidden] { display: none; }
 
 .home-dashboard-toolbar {
   min-height: 36px;
@@ -3743,7 +3743,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
   width: 292px;
   flex-shrink: 0;
   position: sticky;
-  top: calc(72px + var(--topbar-height)) !important; /* navbar(56) + 여백(16) + 상단 메뉴바. 2026-07-17(13차): 관심지수 리본이 fixed->absolute로 바뀌어 스크롤하면 사라지므로, 스크롤 후 고정 기준은 navbar만 남는다 - 리본 높이(--qi-height) 오프셋 제거. !important는 page-wrap과 같은 이유(주석 참고). 2026-07-27: 상단 메뉴바 추가분 반영. */
+  top: calc(72px + var(--topbar-height)); /* navbar(56) + 여백(16) + 상단 메뉴바. 2026-07-17(13차): 관심지수 리본이 fixed->absolute로 바뀌어 스크롤하면 사라지므로, 스크롤 후 고정 기준은 navbar만 남는다 - 리본 높이(--qi-height) 오프셋 제거. !important는 page-wrap과 같은 이유(주석 참고). 2026-07-27: 상단 메뉴바 추가분 반영. */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -4107,7 +4107,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   font-weight: 700;
 }
 body#tt-body-index .home-editorial-page .home-briefing-more { color: var(--text-main); }
-html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: var(--dk-text) !important; }
+html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: var(--dk-text); }
 @media (max-width: 1000px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
     grid-template-columns: max-content max-content;
@@ -4503,7 +4503,7 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
      상단 메뉴도 앱형으로 얇게 유지한다(1차 40px, 2차 펼침 시 76px). */
   :root { --topbar-height: 40px; }
   html.nav-secondary-open { --topbar-height: 76px; }
-  .sidebar-left { display: flex !important; }
+  .sidebar-left { display: flex; }
   /* 한글 단어가 글자 단위로 끊겨 보이지 않도록 한다. 긴 라벨은 각 화면에서 말줄임 처리한다. */
   body { word-break: keep-all; overflow-wrap: normal; }
   /* ── 내비게이션 바 ──
@@ -4545,7 +4545,7 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   .navbar .nav-search-input::placeholder { font-size: 13px; }
   /* 2026-07-27: 상단 메뉴바가 항상 노출되는 가로 스크롤 형태로 바뀌면서 모바일
      드로어 자체가 없어져 햄버거 버튼도 더는 쓸 일이 없다(9Pay 증권 작업지시서 #12). */
-  .nav-hamburger { display: none !important; }
+  .nav-hamburger { display: none; }
   .nav-sidebar-toggle-btn { display: none !important; }
   .nav-search-btn { display: none; } /* 이제 옆에 실제 종목검색창이 항상 보이므로 중복 */
   /* 아이콘 6개(다크토글/방명록/검색/글쓰기/관리자/로그아웃)가 한 줄에 다 들어가야 해서
@@ -4564,7 +4564,7 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
      참고: 이 버튼은 원래부터 모바일 전용이다 - 기본 규칙이 display:none이고 위쪽
      같은 720px 블록에서만 flex로 켰다. 721px 이상에서는 예전에도 안 보였으므로
      이 규칙으로 데스크톱이 달라지는 것은 없다(라이브 1440px computed display: none 확인). */
-  .scroll-top-btn { display: none !important; }
+  .scroll-top-btn { display: none; }
 
   /* 2026-09-04: 홈 위젯의 순서 손잡이·메뉴 버튼은 opacity:0에 :hover로만 나타난다.
      터치 기기에는 hover가 없어 폰에서는 아예 쓸 수 없었다(위젯 순서 변경·메뉴 접근 불가).
@@ -4587,23 +4587,23 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
      가로 스크롤"). 위쪽 데스크톱 규칙(.sidebar-left, min-width 스코프 없음)과 겹치는
      값은 여기서 모바일 전용으로만 다시 좁힌다. */
   .sidebar-left {
-    top: calc(56px + var(--navbar-mobile-extra-height)) !important;
-    left: 0 !important; right: 0 !important;
+    top: calc(56px + var(--navbar-mobile-extra-height));
+    left: 0; right: 0;
 
-    height: 40px !important;
-    z-index: 250 !important;
-    overflow-y: hidden !important;
-    padding: 0 !important;
-    background: rgb(255, 254, 252) !important;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, .06) !important;
-    border-top: 1px solid #eee !important;
-    border-bottom: 1px solid #eee !important;
-    border-right: none !important;
-    transition: none !important;
-    max-height: none !important;
-    gap: 0 !important;
+    height: 40px;
+    z-index: 250;
+    overflow-y: hidden;
+    padding: 0;
+    background: rgb(255, 254, 252);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    border-right: none;
+    transition: none;
+    max-height: none;
+    gap: 0;
   }
-  .drawer-header { display: none !important; }
+  .drawer-header { display: none; }
 
   /* 모바일 navbar 좌측 패딩(위 .navbar 규칙, 12px)과 맞춰 로고와 같은 x좌표에서 시작 */
   .sidebar-left .nav-menu { padding: 0 4px 0 12px; }
@@ -4689,10 +4689,10 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
    스크롤하고, 10열 가로표는 현재 정렬 기준만 남긴 3열 표로 줄여 한 화면에서 읽게 한다. */
 @media (max-width: 720px) {
   .navbar {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
   }
   .page-wrap {
     padding-top: 0 !important;
@@ -4702,12 +4702,12 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
     min-width: 0;
   }
   .sidebar-left {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    width: auto !important;
-    margin: -10px -10px 10px !important;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: auto;
+    margin: -10px -10px 10px;
   }
   .feed,
   .sidebar-right {
@@ -5024,11 +5024,11 @@ html.dark .post-single-body [style*="rgb(0, 0, 255)" i] {
 /* h2/h3/굵은 글씨는 본문과 색을 다르게 주지 않고(2색 체계 유지) 굵기·크기만으로 위계를
    구분한다 - 이미 폰트 크기/굵기가 다르므로 색 없이도 구분됨(빨강/초록/주황/보라 등
    인라인 색이 이미 지정된 굵은 글씨는 아래 색상 예외 규칙이 더 specificity가 높아 그대로 유지됨). */
-html.dark .post-single-body h2 { color: var(--dk-text) !important; }
-html.dark .post-single-body h3 { color: var(--dk-text) !important; }
+html.dark .post-single-body h2 { color: var(--dk-text); }
+html.dark .post-single-body h3 { color: var(--dk-text); }
 html.dark .post-single-body blockquote { background: var(--dk-card); color: var(--dk-text) !important; border-color: var(--dk-line); }
 html.dark .post-single-body strong,
-html.dark .post-single-body b { color: var(--dk-text) !important; }
+html.dark .post-single-body b { color: var(--dk-text); }
 
 /* 초록/주황·노랑/보라 계열 인라인 색상도 빨강/파랑처럼 다크모드 전용 색으로 보존
    (카테고리 뱃지에 이미 쓰는 색과 맞춰 톤 통일: 초록 #4ade80, 주황 #fbbf24, 보라 #b79af0) */
@@ -5217,10 +5217,10 @@ html.dark body.iframe-mode { background: var(--dk-bg); }
 /* 모바일 상단 메뉴바 다크모드 (원본이 !important라 여기도 필요) */
 @media (max-width: 720px) {
   html.dark .sidebar-left {
-    background: var(--dk-bg) !important;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.6) !important;
-    border-top: none !important;
-    border-bottom: 1px solid var(--dk-line) !important;
+    background: var(--dk-bg);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.6);
+    border-top: none;
+    border-bottom: 1px solid var(--dk-line);
   }
 }
 
@@ -5324,24 +5324,24 @@ body#tt-body-page .sidebar-right { display: none; }
   outline: 2px solid #315b43;
   outline-offset: -2px;
 }
-html.dark .sidebar-left .nav-primary-item { color: var(--dk-mute) !important; }
+html.dark .sidebar-left .nav-primary-item { color: var(--dk-mute); }
 html.dark .sidebar-left .nav-primary-item.nav-item-active {
-  color: var(--dk-text) !important;
-  border-bottom-color: var(--dk-text) !important;
+  color: var(--dk-text);
+  border-bottom-color: var(--dk-text);
 }
 html.dark .sidebar-left .nav-secondary-row {
-  background: var(--dk-bg) !important;
-  border-color: var(--dk-line) !important;
+  background: var(--dk-bg);
+  border-color: var(--dk-line);
 }
-html.dark .sidebar-left .nav-secondary-item { color: var(--dk-mute) !important; }
+html.dark .sidebar-left .nav-secondary-item { color: var(--dk-mute); }
 html.dark .sidebar-left .nav-secondary-item.active {
-  color: var(--dk-text) !important;
-  border-bottom-color: var(--dk-text) !important;
+  color: var(--dk-text);
+  border-bottom-color: var(--dk-text);
 }
-html.dark .sidebar-left .nav-secondary-separator { color: var(--dk-mute) !important; }
+html.dark .sidebar-left .nav-secondary-separator { color: var(--dk-mute); }
 
 @media (max-width: 720px) {
-  .sidebar-left { height: var(--topbar-height) !important; overflow: visible !important; }
+  .sidebar-left { height: var(--topbar-height); overflow: visible; }
   .sidebar-left .nav-menu {
     padding: 0;
     overflow: visible;
@@ -5478,7 +5478,7 @@ html.dark .hrt-pill-down { background-color: rgba(38, 116, 217, .28); box-shadow
 .hrt-industry { overflow: hidden; text-overflow: ellipsis; color: #586474; }
 .hrt-state { height: 90px; color: #9da5ad !important; text-align: center !important; }
 .hrt-foot { justify-content: space-between; gap: 12px; padding-top: 10px; color: #a1a9b2; font-size: 10px; }
-html.dark .home-realtime-board { background: var(--dk-card) !important; }
+html.dark .home-realtime-board { background: var(--dk-card); }
 html.dark .hrt-head strong, html.dark .hrt-stock a, html.dark .hrt-price { color: var(--dk-text); }
 html.dark .hrt-etf-toggle { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-sub); }
 html.dark .hrt-etf-toggle[aria-pressed="true"] { border-color: var(--dk-up); background: rgba(var(--dk-up-rgb),0.12); color: var(--dk-up); }
@@ -5718,7 +5718,7 @@ html:not(.font-gothic) body #stock-search .ss-news-group h4 {
    .dmi-heading h2는 다른 페이지 제목과 같은 규약이라 명조로 남긴다. */
 html:not(.font-gothic) body .om-title,
 html:not(.font-gothic) body .dmi-subheading h3 {
-  font-family: var(--font-ui) !important;
+  font-family: var(--font-ui);
 }
 html:not(.font-gothic) body .price,
 html:not(.font-gothic) body .rate,
@@ -5820,7 +5820,7 @@ html:not(.font-gothic) body #market-temp .mt-stocks-only > .mt-explore-card {
 /* 참고의견·오늘의 전략은 제목용 명조가 아니라 본문 UI 폰트로 통일한다. */
 html:not(.font-gothic) body #market-temp .mt-briefing-panel-title,
 html:not(.font-gothic) body #market-temp .mt-strategy-panel-title {
-  font-family: var(--font-ui) !important;
+  font-family: var(--font-ui);
 }
 
 /* 상·하단 메뉴는 hover/focus/active 상태에서 동일하게 검정으로 표시한다. */
@@ -5921,15 +5921,15 @@ html:not(.font-gothic) body #pattern-scan .ps-tab.active,
 html:not(.font-gothic) body #strategy-search .ss-tab.active,
 html:not(.font-gothic) body #strategy-search .ss-product-tab.active,
 html:not(.font-gothic) body .discussion-stock-btn.is-active {
-  background: var(--accent-dark) !important;
-  border-color: var(--accent-dark) !important;
-  color: #fff !important;
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #fff;
 }
 html:not(.font-gothic) body .sub-filter-bar,
 html:not(.font-gothic) body .ss-tabs,
 html:not(.font-gothic) body .ps-tabs {
-  background: transparent !important;
-  box-shadow: none !important;
+  background: transparent;
+  box-shadow: none;
 }
 
 /* 경제뉴스: 민트/네온 배지를 없애고 텍스트 태그와 얇은 타임라인으로 표시한다.
@@ -5938,14 +5938,14 @@ html:not(.font-gothic) body .ps-tabs {
 html:not(.font-gothic) body .app-news-type,
 html:not(.font-gothic) body .hen-breaking-badge,
 html:not(.font-gothic) body .hen-main em {
-  padding: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-sub) !important;
 }
 html:not(.font-gothic) body .app-news-rail i.is-latest,
 html:not(.font-gothic) body .hen-row .hen-rail i.is-latest {
-  border-color: var(--up) !important;
+  border-color: var(--up);
   background: var(--up) !important;
   box-shadow: none !important;
 }
@@ -5953,8 +5953,8 @@ html:not(.font-gothic) body .hen-row .hen-rail i.is-latest {
    --rule을 배경으로 칠하면 날짜와 본문 사이가 회색 직사각형으로
    뭉개져 보인다(경제뉴스·관련뉴스 공통). */
 html:not(.font-gothic) body .app-news-rail {
-  border-color: var(--rule) !important;
-  background: transparent !important;
+  border-color: var(--rule);
+  background: transparent;
 }
 html:not(.font-gothic) body .hen-rail::before {
   border-color: var(--rule) !important;
@@ -6001,7 +6001,7 @@ html:not(.font-gothic) body .home-widget--summary {
 }
 html:not(.font-gothic) body .discussion-native-guestbook,
 html:not(.font-gothic) body .account-login-dialog {
-  background-image: none !important;
+  background-image: none;
 }
 
 @media (max-width: 720px) {
@@ -6139,9 +6139,9 @@ html.dark body#tt-body-index .home-editorial-page .home-market-switch button:foc
 
 /* Weekend closed page: a clear editorial masthead on a plain white field. */
 body#tt-body-index .home-editorial-page .home-closed-page {
-  min-height: 0 !important;
+  min-height: 0;
   border-bottom: 1px solid #dfe3e8;
-  background: rgb(255, 254, 252) !important;
+  background: rgb(255, 254, 252);
 }
 body#tt-body-index .home-editorial-page .home-closed-lead {
   display: grid;
@@ -6231,7 +6231,7 @@ body#tt-body-index .home-editorial-page .home-closed-note { display: none; }
    박스 흰색이야"). 같은 specificity(5단계 셀렉터)로 다크 값을 얹는다. */
 html.dark body#tt-body-index .home-editorial-page .home-closed-page {
   border-bottom-color: var(--dk-line);
-  background: var(--dk-bg) !important;
+  background: var(--dk-bg);
 }
 html.dark body#tt-body-index .home-editorial-page .home-closed-kicker > span { color: var(--dk-mute); }
 html.dark body#tt-body-index .home-editorial-page .home-closed-kicker h1 { color: var(--dk-text); }
@@ -6287,7 +6287,7 @@ body#tt-body-index .home-editorial-page .home-card-heading > div {
 body#tt-body-index .home-editorial-page .home-card-heading strong,
 body#tt-body-index .home-editorial-page .hen-head strong {
   color: var(--text-strong);
-  font-family: var(--font-title) !important;
+  font-family: var(--font-title);
   font-size: 29px;
   font-weight: 700;
   letter-spacing: -.8px;
@@ -6358,7 +6358,7 @@ body#tt-body-index .home-editorial-page .home-index-price-row strong {
   letter-spacing: -.8px;
 }
 body#tt-body-index .home-editorial-page .home-index-price-row em {
-  font-family: var(--font-data) !important;
+  font-family: var(--font-data);
   font-size: 12px;
 }
 body#tt-body-index .home-editorial-page .home-index-chart {
@@ -6374,7 +6374,7 @@ body#tt-body-index .home-editorial-page .hmb-summary-head {
 }
 body#tt-body-index .home-editorial-page .hmb-summary-head strong {
   color: var(--text-strong);
-  font-family: var(--font-title) !important;
+  font-family: var(--font-title);
   font-size: 14px;
 }
 body#tt-body-index .home-editorial-page .hmb-summary-head span {
@@ -6401,7 +6401,7 @@ body#tt-body-index .home-editorial-page .hmb-list dt {
 body#tt-body-index .home-editorial-page .hmb-list dd {
   margin-top: 4px;
   color: var(--text-main);
-  font-family: var(--font-data) !important;
+  font-family: var(--font-data);
   font-size: 13px;
 }
 body#tt-body-index .home-editorial-page .hmb-investor-trend {
@@ -6417,7 +6417,7 @@ body#tt-body-index .home-editorial-page .hmb-investor-loading {
 
 body#tt-body-index .home-editorial-page .home-top-disclosures-head strong {
   color: var(--text-strong);
-  font-family: var(--font-title) !important;
+  font-family: var(--font-title);
   font-size: 15px;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
@@ -6454,7 +6454,7 @@ body#tt-body-index .home-editorial-page .home-economic-news {
   min-height: 430px;
   padding: 28px 30px 30px;
   overflow: visible;
-  background: transparent !important;
+  background: transparent;
 }
 body#tt-body-index .home-editorial-page .hen-head {
   min-height: 35px;
@@ -6477,7 +6477,7 @@ body#tt-body-index .home-editorial-page .hen-breaking-head {
 }
 body#tt-body-index .home-editorial-page .hen-breaking-head strong {
   color: var(--num-up);
-  font-family: var(--font-ui) !important;
+  font-family: var(--font-ui);
   font-size: 11px;
 }
 body#tt-body-index .home-editorial-page .hen-breaking-head span {
@@ -6557,7 +6557,7 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head {
 }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong {
   color: var(--text-strong);
-  font-family: var(--font-title) !important;
+  font-family: var(--font-title);
   font-size: 25px;
 }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs {
@@ -6567,15 +6567,15 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs {
 }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button {
   padding: 11px 0 10px;
-  border-bottom: 2px solid transparent !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-sub);
   font-size: 12px;
 }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button.active {
-  border-bottom-color: var(--text-main) !important;
-  color: var(--text-main) !important;
+  border-bottom-color: var(--text-main);
+  color: var(--text-main);
   font-weight: 700;
 }
 body#tt-body-index .home-editorial-page .hrt-table-wrap {
@@ -6597,7 +6597,7 @@ body#tt-body-index .home-editorial-page .hrt-table-wrap th {
 body#tt-body-index .home-editorial-page .hrt-stock a,
 body#tt-body-index .home-editorial-page .hrt-stock strong {
   color: var(--text-main);
-  font-family: var(--font-ui) !important;
+  font-family: var(--font-ui);
 }
 body#tt-body-index .home-editorial-page .hrt-price {
   color: var(--text-main);
@@ -6788,13 +6788,13 @@ body#tt-body-index .home-editorial-page .home-economic-news {
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-periods {
-  display: block !important;
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
+  display: block;
+  height: auto;
+  max-height: none;
+  overflow: visible;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-  flex: none !important;
+  flex: none;
 }
 @media (max-width: 640px) {
   body#tt-body-index .home-editorial-page .home-economic-news,
@@ -6827,12 +6827,12 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
 /* 2026-08-18 final density override: keep the home schedule/news as bounded editorial
    columns even after the legacy mobile flow-safety rules above. */
 body#tt-body-index .home-editorial-page .home-top-disclosures {
-  overflow: hidden !important;
+  overflow: hidden;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
-  max-height: 210px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  max-height: 210px;
+  overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 body#tt-body-index .home-editorial-page .home-news-more,
@@ -6889,22 +6889,22 @@ body#tt-body-index .home-editorial-page .home-disclosure-more { display: none !i
 }
 
 body#tt-body-index .home-editorial-page .home-economic-news {
-  display: block !important;
-  height: 430px !important;
+  display: block;
+  height: 430px;
 
-  overflow: hidden !important;
+  overflow: hidden;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-  display: block !important;
-  height: 290px !important;
-  max-height: 290px !important;
+  display: block;
+  height: 290px;
+  max-height: 290px;
 
 
   overscroll-behavior: contain;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-breaking-list {
-  max-height: 68px !important;
-  overflow: hidden !important;
+  max-height: 68px;
+  overflow: hidden;
 }
 body#tt-body-index .home-editorial-page .hen-period h4 {
   margin: 10px 0 0;
@@ -6925,33 +6925,33 @@ body#tt-body-index .home-editorial-page .home-economic-news .app-news-body > str
   font-size: 15px !important;
   line-height: 1.5 !important;
 }
-body#tt-body-index .home-editorial-page .hen-head strong { font-size: 22px !important; }
+body#tt-body-index .home-editorial-page .hen-head strong { font-size: 22px; }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th { font-size: 12px; }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td { font-size: 13px; }
 @media (max-width: 640px) {
 
-  body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list { max-height: 165px !important; }
-  body#tt-body-index .home-editorial-page .home-economic-news { height: 350px !important; }
+  body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list { max-height: 165px; }
+  body#tt-body-index .home-editorial-page .home-economic-news { height: 350px; }
   body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-    height: 220px !important;
-    max-height: 220px !important;
+    height: 220px;
+    max-height: 220px;
   }
-  body#tt-body-index .home-editorial-page .hen-head strong { font-size: 20px !important; }
+  body#tt-body-index .home-editorial-page .hen-head strong { font-size: 20px; }
   body#tt-body-index .home-editorial-page .hen-featured .app-news-body > strong,
   body#tt-body-index .home-editorial-page .hen-regular .app-news-body > strong,
   body#tt-body-index .home-editorial-page .home-economic-news .app-news-body > strong { font-size: 14px !important; }
 }
 
 /* 2026-08-18 home schedule/news hierarchy: one schedule box and one news scale. */
-body#tt-body-index .home-editorial-page .home-top-disclosures[hidden] { display: none !important; }
+body#tt-body-index .home-editorial-page .home-top-disclosures[hidden] { display: none; }
 body#tt-body-index .home-editorial-page .home-top-disclosures {
-  display: block !important;
-  overflow: visible !important;
+  display: block;
+  overflow: visible;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
-  display: block !important;
-  max-height: none !important;
-  overflow: visible !important;
+  display: block;
+  max-height: none;
+  overflow: visible;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
 
@@ -7009,16 +7009,16 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-b
    height/visual weight of the existing schedule area. */
 
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-top-disclosures-head {
-  padding: 0 0 6px !important;
+  padding: 0 0 6px;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
-  display: flex !important;
-  flex-direction: row !important;
+  display: flex;
+  flex-direction: row;
   align-items: stretch;
   gap: 0;
-  max-height: 54px !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
+  max-height: 54px;
+  overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--rule) transparent;
@@ -7080,7 +7080,7 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
 @media (max-width: 640px) {
 
   body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
-    max-height: 50px !important;
+    max-height: 50px;
   }
   body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
     flex-basis: 78vw !important;
@@ -7098,21 +7098,21 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
 /* Final home density pass: scrollbar chrome stays invisible, while the
    disclosure/news rails remain draggable and scrollable. */
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
-  scrollbar-width: none !important;
+  scrollbar-width: none;
   -ms-overflow-style: none;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar-thumb,
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar-track,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list::-webkit-scrollbar,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-periods::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 body#tt-body-index .home-editorial-page .home-widget-grid {
   align-items: start !important;
@@ -7122,23 +7122,23 @@ body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news
   align-self: start !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-  height: auto !important;
-  max-height: 360px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  scrollbar-width: none !important;
+  height: auto;
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
   -ms-overflow-style: none;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list::-webkit-scrollbar-thumb,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list::-webkit-scrollbar-track,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-periods::-webkit-scrollbar-thumb,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-periods::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: transparent;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-body > strong,
 body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:first-child .app-news-body > strong,
@@ -7147,20 +7147,20 @@ body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:nth-
   line-height: 1.45 !important;
 }
 body#tt-body-index .home-editorial-page [data-home-night-futures] {
-  min-height: 42px !important;
-  padding-top: 8px !important;
-  padding-bottom: 6px !important;
+  min-height: 42px;
+  padding-top: 8px;
+  padding-bottom: 6px;
 }
 body#tt-body-index .home-editorial-page [data-home-night-futures] .home-night-futures-chart[hidden] {
   display: none !important;
 }
 @media (max-width: 640px) {
   body#tt-body-index .home-editorial-page .home-economic-news {
-    min-height: 0 !important;
+    min-height: 0;
   }
   body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-    height: auto !important;
-    max-height: 280px !important;
+    height: auto;
+    max-height: 280px;
   }
   body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-body > strong,
   body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:first-child .app-news-body > strong,
@@ -7175,8 +7175,8 @@ body#tt-body-index .home-editorial-page .home-index-strip {
   margin-top: 10px !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-  height: 450px !important;
-  max-height: 450px !important;
+  height: 450px;
+  max-height: 450px;
 }
 @media (max-width: 640px) {
 
@@ -7184,8 +7184,8 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
     margin-top: 8px !important;
   }
   body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-    height: 350px !important;
-    max-height: 350px !important;
+    height: 350px;
+    max-height: 350px;
   }
 }
 
@@ -7194,11 +7194,11 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
 /* 2026-08-18 economic news rhythm: regular timeline rows use the same base
    geometry as the single-row breaking-news ticker without reducing the list. */
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-event {
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-rail {
-  min-height: 42px !important;
+  min-height: 42px;
 }
 
 /* Market schedule scoreboard: show one watchlist event at a time and use a
@@ -7334,20 +7334,20 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
     overflow: hidden !important;
   }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head {
-    display: grid !important;
+    display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
     gap: 8px;
-    padding: 0 0 9px !important;
+    padding: 0 0 9px;
   }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head > div:first-child {
-    display: block !important;
+    display: block;
     min-width: 0;
   }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong {
     display: block;
     overflow: hidden;
-    font-size: 21px !important;
+    font-size: 21px;
     line-height: 1.15;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -7356,7 +7356,7 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
     display: block;
     max-width: 100%;
     margin-top: 4px;
-    font-size: 11.5px !important;
+    font-size: 11.5px;
     line-height: 1.3;
     /* 좁은 폰에서 "미국시장 · 정규장 22:30~05:00"가 말줄임으로 잘려 줄바꿈으로 바꿈(2026-10-05) */
     white-space: normal;
@@ -7464,8 +7464,8 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock a {
     max-width: calc(100% - 44px);
   }
-  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock strong { font-size: 12px !important; }
-  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock small { font-size: 11px !important; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock strong { font-size: 12px; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock small { font-size: 11px; }
   /* 순위는 인라인 <span>이라 선언한 width가 먹지 않아 자릿수에 따라 앞 여백이
      달라졌다(1자리 34px, 2자리 40px). 위 calc가 성립하려면 이 폭이 고정이어야 한다. */
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-rank {
@@ -9017,8 +9017,8 @@ html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-f
 html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
 html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after { color: var(--dk-sub) !important; }
 /* 티스토리 공유 레이어(.layer_post)는 흰 바탕 기본 스타일이라 위 일괄 글자색(밝은색)과 겹쳐 글자가 안 보였다. */
-html.dark .layer_post { background: var(--dk-inner) !important; border: 1px solid var(--dk-line) !important; }
-html.dark .home-neutral { color: var(--dk-flat) !important; }
+html.dark .layer_post { background: var(--dk-inner); border: 1px solid var(--dk-line); }
+html.dark .home-neutral { color: var(--dk-flat); }
 html.dark .briefing-search small { color: var(--dk-mute); }
 
 /* ===== 다크 보정 2 (2026-10-24): 라이트 전용 호버·서랍 흰/검은 면 ===== */
