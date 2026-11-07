@@ -36,6 +36,12 @@
     ['.hmb-investor-spark-wrap', 'drag']
   ];
 
+  // 목록 헤더 sticky 대상: head=옮길 헤더, box=그 헤더가 속한 목록 영역.
+  var STICKY = [
+    { head: '.hrt-table-wrap thead th', box: '.hrt-table-wrap table' },
+    { head: '.hen-period > h4', box: '.hen-period' }
+  ];
+
   var ICON = {
     home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
     market: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>',
@@ -325,7 +331,9 @@
     var active = '';
     var programmatic = false;
     var settleTimer = 0;
-    var heightObserver = global.ResizeObserver ? new ResizeObserver(function () { applyHeight(); }) : null;
+    // 높이는 활성 섹션 하나만 지켜본다(비활성 패널은 크기를 재지 않는다).
+    var heightObserver = global.ResizeObserver ? new ResizeObserver(function () { applyHeight(); queueStick(); }) : null;
+    var observedPanel = null;
 
     function collect() {
       GROUPS.forEach(function (g) {
@@ -333,7 +341,6 @@
         if (node && panels[g.key] !== node) {
           panels[g.key] = node;
           node.setAttribute('data-mtab-group', g.key);
-          if (heightObserver) heightObserver.observe(node);
         }
       });
     }
@@ -350,7 +357,17 @@
     }
     function paint() {
       var keys = visibleKeys();
+      var at = keys.indexOf(active);
       GROUPS.forEach(function (g) {
+        var panel = panels[g.key];
+        if (panel) {
+          // 활성 섹션과 바로 옆 섹션(스와이프로 보이는 쪽)만 그린다. 나머지는 CSS content-visibility로 레이아웃 제외.
+          var idx = keys.indexOf(g.key);
+          panel.classList.toggle('mtab-active', g.key === active);
+          panel.classList.toggle('mtab-near', idx !== -1 && at !== -1 && Math.abs(idx - at) === 1);
+          if (g.key === active) panel.removeAttribute('data-mtab-idle');
+          else panel.setAttribute('data-mtab-idle', '1'); // 목록 모듈이 이 값을 보고 화면 갱신을 건너뛴다
+        }
         var chip = chipsBox.querySelector('[data-mtab-chip="' + g.key + '"]');
         var dot = chipsBox.querySelector('[data-mtab-dot="' + g.key + '"]');
         var on = keys.indexOf(g.key) !== -1;
@@ -371,8 +388,16 @@
       if (!panels[key] || key === active) return;
       active = key;
       paint();
+      if (heightObserver && observedPanel !== panels[key]) {
+        if (observedPanel) heightObserver.unobserve(observedPanel);
+        observedPanel = panels[key];
+        heightObserver.observe(observedPanel);
+      }
       applyHeight();
       writeHash(key);
+      queueStick();
+      // 목록 모듈(종목판 등)이 비활성 동안 쌓인 값을 한 번 반영하도록 알린다. 새 구독·폴링은 없다.
+      try { global.dispatchEvent(new CustomEvent('home-mtab-activate', { detail: { group: key } })); } catch (e) { /* 구형 WebView */ }
     }
     function show(key, smooth) {
       collect();
@@ -380,8 +405,9 @@
       if (!key) return;
       setActive(key);
       programmatic = true;
+      grid.classList.add('is-travel'); // 이동 중에는 건너가는 섹션도 그려 둔다
       clearTimeout(settleTimer);
-      settleTimer = setTimeout(function () { programmatic = false; }, smooth && !reducedMotion() ? 700 : 150);
+      settleTimer = setTimeout(function () { programmatic = false; grid.classList.remove('is-travel'); }, smooth && !reducedMotion() ? 700 : 150);
       grid.scrollTo({ left: offsetOf(panels[key]), behavior: smooth && !reducedMotion() ? 'smooth' : 'auto' });
     }
     function scrollPageToTop() {
@@ -389,6 +415,32 @@
       var top = grid.getBoundingClientRect().top;
       if (top < chipsH) global.scrollTo({ top: Math.max(0, global.scrollY + top - chipsH), behavior: 'auto' });
     }
+
+    // 목록 헤더 sticky. 가로 트랙(grid)이 스크롤 컨테이너라 CSS position:sticky가 세로 스크롤을 따라가지 못하므로,
+    // 활성 섹션의 헤더를 칩 바로 아래에 붙도록 translateY로 옮긴다(목록 영역 안에서만).
+    var stickQueued = false;
+    function stick() {
+      stickQueued = false;
+      var panel = panels[active];
+      if (!panel) return;
+      var pin = chipsBox.getBoundingClientRect().bottom;
+      STICKY.forEach(function (spec) {
+        Array.prototype.forEach.call(panel.querySelectorAll(spec.head), function (head) {
+          var box = head.closest(spec.box);
+          if (!box) return;
+          var rect = box.getBoundingClientRect();
+          var room = rect.height - head.offsetHeight - (spec.tail || 0);
+          var offset = Math.max(0, Math.min(pin - rect.top, room));
+          head.style.transform = offset > 0 ? 'translateY(' + Math.round(offset) + 'px)' : '';
+        });
+      });
+    }
+    function queueStick() {
+      if (stickQueued) return;
+      stickQueued = true;
+      (global.requestAnimationFrame || setTimeout)(stick);
+    }
+    global.addEventListener('scroll', queueStick, { passive: true });
 
     chipsBox.addEventListener('click', function (event) {
       var chip = event.target.closest ? event.target.closest('[data-mtab-chip]') : null;
@@ -409,7 +461,7 @@
     grid.addEventListener('scroll', function () {
       if (programmatic) {
         clearTimeout(settleTimer);
-        settleTimer = setTimeout(function () { programmatic = false; settleFromScroll(); }, 120);
+        settleTimer = setTimeout(function () { programmatic = false; grid.classList.remove('is-travel'); settleFromScroll(); }, 120);
         return;
       }
       clearTimeout(settleTimer);

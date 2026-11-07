@@ -121,8 +121,14 @@
     reconnectDelay: WS_RECONNECT_MIN_MS,
     realtimeGeneration: 0,
     realtimeCodes: [],
-    includeEtf: false
+    includeEtf: false,
+    // 모바일 탭 모드(body.m-tabs) 전용: 처음 10행, 더보기로 10행씩. 접힌 행은 DOM에 두지 않는다.
+    shown: 10,
+    dirty: false,
+    rendered: false
   };
+  var COMPACT_STEP = 10;
+  var COMPACT_MAX = 50;
   var NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var ICONIFY_BASE = 'https://api.iconify.design/';
@@ -177,6 +183,9 @@
   };
 
   function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
+  // 모바일 하단 탭 모드(js/home-mobile-tabs.js가 body에 .m-tabs를 붙임)에서만 목록을 접는다. PC는 기존 그대로.
+  function compact() { return !!(document.body && document.body.classList.contains('m-tabs')); }
+  function detailHref() { return state.market === 'us' ? '/page/stock-search?market=us' : '/page/market-temp?view=stocks'; }
 
   // 2026-09-04: KIS 해외 순위 응답은 ETF에서 한글명 칸에 영문 정식명을 넣어 보낸다
   // (SOXX -> "ISHARES SEMICONDUCTOR", RDIV -> "INVESCO S&P ULTRA DIVIDEND REVENUE").
@@ -596,6 +605,7 @@
     var widgetActions = mount.querySelector('.home-widget-actions');
     if (widgetActions) widgetActions.remove();
     mount.setAttribute('data-hrt-active', state.active);
+    state.rendered = false; // 새 껍데기는 첫 그림을 다시 그려야 한다
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
       + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false">ETF·ETN 제외</button>'
       + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div></div>'
@@ -607,6 +617,7 @@
         return '<th data-field="' + escapeHtml(column[0]) + '">' + column[1] + '</th>';
       }).join('') + '</tr></thead>'
       + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state">' + global.NineUI.spinner() + '실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
+      + '<div class="hrt-more" data-hrt-more hidden></div>'
       + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span></div>';
     if (widgetActions) mount.appendChild(widgetActions);
     updateEtfToggle();
@@ -742,7 +753,12 @@
     if (!state.mount) return;
     var body = state.mount.querySelector('[data-hrt-body]');
     if (!body) return;
-    var rows = rowsForActive().slice(0, state.active === 'volumePower' ? 15 : HOME_ROW_LIMIT);
+    // 비활성 섹션은 첫 그림 이후 다시 그리지 않는다(30초 순위 갱신도 활성이 될 때 한 번에 반영).
+    if (state.rendered && compact() && state.mount.getAttribute('data-mtab-idle') === '1') { state.dirty = true; return; }
+    state.rendered = true;
+    var allRows = rowsForActive().slice(0, state.active === 'volumePower' ? 15 : HOME_ROW_LIMIT);
+    var rows = compact() ? allRows.slice(0, Math.min(state.shown, COMPACT_MAX)) : allRows;
+    state.dirty = false;
     state.mount.setAttribute('data-hrt-active', state.active);
     body.innerHTML = rows.length
       ? rows.map(function (item, index) {
@@ -750,6 +766,7 @@
       }).join('')
       : '<tr><td colspan="' + tableColspan() + '" class="hrt-state">' + emptyStateText() + '</td></tr>';
     renderTableHead();
+    renderMore(allRows.length, rows.length);
     fillVisibleWeek52(rows);
     var foot = state.mount.querySelector('[data-hrt-foot]');
     if (foot) foot.textContent = state.active === 'industry'
@@ -762,6 +779,20 @@
       button.classList.toggle('active', selected);
       button.setAttribute('aria-selected', String(selected));
     });
+  }
+
+  // 더보기: 10행씩, 상한 50. 더 펼칠 수 없으면(상한 또는 순위 끝) 상세 페이지 링크.
+  function renderMore(total, shown) {
+    var box = state.mount && state.mount.querySelector('[data-hrt-more]');
+    if (!box) return;
+    if (!compact() || total <= COMPACT_STEP) { box.hidden = true; box.innerHTML = ''; return; }
+    var limit = Math.min(total, COMPACT_MAX);
+    box.hidden = false;
+    if (shown < limit) {
+      box.innerHTML = '<button type="button" data-hrt-more-btn>더보기 <small>' + shown + '/' + limit + '</small></button>';
+    } else {
+      box.innerHTML = '<a href="' + detailHref() + '">전체 종목 보기 →</a>';
+    }
   }
 
   function stopRealtime() {
@@ -908,8 +939,9 @@
   }
 
   function updateRow(code, quote) {
-    var row = state.mount && state.mount.querySelector('tr[data-code="' + cssEscape(code) + '"]');
-    if (!row) return;
+    // 홈 탭에서 이 섹션이 활성이 아니면(data-mtab-idle) 화면 갱신을 하지 않고 값만 쌓아 둔다. 활성이 될 때 한 번 다시 그린다.
+    var idle = !!(state.mount && state.mount.getAttribute('data-mtab-idle') === '1');
+    var row = !idle && state.mount && state.mount.querySelector('tr[data-code="' + cssEscape(code) + '"]');
     var price = number(quote.price);
     var rate = number(quote.changeRate);
     var item = null;
@@ -923,6 +955,8 @@
     if (!item) item = (state.data && state.data.rows || []).find(function (candidate) { return candidate.code === code; });
     var prevRate = item ? number(item.change_rate) : null;
     if (item) { if (price != null) item.price = price; if (rate != null) item.change_rate = rate; }
+    // 접힌 행(DOM 없음)과 비활성 섹션은 값만 반영한다. 더보기·활성 시 이 값으로 그린다.
+    if (!row) { if (idle) state.dirty = true; return; }
     var priceCell = row.querySelector('[data-field="price"]');
     // textContent로 쓰면 안에 있는 등락률 줄이 첫 체결에 지워진다.
     if (priceCell && price != null) {
@@ -964,6 +998,7 @@
     if (market !== state.market) {
       state.market = market;
       state.active = 'tradeAmount';
+      state.shown = COMPACT_STEP;
       stopRealtime();
       buildShell(state.mount);
     }
@@ -1048,6 +1083,7 @@
       var etfToggle = event.target.closest ? event.target.closest('[data-hrt-etf-toggle]') : null;
       if (etfToggle) {
         state.includeEtf = !state.includeEtf;
+        state.shown = COMPACT_STEP;
         saveEtfPreference();
         updateEtfToggle();
         stopRealtime();
@@ -1055,10 +1091,22 @@
         startRealtime();
         return;
       }
+      var more = event.target.closest ? event.target.closest('[data-hrt-more-btn]') : null;
+      if (more) {
+        state.shown = Math.min(COMPACT_MAX, state.shown + COMPACT_STEP);
+        renderRows();
+        return;
+      }
       var tab = event.target.closest ? event.target.closest('[data-hrt-tab]') : null;
       if (!tab) return;
       state.active = tab.getAttribute('data-hrt-tab') || 'tradeAmount';
+      state.shown = COMPACT_STEP;
       renderRows();
+    });
+    // 홈 탭에서 이 섹션이 다시 활성이 되면, 비활성 동안 쌓인 값으로 한 번 다시 그린다(새 구독·폴링 없음).
+    global.addEventListener('home-mtab-activate', function (event) {
+      var group = event && event.detail && event.detail.group;
+      if (group === 'stocks' && state.data && state.dirty) renderRows();
     });
     global.addEventListener('home-market-change', function (event) {
       var market = event && event.detail && event.detail.market;

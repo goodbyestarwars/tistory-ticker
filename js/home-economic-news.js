@@ -21,8 +21,13 @@
     socketOpened: false, socketReconnectTimer: null, socketFallbackTimer: null, socketKeepaliveTimer: null,
     market: '', quoteMap: {}, items: [], flash: [], loading: false, loadGeneration: 0,
     flashTimer: null, flashRows: [], flashKey: '', flashIndex: 0,
-    translationPromise: null
+    translationPromise: null,
+    shown: 10
   };
+  var COMPACT_STEP = 10;
+  var COMPACT_MAX = 50;
+  // 모바일 하단 탭 모드(body.m-tabs)에서만 처음 10건 + 더보기(10건씩, 상한 50). PC는 기존 10건 그대로.
+  function compact() { return !!(document.body && document.body.classList.contains('m-tabs')); }
 
   function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
   function safeHref(url) { return global.NineUI && global.NineUI.safeUrl ? global.NineUI.safeUrl(url) : (/^https?:\/\//i.test(String(url || '').trim()) ? String(url).trim() : ''); }
@@ -223,7 +228,10 @@
       return timestamp > 0 && timestamp >= cutoff && timestamp <= Date.now();
     }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
-    }).slice(0, 10);
+    });
+    var available = Math.min(rows.length, compact() ? COMPACT_MAX : 10);
+    // 접힌 건은 DOM에 두지 않는다. 갱신 때마다 보이는 건수만 다시 그린다.
+    rows = rows.slice(0, compact() ? Math.min(state.shown, available) : 10);
     if (!rows.length) {
       list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
       return;
@@ -245,7 +253,12 @@
           + (quote ? '<div class="app-news-footer"><span class="app-news-quote ' + tone + '">' + escapeHtml(quote.name || '') + ' <b>' + (quote.rate > 0 ? '+' : '') + Number(quote.rate || 0).toFixed(2) + '%</b></span></div>' : '')
           + '</div></a>';
       }).join('') + '</div>';
-    }).join('') + '</div>';
+    }).join('') + '</div>'
+      + (compact() && available > COMPACT_STEP
+        ? '<div class="hen-more">' + (rows.length < available
+          ? '<button type="button" data-hen-more-btn>더보기 <small>' + rows.length + '/' + available + '</small></button>'
+          : '<a href="/pages/main-news">전체 뉴스 보기 →</a>') + '</div>'
+        : '');
     if (updated) updated.textContent = (window.NineTime && window.NineTime.updated(new Date())) || '';
   }
 
@@ -527,12 +540,19 @@
     state.mount = mount;
     state.market = currentMarket();
     mount.setAttribute('data-hen-ready', '1');
+    mount.addEventListener('click', function (event) {
+      var more = event.target.closest ? event.target.closest('[data-hen-more-btn]') : null;
+      if (!more) return;
+      state.shown = Math.min(COMPACT_MAX, state.shown + COMPACT_STEP);
+      render(state.items, state.market, state.flash);
+    });
     global.addEventListener('watchlist:changed', function () {
       render(state.items, state.market, state.flash);
     });
     global.addEventListener('home-market-change', function () {
       closeNewsSocket(false);
       state.market = currentMarket();
+      state.shown = COMPACT_STEP;
       state.loadGeneration += 1;
       state.loading = false;
       state.items = [];
