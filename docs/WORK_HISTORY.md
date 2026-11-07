@@ -1,6 +1,9 @@
 **2026-11-07 검색기 모양 선정 상대강도('My way') 필터**
 
 목적: 지수와 무관하게 제 갈 길 가는 종목만 남겨 후보 축소. 기록 근거: 포착 656건 중 지수 하락일 포착은 이후 20일 고가 지수 초과 +3.5%p, 상승일 포착은 −3.8%p. 변경: 공통 `js/auto-wave.js`에 `relativeStrengthOf`(KOSPI·KOSDAQ 각각 대비 20/60일 초과수익, 비율선 20일 범위 위치, 지수 하락일 버팀 비율, 두 지수 중 약한 쪽을 요약값으로 씀)·`myWayOf`(단타 2메뉴: 두 지수 초과+자체 20일 상승+비율선 상단+하락일 버팀, 눌림: 60일 초과·상승+비율선 중단 이상, 바닥: 20일 초과·상승+버팀, 장기는 기존 재무 관문 유지). `shape_scan.py`는 저장된 지수 일봉(`future_chart` KOSPI/KOSDAQ, signal_review와 같은 출처, 공급자 호출 없음)을 넘기고, 기준일 종가가 없으면 필터를 끄고 `relativeStrength.status=missing`으로 밝힘(통과/탈락으로 간주하지 않음). `shape_scan.js`는 필터를 60개 상한 전에 적용, 필터 전 후보는 추적에만 기록(`patternDetail.myWay`로 사후 비교). `js/pattern-scan.js` 안내 문구에 필터 기준·제외 수. 추정: 11/06 후보 136건(90종목) → 약 55건(33종목)(20일 미니차트 기반, 실제는 상한 전 적용이라 더 많을 수 있음). 검증: `test_shape_selection.js`(상대강도·폭락장 덜 빠진 종목 제외·지수 결측·워커 필터)·`test_shape_selection.py` 17개·`test_chart_scanner_shape.js`·auto-wave 회귀 통과, 로컬 하네스 안내 문구 확인(하네스는 NineHttp/NineUI 미로딩으로 기존부터 깨져 있어 수동 주입). 미확인: 첫 적용은 11/09 장마감 후 스캔. 배포: master → Pages/VM 자동.
+**2026-11-07 홈 국내 '시장 핵심 지표' 분리: 투자자 동향 유지 · 시장 보조 지표는 종합뉴스 아래**
+
+요청: 투자자 동향은 그대로 두고 원/달러·주간선물은 경제 종합뉴스 밑으로(국내증시만). 변경: `js/skin-main.js` 기존 박스 제목을 '투자자 동향'으로, 원/달러·KOSPI200 주간선물 2열과 20거래일 [면적][막대] 버튼을 `#homeEconomicNews` 안 새 `#homeMarketAux`('시장 보조 지표', 미국 모드 숨김)로 이동. data-market-field·data-home-day-*·data-home-metric-* 계약과 렌더러·폴링은 그대로(dashboardSection 범위 조회). `css/home-market-board.css` 해당 규칙 45줄을 `:is(#homeMarketBoard.hmb2, #homeMarketAux)`로 공유, 루트 변수·간격은 야간선물 카드와 공유, 투자자 동향 위 구분선 제거·중복 dt는 화면에서만 숨김. CSS `?v=20261107-market-aux`. CLAUDE.md·UI_GUIDE 규칙 갱신. 검증: 운영 페이지에 브랜치 CSS·같은 배치 주입 실측(1400px: 종합뉴스 아래 20px, 2열 297px·차트 56px / 375px: 1열, 가로 넘침 0), 관련 테스트 2개 실패 수 master와 동일(기존 실패). 미확인: 평일 장중 실제 화면, 미국 모드 전환 실측. 배포: master → Pages.
 
 **2026-11-07 검색기 모양 선정 5개 메뉴 포착 추적 기록**
 
