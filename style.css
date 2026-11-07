@@ -8358,8 +8358,7 @@ html body .learn-eyebrow { display:block; font-size:13px!important; color:rgba(v
 html body .learn-intro h2 { margin:32px 0 24px!important; font-size:40px!important; line-height:1.4!important; font-family:var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; color:rgb(var(--np-ink))!important; }
 html body .learn-intro p { margin:0!important; font-size:17px!important; line-height:1.8!important; color:rgba(var(--np-ink),.65)!important; }
 html body .learn-intro-line { display:block; }
-html body .learn-intro-line + .learn-intro-line { text-indent:18px; } /* 소개 문구 계단식: 한 줄마다 18px씩 들여 쓴다. 전역 *{padding:0} 초기화가 레이어 밖이라 padding 대신 text-indent를 쓴다 */
-html body .learn-intro-note { display:block; margin-top:48px; text-indent:36px; font-size:12px!important; line-height:1.7; color:rgba(var(--np-ink),.5)!important; }
+html body .learn-intro-note { display:block; margin-top:48px; font-size:12px!important; line-height:1.7; color:rgba(var(--np-ink),.5)!important; }
 html body .learn-card-grid { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:var(--ui-section-gap)!important; min-width:0; counter-reset:story; }
 html body .site-footer-learn a.learn-card {
   position:relative!important; display:grid!important; grid-template-rows:56px auto minmax(0,1fr) auto!important;

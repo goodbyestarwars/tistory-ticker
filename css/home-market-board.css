@@ -373,13 +373,13 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini
   height: 70px; margin-top: 3px;
 }
 
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bars { height: 70px; margin-top: 5px; display: grid; grid-template-rows: repeat(3, 1fr); gap: 4px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-row { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; font: 500 11px/1.2 var(--font-ui); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bars { height: 108px; margin-top: 8px; display: grid; grid-template-rows: repeat(3, 1fr); gap: 6px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-row { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; font: 500 13px/1.2 var(--font-ui); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-name { color: var(--hmb-mute); white-space: nowrap; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-track { position: relative; min-width: 0; height: 100%; border-radius: 5px; isolation: isolate; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-track { position: relative; min-width: 0; height: 100%; border-radius: 6px; isolation: isolate; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-track > i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--investor-fill, color-mix(in srgb, var(--investor-color) 13%, transparent)); z-index: -1; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-value { display: flex; align-items: center; gap: 5px; height: 100%; padding: 0 7px; color: var(--investor-color); white-space: nowrap; font-variant-numeric: tabular-nums; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-value small { color: var(--hmb-mute); font: 400 9px/1 var(--font-ui); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-value { display: flex; align-items: center; gap: 5px; height: 100%; padding: 0 9px; color: var(--investor-color); white-space: nowrap; font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-value small { color: var(--hmb-mute); font: 400 10px/1 var(--font-ui); }
 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-row .hmb-investor-asof {
   margin-top: 2px; font: 400 10px/1.35 var(--font-ui); color: var(--hmb-faint);
@@ -435,14 +435,14 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-c
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-buy { fill: var(--chart-fill-up); color: var(--hmb-chart-up); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-sell { fill: var(--chart-fill-down); color: var(--hmb-chart-down); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-flat { fill: var(--hmb-flat); color: var(--hmb-flat); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-area { fill: currentColor; opacity: .95; }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-buy .hmb-investor-area { fill: var(--chart-fill-up); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-sell .hmb-investor-area { fill: var(--chart-fill-down); }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-line { stroke: currentColor; stroke-width: 1.5; fill: none; }
-body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-zero { stroke: var(--hmb-line); stroke-width: 1; stroke-dasharray: none; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-buy { fill: var(--chart-fill-up); color: var(--hmb-chart-up); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-sell { fill: var(--chart-fill-down); color: var(--hmb-chart-down); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-flat { fill: var(--hmb-flat); color: var(--hmb-flat); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-area { fill: currentColor; opacity: .95; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-buy .hmb-investor-area { fill: var(--chart-fill-up); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-sell .hmb-investor-area { fill: var(--chart-fill-down); }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-line { stroke: currentColor; stroke-width: 1.5; fill: none; }
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content) .hmb-investor-zero { stroke: var(--hmb-line); stroke-width: 1; stroke-dasharray: none; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-axis { display: flex; justify-content: space-between; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-asof { margin-top: 6px; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content) .hmb-investor-spark-empty { display: flex; align-items: center; justify-content: center; height: 90px; color: var(--hmb-mute); font: 400 12px/1.5 var(--font-ui, system-ui, sans-serif); }
