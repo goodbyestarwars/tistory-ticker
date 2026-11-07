@@ -1,3 +1,7 @@
+**2026-11-07 CI 3종 실패(regression·offline·calendar-browser) 낡은 테스트 정리**
+
+원인: 코드 결함이 아니라 테스트가 바뀐 제품을 따라가지 못함. regression=캘린더가 쓰는 NineUI.escapeHtml을 테스트가 싣지 않음. offline=test_market_participation_bars.js가 폐기된 거래대금 화면을 검증(거래량 통일 후 test_market_volume_unified.js가 반대로 검증). calendar-browser=검색기 합성 데이터에 shapeSelection 없음 + 폐기된 그리기 도구·패턴 선택 검증(0fff2d1f). 변경: test/test_calendar_market_tabs.js, test/test_market_participation_bars.js(API 오류 시 캐시 제거 검증만 유지), test/scanner-states.html(inline 모드 shapeSelection 3종목), test/qa_scanner_inline_chart.py(그리기 제거·모바일 행 높이 250). 제품 코드 변경 없음. 검증: 로컬에서 3개 모두 통과(캘린더 4/4, participation 2종, inline QA 4케이스). CI 나머지 단계는 앞 단계 실패로 미실행 상태였으므로 PR CI로 확인.
+
 **2026-11-07 !important 정리 보정: @layer 안 선언만 복원 (정리분 유지)**
 
 현상: 직전 정리(929개 제거) 후 증시온도 '시장 브리핑' 결론 박스가 여백 0·모서리 직각·배경 투명·파란 테두리만 남고 번호 원이 글자와 겹침(모바일 실화면). 원인: `@layer np.np` 안 규칙은 레이어 밖 규칙(`#market-temp .mt-tm-verdict{padding:0;border-radius:0;background:transparent}`, `style.css`의 `*{margin:0;padding:0}`)에 !important 없이는 져서, 레이어 안에서 지운 !important가 실제로 필요했음. 변경: 정리 커밋을 그대로 두고(되돌림 e474eab5를 다시 되돌림) 레이어 블록(중첩 @media 포함) 안의 선언 349줄만 !important 복원, 레이어 밖 정리분 275줄은 유지. 제거는 style.css 174개·market-temp.css 172개 순감. 기준선 test/important_baseline.json 갱신. 검증: 운영 증시온도 페이지에서 정리 전 CSS와 이번 CSS를 교체해 요소 3,053개의 계산 스타일(+::before/::after) 해시 비교 — 모바일 375px·PC 1400px 모두 변경 0건(같은 CSS 2회 측정 노이즈 0건). 결론 박스 복구 값: 여백 8px 12px·모서리 8px·옅은 파란 배경·grid. 후속: 다른 페이지 상태(다크·홈·종목)는 이번에 비교하지 않았음.

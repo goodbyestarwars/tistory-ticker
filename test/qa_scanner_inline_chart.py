@@ -85,22 +85,16 @@ async def main():
                     assert await evaluate('Array.from(document.querySelectorAll(".ps-state-actions")).every(el=>el.querySelectorAll("button").length===1 && !el.querySelector("details"))'),'one shared chart/evidence button per stock'
                     assert await evaluate('document.querySelector(\'.ps-state-row[data-code="005930"] .ps-reference-change\').textContent')=='기준 대비 +0.14%'
                     before=await evaluate('window.startY=scrollY;document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\').click();startY')
-                    await wait_for('!!document.querySelector(".ps-drawing-layer") && !document.querySelector("[data-ps-draw=line]").disabled')
+                    await wait_for('!!document.querySelector("#psChart canvas")')
                     assert await evaluate('document.querySelector("#psDetail").previousElementSibling.dataset.code')=='005930'
                     assert await evaluate('scrollY')==before,'opening an inline chart must not force page scrolling'
                     row_height=await evaluate('document.querySelector(\'.ps-state-row[data-code="005930"]\').getBoundingClientRect().height')
-                    assert row_height<(150 if width>500 else 190)
+                    assert row_height<(150 if width>500 else 250),row_height  # 모바일: 모양 선정 안내 줄(shape-context) 포함
                     assert await evaluate('document.querySelectorAll("#psDetail").length')==1
-                    assert await evaluate('document.querySelectorAll("[data-ps-draw]").length')==7
+                    assert await evaluate('document.querySelectorAll("[data-ps-draw]").length')==0,'drawing tools were removed'
                     assert await evaluate('document.querySelectorAll("[data-ps-ma]").length')==4
                     assert '패턴별 근거' in await evaluate('document.querySelector(".ps-detail-evidence").innerText')
-                    assert await evaluate('document.querySelectorAll("[data-ps-pattern-select] option").length')>1
-                    await evaluate('document.querySelector("[data-ps-pattern-select]").value="1";document.querySelector("[data-ps-pattern-select]").dispatchEvent(new Event("change",{bubbles:true}))')
-                    await wait_for('!!document.querySelector(".ps-drawing-layer") && document.querySelector("[data-ps-pattern-select]")?.value==="1"')
-                    assert await evaluate('document.querySelector("#psDetail").previousElementSibling.dataset.code')=='005930'
-                    assert not await evaluate('document.querySelector("[data-ps-chart-next]").disabled'),'pattern selection must keep stock navigation available'
-                    await evaluate('document.querySelector("[data-ps-pattern-select]").value="0";document.querySelector("[data-ps-pattern-select]").dispatchEvent(new Event("change",{bubbles:true}))')
-                    await wait_for('!!document.querySelector(".ps-drawing-layer") && document.querySelector("[data-ps-pattern-select]")?.value==="0"')
+                    assert not await evaluate('document.querySelector("[data-ps-chart-next]").disabled'),'stock navigation must stay available'
                     await evaluate('document.querySelector("[data-ps-ma=\\"5\\"]").click()')
                     assert not await evaluate('qaMaSeries[qaMaSeries.length-4].options().visible')
                     await evaluate('document.querySelector("[data-ps-ma=\\"5\\"]").click()')
@@ -110,26 +104,8 @@ async def main():
                     assert await evaluate('qaChart.panes().length')==1
                     await evaluate('document.querySelector("[data-ps-volume]").click()')
                     assert await evaluate('qaChart.panes().length')==2
-                    for selector in ('#psIchimokuToggle','#psBollingerToggle','#psSupportResistanceToggle','[data-ps-memo]'):
+                    for selector in ('#psIchimokuToggle','#psBollingerToggle','#psSupportResistanceToggle'):
                         await evaluate('document.querySelector('+json.dumps(selector)+').click()')
-                    await evaluate('document.querySelector("[data-ps-memo]").click()')
-                    await evaluate('document.querySelector("#psChart").scrollIntoView({block:"center"})')
-                    await asyncio.sleep(.15)
-                    await evaluate('document.querySelector("[data-ps-draw=line]").click()')
-                    rect=await evaluate('(()=>{var r=document.querySelector(".ps-drawing-layer").getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};})()')
-                    await call('Input.dispatchMouseEvent',dict(type='mousePressed',x=rect['x']+rect['w']*.3,y=rect['y']+rect['h']*.35,button='left',buttons=1,clickCount=1))
-                    await call('Input.dispatchMouseEvent',dict(type='mouseMoved',x=rect['x']+rect['w']*.55,y=rect['y']+rect['h']*.55,button='left',buttons=1))
-                    await call('Input.dispatchMouseEvent',dict(type='mouseReleased',x=rect['x']+rect['w']*.55,y=rect['y']+rect['h']*.55,button='left',buttons=0,clickCount=1))
-                    await wait_for('JSON.parse(localStorage.getItem("tistory-ticker:pattern-drawings:005930:day") || "{}").lines?.length===1')
-                    for tool in ('pencil','circle','box','hline','measure'):
-                        await evaluate('document.querySelector("[data-ps-draw='+tool+']").click()')
-                        assert await evaluate('document.querySelector("[data-ps-draw='+tool+']").getAttribute("aria-pressed")')=='true'
-                    await evaluate('document.querySelector("[data-ps-memo]").click()')
-                    assert not await evaluate('!!document.querySelector("[data-ps-draw][aria-pressed=true]")')
-                    await evaluate('document.querySelector("[data-ps-draw=line]").click()')
-                    assert await evaluate('document.querySelector("[data-ps-memo]").getAttribute("aria-pressed")')=='false'
-                    await evaluate('document.querySelector(".ps-drawing-layer").dispatchEvent(new MouseEvent("contextmenu",{bubbles:true,cancelable:true}))')
-                    assert not await evaluate('!!document.querySelector("[data-ps-draw][aria-pressed=true]")')
                     await evaluate('qaSavedChart=qaChart;NineHttp.clearCache();PatternScan.refresh()')
                     await asyncio.sleep(.3)
                     assert await evaluate('qaSavedChart===qaChart && document.querySelector("#psDetail").previousElementSibling.dataset.code==="005930"')
@@ -141,12 +117,12 @@ async def main():
                     await evaluate('document.querySelector(".de-chart-restore").click()')
                     await wait_for('!document.querySelector(".de-chart-overlay") && document.querySelector("#psDetail").previousElementSibling?.dataset.code==="005930"')
                     await evaluate('document.querySelector("[data-ps-chart-next]").click()')
-                    await wait_for('!!document.querySelector(".ps-drawing-layer") && document.querySelector("#psDetail").previousElementSibling?.dataset.code!=="005930"')
+                    await wait_for('!!document.querySelector("#psChart canvas") && document.querySelector("#psDetail").previousElementSibling?.dataset.code!=="005930"')
                     await evaluate('document.querySelector("#psClose").click()')
-                    assert await evaluate('document.querySelector("#psDetail").hidden && !document.querySelector(".ps-drawing-layer")')
+                    assert await evaluate('document.querySelector("#psDetail").hidden && !document.querySelector("#psChart canvas")')
                     # A slow response for a previous stock must not replace the current one.
                     await evaluate('qaChartDelay=150;document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\').click();document.querySelector(\'.ps-state-row[data-code="000660"] .ps-state-actions > button\').click()')
-                    await wait_for('!!document.querySelector(".ps-drawing-layer") && document.querySelector("#psDetail").previousElementSibling?.dataset.code==="000660"')
+                    await wait_for('!!document.querySelector("#psChart canvas") && document.querySelector("#psDetail").previousElementSibling?.dataset.code==="000660"')
                     assert '000660' in await evaluate('document.querySelector(".ps-detail-name").innerText')
                     assert not await evaluate('qaRequests.some(u=>/order|buy_limit|sell_limit/.test(u))')
                     assert not await evaluate('document.documentElement.scrollWidth>innerWidth')
@@ -159,21 +135,21 @@ async def main():
                     assert await evaluate('document.querySelector("#psDetail").hidden')
                     await evaluate('document.querySelector("[data-status=all]").click();qaChartDelay=150;var button=document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\');button.click();button.click()')
                     await asyncio.sleep(.25)
-                    assert await evaluate('document.querySelector("#psDetail").hidden && !document.querySelector(".ps-drawing-layer")'),'closed chart must stay closed after a late response'
+                    assert await evaluate('document.querySelector("#psDetail").hidden && !document.querySelector("#psChart canvas")'),'closed chart must stay closed after a late response'
                     await evaluate('qaChartDelay=0;qaDaily[0].volume=null;document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\').click()')
-                    await wait_for('!!document.querySelector(".ps-drawing-layer")')
+                    await wait_for('!!document.querySelector("#psChart canvas")')
                     assert await evaluate('document.querySelector("[data-ps-volume]").disabled && qaChart.panes().length===1'),'missing volume must not be drawn as zero'
                     await evaluate('document.querySelector("#psClose").click()')
                     assert not await evaluate('qaErrors')
-                    await evaluate('fixture.items.find(r=>r.code==="000660").price=63720;var equal=fixture.items.find(r=>r.code==="035420");equal.price=equal.signalPrice=181400;NineHttp.clearCache();PatternScan.refresh()')
+                    await evaluate('var shapes=scan.shapeSelection.groups.liveFlow;shapes.find(r=>r.code==="000660").price=63000;var equal=shapes.find(r=>r.code==="035420");equal.price=70000;NineHttp.clearCache();PatternScan.refresh()')
                     await wait_for('document.querySelector(\'.ps-state-row[data-code="000660"] .ps-reference-change\')?.textContent==="기준 대비 -10.00%"')
                     assert await evaluate('!!document.querySelector(\'.ps-state-row[data-code="000660"] .ps-reference-change.ps-down\')')
                     assert await evaluate('document.querySelector(\'.ps-state-row[data-code="035420"] .ps-reference-change\').textContent')=='기준 대비 0.00%'
-                    await evaluate('fixture.items.find(r=>r.code==="035420").signalPrice=null;NineHttp.clearCache();PatternScan.refresh()')
+                    await evaluate('scan.shapeSelection.groups.liveFlow.find(r=>r.code==="035420").signalReview.signalPrice=null;NineHttp.clearCache();PatternScan.refresh()')
                     await wait_for('document.querySelector(\'.ps-state-row[data-code="035420"] .ps-reference-change\')?.textContent==="기준 대비 미확인"')
                     results.append(dict(width=width,theme=theme,rowHeight=row_height,resultBox=result_box['actual'],inline=True,tools=True,refresh=True,fullscreen=True,staleResponseGuard=True))
             (OUT/'results.json').write_text(json.dumps(results,indent=2),encoding='utf8')
-            print('PASS',len(results),'real-engine inline chart cases: layout, controls, drawing, refresh, fullscreen, switching, stale responses')
+            print('PASS',len(results),'real-engine inline chart cases: layout, controls, refresh, fullscreen, switching, stale responses')
     finally:
         process.terminate()
         browser_log.close()
