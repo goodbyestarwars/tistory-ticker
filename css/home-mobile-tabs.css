@@ -233,6 +233,48 @@
   body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="news"] { order: 3; }
   body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="brief"] { order: 4; }
 
+  /* 비활성 섹션은 레이아웃에서 뺀다: 활성·바로 옆 섹션만 그리고, 나머지는 내용을 그리지 않는다(크기는 마지막 값 유지).
+     그리드 높이는 JS가 활성 섹션 높이(ResizeObserver)로 고정하므로 짧은 섹션 아래에 빈 공간이 남지 않는다. */
+  body.m-tabs .home-widget-grid.mtab-swipe:not(.is-travel) > [data-mtab-group]:not(.mtab-active):not(.mtab-near) {
+    content-visibility: hidden;
+    contain-intrinsic-height: auto 600px;
+  }
+
+  /* 긴 목록: 처음 10개 + 더보기(10개씩, 상한 50, 이후 상세 페이지 링크). 목록 안 가로 페이징은 없다. */
+  .hrt-more[hidden] { display: none; }
+  .hrt-more,
+  .hen-more { padding: 10px 0 2px; }
+  .hrt-more button,
+  .hrt-more a,
+  .hen-more button,
+  .hen-more a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-inner, 9px);
+    background: var(--ui-inner-surface, #fff);
+    color: var(--ui-ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .hrt-more small,
+  .hen-more small { color: var(--ui-muted); font-size: 12px; font-weight: 500; }
+
+  /* 목록 헤더 sticky(js/home-mobile-tabs.js stick()가 translateY로 칩 아래에 붙인다). 행 위에 올라오도록 불투명 면을 준다. */
+  body.m-tabs .home-realtime-board .hrt-table-wrap thead th,
+  body.m-tabs .hen-period > h4 {
+    position: relative;
+    z-index: 2;
+    background: var(--ui-inner-surface, #fff);
+  }
+
   /* 자체 가로 제스처가 있는 요소(차트·지수 스트립·캐러셀·탭 그룹)는 그룹 스와이프를 받지 않는다.
      [data-no-swipe]            가로로 스크롤되는 요소(캐러셀·탭 그룹): 끝에서 그룹으로 넘기지 않는다(overscroll-behavior-x).
      [data-no-swipe="drag"]     JS가 직접 끄는 요소(차트): touch-action pan-y - 브라우저의 가로 이동을 막아(그룹이 안 넘어감)

@@ -411,6 +411,10 @@ WTI·브렌트유·금은 `/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,
 - **한국/미국/휴장**: 기존 `data-home-market-switch`를 유지한다. 휴장 탭은 `.is-market-closed`에서 그리드와 칩을 숨겨 휴장 지면(시장 섹션)만 보인다.
 - **스와이프 충돌**: 자체 가로 제스처 요소는 `data-no-swipe`를 단다. 값이 비면(가로 스크롤러: 종목판 탭 그룹·브리핑 캐러셀·공시 목록·속보 목록) `overscroll-behavior-x:contain`, `"drag"`(차트·지수 스트립)는 추가로 `touch-action:pan-y`(그룹이 안 넘어가고 세로 스크롤은 유지). 새 가로 스크롤 요소를 홈에 넣으면 `NO_SWIPE` 목록에 추가한다. 화면 왼쪽 20px에서 시작한 터치는 `.is-edge`로 가로 스크롤을 막아 iOS 뒤로가기에 양보한다.
 - 측정(390px, 일요일 휴장일에 국내 탭을 고른 상태): 시장 1744 / 종목판 1656 / 공시·뉴스 1275 / 브리핑 551px, US 시장 1981 / 뉴스 1196px. 한 그룹이 약 2화면 안이라 종목판은 나누지 않았다. 나눌 때는 `GROUPS`에 항목을 추가하고 위 세 곳(CSS `order`·칩 수)만 맞춘다.
+- **긴 목록(2026-11-08)**: 종목판(`home-realtime-table.js`)과 공시·뉴스(`home-economic-news.js`)는 모바일(`body.m-tabs`)에서 상위 10개만 그리고 '더보기'(10개씩, 상한 50) 뒤에는 상세 페이지 링크(종목판=`/page/market-temp?view=stocks`·미국 `/page/stock-search?market=us`, 뉴스=`/pages/main-news`)로 바꾼다. 탭·ETF 토글·시장 전환은 10개로 되돌리고, 거래대금/체결강도/ETF 토글·정렬은 그대로다. 목록 안에는 가로 스와이프 페이징을 두지 않는다. PC는 기존 행 수 그대로다.
+- **목록 헤더 sticky**: 가로 스크롤 그리드(overflow-y:hidden) 안에서는 `position:sticky`가 동작하지 않으므로 `home-mobile-tabs.js`의 `STICKY` 목록(종목판 `thead th`, 뉴스 `.hen-period > h4`)을 `translateY`로 칩 아래에 붙인다. 새 sticky 대상은 이 목록에만 추가한다.
+- **높이**: 그리드 높이(`--mtab-panel-h`)는 활성 패널 높이이며 ResizeObserver는 활성 패널만 본다. 활성·이웃이 아닌 패널은 `content-visibility:hidden`으로 레이아웃에서 뺀다(스와이프 이동 중 `.is-travel`에는 해제). 짧은 섹션 아래 빈 공간은 0이다.
+- **갱신**: 비활성 패널은 `data-mtab-idle="1"`이며 목록 모듈은 이때 DOM 갱신·재렌더를 하지 않는다. 기존 WebSocket 체결값은 모든 순위 사본의 데이터에만 반영하고(접힌 행 포함), 활성이 되면(`home-mtab-activate`) 한 번 다시 그린다. 새 구독·폴링은 추가하지 않는다.
 
 ### 홈 시장판 정보·지수·실시간 등락률 (2026-10-12)
 
