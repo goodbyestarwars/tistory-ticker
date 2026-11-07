@@ -514,7 +514,8 @@
     function queueRefresh() {
       if (refreshQueued) return;
       refreshQueued = true;
-      (global.requestAnimationFrame || setTimeout)(refresh);
+      // 렌더링 주기(rAF)가 멈춘 배경 탭에서도 높이를 맞추도록 타이머를 쓴다. ResizeObserver는 활성 섹션 보정용으로 따로 둔다.
+      setTimeout(refresh, 60);
     }
     if (global.MutationObserver) {
       new MutationObserver(queueRefresh).observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
