@@ -7205,7 +7205,9 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-
    restrained analog flip when the next event arrives. */
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-scoreboard-list {
   display: block !important;
-  min-height: 48px !important;
+  /* 2026-11-07: 48px이면 한 줄 공시 아래로 12px이 더 남아 카드 아래 여백이 위(29px)보다 22px 커 보였다.
+     한 줄 높이(위아래 8px + 13px 글자 줄)인 36px로 맞추고, 순환 넘김 때 높이는 그대로 고정한다. */
+  min-height: 36px !important;
   overflow: hidden !important;
   padding: 0 !important;
   cursor: default !important;
@@ -7213,7 +7215,7 @@ body#tt-body-index .home-editorial-page .home-top-disclosures .home-scoreboard-l
 }
 body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row {
   width: 100% !important;
-  min-height: 48px !important;
+  min-height: 36px !important;
   display: grid !important;
   /* 국가명(미국/한국)은 분류용 짧은 라벨이다. 1fr로 남는 폭을 차지하면
      실적 제목이 본문 중앙까지 밀리므로, 내용 너비만 쓰고 제목을 바로 잇는다. */
