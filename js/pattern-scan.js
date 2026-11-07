@@ -1311,6 +1311,14 @@
     return s && s.version==='shape-selection-v1' && s.mode==='observation' && s.orderAuthorized===false &&
       s.status==='ok' && s.coverage && Number.isFinite(s.coverage.universe) && Number.isFinite(s.coverage.eligible) && s.groups && Array.isArray(s.groups[activeTab]) ? s : null;
   }
+  // 상대강도(KOSPI·KOSDAQ 두 지수 모두 대비) 필터 안내. 지수 결측이면 걸러내지 않았음을 밝힌다.
+  function myWayCopy(selection, key) {
+    var rs=selection && selection.relativeStrength;
+    if(!rs || key==='longTermQuality')return '';
+    if(rs.status==='missing')return ' 지수 일봉 미확인으로 상대강도 필터를 적용하지 않았습니다.';
+    var out=(rs.filteredOut || {})[key];
+    return ' 상대강도 필터: KOSPI·KOSDAQ 두 지수보다 강하고 자체 흐름도 오르는 종목만 표시'+(Number.isFinite(out)?' · 이 메뉴에서 '+out+'종목 제외':'')+(rs.status==='partial'?' · 일부 종목은 지수 대조 불가로 필터 미적용':'')+'.';
+  }
   function shapeSelectionItems(selection, key) {
     var now=Date.now(),stamp=Date.parse(selection.scannedAt || '');
     return (selection.groups[key] || []).map(function(it){
@@ -1556,7 +1564,7 @@
     if(typeof global.CustomEvent==='function')document.dispatchEvent(new global.CustomEvent('scanner-public-state',{detail:global.PatternScan.publicSummary}));
     var list=container.querySelector('#psList');
     detailNavItems=visible;
-    var selectionCopy=selection?'모양 기준으로 전체 일봉 '+selection.coverage.universe+'종목 중 '+selection.coverage.eligible+'종목을 검사했습니다. 기준일 '+selection.dataDate+' · 기존 수치 검색과 독립 선정 · 일봉 관찰 후보입니다.':'모양 기준 전종목 스캔을 기다리고 있습니다. 기존 수치 검색 결과로 대신 표시하지 않습니다.';
+    var selectionCopy=selection?'모양 기준으로 전체 일봉 '+selection.coverage.universe+'종목 중 '+selection.coverage.eligible+'종목을 검사했습니다. 기준일 '+selection.dataDate+' · 기존 수치 검색과 독립 선정 · 일봉 관찰 후보입니다.'+myWayCopy(selection,activeTab):'모양 기준 전종목 스캔을 기다리고 있습니다. 기존 수치 검색 결과로 대신 표시하지 않습니다.';
     list.innerHTML='<p class="ps-state-meaning">'+escapeHtml(selectionCopy)+'</p><p class="ps-state-meaning">확정은 검색기 검증 충족이며 수익 보장이 아닙니다. 관찰·연구는 매수 지시가 아니며, 과거 돌파 성공은 체결·수익과 별개입니다.<br>집계: 선택한 검색기의 수신 결과·조회된 추적 기록. 전체 과거 이력은 개별 검색기 이력에서 확인합니다.'+(!global.SCANNER_SECURITY_TYPES?' 종목 유형 자료 미수신 · 확인 가능한 유형·이름 기준으로 스팩 제외 중.':'')+'</p>'
       + (visible.length?'': '<p class="ps-state-empty">'+(known?'선택한 상태의 종목이 없습니다.':'자료를 확인하지 못했습니다. 수신 상태와 데이터 기준을 확인해 주세요.')+'</p>')
       + ['confirmed','observation','research','excluded','expired'].map(function(k){var rows=visible.filter(function(r){return r.publicStatus.key===k;});if(!rows.length)return '';return '<section class="ps-state-section" data-section="'+k+'"><h3>'+PUBLIC_LABELS[k]+' '+rows.length+'</h3>'+rows.map(function(r){

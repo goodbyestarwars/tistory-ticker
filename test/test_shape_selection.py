@@ -117,4 +117,15 @@ class ShapeSelection(unittest.TestCase):
         self.assertEqual(keys,['pattern:shape:bottomFormation','pattern:shape:pullbackRebreak'])
         self.assertEqual(conn.execute("SELECT detected_date,detected_close,status FROM pattern_tracks WHERE scanner='pattern:shape:pullbackRebreak'").fetchone(),('2026-10-24',10000.0,'NEW'))
 
+    def test_benchmarks_require_both_indices_on_basis(self):
+        rows={'KOSPI':[dict(date='20261105',close=5383.8),dict(date='20261106',close=5059.69)],
+              'KOSDAQ':[dict(date='20261105',close=678.41),dict(date='2026-11-06',close=644.27)]}
+        self.db.load_future_chart_since=lambda conn,symbol,since:rows[symbol]
+        out=self.module.load_benchmarks(None,'2026-11-06')
+        self.assertEqual(out['KOSPI'][-1],{'date':'2026-11-06','close':5059.69})
+        self.assertEqual(out['KOSDAQ'][0]['date'],'2026-11-05')
+        self.assertEqual(self.module.load_benchmarks(None,'2026-11-09'),{})
+        rows['KOSDAQ']=rows['KOSDAQ'][:1]
+        self.assertEqual(self.module.load_benchmarks(None,'2026-11-06'),{},'one stale index disables the filter')
+
 if __name__=='__main__':unittest.main()

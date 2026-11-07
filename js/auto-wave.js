@@ -808,6 +808,60 @@
   }
 
 
+  // Relative strength against every given index ("my way": stronger than the
+  // market whichever index it belongs to). Each benchmark is [{date, close}] on
+  // the same trading calendar; the weakest comparison is the summary value.
+  // Missing or stale index data is reported as such, never treated as a pass.
+  function relativeStrengthOf(bars, benchmarks) {
+    var names=Object.keys(benchmarks || {}), vs={};
+    if(!Array.isArray(bars) || bars.length<21 || !names.length)return {status:'missing',vs:vs};
+    var last=bars[bars.length-1].date;
+    for(var k=0;k<names.length;k++) {
+      var map={};
+      (benchmarks[names[k]] || []).forEach(function(row){ if(row && Number(row.close)>0)map[row.date]=Number(row.close); });
+      if(!map[last])return {status:'missing',vs:vs,missing:names[k]};
+      var rows=bars.filter(function(b){return map[b.date] && b.close>0;}).slice(-61);
+      if(rows.length<21)return {status:'missing',vs:vs,missing:names[k]};
+      var line=rows.map(function(b){return b.close/map[b.date];});
+      var ret=function(n){ var a=rows[rows.length-1-n]; return a ? ((rows[rows.length-1].close/a.close)-(map[last]/map[a.date]))*100 : null; };
+      var recent=line.slice(-20), hi=Math.max.apply(null,recent), lo=Math.min.apply(null,recent);
+      var down=0, held=0;
+      for(var i=rows.length-20;i<rows.length;i++) {
+        var p=rows[i-1], b=rows[i], m=map[b.date]/map[p.date]-1;
+        if(m<0){ down++; if(b.close/p.close-1>m)held++; }
+      }
+      vs[names[k]]={rs20:ret(20),rs60:rows.length>60?ret(60):null,rsPosition20:hi>lo?(line[line.length-1]-lo)/(hi-lo):1,
+        downDays:down,downDayHold:down>=4?held/down:null,
+        todayExcess:((rows[rows.length-1].close/rows[rows.length-2].close)-(map[last]/map[rows[rows.length-2].date]))*100};
+    }
+    function weakest(field){
+      var values=names.map(function(n){return vs[n][field];});
+      return values.some(function(v){return v==null;}) ? null : Math.min.apply(null,values);
+    }
+    var own=function(n){ var a=bars[bars.length-1-n]; return a && a.close>0 ? (bars[bars.length-1].close/a.close-1)*100 : null; };
+    return {status:'ok',basis:names.join('+'),vs:vs,own20:own(20),own60:bars.length>60?own(60):null,rs20:weakest('rs20'),rs60:weakest('rs60'),
+      rsPosition20:weakest('rsPosition20'),downDayHold:weakest('downDayHold'),todayExcess:weakest('todayExcess')};
+  }
+
+  // Menu-specific reading of the same relative-strength shape. "My way" means
+  // stronger than both indices AND its own price still rising, so a stock that
+  // merely fell less than a crashing market is not counted. Short trades need the
+  // ratio line at/near its recent high; a trend pullback may rest inside its range
+  // but must stay ahead and rising over the longer window; a base must hold up
+  // while the market falls. Long-term quality keeps its own financial gate.
+  function myWayOf(rs, group) {
+    if(group==='longTermQuality')return {pass:true,applied:false};
+    if(!rs || rs.status!=='ok')return {pass:null,applied:false};
+    var hold=rs.downDayHold==null || rs.downDayHold>=.5, rising=rs.own20>0;
+    var lead=rs.rs60!=null ? rs.rs60>0 && rs.own60>0 : rs.rs20>0 && rising;
+    var pass=group==='pullbackRebreak' ? lead && rs.rsPosition20>=.5
+      : group==='bottomFormation' ? rs.rs20>0 && rising && hold
+      : rs.rs20>0 && rising && rs.rsPosition20>=.8 && hold;
+    var reasons=['20일 '+(rs.own20>=0?'+':'')+rs.own20.toFixed(1)+'% · 두 지수 대비 '+(rs.rs20>=0?'+':'')+rs.rs20.toFixed(1)+'%p'];
+    if(rs.downDayHold!=null)reasons.push('지수 하락일 '+Math.round(rs.downDayHold*100)+'% 버팀');
+    return {pass:!!pass,applied:true,reasons:reasons};
+  }
+
   // Daily web selection, independent of legacy numeric scanner/order feeds.
   // Windows are observation scales, not required pattern durations.
   function selectShapesOf(bars) {
@@ -903,7 +957,7 @@
     return groups;
   }
 
-  var api = { selectShapesOf: selectShapesOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+  var api = { selectShapesOf: selectShapesOf, relativeStrengthOf: relativeStrengthOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;
