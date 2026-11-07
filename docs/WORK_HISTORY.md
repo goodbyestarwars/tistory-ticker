@@ -1,3 +1,7 @@
+**2026-11-07 !important 929개 제거 되돌림 (`e8682338` revert)**
+
+현상: 증시온도 '시장 브리핑' 결론 박스가 모서리 직각·안쪽 여백 0·배경 투명·파란 테두리만 남고, 항목 번호 원이 글자와 겹침(모바일 실화면 캡처). 원인: `@layer np.np` 안의 규칙은 레이어 밖 규칙(`#market-temp .mt-tm-verdict{padding:0;border-radius:0;background:transparent}`·`style.css`의 `*{margin:0;padding:0}`)에 !important 없이는 지므로, '불필요' 판정으로 제거한 레이어 안 !important가 필요했음. 변경: `e8682338` 전체 revert(css/market-temp.css·style.css·test/important_baseline.json). 검증: 운영 모바일 계산 스타일로 재현(padding 0·radius 0·display flex), 되돌린 뒤 재확인은 아래 배포 후. 후속: 제거 재시도는 레이어 밖/안을 구분하고 레이어 안 규칙은 제외하며 렌더링 대상에 브리핑 확정 상태·번호 목록을 포함할 것.
+
 **2026-11-07 미국 주식 이야기: 옵션 화면 읽기 · 미국 옵션시장이 큰 이유**
 
 요청: 종목 화면 옵션 종합·옵션 감마 항목별 상세 설명과 미국 옵션시장 활성화 배경. 변경: `learn/us-market.html`에 두 섹션(`#sec-options-screen`, `#sec-options-why`)과 SVG 4개(감마 표 구성·맥스 페인 예시·감마 플립 헤지·OCC 연간 거래량) 추가. 설명은 `scripts/cloud-vm/us_options.py`·`js/us-stocks.js` 실제 계산(맥스 페인, P/C, 프리미엄 추정, 3일 평균 대비, 월·플립 ±15%, Net GEX=콜−풋, 신규=거래량>OI·300계약)과 일치시킴. `data/learn-search.js` 재생성. 검증: 로컬 서버 PC·모바일(375px) 가로 넘침 없음·SVG 글자 겹침 없음. 배포: master → Pages.
