@@ -16,7 +16,7 @@ assert.strictEqual(AW.selectShapesOf(scaled).pullbackRebreak.length,selected.pul
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'shape-select-test-')),file=path.join(temp,'input.jsonl');
 try{
  fs.writeFileSync(file,JSON.stringify({code:'123450',name:'합성',daily:input,financialScreen:{passed:false}})+'\n');
- const out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file],{encoding:'utf8'}));
+ const out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file],{encoding:'utf8'})).groups;
  assert.strictEqual(out.pullbackRebreak.length,1);assert.strictEqual(out.longTermQuality.length,0);
  assert.strictEqual(out.pullbackRebreak[0].patternDetail.orderAuthorized,false);
  assert.strictEqual(out.pullbackRebreak[0].patternDetail.observationOnly,true);
@@ -29,3 +29,46 @@ const rows=api.mergeScannerRows([{key:'shape:pullbackRebreak',items:api.shapeSel
 const model=api.publicModel(rows,{},now);
 assert.strictEqual(model.counts.observation,1);assert.strictEqual(model.counts.confirmed,0);
 console.log('shape selection: new shallow candidate, falling negative, scale/missing/immutability, bounded shared worker, financial/order separation, web observation OK');
+// my-way relative strength: beat both indices, missing index is "missing" (never pass/fail)
+{
+  const days=Array.from({length:70},(_,i)=>new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10));
+  const mk=(f)=>days.map((d,i)=>({date:d,open:f(i),high:f(i)*1.01,low:f(i)*.99,close:f(i),volume:1000}));
+  const falling=days.map((d,i)=>({date:d,close:1000-i*3}));
+  const flat=days.map((d)=>({date:d,close:500}));
+  const strong=mk(i=>100+i*.5), weak=mk(i=>100-i*.8);
+  const rs=AW.relativeStrengthOf(strong,{KOSPI:falling,KOSDAQ:flat});
+  assert.strictEqual(rs.status,'ok');assert.ok(rs.rs20>0 && rs.rs60>0);
+  assert.strictEqual(rs.rs20,Math.min(rs.vs.KOSPI.rs20,rs.vs.KOSDAQ.rs20),'weakest comparison summarizes');
+  assert.ok(rs.rsPosition20>.9);
+  for(const g of ['liveFlow','trendBreakout','pullbackRebreak','bottomFormation'])assert.strictEqual(AW.myWayOf(rs,g).pass,true,g);
+  const lag=AW.relativeStrengthOf(weak,{KOSPI:falling,KOSDAQ:flat});
+  assert.ok(lag.rs20<0);assert.strictEqual(AW.myWayOf(lag,'liveFlow').pass,false);assert.strictEqual(AW.myWayOf(lag,'bottomFormation').pass,false);
+  assert.strictEqual(AW.myWayOf(lag,'longTermQuality').pass,true,'long-term keeps its own gate');
+  const stale=AW.relativeStrengthOf(strong,{KOSPI:falling.slice(0,-1),KOSDAQ:flat});
+  assert.strictEqual(stale.status,'missing');assert.strictEqual(AW.myWayOf(stale,'liveFlow').pass,null);
+  // worker: filtered menu, pre-filter observed list, flagged unfiltered output when index is missing
+  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'shape-rs-test-')),f=path.join(tmp,'in.jsonl'),b=path.join(tmp,'b.json');
+  try{
+    const base=input.map((r,i)=>({...r,date:days[i]}));
+    fs.writeFileSync(f,JSON.stringify({code:'123450',name:'합성',daily:base,financialScreen:{passed:false}})+'\n');
+    const up=days.map((d,i)=>({date:d,close:500+i*20}));
+    fs.writeFileSync(b,JSON.stringify({KOSPI:up,KOSDAQ:up}));
+    let out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',f,b],{encoding:'utf8'}));
+    assert.strictEqual(out.observed.pullbackRebreak.length,1);assert.strictEqual(out.groups.pullbackRebreak.length,0,'lagging a rising market is filtered');
+    assert.strictEqual(out.relativeStrength.filteredOut.pullbackRebreak,1);assert.strictEqual(out.relativeStrength.status,'ok');
+    out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',f],{encoding:'utf8'}));
+    assert.strictEqual(out.groups.pullbackRebreak.length,1);assert.strictEqual(out.relativeStrength.status,'missing');
+    assert.strictEqual(out.groups.pullbackRebreak[0].patternDetail.myWay.pass,null);
+  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+  console.log('my-way relative strength: both indices, weakest summary, missing index, menu rules, worker filter OK');
+}
+{
+  // falling less than a crashing market is not "my way"
+  const days=Array.from({length:70},(_,i)=>new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10));
+  const crash=days.map((d,i)=>({date:d,close:1000-i*8}));
+  const sagging=days.map((d,i)=>({date:d,open:100-i*.2,high:100-i*.2+1,low:100-i*.2-1,close:100-i*.2,volume:1}));
+  const rs=AW.relativeStrengthOf(sagging,{KOSPI:crash,KOSDAQ:crash});
+  assert.ok(rs.rs20>0 && rs.own20<0);
+  for(const g of ['liveFlow','trendBreakout','pullbackRebreak','bottomFormation'])assert.strictEqual(AW.myWayOf(rs,g).pass,false,g);
+  console.log('my-way: beating a crash while falling is excluded OK');
+}

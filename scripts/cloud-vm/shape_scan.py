@@ -17,6 +17,7 @@ import pattern_detect as pd
 VERSION = 'shape-selection-v1'
 GROUPS = ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'longTermQuality')
 TRACK_PREFIX = 'pattern:shape:'
+BENCHMARKS = ('KOSPI', 'KOSDAQ')
 
 
 def record_tracks(snapshot, conn=None):
@@ -29,12 +30,34 @@ def record_tracks(snapshot, conn=None):
     own = conn is None
     conn = conn or db_schema.get_conn()
     try:
-        groups = snapshot.get('groups') or {}
+        # Track every shape candidate (before the relative-strength filter) so the
+        # filter itself can be judged later from patternDetail.myWay.
+        groups = snapshot.get('observed') or snapshot.get('groups') or {}
         return {key: pattern_tracker.record_new(conn, snapshot['dataDate'], TRACK_PREFIX + key, groups.get(key) or [])
                 for key in GROUPS}
     finally:
         if own:
             conn.close()
+
+
+def load_benchmarks(conn, basis):
+    """Stored KOSPI/KOSDAQ daily closes (same source as signal_review); no provider call.
+
+    An index without the basis-day close is left out so the worker reports the
+    relative-strength check as missing instead of judging against stale data.
+    """
+    out = {}
+    for symbol in BENCHMARKS:
+        rows = []
+        for r in db_schema.load_future_chart_since(conn, symbol, ''):
+            d = str(r.get('date', '')).replace('-', '')
+            c = r.get('close')
+            if len(d) == 8 and isinstance(c, (int, float)) and math.isfinite(c) and c > 0:
+                rows.append(dict(date=d[:4] + '-' + d[4:6] + '-' + d[6:], close=float(c)))
+        rows.sort(key=lambda r: r['date'])
+        if rows and rows[-1]['date'] == basis:
+            out[symbol] = rows[-90:]
+    return out if len(out) == len(BENCHMARKS) else {}
 
 
 def eligible(stock, rows, basis):
@@ -97,25 +120,37 @@ def refresh():
                     stream.write(json.dumps(dict(code=code, name=name, daily=daily, financialScreen=financial, longTermLiquidity=probe['longTermLiquidity']), ensure_ascii=False) + '\n')
             if not coverage['eligible']:
                 raise ValueError('No eligible current daily data; preserve prior snapshot')
-            result = subprocess.run(['node', str(runner), str(incoming)], capture_output=True,
+            try:
+                benchmarks = load_benchmarks(conn, basis)
+            except Exception:
+                benchmarks = {}
+            bench_file = Path(tmp) / 'benchmarks.json'
+            bench_file.write_text(json.dumps(benchmarks), encoding='utf-8')
+            result = subprocess.run(['node', str(runner), str(incoming), str(bench_file)], capture_output=True,
                                     text=True, encoding='utf-8', timeout=300, check=True)
-            groups = json.loads(result.stdout)
+            worker = json.loads(result.stdout)
+            groups = worker['groups']
+            observed = worker.get('observed') or groups
+            relative_strength = worker.get('relativeStrength') or dict(status='missing')
     finally:
         conn.close()
     at = datetime.now(timezone.utc).isoformat()
-    for items in groups.values():
-        for item in items:
-            item.update(scannedAt=at, lastObservedAt=at, dataAsOf=basis)
-            item['patternDetail']['scanned_at'] = at
+    for bucket in (groups, observed):
+        for items in bucket.values():
+            for item in items:
+                item.update(scannedAt=at, lastObservedAt=at, dataAsOf=basis)
+                item['patternDetail']['scanned_at'] = at
     snapshot = dict(version=VERSION, mode='observation', orderAuthorized=False, status='ok',
-                    scannedAt=at, dataDate=basis, coverage=coverage, groups=groups)
+                    scannedAt=at, dataDate=basis, coverage=coverage, groups=groups,
+                    relativeStrength=relative_strength)
     def apply(cache):
         if cache.get('dataDate') != original.get('dataDate') or cache.get('generatedAt') != original.get('generatedAt'):
             raise ValueError('Daily snapshot changed during shape scan')
         cache['shapeSelection'] = snapshot
     daily_scan_cache.update(apply)
     try:
-        record_tracks(snapshot)
+        # Pre-filter candidates go only to the tracker, not to the cached public snapshot.
+        record_tracks(dict(snapshot, observed=observed))
     except Exception as error:
         # Tracking is a follow-up record; never lose the published snapshot over it.
         import logging
