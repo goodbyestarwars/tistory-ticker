@@ -15,7 +15,7 @@
  "css/investor-trend-widget.css": 26,
  "css/kospi-futures.css": 38,
  "css/market-indicators.css": 28,
- "css/market-temp.css": 1141,
+ "css/market-temp.css": 969,
  "css/marketcap-bubble.css": 8,
  "css/mobile-market.css": 92,
  "css/my-dashboard.css": 3,
@@ -31,11 +31,11 @@
  "css/stock-discussion.css": 18,
  "css/stock-news.css": 43,
  "css/stock-search-panel.css": 17,
- "css/stock-search.css": 155,
+ "css/stock-search.css": 145,
  "css/strategy-search.css": 106,
  "css/ticker-tooltip-v3.css": 18,
  "css/ui-system.css": 3,
  "css/us-stocks.css": 3,
  "css/watchlist.css": 43,
- "style.css": 2371
+ "style.css": 2197
 }
