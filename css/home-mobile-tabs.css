@@ -4,7 +4,7 @@
    값은 기존 --ui-* 토큰을 쓰고 다크는 html.dark가 토큰을 바꿔 따라온다. !important는 쓰지 않는다.
 
    z-index 층(낮음→높음): 본문 < 홈 칩(240) < 탭바(280) < 맨 위로(290) < 헤더(300)
-   < 더보기 서랍(1100) < 기존 패널·서랍(1200~) < 모달.
+   < 기존 관심종목 서랍(1200, 서랍 열림 시 탭바는 숨김) < 더보기 서랍(1250) < 기존 모달(서랍을 닫고 열린다).
    겹침 방지 높이는 --mobile-tabbar-h(safe-area 포함) 하나로만 계산한다. */
 
 .mtab-bar,
@@ -99,7 +99,7 @@
   body.m-tabs .sidebar-right { bottom: calc(var(--mobile-tabbar-h) + 12px); }
 
   /* ── 더보기 서랍 ── */
-  body.m-tabs .mtab-drawer { position: fixed; inset: 0; z-index: 1100; }
+  body.m-tabs .mtab-drawer { position: fixed; inset: 0; z-index: 1250; }
   body.m-tabs .mtab-drawer:not([hidden]) { display: block; }
   .mtab-drawer-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .45); }
   .mtab-drawer-sheet {
