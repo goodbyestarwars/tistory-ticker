@@ -396,7 +396,21 @@ WTI·브렌트유·금은 `/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,
 - 관심종목 블록은 마우스 드래그앤드롭으로 같은 그룹 내 순서와 다른 그룹 이동을 저장한다.
 - 시장·종목·종목검색은 드롭다운이나 화살표를 사용하지 않는다. 클릭하면 헤더 아래 고정형
   2차 메뉴 바를 열고, 하위 페이지에서는 현재 1차·2차 메뉴를 함께 활성화한다.
-- 모바일은 1차·2차 메뉴를 각각 한 줄 가로 스크롤한다.
+- 모바일(≤720px)은 아래 '모바일 하단 탭바'가 우선이며, 1·2차 가로 메뉴는 `body.m-tabs`일 때 숨기고 더보기 서랍으로 옮긴다. 롤백 스위치가 꺼지면 이 줄(1·2차 가로 스크롤)로 돌아간다.
+
+### 모바일 하단 탭바 · 얇은 헤더 · 홈 섹션 스와이프 (2026-11-08)
+
+모바일(≤720px)만 해당하며 PC는 변경이 없다. 파일은 `css/home-mobile-tabs.css`·`js/home-mobile-tabs.js`(로더: `js/skin-main.js` `loadMobileTabs`, 720px 이하에서만 받음). `skin.html`은 수정하지 않는다.
+
+- **롤백 스위치**: `body.m-tabs` 한 클래스다. 모든 모바일 규칙이 이 클래스 아래에 있어, 떼면 기존 모바일 화면이 그대로 돌아온다. 끄기: 주소 `?mtabs=off`·`localStorage.nineMobileTabs='off'`·라이브 `NineMobileTabs.disable()`, 영구 비활성은 `loadMobileTabs` 한 덩어리를 지운다.
+- **헤더**: 로고(엠블럼)+종목검색+다크모드 한 줄(실측 53px). 1·2차 가로 메뉴(`.sidebar-left`)와 보조 아이콘은 숨기고, 항목은 더보기 서랍으로 간다. 서랍은 `#nav-menu-mount`를 읽어 만들므로 메뉴 항목을 따로 복제하지 않는다(항목 손실 0). 투자도구(`data-invest-tool`)·관리자·글쓰기·로그아웃은 원래 요소에 `click()`을 넘겨 기존 핸들러를 그대로 쓴다.
+- **하단 탭바**: 홈 / 시장 / 종목 / 더보기. 탭 목적지는 홈 `/`, 시장 `/page/market-temp`, 종목 `/page/market-temp?view=stocks`. 활성 탭은 현재 주소로 정한다(시장: 마켓브리핑·주요 뉴스·증시온도·시장지표, 종목: 국내 주요종목·종목분석·검색기·전략검색·실시간 검색). 홈에서 홈 탭을 다시 누르면 맨 위로. 홈뿐 아니라 `body.iframe-mode`를 뺀 모든 스킨 페이지에 보인다(메뉴가 서랍으로 옮겨졌으므로 어느 페이지에서도 더보기가 있어야 한다).
+- **높이 변수**: `--mobile-tabbar-h`(56px + `env(safe-area-inset-bottom)`) 하나로 모든 겹침을 계산한다(본문 `.page-wrap` 아래 여백, 메모 버튼·맨 위로·`.sidebar-right`의 bottom).
+- **z-index 층**: 본문 < 홈 칩(240) < 탭바(280) < 맨 위로(290) < 헤더(300) < 메모 버튼(950) < 관심종목 서랍(1200) < 더보기 서랍(1250) < 기존 모달. 서랍·검색 패널·관심종목 서랍·모달(`[aria-modal]`)·전체화면 차트가 열려 있거나 입력창에 포커스/가상 키보드(`visualViewport`)가 있으면 탭바를 숨긴다(`body.mtab-hide`).
+- **홈 섹션 스와이프**: 시장(`#homeMarketBoard`) / 종목판(`#homeRealtimeBoard`) / 공시·뉴스(`#homeEconomicNews`) / 브리핑(`.home-briefing-section`). `.home-widget-grid` 직속 섹션을 DOM 이동 없이 `display:flex` 가로 배열과 CSS `order`로 전환하므로 ID·이벤트·전역 객체는 그대로다. `scroll-snap-type:x mandatory`, 칩·점은 IntersectionObserver(+스크롤 정지 보정)로 동기화, 칩 탭은 상단으로 스크롤하고 `#tab=news` 같은 해시를 저장·복원한다(시장 그룹은 해시 없음). 그리드 높이는 활성 그룹 높이로 맞춘다(`--mtab-panel-h`, 0으로 재어지면 자동 높이).
+- **한국/미국/휴장**: 기존 `data-home-market-switch`를 유지한다. 휴장 탭은 `.is-market-closed`에서 그리드와 칩을 숨겨 휴장 지면(시장 섹션)만 보인다.
+- **스와이프 충돌**: 자체 가로 제스처 요소는 `data-no-swipe`를 단다. 값이 비면(가로 스크롤러: 종목판 탭 그룹·브리핑 캐러셀·공시 목록·속보 목록) `overscroll-behavior-x:contain`, `"drag"`(차트·지수 스트립)는 추가로 `touch-action:pan-y`(그룹이 안 넘어가고 세로 스크롤은 유지). 새 가로 스크롤 요소를 홈에 넣으면 `NO_SWIPE` 목록에 추가한다. 화면 왼쪽 20px에서 시작한 터치는 `.is-edge`로 가로 스크롤을 막아 iOS 뒤로가기에 양보한다.
+- 측정(390px, 일요일 휴장일에 국내 탭을 고른 상태): 시장 1744 / 종목판 1656 / 공시·뉴스 1275 / 브리핑 551px, US 시장 1981 / 뉴스 1196px. 한 그룹이 약 2화면 안이라 종목판은 나누지 않았다. 나눌 때는 `GROUPS`에 항목을 추가하고 위 세 곳(CSS `order`·칩 수)만 맞춘다.
 
 ### 홈 시장판 정보·지수·실시간 등락률 (2026-10-12)
 

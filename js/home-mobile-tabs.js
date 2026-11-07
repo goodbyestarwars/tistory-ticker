@@ -533,6 +533,8 @@
     if (mq) {
       if (mq.addEventListener) mq.addEventListener('change', onChange);
       else if (mq.addListener) mq.addListener(onChange);
+      // 일부 환경은 미디어쿼리 change를 늦게 주거나 빠뜨린다(회전·창 크기 변경). resize로 한 번 더 맞춘다 - 둘 다 멱등.
+      global.addEventListener('resize', onChange);
     }
   }
 
