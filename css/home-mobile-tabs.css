@@ -1,0 +1,242 @@
+/* 모바일(≤720px) 하단 탭바 + 얇은 헤더 + 홈 섹션 좌우 스와이프 (2026-11-08).
+   js/home-mobile-tabs.js가 body에 .m-tabs를 붙일 때만 적용된다 - 이 클래스가 롤백 스위치다.
+   PC(721px 이상)에는 어떤 규칙도 닿지 않는다(전부 아래 미디어쿼리 안, 그리고 .m-tabs 하위).
+   값은 기존 --ui-* 토큰을 쓰고 다크는 html.dark가 토큰을 바꿔 따라온다. 강제 우선(important) 선언은 쓰지 않는다.
+
+   z-index 층(낮음→높음): 본문 < 홈 칩(240) < 탭바(280) < 맨 위로(290) < 헤더(300)
+   < 기존 관심종목 서랍(1200, 서랍 열림 시 탭바는 숨김) < 더보기 서랍(1250) < 기존 모달(서랍을 닫고 열린다).
+   겹침 방지 높이는 --mobile-tabbar-h(safe-area 포함) 하나로만 계산한다. */
+
+.mtab-bar,
+.mtab-chips,
+.mtab-drawer { display: none; }
+
+@media (max-width: 720px) {
+  body.m-tabs {
+    --mobile-tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
+    --topbar-height: 0px;
+    --navbar-mobile-extra-height: 0px;
+  }
+
+  /* ── 상단: 로고 + 검색 + 다크모드 한 줄. 1·2차 가로 메뉴는 숨기고 항목은 더보기 서랍으로 옮겼다. ── */
+  body.m-tabs .sidebar-left { display: none; }
+  body.m-tabs .navbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    min-height: 52px;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  body.m-tabs .navbar .nav-hamburger,
+  body.m-tabs .navbar .nav-logo-text,
+  body.m-tabs .navbar .nav-icons > .nav-icon-btn { display: none; }
+  body.m-tabs .navbar .nav-logo { order: 1; flex: 0 0 auto; max-width: none; }
+  body.m-tabs .navbar .nav-search {
+    order: 2;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+  }
+  body.m-tabs .navbar .nav-icons { order: 3; flex: 0 0 auto; }
+
+  /* ── 본문이 탭바 뒤로 들어가지 않게 ── */
+  body.m-tabs .page-wrap { padding-bottom: calc(var(--mobile-tabbar-h) + 12px); }
+
+  /* ── 하단 탭바 ── */
+  body.m-tabs .mtab-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 280;
+    height: var(--mobile-tabbar-h);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--ui-inner-surface, #fff);
+    border-top: 1px solid var(--ui-border);
+    box-shadow: 0 -2px 12px rgba(15, 23, 42, .06);
+    transition: transform .18s ease;
+  }
+  body.m-tabs.mtab-hide .mtab-bar { transform: translateY(100%); pointer-events: none; }
+  .mtab-bar-item {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ui-muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mtab-bar-item svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mtab-bar-item.is-active { color: var(--ui-ink); font-weight: 700; }
+  .mtab-bar-item.is-active svg { stroke-width: 2.1; }
+  .mtab-bar-item:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: -2px; border-radius: 8px; }
+
+  /* 기존 떠 있는 요소는 탭바 위로 올린다. 맨 위로 버튼은 모바일에서 숨김 유지(style.css 주석 참고) -
+     다시 켜지더라도 탭바와 겹치지 않게 위치만 맞춘다. 메모 버튼은 사용자가 끌어 둔 위치(inline)를 존중한다. */
+  body.m-tabs .scroll-top-btn { bottom: calc(var(--mobile-tabbar-h) + 12px); z-index: 290; }
+  body.m-tabs .memo-fab { bottom: calc(var(--mobile-tabbar-h) + 14px); }
+  body.m-tabs .sidebar-right { bottom: calc(var(--mobile-tabbar-h) + 12px); }
+
+  /* ── 더보기 서랍 ── */
+  body.m-tabs .mtab-drawer { position: fixed; inset: 0; z-index: 1250; }
+  body.m-tabs .mtab-drawer:not([hidden]) { display: block; }
+  .mtab-drawer-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .45); }
+  .mtab-drawer-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 82vh;
+    max-height: 82dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--ui-inner-surface, #fff);
+    color: var(--ui-ink);
+    border-radius: var(--ui-radius-card, 14px) var(--ui-radius-card, 14px) 0 0;
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, .18);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mtab-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 8px;
+  }
+  .mtab-drawer-head strong { font-size: var(--ui-section-size, 17px); font-weight: 700; }
+  .mtab-drawer-close {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--ui-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .mtab-drawer-body { overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 16px; }
+  .mtab-sec { padding: 10px 0 4px; border-top: 1px solid var(--ui-border); }
+  .mtab-sec:first-child { border-top: 0; }
+  .mtab-sec-title { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: var(--ui-muted); }
+  .mtab-sec-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .mtab-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-inner, 9px);
+    background: var(--ui-inner-surface, #fff);
+    color: var(--ui-ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mtab-link.is-active { border-color: var(--ui-ink); }
+
+  /* ── 홈 섹션 칩 + 점 (홈 대시보드 안, 그리드 바로 위) ── */
+  body.m-tabs .mtab-chips {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 240;
+    margin: 0 -10px;
+    padding: 6px 10px 4px;
+    background: var(--ui-page);
+  }
+  body.m-tabs .is-market-closed .mtab-chips { display: none; }
+  .mtab-chip-row { display: flex; gap: 6px; }
+  .mtab-chip {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0 6px;
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    background: var(--ui-inner-surface, #fff);
+    color: var(--ui-muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mtab-chip[aria-selected="true"] {
+    background: var(--ui-accent-ink);
+    border-color: var(--ui-accent-ink);
+    color: #fff;
+  }
+  html.dark .mtab-chip[aria-selected="true"] {
+    background: var(--dk-active);
+    border-color: var(--dk-active);
+    color: var(--dk-text);
+  }
+  .mtab-dots { display: flex; justify-content: center; gap: 6px; padding-top: 6px; }
+  .mtab-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--ui-border); transition: width .15s ease, background .15s ease; }
+  .mtab-dot.is-active { width: 16px; background: var(--ui-ink); }
+
+  /* ── 홈 섹션 좌우 스와이프: DOM은 옮기지 않고 그룹 표시만 가로로 배열한다. 순서는 CSS order. ── */
+  body.m-tabs .home-widget-grid.mtab-swipe {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: var(--mtab-panel-h, auto);
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.m-tabs .home-widget-grid.mtab-swipe::-webkit-scrollbar { display: none; }
+  body.m-tabs .home-widget-grid.mtab-swipe[hidden] { display: none; }
+  body.m-tabs .home-widget-grid.mtab-swipe.is-edge { overflow-x: hidden; }
+  body.m-tabs .home-widget-grid.mtab-swipe > .home-widget {
+    flex: 0 0 100%;
+    min-width: 0;
+    max-width: 100%;
+    grid-column: auto;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="market"] { order: 1; }
+  body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="stocks"] { order: 2; }
+  body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="news"] { order: 3; }
+  body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="brief"] { order: 4; }
+
+  /* 자체 가로 제스처가 있는 요소(차트·지수 스트립·캐러셀·탭 그룹)는 그룹 스와이프를 받지 않는다.
+     [data-no-swipe]            가로로 스크롤되는 요소(캐러셀·탭 그룹): 끝에서 그룹으로 넘기지 않는다(overscroll-behavior-x).
+     [data-no-swipe="drag"]     JS가 직접 끄는 요소(차트): touch-action pan-y - 브라우저의 가로 이동을 막아(그룹이 안 넘어감)
+                                요소의 포인터 드래그가 받고 세로 페이지 스크롤은 그대로 둔다. */
+  body.m-tabs [data-no-swipe] { overscroll-behavior-x: contain; }
+  body.m-tabs [data-no-swipe="drag"] { touch-action: pan-y; }
+}

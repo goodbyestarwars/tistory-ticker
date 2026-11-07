@@ -267,6 +267,25 @@ document.documentElement.classList.add('skin-ready');
     document.body.appendChild(script);
   })();
 
+  /* 모바일(≤720px) 하단 탭바 + 얇은 헤더 + 홈 섹션 스와이프(2026-11-08). 720px 이하에서만 파일을 받는다 - PC는 받지 않는다.
+     끄려면 이 IIFE 한 덩어리를 지운다(라이브 점검은 주소 ?mtabs=off). js/home-mobile-tabs.js, css/home-mobile-tabs.css, docs/UI_GUIDE.md '모바일 하단 탭바' */
+  (function loadMobileTabs() {
+    if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
+    if (document.querySelector('script[data-mobile-tabs]')) return;
+    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var version = '20261108-mobile-tabs';
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = ASSET_BASE + 'css/home-mobile-tabs.css?v=' + version;
+    link.setAttribute('data-mobile-tabs-css', '1');
+    document.head.appendChild(link);
+    var script = document.createElement('script');
+    script.src = ASSET_BASE + 'js/home-mobile-tabs.js?v=' + version;
+    script.defer = true;
+    script.setAttribute('data-mobile-tabs', '1');
+    document.body.appendChild(script);
+  })();
+
   /* 증시온도(/page/market-temp): 티스토리 본문에 오래된 <script>/<link>가 남아 있어도
      최신 팔레트·순위 시각화·단기흐름 그래프가 적용되도록 스킨에서 한 번 더 보장한다. */
   (function loadMarketTempPage() {
