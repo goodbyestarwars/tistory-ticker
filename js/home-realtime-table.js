@@ -944,17 +944,21 @@
     var row = !idle && state.mount && state.mount.querySelector('tr[data-code="' + cssEscape(code) + '"]');
     var price = number(quote.price);
     var rate = number(quote.changeRate);
+    // 같은 종목이 여러 순위(거래대금·상승·일반종목 순위 등)에 서로 다른 객체로 들어 있으므로 모두 갱신한다.
+    // 접힌 행·비활성 섹션이 나중에 어느 순위로 그려져도 최신 체결값을 쓰게 하기 위함이다.
     var item = null;
-    Object.keys((state.data && state.data.sections) || {}).some(function (key) {
-      return (state.data.sections[key] || []).some(function (candidate) {
-        if (candidate.code !== code) return false;
-        item = candidate;
-        return true;
-      });
+    var prevRate = null;
+    function touch(candidate) {
+      if (!candidate || candidate.code !== code) return;
+      if (!item) { item = candidate; prevRate = number(candidate.change_rate); }
+      if (price != null) candidate.price = price;
+      if (rate != null) candidate.change_rate = rate;
+    }
+    var sectionMap = (state.data && state.data.sections) || {};
+    Object.keys(sectionMap).forEach(function (key) {
+      if (Array.isArray(sectionMap[key])) sectionMap[key].forEach(touch);
     });
-    if (!item) item = (state.data && state.data.rows || []).find(function (candidate) { return candidate.code === code; });
-    var prevRate = item ? number(item.change_rate) : null;
-    if (item) { if (price != null) item.price = price; if (rate != null) item.change_rate = rate; }
+    ((state.data && state.data.rows) || []).forEach(touch);
     // 접힌 행(DOM 없음)과 비활성 섹션은 값만 반영한다. 더보기·활성 시 이 값으로 그린다.
     if (!row) { if (idle) state.dirty = true; return; }
     var priceCell = row.querySelector('[data-field="price"]');
