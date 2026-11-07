@@ -1048,7 +1048,7 @@
         + '</div>';
     });
     if (extraCount) html += '<button type="button" class="us-opt-more" data-more="' + extraCount + '">행사가 ' + extraCount + '개 더 보기</button>';
-    html += '<p class="us-opt-note">막대: 행사가별 감마 노출 추정(주가 1% 움직일 때). 숫자: 미결제약정(OI) · 오늘 거래량. 시장조성자가 콜을 팔고 풋을 샀다는 가정의 추정이며 실제 포지션이 아닙니다.</p>';
+    html += '<p class="us-opt-note">막대: 행사가별 감마 노출 추정(주가 1% 움직일 때). 숫자: 미결제약정(OI) · 오늘 거래량. 시장조성자가 콜은 보유하고 풋은 매도했다는 가정(투자자의 커버드콜 매도·보험용 풋 매수의 반대편)의 추정이며 실제 포지션이 아닙니다.</p>';
     mount.hidden = false;
     mount.innerHTML = optGridHtml(overviewHtml, html);
     var more = mount.querySelector('.us-opt-more');
