@@ -31,6 +31,9 @@ function mountCalendar() {
   const document = {readyState:'loading',addEventListener() {},
     querySelector(selector) { return selector === '#stock-calendar' ? page : null; }};
   const window = {};
+  // 캘린더는 공통 NineUI.escapeHtml을 쓴다(skin-shell.js). 실제 모듈 구간을 그대로 싣는다.
+  const shellSrc = fs.readFileSync('js/skin-shell.js', 'utf8');
+  vm.runInNewContext(shellSrc.slice(shellSrc.indexOf('/* NineUI:'), shellSrc.indexOf('/* End NineUI */')), {window, document: {}});
   vm.runInNewContext(fs.readFileSync('js/stock-calendar.js','utf8'),
     {window, document, setInterval() { return 1; }});
   const today = new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});

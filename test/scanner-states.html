@@ -18,6 +18,10 @@ patterns.longTermQuality=[Object.assign({},base,{financialScreen:{passed:true,an
 var filter={version:1,technical:4,passed:1,excluded:3,reasonCounts:{ANNUAL_LOSS:1,FINANCIAL_MISSING:1,DISCLOSURE_STALE:1},reasonLabels:{ANNUAL_LOSS:'연간 적자',FINANCIAL_MISSING:'재무자료 누락',DISCLOSURE_STALE:'최신 공시 확인 만료'}};
 if(['missing','stale','loss'].includes(mode)){patterns.longTermQuality=[];filter.passed=0;filter.excluded=4;}
 var scan={patterns:patterns,longTermFilter:filter,scannedAt:'2026-10-28T00:00:00Z',firstPullbackBreakoutReady:true,gongpasanStages:{status:'ok',stages:{WATCH_ACCUM:[JSON.parse(JSON.stringify(base))],BREAKOUT:[JSON.parse(JSON.stringify(base))],WAIT_PULLBACK:[JSON.parse(JSON.stringify(base))]}}};
+// 검색기 5개 메뉴 기본 후보는 서버 shapeSelection(관찰 전용)에서 온다. 인라인 차트 검증용 합성 선정 결과(주문 권한 없음).
+if(mode==='inline'){var shapeItem=Object.assign({},base,{price:70100,patternDetail:Object.assign({},base.patternDetail,{selectionVersion:'shape-selection-v1',orderAuthorized:false,observationOnly:true})});
+scan.shapeSelection={version:'shape-selection-v1',mode:'observation',orderAuthorized:false,status:'ok',scannedAt:'2026-10-28T00:00:00Z',dataDate:'2026-10-27',coverage:{universe:100,eligible:10,skipped:90},groups:{}};
+['liveFlow','trendBreakout','bottomFormation','pullbackRebreak','longTermQuality'].forEach(function(k){scan.shapeSelection.groups[k]=[shapeItem,Object.assign({},shapeItem,{code:'000660',name:'관찰 합성',price:70000}),Object.assign({},shapeItem,{code:'035420',name:'연구 합성',price:70000})].map(function(it){var c=JSON.parse(JSON.stringify(it));return c;});});}
 window.SCANNER_SECURITY_TYPES={spacCodes:['399999'],ordinaryCodes:['005930','377777']};
 if(mode==='metadata')delete window.SCANNER_SECURITY_TYPES;
 fixture.items.push(
