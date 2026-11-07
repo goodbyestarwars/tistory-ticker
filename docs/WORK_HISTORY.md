@@ -1,3 +1,7 @@
+**2026-11-07 홈 국내 '시장 핵심 지표' 분리: 투자자 동향 유지 · 시장 보조 지표는 종합뉴스 아래**
+
+요청: 투자자 동향은 그대로 두고 원/달러·주간선물은 경제 종합뉴스 밑으로(국내증시만). 변경: `js/skin-main.js` 기존 박스 제목을 '투자자 동향'으로, 원/달러·KOSPI200 주간선물 2열과 20거래일 [면적][막대] 버튼을 `#homeEconomicNews` 안 새 `#homeMarketAux`('시장 보조 지표', 미국 모드 숨김)로 이동. data-market-field·data-home-day-*·data-home-metric-* 계약과 렌더러·폴링은 그대로(dashboardSection 범위 조회). `css/home-market-board.css` 해당 규칙 45줄을 `:is(#homeMarketBoard.hmb2, #homeMarketAux)`로 공유, 루트 변수·간격은 야간선물 카드와 공유, 투자자 동향 위 구분선 제거·중복 dt는 화면에서만 숨김. CSS `?v=20261107-market-aux`. CLAUDE.md·UI_GUIDE 규칙 갱신. 검증: 운영 페이지에 브랜치 CSS·같은 배치 주입 실측(1400px: 종합뉴스 아래 20px, 2열 297px·차트 56px / 375px: 1열, 가로 넘침 0), 관련 테스트 2개 실패 수 master와 동일(기존 실패). 미확인: 평일 장중 실제 화면, 미국 모드 전환 실측. 배포: master → Pages.
+
 **2026-11-07 검색기 모양 선정 5개 메뉴 포착 추적 기록**
 
 목적: 고가 기준(포착가 대비 이후 20거래일 최고가 상승률) 평가에서 현재 화면의 모양 선정 메뉴만 기록이 없어 판정 불가. 같은 날 원래 검색기 11개 판정(관측 10/06~11/06, 지수 대비 초과 고가 상승률): 유지 단기이평돌파·역헤드앤숄더·쌍바닥, 관찰 눌림·저점상승, 수정 이평구름·박스하단·시초갭·매집봉·장기224(폭락장 1개월 표본). 변경: `scripts/cloud-vm/shape_scan.py` `record_tracks` - 모양 선정 스냅샷 저장 후 공통 `pattern_tracker.record_new`로 `pattern:shape:<메뉴>` 키에 관찰 추적 등록(기존 검색기 통계·scan_hits·주문 피드 불변, 같은 날 재실행·열린 추적 중복 없음, 실패해도 스냅샷 유지). 갱신은 기존 `update_tracks`가 담당하고 조회는 기존 공개 `/pattern-tracks?scanner=pattern:shape:<메뉴>`. 참고: 메뉴별 공개 목록 60개 상한은 `shape_scan.js`. 검증: `test_shape_selection.py`(신규 1건)·`test_pattern_tracker.py` 16개, `test_shape_selection.js` 통과. 미확인: 첫 기록은 다음 일봉 스캔(11/09 장마감 후). 배포: master → VM 자동.
