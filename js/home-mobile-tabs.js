@@ -343,7 +343,10 @@
     function applyHeight() {
       var node = panels[active];
       if (!node) return;
-      grid.style.setProperty('--mtab-panel-h', Math.ceil(node.getBoundingClientRect().height) + 'px');
+      var h = Math.ceil(node.getBoundingClientRect().height);
+      // 휴장 탭처럼 그리드가 숨겨진 동안은 높이가 0으로 재어진다. 그 값을 쓰면 다시 나타날 때 그리드가 접히므로 자동 높이로 둔다.
+      if (h > 0) grid.style.setProperty('--mtab-panel-h', h + 'px');
+      else grid.style.removeProperty('--mtab-panel-h');
     }
     function paint() {
       var keys = visibleKeys();
