@@ -93,9 +93,19 @@ assert(c.flips[3].on);
 // ── 숏스퀴즈: 대차가 많이 쌓인 상태에서 5일 대차 감소 + 5일 주가 상승 → 높음, 대차 적으면 낮음 ──
 const up = Array.from({ length: 60 }, (_, i) => { const c = 50000 + i * 400 + (i >= 55 ? (i - 54) * 1500 : 0); return { date: day(i), open: c - 300, close: c, high: c + 500, low: c - 500, volume: 1000 }; });
 const sq = JSON.parse(JSON.stringify(entry)); sq.series.loan = newestFirst(40, k => ({ balance: k < 5 ? 20_000_000 + k * 400_000 : 22_000_000 }));
+// 같은 5일 외국인·기관 순매도 → 사서 갚은 흔적 약함(헤지·회수 추정)
+c = downsideCheck(sq, flow, { daily: up });
+assert.equal(c.squeeze.title, '사지 않고 갚은 상환으로 보임', JSON.stringify(c.squeeze));
+assert(c.squeeze.text.includes('5일 외국인+기관 -200억'), c.squeeze.text);
+// 외국인·기관 순매수 → 높음
+sq.series.investor = newestFirst(40, k => ({ foreign_mil: k < 5 ? 3000 : -5000, ind_mil: -2000, inst_mil: 500 }));
 c = downsideCheck(sq, flow, { daily: up });
 assert.equal(c.squeeze.state, 'risk', JSON.stringify(c.squeeze));
-assert(c.squeeze.text.includes('상장주식의') && c.squeeze.text.includes('5일 주가 +'), c.squeeze.text);
+assert(c.squeeze.text.includes('상장주식의') && c.squeeze.text.includes('5일 주가 +') && c.squeeze.text.includes('외국인+기관 +175억'), c.squeeze.text);
+// 투자자 정보 없음 → 단정하지 않고 조짐 + 확인 불가 안내
+const noInv = JSON.parse(JSON.stringify(sq)); noInv.series.investor = [];
+c = downsideCheck(noInv, flow, { daily: up });
+assert.equal(c.squeeze.state, 'warn'); assert(c.squeeze.text.includes('확인하지 못했습니다'), c.squeeze.text);
 const thin = JSON.parse(JSON.stringify(sq)); thin.series.loan = newestFirst(40, () => ({ balance: 100_000 })); thin.series.short = newestFirst(40, () => ({ ratio_pct: 1 }));
 assert.equal(downsideCheck(thin, flow, { daily: up }).squeeze.state, 'ok');
 
