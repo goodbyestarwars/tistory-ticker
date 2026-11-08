@@ -51,7 +51,7 @@ jobs:
       - name: HTTP lifecycle and common chart engine
         run: |
           PYTHONPATH=scripts/cloud-vm:test python -m unittest test_calendar_unified test_earnings_calendar test_earnings_calendar_response test_calendar_completed_cards
-          node --test test/test_calendar_market_tabs.js test/test_calendar_economic_results.js
+          node --test test/test_calendar_market_tabs.js test/test_calendar_economic_results.js test/test_us_econ_calendar.js
           PYTHONPATH=scripts/cloud-vm:test python -m unittest test_scan_progress
           PYTHONPATH=scripts/cloud-vm:test python -m unittest test_toss_ws_hub test_realtime_quotes test_kis_ws_hub test_kiwoom_ws_hub
           node test/test_scanner_progress.js
