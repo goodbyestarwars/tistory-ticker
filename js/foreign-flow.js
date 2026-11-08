@@ -1824,8 +1824,9 @@
 
   // 숏스퀴즈: 공매도용으로 빌린 주식(대차잔고)이 많이 쌓인 상태에서 주가가 오르고 대차잔고가 줄기 시작하면
   // 손실을 줄이려는 되사기(숏커버링)가 몰려 급등하기 쉽다. 대차잔고는 공매도 잔고의 근사치다.
+  var DOWNSIDE_SQ_LEVELS = [['high', '진행 가능성 높음'], ['strong', '조짐 보임'], ['weak', '조짐'], ['wait', '대기'], ['low', '낮음']];
   function downsideSqueeze_(series, loan, listed, shortAvg, closes, shape) {
-    if (!loan) return { state: 'none', title: '숏스퀴즈 판단 불가', text: '대차잔고 정보가 없어 숏스퀴즈 가능성을 판단할 수 없습니다.' };
+    if (!loan) return { state: 'none', level: 'none', title: '숏스퀴즈 판단 불가', text: '대차잔고 정보가 없어 숏스퀴즈 가능성을 판단할 수 없습니다.' };
     var loanPct = listed ? loan.now / listed * 100 : null;
     var loan5 = downsideSpan_(series.loan, 'balance', 5), loan5Chg = loan5 ? downsidePct_(loan5.now, loan5.past) : null;
     var price5 = closes.length > 5 ? downsidePct_(closes[closes.length - 1], closes[closes.length - 6]) : null;
@@ -1847,11 +1848,15 @@
         value: fi5 != null ? '5일 ' + (fi5 > 0 ? '+' : fi5 < 0 ? '-' : '') + Math.round(Math.abs(fi5) / 100).toLocaleString('ko-KR') + '억' : '' }
     ];
     function withChecks(o) { o.checks = checks; return o; }
-    if (heavy && covering && sellers) return withChecks({ state: 'mid', title: '사지 않고 갚은 상환으로 보임', text: '대차잔고는 줄었지만 외국인·기관이 순매도라 시장에서 사서 갚은 흔적이 약합니다. 헤지용 차입 상환이나 빌려준 쪽의 회수일 가능성이 있습니다.' });
-    if (heavy && covering && rising && buyers) return withChecks({ state: 'risk', title: '숏스퀴즈 진행 가능성 높음', text: '쌓인 공매도 물량을 외국인·기관이 사서 갚는 움직임과 주가 상승이 함께 나타납니다. 급등과 급락이 모두 커질 수 있습니다.' });
-    if (heavy && (covering || (rising && buyers))) return withChecks({ state: 'warn', title: '숏스퀴즈 조짐', text: (covering ? '공매도 물량을 갚기 시작했습니다' : '공매도가 많이 쌓인 상태에서 외국인·기관 매수와 함께 주가가 오르고 있습니다') + (fi5 == null ? '. 누가 샀는지는 투자자 정보가 없어 확인하지 못했습니다' : '') + '. 상승이 이어지면 되사기가 몰릴 수 있습니다.' });
-    if (heavy) return withChecks({ state: 'mid', title: '숏스퀴즈 대기', text: '공매도 물량이 많이 쌓여 있지만 아직 사서 갚는 신호는 없습니다.' });
-    return withChecks({ state: 'ok', title: '숏스퀴즈 가능성 낮음', text: '쌓인 공매도 물량이 많지 않습니다.' });
+    // 단계: 공매도가 쌓인 종목에서 되사기 신호(사서 갚은 대차 감소·주가 상승·외국인·기관 매수)가 몇 개 겹쳤는지.
+    var coverBought = covering && !sellers, n = (coverBought ? 1 : 0) + (rising ? 1 : 0) + (buyers ? 1 : 0);
+    var noInv = fi5 == null ? ' 누가 샀는지는 투자자 정보가 없어 확인하지 못했습니다.' : '';
+    if (!heavy) return withChecks({ state: 'ok', level: 'low', title: '숏스퀴즈 가능성 낮음', text: '쌓인 공매도 물량이 많지 않습니다.' });
+    if (n >= 3) return withChecks({ state: 'risk', level: 'high', title: '숏스퀴즈 진행 가능성 높음', text: '쌓인 공매도 물량을 외국인·기관이 사서 갚는 움직임과 주가 상승이 함께 나타납니다. 급등과 급락이 모두 커질 수 있습니다.' });
+    if (n === 2) return withChecks({ state: 'warn', level: 'strong', title: '숏스퀴즈 조짐 보임', text: '되사기 신호가 두 가지 겹쳤습니다. 상승이 이어지면 되사기가 몰릴 수 있습니다.' + noInv });
+    if (n === 1) return withChecks({ state: 'warn', level: 'weak', title: '숏스퀴즈 조짐', text: '되사기 신호가 하나 나타났습니다. 아직 단정하기 이릅니다.' + noInv });
+    if (covering && sellers) return withChecks({ state: 'mid', level: 'wait', title: '숏스퀴즈 대기', text: '대차잔고는 줄었지만 외국인·기관이 순매도라 사서 갚은 흔적이 약합니다. 헤지용 차입 상환이나 빌려준 쪽의 회수일 가능성이 있습니다.' });
+    return withChecks({ state: 'mid', level: 'wait', title: '숏스퀴즈 대기', text: '공매도 물량이 많이 쌓여 있지만 아직 사서 갚는 신호는 없습니다.' });
   }
 
   // 장 시작 전 당일 행은 값이 전부 0(시계열)이거나 거래량 0(일봉)으로 온다. 0 잔고·0 매매로 읽지 않게 뺀다.
@@ -1975,7 +1980,11 @@
       + '<div class="ff-chart-reading"><small>반대매매·공매도 점검</small><strong class="ff-chart-headline">' + escapeHtml(c.headline) + '</strong>'
       + '<p>' + escapeHtml(lead) + '</p>'
       + '<div class="ff-down-flips" aria-label="바닥 전환 신호"><small>바닥 전환 신호</small>' + flips + '</div>'
-      + '<div class="ff-down-squeeze is-' + c.squeeze.state + '"><small>반대 방향 점검</small><b>' + escapeHtml(c.squeeze.title) + '</b>'
+      + '<div class="ff-down-squeeze is-' + c.squeeze.state + '"><small>숏스퀴즈' + (c.squeeze.level === 'none' ? ' · 판단 불가' : '') + '</small>'
+      + '<div class="ff-sq-levels" role="list" aria-label="숏스퀴즈 단계">' + DOWNSIDE_SQ_LEVELS.map(function (lv) {
+        var on = lv[0] === c.squeeze.level;
+        return '<span role="listitem" class="ff-sq-level' + (on ? ' is-on is-' + c.squeeze.state : '') + '"' + (on ? ' aria-current="true"' : '') + '>' + lv[1] + '</span>';
+      }).join('') + '</div>'
       + (c.squeeze.checks ? '<div class="ff-down-flips" aria-label="숏스퀴즈 판정 근거">' + c.squeeze.checks.map(function (f) {
         return '<span class="ff-down-flip' + (f.on ? ' is-on' : '') + (f.known ? '' : ' is-unknown') + '">' + (f.known ? (f.on ? '✓ ' : '✕ ') : '? ') + escapeHtml(f.label) + (f.value ? ' <em>' + escapeHtml(f.value) + '</em>' : '') + '</span>';
       }).join('') + '</div>' : '')

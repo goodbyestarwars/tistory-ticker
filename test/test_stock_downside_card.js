@@ -34,7 +34,7 @@ let c = downsideCheck(entry, flow, chart);
 assert.deepEqual(c.steps.map(s => s.state), ['risk', 'risk', 'risk', 'risk'], JSON.stringify(c.steps.map(s => [s.key, s.state, s.text])));
 assert.equal(c.headline, '반대매매 가능성이 매우 높습니다');
 // 대차가 상장주식의 16%로 많지만 계속 늘고 주가는 하락 → 되사기 신호 없음 = 대기
-assert.equal(c.squeeze.state, 'mid', JSON.stringify(c.squeeze));
+assert.equal(c.squeeze.level, 'wait', JSON.stringify(c.squeeze));
 assert(c.steps[1].metric.includes('상장주식의'), '외국인 보유주수/비중으로 상장주식 대비 대차잔고 비율');
 assert(c.steps[2].text.includes('외국인 -1,000억') && c.steps[2].text.includes('개인 +800억'), c.steps[2].text);
 assert.equal(c.flips.filter(f => f.on).length, 0);
@@ -70,7 +70,7 @@ assert(c.flips.slice(0, 3).every(f => !f.known));
 c = downsideCheck(null, null, { daily: falling(10) });
 assert.equal(c.known, 0);
 assert.equal(c.headline, '자료가 없어 판단할 수 없습니다');
-assert.equal(c.squeeze.state, 'none');
+assert.equal(c.squeeze.state, 'none'); assert.equal(c.squeeze.level, 'none');
 let html = buildDownsideCard(null, null, { daily: [] });
 assert(html.includes('자료를 받지 못했습니다') && html.includes('일봉이 25개 미만'));
 assert(!/NaN|Infinity|undefined/.test(html), html);
@@ -95,23 +95,30 @@ const up = Array.from({ length: 60 }, (_, i) => { const c = 50000 + i * 400 + (i
 const sq = JSON.parse(JSON.stringify(entry)); sq.series.loan = newestFirst(40, k => ({ balance: k < 5 ? 20_000_000 + k * 400_000 : 22_000_000 }));
 // 같은 5일 외국인·기관 순매도 → 사서 갚은 흔적 약함(헤지·회수 추정)
 c = downsideCheck(sq, flow, { daily: up });
-assert.equal(c.squeeze.title, '사지 않고 갚은 상환으로 보임', JSON.stringify(c.squeeze));
+// 대차 감소는 외국인·기관 순매도라 '사서 갚음'으로 세지 않고 주가 상승 1개만 → 조짐
+assert.equal(c.squeeze.level, 'weak', JSON.stringify(c.squeeze));
 const chip = (sq, label) => sq.checks.find(f => f.label === label);
 assert.equal(chip(c.squeeze, '외국인·기관 매수').value, '5일 -200억'); assert.equal(chip(c.squeeze, '외국인·기관 매수').on, false);
 assert.equal(chip(c.squeeze, '대차 감소').on, true);
 // 외국인·기관 순매수 → 높음
 sq.series.investor = newestFirst(40, k => ({ foreign_mil: k < 5 ? 3000 : -5000, ind_mil: -2000, inst_mil: 500 }));
 c = downsideCheck(sq, flow, { daily: up });
-assert.equal(c.squeeze.state, 'risk', JSON.stringify(c.squeeze));
+assert.equal(c.squeeze.state, 'risk', JSON.stringify(c.squeeze)); assert.equal(c.squeeze.level, 'high');
 assert(c.squeeze.checks.every(f => f.on && f.known), JSON.stringify(c.squeeze.checks));
 assert(chip(c.squeeze, '공매도 쌓임').value.startsWith('상장주식의 ') && chip(c.squeeze, '외국인·기관 매수').value === '5일 +175억');
 // 투자자 정보 없음 → 단정하지 않고 조짐 + 확인 불가 안내
 const noInv = JSON.parse(JSON.stringify(sq)); noInv.series.investor = [];
 c = downsideCheck(noInv, flow, { daily: up });
-assert.equal(c.squeeze.state, 'warn'); assert(c.squeeze.text.includes('확인하지 못했습니다'), c.squeeze.text);
+assert.equal(c.squeeze.level, 'strong'); assert(c.squeeze.text.includes('확인하지 못했습니다'), c.squeeze.text);
 assert.equal(chip(c.squeeze, '외국인·기관 매수').known, false);
 const thin = JSON.parse(JSON.stringify(sq)); thin.series.loan = newestFirst(40, () => ({ balance: 100_000 })); thin.series.short = newestFirst(40, () => ({ ratio_pct: 1 }));
-assert.equal(downsideCheck(thin, flow, { daily: up }).squeeze.state, 'ok');
+assert.equal(downsideCheck(thin, flow, { daily: up }).squeeze.level, 'low');
+// 대차 감소 + 외국인·기관 순매도, 주가 하락 → 대기(사지 않고 갚은 상환 안내)
+const hedge = JSON.parse(JSON.stringify(entry)); hedge.series.loan = sq.series.loan;
+c = downsideCheck(hedge, flow, chart); assert.equal(c.squeeze.level, 'wait'); assert(c.squeeze.text.includes('헤지용'), c.squeeze.text);
+const sqHtml = buildDownsideCard(sq, flow, { daily: up });
+assert.equal((sqHtml.match(/class="ff-sq-level[ "]/g) || []).length, 5); assert.equal((sqHtml.match(/ff-sq-level is-on/g) || []).length, 1);
+assert(sqHtml.includes('aria-current="true">진행 가능성 높음<'));
 
 // ── 카드 HTML·캐러셀 계약: 차트 카드 다음 02번, 점·넘김 버튼 생성 ──
 html = buildDownsideCard(entry, flow, chart);
