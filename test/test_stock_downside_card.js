@@ -32,10 +32,21 @@ const entry = {
 const flow = { daily: newestFirst(40, k => ({ foreign_ratio: 17.7 + k * 0.1, foreign_shares: 24_000_000 })) };
 let c = downsideCheck(entry, flow, chart);
 assert.deepEqual(c.steps.map(s => s.state), ['risk', 'risk', 'risk', 'risk'], JSON.stringify(c.steps.map(s => [s.key, s.state, s.text])));
-assert.equal(c.headline, '지하실 연료가 남아 있습니다');
+assert.equal(c.headline, '반대매매 가능성이 매우 높습니다');
+// 대차가 상장주식의 16%로 많지만 계속 늘고 주가는 하락 → 되사기 신호 없음 = 대기
+assert.equal(c.squeeze.state, 'mid', JSON.stringify(c.squeeze));
 assert(c.steps[1].metric.includes('상장주식의'), '외국인 보유주수/비중으로 상장주식 대비 대차잔고 비율');
 assert(c.steps[2].text.includes('외국인 -1,000억') && c.steps[2].text.includes('개인 +800억'), c.steps[2].text);
 assert.equal(c.flips.filter(f => f.on).length, 0);
+
+// ── 장 시작 전 당일 0값 행(시계열 전부 0, 일봉 거래량 0)은 결측으로 빼고 직전 거래일로 판정 ──
+const pre = JSON.parse(JSON.stringify(entry));
+pre.series.credit.unshift({ date: '2026-09-01', balance: 0, ratio_pct: 0, new: 0, repay: 0, amount_mil: 0 });
+pre.series.investor.unshift({ date: '2026-09-01', ind_mil: 0, foreign_mil: 0, inst_mil: 0 });
+const preDaily = falling(60).concat([{ date: '2026-09-01', open: 40000, high: 40000, low: 40000, close: 40000, volume: 0 }]);
+c = downsideCheck(pre, flow, { daily: preDaily });
+assert.equal(c.headline, '반대매매 가능성이 매우 높습니다', c.headline);
+assert(!c.steps[0].metric.startsWith('0.0만주'), c.steps[0].metric);
 
 // ── 반대매매 흔적·대차 감소·외국인 5일 순매수 → 완화 신호 ──
 const relief = JSON.parse(JSON.stringify(entry));
@@ -47,7 +58,7 @@ assert.equal(c.steps[0].state, 'ok');
 assert.equal(c.steps[1].state, 'ok');
 assert.equal(c.steps[2].state, 'ok');
 assert(c.flips.filter(f => f.on).length >= 3);
-assert.equal(c.headline, '지하실 연료가 소진되는 중입니다');
+assert.equal(c.headline, '팔 물량이 정리되며 바닥을 다지고 있습니다');
 
 // ── 결측: 시계열 없음(구 응답·시간 초과) → 0으로 바꾸지 않고 정보 없음 문구 ──
 c = downsideCheck(null, null, chart);
@@ -58,7 +69,8 @@ assert(c.steps[2].text.includes('투자자별 매매 정보가 없습니다'));
 assert(c.flips.slice(0, 3).every(f => !f.known));
 c = downsideCheck(null, null, { daily: falling(10) });
 assert.equal(c.known, 0);
-assert.equal(c.headline, '지하실 연료를 확인할 자료가 없습니다');
+assert.equal(c.headline, '자료가 없어 판단할 수 없습니다');
+assert.equal(c.squeeze.state, 'none');
 let html = buildDownsideCard(null, null, { daily: [] });
 assert(html.includes('자료를 받지 못했습니다') && html.includes('일봉이 25개 미만'));
 assert(!/NaN|Infinity|undefined/.test(html), html);
@@ -77,6 +89,15 @@ const climax = falling(60); climax[57] = { ...climax[57], open: 49000, close: 49
 c = downsideCheck(entry, flow, { daily: climax });
 assert.equal(c.steps[3].state, 'ok');
 assert(c.flips[3].on);
+
+// ── 숏스퀴즈: 대차가 많이 쌓인 상태에서 5일 대차 감소 + 5일 주가 상승 → 높음, 대차 적으면 낮음 ──
+const up = Array.from({ length: 60 }, (_, i) => { const c = 50000 + i * 400 + (i >= 55 ? (i - 54) * 1500 : 0); return { date: day(i), open: c - 300, close: c, high: c + 500, low: c - 500, volume: 1000 }; });
+const sq = JSON.parse(JSON.stringify(entry)); sq.series.loan = newestFirst(40, k => ({ balance: k < 5 ? 20_000_000 + k * 400_000 : 22_000_000 }));
+c = downsideCheck(sq, flow, { daily: up });
+assert.equal(c.squeeze.state, 'risk', JSON.stringify(c.squeeze));
+assert(c.squeeze.text.includes('상장주식의') && c.squeeze.text.includes('5일 주가 +'), c.squeeze.text);
+const thin = JSON.parse(JSON.stringify(sq)); thin.series.loan = newestFirst(40, () => ({ balance: 100_000 })); thin.series.short = newestFirst(40, () => ({ ratio_pct: 1 }));
+assert.equal(downsideCheck(thin, flow, { daily: up }).squeeze.state, 'ok');
 
 // ── 카드 HTML·캐러셀 계약: 차트 카드 다음 02번, 점·넘김 버튼 생성 ──
 html = buildDownsideCard(entry, flow, chart);

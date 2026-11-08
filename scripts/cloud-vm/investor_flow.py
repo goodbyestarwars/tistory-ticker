@@ -270,11 +270,19 @@ def downside_series(credit_rows, loan_rows, short_rows, invsr_rows, days=SERIES_
     결측 칸은 0이 아니라 None으로 둔다. short.cum_qty(ovr_shrts_qty)는 조회 시작일부터의
     누적 공매도 거래량이며 공매도 잔고가 아니다. investor 금액 단위는 백만원(ka10059 amt)."""
     def pick(rows, build):
+        # 장 시작 전·집계 전 당일 행은 모든 값이 0으로 온다(2026-11-09 06시 실측).
+        # 잔고 0·매매 0으로 오해하지 않도록 값이 하나도 없는 행은 건너뛴다.
         out = []
-        for row in rows[:days]:
+        for row in rows:
+            if len(out) >= days:
+                break
             date = _ymd(row.get('dt'))
-            if date:
-                out.append(dict(build(row), date=date))
+            if not date:
+                continue
+            item = build(row)
+            if not any(v for v in item.values()):
+                continue
+            out.append(dict(item, date=date))
         return out
 
     return {
