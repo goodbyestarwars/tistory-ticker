@@ -1,3 +1,7 @@
+**2026-11-08 모바일 홈에 이야기 시리즈 추가 + 휴장 탭 분류 스와이프**
+
+요청: 상단 스와이프에 이야기 시리즈 추가, 휴장도 분류해서 같은 방식 적용. 변경: `js/home-mobile-tabs.js`(스와이프 엔진을 장중/휴장 두 번 마운트, 장중 5그룹에 이야기=푸터 `.site-footer-learn`을 `#homeStorySeries`로 이동·복원, 휴장 7그룹 휴장/원자재/일정/가상자산/뉴스/브리핑/이야기, 칩 줄 가로 스크롤), `css/home-mobile-tabs.css`(휴장 보고서 flex·`display:contents`·order·`.mtab-pack`), `js/skin-main.js`(로더 버전). 모두 `body.m-tabs`/≤720px 한정, PC·`!important` 무변경. 검증: 390px 라이브 페이지(브랜치 SHA 주입)에서 휴장 7칩 각 그룹 높이=활성 패널 높이, 장중↔휴장 전환 시 이야기 시리즈 이동·복원·해시 분리, 장중 5칩 한 줄 맞춤, ratchet·node --check 통과. 미확인: 실기기 스와이프, 다크/320px 육안, 장중(평일) 시간대 실데이터. 배포: master → Pages.
+
 **2026-11-08 모바일 긴 목록 10개+더보기·헤더 sticky·활성 섹션 높이·비활성 갱신 생략**
 
 요청: 홈 스와이프 섹션의 긴 목록 정리. 변경: `home-realtime-table.js`(상위10+더보기 10개씩·상한50 후 상세 링크, 접힌 행/비활성은 데이터만 반영, 같은 종목의 모든 순위 사본 갱신), `home-economic-news.js`(10→50 더보기 후 뉴스 링크), `home-mobile-tabs.js`(활성 패널만 ResizeObserver, 비활성 `data-mtab-idle`·`home-mtab-activate`, translateY 가짜 sticky 헤더), `css/home-mobile-tabs.css`(content-visibility, 더보기·sticky 스타일). 모두 `body.m-tabs`/≤720px 한정, PC·`!important` 무변경, 새 구독·폴링 없음. 검증: 390px 라이브 페이지에서 더보기 10→20→30→링크, 뉴스 10→50→링크, 탭 전환 시 초기화, 그리드 높이=활성 패널 높이, 헤더가 칩 아래에 고정(top 58), 비활성 틱 무갱신·활성화 시 최신값 재렌더(22,222원), ratchet·node --check 통과. 미확인: 실기기 스와이프·실제 WS 틱, 다크/320px 육안. 배포: master → Pages.
