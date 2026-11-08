@@ -1,3 +1,7 @@
+**2026-11-09 실시간 종목판 08시대(NXT) 체결가 유지**
+
+요청: 08:00 NXT에 종목판은 안 움직이고 관심종목은 움직임. 원인: WebSocket은 둘 다 같은 통합(H0UNCNT0) 체결을 받는다(08:47 실측 20초 408틱, exchange=NXT). 그러나 종목판 순위 API(`kis_client.fetch_domestic_volume_rank`)는 KRX(J) 기준이라 08시대엔 장전 시간외 값(전일 종가·등락 0, 실측 삼성전자 188,700원 0% vs 통합 190,800원 +1.11%)을 주고, 30초·체결 후 5초 순위 재조회가 그 값으로 체결가를 덮어썼다. 변경: `js/home-realtime-table.js`가 같은 KST 날짜에 받은 종목별 마지막 체결가·등락률을 기억해 순위 재조회 뒤 다시 입힘(순위·거래대금·서버 응답 불변, 시장 전환 시 초기화). 검증: 로컬 하네스(실제 08:41 응답+가짜 소켓)에서 틱 후 5초 재조회 뒤에도 189,500원 +0.42% 유지, `node --check`. 미완료: 08시대 순위 자체와 상승률·하락률 탭(빈 목록)은 여전히 KRX 기준.
+
 **2026-11-09 캘린더 발표 완료 경제지표에 결과 표시**
 
 요청: 발표 완료 카드에 결과가 없음. 변경: 결과 포맷은 '주요 미국 발표' 공통 모듈 `js/us-macro-indicators.js` `releaseResult(code, us_date, items)`가 소유 - 발표일로 그 발표가 다룬 통계 기간(월 lag·분기·주간 토요일 마감)을 정해 해당 기간 FRED 값만 읽고, 없으면 이전 값 대신 '반영 대기'. FRED 값은 최신 수정치(첫 발표치와 다를 수 있음). ISM·ADP·기존주택(NAR)은 저작권 자료라 수치 미표시, FOMC는 결과 줄 없음. `js/stock-calendar.js`가 지난 지표에만 모듈을 지연 로드해 같은 30분 캐시로 결과 한 줄 표시, 실패 시 일정만. VM `bond_yield.FRED_SYMBOLS`에 저작권 표시 없는 정부 통계 8종(ICSA·DGORDER·AMTMNO·HOUST·HSN1F·INDPRO·BOPGSTB·PRS85006092) 추가 - 기존 FRED 폴링 루프 재사용, `/futures`는 명시 요청 때만 실음(기본 응답 불변). 검증: `test/test_us_econ_calendar.js` 5 pass, `test_futures_response_cache` 10 OK(Windows는 syslog 대체 실행), 캘린더 기존 테스트 통과.
