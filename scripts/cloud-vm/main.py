@@ -2515,7 +2515,7 @@ def investor_flow_endpoint(request: Request, code: str = Path(..., min_length=6,
         return envelope(cached)
     try:
         token = get_kiwoom_token()
-        result = investor_flow.fetch_stock(token, code, name)
+        result = investor_flow.fetch_stock(token, code, name, include_series=True)
     except HTTPException:
         raise
     except Exception as e:

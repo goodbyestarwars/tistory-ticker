@@ -247,6 +247,62 @@ def credit_pressure_signal(rows):
     }
 
 
+SERIES_DAYS = 60
+
+
+def _ymd(value):
+    d = str(value or '')
+    return '%s-%s-%s' % (d[0:4], d[4:6], d[6:8]) if len(d) == 8 and d.isdigit() else None
+
+
+def _num_or_none(value):
+    if value is None or str(value).strip() in ('', '-'):
+        return None
+    try:
+        return float(str(value).replace(',', '').replace('+', ''))
+    except ValueError:
+        return None
+
+
+def downside_series(credit_rows, loan_rows, short_rows, invsr_rows, days=SERIES_DAYS):
+    """종목분석 카드형 '하방 압력 점검'용 일별 원자료(최신일 우선, 판정 없음).
+    fetch_stock이 이미 받은 네 TR 응답을 잘라 붙일 뿐 공급자 호출을 늘리지 않는다.
+    결측 칸은 0이 아니라 None으로 둔다. short.cum_qty(ovr_shrts_qty)는 조회 시작일부터의
+    누적 공매도 거래량이며 공매도 잔고가 아니다. investor 금액 단위는 백만원(ka10059 amt)."""
+    def pick(rows, build):
+        out = []
+        for row in rows[:days]:
+            date = _ymd(row.get('dt'))
+            if date:
+                out.append(dict(build(row), date=date))
+        return out
+
+    return {
+        'days': days,
+        'credit': pick(credit_rows, lambda r: {
+            'balance': _num_or_none(r.get('remn')),
+            'ratio_pct': _num_or_none(r.get('remn_rt')),
+            'new': _num_or_none(r.get('new')),
+            'repay': _num_or_none(r.get('rpya')),
+            'amount_mil': _num_or_none(r.get('amt')),
+        }),
+        'loan': pick(loan_rows, lambda r: {
+            'balance': _num_or_none(r.get('rmnd')),
+            'change': _num_or_none(r.get('dbrt_trde_irds')),
+        }),
+        'short': pick(short_rows, lambda r: {
+            'qty': _num_or_none(r.get('shrts_qty')),
+            'ratio_pct': _num_or_none(r.get('trde_wght')),
+            'cum_qty': _num_or_none(r.get('ovr_shrts_qty')),
+        }),
+        'investor': pick(invsr_rows, lambda r: {
+            'ind_mil': _num_or_none(r.get('ind_invsr')),
+            'foreign_mil': _num_or_none(r.get('frgnr_invsr')),
+            'inst_mil': _num_or_none(r.get('orgn')),
+        }),
+    }
+
+
 def pension_streak(daily_penfnd):
     if not daily_penfnd:
         return {'days': 0, 'direction': 'flat'}
@@ -305,7 +361,7 @@ def _fetch_pension_holdings(name):
         }
 
 
-def fetch_stock(token, code, name):
+def fetch_stock(token, code, name, include_series=False):
     strt_dt, end_dt = date_range()
 
     # 2026-08-21 코드 감사: 4개 TR이 서로 결과를 참조하지 않는 독립 조회인데 순차로
@@ -402,7 +458,7 @@ def fetch_stock(token, code, name):
     # 피드백을 받음 - 공매도 카드(shortInterpText)처럼 원자료(streak/net_5d 등)만 내려주고
     # 문구 조립은 js/foreign-flow.js의 pensionInterpText()가 금액까지 포함해서 하도록 이관.
 
-    return {
+    result = {
         'name': name,
         'as_of': today_short.get('dt'),
         'short': {
@@ -435,3 +491,7 @@ def fetch_stock(token, code, name):
             **_fetch_pension_holdings(name),
         },
     }
+    # 배치(batch_scan.py) 캐시는 요약만 저장한다. 시계열은 온디맨드 화면 요청에서만 붙인다.
+    if include_series:
+        result['series'] = downside_series(credit_rows, loan_rows, short_rows, invsr_rows)
+    return result
