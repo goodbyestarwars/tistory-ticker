@@ -1900,12 +1900,12 @@
     ];
     var known = steps.filter(function (s) { return s.state !== 'none'; }), risk = known.filter(function (s) { return s.state === 'risk'; }).length;
     var warn = known.filter(function (s) { return s.state === 'warn'; }).length, flipOn = flips.filter(function (f) { return f.on; }).length;
-    var headline = !known.length ? '하방 압력 자료 없음'
-      : known.length < 3 ? '자료가 부족해 일부만 판단했습니다'
+    var headline = !known.length ? '지하실 연료를 확인할 자료가 없습니다'
+      : known.length < 3 ? '자료가 부족해 지하실 연료를 일부만 확인했습니다'
       : risk >= 3 ? '지하실 연료가 남아 있습니다'
-      : risk + warn >= 2 && flipOn < 2 ? '하방 압력이 남아 있습니다'
-      : flipOn >= 2 ? '하방 압력이 풀리는 신호가 보입니다'
-      : '뚜렷한 하방 압력은 없습니다';
+      : risk + warn >= 2 && flipOn < 2 ? '지하실 연료가 일부 남아 있습니다'
+      : flipOn >= 2 ? '지하실 연료가 소진되는 중입니다'
+      : '지하실 연료가 거의 없습니다';
     var asOf = (series && series.credit && series.credit[0] && series.credit[0].date) || (series && series.loan && series.loan[0] && series.loan[0].date) || (shape && shape.date) || '';
     return { steps: steps, flips: flips, risk: risk, warn: warn, known: known.length, headline: headline, asOf: asOf, hasSeries: !!series };
   }

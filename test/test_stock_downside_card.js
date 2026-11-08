@@ -47,7 +47,7 @@ assert.equal(c.steps[0].state, 'ok');
 assert.equal(c.steps[1].state, 'ok');
 assert.equal(c.steps[2].state, 'ok');
 assert(c.flips.filter(f => f.on).length >= 3);
-assert.equal(c.headline, '하방 압력이 풀리는 신호가 보입니다');
+assert.equal(c.headline, '지하실 연료가 소진되는 중입니다');
 
 // ── 결측: 시계열 없음(구 응답·시간 초과) → 0으로 바꾸지 않고 정보 없음 문구 ──
 c = downsideCheck(null, null, chart);
@@ -58,7 +58,7 @@ assert(c.steps[2].text.includes('투자자별 매매 정보가 없습니다'));
 assert(c.flips.slice(0, 3).every(f => !f.known));
 c = downsideCheck(null, null, { daily: falling(10) });
 assert.equal(c.known, 0);
-assert.equal(c.headline, '하방 압력 자료 없음');
+assert.equal(c.headline, '지하실 연료를 확인할 자료가 없습니다');
 let html = buildDownsideCard(null, null, { daily: [] });
 assert(html.includes('자료를 받지 못했습니다') && html.includes('일봉이 25개 미만'));
 assert(!/NaN|Infinity|undefined/.test(html), html);
