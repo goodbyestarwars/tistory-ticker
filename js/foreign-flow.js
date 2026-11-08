@@ -1836,17 +1836,22 @@
     var f5 = downsideSum_(series.investor, 'foreign_mil', 5), o5 = downsideSum_(series.investor, 'inst_mil', 5);
     var fi5 = f5 == null && o5 == null ? null : (f5 || 0) + (o5 || 0);
     var buyers = fi5 != null && fi5 > 0, sellers = fi5 != null && fi5 <= 0;
-    var facts = [];
-    if (loanPct != null) facts.push('대차잔고 상장주식의 ' + loanPct.toFixed(1) + '%');
-    if (loan5Chg != null) facts.push('5일 대차 ' + (loan5Chg > 0 ? '+' : '') + loan5Chg.toFixed(1) + '%');
-    if (price5 != null) facts.push('5일 주가 ' + (price5 > 0 ? '+' : '') + price5.toFixed(1) + '%');
-    if (fi5 != null) facts.push('5일 외국인+기관 ' + (fi5 > 0 ? '+' : fi5 < 0 ? '-' : '') + Math.round(Math.abs(fi5) / 100).toLocaleString('ko-KR') + '억');
-    var tail = facts.length ? ' (' + facts.join(' · ') + ')' : '';
-    if (heavy && covering && sellers) return { state: 'mid', title: '사지 않고 갚은 상환으로 보임', text: '대차잔고는 줄었지만 외국인·기관이 순매도라 시장에서 사서 갚은 흔적이 약합니다. 헤지용 차입 상환이나 빌려준 쪽의 회수일 가능성이 있습니다' + tail + '.' };
-    if (heavy && covering && rising && buyers) return { state: 'risk', title: '숏스퀴즈 진행 가능성 높음', text: '쌓인 공매도 물량을 외국인·기관이 사서 갚는 움직임과 주가 상승이 함께 나타납니다. 급등과 급락이 모두 커질 수 있습니다' + tail + '.' };
-    if (heavy && (covering || (rising && buyers))) return { state: 'warn', title: '숏스퀴즈 조짐', text: (covering ? '공매도 물량을 갚기 시작했습니다' : '공매도가 많이 쌓인 상태에서 외국인·기관 매수와 함께 주가가 오르고 있습니다') + (fi5 == null ? '. 누가 샀는지는 투자자 정보가 없어 확인하지 못했습니다' : '') + '. 상승이 이어지면 되사기가 몰릴 수 있습니다' + tail + '.' };
-    if (heavy) return { state: 'mid', title: '숏스퀴즈 대기', text: '공매도 물량이 많이 쌓여 있지만 아직 사서 갚는 신호는 없습니다' + tail + '.' };
-    return { state: 'ok', title: '숏스퀴즈 가능성 낮음', text: '쌓인 공매도 물량이 많지 않습니다' + tail + '.' };
+    // 판정 근거 4가지를 '바닥 전환 신호'와 같은 배지로 보여 준다(✓ 충족 · ✕ 미충족 · ? 자료 없음).
+    function sgnPct(v) { return (v > 0 ? '+' : '') + v.toFixed(1) + '%'; }
+    var checks = [
+      { label: '공매도 쌓임', on: heavy, known: loanPct != null || shortAvg != null,
+        value: loanPct != null ? '상장주식의 ' + loanPct.toFixed(1) + '%' : shortAvg != null ? '공매도 비중 ' + shortAvg.toFixed(1) + '%' : '' },
+      { label: '대차 감소', on: covering, known: loan5Chg != null, value: loan5Chg != null ? '5일 ' + sgnPct(loan5Chg) : '' },
+      { label: '주가 상승', on: rising, known: price5 != null, value: price5 != null ? '5일 ' + sgnPct(price5) : '' },
+      { label: '외국인·기관 매수', on: buyers, known: fi5 != null,
+        value: fi5 != null ? '5일 ' + (fi5 > 0 ? '+' : fi5 < 0 ? '-' : '') + Math.round(Math.abs(fi5) / 100).toLocaleString('ko-KR') + '억' : '' }
+    ];
+    function withChecks(o) { o.checks = checks; return o; }
+    if (heavy && covering && sellers) return withChecks({ state: 'mid', title: '사지 않고 갚은 상환으로 보임', text: '대차잔고는 줄었지만 외국인·기관이 순매도라 시장에서 사서 갚은 흔적이 약합니다. 헤지용 차입 상환이나 빌려준 쪽의 회수일 가능성이 있습니다.' });
+    if (heavy && covering && rising && buyers) return withChecks({ state: 'risk', title: '숏스퀴즈 진행 가능성 높음', text: '쌓인 공매도 물량을 외국인·기관이 사서 갚는 움직임과 주가 상승이 함께 나타납니다. 급등과 급락이 모두 커질 수 있습니다.' });
+    if (heavy && (covering || (rising && buyers))) return withChecks({ state: 'warn', title: '숏스퀴즈 조짐', text: (covering ? '공매도 물량을 갚기 시작했습니다' : '공매도가 많이 쌓인 상태에서 외국인·기관 매수와 함께 주가가 오르고 있습니다') + (fi5 == null ? '. 누가 샀는지는 투자자 정보가 없어 확인하지 못했습니다' : '') + '. 상승이 이어지면 되사기가 몰릴 수 있습니다.' });
+    if (heavy) return withChecks({ state: 'mid', title: '숏스퀴즈 대기', text: '공매도 물량이 많이 쌓여 있지만 아직 사서 갚는 신호는 없습니다.' });
+    return withChecks({ state: 'ok', title: '숏스퀴즈 가능성 낮음', text: '쌓인 공매도 물량이 많지 않습니다.' });
   }
 
   // 장 시작 전 당일 행은 값이 전부 0(시계열)이거나 거래량 0(일봉)으로 온다. 0 잔고·0 매매로 읽지 않게 뺀다.
@@ -1970,7 +1975,11 @@
       + '<div class="ff-chart-reading"><small>반대매매·공매도 점검</small><strong class="ff-chart-headline">' + escapeHtml(c.headline) + '</strong>'
       + '<p>' + escapeHtml(lead) + '</p>'
       + '<div class="ff-down-flips" aria-label="바닥 전환 신호"><small>바닥 전환 신호</small>' + flips + '</div>'
-      + '<div class="ff-down-squeeze is-' + c.squeeze.state + '"><small>반대 방향 점검</small><b>' + escapeHtml(c.squeeze.title) + '</b><p>' + escapeHtml(c.squeeze.text) + '</p></div>'
+      + '<div class="ff-down-squeeze is-' + c.squeeze.state + '"><small>반대 방향 점검</small><b>' + escapeHtml(c.squeeze.title) + '</b>'
+      + (c.squeeze.checks ? '<div class="ff-down-flips" aria-label="숏스퀴즈 판정 근거">' + c.squeeze.checks.map(function (f) {
+        return '<span class="ff-down-flip' + (f.on ? ' is-on' : '') + (f.known ? '' : ' is-unknown') + '">' + (f.known ? (f.on ? '✓ ' : '✕ ') : '? ') + escapeHtml(f.label) + (f.value ? ' <em>' + escapeHtml(f.value) + '</em>' : '') + '</span>';
+      }).join('') + '</div>' : '')
+      + '<p>' + escapeHtml(c.squeeze.text) + '</p></div>'
       + '<small class="ff-chart-cloud-note">빚을 내 산 주식(신용)이 남은 채 주가가 더 빠지면 증권사가 강제로 팔아(반대매매) 하락이 커집니다. 공매도가 쌓이고 외국인이 판 물량을 개인이 받는 동안 고점·저점이 낮아지면 이런 일이 생기기 쉽습니다.</small></div>'
       + '<div class="ff-wide-body"><div class="ff-down-grid">' + cells + '</div></div></div>'
       + '<footer class="ff-wide-foot"><small>' + (c.asOf ? escapeHtml(c.asOf) + ' 기준 · ' : '') + '최근 ' + DOWNSIDE_WINDOW + '거래일 비교 · 키움 신용·대차·공매도·투자자 일별 · 관찰용이며 매수·매도 신호가 아닙니다. 반대매매 금액은 종목별로 공개되지 않습니다.</small></footer></article>';
