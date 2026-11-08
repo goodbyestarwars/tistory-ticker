@@ -29,7 +29,7 @@
   var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   // 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 500 + 미국 경제지표 발표일정"): 발표일은 정적 데이터 파일이다.
-  var ECON_DATA_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/us-econ-calendar.js?v=20261004-econ-v1';
+  var ECON_DATA_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/us-econ-calendar.js?v=20261109-econ-v2';
   var ECON_LINKS = { FOMC: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm' };
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
@@ -210,7 +210,9 @@
           source: 'econ',
           market: 'us',
           code: item.code,
-          importance: item.importance
+          importance: item.importance,
+          // 공식 발표 예정 시각이 지난 지표는 발표 완료 이력에도 보인다(수치는 경제지표 탭 소유).
+          status: Date.parse(item.start) <= Date.now() ? 'reported' : 'scheduled'
         };
       });
     }).catch(function () { return []; });
