@@ -19,12 +19,28 @@
   var MQ = '(max-width: 720px)';
   var EDGE_PX = 20; // 화면 왼쪽 끝 20px는 iOS 뒤로가기 제스처 몫이라 그룹 스와이프를 받지 않는다.
 
-  var GROUPS = [
+  // 장중(한국·미국) 그룹. 이야기 시리즈는 푸터의 .site-footer-learn을 #homeStorySeries로 옮겨 쓴다(복제하지 않는다).
+  var OPEN_GROUPS = [
     { key: 'market', label: '시장', sel: '#homeMarketBoard' },
     { key: 'stocks', label: '종목판', sel: '#homeRealtimeBoard' },
     { key: 'news', label: '공시·뉴스', sel: '#homeEconomicNews' },
-    { key: 'brief', label: '브리핑', sel: '.home-briefing-section' }
+    { key: 'brief', label: '브리핑', sel: '.home-briefing-section' },
+    { key: 'story', label: '이야기', sel: '#homeStorySeries' }
   ];
+  // 휴장 그룹(#homeWeeklyReport). 원래 부모를 바꾸지 않고, 둘 이상을 한 쪽으로 묶는 휴장 머리말+지수만 래퍼(.mtab-pack)에 담는다.
+  var CLOSED_GROUPS = [
+    { key: 'c-rest', label: '휴장', pack: ['.wd-header', '.wd-index-section'] },
+    { key: 'c-oil', label: '원자재', sel: '.wd-commodities' },
+    { key: 'c-cal', label: '일정', sel: '.wd-calendar' },
+    { key: 'c-coin', label: '가상자산', sel: '.wd-live-panel' },
+    { key: 'c-news', label: '뉴스', sel: '.wd-news-section' },
+    { key: 'c-brief', label: '브리핑', sel: '[data-wd-briefing]' },
+    { key: 'c-story', label: '이야기', sel: '[data-wd-stories]' }
+  ];
+  var MODES = {
+    open: { groups: OPEN_GROUPS, label: '홈 섹션', hashRe: /tab=(market|stocks|news|brief|story)\b/ },
+    closed: { groups: CLOSED_GROUPS, label: '휴장 섹션', hashRe: /tab=(c-rest|c-oil|c-cal|c-coin|c-news|c-brief|c-story)\b/ }
+  };
 
   // 자체 가로 제스처가 있는 요소. 'drag'는 JS가 직접 끄는 요소(차트), 빈 값은 가로 스크롤러.
   var NO_SWIPE = [
@@ -32,6 +48,9 @@
     ['.briefing-carousel-track', ''],
     ['#homeDisclosureList', ''],
     ['.hen-breaking-list', ''],
+    ['.wd-indices', ''],
+    ['.wd-news-track', ''],
+    ['.learn-card-grid', ''],
     ['.home-index-chart', 'drag'],
     ['.hmb-investor-spark-wrap', 'drag']
   ];
@@ -53,7 +72,12 @@
   var bar = null;
   var drawer = null;
   var enabledOnce = false;
-  var swipe = null;
+  var swipes = {};
+  // 지금 화면에 보이는 스와이프(장중 그리드 또는 휴장 보고서).
+  function liveSwipe() {
+    var s = swipes.open && !swipes.open.grid.hidden ? swipes.open : (swipes.closed && !swipes.closed.grid.hidden ? swipes.closed : null);
+    return s || swipes.open || swipes.closed || null;
+  }
 
   /* ───────── 롤백 스위치 ───────── */
   function switchedOff() {
@@ -109,7 +133,8 @@
       // 홈에서 다시 누르면 맨 위(시장 그룹)로.
       if (tab === 'home' && currentTab() === 'home') {
         event.preventDefault();
-        if (swipe) swipe.show('market', true);
+        var live = liveSwipe();
+        if (live) live.show(live.first(), true);
         global.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
@@ -314,13 +339,17 @@
   function reducedMotion() {
     return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
-  function mountSwipe(grid) {
-    if (swipe || !grid) return;
+  // 같은 스와이프 엔진을 장중 그리드(open)와 휴장 보고서(closed)에 한 번씩 올린다. 칩·점·높이·idle 규칙은 같다.
+  function mountSwipe(grid, modeKey) {
+    if (swipes[modeKey] || !grid) return;
+    var mode = MODES[modeKey];
+    var GROUPS = mode.groups;
     var dash = grid.parentNode;
     var panels = {};
     var chipsBox = doc.createElement('nav');
     chipsBox.className = 'mtab-chips';
-    chipsBox.setAttribute('aria-label', '홈 섹션');
+    chipsBox.setAttribute('data-mtab-for', modeKey);
+    chipsBox.setAttribute('aria-label', mode.label);
     chipsBox.innerHTML = '<div class="mtab-chip-row" role="tablist">' + GROUPS.map(function (g) {
       return '<button type="button" class="mtab-chip" role="tab" data-mtab-chip="' + g.key + '" aria-selected="false">' + esc(g.label) + '</button>';
     }).join('') + '</div><div class="mtab-dots" aria-hidden="true">' + GROUPS.map(function (g) {
@@ -335,12 +364,28 @@
     var heightObserver = global.ResizeObserver ? new ResizeObserver(function () { applyHeight(); queueStick(); }) : null;
     var observedPanel = null;
 
+    // 휴장 머리말+지수처럼 한 쪽에 묶을 노드를 래퍼 하나에 담는다(보고서가 다시 그려지면 새 노드로 다시 묶는다).
+    function packOf(g) {
+      var nodes = g.pack.map(function (sel) { return grid.querySelector(':scope > ' + sel); }).filter(Boolean);
+      var wrap = grid.querySelector(':scope > .mtab-pack[data-mtab-pack="' + g.key + '"]');
+      if (!nodes.length) return wrap;
+      if (!wrap) {
+        wrap = doc.createElement('div');
+        wrap.className = 'mtab-pack';
+        wrap.setAttribute('data-mtab-pack', g.key);
+        grid.insertBefore(wrap, nodes[0]);
+      }
+      nodes.forEach(function (n) { wrap.appendChild(n); });
+      return wrap;
+    }
     function collect() {
       GROUPS.forEach(function (g) {
-        var node = grid.querySelector(':scope > ' + g.sel);
+        var node = g.pack ? packOf(g) : (modeKey === 'open' ? grid.querySelector(':scope > ' + g.sel) : grid.querySelector(g.sel));
         if (node && panels[g.key] !== node) {
           panels[g.key] = node;
           node.setAttribute('data-mtab-group', g.key);
+        } else if (!node && panels[g.key] && !panels[g.key].isConnected) {
+          delete panels[g.key]; // 휴장 보고서가 다시 그려져 사라진 노드
         }
       });
     }
@@ -354,6 +399,13 @@
       // 휴장 탭처럼 그리드가 숨겨진 동안은 높이가 0으로 재어진다. 그 값을 쓰면 다시 나타날 때 그리드가 접히므로 자동 높이로 둔다.
       if (h > 0) grid.style.setProperty('--mtab-panel-h', h + 'px');
       else grid.style.removeProperty('--mtab-panel-h');
+    }
+    // 칩이 한 줄에 다 안 들어가면(휴장 7개) 줄이 가로로 스크롤된다. 활성 칩을 가운데로 둔다.
+    function centerChip(chip) {
+      var row = chip.parentNode;
+      if (!row || row.scrollWidth <= row.clientWidth + 1) return;
+      var left = chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2;
+      if (Math.abs(row.scrollLeft - left) > 2) row.scrollLeft = Math.max(0, left);
     }
     function paint() {
       var keys = visibleKeys();
@@ -371,7 +423,11 @@
         var chip = chipsBox.querySelector('[data-mtab-chip="' + g.key + '"]');
         var dot = chipsBox.querySelector('[data-mtab-dot="' + g.key + '"]');
         var on = keys.indexOf(g.key) !== -1;
-        if (chip) { chip.hidden = !on; chip.setAttribute('aria-selected', String(g.key === active)); }
+        if (chip) {
+          chip.hidden = !on;
+          chip.setAttribute('aria-selected', String(g.key === active));
+          if (g.key === active && on) centerChip(chip);
+        }
         if (dot) { dot.hidden = !on; dot.classList.toggle('is-active', g.key === active); }
       });
     }
@@ -379,8 +435,9 @@
       return node.getBoundingClientRect().left - grid.getBoundingClientRect().left + grid.scrollLeft;
     }
     function writeHash(key) {
+      if (grid.hidden) return; // 지금 보이지 않는 스와이프는 주소를 바꾸지 않는다
       try {
-        var next = key === 'market' ? location.pathname + location.search : location.pathname + location.search + '#tab=' + key;
+        var next = key === GROUPS[0].key ? location.pathname + location.search : location.pathname + location.search + '#tab=' + key;
         if (next !== location.pathname + location.search + location.hash) global.history.replaceState(null, '', next);
       } catch (e) { /* 일부 WebView */ }
     }
@@ -498,16 +555,65 @@
         });
       });
     }
+    // 이야기 시리즈(장중 전용): 푸터의 .site-footer-learn을 홈 그리드의 #homeStorySeries로 옮긴다(복제하지 않는다).
+    // 휴장 보고서가 같은 노드를 휴장 쪽으로 옮겨 가는 동안(is-market-closed)에는 건드리지 않고, 복원되면 다시 가져온다.
+    var storySlot = null;
+    function adoptStory() {
+      var mount = grid.querySelector(':scope > #homeStorySeries');
+      if (!mount) {
+        mount = doc.createElement('section');
+        mount.id = 'homeStorySeries';
+        mount.className = 'home-story-section home-widget';
+        mount.hidden = true;
+        grid.appendChild(mount);
+      }
+      var node = doc.querySelector('.site-footer-learn');
+      if (!node) return;
+      if (mount.contains(node)) { mount.hidden = false; return; }
+      var footer = node.closest ? node.closest('.site-footer') : null;
+      if (!footer || dash.classList.contains('is-market-closed')) return;
+      storySlot = doc.createComment('mtab-story-slot');
+      node.parentNode.insertBefore(storySlot, node);
+      footer.setAttribute('data-weekend-learn-slot', ''); // 푸터 레이아웃 규칙이 학습 카드 유무와 무관하게 유지되도록(휴장 보고서와 같은 방식)
+      mount.appendChild(node);
+      mount.hidden = false;
+    }
+    function releaseStory() {
+      var mount = grid.querySelector(':scope > #homeStorySeries');
+      var node = doc.querySelector('.site-footer-learn');
+      if (!mount || !node || !mount.contains(node) || !storySlot || !storySlot.parentNode) return;
+      var footer = storySlot.parentNode;
+      footer.insertBefore(node, storySlot);
+      storySlot.remove();
+      storySlot = null;
+      if (footer.removeAttribute) footer.removeAttribute('data-weekend-learn-slot');
+      mount.hidden = true;
+    }
+
+    var lastShown = !grid.hidden;
     var refreshQueued = false;
     function refresh() {
       refreshQueued = false;
+      if (modeKey === 'open') adoptStory();
       collect();
       if (io) GROUPS.forEach(function (g) {
         var node = panels[g.key];
         if (node && observed.indexOf(node) === -1) { observed.push(node); io.observe(node); }
       });
       markNoSwipe();
-      if (active && (!panels[active] || panels[active].hidden)) { active = ''; show(visibleKeys()[0], false); }
+      chipsBox.hidden = !!grid.hidden;
+      var nowShown = !grid.hidden;
+      if (nowShown && !lastShown && active && panels[active]) {
+        // 숨겨졌다 다시 나타나면 가로 위치가 0으로 돌아가 있다. 활성 그룹 자리로 되돌리고 주소도 맞춘다.
+        grid.scrollTo({ left: offsetOf(panels[active]), behavior: 'auto' });
+        writeHash(active);
+      }
+      lastShown = nowShown;
+      if (!active && visibleKeys().length) {
+        // 마운트 때는 내용이 없던 휴장 보고서가 나중에 그려진 경우: 해시 또는 첫 그룹을 활성으로 잡는다.
+        var hm = mode.hashRe.exec(location.hash);
+        show((hm && panels[hm[1]] && !panels[hm[1]].hidden) ? hm[1] : visibleKeys()[0], false);
+      } else if (active && (!panels[active] || panels[active].hidden)) { active = ''; show(visibleKeys()[0], false); }
       paint();
       applyHeight();
     }
@@ -519,43 +625,55 @@
     }
     if (global.MutationObserver) {
       new MutationObserver(queueRefresh).observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+      if (modeKey === 'open') {
+        // 장중↔휴장 전환: 휴장 보고서가 이야기 시리즈를 돌려놓는 시점(최대 1.5초 뒤 한 번 더 맞춘다)에 다시 가져온다.
+        new MutationObserver(function () { queueRefresh(); setTimeout(queueRefresh, 1700); }).observe(dash, { attributes: true, attributeFilter: ['class'] });
+      }
     }
+    // 푸터의 이야기 시리즈는 스킨 스크립트가 늦게 그릴 수 있어 몇 번 더 확인한다.
+    if (modeKey === 'open') [400, 1500, 3500, 8000].forEach(function (t) { setTimeout(queueRefresh, t); });
     global.addEventListener('resize', function () {
       if (!active || !panels[active]) return;
       grid.scrollTo({ left: offsetOf(panels[active]), behavior: 'auto' });
       applyHeight();
     });
     global.addEventListener('hashchange', function () {
-      var m = /tab=(market|stocks|news|brief)\b/.exec(location.hash);
-      show(m ? m[1] : 'market', true);
+      if (grid.hidden) return;
+      var m = mode.hashRe.exec(location.hash);
+      show(m ? m[1] : GROUPS[0].key, true);
     });
 
     grid.classList.add('mtab-swipe');
     collect();
     refresh();
-    var m = /tab=(market|stocks|news|brief)\b/.exec(location.hash);
-    var first = (m && panels[m[1]] && !panels[m[1]].hidden) ? m[1] : (visibleKeys()[0] || 'market');
+    var m = mode.hashRe.exec(location.hash);
+    var first = (m && panels[m[1]] && !panels[m[1]].hidden) ? m[1] : (visibleKeys()[0] || GROUPS[0].key);
     active = '';
     setActive(first);
     // 레이아웃이 잡힌 뒤 해시 위치로 즉시 이동.
     (global.requestAnimationFrame || setTimeout)(function () { show(first, false); });
 
-    swipe = { show: show, refresh: refresh, active: function () { return active; }, grid: grid };
+    swipes[modeKey] = {
+      show: show, refresh: refresh, grid: grid,
+      active: function () { return active; },
+      first: function () { return visibleKeys()[0] || GROUPS[0].key; },
+      release: releaseStory
+    };
   }
 
   function waitForGrid() {
     if (!doc.querySelector('.home-dashboard')) return;
-    function find() { return doc.querySelector('.home-dashboard > .home-widget-grid'); }
-    var grid = find();
-    if (grid) { mountSwipe(grid); return; }
-    if (!global.MutationObserver) return;
+    function tryMount() {
+      mountSwipe(doc.querySelector('.home-dashboard > .home-widget-grid'), 'open');
+      mountSwipe(doc.getElementById('homeWeeklyReport'), 'closed');
+      return !!(swipes.open && swipes.closed);
+    }
+    if (tryMount() || !global.MutationObserver) return;
     var stop = setTimeout(function () { mo.disconnect(); }, 60000);
     var mo = new MutationObserver(function () {
-      var g = find();
-      if (!g) return;
+      if (!tryMount()) return;
       mo.disconnect();
       clearTimeout(stop);
-      mountSwipe(g);
     });
     mo.observe(doc.body, { childList: true, subtree: true });
   }
@@ -571,11 +689,13 @@
       watchOverlays();
       waitForGrid();
     }
+    Object.keys(swipes).forEach(function (k) { swipes[k].refresh(); }); // 다시 켜질 때 이야기 시리즈를 다시 가져온다
     syncBar();
     queueHide();
     return true;
   }
   function disable() {
+    Object.keys(swipes).forEach(function (k) { if (swipes[k].release) swipes[k].release(); }); // 푸터의 이야기 시리즈를 제자리로
     closeDrawer();
     doc.body.classList.remove(CLS, 'mtab-hide');
   }
@@ -596,8 +716,8 @@
     disable: disable,
     openMore: openDrawer,
     closeMore: closeDrawer,
-    show: function (key, smooth) { if (swipe) swipe.show(key, smooth); },
-    state: function () { return { enabled: doc.body.classList.contains(CLS), tab: currentTab(), group: swipe ? swipe.active() : '' }; }
+    show: function (key, smooth) { var live = liveSwipe(); if (live) live.show(key, smooth); },
+    state: function () { return { enabled: doc.body.classList.contains(CLS), tab: currentTab(), group: liveSwipe() ? liveSwipe().active() : '' }; }
   };
 
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', init);

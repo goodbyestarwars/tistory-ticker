@@ -273,7 +273,7 @@ document.documentElement.classList.add('skin-ready');
     if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
     if (document.querySelector('script[data-mobile-tabs]')) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20261108-mobile-tabs';
+    var version = '20261108-mobile-tabs2';
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = ASSET_BASE + 'css/home-mobile-tabs.css?v=' + version;
