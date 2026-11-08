@@ -43,11 +43,21 @@ test('partial quote failure preserves only last valid prices and timestamps; hid
   assert.match(mount.innerHTML,/100/);f.root.hidden=true;
   const count=f.requests.length;f.intervals[0]();assert.equal(f.requests.length,count);
 });
+test('news title shows the full Korean translation with the original below, never truncated',async()=>{
+  const f=fixture(), mount={innerHTML:''};f.mounts.set('[data-hwr-themes]',mount);
+  const ko='Anthropic은 AI 데이터 센터를 위한 34억 달러 규모의 발전기 계약을 체결했다고 FT 보고서에서 밝혔습니다.';
+  f.handler(async()=>({data:{window:{start:'2026-11-07',end:'2026-11-09'},themes:[{name:'AI·반도체',headlines:[{title:'Anthropic secures $3.4 billion generator deal',title_ko:ko,source:'CNBC',pubDate:'2026-11-08',link:'https://example.com/a'}]}]}}));
+  f.api.themes(f.root);await flush();
+  assert.ok(mount.innerHTML.indexOf('lang="ko">'+ko+'</a>')>0,'full Korean title is the link text');
+  assert.match(mount.innerHTML,/wd-news-original" lang="en">원문 · Anthropic secures/);
+  assert.doesNotMatch(mount.innerHTML,/wd-news-korean/,'no duplicate Korean line when only a title translation exists');
+  assert.match(mount.innerHTML,/2026-11-07 \(토\) 06:00 ~ 2026-11-09 \(월\) 06:00 KST/);
+});
 test('news uses attributed linked headlines only and deduplicates across themes',async()=>{
   const f=fixture(), mount={innerHTML:''};f.mounts.set('[data-hwr-themes]',mount);
   const headline={title:'실제 기사',source:'출처',pubDate:'2026-10-23',link:'https://example.com/article'};
   f.handler(async()=>({data:{themes:[{name:'테마1',krSectors:['반도체'],krStocks:[{code:'005930',name:'삼성전자'}],headlines:[headline,{title:'근거 없음'}]},{name:'테마2',headlines:[headline]}]}}));
-  f.api.themes(f.root);await flush();assert.equal((mount.innerHTML.match(/실제 기사<\/a>/g)||[]).length,1);assert.doesNotMatch(mount.innerHTML,/근거 없음|테마2|함께 나온 보도/);assert.match(mount.innerHTML,/class="wd-news-source">출처 · 10\/23/);assert.ok(mount.innerHTML.indexOf('wd-news-source')<mount.innerHTML.indexOf('wd-news-title'));assert.match(mount.innerHTML,/wd-news-summary-empty/);assert.match(mount.innerHTML,/관련 테마/);assert.match(mount.innerHTML,/class="wd-theme-badge">반도체/);assert.match(mount.innerHTML,/관심종목/);assert.match(mount.innerHTML,/삼성전자/);assert.doesNotMatch(mount.innerHTML,/>AI</);
+  f.api.themes(f.root);await flush();assert.equal((mount.innerHTML.match(/실제 기사<\/a>/g)||[]).length,1);assert.doesNotMatch(mount.innerHTML,/근거 없음|테마2|함께 나온 보도/);assert.match(mount.innerHTML,/class="wd-news-source">출처 · 10\/23/);assert.ok(mount.innerHTML.indexOf('class="wd-news-source')<mount.innerHTML.indexOf('class="wd-news-title"'));assert.match(mount.innerHTML,/한국어 번역 준비 중 · 원문 제목/);assert.match(mount.innerHTML,/주말 주요뉴스/);assert.match(mount.innerHTML,/관련 테마/);assert.match(mount.innerHTML,/class="wd-theme-badge">반도체/);assert.match(mount.innerHTML,/관심종목/);assert.match(mount.innerHTML,/삼성전자/);assert.doesNotMatch(mount.innerHTML,/>AI</);
 });
 test('additional stored indices normalize dates, exclude future days and match the original weekly base',()=>{
   const f=fixture(),row={symbol:'DOW_INDEX',name:'다우',chart:[{date:'20261023',close:120},{date:'20261016',close:100},{date:'20261019',close:110},{date:'20261024',close:900}]};
