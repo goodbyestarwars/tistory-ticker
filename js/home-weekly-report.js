@@ -520,7 +520,7 @@
         });
         return Object.assign({}, theme, {headlines: headlines});
       }).filter(function (theme) { return theme.headlines.length; });
-      mount.innerHTML = newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목 · ' + (data.window ? data.window.start + ' (토) 06:00 ~ ' + data.window.end + ' (월) 06:00 KST' : '기사 발행일 기준')) + (themes.length ? '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="주말 주요뉴스 카드">' + themes.map(function (theme) {
+      mount.innerHTML = newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목 · ' + (data.window ? data.window.start + ' (토) 06:00 ~ ' + data.window.end + ' (월) 06:00 KST' : '기사 발행일 기준')) + '<a class="wd-more wd-news-more" href="/pages/main-news">주요 뉴스 전체 →</a>' + (themes.length ? '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="주말 주요뉴스 카드">' + themes.map(function (theme) {
         var headline = theme.headlines[0];
         var sectors = (theme.krSectors || []).filter(function (sector, i, rows) { return typeof sector === 'string' && rows.indexOf(sector) === i; });
         var stocks = (theme.krStocks || []).filter(function (stock) { return stock.code && stock.name; });
@@ -534,7 +534,7 @@
           + (koreanLine ? '<p class="wd-news-korean">' + escapeHtml(koreanLine) + '</p><hr class="wd-news-rule" aria-hidden="true">' : '')
           + '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags"><span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>'
           + '<div class="wd-news-stocks"><span class="wd-news-label">관심종목</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>연결된 종목 없음</span>') + '</div></div></article>';
-      }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>') + '<a class="wd-more" href="/pages/main-news">주요 뉴스 전체 →</a>';
+      }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>');
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!root.contains(mount) || !document.body.contains(root)) return;
         if (module && typeof module.carousel === 'function') {

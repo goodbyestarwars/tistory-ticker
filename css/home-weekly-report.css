@@ -1048,6 +1048,9 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-section, .weekend-dashboard .wd-news-shelf { min-width: 0; position: relative; }
 .weekend-dashboard .wd-news-section .wd-news-title-icon { display: inline-block; width: .8em; height: .8em; margin-right: .08em; vertical-align: -.04em; flex: none; }
 .weekend-dashboard .wd-news-section > .wd-panel-head h3 { margin: 0; }
+/* 2026-11-09: '주요 뉴스 전체' 링크를 패널 제목 줄 오른쪽 끝으로 옮김. */
+.weekend-dashboard .wd-news-section > .wd-panel-head { padding-right: 132px; }
+.weekend-dashboard .wd-news-section > .wd-news-more { position: absolute; top: 0; right: 0; min-height: 0; margin: 0; line-height: 1.6; white-space: nowrap; }
 .weekend-dashboard .wd-news-track { box-sizing: border-box; display: flex; width: 100%; max-width: 100%; min-width: 0; gap: var(--ui-section-gap); overflow-x: auto; padding: 12px 4px 24px; scroll-snap-type: x proximity; scroll-padding-inline: 4px; scrollbar-width: none; cursor: grab; touch-action: pan-x pan-y; }
 .weekend-dashboard .wd-news-track::-webkit-scrollbar { display: none; }
 .weekend-dashboard .wd-news-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
