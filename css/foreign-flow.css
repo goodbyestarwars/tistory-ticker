@@ -3385,6 +3385,8 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-wide .ff-down-squeeze > b { display: block; margin-top: 2px; color: #1d1d1f; font-size: 14px; }
 #foreign-flow .ff-wide .ff-down-squeeze > p { margin: 2px 0 0; color: #424245; font-size: 12.5px; font-weight: 400; line-height: 1.5; }
 #foreign-flow .ff-down-squeeze.is-none { opacity: .7; }
+#foreign-flow .ff-down-squeeze .ff-down-flips { margin: 6px 0 2px; }
+#foreign-flow .ff-down-squeeze .ff-down-flip em { font-style: normal; font-variant-numeric: tabular-nums; opacity: .85; }
 html.dark #foreign-flow .ff-down-step, html.dark #foreign-flow .ff-down-flip, html.dark #foreign-flow .ff-down-squeeze { border-color: var(--dk-line); }
 html.dark #foreign-flow .ff-wide .ff-down-squeeze > b, html.dark #foreign-flow .ff-wide .ff-down-squeeze > p { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide .ff-down-metric { color: var(--dk-text); }

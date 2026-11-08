@@ -96,16 +96,20 @@ const sq = JSON.parse(JSON.stringify(entry)); sq.series.loan = newestFirst(40, k
 // 같은 5일 외국인·기관 순매도 → 사서 갚은 흔적 약함(헤지·회수 추정)
 c = downsideCheck(sq, flow, { daily: up });
 assert.equal(c.squeeze.title, '사지 않고 갚은 상환으로 보임', JSON.stringify(c.squeeze));
-assert(c.squeeze.text.includes('5일 외국인+기관 -200억'), c.squeeze.text);
+const chip = (sq, label) => sq.checks.find(f => f.label === label);
+assert.equal(chip(c.squeeze, '외국인·기관 매수').value, '5일 -200억'); assert.equal(chip(c.squeeze, '외국인·기관 매수').on, false);
+assert.equal(chip(c.squeeze, '대차 감소').on, true);
 // 외국인·기관 순매수 → 높음
 sq.series.investor = newestFirst(40, k => ({ foreign_mil: k < 5 ? 3000 : -5000, ind_mil: -2000, inst_mil: 500 }));
 c = downsideCheck(sq, flow, { daily: up });
 assert.equal(c.squeeze.state, 'risk', JSON.stringify(c.squeeze));
-assert(c.squeeze.text.includes('상장주식의') && c.squeeze.text.includes('5일 주가 +') && c.squeeze.text.includes('외국인+기관 +175억'), c.squeeze.text);
+assert(c.squeeze.checks.every(f => f.on && f.known), JSON.stringify(c.squeeze.checks));
+assert(chip(c.squeeze, '공매도 쌓임').value.startsWith('상장주식의 ') && chip(c.squeeze, '외국인·기관 매수').value === '5일 +175억');
 // 투자자 정보 없음 → 단정하지 않고 조짐 + 확인 불가 안내
 const noInv = JSON.parse(JSON.stringify(sq)); noInv.series.investor = [];
 c = downsideCheck(noInv, flow, { daily: up });
 assert.equal(c.squeeze.state, 'warn'); assert(c.squeeze.text.includes('확인하지 못했습니다'), c.squeeze.text);
+assert.equal(chip(c.squeeze, '외국인·기관 매수').known, false);
 const thin = JSON.parse(JSON.stringify(sq)); thin.series.loan = newestFirst(40, () => ({ balance: 100_000 })); thin.series.short = newestFirst(40, () => ({ ratio_pct: 1 }));
 assert.equal(downsideCheck(thin, flow, { daily: up }).squeeze.state, 'ok');
 
@@ -120,4 +124,5 @@ const longDaily = Array.from({ length: 260 }, (_, i) => ({ date: day(i), open: 1
 const story = buildStockStoryHtml({ name: '테스트', baselineOnly: true, cards: [] }, buildTrendChartCard({ daily: longDaily }) + html, 2, '086520', true);
 assert(story.indexOf('ff-wide--chart') < story.indexOf('ff-wide--downside'));
 assert(story.includes('data-wide-prev') && story.includes('2번 카드'));
+assert(buildDownsideCard(entry, flow, chart).includes('숏스퀴즈 판정 근거'));
 console.log('PASS downside card: 4-step risk/relief, missing data text, climax, card contract');
