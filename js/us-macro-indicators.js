@@ -63,7 +63,7 @@
   function fetchResults_(force) {
     if (!force && resultsCache && Date.now() - resultsCachedAt < REFRESH_MS) return Promise.resolve(resultsCache);
     if (resultsInflight) return resultsInflight;
-    resultsInflight = global.NineHttp.json(API + '?interval=day&days=500&symbols=' + encodeURIComponent(SYMBOLS.join(',')) + (force ? '&_=' + Date.now() : ''), {timeoutMs:20000})
+    resultsInflight = global.NineHttp.json(API + '?interval=day&days=500&symbols=' + encodeURIComponent(SYMBOLS.concat(CALENDAR_SYMBOLS).join(',')) + (force ? '&_=' + Date.now() : ''), {timeoutMs:20000})
       .then(function (payload) {
         if (!payload || !Array.isArray(payload.data)) throw new Error('macro data');
         resultsCache = payload.data.map(function(item) { return global.MarketChartHistory ? Object.assign({},item,{chart:global.MarketChartHistory.merge(item.symbol,item.chart)}) : item; });
@@ -480,7 +480,105 @@
     timer = setInterval(function () { if (!document.hidden) refresh_(root); }, REFRESH_MS);
   }
 
-  global.UsMacroIndicators = { init: init, fetchResults: fetchResults_, resultCards: resultCards_,
+  // 2026-11-09: 증시 캘린더 '발표 완료' 카드의 결과 한 줄. 발표일(us_date)로 그 발표가 다룬 통계 기간을 정해
+  // 해당 기간의 FRED 값만 읽는다. 아직 FRED에 없으면 이전 값으로 채우지 않고 '반영 대기'로 둔다.
+  // FRED 값은 최신 수정치라 첫 발표치와 다를 수 있다. ISM·ADP·NAR(기존주택)은 저작권 자료라 수치를 싣지 않는다.
+  var RELEASE_RESULTS = {
+    NFP: { symbols: ['US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT'], lag: 1 },
+    CPI: { symbols: ['US_CPI', 'US_CORE_CPI'], lag: 1 },
+    PPI: { symbols: ['US_PPI_FINAL_DEMAND'], lag: 1 },
+    PCE: { symbols: ['US_CORE_PCE'], lag: 1 },
+    RETAIL: { symbols: ['US_RETAIL_SALES'], lag: 1 },
+    JOLTS: { symbols: ['US_JOB_OPENINGS'], lag: 2 },
+    UMICH: { symbols: ['US_CONSUMER_SENTIMENT'], lag: 0 },
+    GDP: { symbols: ['US_REAL_GDP_GROWTH'], quarter: true },
+    PRODUCTIVITY: { symbols: ['US_PRODUCTIVITY'], quarter: true },
+    CLAIMS: { symbols: ['US_INITIAL_CLAIMS'], weekly: true },
+    DURABLE: { symbols: ['US_DURABLE_GOODS'], lag: 1 },
+    FACTORY: { symbols: ['US_FACTORY_ORDERS'], lag: 2 },
+    HOUSING: { symbols: ['US_HOUSING_STARTS'], lag: 1 },
+    NEWHOME: { symbols: ['US_NEW_HOME_SALES'], lag: 1 },
+    INDPRO: { symbols: ['US_INDUSTRIAL_PRODUCTION'], lag: 1 },
+    TRADE: { symbols: ['US_TRADE_BALANCE'], lag: 2 }
+  };
+  var LICENSED_RELEASES = { ISM_MFG: true, ISM_SVC: true, ADP: true, EXISTHOME: true };
+  var CALENDAR_SYMBOLS = ['US_INITIAL_CLAIMS', 'US_DURABLE_GOODS', 'US_FACTORY_ORDERS', 'US_HOUSING_STARTS',
+    'US_NEW_HOME_SALES', 'US_INDUSTRIAL_PRODUCTION', 'US_TRADE_BALANCE', 'US_PRODUCTIVITY'];
+
+  function releasePeriod_(spec, usDate) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(usDate || ''));
+    if (!m) return null;
+    var y = Number(m[1]), mon = Number(m[2]), d = Number(m[3]);
+    if (spec.weekly) {
+      // 목요일 발표는 직전 토요일로 끝나는 주를 다룬다(FRED 주간 날짜 = 주말 토요일).
+      var end = new Date(Date.UTC(y, mon - 1, d));
+      end.setUTCDate(end.getUTCDate() - ((end.getUTCDay() + 1) % 7 || 7));
+      return { match: end.toISOString().slice(0, 10).replace(/-/g, ''), label: end.getUTCMonth() + 1 + '/' + end.getUTCDate() + ' 마감 주' };
+    }
+    var target = new Date(Date.UTC(y, mon - 1 - (spec.quarter ? 3 : spec.lag), 1));
+    var ty = target.getUTCFullYear(), tm = target.getUTCMonth() + 1;
+    if (spec.quarter) {
+      var q = Math.ceil(tm / 3);
+      return { match: String(ty) + String((q - 1) * 3 + 1).padStart(2, '0'), label: ty + '년 ' + q + '분기' };
+    }
+    return { match: String(ty) + String(tm).padStart(2, '0'), label: ty + '년 ' + tm + '월' };
+  }
+
+  function seriesAt_(item, match) {
+    var chart = ((item && item.chart) || []).filter(function (p) { return p && isFinite(Number(p.close)) && /^\d{8}$/.test(String(p.date)); });
+    for (var i = chart.length - 1; i >= 0; i--) {
+      if (String(chart[i].date).slice(0, match.length) !== match) continue;
+      var yearKey = String(Number(String(chart[i].date).slice(0, 4)) - 1) + String(chart[i].date).slice(4, 6);
+      var yearAgo = null;
+      for (var j = i - 1; j >= 0; j--) if (String(chart[j].date).slice(0, 6) === yearKey) { yearAgo = Number(chart[j].close); break; }
+      return { value: Number(chart[i].close), prev: i ? Number(chart[i - 1].close) : null, yearAgo: yearAgo };
+    }
+    return null;
+  }
+
+  function signed_(value, digits, unit) {
+    return (value > 0 ? '+' : value < 0 ? '−' : '') + number_(Math.abs(value), digits) + (unit || '');
+  }
+  function pct_(a, b) { return isFinite(a) && isFinite(b) && b ? (a - b) / b * 100 : NaN; }
+  function mom_(s) { return s && s.prev != null ? '전월 ' + signed_(pct_(s.value, s.prev), 1, '%') : ''; }
+  function yoy_(s, label) { var v = s ? pct_(s.value, s.yearAgo) : NaN; return isFinite(v) ? (label || '전년 동월 ') + signed_(v, 1, '%') : ''; }
+
+  function releaseText_(code, rows) {
+    var a = rows[0], b = rows[1];
+    var parts;
+    switch (code) {
+      case 'NFP': parts = [a && a.prev != null ? '비농업 고용 ' + signed_(a.value - a.prev, 0, '천 명') : '', b ? '실업률 ' + number_(b.value, 1) + '%' : '']; break;
+      case 'CPI': parts = [a ? 'CPI ' + [mom_(a), yoy_(a, '전년 ')].filter(Boolean).join(' · ') : '', b ? '근원 ' + yoy_(b, '전년 ') : '']; break;
+      case 'PPI': parts = [[mom_(a), yoy_(a, '전년 ')].filter(Boolean).join(' · ')]; break;
+      case 'PCE': parts = [a ? '근원 PCE ' + [mom_(a), yoy_(a, '전년 ')].filter(Boolean).join(' · ') : '']; break;
+      case 'JOLTS': parts = [a ? '구인 ' + number_(a.value / 10, 0) + '만 건' + (a.prev != null ? ' (전월 ' + signed_((a.value - a.prev) / 10, 0, '만') + ')' : '') : '']; break;
+      case 'UMICH': parts = [a ? number_(a.value, 1) + (a.prev != null ? ' (전월 ' + signed_(a.value - a.prev, 1) + ')' : '') : '']; break;
+      case 'GDP': parts = [a ? '연율 ' + signed_(a.value, 1, '%') : '']; break;
+      case 'PRODUCTIVITY': parts = [a ? '생산성 연율 ' + signed_(a.value, 1, '%') : '']; break;
+      case 'CLAIMS': parts = [a ? number_(a.value / 10000, 1) + '만 건' + (a.prev != null ? ' (전주 ' + signed_((a.value - a.prev) / 10000, 1, '만') + ')' : '') : '']; break;
+      case 'HOUSING': case 'NEWHOME': parts = [a ? '연율 ' + number_(a.value / 10, 1) + '만 호' + (a.prev != null ? ' (' + mom_(a) + ')' : '') : '']; break;
+      case 'TRADE': parts = [a ? (a.value < 0 ? '적자 ' : '흑자 ') + number_(Math.abs(a.value) / 100, 0) + '억 달러' : '']; break;
+      default: parts = [mom_(a)];
+    }
+    return parts.filter(Boolean).join(' · ');
+  }
+
+  // items: fetchResults 결과. 반환 null = 결과를 붙이지 않는 일정(FOMC 등).
+  function releaseResult_(code, usDate, items) {
+    if (LICENSED_RELEASES[code]) return { state: 'license', text: '수치는 원문 확인 (발표 기관 저작권 자료)' };
+    var spec = RELEASE_RESULTS[code];
+    if (!spec) return null;
+    var period = releasePeriod_(spec, usDate);
+    if (!period) return null;
+    var bySymbol = {};
+    (items || []).forEach(function (item) { if (item) bySymbol[item.symbol] = item; });
+    var rows = spec.symbols.map(function (symbol) { return seriesAt_(bySymbol[symbol], period.match); });
+    var text = rows[0] ? releaseText_(code, rows) : '';
+    if (!text) return { state: 'pending', period: period.label, text: period.label + ' 결과 FRED 반영 대기' };
+    return { state: 'ok', period: period.label, text: text, basis: 'FRED · ' + period.label + ' (수정치 포함)' };
+  }
+
+  global.UsMacroIndicators = { init: init, fetchResults: fetchResults_, resultCards: resultCards_, releaseResult: releaseResult_,
     _test: { expectedCpiMonth: expectedCpiMonth_, releaseStale: releaseStale_, boardRow: boardRow_, yearChange: yearChange_ } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

@@ -3219,6 +3219,9 @@ def home_session_prices(request: Request):
     return {'success': True, 'data': home_session_chart.get_results()}
 
 
+_CALENDAR_MACRO_SYMBOLS = ('US_INITIAL_CLAIMS', 'US_DURABLE_GOODS', 'US_FACTORY_ORDERS', 'US_HOUSING_STARTS',
+                           'US_NEW_HOME_SALES', 'US_INDUSTRIAL_PRODUCTION', 'US_TRADE_BALANCE', 'US_PRODUCTIVITY')
+
 @app.get('/futures')
 def futures(request: Request, interval: str = 'day', days: int = 90, symbols: str = '', stored_only: bool = False):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
@@ -3275,7 +3278,8 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
         # 매칭이 하나도 없으면(오타 등) 빈 응답 대신 기존 전체 동작으로 폴백한다.
         if symbols:
             wanted = set(s.strip().upper() for s in symbols.split(',') if s.strip())
-            narrowed = [s for s in order if s in wanted]
+            # 캘린더 발표 결과 전용 FRED 심볼은 명시 요청 때만 싣는다(기본 전체 응답은 그대로).
+            narrowed = [s for s in order + list(_CALENDAR_MACRO_SYMBOLS) if s in wanted]
             if narrowed:
                 order = narrowed
         # 메인 대시보드 환율은 GAS가 같은 네이버 exchangeInfo를 직접 읽는다. DB 수집 주기

@@ -71,6 +71,15 @@ FRED_SYMBOLS = {
     'US_JOB_OPENINGS': {'series': 'JTSJOL', 'name': '미국 JOLTS 구인건수(천 건)'},
     'US_RETAIL_SALES': {'series': 'RSAFS', 'name': '미국 소매판매(백만 달러)'},
     'US_CONSUMER_SENTIMENT': {'series': 'UMCSENT', 'name': '미국 소비자심리지수(미시간대, pt)'},
+    # 2026-11-09: 증시 캘린더 '발표 완료' 카드 결과용. 저작권 표시 없는 정부 통계만(ISM·ADP·NAR 제외).
+    'US_INITIAL_CLAIMS': {'series': 'ICSA', 'name': '미국 신규 실업수당 청구(주간, 건)'},
+    'US_DURABLE_GOODS': {'series': 'DGORDER', 'name': '미국 내구재 신규주문(백만 달러)'},
+    'US_FACTORY_ORDERS': {'series': 'AMTMNO', 'name': '미국 제조업 신규주문(백만 달러)'},
+    'US_HOUSING_STARTS': {'series': 'HOUST', 'name': '미국 주택착공(연율, 천 호)'},
+    'US_NEW_HOME_SALES': {'series': 'HSN1F', 'name': '미국 신규주택 판매(연율, 천 호)'},
+    'US_INDUSTRIAL_PRODUCTION': {'series': 'INDPRO', 'name': '미국 산업생산지수(2017=100)'},
+    'US_TRADE_BALANCE': {'series': 'BOPGSTB', 'name': '미국 상품·서비스 무역수지(백만 달러)'},
+    'US_PRODUCTIVITY': {'series': 'PRS85006092', 'name': '미국 비농업 노동생산성(전기 대비 연율, %)'},
 }
 _FRED_URL = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=%s&cosd=%s&coed=%s'
 _FRED_HISTORY_DAYS = 400

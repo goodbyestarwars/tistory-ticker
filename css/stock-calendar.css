@@ -40,6 +40,15 @@
 #stock-calendar .sc-ev-title { overflow-wrap: anywhere; white-space: normal; }
 #stock-calendar .sc-ev-body { min-width: 0; }
 #stock-calendar .sc-event-status { display: block; font-size: 12px; font-weight: 700; margin-top: 4px; }
+/* 2026-11-09 발표 완료 경제지표 결과 한 줄(공통 UsMacroIndicators 값). */
+#stock-calendar .sc-econ-result { display: block; margin-top: 4px; color: inherit; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#stock-calendar .sc-econ-result small { display: block; margin-top: 2px; color: #6b7280; font-size: 11px; font-weight: 400; }
+#stock-calendar .sc-econ-result--pending,
+#stock-calendar .sc-econ-result--license { color: #6b7280; font-weight: 400; font-size: 12px; }
+html.dark #stock-calendar .sc-econ-result { color: var(--dk-text); }
+html.dark #stock-calendar .sc-econ-result small,
+html.dark #stock-calendar .sc-econ-result--pending,
+html.dark #stock-calendar .sc-econ-result--license { color: var(--dk-sub); }
 #stock-calendar .sc-event-proof { display: block; color: var(--sc-accent); font-size: 11px; overflow-wrap: anywhere; margin-top: 4px; }
 #stock-calendar .sc-ev-item.is-highlighted { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 #stock-calendar .sc-more { grid-column: 1 / -1; }

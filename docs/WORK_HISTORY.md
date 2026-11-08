@@ -1,3 +1,7 @@
+**2026-11-09 캘린더 발표 완료 경제지표에 결과 표시**
+
+요청: 발표 완료 카드에 결과가 없음. 변경: 결과 포맷은 '주요 미국 발표' 공통 모듈 `js/us-macro-indicators.js` `releaseResult(code, us_date, items)`가 소유 - 발표일로 그 발표가 다룬 통계 기간(월 lag·분기·주간 토요일 마감)을 정해 해당 기간 FRED 값만 읽고, 없으면 이전 값 대신 '반영 대기'. FRED 값은 최신 수정치(첫 발표치와 다를 수 있음). ISM·ADP·기존주택(NAR)은 저작권 자료라 수치 미표시, FOMC는 결과 줄 없음. `js/stock-calendar.js`가 지난 지표에만 모듈을 지연 로드해 같은 30분 캐시로 결과 한 줄 표시, 실패 시 일정만. VM `bond_yield.FRED_SYMBOLS`에 저작권 표시 없는 정부 통계 8종(ICSA·DGORDER·AMTMNO·HOUST·HSN1F·INDPRO·BOPGSTB·PRS85006092) 추가 - 기존 FRED 폴링 루프 재사용, `/futures`는 명시 요청 때만 실음(기본 응답 불변). 검증: `test/test_us_econ_calendar.js` 5 pass, `test_futures_response_cache` 10 OK(Windows는 syslog 대체 실행), 캘린더 기존 테스트 통과.
+
 **2026-11-09 숏스퀴즈 5단계 판정 배지**
 
 요청: 숏스퀴즈를 진행 가능성 높음/조짐 보임/조짐/대기/낮음 단계 배지로. 변경: `js/foreign-flow.js` `downsideSqueeze_`가 공매도 쌓임(대차/상장주식 5%+ 또는 공매도 비중 10%+)일 때 되사기 신호 3개(사서 갚은 대차 감소=대차 -3% 이하이면서 외국인·기관 순매도가 아님, 5일 주가 +5% 이상, 5일 외국인+기관 순매수) 개수로 3=높음·2=조짐 보임·1=조짐·0=대기, 쌓임 아님=낮음, 대차 자료 없음=판단 불가. '사지 않고 갚은 상환'은 대기 안의 안내 문장으로. 5단계 배지 줄(현재 단계만 강조)+근거 배지 4개. 검증: `test_stock_downside_card.js`(5단계·판단 불가·헤지 상환·배지 1개 강조), `test_stock_story_chart.js` 통과, 에코프로·삼성전자 실데이터 1400px·375px(넘침 0). 배포: master → Pages.
