@@ -3382,13 +3382,23 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-down-flip.is-unknown { opacity: .6; }
 #foreign-flow .ff-down-squeeze { padding: 8px 10px; border: 1px solid var(--ui-border, #e5e5ea); border-radius: 6px; }
 #foreign-flow .ff-wide .ff-down-squeeze > small { display: block; color: #86868b; font-size: 11px; }
-#foreign-flow .ff-wide .ff-down-squeeze > b { display: block; margin-top: 2px; color: #1d1d1f; font-size: 14px; }
+#foreign-flow .ff-sq-levels { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 4px; }
+#foreign-flow .ff-sq-level { padding: 2px 8px; border: 1px solid var(--ui-border, #e5e5ea); border-radius: 6px; color: #aeaeb2; font-size: 12px; }
+#foreign-flow .ff-sq-level.is-on { font-weight: 700; color: #1d1d1f; border-color: #8e8e93; }
+#foreign-flow .ff-sq-level.is-on.is-risk { background: #fdeee2; border-color: #f0b98c; color: #a8480b; }
+#foreign-flow .ff-sq-level.is-on.is-warn { background: #fbf4dc; border-color: #e6cf7a; color: #7a5d00; }
+#foreign-flow .ff-sq-level.is-on.is-ok { background: #e4f3ec; border-color: #9fd6bf; color: #0f7050; }
 #foreign-flow .ff-wide .ff-down-squeeze > p { margin: 2px 0 0; color: #424245; font-size: 12.5px; font-weight: 400; line-height: 1.5; }
 #foreign-flow .ff-down-squeeze.is-none { opacity: .7; }
 #foreign-flow .ff-down-squeeze .ff-down-flips { margin: 6px 0 2px; }
 #foreign-flow .ff-down-squeeze .ff-down-flip em { font-style: normal; font-variant-numeric: tabular-nums; opacity: .85; }
 html.dark #foreign-flow .ff-down-step, html.dark #foreign-flow .ff-down-flip, html.dark #foreign-flow .ff-down-squeeze { border-color: var(--dk-line); }
-html.dark #foreign-flow .ff-wide .ff-down-squeeze > b, html.dark #foreign-flow .ff-wide .ff-down-squeeze > p { color: var(--dk-text); }
+html.dark #foreign-flow .ff-wide .ff-down-squeeze > p { color: var(--dk-text); }
+html.dark #foreign-flow .ff-sq-level { border-color: var(--dk-line); color: var(--dk-sub); opacity: .7; }
+html.dark #foreign-flow .ff-sq-level.is-on { opacity: 1; color: var(--dk-text); }
+html.dark #foreign-flow .ff-sq-level.is-on.is-risk { background: rgba(217, 115, 31, .2); color: #f0a868; }
+html.dark #foreign-flow .ff-sq-level.is-on.is-warn { background: rgba(184, 147, 15, .2); color: #e3c35a; }
+html.dark #foreign-flow .ff-sq-level.is-on.is-ok { background: rgba(31, 154, 108, .2); color: #6fd3a8; }
 html.dark #foreign-flow .ff-wide .ff-down-metric { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide .ff-down-step p { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide .ff-down-tag { background: rgba(255, 255, 255, .08); color: var(--dk-sub); }
