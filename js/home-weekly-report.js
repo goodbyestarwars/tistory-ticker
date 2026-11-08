@@ -520,7 +520,7 @@
         });
         return Object.assign({}, theme, {headlines: headlines});
       }).filter(function (theme) { return theme.headlines.length; });
-      mount.innerHTML = newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목 · ' + (data.window ? data.window.start + ' (토) 06:00 ~ ' + data.window.end + ' (월) 06:00 KST' : '기사 발행일 기준')) + '<a class="wd-more wd-news-more" href="/pages/main-news">주요 뉴스 전체 →</a>' + (themes.length ? '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="주말 주요뉴스 카드">' + themes.map(function (theme) {
+      mount.innerHTML = newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목 · ' + (data.window ? data.window.start + ' (토) 06:00 ~ ' + data.window.end + ' (월) 06:00 KST' : '기사 발행일 기준'), '<a class="wd-more wd-news-more" href="/pages/main-news">주요 뉴스 전체 →</a>') + (themes.length ? '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="주말 주요뉴스 카드">' + themes.map(function (theme) {
         var headline = theme.headlines[0];
         var sectors = (theme.krSectors || []).filter(function (sector, i, rows) { return typeof sector === 'string' && rows.indexOf(sector) === i; });
         var stocks = (theme.krStocks || []).filter(function (stock) { return stock.code && stock.name; });
@@ -930,10 +930,10 @@
   function kstTime(ms) {
     return new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour12: false }) + ' KST';
   }
-  function panelHeading(title, sub) { return '<header class="wd-panel-head"><h3' + (['원유·금','이번 주 주요 일정','다음 주 주요 일정','24시간 가상자산','바이낸스 주식·ETF 선물'].indexOf(title) !== -1 ? ' class="ui-section-title"' : '') + '>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small></header>'; }
-  function newsPanelHeading(sub) {
+  function panelHeading(title, sub, tail) { return '<header class="wd-panel-head"><h3' + (['원유·금','이번 주 주요 일정','다음 주 주요 일정','24시간 가상자산','바이낸스 주식·ETF 선물'].indexOf(title) !== -1 ? ' class="ui-section-title"' : '') + '>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small>' + (tail || '') + '</header>'; }
+  function newsPanelHeading(sub, tail) {
     var icon = '<svg class="wd-news-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>';
-    return panelHeading(icon + ' 주말 주요뉴스', sub);
+    return panelHeading(icon + ' 주말 주요뉴스', sub, tail);
   }
   function bindNewsArrowFallback(mount) {
     var track = mount.querySelector('.wd-news-track');
