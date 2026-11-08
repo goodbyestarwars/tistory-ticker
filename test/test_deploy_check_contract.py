@@ -188,6 +188,27 @@ class DeployRestartScopeTest(unittest.TestCase):
         # 직전 SHA를 모르면 건너뛰지 않고 예전처럼 돈다.
         self.assertIn('if [ -n "${LAST_DEPLOYED:-}" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null', body)
 
+    def test_shape_selection_engine_change_refreshes_only_shape_scan(self):
+        """2026-11-08: 상대강도 필터 배포 후 모양 선정이 재계산되지 않아 수동 실행했다."""
+        start = self.script.index('run_shape_selection_refresh_after_deploy() {')
+        body = self.script[start:self.script.index('\n}\n', start)]
+        for path in ('scripts/cloud-vm/shape_scan.py', 'scripts/cloud-vm/shape_scan.js', 'js/auto-wave.js'):
+            self.assertIn(path, body)
+        gate = body.index('if [ "$kst_dow" -le 5 ] && [ "$kst_hm" -ge 800 ] && [ "$kst_hm" -lt 2000 ]; then')
+        run = body.index('scheduled_job.py" refresh-shape "$PYTHON" "$APP_DIR/shape_scan.py"')
+        self.assertLess(gate, run)
+        self.assertLess(body.index('git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $shape_rule_paths'), run)
+        self.assertLess(body.index('flock -n 210'), run)
+        self.assertNotIn('rescan_patterns.py', body)
+        self.assertNotIn('systemctl', body)
+        # 무거운 재스캔 조건에는 auto-wave.js를 넣지 않는다.
+        scan_rules = re.search(r'local scan_rule_paths="([^"]+)"', self.script).group(1)
+        self.assertNotIn('auto-wave', scan_rules)
+        # 전체 재스캔을 건너뛴 배포와, 재시작 없는(auto-wave만 바뀐) 배포 모두에서 호출된다.
+        full = self.script[self.script.index('run_search_scan_refresh_after_deploy() {'):]
+        self.assertIn('검색 규칙 코드 변경 없음"\n    run_shape_selection_refresh_after_deploy', full)
+        self.assertIn('elif [ "$VM_CODE_CHANGED" = "0" ]; then\n    run_shape_selection_refresh_after_deploy', self.script)
+
     @unittest.skipUnless(os.name != 'nt' and shutil.which('bash'), 'Linux bash에서만 구문 검사')
     def test_script_parses(self):
         subprocess.run(['bash', '-n', SCRIPT], check=True)

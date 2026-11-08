@@ -29,6 +29,7 @@ CONTRACTS = {
     'refresh-pattern': dict(maxWait=3600, maxRun=1800, window='off-hours', daily=False, trading=False),
     'refresh-strategy': dict(maxWait=3600, maxRun=7200, window='off-hours', daily=False, trading=False),
     'refresh-etf': dict(maxWait=3600, maxRun=900, window='off-hours', daily=False, trading=False),
+    'refresh-shape': dict(maxWait=3600, maxRun=600, window='off-hours', daily=False, trading=False),
 }
 CADENCE_KST = {
     'dailyscan': 'daily 20:10', 'etfstrategyscan': 'daily 20:30',

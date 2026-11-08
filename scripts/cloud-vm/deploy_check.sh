@@ -232,6 +232,32 @@ run_price_recap_cleanup_once() {
 # made a newly deployed search rule look broken for up to a day. Refresh the
 # DB-only pattern cache and the strategy cache once after a deploy. The lock
 # prevents overlapping refreshes when several commits arrive close together.
+# 2026-11-08: 모양 선정(검색기 5개 메뉴) 엔진만 바뀐 배포는 전체 재스캔(패턴·전략·ETF, 약 3분) 대신
+# shape_scan.py 하나만 다시 돈다. 전체 재스캔(rescan_patterns.py)은 끝에서 이미 shape_scan을 부른다.
+# auto-wave.js는 VM 감시 경로 밖이라 FastAPI 재시작 없이 pull만 되므로 이 경로로 따로 반영한다.
+run_shape_selection_refresh_after_deploy() {
+  local shape_rule_paths="scripts/cloud-vm/shape_scan.py scripts/cloud-vm/shape_scan.js js/auto-wave.js"
+  local kst_dow kst_hm
+  kst_dow="$(TZ=Asia/Seoul date +%u)"
+  kst_hm=$((10#$(TZ=Asia/Seoul date +%H%M)))
+  if [ "$kst_dow" -le 5 ] && [ "$kst_hm" -ge 800 ] && [ "$kst_hm" -lt 2000 ]; then
+    return 0
+  fi
+  # shellcheck disable=SC2086  # 공백으로 나눈 경로 목록이라 일부러 따옴표를 뺀다
+  if [ -z "${LAST_DEPLOYED:-}" ] || ! git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
+      || git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $shape_rule_paths; then
+    return 0
+  fi
+  (
+    flock -n 210 || exit 0
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) shape selection refresh started"
+    nice -n 10 "$PYTHON" "$APP_DIR/scheduled_job.py" refresh-shape "$PYTHON" "$APP_DIR/shape_scan.py" \
+      || echo "shape selection refresh failed; daily scan will retry" >&2
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) shape selection refresh finished"
+  ) 200>&- 210>"$SEARCH_SCAN_LOCK" >>"$SEARCH_SCAN_LOG" 2>&1 &
+  disown
+}
+
 run_search_scan_refresh_after_deploy() {
   if [ "$(id -un)" != "goodbyestarwars" ]; then
     echo "검색 스캔 갱신 건너뜀: 실행 사용자가 goodbyestarwars가 아닙니다."
@@ -255,6 +281,7 @@ run_search_scan_refresh_after_deploy() {
   if [ -n "${LAST_DEPLOYED:-}" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
       && git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $scan_rule_paths; then
     echo "검색 스캔 갱신 건너뜀: 검색 규칙 코드 변경 없음"
+    run_shape_selection_refresh_after_deploy
     return 0
   fi
   (
@@ -393,6 +420,8 @@ if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
   # 작업을 얹지 않는다. 다음 커밋이 배포될 때 정상 경로로 다시 돈다.
   if [ "$DEPLOY_OCCURRED" = "1" ] && [ "$POST_CHECK" = "ok" ]; then
     run_search_scan_refresh_after_deploy
+  elif [ "$VM_CODE_CHANGED" = "0" ]; then
+    run_shape_selection_refresh_after_deploy
   fi
 fi
 }
