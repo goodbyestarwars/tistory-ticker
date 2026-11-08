@@ -3291,7 +3291,8 @@ html.dark #foreign-flow .ff-story-head { background: var(--dk-card); border-colo
 #foreign-flow .ff-wide-track { display: flex; align-items: stretch; gap: var(--ui-section-gap); padding: 0; scroll-padding-inline: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: default; }
 #foreign-flow .ff-wide-track::-webkit-scrollbar { display: none; }
 #foreign-flow .ff-wide-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
-#foreign-flow .ff-wide-track .ff-wide { flex: 0 0 100%; scroll-snap-align: start; }
+#foreign-flow .ff-wide-track .ff-wide { flex: 0 0 100%; scroll-snap-align: start; display: flex; flex-direction: column; }
+#foreign-flow .ff-wide-track .ff-wide-foot { margin-top: auto; } /* 옆 카드 높이로 늘어나도 출처 줄은 아래 점 줄에 붙인다 */
 /* 넘김 버튼은 카드 오른쪽 아래(하단 글 줄)에 작게 둬 왼쪽 본문을 가리지 않는다 */
 #foreign-flow .ff-wide-stage .ff-story-nav { top: auto; bottom: 12px; width: 30px; height: 30px; margin-top: 0; font-size: 20px; }
 #foreign-flow .ff-wide-stage .ff-story-nav.is-prev { left: auto; right: 56px; }
