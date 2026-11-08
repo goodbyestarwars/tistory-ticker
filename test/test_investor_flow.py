@@ -88,11 +88,21 @@ class DownsideSeriesTests(unittest.TestCase):
         )
         self.assertEqual(series['credit'][0], {'date': '2026-11-06', 'balance': 2872755.0, 'ratio_pct': 2.11,
                                                'new': 268236.0, 'repay': 316574.0, 'amount_mil': 273542.0})
-        self.assertIsNone(series['credit'][1]['balance'])
-        self.assertIsNone(series['credit'][1]['ratio_pct'])
+        self.assertEqual(len(series['credit']), 1, '값이 하나도 없는 행은 0이 아니라 생략')
         self.assertEqual(series['loan'][0]['balance'], 22194946.0)
         self.assertEqual(series['short'][0]['ratio_pct'], 32.71)
         self.assertEqual(series['investor'], [{'date': '2026-11-06', 'ind_mil': 6773.0, 'foreign_mil': -24941.0, 'inst_mil': 18196.0}])
+
+    def test_skips_all_zero_premarket_row(self):
+        series = investor_flow.downside_series(
+            [{'dt': '20261109', 'remn': '0', 'remn_rt': '0.00', 'new': '0', 'rpya': '0', 'amt': '0'},
+             {'dt': '20261106', 'remn': '2872755', 'remn_rt': '2.11', 'new': '0', 'rpya': '0', 'amt': '0'}],
+            [], [],
+            [{'dt': '20261109', 'ind_invsr': '0', 'frgnr_invsr': '0', 'orgn': '0'},
+             {'dt': '20261106', 'ind_invsr': '6773', 'frgnr_invsr': '0', 'orgn': '-6773'}],
+        )
+        self.assertEqual([r['date'] for r in series['credit']], ['2026-11-06'])
+        self.assertEqual([r['date'] for r in series['investor']], ['2026-11-06'])
 
     def test_limits_days(self):
         rows = [{'dt': '202610%02d' % (i + 1), 'rmnd': str(i)} for i in range(30)]

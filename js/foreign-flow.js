@@ -1822,24 +1822,49 @@
     };
   }
 
+  // 숏스퀴즈: 공매도용으로 빌린 주식(대차잔고)이 많이 쌓인 상태에서 주가가 오르고 대차잔고가 줄기 시작하면
+  // 손실을 줄이려는 되사기(숏커버링)가 몰려 급등하기 쉽다. 대차잔고는 공매도 잔고의 근사치다.
+  function downsideSqueeze_(series, loan, listed, shortAvg, closes, shape) {
+    if (!loan) return { state: 'none', title: '숏스퀴즈 판단 불가', text: '대차잔고 정보가 없어 숏스퀴즈 가능성을 판단할 수 없습니다.' };
+    var loanPct = listed ? loan.now / listed * 100 : null;
+    var loan5 = downsideSpan_(series.loan, 'balance', 5), loan5Chg = loan5 ? downsidePct_(loan5.now, loan5.past) : null;
+    var price5 = closes.length > 5 ? downsidePct_(closes[closes.length - 1], closes[closes.length - 6]) : null;
+    var heavy = (loanPct != null && loanPct >= 5) || (shortAvg != null && shortAvg >= 10);
+    var covering = loan5Chg != null && loan5Chg <= -3, rising = price5 != null && price5 >= 5;
+    var facts = [];
+    if (loanPct != null) facts.push('대차잔고 상장주식의 ' + loanPct.toFixed(1) + '%');
+    if (loan5Chg != null) facts.push('5일 대차 ' + (loan5Chg > 0 ? '+' : '') + loan5Chg.toFixed(1) + '%');
+    if (price5 != null) facts.push('5일 주가 ' + (price5 > 0 ? '+' : '') + price5.toFixed(1) + '%');
+    var tail = facts.length ? ' (' + facts.join(' · ') + ')' : '';
+    if (heavy && covering && rising) return { state: 'risk', title: '숏스퀴즈 진행 가능성 높음', text: '쌓인 공매도 물량을 되사는 움직임과 주가 상승이 함께 나타납니다. 급등과 급락이 모두 커질 수 있습니다' + tail + '.' };
+    if (heavy && (covering || rising)) return { state: 'warn', title: '숏스퀴즈 조짐', text: (covering ? '공매도 물량을 되사기 시작했습니다' : '공매도가 많이 쌓인 상태에서 주가가 오르고 있습니다') + '. 상승이 이어지면 되사기가 몰릴 수 있습니다' + tail + '.' };
+    if (heavy) return { state: 'mid', title: '숏스퀴즈 대기', text: '공매도 물량이 많이 쌓여 있지만 아직 되사기 신호는 없습니다' + tail + '.' };
+    return { state: 'ok', title: '숏스퀴즈 가능성 낮음', text: '쌓인 공매도 물량이 많지 않습니다' + tail + '.' };
+  }
+
+  // 장 시작 전 당일 행은 값이 전부 0(시계열)이거나 거래량 0(일봉)으로 온다. 0 잔고·0 매매로 읽지 않게 뺀다.
+  function downsideLive_(rows) {
+    return (rows || []).filter(function (r) { return r && Object.keys(r).some(function (k) { return k !== 'date' && downsideNum_(r[k]); }); });
+  }
+
   function downsideCheck(entry, flowData, chartData) {
-    var series = entry && entry.series, shape = downsideShape_(chartData && chartData.daily);
-    var daily = (chartData && chartData.daily) || [], closes = daily.map(function (d) { return downsideNum_(d.close); }).filter(function (v) { return v > 0; });
+    var raw = entry && entry.series, series = raw ? { credit: downsideLive_(raw.credit), loan: downsideLive_(raw.loan), short: downsideLive_(raw.short), investor: downsideLive_(raw.investor) } : null;
+    var daily = ((chartData && chartData.daily) || []).filter(function (d) { return d && downsideNum_(d.volume) > 0; }), shape = downsideShape_(daily), closes = daily.map(function (d) { return downsideNum_(d.close); }).filter(function (v) { return v > 0; });
     var priceChg = closes.length > DOWNSIDE_WINDOW ? downsidePct_(closes[closes.length - 1], closes[closes.length - 1 - DOWNSIDE_WINDOW]) : null;
     var steps = [];
     // 1 연료: 주가가 빠지는 동안 신용융자 잔고가 같이 정리됐는가
     var credit = series && downsideSpan_(series.credit, 'balance', DOWNSIDE_WINDOW);
     var creditRatio = series && series.credit && series.credit[0] ? downsideNum_(series.credit[0].ratio_pct) : null;
     var forced = entry && entry.credit && entry.credit.signal && entry.credit.signal.flag ? entry.credit.signal : null;
-    if (!credit) steps.push({ key: 'credit', title: '연료 · 신용융자', state: 'none', text: '신용융자 정보가 없습니다. 신용거래가 막혀 있거나 잔고가 공개되지 않은 종목입니다.' });
+    if (!credit) steps.push({ key: 'credit', title: '빚투(신용융자) 잔고', state: 'none', text: '신용융자 정보가 없습니다. 신용거래가 막혀 있거나 잔고가 공개되지 않은 종목입니다.' });
     else {
       var cChg = downsidePct_(credit.now, credit.past), st, msg;
       if (forced) { st = 'ok'; msg = (forced.date || '최근') + ' 급락일에 신용잔고가 ' + Math.abs(forced.balance_change_pct).toFixed(1) + '% 급감했습니다. 반대매매 물량이 한 번 쏟아진 흔적입니다.'; }
-      else if (priceChg != null && priceChg <= -5 && cChg > -3) { st = 'risk'; msg = '주가가 ' + priceChg.toFixed(1) + '% 빠지는 동안 신용잔고는 ' + (cChg > 0 ? '+' : '') + cChg.toFixed(1) + '%로 거의 그대로입니다. 반대매매로 터질 물량이 남아 있습니다.'; }
+      else if (priceChg != null && priceChg <= -5 && cChg > -3) { st = 'risk'; msg = '주가가 ' + priceChg.toFixed(1) + '% 빠지는 동안 신용잔고는 ' + (cChg > 0 ? '+' : '') + cChg.toFixed(1) + '%로 거의 그대로입니다. 더 빠지면 증권사가 강제로 팔아 버리는(반대매매) 물량이 남아 있습니다.'; }
       else if (cChg >= 5) { st = 'warn'; msg = '신용잔고가 ' + credit.days + '거래일 동안 +' + cChg.toFixed(1) + '% 늘었습니다. 빚을 낸 매수가 쌓이는 중입니다.'; }
       else if (cChg <= -10) { st = 'ok'; msg = '신용잔고가 ' + cChg.toFixed(1) + '% 줄어 빚을 낸 물량이 상당 부분 정리됐습니다.'; }
       else { st = 'mid'; msg = '신용잔고 변화(' + (cChg > 0 ? '+' : '') + cChg.toFixed(1) + '%)가 주가 흐름과 크게 어긋나지 않습니다.'; }
-      steps.push({ key: 'credit', title: '연료 · 신용융자', state: st, text: msg, change: cChg,
+      steps.push({ key: 'credit', title: '빚투(신용융자) 잔고', state: st, text: msg, change: cChg,
         metric: (credit.now / 1e4).toFixed(1) + '만주' + (creditRatio != null ? ' · 잔고율 ' + creditRatio.toFixed(2) + '%' : ''),
         spark: series.credit.slice(0, 40).map(function (r) { return downsideNum_(r.balance); }).reverse() });
     }
@@ -1849,15 +1874,15 @@
     var shortAvg = shortRatios.length ? shortRatios.reduce(function (a, b) { return a + b; }, 0) / shortRatios.length : null;
     var latestFlow = flowData && flowData.daily && flowData.daily[0];
     var listed = latestFlow && downsideNum_(latestFlow.foreign_shares) > 0 && downsideNum_(latestFlow.foreign_ratio) > 0 ? latestFlow.foreign_shares / (latestFlow.foreign_ratio / 100) : null;
-    if (!loan && shortAvg == null) steps.push({ key: 'loan', title: '무기 · 대차·공매도', state: 'none', text: '대차·공매도 정보가 없습니다. 공매도 대상이 아니거나 거래 내역이 없는 종목입니다.' });
+    if (!loan && shortAvg == null) steps.push({ key: 'loan', title: '공매도·대차잔고', state: 'none', text: '대차·공매도 정보가 없습니다. 공매도 대상이 아니거나 거래 내역이 없는 종목입니다.' });
     else {
       var lChg = loan ? downsidePct_(loan.now, loan.past) : null, st2, msg2;
       var shortText = shortAvg != null ? '최근 ' + shortRatios.length + '일 공매도 비중 평균 ' + shortAvg.toFixed(1) + '%' : '공매도 비중 정보 없음';
-      if (lChg != null && lChg >= 5 && shortAvg != null && shortAvg >= 10) { st2 = 'risk'; msg2 = '대차잔고가 ' + loan.days + '거래일 동안 +' + lChg.toFixed(1) + '% 쌓였고 ' + shortText + '입니다. 하방에 거는 물량이 늘고 있습니다.'; }
-      else if (lChg != null && lChg <= -5) { st2 = 'ok'; msg2 = '대차잔고가 ' + lChg.toFixed(1) + '% 줄었습니다. 빌린 주식을 갚는(숏커버링) 흐름입니다(' + shortText + ').'; }
-      else if ((lChg != null && lChg >= 5) || (shortAvg != null && shortAvg >= 15)) { st2 = 'warn'; msg2 = (lChg != null ? '대차잔고 ' + (lChg > 0 ? '+' : '') + lChg.toFixed(1) + '%, ' : '') + shortText + '입니다. 하방 베팅이 적지 않습니다.'; }
-      else { st2 = 'mid'; msg2 = (lChg != null ? '대차잔고 ' + (lChg > 0 ? '+' : '') + lChg.toFixed(1) + '%, ' : '') + shortText + '로 뚜렷한 하방 베팅 증가는 없습니다.'; }
-      steps.push({ key: 'loan', title: '무기 · 대차·공매도', state: st2, text: msg2, change: lChg,
+      if (lChg != null && lChg >= 5 && shortAvg != null && shortAvg >= 10) { st2 = 'risk'; msg2 = '대차잔고가 ' + loan.days + '거래일 동안 +' + lChg.toFixed(1) + '% 쌓였고 ' + shortText + '입니다. 주가 하락에 돈을 거는 물량이 늘고 있습니다.'; }
+      else if (lChg != null && lChg <= -5) { st2 = 'ok'; msg2 = '대차잔고가 ' + lChg.toFixed(1) + '% 줄었습니다. 공매도한 사람이 주식을 되사서 갚는(숏커버링) 흐름입니다(' + shortText + ').'; }
+      else if ((lChg != null && lChg >= 5) || (shortAvg != null && shortAvg >= 15)) { st2 = 'warn'; msg2 = (lChg != null ? '대차잔고 ' + (lChg > 0 ? '+' : '') + lChg.toFixed(1) + '%, ' : '') + shortText + '입니다. 하락에 거는 물량이 적지 않습니다.'; }
+      else { st2 = 'mid'; msg2 = (lChg != null ? '대차잔고 ' + (lChg > 0 ? '+' : '') + lChg.toFixed(1) + '%, ' : '') + shortText + '로 하락에 거는 물량이 크게 늘지는 않았습니다.'; }
+      steps.push({ key: 'loan', title: '공매도·대차잔고', state: st2, text: msg2, change: lChg,
         metric: loan ? (loan.now / 1e4).toFixed(0) + '만주' + (listed ? ' · 상장주식의 ' + (loan.now / listed * 100).toFixed(1) + '%' : '') : shortText,
         spark: loan ? series.loan.slice(0, 40).map(function (r) { return downsideNum_(r.balance); }).reverse() : null });
     }
@@ -1865,19 +1890,19 @@
     var inv = series && series.investor, fSum = downsideSum_(inv, 'foreign_mil', DOWNSIDE_WINDOW), iSum = downsideSum_(inv, 'ind_mil', DOWNSIDE_WINDOW), oSum = downsideSum_(inv, 'inst_mil', DOWNSIDE_WINDOW);
     var f5 = downsideSum_(inv, 'foreign_mil', 5), ratio = flowData && downsideSpan_(flowData.daily, 'foreign_ratio', DOWNSIDE_WINDOW);
     function eok(v) { return v == null ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.round(Math.abs(v) / 100).toLocaleString('ko-KR') + '억'; }
-    if (fSum == null && !ratio) steps.push({ key: 'actor', title: '주체 · 외국인과 개인', state: 'none', text: '투자자별 매매 정보가 없습니다.' });
+    if (fSum == null && !ratio) steps.push({ key: 'actor', title: '누가 팔고 누가 사나', state: 'none', text: '투자자별 매매 정보가 없습니다.' });
     else {
       var st3, msg3, money = '최근 ' + Math.min(DOWNSIDE_WINDOW, (inv || []).length) + '일 외국인 ' + eok(fSum) + ' · 개인 ' + eok(iSum) + ' · 기관 ' + eok(oSum);
       if (fSum != null && fSum < 0 && iSum != null && iSum > 0 && (priceChg == null || priceChg < 0)) { st3 = 'risk'; msg3 = '외국인이 판 물량을 개인이 받는 구도입니다. ' + money + '.'; }
       else if (f5 != null && f5 > 0 && fSum != null && fSum <= 0) { st3 = 'ok'; msg3 = '최근 5일 외국인이 순매수(' + eok(f5) + ')로 돌았습니다. ' + money + '.'; }
       else if (fSum != null && fSum < 0) { st3 = 'warn'; msg3 = '외국인 순매도가 이어지고 있습니다. ' + money + '.'; }
       else { st3 = fSum != null && fSum > 0 ? 'ok' : 'mid'; msg3 = money + '.'; }
-      steps.push({ key: 'actor', title: '주체 · 외국인과 개인', state: st3, text: msg3, change: ratio ? ratio.now - ratio.past : null,
+      steps.push({ key: 'actor', title: '누가 팔고 누가 사나', state: st3, text: msg3, change: ratio ? ratio.now - ratio.past : null,
         metric: ratio ? '외국인 보유율 ' + ratio.now.toFixed(2) + '% (' + (ratio.now - ratio.past >= 0 ? '+' : '') + (ratio.now - ratio.past).toFixed(2) + '%p)' : '외국인 보유율 정보 없음',
         spark: ratio ? flowData.daily.slice(0, 40).map(function (r) { return downsideNum_(r.foreign_ratio); }).reverse() : null });
     }
     // 4 모양: 고점·저점이 함께 낮아지는가, 하락일 거래량이 큰가, 투매봉이 나왔는가
-    if (!shape) steps.push({ key: 'shape', title: '모양 · 일봉', state: 'none', text: '일봉이 25개 미만이라 모양을 판단할 수 없습니다.' });
+    if (!shape) steps.push({ key: 'shape', title: '차트 모양', state: 'none', text: '일봉이 25개 미만이라 모양을 판단할 수 없습니다.' });
     else {
       var heavyDown = shape.dnVol != null && shape.upVol != null && shape.dnVol > shape.upVol;
       var st4, msg4, parts = [];
@@ -1887,7 +1912,7 @@
       else if (shape.lowerHigh && shape.lowerLow) { st4 = heavyDown ? 'risk' : 'warn'; msg4 = parts.join(', ') + '. 투매봉은 아직 없습니다.'; }
       else if (shape.lowerLow === false && shape.lowerHigh === false) { st4 = 'ok'; msg4 = '고점과 저점이 함께 높아지는 흐름입니다.'; }
       else { st4 = heavyDown ? 'warn' : 'mid'; msg4 = (parts.length ? parts.join(', ') + '. ' : '') + '하락 구조가 뚜렷하지 않습니다.'; }
-      steps.push({ key: 'shape', title: '모양 · 일봉', state: st4, text: msg4, change: priceChg,
+      steps.push({ key: 'shape', title: '차트 모양', state: st4, text: msg4, change: priceChg,
         metric: '종가 ' + Math.round(shape.close).toLocaleString('ko-KR') + (priceChg != null ? ' (' + DOWNSIDE_WINDOW + '일 ' + (priceChg > 0 ? '+' : '') + priceChg.toFixed(1) + '%)' : ''),
         spark: closes.slice(-40) });
     }
@@ -1900,14 +1925,16 @@
     ];
     var known = steps.filter(function (s) { return s.state !== 'none'; }), risk = known.filter(function (s) { return s.state === 'risk'; }).length;
     var warn = known.filter(function (s) { return s.state === 'warn'; }).length, flipOn = flips.filter(function (f) { return f.on; }).length;
-    var headline = !known.length ? '지하실 연료를 확인할 자료가 없습니다'
-      : known.length < 3 ? '자료가 부족해 지하실 연료를 일부만 확인했습니다'
-      : risk >= 3 ? '지하실 연료가 남아 있습니다'
-      : risk + warn >= 2 && flipOn < 2 ? '지하실 연료가 일부 남아 있습니다'
-      : flipOn >= 2 ? '지하실 연료가 소진되는 중입니다'
-      : '지하실 연료가 거의 없습니다';
+    var creditRisk = byKey.credit.state === 'risk', creditHot = creditRisk || byKey.credit.state === 'warn';
+    var headline = !known.length ? '자료가 없어 판단할 수 없습니다'
+      : known.length < 3 ? '자료가 부족해 일부만 판단했습니다'
+      : risk >= 3 ? (creditRisk ? '반대매매 가능성이 매우 높습니다' : '추가 하락 가능성이 매우 높습니다')
+      : risk + warn >= 2 && flipOn < 2 ? (creditHot ? '반대매매 가능성이 있습니다' : '추가 하락 가능성이 있습니다')
+      : flipOn >= 2 ? '팔 물량이 정리되며 바닥을 다지고 있습니다'
+      : '하락 위험이 크지 않습니다';
+    var squeeze = downsideSqueeze_(series, loan, listed, shortAvg, closes, shape);
     var asOf = (series && series.credit && series.credit[0] && series.credit[0].date) || (series && series.loan && series.loan[0] && series.loan[0].date) || (shape && shape.date) || '';
-    return { steps: steps, flips: flips, risk: risk, warn: warn, known: known.length, headline: headline, asOf: asOf, hasSeries: !!series };
+    return { steps: steps, flips: flips, risk: risk, warn: warn, known: known.length, headline: headline, squeeze: squeeze, asOf: asOf, hasSeries: !!series };
   }
 
   function downsideSpark_(vals, state) {
@@ -1933,10 +1960,11 @@
       return '<span class="ff-down-flip' + (f.on ? ' is-on' : '') + (f.known ? '' : ' is-unknown') + '">' + (f.known ? (f.on ? '✓ ' : '✕ ') : '? ') + escapeHtml(f.label) + '</span>';
     }).join('');
     return '<article class="ff-wide ff-wide--downside" data-story-number="02"><div class="ff-wide-grid is-downside">'
-      + '<div class="ff-chart-reading"><small>하방 압력 점검</small><strong class="ff-chart-headline">' + escapeHtml(c.headline) + '</strong>'
+      + '<div class="ff-chart-reading"><small>반대매매·공매도 점검</small><strong class="ff-chart-headline">' + escapeHtml(c.headline) + '</strong>'
       + '<p>' + escapeHtml(lead) + '</p>'
       + '<div class="ff-down-flips" aria-label="바닥 전환 신호"><small>바닥 전환 신호</small>' + flips + '</div>'
-      + '<small class="ff-chart-cloud-note">신용(연료)이 남고 대차·공매도(무기)가 쌓이며 외국인이 팔고 개인이 받는 동안 고점·저점이 낮아지면 "바닥 아래 지하실"이 생기기 쉽습니다.</small></div>'
+      + '<div class="ff-down-squeeze is-' + c.squeeze.state + '"><small>반대 방향 점검</small><b>' + escapeHtml(c.squeeze.title) + '</b><p>' + escapeHtml(c.squeeze.text) + '</p></div>'
+      + '<small class="ff-chart-cloud-note">빚을 내 산 주식(신용)이 남은 채 주가가 더 빠지면 증권사가 강제로 팔아(반대매매) 하락이 커집니다. 공매도가 쌓이고 외국인이 판 물량을 개인이 받는 동안 고점·저점이 낮아지면 이런 일이 생기기 쉽습니다.</small></div>'
       + '<div class="ff-wide-body"><div class="ff-down-grid">' + cells + '</div></div></div>'
       + '<footer class="ff-wide-foot"><small>' + (c.asOf ? escapeHtml(c.asOf) + ' 기준 · ' : '') + '최근 ' + DOWNSIDE_WINDOW + '거래일 비교 · 키움 신용·대차·공매도·투자자 일별 · 관찰용이며 매수·매도 신호가 아닙니다. 반대매매 금액은 종목별로 공개되지 않습니다.</small></footer></article>';
   }
