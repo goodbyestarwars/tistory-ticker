@@ -117,6 +117,21 @@ class ShapeSelection(unittest.TestCase):
         self.assertEqual(keys,['pattern:shape:bottomFormation','pattern:shape:pullbackRebreak'])
         self.assertEqual(conn.execute("SELECT detected_date,detected_close,status FROM pattern_tracks WHERE scanner='pattern:shape:pullbackRebreak'").fetchone(),('2026-10-24',10000.0,'NEW'))
 
+    def test_edge_tags_track_under_own_keys_and_skip_menu_stats(self):
+        import sqlite3
+        conn=sqlite3.connect(':memory:')
+        conn.execute('CREATE TABLE daily_prices (code TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume REAL)')
+        for code in ('123450','222220'):
+            for r in self.rows:conn.execute('INSERT INTO daily_prices VALUES (?,?,?,?,?,?,?)',(code,r['date'],r['open'],r['high'],r['low'],r['close'],r['volume']))
+        tag=[{'key':'surgeNextDay'}]
+        shaped=dict(code='123450',name='모양+태그',price=10000,score=80,patternDetail={'status':'SHAPE_FORMING','edgeSignals':tag})
+        only=dict(code='222220',name='태그만',price=5000,score=40,patternDetail={'status':'EDGE_OBSERVE','edgeOnly':True,'edgeSignals':tag})
+        groups={k:[] for k in self.module.GROUPS};groups['trendBreakout']=[shaped,only]
+        out=self.module.record_tracks(dict(dataDate='2026-10-24',groups=groups),conn=conn)
+        self.assertEqual(out['trendBreakout'],1,'edge-only row does not enter the shape menu statistics')
+        self.assertEqual(out['pattern:edge:surgeNextDay'],2)
+        self.assertEqual(out['pattern:edge:gapVolumeClose'],0)
+
     def test_benchmarks_require_both_indices_on_basis(self):
         rows={'KOSPI':[dict(date='20261105',close=5383.8),dict(date='20261106',close=5059.69)],
               'KOSDAQ':[dict(date='20261105',close=678.41),dict(date='2026-11-06',close=644.27)]}

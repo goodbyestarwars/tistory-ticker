@@ -208,7 +208,15 @@
     {key:'longTermQuality',label:'224일선·구름대 + 재무',sources:['longTermQuality']}
   ];
   function groupFor(key) { return MENU_TABS.filter(function(t){return t.key === key;})[0]; }
-  function sourceLabel(key) { if(key.indexOf('shape:')===0)return ((groupFor(key.slice(6)) || {}).label || '모양')+' · 모양 선정'; return key === 'longTermQuality' ? '재무 통과 장기 응축/돌파' : ((TABS.filter(function(t){return t.key === key;})[0] || {}).label || key); }
+  // 2026-11-08 고점 기준 연구 태그(edge-v1): 기존 메뉴 안 관찰 표시, 개별 추적 키 pattern:edge:<key>.
+  var EDGE_TAGS={liveFlow:'gapVolumeClose',trendBreakout:'surgeNextDay',pullbackRebreak:'rsHighResidual'};
+  var EDGE_LABELS={gapVolumeClose:'갭·거래량 5배·강마감',surgeNextDay:'급등 다음날 시가 관찰',rsHighResidual:'2~3주 내 갈 길'};
+  var EDGE_DESC={gapVolumeClose:'전일 고가 위 갭(+2% 이상)·전일까지 우상향·거래량 전일 5배 이상·+10~29% 마감. 종가 확인 뒤 1~5거래일 고점 관찰(상한가 마감은 체결이 어려워 제외).',
+    surgeNextDay:'당일 +20% 이상 마감. 다음 거래일 시가 기준으로 1~5거래일 고점 관찰.',
+    rsHighResidual:'KOSPI·KOSDAQ 두 지수 대비 비율선이 60일 신고가이고, 지수 영향을 뺀 20일 잔차 모멘텀이 그날 전 종목 상위 40%. 10~15거래일 고점 관찰.'};
+  function edgeTagsHtml(item){var tags=(detailFor(item).edgeSignals || []).filter(function(t){return t && EDGE_LABELS[t.key];});
+    return tags.length?'<div class="ps-edge-tags">'+tags.map(function(t){return '<span class="ps-edge-tag" title="'+escapeHtml(EDGE_DESC[t.key])+'">'+escapeHtml(EDGE_LABELS[t.key])+' · '+escapeHtml(t.horizon || '')+'</span>';}).join('')+'<small>고점 기준 연구 관찰 · 주문 신호 아님</small></div>':'';}
+  function sourceLabel(key) { if(key.indexOf('edge:')===0)return (EDGE_LABELS[key.slice(5)] || key)+' · 연구 태그'; if(key.indexOf('shape:')===0)return ((groupFor(key.slice(6)) || {}).label || '모양')+' · 모양 선정'; return key === 'longTermQuality' ? '재무 통과 장기 응축/돌파' : ((TABS.filter(function(t){return t.key === key;})[0] || {}).label || key); }
 
   var ninepayData = null, ninepayError = '', ninepayBusy = false, ninepayTimer = null;
   var rootContainer = null;
@@ -1429,10 +1437,12 @@
     box.innerHTML='<p>기본 후보: 상승·조정·지지·반등, 고점 연결 저항 회복, 바닥 다지기와 변동폭 축소를 함께 평가합니다. 일봉 모양 관찰이며 실시간 매수 신호가 아닙니다.</p><details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
       +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 최근 일봉 종가의 모양·흐름을 우선 정렬합니다. 기본 후보는 전체 저장 일봉에서 모양으로 새로 선정합니다. 기존 수치 검색 이력과 실시간 A/B·주문 경로는 개별 검색기 기록에서 별도로 유지합니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
       +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
+      +(EDGE_TAGS[activeTab]?'<p><b>연구 태그: '+escapeHtml(EDGE_LABELS[EDGE_TAGS[activeTab]])+'</b> '+escapeHtml(EDGE_DESC[EDGE_TAGS[activeTab]])+' 태그 종목을 먼저 정렬하며 관찰 전용입니다.</p>':'')
       +'<p><b>이전 수치 검색 조건 (이력 확인용)</b></p>'+group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
     var history=container.querySelector('#psSourceHistory');
     var keys=group.sources.filter(function(k){return k!=='ninepayLive';});
     if(activeTab==='longTermQuality')keys.push('maCloudBreakout');
+    if(EDGE_TAGS[activeTab])keys.push('edge:'+EDGE_TAGS[activeTab]);
     history.innerHTML='<label><span>이력 기준</span> <select aria-label="이력·성과 기준 검색기" data-history-source>'+keys.map(function(k){return '<option value="'+k+'"'+(k===historySource?' selected':'')+'>'+escapeHtml(sourceLabel(k))+(k==='maCloudBreakout'?' (이전 기술식 이력)':'')+'</option>';}).join('')+'</select></label><span class="ps-history-note">개별 검색기 통계</span>';
     history.querySelector('select').addEventListener('change',function(e){historySource=e.target.value;scanPerformanceData=null;loadScanPerformance(container);renderList(container);});
   }
@@ -1524,11 +1534,13 @@
     return AW.shapeOf(rows);
   }
   function shapeOrder(a,b) {
+    var ea=(detailFor(a).edgeSignals || []).length, eb=(detailFor(b).edgeSignals || []).length;
+    if(ea!==eb)return eb-ea;
     return (b.chartShape && b.chartShape.score || 0)-(a.chartShape && a.chartShape.score || 0);
   }
   function shapeHtml(item) {
     var s=item.chartShape || scannerShape(item);
-    return '<div class="ps-shape-context"><b>'+escapeHtml(s.label)+'</b><br><small>'+escapeHtml(detailFor(item).selectionVersion==='shape-selection-v1'?'일봉 OHLCV 모양 선정 · 기준일 '+(item.dataAsOf || item.date || '미확인'):'최근 20일 일봉 종가 모양 · 거래량·실시간 흐름은 별도 확인')+'</small></div>';
+    return '<div class="ps-shape-context"><b>'+escapeHtml(s.label)+'</b><br><small>'+escapeHtml(detailFor(item).selectionVersion==='shape-selection-v1'?'일봉 OHLCV 모양 선정 · 기준일 '+(item.dataAsOf || item.date || '미확인'):'최근 20일 일봉 종가 모양 · 거래량·실시간 흐름은 별도 확인')+'</small></div>'+edgeTagsHtml(item);
   }
 
   function publicModel(rows,state,now) {
