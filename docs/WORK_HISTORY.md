@@ -1,3 +1,7 @@
+**2026-11-08 모양 선정 엔진 변경 시 배포 후 모양 선정만 재계산**
+
+문제: 상대강도 필터(PR #1164) 배포 뒤 공개 모양 선정이 필터 전 결과로 남음. 배포 재스캔 조건(`scan_rule_paths`)에 `shape_scan.py/js`·`js/auto-wave.js`가 없고, `auto-wave.js`만 바뀐 배포는 VM 감시 경로 밖이라 재시작·재스캔 자체가 생략됨. 11/08 21:43 KST 서버에서 수동 실행(기준일 11/06, 지수 ok, 266종목 검사, 필터 전 419건 → 84건/62종목, 추적 기록 등록). 변경: `deploy_check.sh` `run_shape_selection_refresh_after_deploy` - 세 파일이 바뀐 배포에서 평일 08:00~20:00 KST 밖일 때만 공용 스캔 잠금 아래 `shape_scan.py` 하나만 실행(전체 재스캔은 이미 끝에서 shape_scan을 부르므로 그쪽이 돌 때는 생략, `auto-wave.js`는 무거운 재스캔 조건에 넣지 않음, 재시작 없음). `scheduled_job.py`에 `refresh-shape` 계약(장외, 최대 600초). 검증: `test_deploy_check_contract.py`(신규 1)·`test_scheduled_job.py`·`test_scan_timer_schedule.py`·`test_shape_selection.py` 통과(기존 `test_watch_paths_cover_vm_code_and_locally_read_data` 1건은 master에서도 실패하는 기준선), 임시 git 저장소에서 함수 실행(다른 JS만 변경·직전 SHA 미상 → 미실행, auto-wave 변경 → refresh-shape 실행). 배포: master → VM 자동.
+
 **2026-11-08 모바일 홈에 이야기 시리즈 추가 + 휴장 탭 분류 스와이프**
 
 요청: 상단 스와이프에 이야기 시리즈 추가, 휴장도 분류해서 같은 방식 적용. 변경: `js/home-mobile-tabs.js`(스와이프 엔진을 장중/휴장 두 번 마운트, 장중 5그룹에 이야기=푸터 `.site-footer-learn`을 `#homeStorySeries`로 이동·복원, 휴장 7그룹 휴장/원자재/일정/가상자산/뉴스/브리핑/이야기, 칩 줄 가로 스크롤), `css/home-mobile-tabs.css`(휴장 보고서 flex·`display:contents`·order·`.mtab-pack`), `js/skin-main.js`(로더 버전). 모두 `body.m-tabs`/≤720px 한정, PC·`!important` 무변경. 검증: 390px 라이브 페이지(브랜치 SHA 주입)에서 휴장 7칩 각 그룹 높이=활성 패널 높이, 장중↔휴장 전환 시 이야기 시리즈 이동·복원·해시 분리, 장중 5칩 한 줄 맞춤, ratchet·node --check 통과. 미확인: 실기기 스와이프, 다크/320px 육안, 장중(평일) 시간대 실데이터. 배포: master → Pages.
