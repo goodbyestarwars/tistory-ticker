@@ -746,7 +746,7 @@
       // 실패는 직전 시세를 오래된 값으로 유지하고 30초 뒤 재시도한다(새로 받지 못한 종목은 '-').
       posQuotes.loading = false; posQuotes.at = Date.now(); posQuotes.key = key; posQuotes.failed = true;
     }).then(function () {
-      if (lastControl && root && !busy && !(document.activeElement && document.activeElement.closest('[data-target-form]'))) renderControl(lastControl);
+      if (lastControl && root && !busy && !(document.activeElement && document.activeElement.closest('[data-target-form], [data-alloc-form]'))) renderControl(lastControl);
     });
   }
   function positionsHtml(positions, quotes) {
@@ -939,6 +939,69 @@
       + '</section>';
   }
 
+  // 2026-11-07 슬롯형+위험한도 배분 미리보기. PC 엔진 quant-autotrade/local_bot/live_sizing.py의 계산을 그대로 옮긴 읽기 전용 계산기다.
+  // 서버로 아무것도 보내지 않고 엔진 설정도 바꾸지 않는다(설정 변경 경로는 별도 승인 뒤 구현).
+  // 기본 입력은 현재 규칙(예산 100만·유보 10만·100만 원당 1종목·위험한도 끔)이다. 계산이 바뀌면 test/test_autotrader_allocation.cjs도 함께 고친다.
+  var ALLOC_FLOOR_PCT = 5, ALLOC_UNKNOWN_PCT = 8, ALLOC_SAMPLE_PRICES = [10000, 100000, 500000, 1000000], ALLOC_SAMPLE_RANGES = [3, 8];
+  var allocDraft = { budget: '1000000', reserve: '100000', slots: '', risk: '', carry: false };
+  function allocPlan(d) {
+    var budget = Math.floor(Number(d.budget)), reserve = Math.floor(Number(d.reserve) || 0);
+    if (!(budget > 0) || reserve < 0 || reserve >= budget) return { error: '총예산은 유보현금보다 커야 합니다.' };
+    var auto = d.slots === '' || d.slots == null, slots = auto ? Math.ceil(budget / 1000000) : Math.floor(Number(d.slots));
+    if (!(slots >= 1 && slots <= 10)) return { error: '종목 수는 1~10 사이여야 합니다.' };
+    var risk = d.risk === '' || d.risk == null ? null : Number(d.risk);
+    if (risk !== null && !(risk > 0 && risk <= 10)) return { error: '위험한도는 0 초과 10% 이하로 넣습니다.' };
+    return { budget: budget, reserve: reserve, slots: slots, auto: auto, perStock: Math.floor((budget - reserve) / slots),
+      risk: risk, riskWon: risk ? Math.floor(budget * risk / 100) : null, carry: !!d.carry };
+  }
+  function allocSize(p, price, cash, committed, slotsUsed, rangePct) {
+    var remaining = p.budget - p.reserve - committed, left = p.slots - slotsUsed;
+    var out = { qty: 0, limit: null, move: null, worstLoss: null, reason: null };
+    if (left <= 0) { out.reason = 'SLOTS_FULL'; return out; }
+    var caps = { slot: p.carry ? Math.floor(remaining / left) : p.perStock, cash: cash - p.reserve, budget: remaining };
+    if (p.risk) {
+      out.move = Math.max(ALLOC_FLOOR_PCT, rangePct > 0 ? rangePct : ALLOC_UNKNOWN_PCT);
+      caps.risk = Math.floor(p.riskWon * 100 / out.move);
+    }
+    out.limit = ['slot', 'cash', 'budget', 'risk'].filter(function (k) { return k in caps; })
+      .reduce(function (a, k) { return caps[k] < caps[a] ? k : a; });
+    out.qty = Math.floor(Math.max(caps[out.limit], 0) / price);
+    if (out.qty < 1) { out.qty = 0; out.reason = 'ONE_SHARE_OVER_LIMIT'; return out; }
+    out.worstLoss = Math.floor(out.qty * price * (out.move || ALLOC_FLOOR_PCT) / 100);
+    return out;
+  }
+  var ALLOC_LIMITS = { slot: '종목 한도', cash: '주문가능현금', budget: '남은 예산', risk: '위험한도' };
+  function allocTableHtml(d) {
+    var p = allocPlan(d);
+    if (p.error) return '<p class="at-note is-bad">' + esc(p.error) + '</p>';
+    var head = '<p class="at-note at-note-top">최대 <b>' + p.slots + '종목</b>' + (p.auto ? '(100만 원당 1종목 자동)' : '') + ' · 종목당 최대 <b>' + fmtWon(p.perStock) + '원</b>'
+      + (p.risk ? ' · 1종목 손절 시 예상 손실 최대 <b>' + fmtWon(p.riskWon) + '원</b>(예산의 ' + p.risk + '%)' : ' · 위험한도 끔') + '</p>';
+    var ranges = p.risk ? ALLOC_SAMPLE_RANGES : [null];
+    var rows = [];
+    ALLOC_SAMPLE_PRICES.forEach(function (price) {
+      ranges.forEach(function (range) {
+        var r = allocSize(p, price, p.budget, 0, 0, range);
+        rows.push('<tr><td class="n">' + fmtWon(price) + '원</td>' + (p.risk ? '<td class="n">' + range + '%</td>' : '')
+          + (r.qty ? '<td class="n">' + fmtWon(r.qty) + '주</td><td class="n">' + fmtWon(r.qty * price) + '원</td><td class="n">' + fmtWon(r.worstLoss) + '원</td><td>' + ALLOC_LIMITS[r.limit] + '</td>'
+            : '<td class="n">0주</td><td class="n">-</td><td class="n">-</td><td class="at-warn-text">건너뜀 · ' + ALLOC_LIMITS[r.limit] + '</td>') + '</tr>');
+      });
+    });
+    return head + '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>1주 가격</th>' + (p.risk ? '<th>평균 고저폭</th>' : '')
+      + '<th>주수</th><th>투입</th><th>손절 시 예상 손실</th><th>묶인 한도</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+  }
+  function allocPreviewHtml() {
+    var d = allocDraft;
+    return '<section class="at-card at-act"><div class="at-hd"><h3>종목 배분 미리보기</h3><span class="at-sub">계산만 · 엔진 설정 변경 없음</span></div>'
+      + '<form class="at-dl" data-alloc-form>'
+      + '<label>총예산(원) <input name="budget" type="number" min="100000" max="1000000000" step="100000" inputmode="numeric" value="' + esc(d.budget) + '"></label>'
+      + '<label>유보현금(원) <input name="reserve" type="number" min="0" max="100000000" step="10000" inputmode="numeric" value="' + esc(d.reserve) + '"></label>'
+      + '<label>종목 수 <input name="slots" type="number" min="1" max="10" step="1" inputmode="numeric" placeholder="자동" value="' + esc(d.slots) + '"></label>'
+      + '<label>위험한도(예산 %) <input name="risk" type="number" min="0.5" max="10" step="0.5" inputmode="decimal" placeholder="끔" value="' + esc(d.risk) + '"></label>'
+      + '<label><input name="carry" type="checkbox"' + (d.carry ? ' checked' : '') + '> 남은 금액 다음 종목으로 이월</label>'
+      + '</form><output data-alloc-out aria-live="polite">' + allocTableHtml(d) + '</output>'
+      + '<p class="at-note">종목 한도 안에서 주수를 내림하고, 1주가 한도보다 비싸면 그 종목은 건너뜁니다. 위험한도를 켜면 손절선까지 밀렸을 때의 손실을 예산의 정한 비율로 묶습니다. 예상 불리 변동폭은 비상 손절 ' + ALLOC_FLOOR_PCT + '%와 최근 20봉 평균 고저폭 중 큰 값이며, 고저폭을 모르면(9Pay 단타 신호) ' + ALLOC_UNKNOWN_PCT + '%로 봅니다. 시세 공백(갭)에서는 손실이 더 커질 수 있고 수수료·세금은 빠져 있습니다. 표는 빈 계좌에서 첫 종목을 살 때 기준입니다.</p></section>';
+  }
+
   function sendTargetCommand(body) {
     if (busy || !lastControl || lastControl.pending) return;
     busy = true;
@@ -959,7 +1022,18 @@
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
-    root.innerHTML = controlHtml(c) + targetBuyHtml(c) + activityHtml(c.activity) + scheduleHtml(scheduleCache);
+    root.innerHTML = controlHtml(c) + targetBuyHtml(c) + allocPreviewHtml() + activityHtml(c.activity) + scheduleHtml(scheduleCache);
+    var allocForm = root.querySelector('[data-alloc-form]');
+    if (allocForm) {
+      var onAllocInput = function (event) {
+        if (!event.target.name) return;
+        allocDraft[event.target.name] = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+        root.querySelector('[data-alloc-out]').innerHTML = allocTableHtml(allocDraft);
+      };
+      allocForm.addEventListener('input', onAllocInput);
+      allocForm.addEventListener('change', onAllocInput);
+      allocForm.addEventListener('submit', function (event) { event.preventDefault(); });
+    }
     var targetForm = root.querySelector('[data-target-form]');
     if (targetForm) {
       bindTargetSymbolSearch(targetForm);
@@ -1057,7 +1131,7 @@
     widen();
     refresh();
     if (timer) clearInterval(timer);
-    timer = setInterval(function () { if (!document.hidden && !busy && !(document.activeElement && document.activeElement.closest('[data-target-form]'))) refresh(); }, REFRESH_MS);
+    timer = setInterval(function () { if (!document.hidden && !busy && !(document.activeElement && document.activeElement.closest('[data-target-form], [data-alloc-form]'))) refresh(); }, REFRESH_MS);
   }
 
   global.AutoTraderPage = { init: init, analyze: analyze, widen: function (el) { root = el; widen(); } };

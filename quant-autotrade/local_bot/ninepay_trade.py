@@ -10,6 +10,7 @@ import re
 import math
 import unicodedata
 from ninepay_signal_client import valid_evidence
+import live_sizing
 
 KST = timezone(timedelta(hours=9))
 CODE = re.compile(r'^\d{6}$')
@@ -113,9 +114,10 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
         return 'PRICE_UNAVAILABLE'
     if price > signal_price * (1 + MAX_CHASE_PCT / 100):
         return 'PRICE_MOVED'
-    qty = min(policy.PER_STOCK, cash - policy.RESERVE,
-              policy.BUDGET - policy.RESERVE - committed) // price
-    if qty < 1 or qty * price > policy.PER_STOCK:
+    # 9Pay 단타 신호에는 확정 일봉 고저폭이 붙어 오지 않는다. 위험한도를 켜면 live_sizing이 보수값(8%)을 쓴다.
+    size = live_sizing.size_entry(live_sizing.from_policy(policy), price, cash, committed, slots)
+    qty = size['qty']
+    if qty < 1:
         return 'QTY_OR_LIMIT'
     order_time = clock() if clock else datetime.now(KST)
     order_minute = order_time.hour * 60 + order_time.minute
@@ -129,7 +131,8 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
         return 'DISABLED_OR_UNCERTAIN'
     note = {'scanner': '9Pay intraday', 'priority_group': 'DAY', 'signal_id': sid, 'source': signal['source'],
             'signal_at': signal['at'], 'signal_price': signal_price,
-            'checked_price': price, 'slots_used': slots}
+            'checked_price': price, 'slots_used': slots,
+            'sizing': {k: size[k] for k in ('limit', 'slot_cap', 'risk_cap', 'move_pct', 'worst_loss')}}
     intent = ledger.reserve(code, 'BUY', qty, price, reason='NINEPAY_ENTRY', note=note)
     result = client.buy_limit(code, qty, price)
     ledger.acknowledge(intent, result)
