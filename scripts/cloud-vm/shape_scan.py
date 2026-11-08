@@ -18,6 +18,8 @@ VERSION = 'shape-selection-v1'
 GROUPS = ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'longTermQuality')
 TRACK_PREFIX = 'pattern:shape:'
 BENCHMARKS = ('KOSPI', 'KOSDAQ')
+EDGE_PREFIX = 'pattern:edge:'
+EDGE_KEYS = ('surgeNextDay', 'gapVolumeClose', 'rsHighResidual')
 
 
 def record_tracks(snapshot, conn=None):
@@ -33,8 +35,19 @@ def record_tracks(snapshot, conn=None):
         # Track every shape candidate (before the relative-strength filter) so the
         # filter itself can be judged later from patternDetail.myWay.
         groups = snapshot.get('observed') or snapshot.get('groups') or {}
-        return {key: pattern_tracker.record_new(conn, snapshot['dataDate'], TRACK_PREFIX + key, groups.get(key) or [])
-                for key in GROUPS}
+        out = {key: pattern_tracker.record_new(conn, snapshot['dataDate'], TRACK_PREFIX + key,
+                                               [r for r in groups.get(key) or [] if not (r.get('patternDetail') or {}).get('edgeOnly')])
+               for key in GROUPS}
+        # Research tags (edge-v1) get their own scanner keys so menu statistics stay unchanged.
+        for edge in EDGE_KEYS:
+            rows, seen = [], set()
+            for key in GROUPS:
+                for r in groups.get(key) or []:
+                    tags = (r.get('patternDetail') or {}).get('edgeSignals') or []
+                    if r.get('code') not in seen and any(t.get('key') == edge for t in tags):
+                        seen.add(r.get('code')); rows.append(r)
+            out[EDGE_PREFIX + edge] = pattern_tracker.record_new(conn, snapshot['dataDate'], EDGE_PREFIX + edge, rows)
+        return out
     finally:
         if own:
             conn.close()
@@ -56,7 +69,7 @@ def load_benchmarks(conn, basis):
                 rows.append(dict(date=d[:4] + '-' + d[4:6] + '-' + d[6:], close=float(c)))
         rows.sort(key=lambda r: r['date'])
         if rows and rows[-1]['date'] == basis:
-            out[symbol] = rows[-90:]
+            out[symbol] = rows[-260:]  # 120-day beta for edgeSignalsOf needs 141 aligned closes
     return out if len(out) == len(BENCHMARKS) else {}
 
 
@@ -132,6 +145,7 @@ def refresh():
             groups = worker['groups']
             observed = worker.get('observed') or groups
             relative_strength = worker.get('relativeStrength') or dict(status='missing')
+            edge_signals = worker.get('edgeSignals') or dict(version='edge-v1', status='missing')
     finally:
         conn.close()
     at = datetime.now(timezone.utc).isoformat()
@@ -142,7 +156,7 @@ def refresh():
                 item['patternDetail']['scanned_at'] = at
     snapshot = dict(version=VERSION, mode='observation', orderAuthorized=False, status='ok',
                     scannedAt=at, dataDate=basis, coverage=coverage, groups=groups,
-                    relativeStrength=relative_strength)
+                    relativeStrength=relative_strength, edgeSignals=edge_signals)
     def apply(cache):
         if cache.get('dataDate') != original.get('dataDate') or cache.get('generatedAt') != original.get('generatedAt'):
             raise ValueError('Daily snapshot changed during shape scan')

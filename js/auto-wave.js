@@ -843,6 +843,58 @@
       rsPosition20:weakest('rsPosition20'),downDayHold:weakest('downDayHold'),todayExcess:weakest('todayExcess')};
   }
 
+  // High-basis research signals (2026-11-08 backtest, later 1~15-day highs vs same-day,
+  // same-ATR peers). Observation tags only: no order meaning. Uses closed daily bars.
+  //  surgeNextDay   : today closed +20% or more -> next session open is the observed entry.
+  //  gapVolumeClose : gap above the prior high (+2%+), prior-day uptrend, volume >= 5x the
+  //                   prior day and a strong +10~29% close (limit-up closes are not fillable).
+  //  rsHigh60/resmom20: ratio line vs every index at a 60-day high; residual momentum after
+  //                   removing the home index (120-day beta). The cross-sectional top-40%
+  //                   cut for resmom20 is applied by the caller over the whole universe.
+  function edgeSignalsOf(bars, benchmarks) {
+    var out={version:'edge-v1',surgeNextDay:false,gapVolumeClose:false,rsHigh60:null,resmom20:null};
+    if(!Array.isArray(bars) || bars.length<62)return out;
+    var n=bars.length,last=bars[n-1],prev=bars[n-2];
+    if(!(prev.close>0 && prev.volume>0 && last.close>0))return out;
+    var dayRet=last.close/prev.close-1;
+    out.dayReturn=dayRet;
+    out.surgeNextDay=dayRet>=.2;
+    var closes=bars.map(function(b){return b.close;});
+    function ma(end,len){if(end-len+1<0)return null;var s=0;for(var i=end-len+1;i<=end;i++)s+=closes[i];return s/len;}
+    var p=n-2,m20=ma(p,20),m60=ma(p,60),m20b=ma(p-5,20),m60b=ma(p-20,60);
+    var uptrend=m20!=null && m60!=null && m20b!=null && m60b!=null && prev.close>m20 && m20>m60 && m20>m20b && m60>m60b;
+    out.gapVolumeClose=!!(uptrend && last.open>=prev.close*1.02 && last.open>prev.high && last.volume>=prev.volume*5 && dayRet>=.1 && dayRet<.29);
+    var names=Object.keys(benchmarks || {});
+    if(!names.length)return out;
+    var highs=[],fits=[];
+    for(var k=0;k<names.length;k++) {
+      var map={};
+      (benchmarks[names[k]] || []).forEach(function(row){ if(row && Number(row.close)>0)map[row.date]=Number(row.close); });
+      if(!map[last.date])return out;
+      var rows=bars.filter(function(b){return map[b.date] && b.close>0;});
+      if(rows.length<62)return out;
+      var line=rows.map(function(b){return b.close/map[b.date];}),L=line.length;
+      highs.push(line[L-1]>=Math.max.apply(null,line.slice(L-61,L-1)));
+      if(rows.length>=141) {
+        var rs=[],ri=[];
+        for(var i=rows.length-140;i<rows.length;i++){rs.push(rows[i].close/rows[i-1].close-1);ri.push(map[rows[i].date]/map[rows[i-1].date]-1);}
+        var est=function(a,b){var ma_=0,mb=0,j;for(j=0;j<a.length;j++){ma_+=a[j];mb+=b[j];}ma_/=a.length;mb/=b.length;
+          var cv=0,va=0,vb=0;for(j=0;j<a.length;j++){cv+=(a[j]-ma_)*(b[j]-mb);va+=(a[j]-ma_)*(a[j]-ma_);vb+=(b[j]-mb)*(b[j]-mb);}
+          return {beta:vb>0?cv/vb:null,corr:va>0&&vb>0?cv/Math.sqrt(va*vb):null};};
+        var f=est(rs.slice(-120),ri.slice(-120));
+        if(f.beta!=null && f.corr!=null) {
+          var res=rs.map(function(r,j){return r-f.beta*ri[j];}).slice(-60);
+          var mean=res.reduce(function(s,x){return s+x;},0)/60,sd=Math.sqrt(res.reduce(function(s,x){return s+(x-mean)*(x-mean);},0)/59);
+          var sum20=res.slice(-20).reduce(function(s,x){return s+x;},0);
+          if(sd>0)fits.push({corr:f.corr,value:sum20/(sd*Math.sqrt(20))});
+        }
+      }
+    }
+    out.rsHigh60=highs.every(Boolean);
+    if(fits.length===names.length)out.resmom20=fits.sort(function(a,b){return b.corr-a.corr;})[0].value;
+    return out;
+  }
+
   // Menu-specific reading of the same relative-strength shape. "My way" means
   // stronger than both indices AND its own price still rising, so a stock that
   // merely fell less than a crashing market is not counted. Short trades need the
@@ -957,7 +1009,7 @@
     return groups;
   }
 
-  var api = { selectShapesOf: selectShapesOf, relativeStrengthOf: relativeStrengthOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+  var api = { selectShapesOf: selectShapesOf, relativeStrengthOf: relativeStrengthOf, edgeSignalsOf: edgeSignalsOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;
