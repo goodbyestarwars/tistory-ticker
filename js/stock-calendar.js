@@ -195,6 +195,37 @@
     return econLoad;
   }
 
+  // 2026-11-09: 발표 완료 지표의 결과는 '주요 미국 발표' 탭의 공통 모듈(UsMacroIndicators)이 소유한다.
+  // 같은 30분 캐시를 공유하고, 실패하면 결과 줄 없이 일정만 보여준다.
+  var MACRO_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-macro-indicators.js?v=20261109-calendar-results';
+  var macroLoad = null;
+  function loadMacroResults() {
+    if (!macroLoad) macroLoad = new Promise(function (resolve) {
+      if (global.UsMacroIndicators) return resolve(global.UsMacroIndicators);
+      var script = document.createElement('script');
+      script.src = MACRO_SCRIPT_URL;
+      script.async = true;
+      script.onload = function () { resolve(global.UsMacroIndicators || null); };
+      script.onerror = function () { macroLoad = null; resolve(null); };
+      document.head.appendChild(script);
+    }).then(function (api) {
+      if (!api || !api.fetchResults || !api.releaseResult) return null;
+      return api.fetchResults().then(function (items) { return { api: api, items: items }; });
+    }).catch(function () { macroLoad = null; return null; });
+    return macroLoad;
+  }
+
+  function attachEconResults(events) {
+    if (!events.some(function (event) { return event.status === 'reported'; })) return Promise.resolve(events);
+    return loadMacroResults().then(function (macro) {
+      if (!macro) return events;
+      events.forEach(function (event) {
+        if (event.status === 'reported') event.result = macro.api.releaseResult(event.code, event.usDate, macro.items);
+      });
+      return events;
+    });
+  }
+
   function fetchEconEvents(year, month) {
     var prefix = month == null ? String(year) : String(year) + '-' + String(month + 1).padStart(2, '0');
     return loadEconCalendar().then(function (data) {
@@ -212,10 +243,11 @@
           code: item.code,
           importance: item.importance,
           // 공식 발표 예정 시각이 지난 지표는 발표 완료 이력에도 보인다(수치는 경제지표 탭 소유).
-          status: Date.parse(item.start) <= Date.now() ? 'reported' : 'scheduled'
+          status: Date.parse(item.start) <= Date.now() ? 'reported' : 'scheduled',
+          usDate: item.us_date
         };
       });
-    }).catch(function () { return []; });
+    }).then(attachEconResults).catch(function () { return []; });
   }
 
   function marketPriority(event) {
@@ -529,6 +561,9 @@
       + '<span class="' + iconClass + '">' + iconHtml + '</span>'
       + '<span class="sc-ev-body"><span class="sc-ev-title">' + titleHtml + tagHtml + '</span>'
       + (status ? '<span class="sc-event-status">' + escapeHtml(status) + (ev.verification === 'conflict' ? ' · 출처 간 일정 충돌, 확인 필요' : '') + '</span>' : '')
+      + (ev.result && ev.result.text ? '<span class="sc-econ-result sc-econ-result--' + escapeHtml(ev.result.state) + '"'
+        + (ev.result.basis ? ' title="' + escapeHtml(ev.result.basis) + '"' : '') + '>' + escapeHtml(ev.result.text)
+        + (ev.result.period && ev.result.state === 'ok' ? '<small>' + escapeHtml(ev.result.period) + ' · FRED</small>' : '') + '</span>' : '')
       + proof + '</span>'
       + '<span class="sc-ev-time">' + timeOf(ev) + '</span>'
       + rowEnd;

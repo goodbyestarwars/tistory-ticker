@@ -137,3 +137,33 @@ class StoredFuturesReadTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class CalendarMacroSymbolTests(unittest.TestCase):
+    """2026-11-09: 캘린더 발표 결과용 FRED 심볼은 명시 요청 때만 응답에 싣는다."""
+
+    def _call(self, symbols):
+        fields = ('change', 'change_rate', 'high', 'low', 'updated_at', 'oi', 'oi_change',
+                  'ask_price', 'bid_price', 'ask_qty', 'bid_qty')
+        prices = [dict(dict.fromkeys(fields), symbol=s, name=s, price=1.0) for s in ('US_CPI', 'US_INITIAL_CLAIMS')]
+        conn = Mock()
+        main._futures_cache.clear()
+        with patch.object(main, '_check_rate_limit'), \
+                patch.object(main.db_schema, 'get_conn', return_value=conn), \
+                patch.object(main.db_schema, 'load_all_future_prices', return_value=prices), \
+                patch.object(main.db_schema, 'load_future_chart', return_value=[]),                 patch.object(main.db_schema, 'load_future_contract', return_value=None):
+            main.futures(FakeRequest(), interval='day', days=500, symbols=symbols, stored_only=True)
+        entry = next(iter(main._futures_cache.values()))
+        main._futures_cache.clear()
+        return [row['symbol'] for row in entry['data']]
+
+    def test_explicit_request_includes_calendar_symbol(self):
+        self.assertEqual(self._call('US_CPI,US_INITIAL_CLAIMS'), ['US_CPI', 'US_INITIAL_CLAIMS'])
+
+    def test_default_response_does_not_grow(self):
+        import inspect
+        source = inspect.getsource(main.futures)
+        default_order = source[source.index("order = ['KOSPI'"):source.index(']', source.index("order = ['KOSPI'"))]
+        for symbol in main._CALENDAR_MACRO_SYMBOLS:
+            self.assertNotIn(symbol, default_order)
+            self.assertIn(symbol, main.bond_yield.FRED_SYMBOLS)
