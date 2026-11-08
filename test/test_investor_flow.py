@@ -75,5 +75,29 @@ class LargeHoldingReportTests(unittest.TestCase):
         self.assertIsNone(result)
 
 
+class DownsideSeriesTests(unittest.TestCase):
+    """종목분석 카드형 '하방 압력 점검' 시계열 - 받은 TR 응답만 잘라 붙이고 결측은 None."""
+
+    def test_maps_fields_and_keeps_missing_as_none(self):
+        series = investor_flow.downside_series(
+            [{'dt': '20261106', 'remn': '2872755', 'remn_rt': '2.11', 'new': '268236', 'rpya': '316574', 'amt': '273542'},
+             {'dt': '20261105', 'remn': '', 'remn_rt': '-'}],
+            [{'dt': '20261106', 'rmnd': '22194946', 'dbrt_trde_irds': '89553'}],
+            [{'dt': '20261106', 'shrts_qty': '390146', 'trde_wght': '+32.71', 'ovr_shrts_qty': '4656707'}],
+            [{'dt': '20261106', 'ind_invsr': '6773', 'frgnr_invsr': '-24941', 'orgn': '+18196'}, {'dt': 'bad'}],
+        )
+        self.assertEqual(series['credit'][0], {'date': '2026-11-06', 'balance': 2872755.0, 'ratio_pct': 2.11,
+                                               'new': 268236.0, 'repay': 316574.0, 'amount_mil': 273542.0})
+        self.assertIsNone(series['credit'][1]['balance'])
+        self.assertIsNone(series['credit'][1]['ratio_pct'])
+        self.assertEqual(series['loan'][0]['balance'], 22194946.0)
+        self.assertEqual(series['short'][0]['ratio_pct'], 32.71)
+        self.assertEqual(series['investor'], [{'date': '2026-11-06', 'ind_mil': 6773.0, 'foreign_mil': -24941.0, 'inst_mil': 18196.0}])
+
+    def test_limits_days(self):
+        rows = [{'dt': '202610%02d' % (i + 1), 'rmnd': str(i)} for i in range(30)]
+        self.assertEqual(len(investor_flow.downside_series([], rows, [], [], days=10)['loan']), 10)
+
+
 if __name__ == '__main__':
     unittest.main()
