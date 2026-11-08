@@ -3392,8 +3392,10 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-down-squeeze.is-none { opacity: .7; }
 #foreign-flow .ff-down-squeeze .ff-down-flips { margin: 6px 0 2px; }
 #foreign-flow .ff-down-squeeze .ff-down-flip em { font-style: normal; font-variant-numeric: tabular-nums; opacity: .85; }
+#foreign-flow .ff-down-squeeze .ff-down-flip.is-on { background: #fdeceb; border-color: #f2c3bf; color: var(--num-up); }
 html.dark #foreign-flow .ff-down-step, html.dark #foreign-flow .ff-down-flip, html.dark #foreign-flow .ff-down-squeeze { border-color: var(--dk-line); }
 html.dark #foreign-flow .ff-wide .ff-down-squeeze > p { color: var(--dk-text); }
+html.dark #foreign-flow .ff-down-squeeze .ff-down-flip.is-on { background: rgba(var(--dk-up-rgb), .16); border-color: rgba(var(--dk-up-rgb), .4); color: var(--dk-up); }
 html.dark #foreign-flow .ff-sq-level { border-color: var(--dk-line); color: var(--dk-sub); opacity: .7; }
 html.dark #foreign-flow .ff-sq-level.is-on { opacity: 1; color: var(--dk-text); }
 html.dark #foreign-flow .ff-sq-level.is-on.is-risk { background: rgba(217, 115, 31, .2); color: #f0a868; }
