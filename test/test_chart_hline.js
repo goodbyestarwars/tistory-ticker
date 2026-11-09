@@ -43,11 +43,14 @@ fire('pointerdown', 80, { button: 2 }); fire('pointerup', 80);
 assert.equal(controller.shapes.hlines.length, 1, 'right click does not create');
 fire('pointerdown', 80); fire('pointerup', 500);
 assert.equal(controller.shapes.hlines.length, 1, 'outside release does not create');
+assert.equal(canvas.ncDrawingHit(600, 210), true, 'label on the price axis is claimed by the drawing layer');
+assert.equal(canvas.ncDrawingHit(600, 120), false, 'empty axis space stays with price-axis drag');
 global.prompt = () => '325';
 fire('pointerdown', 190, { clientX: 590 }); fire('pointerup', 190, { clientX: 590 });
 assert.equal(controller.shapes.hlines[0].price, 325, 'price-label editing remains available');
 controller.setMode(null);
 assert.equal(controller.shapes.hlinePreview, null);
+assert.equal(canvas.ncDrawingHit(600, 210), false, 'outside hline mode the axis keeps its drag');
 for (const mode of ['line', 'circle', 'box', 'pencil', 'hline', 'measure']) {
   controller.setMode(mode);
   if (mode === 'hline') {

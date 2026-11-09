@@ -460,6 +460,9 @@
       // Lightweight Charts already provides native touch inertia. Applying our
       // mouse momentum to touch as well causes a second glide on mobile.
       if (event && event.pointerType === 'touch') return;
+      // 그리기 층이 가로선 라벨·선을 잡는 자리면 가격축 드래그가 가로채지 않는다(chart-drawing.ncDrawingHit).
+      var target = event && event.target;
+      if (target && typeof target.ncDrawingHit === 'function' && target.ncDrawingHit(event.clientX, event.clientY)) { drag = null; return; }
       // Own price-axis scaling in the common engine, including when the drawing layer is active.
       var rect = element.getBoundingClientRect && element.getBoundingClientRect();
       var ps = chart.priceScale && chart.priceScale('right');
