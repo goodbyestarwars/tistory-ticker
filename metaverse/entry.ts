@@ -69,7 +69,28 @@ function update() {
   } catch {}
   stage.dispatchEvent(new Event('square-authors'));
 }
+const marketLink = stage.querySelector<HTMLAnchorElement>('.square-market')!;
+const chartPanel = stage.querySelector<HTMLElement>('#square-chart')!;
+const chartFrame = chartPanel.querySelector('iframe')!;
+const chartClose = chartPanel.querySelector<HTMLButtonElement>('button')!;
+function closeChart() {
+  chartPanel.hidden = true;
+  chartFrame.removeAttribute('src');
+  marketLink.setAttribute('aria-expanded','false');
+}
+marketLink.onclick = event => {
+  event.preventDefault();
+  chartFrame.src = marketLink.href;
+  chartPanel.hidden = false;
+  marketLink.setAttribute('aria-expanded','true');
+  chartClose.focus();
+};
+chartClose.onclick = () => {
+  closeChart();
+  marketLink.focus();
+};
 function stop() {
+  closeChart();
   lifetime?.abort();
   lifetime = undefined;
   observer?.disconnect();
