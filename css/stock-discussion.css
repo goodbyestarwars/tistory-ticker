@@ -114,3 +114,67 @@ html.dark .discussion-item-head .control a { color: var(--dk-mute); }
 html.dark .discussion-item-body { color: var(--dk-sub); }
 html.dark .discussion-replies { border-left-color: var(--dk-line); }
 html.dark .discussion-empty { color: var(--dk-mute); }
+
+/* 클래식 PC통신 화면의 팔레트는 방명록 안에 한정한다. */
+.market-discussion [hidden] { display: none; }
+.discussion-view-toggle,
+.discussion-terminal button {
+  border: 1px solid currentColor;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  padding: .4em .65em;
+  min-height: 36px;
+  font: inherit;
+  cursor: pointer;
+}
+.discussion-view-toggle { margin-block-end: .65rem; }
+.discussion-terminal {
+  margin-block-end: 1rem;
+  min-width: 0;
+  background: #000080;
+  color: #fff;
+  border: 2px solid #6feaff;
+  font: 1rem/1.55 Consolas, 'D2Coding', 'Malgun Gothic', monospace;
+}
+.discussion-terminal-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .4em;
+  padding: .45em .75em;
+  background: #005291;
+  color: #fff;
+}
+.discussion-terminal-status,
+.discussion-terminal-prompt {
+  margin: 0;
+  padding: .45em .75em;
+  overflow-wrap: anywhere;
+}
+.discussion-terminal-status { color: #a4f5ff; border-bottom: 1px solid currentColor; }
+.discussion-terminal-prompt { color: #fff47f; border-top: 1px solid currentColor; }
+.discussion-terminal-log {
+  list-style: none;
+  margin: 0;
+  padding: .65em .75em;
+  min-height: 8rem;
+  max-height: 50vh;
+  overflow: auto;
+}
+.discussion-terminal-log li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 .75em;
+  padding-block: .25em;
+  overflow-wrap: anywhere;
+}
+.discussion-terminal-date { color: #a4f5ff; }
+.discussion-terminal-name { color: #fff47f; font-weight: 700; }
+.discussion-terminal-body { flex: 1 1 15rem; min-width: 0; white-space: pre-wrap; }
+.discussion-terminal :focus-visible,
+.discussion-view-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+@media (max-width: 720px) {
+  .discussion-terminal-body { flex-basis: 100%; }
+}

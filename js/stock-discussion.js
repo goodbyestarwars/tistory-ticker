@@ -10,19 +10,6 @@
   var entries = Array.prototype.slice.call(root.querySelectorAll('[data-discussion-entry]'));
   var buttons = Array.prototype.slice.call(root.querySelectorAll('[data-discussion-stock]'));
   var names = { '005930': '삼성전자', '000660': 'SK하이닉스', '042660': '한화오션' };
-  var US_API_BASE = 'https://goodbyestar.cloud';
-  var US_DISPLAY_NAMES = {
-    AAPL: '애플', MSFT: '마이크로소프트', NVDA: '엔비디아', AMZN: '아마존', GOOGL: '알파벳 A', GOOG: '알파벳 C',
-    TSLA: '테슬라', META: '메타', AMD: 'AMD', NFLX: '넷플릭스', QQQ: '인베스코 QQQ ETF', LLY: '일라이 릴리',
-    SKHY: 'SK하이닉스(ADR)', SPCX: '스페이스X', MRVL: '마벨 테크놀로지', RGTI: '리게티 컴퓨팅', RKLB: '로켓 랩',
-    AVGO: '브로드컴', ORCL: '오라클', MU: '마이크론 테크놀로지', INTC: '인텔', CBRS: '세레브라스 시스템즈',
-    PLTR: '팔란티어', SNDK: '샌디스크', DELL: '델 테크놀로지스', IONQ: '아이온큐', ASTS: 'AST 스페이스모바일',
-    MSTR: '스트래티지', CRWD: '크라우드스트라이크', STX: '씨게이트 테크놀로지'
-  };
-  function localizedUsName(code, fallback) {
-    var symbol = String(code || '').replace(/^US:/i, '').toUpperCase();
-    return US_DISPLAY_NAMES[symbol] || fallback || symbol;
-  }
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc nasdaq 나스닥' },
     { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation nasdaq 나스닥' },
@@ -66,7 +53,6 @@
   }
   inputWrap.appendChild(suggestionBox);
   var suggestionItems = [];
-  var suggestionRequestId = 0;
 
   function normalize(value) {
     return String(value || '').trim().replace(/\s+/g, ' ');
@@ -105,35 +91,15 @@
   }
   function findUsSuggestions(value) {
     var query = normalize(value).toLowerCase();
-    var localRows = LOCAL_US_SYMBOLS.filter(function (row) {
+    var rows = LOCAL_US_SYMBOLS.filter(function (row) {
       return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(query) !== -1;
     }).map(function (row) {
-      return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+      return { code: 'US:' + row.symbol, name: row.name };
     });
-    if (!localRows.length && /^[a-z][a-z0-9.\-^=]{0,11}$/i.test(query)) {
-      localRows.push({ code: 'US:' + query.toUpperCase(), name: query.toUpperCase(), market: 'us' });
+    if (!rows.length && /^[a-z][a-z0-9.\-^=]{0,11}$/i.test(query)) {
+      rows.push({ code: 'US:' + query.toUpperCase(), name: query.toUpperCase() });
     }
-    if (localRows.length) return Promise.resolve(localRows.slice(0, 8));
-    var request = typeof window.fetch === 'function'
-      ? window.fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(value) + '&limit=8')
-      : Promise.reject(new Error('fetch unavailable'));
-    return request.then(function (response) {
-      if (!response.ok) throw new Error('US stock search failed');
-      return response.json();
-    }).then(function (body) {
-      var remoteRows = (body && body.data ? body.data : []).map(function (row) {
-        var symbol = String(row.symbol || row.code || '').replace(/^US:/i, '').toUpperCase();
-        return { code: 'US:' + symbol, name: localizedUsName('US:' + symbol, row.name || symbol), market: 'us' };
-      }).filter(function (row) { return row.code !== 'US:'; });
-      var seen = {};
-      return localRows.concat(remoteRows).filter(function (row) {
-        if (seen[row.code]) return false;
-        seen[row.code] = true;
-        return true;
-      }).slice(0, 8);
-    }).catch(function () {
-      return localRows.slice(0, 8);
-    });
+    return rows;
   }
   // 2026-08-21 코드 감사: 자동완성 항목의 종목명·코드가 이스케이프 없이 innerHTML에
   // 그대로 삽입되고 있었다(로컬 목록은 신뢰할 수 있지만, findUsSuggestions가 /us-search
@@ -144,41 +110,6 @@
   function closeSuggestions() {
     suggestionBox.classList.remove('is-open');
     suggestionItems = [];
-  }
-  function showSuggestions(value) {
-    var results = findSuggestions(value);
-    suggestionBox.innerHTML = '';
-    suggestionItems = results;
-    results.forEach(function (item, index) {
-      var li = document.createElement('li');
-      li.className = 'discussion-stock-suggest-row';
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'discussion-stock-suggest-select';
-      button.setAttribute('role', 'option');
-      button.setAttribute('data-suggestion-index', index);
-      button.innerHTML = '<img class="discussion-stock-suggest-icon" data-icon-code="' + escapeHtml(item.code) + '" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(item.code) + '.svg" alt="" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">' + '<span class="name">' + escapeHtml(item.name) + '</span><span class="code">' + escapeHtml(item.code) + '</span>';
-      button.addEventListener('click', function () {
-        input.value = item.name;
-        applyFilter(item.code, true);
-        closeSuggestions();
-        input.focus();
-      });
-      var favorite = document.createElement('button');
-      favorite.type = 'button';
-      favorite.className = 'discussion-stock-suggest-favorite';
-      favorite.setAttribute('aria-label', item.name + ' 관심종목');
-      favorite.textContent = '☆';
-      favorite.addEventListener('click', function (event) {
-        event.stopPropagation();
-        favorite.classList.toggle('is-active');
-        favorite.textContent = favorite.classList.contains('is-active') ? '★' : '☆';
-      });
-      li.appendChild(button);
-      li.appendChild(favorite);
-      suggestionBox.appendChild(li);
-    });
-    suggestionBox.classList.toggle('is-open', results.length > 0);
   }
   function renderSuggestionResults(results) {
     suggestionBox.innerHTML = '';
@@ -217,21 +148,15 @@
     suggestionBox.classList.toggle('is-open', results.length > 0);
   }
 
-  showSuggestions = function (value) {
-    var requestId = ++suggestionRequestId;
-    var localResults = findLocalSuggestions(value);
-    renderSuggestionResults(localResults);
-    findUsSuggestions(value).then(function (usResults) {
-      if (requestId !== suggestionRequestId) return;
-      var merged = usResults.concat(localResults);
-      var seen = {};
-      renderSuggestionResults(merged.filter(function (item) {
-        if (seen[item.code]) return false;
-        seen[item.code] = true;
-        return true;
-      }).slice(0, 8));
-    });
-  };
+  function showSuggestions(value) {
+    var seen = new Set();
+    var merged = findUsSuggestions(value).concat(findLocalSuggestions(value));
+    renderSuggestionResults(merged.filter(function (item) {
+      if (seen.has(item.code)) return false;
+      seen.add(item.code);
+      return true;
+    }).slice(0, 8));
+  }
 
   function resolve(value) {
     value = normalize(value);
@@ -248,12 +173,104 @@
     for (var code in names) if (names[code] === value) return code;
     return value;
   }
+  var tagPattern = /\[(?:\d{6}|US:[A-Z][A-Z0-9.\-^=]{0,11})\]\s*/g;
+  var activeCode = '';
+  var renderClassic = function () {};
+
+  function addText(parent, tag, className, text) {
+    var element = document.createElement(tag);
+    element.className = className;
+    element.textContent = text;
+    parent.appendChild(element);
+    return element;
+  }
+
+  function messageText(node) {
+    if (node.nodeType === 3) return node.data;
+    if (node.nodeName === 'BR') return '\n';
+    if (node.nodeType !== 1 || node.hidden ||
+        /^(SCRIPT|STYLE|TEMPLATE|NOSCRIPT)$/.test(node.nodeName)) return '';
+    return Array.from(node.childNodes).map(messageText).join('');
+  }
+
+  function setupClassic() {
+    var form = root.querySelector('.discussion-native-guestbook');
+    var nativeHeading = root.querySelector('.discussion-list-heading');
+    var nativeList = root.querySelector('.discussion-list');
+    if (!form || !nativeHeading || new URLSearchParams(location.search).get('view') === 'native') return;
+
+    var panel = document.createElement('section');
+    panel.className = 'discussion-terminal';
+    panel.setAttribute('aria-label', '클래식 종목 채팅');
+    var toolbar = addText(panel, 'div', 'discussion-terminal-bar', '');
+    addText(toolbar, 'strong', '', '9PAY PC통신  ▸  종목 채팅');
+    var refresh = addText(toolbar, 'button', '', '[ 새로고침 ]');
+    refresh.type = 'button';
+    refresh.addEventListener('click', function () {
+      var textarea = form.querySelector('textarea');
+      if (!textarea || !textarea.value.trim() || window.confirm('작성 중인 글을 지우고 새로고침할까요?')) {
+        location.reload();
+      }
+    });
+    var status = addText(panel, 'p', 'discussion-terminal-status', '');
+    status.setAttribute('role', 'status');
+    var log = addText(panel, 'ol', 'discussion-terminal-log', '');
+    log.setAttribute('aria-label', '공개 채팅 목록, 최신 글부터');
+    log.tabIndex = 0;
+    addText(panel, 'p', 'discussion-terminal-prompt', '입력 > 아래 방명록 양식에서 의견 등록');
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'discussion-view-toggle';
+
+    var messages = entries.filter(function (entry) {
+      return entry.classList.contains('guest_general') &&
+        !entry.hidden && !entry.matches('.guest_secret, .secret, [data-secret="true"]');
+    }).map(function (entry) {
+      return {
+        entry: entry,
+        date: entry.querySelector('.discussion-item-head .date'),
+        name: entry.querySelector('.discussion-item-head .name'),
+        body: entry.querySelector('.discussion-item-body')
+      };
+    }).filter(function (message) { return message.date && message.name && message.body; });
+
+    renderClassic = function () {
+      var visible = messages.filter(function (message) { return !message.entry.hidden; });
+      status.textContent = current.textContent + ' · 공개 원글 ' + visible.length + '개 · 최신순';
+      log.replaceChildren();
+      log.scrollTop = 0;
+      if (!visible.length) addText(log, 'li', '', '표시할 공개 의견이 없습니다.');
+      visible.forEach(function (message) {
+        var line = addText(log, 'li', '', '');
+        addText(line, 'span', 'discussion-terminal-date', message.date.textContent.trim());
+        addText(line, 'bdi', 'discussion-terminal-name', message.name.textContent.trim());
+        addText(line, 'span', 'discussion-terminal-body', messageText(message.body).trim());
+      });
+    };
+
+    function showClassic(enabled) {
+      panel.hidden = !enabled;
+      nativeHeading.hidden = enabled;
+      if (nativeList) nativeList.hidden = enabled;
+      toggle.textContent = enabled ? '[ 기본 방명록 ]' : '[ 클래식 채팅 ]';
+    }
+
+    toggle.addEventListener('click', function () { showClassic(panel.hidden); });
+    form.before(toggle, panel);
+    showClassic(true);
+  }
+
   function applyFilter(value, updateUrl) {
     var code = resolve(value);
+    activeCode = code;
     var label = code ? (names[code] ? names[code] + ' · ' + code : code) : '전체 종목';
     current.textContent = label;
     input.value = code && names[code] ? names[code] : code;
-    buttons.forEach(function (button) { button.classList.toggle('is-active', button.getAttribute('data-discussion-stock') === (code || 'all')); });
+    buttons.forEach(function (button) {
+      var selected = button.getAttribute('data-discussion-stock') === (code || 'all');
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
     var shown = 0;
     entries.forEach(function (entry) {
       var text = entry.getAttribute('data-discussion-search') || entry.textContent || '';
@@ -262,11 +279,14 @@
       entry.hidden = !match;
       if (match) shown++;
       entry.querySelectorAll('.discussion-item-body').forEach(function (body) {
-        if (!body.getAttribute('data-discussion-original')) body.setAttribute('data-discussion-original', body.innerHTML);
-        body.innerHTML = body.getAttribute('data-discussion-original').replace(/\[(?:\d{6}|US:[A-Z][A-Z0-9.\-^=]{0,11})\]\s*/g, '');
+        var walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          walker.currentNode.data = walker.currentNode.data.replace(tagPattern, '');
+        }
       });
     });
     count.textContent = code ? (shown ? shown + '개 의견' : '아직 의견이 없습니다') : (entries.length + '개 의견');
+    renderClassic();
     if (updateUrl && window.history && history.replaceState) {
       var url = new URL(location.href);
       if (code) url.searchParams.set('stock', code); else url.searchParams.delete('stock');
@@ -281,7 +301,7 @@
   });
   input.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') return closeSuggestions();
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.isComposing && event.keyCode !== 229) {
       event.preventDefault();
       if (suggestionItems.length) {
         names[suggestionItems[0].code] = suggestionItems[0].name;
@@ -296,12 +316,13 @@
   root.addEventListener('click', function (event) {
     var submit = event.target.closest && event.target.closest('.discussion-write input[type=submit]');
     if (!submit) return;
-    var code = resolve(input.value);
+    var code = activeCode;
     if (!code) return;
     var textarea = root.querySelector('.discussion-write textarea');
-    if (textarea && textarea.value.indexOf('[' + code + ']') !== 0) textarea.value = '[' + code + '] ' + textarea.value;
+    if (textarea && textarea.value.trim() && textarea.value.indexOf('[' + code + ']') !== 0) textarea.value = '[' + code + '] ' + textarea.value;
   }, true);
 
   var initial = new URLSearchParams(location.search).get('stock') || '';
+  setupClassic();
   applyFilter(initial, false);
 }());
