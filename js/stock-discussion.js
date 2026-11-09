@@ -272,7 +272,7 @@
     });
     panel.append(stockbar, room);
     var log = addText(panel, 'ol', 'discussion-terminal-log', '');
-    log.setAttribute('aria-label', '공개 채팅 목록, 최신 글부터');
+    log.setAttribute('aria-label', '공개 채팅 목록, 오래된 글부터');
     log.tabIndex = 0;
     form.querySelector('.discussion-write-note')?.remove();
     var textarea = form.querySelector('textarea');
@@ -315,14 +315,14 @@
     renderClassic = function () {
       var visible = messages.filter(function (message) { return !message.entry.hidden; });
       log.replaceChildren();
-      log.scrollTop = 0;
       if (!visible.length) addText(log, 'li', '', '표시할 공개 의견이 없습니다.');
-      visible.forEach(function (message) {
+      visible.reverse().forEach(function (message) {
         var line = addText(log, 'li', '', '');
         addText(line, 'span', 'discussion-terminal-date', Array.from(message.date.childNodes).filter(function (node) { return node.nodeType === 3; }).map(messageText).join('').trim());
         addText(line, 'bdi', 'discussion-terminal-name', message.name.textContent.trim());
         addText(line, 'span', 'discussion-terminal-body', messageText(message.body).trim());
       });
+      log.scrollTop = log.scrollHeight;
     };
 
     form.before(panel);

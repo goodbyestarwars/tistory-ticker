@@ -32,6 +32,10 @@ async function verify() {
               <span class="name">일반 사용자</span><span class="date">2026.11.09 11:20</span></div>
               <p class="discussion-item-body">일반방 글 [005930] 언급</p>
             </li>
+            <li data-discussion-entry class="guest_general"><div class="discussion-item-head">
+              <span class="name">이전 사용자</span><span class="date">2026.11.08 09:00</span></div>
+              <p class="discussion-item-body">이전 글</p>
+            </li>
             <li data-discussion-entry class="guest_secret"><p>비밀 본문</p></li>
           </ol></div>
         </main>` });
@@ -46,7 +50,9 @@ async function verify() {
     const terminal = page.locator('.discussion-terminal');
     const log = terminal.locator('ol');
     assert.equal(await terminal.locator('.discussion-terminal-status').count(), 0);
-    assert.equal(await log.locator('li').count(), 1);
+    assert.equal(await log.locator('li').count(), 2);
+    assert.match(await log.locator('li').first().innerText(), /이전 글/);
+    assert.match(await log.locator('li').last().innerText(), /일반방 글/);
     assert.match(await log.innerText(), /일반방 글/);
     assert.doesNotMatch(await log.innerText(), /첫줄/);
     await page.getByRole('textbox', { name: '메시지' }).fill('일반방 테스트');
