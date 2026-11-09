@@ -81,6 +81,19 @@ function fail() {
   stage.hidden = true;
   close.focus();
 }
+function updateMarket() {
+  const selected = new URLSearchParams(location.search).get('stock')?.toUpperCase() || '';
+  const code = /^(?:\d{6}|US:[A-Z][A-Z0-9.\-^=]{0,11})$/.test(selected) ? selected : '';
+  const selectedLabel = root.querySelector('[data-discussion-current]')?.textContent?.trim();
+  const name = code ? selectedLabel?.split(' · ')[0] || code : '코스피';
+  const market = stage.querySelector<HTMLAnchorElement>('.square-market')!;
+  const chart = new URL('/page/stock-search',location.origin);
+  chart.searchParams.set('tool','independent-chart');
+  chart.searchParams.set('code',code || 'INDEX:KOSPI');
+  chart.searchParams.set('name',name);
+  market.href = chart.href;
+  market.querySelector('strong')!.textContent = name;
+}
 function sync() {
   if (location.hash !== '#metaverse') {
     if (dialog.open) { stop(); dialog.close(); }
@@ -89,6 +102,7 @@ function sync() {
   if (dialog.open) return;
   stage.hidden = false;
   status.textContent = '';
+  updateMarket();
   dialog.showModal();
   update();
   const list = root.querySelector('.discussion-list');

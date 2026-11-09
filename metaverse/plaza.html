@@ -4,6 +4,7 @@
   <p class="square-status" role="status"></p>
   <div class="square-layout">
     <div class="square-stage">
+      <a class="square-market" target="_blank" rel="noopener"><span>시장 전광판</span><strong></strong><small>차트 열기 ↗</small></a>
       <div class="square-author-labels" aria-hidden="true"></div>
       <div class="square-touch" aria-label="이동">
         <button type="button" data-move="left" aria-label="왼쪽">←</button>
@@ -22,22 +23,28 @@
   </div>
 </dialog>
 <style>
-#investor-square{position:fixed;inset:0;margin:auto;width:min(1160px,94vw);max-height:88dvh;padding:16px;border:1px solid currentColor;border-radius:12px;background:var(--ui-surface,Canvas);color:CanvasText;color-scheme:inherit}
+#investor-square{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(1680px,98vw);height:94dvh;max-width:none;max-height:none;padding:clamp(12px,2vw,24px);border:1px solid #8795aa55;border-radius:20px;box-shadow:0 24px 90px #10192b66;background:var(--ui-surface,Canvas);color:CanvasText;color-scheme:inherit}
 #investor-square::backdrop{background:rgb(0 0 0/.55)}
 #investor-square header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 #investor-square h2,#investor-square h3{font:700 var(--ui-section-size,17px)/1.4 var(--font-serif,serif);margin:0}
 #investor-square button,#investor-square-enter{font:inherit;color:inherit;background:transparent;border:1px solid currentColor;border-radius:6px;padding:5px 9px;cursor:pointer}
-#investor-square .square-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
-#investor-square .square-stage{position:relative;height:min(66dvh,580px);border-radius:10px;overflow:hidden;touch-action:none}
+#investor-square .square-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,24%);gap:16px}
+#investor-square .square-stage{position:relative;height:calc(94dvh - 115px);border-radius:10px;overflow:hidden;touch-action:none}
 #investor-square canvas{display:block;width:100%;height:100%;touch-action:none}
-#investor-square .square-board{max-height:min(56dvh,480px);overflow:auto;overflow-wrap:anywhere}
+#investor-square .square-board{max-height:calc(94dvh - 115px);overflow:auto;overflow-wrap:anywhere}
 #investor-square .square-posts article{border-bottom:1px solid currentColor;padding:8px 0}
 #investor-square .square-posts p{white-space:pre-wrap;margin:4px 0}
 #investor-square .square-touch{display:none;position:absolute;bottom:8px;left:8px;gap:4px;color:#fff;background:#293644;padding:4px;border-radius:6px}
 @media(pointer:coarse){#investor-square .square-touch{display:flex}}
-@media(max-width:720px){#investor-square .square-layout{grid-template-columns:1fr}#investor-square .square-stage{height:38dvh}#investor-square .square-board{max-height:none}}
+@media(max-width:720px){#investor-square .square-layout{grid-template-columns:1fr}#investor-square .square-stage{height:57dvh}#investor-square .square-board{max-height:none}}
 #investor-square .square-bubble{position:absolute;transform:translate(-50%,-100%);max-width:min(260px,72%);width:max-content;margin:0;padding:8px 12px;border-radius:12px;background:#fff7e8;color:#27253b;box-shadow:0 3px 15px #15192c55;overflow-wrap:anywhere;pointer-events:none}
 #investor-square .square-bubble.is-selected{z-index:1}
 #investor-square .square-author{font-weight:700;border:0;padding:0;text-align:left;text-decoration:underline;text-underline-offset:3px}
 #investor-square .square-bubble::after{content:"";position:absolute;top:100%;left:calc(50% - 5px);border:5px solid transparent;border-top-color:#fff7e8}
+#investor-square header{margin-bottom:12px}
+#investor-square .square-status:empty{display:none}
+#investor-square .square-board{box-sizing:border-box;padding:14px;border:1px solid #8795aa55;border-radius:12px}
+#investor-square .square-market{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:2;display:grid;gap:3px;min-width:min(220px,70%);padding:8px 15px;border:1px solid #d9ad6b88;border-radius:10px;background:#192538;color:#fff0cf;text-align:center;text-decoration:none;box-shadow:0 8px 30px #10192b55}
+#investor-square .square-market span,#investor-square .square-market small{font-size:.78em}
+#investor-square .square-market:focus-visible{outline:2px solid #ffe1a0}
 </style>
