@@ -86,7 +86,7 @@
 
 ## 방명록 3D 광장
 
-- `metaverse/`의 TypeScript·Vite로 `skin.html`의 INVESTOR SQUARE 블록을 생성한다. 스킨에 포함해 추가 자원 요청을 피하고 Three.js는 입장 시 초기화한다. 방명록 DOM의 확인된 공개 원글만 읽으며 폴링·별도 저장은 금지한다. 운영 반영과 롤백은 `docs/SKIN_HTML_PENDING.md`를 따른다.
+- `metaverse/`의 TypeScript·Vite는 기존 방명록 JS·CSS에 광장을 번들링한다. Three.js는 입장 시 초기화하며, 확인된 공개 원글만 읽는다. 별도 자원 요청·폴링·저장과 스킨 수동 적용 없이 Pages로 배포한다.
 
 ## 배포·기록
 

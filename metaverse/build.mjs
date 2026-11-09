@@ -7,21 +7,32 @@ const result = await build({
 });
 const bundle = result[0].output.find(item => item.type === 'chunk').code;
 const markup = await readFile(new URL('./plaza.html',import.meta.url),'utf8');
-const snippet = markup + '<script>\n(() => {\n' +
-  'const enter = document.getElementById("investor-square-enter");\n' +
-  'function initialize(){\n' +
-  'window.removeEventListener("hashchange", direct);\n' +
-  bundle.replace(/<\/script/gi,'<\\/script') + '\n}\n' +
-  'function direct(){if(location.hash==="#metaverse") initialize();}\n' +
-  'if(typeof HTMLDialogElement==="undefined" || !HTMLDialogElement.prototype.showModal) return;\n' +
-  'enter.hidden=false; enter.onclick=()=>{location.hash="metaverse"; initialize();};\n' +
-  'window.addEventListener("hashchange", direct); direct();\n' +
-  '})();\n</script>\n';
-const skinPath = process.argv[2];
-const marker = '          <div class="discussion-stockbar">';
-const begin = '<!-- BEGIN INVESTOR SQUARE -->';
-const end = '<!-- END INVESTOR SQUARE -->';
-const skin = (await readFile(skinPath,'utf8')).replace(/\uFEFF/g,'');
-const original = skin.replace(/<!-- BEGIN INVESTOR SQUARE -->[\s\S]*?<!-- END INVESTOR SQUARE -->\r?\n/g,'');
-if (original.split(marker).length !== 2) throw new Error('Expected exactly one discussion toolbar');
-await writeFile(skinPath, original.replace(marker, () => begin+'\n'+snippet+end+'\n'+marker));
+
+const [html, css] = markup.split('<style>');
+const jsPath = new URL('../js/stock-discussion.js', import.meta.url);
+const cssPath = new URL('../css/stock-discussion.css', import.meta.url);
+const loader = [
+  '(() => {',
+  'const toolbar = document.querySelector("[data-market-discussion] .discussion-stockbar");',
+  'if (!toolbar || document.getElementById("investor-square-enter")) return;',
+  'if (typeof HTMLDialogElement === "undefined" || !HTMLDialogElement.prototype.showModal) return;',
+  'toolbar.insertAdjacentHTML("beforebegin", ' + JSON.stringify(html) + ');',
+  'const enter = document.getElementById("investor-square-enter");',
+  'function initialize() {',
+  'window.removeEventListener("hashchange", direct);',
+  bundle,
+  '}',
+  'function direct() { if (location.hash === "#metaverse") initialize(); }',
+  'enter.hidden = false;',
+  'enter.onclick = () => { location.hash = "metaverse"; initialize(); };',
+  'window.addEventListener("hashchange", direct);',
+  'direct();',
+  '})();',
+].join('\n');
+
+for (const [path, code] of [[jsPath, loader], [cssPath, css.split('</style>')[0].trim()]]) {
+  const start = '/* BEGIN INVESTOR SQUARE */';
+  const end = '/* END INVESTOR SQUARE */';
+  const original = (await readFile(path, 'utf8')).split(start)[0].trimEnd();
+  await writeFile(path, [original, start, code, end, ''].join('\n'));
+}

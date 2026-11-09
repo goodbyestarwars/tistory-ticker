@@ -1,8 +1,3 @@
-## 2026-11-09 방명록 3D 광장
-
-- 티스토리 스킨 편집기에서 운영 HTML을 백업한 후, 저장소 `skin.html`의 BEGIN/END INVESTOR SQUARE 블록을 기존 discussion-stockbar 바로 앞에 삽입한다. 다른 보류 항목과 분리하여 적용한다.
-- 롤백은 삽입 블록 제거 또는 백업 복원이다. `metaverse/`에서 `npm ci` 후 `npm run build`로 블록을 다시 생성한다.
-- 적용 전 관리자/작성자 권한의 비밀글 제외를 확인하고, 적용 후 PC Chrome·모바일 Chrome/Safari에서 토론방 필터와 광장 진입을 검증한다.
 
 # skin.html 미반영 항목
 
