@@ -447,7 +447,7 @@
     var parsed = number(value);
     if (parsed == null) return '-';
     return currency === 'USD'
-      ? '$' + parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+      ? '$' + parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : global.NineUI.number(parsed, {round:true}) + '원';
   }
 
