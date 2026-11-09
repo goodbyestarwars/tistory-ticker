@@ -2638,6 +2638,7 @@ def investor_flow_batch(x_api_key: str = Header(default=None)):
         raise HTTPException(status_code=503, detail='배치 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
     with open(BATCH_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
+    investor_flow.normalize_cached_credit(cached)
     return envelope(cached)
 
 

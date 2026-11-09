@@ -302,8 +302,7 @@ def downside_series(credit_rows, loan_rows, short_rows, invsr_rows, days=SERIES_
 
     return {
         'days': days,
-        'credit': [dict(_credit_series_item(r), date=_ymd(r.get('dt')))
-                   for r in credit_rows[:days] if _valid_credit_row(r)],
+        'credit': pick((r for r in credit_rows if _valid_credit_row(r)), _credit_series_item),
         'loan': pick(loan_rows, lambda r: {
             'balance': _num_or_none(r.get('rmnd')),
             'change': _num_or_none(r.get('dbrt_trde_irds')),
@@ -377,6 +376,20 @@ def _fetch_pension_holdings(name):
             'official_holding': official_future.result(),
             'large_holding_report': large_future.result(),
         }
+
+
+def normalize_cached_credit(snapshot):
+    """Hide ambiguous zero balances in legacy batches until the regular refresh."""
+    for entry in snapshot.get('data', {}).values():
+        credit = entry.get('credit')
+        if not credit or 'as_of' in credit:
+            continue
+        if credit.get('balance_qty') in (None, 0):
+            credit['balance_qty'] = None
+            credit['balance_change_pct'] = None
+        signal = credit.get('signal')
+        if signal and signal.get('balance_change_pct') == -100:
+            credit['signal'] = None
 
 
 def fetch_stock(token, code, name, include_series=False):
