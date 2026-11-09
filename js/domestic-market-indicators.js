@@ -8,13 +8,6 @@
   // 안 이 파일에서만 쓰인다.
   var CHART_API_URL = 'https://goodbyestar.cloud/domestic-market-indicators/chart';
   var WS_URL = 'wss://goodbyestar.cloud/ws/market-indicators?symbols=KOSPI,KOSDAQ';
-  var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-  // 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목·아이콘이 "참고의견"/"종합 요약"/
-  // "요약" 등으로 제각각이라는 지적 - js/kospi-futures.js·js/overnight-market.js가 이미 쓰는
-  // "참고의견" + 이 말풍선 아이콘으로 통일한다(둘과 완전히 동일한 SVG).
-  var DMI_AI_ICON = '<svg class="dmi-ai-icon" width="15" height="15" viewBox="0 0 24 24"'
-    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
-    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
   var CHART_HEIGHT = 230;
@@ -183,16 +176,6 @@
       setLiveStatus('연결 재시도');
       scheduleReconnect();
     };
-  }
-
-  // 2026-08-14 요청: 증시자금 카드 위 "종합 요약" - js/kospi-futures.js의 참고의견(AI 해설)과
-  // 동일한 패턴으로 GAS(gas/ticker-proxy.gs의 getDomesticFundsAnalysis, ?action=
-  // domesticFundsAnalysis)가 Groq로 생성한 문장을 그대로 받아온다. GAS가 이 화면과 같은
-  // VM 응답을 유일한 소스로 프롬프트를 만들어서 화면 숫자와 AI 문장이 어긋나지 않는다.
-  function fetchFundsAnalysis() {
-    return window.NineHttp.json(GAS_TICKER_URL + '?action=domesticFundsAnalysis').then(function (data) {
-      return data && data.analysis;
-    });
   }
 
   function loadCharts() {
@@ -1134,7 +1117,7 @@
       + '<div class="mi-sub-cap">표에서 지표를 고르면 아래 추이 그래프와 기간 통계가 그 지표로 바뀝니다.</div>'
       + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div></div>'
       + '<div class="mi-sub dmi-balance-sub"><div class="dmi-balance-host"><div class="dmi-invflow-loading">불러오는 중...</div></div>'
-      + '<div class="dmi-ai" id="dmiFundsAi" hidden></div></div>'
+      + '</div>'
       + '</div></section>'
       + '</div>';
     var marketStatusNode = root.querySelector('[data-dmi-market-status]');
@@ -1157,12 +1140,6 @@
       }
     });
     global.addEventListener('beforeunload', function () { closeSocket(false); });
-    var fundsAiBox = root.querySelector('#dmiFundsAi');
-    fetchFundsAnalysis().then(function (text) {
-      if (!text || !fundsAiBox) return;
-      fundsAiBox.hidden = false;
-      fundsAiBox.innerHTML = '<div class="dmi-ai-title">' + DMI_AI_ICON + '참고의견</div><p>' + escapeHtml(text) + '</p>';
-    }).catch(function () { /* AI 요약 실패는 조용히 무시 - 카드 자체는 정상 표시 */ });
     root.addEventListener('click', function (event) {
       var spotCollapseButton = event.target.closest ? event.target.closest('.dmi-spot-collapse') : null;
       if (spotCollapseButton) {
