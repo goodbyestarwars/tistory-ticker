@@ -1,3 +1,7 @@
+**2026-11-09 방명록 3D 광장 MVP**
+
+Three.js 광장과 기존 방명록 공개 원글 패널을 스킨에 포함. TypeScript 검사와 운영 HTML 기반 Edge PC·모바일 에뮬레이션 검증. 브라우저 기존 파비콘 요청을 제외한 광장 진입 추가 요청 0건. 티스토리 관리자 적용과 실기기 검증 대기.
+
 **2026-11-09 미국 52주 최고·최저 미표시 수정**
 
 요청: 미국 종목판 52주 최고가·최저가가 또 안 나옴. 원인: 11/02(fe357dc9)부터 프리·애프터장에는 `/us-quotes`가 Yahoo를 먼저 쓰는데, `_yahoo_quote`가 넘기는 `week52_high/low` 이름을 공통 `_normalize_quote`가 읽지 않아 늘 null(실측 NVDA·SOXL·TSLA, Yahoo 메타에는 243.37/164.27 존재). 변경: `scripts/cloud-vm/us_stocks.py` 52주 키 목록에 `week52_high/low` 추가, 테스트 1건. 검증: `test/test_us_stocks.py` 새 테스트 통과, 기존 실패 3건(시세 경로 3종, 현재 장 상태 의존)은 변경 전과 동일.
