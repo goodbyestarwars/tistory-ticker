@@ -178,8 +178,15 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 }
 @container (max-width: 460px) {
   .discussion-terminal-screen {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
+    grid-template-columns: max-content minmax(0, max-content);
+    gap: .65rem;
+    padding-inline: .75rem;
+  }
+  .discussion-terminal-welcome .discussion-terminal-rose {
+    font-size: .78em;
+  }
+  .discussion-terminal-poem {
+    overflow-wrap: anywhere;
   }
 }
 .discussion-terminal-bar {
@@ -367,4 +374,28 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   width: 0;
   height: 32px;
   padding-inline: .3em;
+}
+
+@media (max-width: 720px) {
+  .discussion-terminal-welcome { padding-block-start: 1rem; }
+  .discussion-terminal-etiquette { margin-block-start: .85rem; }
+  .market-discussion.discussion-classic .discussion-stock-input-wrap { flex: 1 1 calc(100% - 5rem); }
+  .market-discussion.discussion-classic .discussion-stockbar input,
+  .discussion-composer-input textarea,
+  .discussion-composer .discussion-guest-fields input { font-size: 16px; }
+  .market-discussion.discussion-classic .discussion-stock-btn,
+  .discussion-terminal button { min-height: 40px; }
+  .discussion-terminal-log {
+    min-height: clamp(9rem, 30svh, 15rem);
+    max-height: max(9rem, 45svh);
+  }
+  .discussion-composer { flex-wrap: wrap; }
+  .discussion-composer-input { flex-basis: 100%; }
+  .discussion-composer .discussion-guest-fields { margin-inline-start: auto; width: min(100%, 15rem); }
+  .discussion-composer .discussion-guest-fields input { height: 36px; }
+  .market-discussion.discussion-classic .discussion-write-actions input[type=submit] {
+    align-self: flex-end;
+    width: auto;
+    min-height: 44px;
+  }
 }
