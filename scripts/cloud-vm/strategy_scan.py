@@ -1446,20 +1446,18 @@ def build_nps_match(stock, daily, sector, info):
     }
 
 
-def scan_nps_holdings(universe, wics_map, conn, theme_codes=None, daily_cache=None):
+def scan_nps_holdings(universe, wics_map, conn, daily_cache=None):
     """국민연금 보유종목 - public_data.fetch_nps_holdings_by_code()가 이름 매칭까지 끝낸
     {code: info}를 한 번만 받아, 그 종목들에만 가격·섹터를 붙인다. 다른 전략과 달리 별도
     시그널 판정이 없다(국민연금이 갖고 있다는 사실 자체가 표시 대상) - 전종목을 순회하며
     daily_prices를 다시 계산하지 않고 holdings에 있는 종목만 본다."""
-    theme_codes = theme_codes or set()
     holdings = public_data.fetch_nps_holdings_by_code(universe)
+    pension_by_code = dict(conn.execute('SELECT code, pension_json FROM investor_summary'))
     matches = []
     for stock in universe:
         code = stock['code']
         info = holdings.get(code)
         if not info:
-            continue
-        if code in theme_codes:
             continue
         if pattern_detect.is_etf_name(stock.get('name')):
             continue
@@ -1469,7 +1467,13 @@ def scan_nps_holdings(universe, wics_map, conn, theme_codes=None, daily_cache=No
         daily = _load_daily(conn, code, daily_cache)
         if not daily:
             continue
-        matches.append(build_nps_match(stock, daily, wics['sector'], info))
+        match = build_nps_match(stock, daily, wics['sector'], info)
+        pension = json.loads(pension_by_code.get(code) or 'null') or {}
+        streak = pension.get('streak') or {}
+        if pension.get('as_of') and streak.get('days') is not None:
+            match['pensionFlowAsOf'] = pension['as_of']
+            match['pensionBuyDays'] = streak['days'] if streak.get('direction') == 'buy' else 0
+        matches.append(match)
 
     matches.sort(key=lambda item: -(item.get('holdingPct') or 0))
     sectors = {}
@@ -1547,7 +1551,7 @@ def main():
     report_progress(2, 6, 'ETF·국민연금 계산', '단계')
     etf_return_sectors, etf_scanned = ({}, 0) if non_etf_weekly else scan_etf_returns(
         universe, conn, daily_cache=daily_cache)
-    nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, theme_codes=theme_codes, daily_cache=daily_cache)
+    nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, daily_cache=daily_cache)
     report_progress(3, 6, '목표주가 전략 계산', '단계')
     target_price_sectors, target_price_scanned = scan_target_price_gap(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,

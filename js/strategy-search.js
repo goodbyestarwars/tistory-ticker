@@ -61,6 +61,7 @@
     { min: 10, max: null, label: '10% 이상' },
   ];
   var activeNpsRangeIndex = 2; // 기본값: 5% ~ 8%(예전 기본값 "5% 이상"과 가장 근접한 구간)
+  var npsSortByStreak = false;
   var NPS_RENDER_CAP = 300;
   function stockIconHtml(code, cls) {
     if (!code) return '';
@@ -410,6 +411,12 @@
         if (dividendSelect.getAttribute('data-dividend-filter') === 'market') activeDividendMarket = dividendSelect.value;
         else activeDividendSort = dividendSelect.value;
         renderCards(container);
+        return;
+      }
+      if (event.target.matches('.ss-nps-sort-select')) {
+        npsSortByStreak = event.target.value === 'streak';
+        renderCards(container);
+        container.querySelector('.ss-nps-sort-select').focus();
         return;
       }
       var npsSelect = event.target.closest ? event.target.closest('.ss-nps-filter-select') : null;
@@ -823,6 +830,8 @@
   // 표로 그린다. 클릭 시 이동은 wireContainer()의 기본 분기(종목분석 이동)를 그대로 쓴다 -
   // dividend/etfReturn처럼 별도 상세 모달이 필요할 만큼 복잡한 데이터가 아니다.
   function npsTableRow(item, index) {
+    var streak = item.pensionBuyDays == null ? '—'
+      : fmt(item.pensionBuyDays) + '일 · ' + escapeHtml(item.pensionFlowAsOf);
     var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
     return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
@@ -833,6 +842,7 @@
       + priceCellHtml(item)
       + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
       + '<td class="ss-col-signal" data-label="보유 지분율">' + fmtPctExact(item.holdingPct) + '</td>'
+      + '<td data-label="연기금 등 연속 순매수">' + streak + '</td>'
       + '<td class="ss-col-fundamentals" data-label="평가액">' + (item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원') + '</td>'
       + '</tr>';
   }
@@ -845,7 +855,10 @@
     // 원래는 .ss-hint(빈 상태 안내용, 위아래 28px 패딩) 재사용이라 셀렉트 밑에 큰 공백이
     // 뜨고 안내가 한참 아래로 처졌었다(사용자 리포트: "위로 더 올려").
     return '<div class="ss-nps-filter"><label>보유 지분율 <select class="ss-nps-filter-select" data-nps-filter="minPct">'
-      + options + '</select></label>' + (metaText ? '<span class="ss-nps-filter-meta">' + escapeHtml(metaText) + '</span>' : '')
+      + options + '</select></label>'
+      + '<label>정렬 <select class="ss-nps-sort-select"><option value="holding">보유 지분율순</option>'
+      + '<option value="streak"' + (npsSortByStreak ? ' selected' : '') + '>연기금 등 연속 순매수순</option></select></label>'
+      + (metaText ? '<span class="ss-nps-filter-meta">' + escapeHtml(metaText) + '</span>' : '')
       + '</div>';
   }
 
@@ -855,6 +868,10 @@
     // 순위가 깨진다 - 서버가 이미 지분율 내림차순으로 정렬해 보내지만, 여기서도
     // 한 번 더 정렬해 항상 전역 순위를 보장한다.
     var all = allMatches('nationalPension').sort(function (a, b) {
+      if (npsSortByStreak) {
+        var days = (b.pensionBuyDays ?? -1) - (a.pensionBuyDays ?? -1);
+        if (days) return days;
+      }
       return (b.holdingPct || 0) - (a.holdingPct || 0);
     });
     if (!all.length) return '<div class="ss-hint">지금은 국민연금 보유 정보를 확인할 수 있는 종목이 없어요.</div>';
@@ -877,6 +894,7 @@
       {label: '종목명', cls: 'ss-col-product'}, {label: '종목코드', cls: 'ss-col-code'},
       {label: '업종', cls: 'ss-col-sector'}, {label: '현재가', cls: 'ss-col-price'},
       {label: '등락률', cls: 'ss-col-change'}, {label: '보유 지분율', cls: 'ss-col-signal'},
+      {label: '연기금 등 연속 순매수', cls: 'ss-col-pension-streak'},
       {label: '평가액', cls: 'ss-col-fundamentals'},
     ];
     var metaText = '전체 ' + all.length + '종목 중 지분율 ' + range.label + ' '

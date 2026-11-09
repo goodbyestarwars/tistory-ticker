@@ -520,6 +520,7 @@ def fetch_stock(token, code, name, include_series=False):
             'signal': credit_signal,
         },
         'pension': {
+            'as_of': _ymd(today_invsr.get('dt')) if _num_or_none(today_invsr.get('penfnd_etc')) is not None else None,
             'streak': streak,
             'net_5d': net_5d,
             'net_20d': net_20d,
