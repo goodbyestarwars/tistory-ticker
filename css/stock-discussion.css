@@ -144,7 +144,18 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   background: #005291;
   color: #fff;
 }
+.discussion-terminal-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .15em .55em;
+  min-width: 0;
+}
 .discussion-terminal .discussion-terminal-bar strong { color: #fff; }
+.discussion-terminal .discussion-terminal-modem {
+  color: #c9e9ff;
+  font-size: .8em;
+}
 .discussion-terminal-status {
   margin: 0;
   padding: .45em .75em;

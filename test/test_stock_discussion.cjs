@@ -50,6 +50,7 @@ async function verify() {
     for (const selector of ['.discussion-stockbar', '.discussion-native-guestbook']) {
       assert.equal(await terminal.locator(selector).count(), 1);
     }
+    assert.equal(await terminal.locator('.discussion-terminal-modem').textContent(), '(삐— 56K 모뎀 감성)');
     assert.equal(await terminal.locator('.discussion-write-note').count(), 0);
     assert.equal(await page.getByRole('textbox', { name: '메시지' }).getAttribute('placeholder'), '메시지를 입력하세요.');
     assert.ok((await log.boundingBox()).height >= 192);

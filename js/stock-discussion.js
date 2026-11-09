@@ -206,7 +206,9 @@
     panel.className = 'discussion-terminal';
     panel.setAttribute('aria-label', '클래식 종목 채팅');
     var toolbar = addText(panel, 'div', 'discussion-terminal-bar', '');
-    addText(toolbar, 'strong', '', '9PAY PC통신  ▸  종목 채팅');
+    var banner = addText(toolbar, 'div', 'discussion-terminal-banner', '');
+    addText(banner, 'strong', '', '9PAY PC통신  ▸  종목 채팅');
+    addText(banner, 'small', 'discussion-terminal-modem', '(삐— 56K 모뎀 감성)');
     var refresh = addText(toolbar, 'button', '', '[ 새로고침 ]');
     refresh.type = 'button';
     refresh.addEventListener('click', function () {
@@ -224,6 +226,8 @@
     form.querySelector('.discussion-write-note')?.remove();
     var title = form.querySelector('.discussion-write-title');
     if (title) title.textContent = '> 메시지 입력';
+    var help = form.querySelector('.discussion-write-help');
+    if (help) help.textContent = '메시지는 선택한 종목 채팅에 표시됩니다.';
     var textarea = form.querySelector('textarea');
     if (textarea) {
       textarea.placeholder = '메시지를 입력하세요.';
