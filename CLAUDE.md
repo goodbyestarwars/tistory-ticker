@@ -84,10 +84,6 @@
 
 경로별 규칙은 `.claude/rules/`, 작업 절차는 `.claude/skills/`를 확인한다.
 
-## 방명록 3D 광장
-
-- `metaverse/`의 TypeScript·Vite는 기존 방명록 JS·CSS에 광장을 번들링한다. Three.js는 입장 시 초기화하며, 확인된 공개 원글만 읽는다. 별도 자원 요청·폴링·저장과 스킨 수동 적용 없이 Pages로 배포한다.
-
 ## 배포·기록
 
 - `js/css/data/style.css`는 master → Pages, `scripts/cloud-vm`은 master → VM 자동 배포다.
