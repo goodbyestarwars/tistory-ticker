@@ -208,7 +208,7 @@
     var toolbar = addText(panel, 'div', 'discussion-terminal-bar', '');
     var banner = addText(toolbar, 'div', 'discussion-terminal-banner', '');
     addText(banner, 'strong', '', '9PAY PC통신  ▸  종목 채팅');
-    addText(banner, 'small', 'discussion-terminal-modem', '(삐— 56K 모뎀 감성)');
+    addText(banner, 'small', 'discussion-terminal-modem', '56K 로 가느라 좀 느립니다.');
     var refresh = addText(toolbar, 'button', '', '[ 새로고침 ]');
     refresh.type = 'button';
     refresh.addEventListener('click', function () {
