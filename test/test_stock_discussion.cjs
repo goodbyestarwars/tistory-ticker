@@ -51,6 +51,7 @@ async function verify() {
       assert.equal(await terminal.locator(selector).count(), 1);
     }
     assert.equal(await terminal.locator('.discussion-terminal-poem h2').textContent(), '실패할 수 있는 용기');
+    assert.doesNotMatch(await terminal.locator('.discussion-terminal-welcome').innerText(), /회원ID|천리안 가입/);
     assert.equal(await terminal.locator('.discussion-terminal-rose').getAttribute('aria-hidden'), 'true');
     assert.equal(await terminal.locator('.discussion-terminal-modem').textContent(), '56K 로 가느라 좀 느립니다.');
     assert.equal(await terminal.locator('.discussion-write-note').count(), 0);

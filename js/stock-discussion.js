@@ -241,13 +241,7 @@
       '실패도 할 수 있는 용기도 오롯',
       '그대 젊음의 것입니다.'
     ].join('\n'));
-    var prompt = addText(welcome, 'div', 'discussion-terminal-dialup', '');
-    prompt.setAttribute('aria-hidden', 'true');
-    addText(prompt, 'p', '', '▶ 천리안 가입을 원하시는 분은 "회원ID : "에서 "guest"를 입력하십시오.');
     addText(welcome, 'p', 'discussion-terminal-etiquette', '게시판 및 대화실 이용시 건전한 언어를 사용합시다.');
-    var login = addText(welcome, 'div', 'discussion-terminal-login', '회원ID : ');
-    login.setAttribute('aria-hidden', 'true');
-    addText(login, 'span', '', '▉');
     var toolbar = addText(panel, 'div', 'discussion-terminal-bar', '');
     var banner = addText(toolbar, 'div', 'discussion-terminal-banner', '');
     addText(banner, 'strong', '', '9PAY PC통신  ▸  종목 채팅');

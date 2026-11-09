@@ -166,17 +166,13 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   text-align: center;
 }
 .discussion-terminal-poem p { margin: 0; white-space: pre-line; }
-.discussion-terminal-dialup,
-.discussion-terminal-etiquette,
-.discussion-terminal-login { padding: .4em .65em; overflow-wrap: anywhere; }
-.discussion-terminal-dialup { margin-block-start: .65em; }
-.discussion-terminal-dialup p { margin: 0; }
 .discussion-terminal-etiquette {
   margin: .65em 0 0;
+  padding: .4em .65em;
+  overflow-wrap: anywhere;
   border-top: 1px dashed currentColor;
   text-align: center;
 }
-.discussion-terminal-login span { color: #b7e458; }
 .discussion-terminal-bar {
   display: flex;
   flex-wrap: wrap;
