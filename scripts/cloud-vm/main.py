@@ -434,6 +434,7 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 # USDKRW·KOSPI200_NIGHT는 라우트 안에서 한 번 더 보정하는데, 그 보정도 결국 30초 주기로
 # 갱신되는 소스를 읽으므로 TTL을 늘려도 어긋나지 않는다.
 _FUTURES_TTL = 30
+_stored_futures_locks = tuple(threading.Lock() for _ in range(32))
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'raw':.., 'gzip':.., 'data':..}
 _macro_refresh_lock = threading.Lock()
 _macro_refresh_state = {'running': False, 'started_at': 0.0, 'checked_at': None,
@@ -3259,6 +3260,15 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
     빠지는 부작용이 있었다. 이제 _MINUTE_CHART_READ_SYMBOLS(아래)로 분리한다."""
     _check_rate_limit('futures', request, max_per_window=30)
     days = max(1, min(days, 500))
+    if stored_only:
+        # Same-key misses share one DB read and one serialized response.
+        key = (interval, days, symbols, stored_only)
+        with _stored_futures_locks[hash(key) % len(_stored_futures_locks)]:
+            return _read_futures(request, interval, days, symbols, stored_only)
+    return _read_futures(request, interval, days, symbols, stored_only)
+
+
+def _read_futures(request, interval, days, symbols, stored_only):
     started = time.time()
     cache_key = (interval, days, symbols, stored_only)
     cached = _futures_cache.get(cache_key)
