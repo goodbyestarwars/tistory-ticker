@@ -253,10 +253,37 @@
       + '<div class="nine-studies-backdrop" aria-hidden="true"></div>'
       + '<div class="nine-studies-pop" role="dialog" aria-label="보조지표 설정" hidden>'
       + '<div class="nine-studies-list"><div class="nine-studies-head"><strong>보조지표</strong><button type="button" class="nine-studies-close" aria-label="닫기">×</button></div></div>'
+      + '<div class="nine-studies-resize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="보조지표 목록 너비" aria-valuemin="200" aria-valuemax="380" aria-valuenow="246" title="드래그하여 목록 너비 조절"></div>'
       + '<div class="nine-studies-detail" aria-live="polite"></div></div>';
     row.parentNode.insertBefore(wrap, row);
     var trigger = wrap.querySelector('.nine-chart-options-trigger'), pop = wrap.querySelector('.nine-studies-pop');
     var detail = wrap.querySelector('.nine-studies-detail');
+    var resize = wrap.querySelector('.nine-studies-resize');
+    var listWidth = 246, dragStartX, dragStartWidth;
+    function setListWidth(width) {
+      listWidth = Math.max(200, Math.min(380, Math.round(width)));
+      pop.style.setProperty('--nine-studies-list-width', listWidth + 'px');
+      resize.setAttribute('aria-valuenow', listWidth);
+    }
+    resize.addEventListener('pointerdown', function (event) {
+      if (event.button !== 0 || !event.isPrimary) return;
+      dragStartX = event.clientX;
+      dragStartWidth = listWidth;
+      resize.setPointerCapture(event.pointerId);
+      resize.focus();
+      event.preventDefault();
+    });
+    resize.addEventListener('pointermove', function (event) {
+      if (resize.hasPointerCapture(event.pointerId)) setListWidth(dragStartWidth + event.clientX - dragStartX);
+    });
+    resize.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowLeft') setListWidth(listWidth - 16);
+      else if (event.key === 'ArrowRight') setListWidth(listWidth + 16);
+      else if (event.key === 'Home') setListWidth(200);
+      else if (event.key === 'End') setListWidth(380);
+      else return;
+      event.preventDefault();
+    });
     wrap.__trigger = trigger; wrap.__pop = pop; wrap.__details = {};
     row.classList.add('nine-studies-items');
     wrap.querySelector('.nine-studies-list').appendChild(row);

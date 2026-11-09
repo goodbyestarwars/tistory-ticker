@@ -38,13 +38,21 @@
 .nine-studies-backdrop { display: none; }
 .nine-studies-pop {
   position: fixed; z-index: 1001; top: 0; left: 0;
-  display: grid; grid-template-columns: 200px minmax(0, 1fr);
+  display: grid; grid-template-columns: var(--nine-studies-list-width, 246px) 10px minmax(0, 1fr);
   width: min(660px, calc(100vw - 32px)); max-height: min(480px, 70vh); box-sizing: border-box;
   border: 1px solid var(--ui-rule); border-radius: 14px; background: var(--ui-surface); color: var(--ui-ink);
   box-shadow: 0 12px 32px rgba(15, 23, 42, .14); overflow: hidden; font-family: var(--font-ui); text-align: left;
 }
 .nine-studies-pop[hidden] { display: none; }
 .nine-studies-list { min-height: 0; overflow-y: auto; padding: 14px 8px 12px; border-right: 1px solid var(--ui-rule); }
+.nine-studies-resize {
+  display: grid; place-items: center; cursor: col-resize; touch-action: none;
+}
+.nine-studies-resize::before {
+  content: ""; width: 3px; height: 28px; border-radius: 3px; background: var(--ui-muted);
+}
+.nine-studies-resize:hover, .nine-studies-resize:focus-visible { background: var(--ui-accent-soft); }
+.nine-studies-items [data-chart-wave-level] { flex-wrap: wrap; grid-column: 1 / -1; }
 .nine-studies-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px; }
 .nine-studies-head strong { font-size: 13px; font-weight: 600; color: var(--ui-muted); }
 .nine-studies-close { display: none; width: 30px; height: 30px; border: 0; background: transparent; color: var(--ui-muted); font-size: 20px; line-height: 1; cursor: pointer; }
@@ -97,6 +105,7 @@
     width: 100%; max-height: 82vh; border-radius: 16px 16px 0 0; overflow-y: auto;
   }
   .nine-studies-list { border-right: 0; border-bottom: 1px solid var(--ui-rule); padding: 12px 12px 10px; overflow: visible; }
+  .nine-studies-resize { display: none; }
   .nine-studies-close { display: inline-block; }
   .nine-studies-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 6px; }
   .nine-studies-detail { padding: 14px 16px 20px; overflow: visible; }
@@ -109,6 +118,8 @@ html.dark .nine-chart-options-trigger:hover, html.dark .nine-chart-options.is-op
 html.dark .nine-studies-items label:hover, html.dark .nine-ma-remove:hover, html.dark .nine-ma-add:hover, html.dark .nine-ma-reset:hover { background: var(--dk-inner); }
 html.dark .nine-studies-pop { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }
 html.dark .nine-studies-list { border-color: var(--dk-line); }
+html.dark .nine-studies-resize::before { background: var(--dk-sub); }
+html.dark .nine-studies-resize:hover, html.dark .nine-studies-resize:focus-visible { background: var(--dk-inner); }
 html.dark .nine-studies-items label.is-selected { background: var(--dk-inner); color: var(--dk-text); }
 html.dark .nine-studies-items input[type="checkbox"] { border-color: var(--dk-line); }
 html.dark .nine-studies-head strong, html.dark .nine-studies-detail-head p, html.dark .nine-studies-note, html.dark .nine-ma-name, html.dark .nine-ma-remove, html.dark .nine-ma-reset { color: var(--dk-sub); }
