@@ -16,9 +16,9 @@ async function verify() {
           <div class="discussion-stockbar"><input id="discussionStockInput">
           <button data-discussion-stock="all">전체</button>
           <button data-discussion-stock="005930">삼성전자</button></div>
-          <div><strong data-discussion-current></strong><button data-discussion-clear>해제</button></div>
+          <div class="discussion-current"><strong data-discussion-current></strong><button data-discussion-clear>해제</button></div>
           <div class="discussion-native-guestbook"><div class="discussion-write">
-            <textarea aria-label="의견"></textarea><input type="submit" value="등록">
+            <span class="discussion-write-note">등록하면 티스토리 방명록에 저장됩니다.</span><textarea aria-label="의견"></textarea><input type="submit" value="등록">
           </div></div>
           <div class="discussion-list-heading"><span data-discussion-count></span></div>
           <div class="discussion-list"><ol>
@@ -46,10 +46,11 @@ async function verify() {
     assert.equal(await log.locator('.discussion-terminal-body').textContent(), '첫줄\n<img src=x onerror=alert(1)>');
     assert.equal(await log.locator('img').count(), 0);
     assert.doesNotMatch(await log.innerText(), /답글 본문|비밀 본문/);
-    assert.equal(await terminal.locator('strong').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
+    assert.equal(await terminal.locator('.discussion-terminal-bar strong').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
     for (const selector of ['.discussion-stockbar', '.discussion-native-guestbook']) {
-      assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(0, 0, 128)');
+      assert.equal(await terminal.locator(selector).count(), 1);
     }
+    assert.equal(await terminal.locator('.discussion-write-note').count(), 0);
     assert.equal(await terminal.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(0, 0, 128)');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.getByRole('button', { name: '삼성전자' }).click();

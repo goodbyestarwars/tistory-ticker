@@ -5786,8 +5786,8 @@ html:not(.font-gothic) body #pattern-scan .ps-tab,
 html:not(.font-gothic) body #strategy-search .ss-tab,
 html:not(.font-gothic) body #strategy-search .ss-product-tab,
 html:not(.font-gothic) body #stock-calendar .sc-filter-tab,
-html:not(.font-gothic) body .discussion-stock-btn,
-html:not(.font-gothic) body .discussion-current button {
+html:not(.font-gothic) body .discussion-stock-btn:not(:where(.discussion-classic *)),
+html:not(.font-gothic) body .discussion-current button:not(:where(.discussion-classic *)) {
   border-radius: 3px !important;
   background: transparent !important;
   color: var(--text-sub) !important;
@@ -7848,7 +7848,7 @@ html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-b
   .ss-go-btn, .ss-change-stock-btn, .ss-fav-btn, .ff-search-btn, .ff-sim-btn, .ff-sim-btn-play, .ob-go-btn, .pf-search-btn,
   .sn-search-btn, .sp-search-btn, .kf-retry-btn, .mn-refresh-btn, .memo-add-btn, .memo-login-btn, .wl-add-btn, .wl-login-btn,
   .qi-add-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, .home-reset-button, .home-settings-button,
-  .page-btn, .us-stocks-fav-btn, .ss-analysis-link, .my-watchlist-add, .my-watchlist-show, .discussion-write-actions input, .discussion-write-actions button, .discussion-current button,
+  .page-btn, .us-stocks-fav-btn, .ss-analysis-link, .my-watchlist-add, .my-watchlist-show, .discussion-write-actions input:not(:where(.discussion-classic *)), .discussion-write-actions button:not(:where(.discussion-classic *)), .discussion-current button:not(:where(.discussion-classic *)),
   .dmi-spot-collapse, .dmi-section-collapse, .dmi-collapse-btn, .kf-collapse-btn, .qi-collapse-btn, .dmi-draw-clear, .kf-draw-clear, .sc-nav,
   .ss-memo-toggle, .ss-draw-toggle, .ss-circle-toggle, .ss-box-toggle, .ss-hline-toggle, .ss-measure-toggle, .ss-pencil-toggle, .ss-draw-clear, .kf-draw-toggle, .dmi-draw-toggle, .mt-sector-editor-add-stock-button, [data-theme-picker-open], [data-sector-editor-open],
   [data-all-stock-refresh], .mt-adopt-controls button, .mt-theme-picker-head button) {
@@ -7874,11 +7874,11 @@ html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-b
 /* 차트검색 탭 줄(메모·일봉…)과 한 줄에 놓이는 그리기 도구 단추는 조금 작게 - 한 줄에 들어가도록(2026-10-16). */
 html body .de-chart-toolbar .de-draw-controls :where(button) { min-height: 26px !important; padding: 0 9px !important; font-size: 12px !important; border-radius: 7px !important; white-space: nowrap !important; }
 /* 핵심 동작 몇 곳에만 애플 블루(검색 등). 나머지 버튼은 연한 회색 면이라 색이 튀지 않는다. */
-html body :where(.ss-go-btn, .ui-btn-a, .ui-btn-primary, .discussion-write-actions input[type="submit"]) {
+html body :where(.ss-go-btn, .ui-btn-a, .ui-btn-primary, .discussion-write-actions input[type="submit"]:not(:where(.discussion-classic *))) {
   background: #0071e3 !important;
   color: #fff !important;
 }
-html body :where(.ss-go-btn, .ui-btn-a, .ui-btn-primary, .discussion-write-actions input[type="submit"]):hover {
+html body :where(.ss-go-btn, .ui-btn-a, .ui-btn-primary, .discussion-write-actions input[type="submit"]:not(:where(.discussion-classic *))):hover {
   background: #0077ed !important;
   color: #fff !important;
 }
@@ -7941,7 +7941,7 @@ html body #stock-search :where(.ss-draw-toggle, .ss-circle-toggle, .ss-box-toggl
   font-weight: 700 !important;
   box-shadow: inset 0 0 0 2px rgba(var(--np-ink), .3) !important;
 }
-html body :where(.discussion-stock-btn, .mt-top-chip, .mt-money-chip, .ssp-chip, .tag-pill, .mt-pill, .is-chip, .ps-track-chip, .memo-context-chip) {
+html body :where(.discussion-stock-btn:not(:where(.discussion-classic *)), .mt-top-chip, .mt-money-chip, .ssp-chip, .tag-pill, .mt-pill, .is-chip, .ps-track-chip, .memo-context-chip) {
   border-radius: 8px !important;
   min-height: 28px !important;
   border: 1px solid rgba(var(--np-ink), .14) !important;
@@ -7954,7 +7954,7 @@ html body :where(.mt-top-chip, .mt-money-chip).is-mapped {
   border-color: transparent !important;
   color: rgb(var(--np-ink)) !important;
 }
-html body :where(.mt-top-chip, .discussion-stock-btn):where(.is-active, .active) {
+html body :where(.mt-top-chip, .discussion-stock-btn:not(:where(.discussion-classic *))):where(.is-active, .active) {
   background: rgba(var(--np-ink), .1) !important;
   border-color: transparent !important;
   color: rgb(var(--np-ink)) !important;

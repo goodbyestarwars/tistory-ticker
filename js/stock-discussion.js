@@ -195,9 +195,12 @@
 
   function setupClassic() {
     var form = root.querySelector('.discussion-native-guestbook');
+    var stockbar = root.querySelector('.discussion-stockbar');
+    var room = root.querySelector('.discussion-current');
+    var heading = root.querySelector('.discussion-heading');
     var nativeHeading = root.querySelector('.discussion-list-heading');
     var nativeList = root.querySelector('.discussion-list');
-    if (!form || !nativeHeading) return;
+    if (!form || !stockbar || !room || !nativeHeading) return;
 
     var panel = document.createElement('section');
     panel.className = 'discussion-terminal';
@@ -212,12 +215,15 @@
         location.reload();
       }
     });
+    panel.append(stockbar, room);
     var status = addText(panel, 'p', 'discussion-terminal-status', '');
     status.setAttribute('role', 'status');
     var log = addText(panel, 'ol', 'discussion-terminal-log', '');
     log.setAttribute('aria-label', '공개 채팅 목록, 최신 글부터');
     log.tabIndex = 0;
-    addText(panel, 'p', 'discussion-terminal-prompt', '입력 > 아래 방명록 양식에서 의견 등록');
+    form.querySelector('.discussion-write-note')?.remove();
+    var title = form.querySelector('.discussion-write-title');
+    if (title) title.textContent = '> 의견 남기기';
     var messages = entries.filter(function (entry) {
       return entry.classList.contains('guest_general') &&
         !entry.hidden && !entry.matches('.guest_secret, .secret, [data-secret="true"]');
@@ -238,13 +244,15 @@
       if (!visible.length) addText(log, 'li', '', '표시할 공개 의견이 없습니다.');
       visible.forEach(function (message) {
         var line = addText(log, 'li', '', '');
-        addText(line, 'span', 'discussion-terminal-date', message.date.textContent.trim());
+        addText(line, 'span', 'discussion-terminal-date', Array.from(message.date.childNodes).filter(function (node) { return node.nodeType === 3; }).map(messageText).join('').trim());
         addText(line, 'bdi', 'discussion-terminal-name', message.name.textContent.trim());
         addText(line, 'span', 'discussion-terminal-body', messageText(message.body).trim());
       });
     };
 
     form.before(panel);
+    panel.append(form);
+    if (heading) heading.hidden = true;
     root.classList.add('discussion-classic');
     nativeHeading.hidden = true;
     if (nativeList) nativeList.hidden = true;
