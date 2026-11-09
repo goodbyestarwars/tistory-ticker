@@ -7,7 +7,7 @@ export function readGuestbook(list: Element) {
     const head = item.querySelector(':scope > .discussion-item-head');
     const body = item.querySelector(':scope > .discussion-item-body');
     const author = head?.querySelector(':scope > .name')?.textContent?.trim();
-    const date = head?.querySelector(':scope > .date')?.textContent?.trim();
+    const date = head?.querySelector(':scope > .date')?.textContent?.replace(/\s*신고\s*$/, '').trim();
     const value = body && [...body.childNodes].map(node =>
       node.nodeType === Node.TEXT_NODE ? node.textContent : node.nodeName === 'BR' ? '\n' : ''
     ).join('').trim();
@@ -24,7 +24,7 @@ export function readGuestbook(list: Element) {
       const chars = [...text];
       return chars.length > limit ? chars.slice(0,limit-1).join('')+'…' : text;
     };
-    rows.push({author:shorten(author,20),date,body:shorten(value,150),time});
+    rows.push({id:item.id,author:shorten(author,20),date,body:shorten(value,150),time});
   }
   if (rows.every(row => Number.isFinite(row.time))) rows.sort((a,b) => b.time-a.time);
   return rows.slice(0,10);

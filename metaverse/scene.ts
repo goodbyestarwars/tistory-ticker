@@ -1,4 +1,4 @@
-import { BoxGeometry, CapsuleGeometry, Color, Group, HemisphereLight, Mesh, MeshLambertMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { BoxGeometry, CanvasTexture, SphereGeometry, Sprite, SpriteMaterial, Vector3, Color, Group, HemisphereLight, Mesh, MeshLambertMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 
 export function start(stage: HTMLElement, signal: AbortSignal) {
   const scene = new Scene();
@@ -12,18 +12,70 @@ export function start(stage: HTMLElement, signal: AbortSignal) {
     scene.add(mesh);
     return mesh;
   }
-  scene.background = new Color(0xe5edf4);
-  scene.add(new HemisphereLight(0xffffff, 0x596478, 2), player);
-  block(20,.2,20,0xc1cdd3,0,-.1,0);
-  for (const side of [-1,1]) {
-    block(20,.5,.25,0x647787,0,.25,side*10);
-    block(.25,.5,20,0x647787,side*10,.25,0);
+  scene.background = new Color(0x242c4b);
+  scene.add(new HemisphereLight(0xffe4bb, 0x697494, 2.4), player);
+  block(30,.2,30,0x294449,0,-.15,0);
+  block(19,.2,19,0x827771,0,-.1,0);
+  for (let i = -4; i <= 4; i++) {
+    block(18,.01,.035,0x494956,0,.008,i*2);
+    block(.035,.01,18,0x494956,i*2,.008,0);
   }
-  block(4,2.3,.3,0x344e65,0,1.15,-8);
-  const avatar = new Mesh(new CapsuleGeometry(.35,.65,4,8), new MeshLambertMaterial({color:0x255f9b}));
-  avatar.position.y = .69;
-  player.add(avatar);
-  player.add(block(.34,.12,.12,0xe5edf4,0,.98,.33));
+  for (const side of [-1,1]) {
+    for (const z of [-7,-3,2]) {
+      const x = side*6.6;
+      block(2.4,.42,1.5,0x4c5062,x,.21,z);
+      block(.19,2,.19,0x67584e,x,1,z);
+      const canopy = new Mesh(new SphereGeometry(.95,9,6),new MeshLambertMaterial({color:0x40786d}));
+      canopy.position.set(x,2.25,z);
+      canopy.scale.set(1,1.18,.85);
+      scene.add(canopy);
+      block(.12,2.8,.12,0x33324a,side*4.4,1.4,z);
+      block(.35,.38,.35,0xffc076,side*4.4,2.8,z);
+    }
+  }
+  block(7,2.8,.45,0x35455e,0,1.4,-8.8);
+  block(8,.22,1.4,0x52475b,0,2.88,-8.8);
+  const sign = document.createElement('canvas');
+  sign.width = 512;
+  sign.height = 96;
+  const ink = sign.getContext('2d')!;
+  ink.fillStyle = '#253147';
+  ink.fillRect(0,0,512,96);
+  ink.fillStyle = '#ffe3ae';
+  ink.font = 'bold 48px sans-serif';
+  ink.textAlign = 'center';
+  ink.fillText('gOOdbyestar',256,63);
+  const texture = new CanvasTexture(sign);
+  const signMaterial = new SpriteMaterial({map:texture});
+  const label = new Sprite(signMaterial);
+  label.scale.set(5.5,1.03,1);
+  label.position.set(0,1.95,-8.45);
+  scene.add(label);
+  for (const side of [-1,1]) {
+    player.add(block(.19,.57,.23,0x303846,side*.13,.34,0));
+    player.add(block(.16,.5,.19,0xeab585,side*.36,.94,0));
+  }
+  player.add(block(.54,.62,.32,0x496d9d,0,.98,0));
+  const head = new Mesh(new SphereGeometry(.23,12,8),new MeshLambertMaterial({color:0xeab585}));
+  head.position.y = 1.54;
+  player.add(head);
+  player.add(block(.38,.14,.33,0x42333c,0,1.7,0));
+  const authors = Array.from({length:10}, (_,index) => {
+    const figure = player.clone();
+    figure.position.set((index%5-2)*1.65,0,-3.2-Math.floor(index/5)*2.3);
+    figure.visible = false;
+    scene.add(figure);
+    return figure;
+  });
+  player.visible = false;
+  let labels: HTMLElement[] = [];
+  function refreshAuthors() {
+    labels = [...stage.querySelectorAll<HTMLElement>('.square-bubble')];
+    authors.forEach((figure,index) => { figure.visible = index < labels.length; });
+    dirty = true;
+  }
+
+  const anchor = new Vector3();
   const canvas = renderer.domElement;
   canvas.tabIndex = 0;
   canvas.setAttribute('aria-label','3D 광장. 방향키 또는 WASD로 이동');
@@ -95,6 +147,15 @@ export function start(stage: HTMLElement, signal: AbortSignal) {
     dirty = false;
     camera.position.set(player.position.x+distance*Math.sin(angle),distance*.61,player.position.z+distance*Math.cos(angle));
     camera.lookAt(player.position.x,.8,player.position.z);
+    camera.updateMatrixWorld();
+    labels.forEach((label,index) => {
+      anchor.copy(authors[index].position);
+      anchor.y = 2.05;
+      anchor.project(camera);
+      label.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > .94 || Math.abs(anchor.y) > .9;
+      label.style.left = (anchor.x*.5+.5)*100+'%';
+      label.style.top = (.5-anchor.y*.5)*100+'%';
+    });
     renderer.render(scene,camera);
   }
   function visibility() {
@@ -104,13 +165,17 @@ export function start(stage: HTMLElement, signal: AbortSignal) {
     if (!document.hidden) frame = requestAnimationFrame(tick);
   }
   document.addEventListener('visibilitychange',visibility,options);
+  stage.addEventListener('square-authors',refreshAuthors,options);
+  refreshAuthors();
   visibility();
   signal.addEventListener('abort', () => {
     cancelAnimationFrame(frame);
     resize.disconnect();
     scene.traverse(obj => {
-      if (obj instanceof Mesh) { obj.geometry.dispose(); obj.material.dispose(); }
+      if (obj instanceof Mesh && !authors.includes(obj.parent as Group)) { obj.geometry.dispose(); obj.material.dispose(); }
     });
+    texture.dispose();
+    signMaterial.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
     canvas.remove();
