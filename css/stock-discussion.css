@@ -134,6 +134,48 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   border: 2px solid #6feaff;
   font: 1rem/1.55 Consolas, 'D2Coding', 'Malgun Gothic', monospace;
 }
+.discussion-terminal-welcome {
+  container-type: inline-size;
+  background: #102f87;
+  color: #e1edff;
+  padding-block-start: clamp(1.15rem, 7cqw, 3rem);
+  font: 400 clamp(.7rem, 2.5cqw, 1rem)/1.1 var(--discussion-terminal-font);
+}
+.discussion-terminal-screen {
+  display: grid;
+  grid-template-columns: max-content minmax(0, max-content);
+  justify-content: center;
+  gap: clamp(.35rem, 4cqw, 1.8rem);
+  padding-inline: .35rem;
+}
+.discussion-terminal-welcome .discussion-terminal-rose {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  line-height: 1;
+  white-space: pre;
+}
+.discussion-terminal-poem h2 {
+  margin: 0 0 .75em;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+.discussion-terminal-poem p { margin: 0; white-space: pre-line; }
+.discussion-terminal-dialup,
+.discussion-terminal-etiquette,
+.discussion-terminal-login { padding: .4em .65em; overflow-wrap: anywhere; }
+.discussion-terminal-dialup { margin-block-start: .65em; }
+.discussion-terminal-dialup p { margin: 0; }
+.discussion-terminal-etiquette {
+  margin: .65em 0 0;
+  border-top: 1px dashed currentColor;
+  text-align: center;
+}
+.discussion-terminal-login span { color: #b7e458; }
 .discussion-terminal-bar {
   display: flex;
   flex-wrap: wrap;
