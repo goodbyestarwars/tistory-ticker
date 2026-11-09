@@ -35,12 +35,12 @@
   width:100% !important;
   min-height:var(--discussion-input-height, 140px) !important;
   box-sizing:border-box !important;
-  padding:14px !important;
+  padding:var(--discussion-input-padding, 14px) !important;
   border:1px solid var(--discussion-input-line, #d8e2ed) !important;
   border-radius:var(--discussion-input-radius, 11px) !important;
   background:var(--discussion-input-bg, rgb(255, 254, 252)) !important;
   color:var(--discussion-input-text, #263b55) !important;
-  resize:vertical !important;
+  resize:var(--discussion-input-resize, vertical) !important;
   opacity:1 !important;
   visibility:visible !important;
 }
@@ -245,7 +245,6 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   --discussion-input-text: #fff;
   --discussion-input-placeholder: #bfd6ff;
   --discussion-input-radius: 0;
-  --discussion-input-height: clamp(7rem, 16vh, 10rem);
 }
 .market-discussion.discussion-classic .discussion-stockbar,
 .market-discussion.discussion-classic .discussion-current,
@@ -308,6 +307,52 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   color: var(--discussion-input-bg);
   transform: none;
 }
-.market-discussion.discussion-classic .discussion-write-help { color: var(--discussion-input-placeholder); }
 .market-discussion.discussion-classic .discussion-write-actions { justify-content: flex-end; }
 .market-discussion.discussion-classic .discussion-write textarea { font-family: inherit; }
+
+.discussion-composer {
+  display: flex;
+  align-items: flex-start;
+  gap: .45rem;
+}
+.discussion-composer-prompt {
+  color: var(--discussion-terminal-accent);
+  cursor: text;
+  line-height: 1.6;
+}
+.discussion-composer-input {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  --discussion-input-bg: transparent;
+  --discussion-input-line: transparent;
+  --discussion-input-height: 2.8rem;
+  --discussion-input-padding: 0;
+  --discussion-input-resize: none;
+}
+.discussion-composer-input textarea { caret-color: var(--discussion-terminal-accent); }
+.discussion-composer-input:has(textarea:placeholder-shown:not(:focus))::after {
+  content: '';
+  position: absolute;
+  inset: .3em auto auto 1px;
+  width: .5em;
+  height: .9em;
+  background: var(--discussion-terminal-accent);
+  pointer-events: none;
+  animation: discussion-caret 1.1s steps(1, end) infinite;
+}
+@keyframes discussion-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .discussion-composer-input::after { animation: none; }
+}
+.discussion-composer .discussion-guest-fields {
+  flex-direction: row;
+  gap: .25rem;
+  width: clamp(8rem, 35%, 13rem);
+  margin: 0;
+}
+.discussion-composer .discussion-guest-fields input {
+  width: 0;
+  height: 32px;
+  padding-inline: .3em;
+}

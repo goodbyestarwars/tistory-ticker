@@ -275,14 +275,24 @@
     log.setAttribute('aria-label', '공개 채팅 목록, 최신 글부터');
     log.tabIndex = 0;
     form.querySelector('.discussion-write-note')?.remove();
-    var title = form.querySelector('.discussion-write-title');
-    if (title) title.textContent = '> 메시지 입력';
-    var help = form.querySelector('.discussion-write-help');
-    if (help) help.textContent = '메시지는 현재 보고 있는 방에 표시됩니다.';
     var textarea = form.querySelector('textarea');
     if (textarea) {
-      textarea.placeholder = '메시지를 입력하세요.';
+      form.querySelector('.discussion-write-title')?.remove();
+      form.querySelector('.discussion-write-help')?.remove();
+      var composer = document.createElement('div');
+      composer.className = 'discussion-composer';
+      textarea.before(composer);
+      var prompt = addText(composer, 'label', 'discussion-composer-prompt', '↵');
+      textarea.id = 'discussionMessage';
+      prompt.htmlFor = textarea.id;
+      prompt.setAttribute('aria-hidden', 'true');
+      var inputArea = addText(composer, 'div', 'discussion-composer-input', '');
+      inputArea.append(textarea);
+      textarea.rows = 2;
+      textarea.placeholder = ' ';
       textarea.setAttribute('aria-label', '메시지');
+      var guestFields = form.querySelector('.discussion-guest-fields');
+      if (guestFields) composer.append(guestFields);
     }
     var submit = form.querySelector('.discussion-write input[type=submit]');
     if (submit) submit.value = '보내기';
