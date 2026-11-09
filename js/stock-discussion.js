@@ -160,7 +160,7 @@
 
   function resolve(value) {
     value = normalize(value);
-    if (!value || value === '전체' || value === 'all') return '';
+    if (!value || value === '전체' || value === '일반방' || value === 'all') return '';
     if (/^\d{6}$/.test(value)) return value;
     var query = value.toLowerCase();
     for (var i = 0; i < LOCAL_US_SYMBOLS.length; i++) {
@@ -173,7 +173,16 @@
     for (var code in names) if (names[code] === value) return code;
     return value;
   }
-  var tagPattern = /\[(?:\d{6}|US:[A-Z][A-Z0-9.\-^=]{0,11})\]\s*/g;
+  var tagPattern = /^\s*\[(\d{6}|US:[A-Z][A-Z0-9.\-^=]{0,11})\]\s*/;
+  var entryRooms = new Map();
+  entries.forEach(function (entry) {
+    var body = entry.querySelector('.discussion-item-body');
+    var tag = body && body.textContent.match(tagPattern);
+    entryRooms.set(entry, tag ? tag[1] : '');
+    if (tag && body.firstChild && body.firstChild.nodeType === 3) {
+      body.firstChild.data = body.firstChild.data.replace(tagPattern, '');
+    }
+  });
   var activeCode = '';
   var renderClassic = function () {};
 
@@ -269,7 +278,7 @@
     var title = form.querySelector('.discussion-write-title');
     if (title) title.textContent = '> 메시지 입력';
     var help = form.querySelector('.discussion-write-help');
-    if (help) help.textContent = '메시지는 선택한 종목 채팅에 표시됩니다.';
+    if (help) help.textContent = '메시지는 현재 보고 있는 방에 표시됩니다.';
     var textarea = form.querySelector('textarea');
     if (textarea) {
       textarea.placeholder = '메시지를 입력하세요.';
@@ -313,7 +322,7 @@
   function applyFilter(value, updateUrl) {
     var code = resolve(value);
     activeCode = code;
-    var label = code ? (names[code] ? names[code] + ' · ' + code : code) : '전체 종목';
+    var label = code ? (names[code] ? names[code] + ' · ' + code : code) : '일반방';
     current.textContent = label;
     input.value = code && names[code] ? names[code] : code;
     buttons.forEach(function (button) {
@@ -323,19 +332,11 @@
     });
     var shown = 0;
     entries.forEach(function (entry) {
-      var text = entry.getAttribute('data-discussion-search') || entry.textContent || '';
-      entry.setAttribute('data-discussion-search', text);
-      var match = !code || text.indexOf('[' + code + ']') !== -1;
+      var match = entryRooms.get(entry) === code;
       entry.hidden = !match;
       if (match) shown++;
-      entry.querySelectorAll('.discussion-item-body').forEach(function (body) {
-        var walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
-        while (walker.nextNode()) {
-          walker.currentNode.data = walker.currentNode.data.replace(tagPattern, '');
-        }
-      });
     });
-    count.textContent = code ? (shown ? shown + '개 의견' : '아직 의견이 없습니다') : (entries.length + '개 의견');
+    count.textContent = shown ? shown + '개 의견' : '아직 의견이 없습니다';
     renderClassic();
     if (updateUrl && window.history && history.replaceState) {
       var url = new URL(location.href);
@@ -344,7 +345,11 @@
     }
   }
   buttons.forEach(function (button) { button.addEventListener('click', function () { applyFilter(button.getAttribute('data-discussion-stock'), true); }); });
-  root.querySelector('[data-discussion-clear]').addEventListener('click', function () { applyFilter('', true); });
+  var generalButton = root.querySelector('[data-discussion-stock="all"]');
+  if (generalButton) generalButton.textContent = '일반방';
+  var clear = root.querySelector('[data-discussion-clear]');
+  clear.textContent = '일반방으로';
+  clear.addEventListener('click', function () { applyFilter('', true); });
   input.addEventListener('input', function () {
     if (normalize(input.value)) showSuggestions(input.value);
     else closeSuggestions();

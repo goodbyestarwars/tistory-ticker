@@ -28,6 +28,10 @@ async function verify() {
               <p class="discussion-item-body">[005930] 첫줄<br>&lt;img src=x onerror=alert(1)&gt;</p>
               <ul><li class="discussion-reply">답글 본문</li></ul>
             </li>
+            <li data-discussion-entry class="guest_general"><div class="discussion-item-head">
+              <span class="name">일반 사용자</span><span class="date">2026.11.09 11:20</span></div>
+              <p class="discussion-item-body">일반방 글 [005930] 언급</p>
+            </li>
             <li data-discussion-entry class="guest_secret"><p>비밀 본문</p></li>
           </ol></div>
         </main>` });
@@ -43,6 +47,13 @@ async function verify() {
     const log = terminal.locator('ol');
     assert.equal(await terminal.locator('.discussion-terminal-status').count(), 0);
     assert.equal(await log.locator('li').count(), 1);
+    assert.match(await log.innerText(), /일반방 글/);
+    assert.doesNotMatch(await log.innerText(), /첫줄/);
+    await page.getByRole('textbox', { name: '메시지' }).fill('일반방 테스트');
+    await page.getByRole('button', { name: '보내기' }).click();
+    assert.equal(await page.getByRole('textbox', { name: '메시지' }).inputValue(), '일반방 테스트');
+    await page.getByRole('button', { name: '삼성전자' }).click();
+    assert.doesNotMatch(await log.innerText(), /일반방 글/);
     assert.match(await log.innerText(), /2026\.11\.09 10:20.*닉네임/s);
     assert.equal(await log.locator('.discussion-terminal-body').textContent(), '첫줄\n<img src=x onerror=alert(1)>');
     assert.equal(await log.locator('img').count(), 0);
@@ -62,7 +73,6 @@ async function verify() {
     assert.ok((await log.boundingBox()).height >= 192);
     assert.equal(await terminal.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(0, 0, 128)');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await page.getByRole('button', { name: '삼성전자' }).click();
     assert.match(page.url(), /stock=005930/);
     assert.equal(await page.getByRole('button', { name: '삼성전자' }).getAttribute('aria-pressed'), 'true');
     assert.equal(await page.getByRole('button', { name: '기본 방명록' }).count(), 0);
