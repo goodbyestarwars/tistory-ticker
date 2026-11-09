@@ -3502,7 +3502,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 
 /* ════ 핵심: textarea를 직접 포함하는 박스 → 흰 직사각형 제거 ════ */
 /* 클래스명 불문, textarea의 부모 div에 둥근 스타일 적용 */
-.guest-section div:has(> textarea) {
+.guest-section:where(:not(.discussion-classic)) div:has(> textarea) {
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
@@ -3512,16 +3512,16 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 }
 
 /* textarea + 버튼을 모두 포함하는 상위 래퍼 (username + textarea + button 묶음) */
-.guest-section div:has(textarea):has(button),
-.guest-section div:has(textarea):has(input[type="submit"]) {
+.guest-section:where(:not(.discussion-classic)) div:has(textarea):has(button),
+.guest-section:where(:not(.discussion-classic)) div:has(textarea):has(input[type="submit"]) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
 }
 
 /* 전체 작성 행 (아바타 + 입력 박스를 함께 감싸는 div) */
-.guest-section div:has(img):has(textarea),
-.guest-section div:has(a):has(textarea) {
+.guest-section:where(:not(.discussion-classic)) div:has(img):has(textarea),
+.guest-section:where(:not(.discussion-classic)) div:has(a):has(textarea) {
   background: #f0f5ff !important;
   border: none !important;
   border-radius: 20px !important;
@@ -3612,10 +3612,10 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 .guest-section .btn_del:hover { color: #e05a5a !important; }
 
 /* ── 작성 영역 (모든 가능한 클래스) ── */
-.guest-section .area_write,
-.guest-section .wrap_write,
-.guest-section .area_cmt,
-.guest-section .box_write {
+.guest-section:where(:not(.discussion-classic)) .area_write,
+.guest-section:where(:not(.discussion-classic)) .wrap_write,
+.guest-section:where(:not(.discussion-classic)) .area_cmt,
+.guest-section:where(:not(.discussion-classic)) .box_write {
   background: #f0f5ff !important;
   border-radius: 20px !important;
   padding: 16px 18px 14px !important;
@@ -3624,15 +3624,15 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 }
 
 /* 입력 래퍼 */
-.guest-section .wrap_textarea,
-.guest-section .wrap_comment,
-.guest-section .inner_write {
+.guest-section:where(:not(.discussion-classic)) .wrap_textarea,
+.guest-section:where(:not(.discussion-classic)) .wrap_comment,
+.guest-section:where(:not(.discussion-classic)) .inner_write {
   flex: 1 !important; display: flex !important;
   flex-direction: column !important; gap: 8px !important; min-width: 0 !important;
 }
 
 /* textarea — border 제거, 배경 투명 */
-.guest-section textarea {
+.guest-section:where(:not(.discussion-classic)) textarea {
   width: 100% !important;
   background: transparent !important;
   border: none !important;
@@ -3646,8 +3646,8 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
   min-height: 60px !important;
   padding: 0 !important;
 }
-.guest-section textarea:focus { border: none !important; outline: none !important; box-shadow: none !important; }
-.guest-section textarea::placeholder { color: #b0bac5 !important; }
+.guest-section:where(:not(.discussion-classic)) textarea:focus { border: none !important; outline: none !important; box-shadow: none !important; }
+.guest-section:where(:not(.discussion-classic)) textarea::placeholder { color: #b0bac5 !important; }
 
 /* 버튼 행 */
 .guest-section .wrap_btn,
@@ -3677,12 +3677,12 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 .guest-section .btn_attach:hover { background: #c8d8f4 !important; }
 
 /* ── 등록 버튼 (티스토리 가능한 모든 클래스) ── */
-.guest-section .btn_submit,
-.guest-section .btn_reg,
-.guest-section .btn_cmt,
-.guest-section .btn_write,
-.guest-section button[type="submit"],
-.guest-section input[type="submit"] {
+.guest-section:where(:not(.discussion-classic)) .btn_submit,
+.guest-section:where(:not(.discussion-classic)) .btn_reg,
+.guest-section:where(:not(.discussion-classic)) .btn_cmt,
+.guest-section:where(:not(.discussion-classic)) .btn_write,
+.guest-section:where(:not(.discussion-classic)) button[type="submit"],
+.guest-section:where(:not(.discussion-classic)) input[type="submit"] {
   height: 34px !important; padding: 0 20px !important;
   border-radius: 999px !important;
   border: none !important;
@@ -3696,9 +3696,9 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
   transition: opacity .15s;
   white-space: nowrap !important;
 }
-.guest-section .btn_submit:hover,
-.guest-section .btn_reg:hover,
-.guest-section button[type="submit"]:hover {
+.guest-section:where(:not(.discussion-classic)) .btn_submit:hover,
+.guest-section:where(:not(.discussion-classic)) .btn_reg:hover,
+.guest-section:where(:not(.discussion-classic)) button[type="submit"]:hover {
   opacity: .85 !important;
 }
 
@@ -7964,9 +7964,9 @@ html body :where(.mt-top-chip, .mt-money-chip).is-add { border-style: dashed !im
 
 /* ── 8. 입력칸 : 둥근 모서리, 가는 선(검색창은 알약) ── */
 html body :where(input[type="search"], input[type="text"], input[type="email"], input[type="password"], select, textarea):not(.nav-search-input) {
-  border-radius: 10px !important;
-  border: 1px solid rgba(var(--np-ink), .16) !important;
-  background-color: var(--np-paper) !important;
+  border-radius: var(--discussion-input-radius, 10px) !important;
+  border: 1px solid var(--discussion-input-line, rgba(var(--np-ink), .16)) !important;
+  background-color: var(--discussion-input-bg, var(--np-paper)) !important;
   box-shadow: none !important;
 }
 html body .nav-search-input-wrap { border-radius: 999px !important; border-color: rgba(var(--np-ink), .12) !important; box-shadow: none !important; background: var(--np-paper) !important; }
@@ -9047,7 +9047,7 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
   html.dark body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-flow, .mt-market-decision, .mt-briefing-panel, .mt-sf-disclaimer),
   html.dark body :where(.ff-summary, .ff-summary-card, .ff-swing-summary, .ff-opinion-summary-card) { background-color: var(--dk-inner) !important; }
   html.dark body :where(input[type="search"], input[type="text"], input[type="email"], input[type="password"], select, textarea):not(.nav-search-input),
-  html.dark body #stock-calendar .sc-disclosure-search input[type="search"] { background-color: var(--dk-inner) !important; }
+  html.dark body #stock-calendar .sc-disclosure-search input[type="search"] { background-color: var(--discussion-input-bg, var(--dk-inner)) !important; }
   html.dark body .mt-view-toggle .mt-view-btn.active,
   html.dark body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
     .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .hrt-tabs, .mt-flow-periods)
