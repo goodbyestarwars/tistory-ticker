@@ -1,3 +1,7 @@
+**2026-11-09 미국 52주 최고·최저 미표시 수정**
+
+요청: 미국 종목판 52주 최고가·최저가가 또 안 나옴. 원인: 11/02(fe357dc9)부터 프리·애프터장에는 `/us-quotes`가 Yahoo를 먼저 쓰는데, `_yahoo_quote`가 넘기는 `week52_high/low` 이름을 공통 `_normalize_quote`가 읽지 않아 늘 null(실측 NVDA·SOXL·TSLA, Yahoo 메타에는 243.37/164.27 존재). 변경: `scripts/cloud-vm/us_stocks.py` 52주 키 목록에 `week52_high/low` 추가, 테스트 1건. 검증: `test/test_us_stocks.py` 새 테스트 통과, 기존 실패 3건(시세 경로 3종, 현재 장 상태 의존)은 변경 전과 동일.
+
 **2026-11-09 차트 가로선 금액 라벨 클릭 복구**
 
 요청: 가로선 끝 금액을 눌러 바꾸는 기능이 안 됨. 원인: 11/06 공통 엔진 가격축 드래그(`chart-core` `installSmoothWheelZoom`, capture 단계 `stopPropagation`)가 가격축 폭 안의 왼쪽 클릭을 먼저 가져가는데, 금액 라벨은 그 가격축 위에 그려져 그리기 층까지 클릭이 오지 않았다. 변경: `js/chart-drawing.js`가 가로선 모드일 때 라벨·선 적중 여부를 `overlay.ncDrawingHit(clientX, clientY)`로 알리고, `chart-core` 가격축 드래그가 적중 자리에서만 양보(빈 가격축 드래그는 그대로). 검증: `test_chart_hline.js`·`test_chart_smooth_wheel.js` 보강 통과, 운영 KOSPI 차트 재현 확인. 기준선: `test_chart_bar_zoom`·`options_ribbon`·`studies`는 수정 전 master에서도 실패.
