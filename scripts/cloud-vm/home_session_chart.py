@@ -1,5 +1,6 @@
 """Home price charts: existing US quote observations and actual night minute bars."""
 import math
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -156,7 +157,24 @@ def record_night_tick(conn, price, moment=None, flush_sec=None):
     return True
 
 
+_RESULTS_TTL_SECONDS = 5
+_results_lock = threading.Lock()
+_results_cache = None
+
+
 def get_results():
+    global _results_cache
+    with _results_lock:
+        if _results_cache is not None:
+            expires_at, results = _results_cache
+            if time.monotonic() < expires_at:
+                return results
+        results = _read_results()
+        _results_cache = (time.monotonic() + _RESULTS_TTL_SECONDS, results)
+        return results
+
+
+def _read_results():
     conn = db_schema.get_conn()
     try:
         output = []
