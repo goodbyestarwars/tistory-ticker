@@ -831,7 +831,7 @@
   // dividend/etfReturn처럼 별도 상세 모달이 필요할 만큼 복잡한 데이터가 아니다.
   function npsTableRow(item, index) {
     var streak = item.pensionBuyDays == null ? '—'
-      : fmt(item.pensionBuyDays) + '일 · ' + escapeHtml(item.pensionFlowAsOf);
+      : fmt(item.pensionBuyDays) + '일 · ' + escapeHtml(item.pensionFlowAsOf || '기준일 미확인');
     var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
     return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
@@ -842,7 +842,7 @@
       + priceCellHtml(item)
       + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
       + '<td class="ss-col-signal" data-label="보유 지분율">' + fmtPctExact(item.holdingPct) + '</td>'
-      + '<td data-label="연기금 등 연속 순매수">' + streak + '</td>'
+      + '<td class="ss-col-pension-streak" data-label="연기금 등 연속 순매수">' + streak + '</td>'
       + '<td class="ss-col-fundamentals" data-label="평가액">' + (item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원') + '</td>'
       + '</tr>';
   }

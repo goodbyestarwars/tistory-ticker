@@ -1470,8 +1470,8 @@ def scan_nps_holdings(universe, wics_map, conn, daily_cache=None):
         match = build_nps_match(stock, daily, wics['sector'], info)
         pension = json.loads(pension_by_code.get(code) or 'null') or {}
         streak = pension.get('streak') or {}
-        if pension.get('as_of') and streak.get('days') is not None:
-            match['pensionFlowAsOf'] = pension['as_of']
+        if streak.get('days') is not None:
+            match['pensionFlowAsOf'] = pension.get('as_of')
             match['pensionBuyDays'] = streak['days'] if streak.get('direction') == 'buy' else 0
         matches.append(match)
 
