@@ -1,4 +1,4 @@
-import { BoxGeometry, CanvasTexture, SphereGeometry, Sprite, SpriteMaterial, Vector3, Color, Group, HemisphereLight, Mesh, MeshLambertMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { BoxGeometry, Fog, TorusGeometry, MeshBasicMaterial, DirectionalLight, CanvasTexture, SphereGeometry, Sprite, SpriteMaterial, Vector3, Color, Group, HemisphereLight, Mesh, MeshLambertMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 
 export function start(stage: HTMLElement, signal: AbortSignal) {
   const scene = new Scene();
@@ -12,36 +12,60 @@ export function start(stage: HTMLElement, signal: AbortSignal) {
     scene.add(mesh);
     return mesh;
   }
-  scene.background = new Color(0x242c4b);
-  scene.add(new HemisphereLight(0xffe4bb, 0x697494, 2.4), player);
-  block(30,.2,30,0x294449,0,-.15,0);
-  block(19,.2,19,0x827771,0,-.1,0);
-  for (let i = -4; i <= 4; i++) {
-    block(18,.01,.035,0x494956,0,.008,i*2);
-    block(.035,.01,18,0x494956,i*2,.008,0);
+  scene.background = new Color(0x191842);
+  scene.fog = new Fog(0x191842, 18, 48);
+  scene.add(new HemisphereLight(0xe1f5ff, 0x6052ac, 2.2), player);
+  const keyLight = new DirectionalLight(0xffc4eb, 2);
+  keyLight.position.set(-5,8,3);
+  scene.add(keyLight);
+  const cyan = new MeshBasicMaterial({color:0x71f9ff});
+  const violet = new MeshBasicMaterial({color:0xb99bff});
+  function strip(w: number, h: number, d: number, x: number, y: number, z: number, material = cyan) {
+    const mesh = new Mesh(new BoxGeometry(w,h,d),material);
+    mesh.position.set(x,y,z);
+    scene.add(mesh);
   }
+  block(38,.2,38,0x101b3c,0,-.26,0);
+  block(19,.35,19,0x2d3c60,0,-.18,0);
   for (const side of [-1,1]) {
-    for (const z of [-7,-3,2]) {
-      const x = side*6.6;
-      block(2.4,.42,1.5,0x4c5062,x,.21,z);
-      block(.19,2,.19,0x67584e,x,1,z);
-      const canopy = new Mesh(new SphereGeometry(.95,9,6),new MeshLambertMaterial({color:0x40786d}));
-      canopy.position.set(x,2.25,z);
-      canopy.scale.set(1,1.18,.85);
+    strip(.06,.025,18,side*8.8,.015,0);
+    strip(.045,.025,16,side*3.8,.015,-.6,violet);
+    for (const z of [-6,-1,4]) {
+      const x = side*6.5;
+      block(2.1,.45,1.7,0x4c5284,x,.22,z);
+      strip(2.2,.05,1.78,x,.45,z,violet);
+      block(.16,1.7,.16,0x785c8b,x,1.25,z);
+      const canopy = new Mesh(new SphereGeometry(.8,8,5),new MeshLambertMaterial({color:side>0?0x9b77e6:0x47bbd3,flatShading:true}));
+      canopy.position.set(x,2.14,z);
       scene.add(canopy);
-      block(.12,2.8,.12,0x33324a,side*4.4,1.4,z);
-      block(.35,.38,.35,0xffc076,side*4.4,2.8,z);
     }
   }
-  block(7,2.8,.45,0x35455e,0,1.4,-8.8);
-  block(8,.22,1.4,0x52475b,0,2.88,-8.8);
+  for (let i=0;i<17;i++) {
+    const x = (i-8)*2.8;
+    const height = 3.4+(i*7%13)*.55;
+    const z = -17-(i%3)*2;
+    block(2.1,height,2.3,i%2?0x303968:0x3c3673,x,height*.5,z);
+    for (let y=1;y<height-.2;y+=.9) {
+      strip(1.45,.1,.03,x,y,z+1.17,i%3?violet:cyan);
+    }
+  }
+  block(8,.55,2.8,0x343e67,0,.27,-8.1);
+  strip(8,.07,.06,0,.5,-6.68);
+  block(7.4,3.4,.46,0x20294b,0,2.25,-8.7);
+  for (const side of [-1,1]) {
+    strip(.08,3.45,.08,side*3.7,2.25,-8.42);
+    const ring = new Mesh(new TorusGeometry(.78,.045,8,32),side>0?violet:cyan);
+    ring.position.set(side*4.9,1.65,-8.2);
+    scene.add(ring);
+  }
+  strip(7.4,.07,.08,0,3.98,-8.42,violet);
   const sign = document.createElement('canvas');
   sign.width = 512;
   sign.height = 96;
   const ink = sign.getContext('2d')!;
-  ink.fillStyle = '#253147';
+  ink.fillStyle = '#20294b';
   ink.fillRect(0,0,512,96);
-  ink.fillStyle = '#ffe3ae';
+  ink.fillStyle = '#a9f7ff';
   ink.font = 'bold 48px sans-serif';
   ink.textAlign = 'center';
   ink.fillText('gOOdbyestar',256,63);
@@ -49,7 +73,7 @@ export function start(stage: HTMLElement, signal: AbortSignal) {
   const signMaterial = new SpriteMaterial({map:texture});
   const label = new Sprite(signMaterial);
   label.scale.set(5.5,1.03,1);
-  label.position.set(0,1.95,-8.45);
+  label.position.set(0,2.45,-8.42);
   scene.add(label);
   for (const side of [-1,1]) {
     player.add(block(.19,.57,.23,0x303846,side*.13,.34,0));
@@ -60,8 +84,11 @@ export function start(stage: HTMLElement, signal: AbortSignal) {
   head.position.y = 1.54;
   player.add(head);
   player.add(block(.38,.14,.33,0x42333c,0,1.7,0));
+  const outfits = [0x76d4ed,0xbf99ff,0xf09bc1,0xf9c681,0x8ae0c4];
   const authors = Array.from({length:10}, (_,index) => {
     const figure = player.clone();
+    const jacket = figure.children[4] as Mesh<BoxGeometry, MeshLambertMaterial>;
+    jacket.material = new MeshLambertMaterial({color:outfits[index%outfits.length]});
     figure.position.set((index%5-2)*1.65,0,-3.2-Math.floor(index/5)*2.3);
     figure.visible = false;
     scene.add(figure);
@@ -174,6 +201,7 @@ export function start(stage: HTMLElement, signal: AbortSignal) {
     scene.traverse(obj => {
       if (obj instanceof Mesh && !authors.includes(obj.parent as Group)) { obj.geometry.dispose(); obj.material.dispose(); }
     });
+    authors.forEach(figure => (figure.children[4] as Mesh<BoxGeometry, MeshLambertMaterial>).material.dispose());
     texture.dispose();
     signMaterial.dispose();
     renderer.dispose();
