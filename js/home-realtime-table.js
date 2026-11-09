@@ -951,7 +951,7 @@
       state.liveQuotes[code] = {
         price: price != null ? price : prev.price,
         rate: rate != null ? rate : prev.rate,
-        day: kstDay()
+        day: tradingDay(state.market)
       };
     }
     // 같은 종목이 여러 순위(거래대금·상승·일반종목 순위 등)에 서로 다른 객체로 들어 있으므로 모두 갱신한다.
@@ -1002,16 +1002,19 @@
     }
   }
 
-  function kstDay() {
-    try { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); } catch (error) { return ''; }
+  // 거래일 키. 미국은 프리(04:00 ET)~애프터(20:00 ET)가 KST 자정을 넘으므로 뉴욕 날짜로 묶는다.
+  function tradingDay(market) {
+    var zone = market === 'us' ? 'America/New_York' : 'Asia/Seoul';
+    try { return new Date().toLocaleDateString('en-CA', { timeZone: zone }); } catch (error) { return ''; }
   }
 
   /* 2026-11-09 사용자 지적("08:00 NXT에 종목판이 안 움직인다, 관심종목은 움직인다"):
      KIS 순위 API는 KRX(J) 기준이라 08시대에는 장전 시간외 값(전일 종가·등락 0)을 준다.
      30초 재조회와 체결 후 5초 재조회가 그 값으로 방금 받은 통합(KRX+NXT) 체결가를 덮어써
-     화면이 멈춰 보였다. 같은 날 받은 마지막 체결값을 새 순위 행에 다시 입힌다(순위·거래대금은 그대로). */
-  function applyLiveQuotes(data) {
-    var today = kstDay();
+     화면이 멈춰 보였다. 같은 날 받은 마지막 체결값을 새 순위 행에 다시 입힌다(순위·거래대금은 그대로).
+     미국도 순위가 정규장 기준이라 프리·애프터 체결을 덮으므로 같은 규칙을 적용한다(사용자 요청 2026-11-09). */
+  function applyLiveQuotes(data, market) {
+    var today = tradingDay(market);
     function apply(item) {
       var live = item && item.code && state.liveQuotes[item.code];
       if (!live || live.day !== today) return;
@@ -1042,7 +1045,7 @@
     return fetchSharedMarketBoard(market, force).then(function (json) {
       if (currentMarket() !== market) return;
       state.data = json.data || json;
-      if (market === 'domestic') applyLiveQuotes(state.data);
+      applyLiveQuotes(state.data, market);
       var session = state.mount.querySelector('[data-hrt-session]');
       var updated = state.mount.querySelector('[data-hrt-updated]');
       // API가 이전 세션 문구를 캐시하고 있어도 화면은 브라우저의 현재 날짜와
