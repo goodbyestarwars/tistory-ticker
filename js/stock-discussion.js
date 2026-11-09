@@ -197,7 +197,7 @@
     var form = root.querySelector('.discussion-native-guestbook');
     var nativeHeading = root.querySelector('.discussion-list-heading');
     var nativeList = root.querySelector('.discussion-list');
-    if (!form || !nativeHeading || new URLSearchParams(location.search).get('view') === 'native') return;
+    if (!form || !nativeHeading) return;
 
     var panel = document.createElement('section');
     panel.className = 'discussion-terminal';
@@ -218,10 +218,6 @@
     log.setAttribute('aria-label', '공개 채팅 목록, 최신 글부터');
     log.tabIndex = 0;
     addText(panel, 'p', 'discussion-terminal-prompt', '입력 > 아래 방명록 양식에서 의견 등록');
-    var toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'discussion-view-toggle';
-
     var messages = entries.filter(function (entry) {
       return entry.classList.contains('guest_general') &&
         !entry.hidden && !entry.matches('.guest_secret, .secret, [data-secret="true"]');
@@ -248,16 +244,10 @@
       });
     };
 
-    function showClassic(enabled) {
-      panel.hidden = !enabled;
-      nativeHeading.hidden = enabled;
-      if (nativeList) nativeList.hidden = enabled;
-      toggle.textContent = enabled ? '[ 기본 방명록 ]' : '[ 클래식 채팅 ]';
-    }
-
-    toggle.addEventListener('click', function () { showClassic(panel.hidden); });
-    form.before(toggle, panel);
-    showClassic(true);
+    form.before(panel);
+    root.classList.add('discussion-classic');
+    nativeHeading.hidden = true;
+    if (nativeList) nativeList.hidden = true;
   }
 
   function applyFilter(value, updateUrl) {

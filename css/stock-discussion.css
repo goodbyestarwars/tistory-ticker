@@ -32,18 +32,18 @@
 .market-discussion .discussion-write textarea {
   display:block !important;
   width:100% !important;
-  min-height:140px !important;
+  min-height:var(--discussion-input-height, 140px) !important;
   box-sizing:border-box !important;
   padding:14px !important;
-  border:1px solid #d8e2ed !important;
-  border-radius:11px !important;
-  background:rgb(255, 254, 252) !important;
-  color:#263b55 !important;
+  border:1px solid var(--discussion-input-line, #d8e2ed) !important;
+  border-radius:var(--discussion-input-radius, 11px) !important;
+  background:var(--discussion-input-bg, rgb(255, 254, 252)) !important;
+  color:var(--discussion-input-text, #263b55) !important;
   resize:vertical !important;
   opacity:1 !important;
   visibility:visible !important;
 }
-.market-discussion .discussion-write textarea::placeholder { color:#9aaabd !important; opacity:1 !important; }
+.market-discussion .discussion-write textarea::placeholder { color:var(--discussion-input-placeholder, #9aaabd) !important; opacity:1 !important; }
 .discussion-write-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; }
 .discussion-write-note { color:#91a0b0; font-size:12px; }
 .discussion-write-actions input[type=submit] { border:0; border-radius:999px; padding:11px 20px; background:linear-gradient(135deg,#4f8de0,#6c94c9); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 5px 12px rgba(79,141,224,.22); transition:transform .15s, box-shadow .15s; }
@@ -99,11 +99,11 @@ html.dark .discussion-write-help { color: var(--dk-mute); }
 html.dark .discussion-guest-fields input { background: var(--dk-inner); border-color: var(--dk-line); color: var(--dk-text); }
 html.dark .discussion-write textarea,
 html.dark .market-discussion .discussion-write textarea {
-  background: var(--dk-inner) !important;
-  border-color: var(--dk-line) !important;
-  color: var(--dk-text) !important;
+  background: var(--discussion-input-bg, var(--dk-inner)) !important;
+  border-color: var(--discussion-input-line, var(--dk-line)) !important;
+  color: var(--discussion-input-text, var(--dk-text)) !important;
 }
-html.dark .market-discussion .discussion-write textarea::placeholder { color: var(--dk-mute) !important; }
+html.dark .market-discussion .discussion-write textarea::placeholder { color: var(--discussion-input-placeholder, var(--dk-mute)) !important; }
 html.dark .discussion-write-note { color: var(--dk-mute); }
 html.dark .discussion-list-heading { color: var(--dk-text); }
 html.dark .discussion-list-heading span { color: var(--dk-mute); }
@@ -117,7 +117,6 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 
 /* 클래식 PC통신 화면의 팔레트는 방명록 안에 한정한다. */
 .market-discussion [hidden] { display: none; }
-.discussion-view-toggle,
 .discussion-terminal button {
   border: 1px solid currentColor;
   border-radius: 0;
@@ -128,11 +127,10 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   font: inherit;
   cursor: pointer;
 }
-.discussion-view-toggle { margin-block-end: .65rem; }
 .discussion-terminal {
   margin-block-end: 1rem;
   min-width: 0;
-  background: #000080;
+  background: var(--discussion-terminal-bg);
   color: #fff;
   border: 2px solid #6feaff;
   font: 1rem/1.55 Consolas, 'D2Coding', 'Malgun Gothic', monospace;
@@ -147,6 +145,7 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   background: #005291;
   color: #fff;
 }
+.discussion-terminal .discussion-terminal-bar strong { color: #fff; }
 .discussion-terminal-status,
 .discussion-terminal-prompt {
   margin: 0;
@@ -173,8 +172,67 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 .discussion-terminal-date { color: #a4f5ff; }
 .discussion-terminal-name { color: #fff47f; font-weight: 700; }
 .discussion-terminal-body { flex: 1 1 15rem; min-width: 0; white-space: pre-wrap; }
-.discussion-terminal :focus-visible,
-.discussion-view-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+.discussion-classic :focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
 @media (max-width: 720px) {
   .discussion-terminal-body { flex-basis: 100%; }
 }
+
+.market-discussion.discussion-classic {
+  --discussion-terminal-bg: #000080;
+  --discussion-terminal-ink: #fff;
+  --discussion-terminal-line: #6feaff;
+  --discussion-terminal-accent: #fff47f;
+  --discussion-terminal-font: Consolas, 'D2Coding', 'Malgun Gothic', monospace;
+  --discussion-input-bg: #0b175d;
+  --discussion-input-line: #6feaff;
+  --discussion-input-text: #fff;
+  --discussion-input-placeholder: #bfd6ff;
+  --discussion-input-radius: 0;
+  --discussion-input-height: 6rem;
+}
+.market-discussion.discussion-classic .discussion-stockbar,
+.market-discussion.discussion-classic .discussion-native-guestbook {
+  background: var(--discussion-terminal-bg);
+  color: var(--discussion-terminal-ink);
+  border: 2px solid var(--discussion-terminal-line);
+  border-radius: 0;
+  font-family: var(--discussion-terminal-font);
+}
+.market-discussion.discussion-classic .discussion-stockbar label,
+.market-discussion.discussion-classic .discussion-write-title {
+  color: var(--discussion-terminal-accent);
+}
+.market-discussion.discussion-classic .discussion-stock-input-wrap { min-width: 0; }
+.market-discussion.discussion-classic .discussion-stockbar input,
+.market-discussion.discussion-classic .discussion-guest-fields input,
+.market-discussion.discussion-classic .discussion-stock-suggest {
+  background: var(--discussion-input-bg);
+  color: var(--discussion-input-text);
+  border-color: var(--discussion-input-line);
+  border-radius: 0;
+}
+.market-discussion.discussion-classic input::placeholder { color: var(--discussion-input-placeholder); }
+.market-discussion.discussion-classic .discussion-stockbar input::placeholder { color: var(--discussion-input-placeholder); }
+.market-discussion.discussion-classic .discussion-stock-suggest-select { color: var(--discussion-input-text); }
+.market-discussion.discussion-classic .discussion-stock-suggest-select:is(:hover, :focus) { background: #25458d; }
+.market-discussion.discussion-classic .discussion-stock-suggest .code { color: var(--discussion-input-placeholder); }
+.market-discussion.discussion-classic .discussion-stock-btn,
+.market-discussion.discussion-classic .discussion-write-actions input[type=submit] {
+  background: transparent;
+  color: var(--discussion-terminal-ink);
+  border: 1px solid var(--discussion-terminal-line);
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 36px;
+  font-family: inherit;
+}
+.market-discussion.discussion-classic .discussion-stock-btn.is-active,
+.market-discussion.discussion-classic .discussion-write-actions input[type=submit]:is(:hover, :focus-visible) {
+  background: var(--discussion-terminal-accent);
+  border-color: var(--discussion-terminal-accent);
+  color: var(--discussion-input-bg);
+  transform: none;
+}
+.market-discussion.discussion-classic .discussion-write-help,
+.market-discussion.discussion-classic .discussion-write-note { color: var(--discussion-input-placeholder); }
+.market-discussion.discussion-classic .discussion-write textarea { font-family: inherit; }
