@@ -4812,8 +4812,10 @@
     var toneBadgeCls = TONE_BADGE_CLASS[tone] || 'ff-badge-neutral';
 
     var grid = extraMetric('신용융자잔고', credit.balance_qty == null ? '-' : fmtAbsShares(credit.balance_qty))
-      + extraMetric('신용융자잔고 증감률(당일)', '<span class="' + signClass(credit.balance_change_pct) + '">'
-        + fmtSignedPct(credit.balance_change_pct) + '</span>');
+      + extraMetric('신용융자잔고 증감률(직전 집계 대비)', credit.balance_change_pct == null ? '-' :
+        '<span class="' + signClass(credit.balance_change_pct) + '">' + fmtSignedPct(credit.balance_change_pct) + '</span>');
+    if (credit.as_of) grid += extraMetric('잔고 기준일', escapeHtml(credit.as_of));
+    if (credit.unavailable_date) grid += extraMetric('최신 신용융자 집계', escapeHtml(credit.unavailable_date) + ' 미집계');
     if (sig.flag) {
       grid += extraMetric('감지일', escapeHtml(sig.date || '-'))
         + extraMetric('그 날 주가 등락률', '<span class="' + signClass(sig.price_change_pct) + '">' + fmtSignedPct(sig.price_change_pct) + '</span>')

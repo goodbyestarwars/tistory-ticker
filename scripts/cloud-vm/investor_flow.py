@@ -264,6 +264,21 @@ def _num_or_none(value):
         return None
 
 
+def _credit_series_item(row):
+    return {
+        'balance': _num_or_none(row.get('remn')),
+        'ratio_pct': _num_or_none(row.get('remn_rt')),
+        'new': _num_or_none(row.get('new')),
+        'repay': _num_or_none(row.get('rpya')),
+        'amount_mil': _num_or_none(row.get('amt')),
+    }
+
+
+def _valid_credit_row(row):
+    item = _credit_series_item(row)
+    return bool(_ymd(row.get('dt')) and item['balance'] is not None and any(item.values()))
+
+
 def downside_series(credit_rows, loan_rows, short_rows, invsr_rows, days=SERIES_DAYS):
     """종목분석 카드형 '하방 압력 점검'용 일별 원자료(최신일 우선, 판정 없음).
     fetch_stock이 이미 받은 네 TR 응답을 잘라 붙일 뿐 공급자 호출을 늘리지 않는다.
@@ -287,13 +302,8 @@ def downside_series(credit_rows, loan_rows, short_rows, invsr_rows, days=SERIES_
 
     return {
         'days': days,
-        'credit': pick(credit_rows, lambda r: {
-            'balance': _num_or_none(r.get('remn')),
-            'ratio_pct': _num_or_none(r.get('remn_rt')),
-            'new': _num_or_none(r.get('new')),
-            'repay': _num_or_none(r.get('rpya')),
-            'amount_mil': _num_or_none(r.get('amt')),
-        }),
+        'credit': [dict(_credit_series_item(r), date=_ymd(r.get('dt')))
+                   for r in credit_rows[:days] if _valid_credit_row(r)],
         'loan': pick(loan_rows, lambda r: {
             'balance': _num_or_none(r.get('rmnd')),
             'change': _num_or_none(r.get('dbrt_trde_irds')),
@@ -396,7 +406,9 @@ def fetch_stock(token, code, name, include_series=False):
     short_rows = short_res.get('shrts_trnsn') or []
     loan_rows = loan_res.get('dbrt_trde_trnsn') or []
     invsr_rows = invsr_res.get('stk_invsr_orgn') or []
-    credit_rows = sorted(credit_res.get('crd_trde_trend') or [], key=lambda r: r.get('dt', ''), reverse=True)
+    raw_credit_rows = sorted(credit_res.get('crd_trde_trend') or [],
+                             key=lambda r: r.get('dt') or '', reverse=True)
+    credit_rows = [row for row in raw_credit_rows if _valid_credit_row(row)]
 
     short_rows = sorted(short_rows, key=lambda r: r.get('dt', ''), reverse=True)
     loan_rows = sorted(loan_rows, key=lambda r: r.get('dt', ''), reverse=True)
@@ -428,8 +440,12 @@ def fetch_stock(token, code, name, include_series=False):
 
     # 반대매매 압박(신용융자잔고, ka10013 qry_tp='1') - 종목에 따라 신용거래 자체가 없어
     # crd_trde_trend가 빈 배열일 수 있어 None-safe하게 처리(나머지 응답엔 영향 없음).
-    credit_balance_qty = to_num(credit_rows[0].get('remn')) if credit_rows else None
-    credit_balance_change_pct = _credit_row_change_pct(credit_rows, 0, 'remn') if len(credit_rows) > 1 else 0.0
+    credit_as_of = _ymd(credit_rows[0].get('dt')) if credit_rows else None
+    credit_latest_date = _ymd(raw_credit_rows[0].get('dt')) if raw_credit_rows else None
+    credit_balance_qty = _num_or_none(credit_rows[0].get('remn')) if credit_rows else None
+    credit_balance_change_pct = None
+    if len(credit_rows) > 1 and _num_or_none(credit_rows[1].get('remn')):
+        credit_balance_change_pct = _credit_row_change_pct(credit_rows, 0, 'remn')
     credit_signal = credit_pressure_signal(credit_rows) if credit_rows else None
 
     today_invsr = invsr_rows[0]
@@ -484,6 +500,8 @@ def fetch_stock(token, code, name, include_series=False):
             'balance_change_pct': loan_change_pct,
         },
         'credit': {
+            'as_of': credit_as_of,
+            'unavailable_date': credit_latest_date if credit_latest_date != credit_as_of else None,
             'balance_qty': credit_balance_qty,
             'balance_change_pct': credit_balance_change_pct,
             'signal': credit_signal,
