@@ -1,3 +1,7 @@
+**2026-11-09 차트 가로선 금액 라벨 클릭 복구**
+
+요청: 가로선 끝 금액을 눌러 바꾸는 기능이 안 됨. 원인: 11/06 공통 엔진 가격축 드래그(`chart-core` `installSmoothWheelZoom`, capture 단계 `stopPropagation`)가 가격축 폭 안의 왼쪽 클릭을 먼저 가져가는데, 금액 라벨은 그 가격축 위에 그려져 그리기 층까지 클릭이 오지 않았다. 변경: `js/chart-drawing.js`가 가로선 모드일 때 라벨·선 적중 여부를 `overlay.ncDrawingHit(clientX, clientY)`로 알리고, `chart-core` 가격축 드래그가 적중 자리에서만 양보(빈 가격축 드래그는 그대로). 검증: `test_chart_hline.js`·`test_chart_smooth_wheel.js` 보강 통과, 운영 KOSPI 차트 재현 확인. 기준선: `test_chart_bar_zoom`·`options_ribbon`·`studies`는 수정 전 master에서도 실패.
+
 **2026-11-09 실시간 종목판 08시대(NXT) 체결가 유지**
 
 요청: 08:00 NXT에 종목판은 안 움직이고 관심종목은 움직임. 원인: WebSocket은 둘 다 같은 통합(H0UNCNT0) 체결을 받는다(08:47 실측 20초 408틱, exchange=NXT). 그러나 종목판 순위 API(`kis_client.fetch_domestic_volume_rank`)는 KRX(J) 기준이라 08시대엔 장전 시간외 값(전일 종가·등락 0, 실측 삼성전자 188,700원 0% vs 통합 190,800원 +1.11%)을 주고, 30초·체결 후 5초 순위 재조회가 그 값으로 체결가를 덮어썼다. 변경: `js/home-realtime-table.js`가 같은 KST 날짜에 받은 종목별 마지막 체결가·등락률을 기억해 순위 재조회 뒤 다시 입힘(순위·거래대금·서버 응답 불변, 시장 전환 시 초기화). 검증: 로컬 하네스(실제 08:41 응답+가짜 소켓)에서 틱 후 5초 재조회 뒤에도 189,500원 +0.42% 유지, `node --check`. 미완료: 08시대 순위 자체와 상승률·하락률 탭(빈 목록)은 여전히 KRX 기준.

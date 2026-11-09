@@ -499,6 +499,24 @@
     }
 
     // ---- 입력 ----
+    // 가로선 모드에서 (px, py)에 걸리는 가로선. 금액 라벨이 먼저, 그다음 선 위아래 6px.
+    function hlineAt(px, py) {
+      var found = null;
+      d.hlines.forEach(function (hl) {
+        if (found || hl._y == null) return;
+        var lb = hl._label;
+        if (lb && px >= lb.x1 && px <= lb.x2 && py >= lb.y1 && py <= lb.y2) found = { hl: hl, onLabel: true };
+        else if (Math.abs(py - hl._y) <= 6) found = { hl: hl, onLabel: false };
+      });
+      return found;
+    }
+    // 금액 라벨은 가격축 위에 그려진다. 공통 엔진의 가격축 드래그(chart-core, capture 단계)가
+    // 이 점을 먼저 묻고 양보하도록 그리기 층이 자기 가로선 적중 여부를 알려 준다(2026-11-09).
+    overlay.ncDrawingHit = function (clientX, clientY) {
+      if (detached || !d.enabled || d.mode !== 'hline') return false;
+      var rect = overlay.getBoundingClientRect();
+      return !!hlineAt(clientX - rect.left, clientY - rect.top);
+    };
     var minLen = opts.minLengthPx || 0;
     var strict = !!opts.clampToCanvas;
     function onPointerDown(event) {
@@ -512,17 +530,11 @@
       if (d.mode === 'pencil') d.activePath = [point];
       else if (d.mode === 'hline') {
         // 가로선 금액 수정(2026-10-10): 금액 라벨을 누르면 숫자를 직접 입력, 선을 끌면 가격이 따라 움직인다.
-        var px = event.clientX - rect.left, py = event.clientY - rect.top;
-        var hit = null, onLabel = false;
-        d.hlines.forEach(function (hl) {
-          if (hit || hl._y == null) return;
-          var lb = hl._label;
-          if (lb && px >= lb.x1 && px <= lb.x2 && py >= lb.y1 && py <= lb.y2) { hit = hl; onLabel = true; }
-          else if (Math.abs(py - hl._y) <= 6) hit = hl;
-        });
+        var py = event.clientY - rect.top;
+        var found = hlineAt(event.clientX - rect.left, py), hit = found && found.hl;
         if (hit) {
           d.hlinePreview = null;
-          d.dragHline = { hl: hit, onLabel: onLabel, startY: py, moved: false, originalPrice: hit.price };
+          d.dragHline = { hl: hit, onLabel: found.onLabel, startY: py, moved: false, originalPrice: hit.price };
           overlay.style.cursor = 'ns-resize';
           if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
           return;

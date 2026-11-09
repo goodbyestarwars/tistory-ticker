@@ -218,6 +218,11 @@ assert.equal(events.touchstart, undefined);
  assert(prevented);ev.pointerup();assert.equal(captured,null);
  const before={...axis};ev.pointermove({pointerId:4,clientY:200});assert.deepEqual(axis,before,'release stops scaling');
  ev.pointerdown({button:0,pointerType:'touch',pointerId:5,clientX:580,clientY:100});ev.pointermove({pointerId:5,clientY:200});assert.deepEqual(axis,before,'touch retains native handling');
+ let stopped=false;const label={ncDrawingHit:(x,y)=>x===580&&y===100};
+ ev.pointerdown({button:0,pointerId:6,clientX:580,clientY:100,target:label,preventDefault(){},stopPropagation(){stopped=true;}});
+ ev.pointermove({pointerId:6,clientY:200});assert.deepEqual(axis,before,'drawing hline label on the axis keeps the click');assert(!stopped);ev.pointerup();
+ ev.pointerdown({button:0,pointerId:7,clientX:580,clientY:300,target:label,preventDefault(){},stopPropagation(){}});
+ ev.pointermove({pointerId:7,clientY:350});assert(axis.to-axis.from>before.to-before.from,'axis drag still works off the label');ev.pointerup();
  detach();assert(!ev.pointermove,'axis handler cleaned up');
 }
 
