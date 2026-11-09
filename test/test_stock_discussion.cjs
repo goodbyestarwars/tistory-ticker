@@ -69,8 +69,11 @@ async function verify() {
     assert.equal(await terminal.locator('.discussion-terminal-rose').getAttribute('aria-hidden'), 'true');
     assert.equal(await terminal.locator('.discussion-terminal-modem').textContent(), '56K 로 가느라 좀 느립니다.');
     assert.equal(await terminal.locator('.discussion-write-note').count(), 0);
-    assert.equal(await terminal.locator('.discussion-composer-prompt').textContent(), '↵');
-    assert.equal(await terminal.locator('.discussion-composer').getByRole('textbox', { name: '메시지' }).count(), 1);
+    assert.equal(await terminal.locator('.discussion-composer-prompt').textContent(), '> 메시지 입력');
+    const message = terminal.locator('.discussion-composer').getByRole('textbox', { name: '메시지' });
+    await terminal.locator('.discussion-composer-prompt').click();
+    assert.equal(await message.evaluate(el => document.activeElement === el && getComputedStyle(el).outlineStyle === 'none'), true);
+    assert.equal(await page.getByRole('button', { name: '보내기' }).inputValue(), '↵');
     assert.ok((await log.boundingBox()).height >= 192);
     assert.equal(await terminal.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(0, 0, 128)');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

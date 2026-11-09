@@ -282,10 +282,10 @@
       var composer = document.createElement('div');
       composer.className = 'discussion-composer';
       textarea.before(composer);
-      var prompt = addText(composer, 'label', 'discussion-composer-prompt', '↵');
+      var prompt = addText(composer, 'label', 'discussion-composer-prompt', '> 메시지 입력');
+      composer.before(prompt);
       textarea.id = 'discussionMessage';
       prompt.htmlFor = textarea.id;
-      prompt.setAttribute('aria-hidden', 'true');
       var inputArea = addText(composer, 'div', 'discussion-composer-input', '');
       inputArea.append(textarea);
       textarea.rows = 2;
@@ -295,7 +295,11 @@
       if (guestFields) composer.append(guestFields);
     }
     var submit = form.querySelector('.discussion-write input[type=submit]');
-    if (submit) submit.value = '보내기';
+    if (submit) {
+      submit.value = '↵';
+      submit.setAttribute('aria-label', '보내기');
+      submit.title = '보내기';
+    }
     var messages = entries.filter(function (entry) {
       return entry.classList.contains('guest_general') &&
         !entry.hidden && !entry.matches('.guest_secret, .secret, [data-secret="true"]');

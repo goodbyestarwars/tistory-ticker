@@ -223,7 +223,7 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 .discussion-terminal-date { color: #a4f5ff; }
 .discussion-terminal-name { color: #fff47f; font-weight: 700; }
 .discussion-terminal-body { flex: 1 1 15rem; min-width: 0; white-space: pre-wrap; }
-.discussion-classic :focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+.discussion-classic :focus-visible:not(:where(.discussion-composer-input textarea)) { outline: 2px solid currentColor; outline-offset: -3px; }
 @media (max-width: 720px) {
   #tt-body-guestbook .main-layout:has(.discussion-classic) {
     --main-layout-mobile-gutter: 0px;
@@ -316,6 +316,9 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   gap: .45rem;
 }
 .discussion-composer-prompt {
+  display: inline-block;
+  margin-bottom: .4rem;
+  font-weight: 700;
   color: var(--discussion-terminal-accent);
   cursor: text;
   line-height: 1.6;
@@ -330,7 +333,16 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   --discussion-input-padding: 0;
   --discussion-input-resize: none;
 }
-.discussion-composer-input textarea { caret-color: var(--discussion-terminal-accent); }
+.discussion-composer-input textarea {
+  caret-color: var(--discussion-terminal-accent);
+  outline: none;
+  box-shadow: none;
+}
+.market-discussion.discussion-classic .discussion-write-actions input[type=submit] {
+  min-width: 2.75rem;
+  font-size: 1.25rem;
+  line-height: 1;
+}
 .discussion-composer-input:has(textarea:placeholder-shown:not(:focus))::after {
   content: '';
   position: absolute;
