@@ -52,6 +52,8 @@ async function verify() {
     }
     assert.equal(await terminal.locator('.discussion-terminal-poem h2').textContent(), '실패할 수 있는 용기');
     assert.doesNotMatch(await terminal.locator('.discussion-terminal-welcome').innerText(), /회원ID|천리안 가입/);
+    assert.equal(await terminal.locator('.discussion-terminal-etiquette').textContent(), '대화실 이용시 건전한 언어를 사용합시다.');
+    assert.equal(await terminal.locator('.discussion-terminal-welcome').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(0, 0, 128)');
     assert.equal(await terminal.locator('.discussion-terminal-rose').getAttribute('aria-hidden'), 'true');
     assert.equal(await terminal.locator('.discussion-terminal-modem').textContent(), '56K 로 가느라 좀 느립니다.');
     assert.equal(await terminal.locator('.discussion-write-note').count(), 0);

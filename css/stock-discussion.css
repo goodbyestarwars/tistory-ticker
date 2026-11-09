@@ -137,17 +137,19 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 }
 .discussion-terminal-welcome {
   container-type: inline-size;
-  background: #102f87;
+  background: var(--discussion-terminal-bg);
   color: #e1edff;
-  padding-block-start: clamp(1.15rem, 7cqw, 3rem);
-  font: 400 clamp(.7rem, 2.5cqw, 1rem)/1.1 var(--discussion-terminal-font);
+  padding-block-start: clamp(1.5rem, 6vw, 3rem);
+  font: 400 clamp(.8rem, 2.5vw, 1rem)/1.55 var(--discussion-terminal-font);
+  letter-spacing: .035em;
 }
 .discussion-terminal-screen {
   display: grid;
   grid-template-columns: max-content minmax(0, max-content);
   justify-content: center;
-  gap: clamp(.35rem, 4cqw, 1.8rem);
-  padding-inline: .35rem;
+  align-items: center;
+  gap: clamp(1rem, 5cqw, 3rem);
+  padding-inline: clamp(.85rem, 4cqw, 2rem);
 }
 .discussion-terminal-welcome .discussion-terminal-rose {
   margin: 0;
@@ -156,7 +158,8 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   background: transparent;
   border: 0;
   font: inherit;
-  line-height: 1;
+  line-height: 1.15;
+  letter-spacing: 0;
   white-space: pre;
 }
 .discussion-terminal-poem h2 {
@@ -167,11 +170,17 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 }
 .discussion-terminal-poem p { margin: 0; white-space: pre-line; }
 .discussion-terminal-etiquette {
-  margin: .65em 0 0;
-  padding: .4em .65em;
+  margin: 1.25rem 0 0;
+  padding: .65em 1em;
   overflow-wrap: anywhere;
   border-top: 1px dashed currentColor;
   text-align: center;
+}
+@container (max-width: 460px) {
+  .discussion-terminal-screen {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
 }
 .discussion-terminal-bar {
   display: flex;
@@ -205,8 +214,8 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   list-style: none;
   margin: 0;
   padding: .65em .75em;
-  min-height: clamp(12rem, 32vh, 19rem);
-  max-height: max(12rem, 56vh);
+  min-height: clamp(14rem, 38vh, 23rem);
+  max-height: max(14rem, 60vh);
   overflow: auto;
 }
 .discussion-terminal-log li {
@@ -235,7 +244,7 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   --discussion-input-text: #fff;
   --discussion-input-placeholder: #bfd6ff;
   --discussion-input-radius: 0;
-  --discussion-input-height: clamp(9rem, 20vh, 12rem);
+  --discussion-input-height: clamp(7rem, 16vh, 10rem);
 }
 .market-discussion.discussion-classic .discussion-stockbar,
 .market-discussion.discussion-classic .discussion-current,
