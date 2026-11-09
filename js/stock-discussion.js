@@ -3,6 +3,7 @@
 
   var root = document.querySelector('[data-market-discussion]');
   if (!root) return;
+  document.title = 'PC통신';
 
   var input = root.querySelector('#discussionStockInput');
   var current = root.querySelector('[data-discussion-current]');
