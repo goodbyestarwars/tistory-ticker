@@ -223,7 +223,14 @@
     log.tabIndex = 0;
     form.querySelector('.discussion-write-note')?.remove();
     var title = form.querySelector('.discussion-write-title');
-    if (title) title.textContent = '> 의견 남기기';
+    if (title) title.textContent = '> 메시지 입력';
+    var textarea = form.querySelector('textarea');
+    if (textarea) {
+      textarea.placeholder = '메시지를 입력하세요.';
+      textarea.setAttribute('aria-label', '메시지');
+    }
+    var submit = form.querySelector('.discussion-write input[type=submit]');
+    if (submit) submit.value = '보내기';
     var messages = entries.filter(function (entry) {
       return entry.classList.contains('guest_general') &&
         !entry.hidden && !entry.matches('.guest_secret, .secret, [data-secret="true"]');

@@ -155,8 +155,8 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   list-style: none;
   margin: 0;
   padding: .65em .75em;
-  min-height: 8rem;
-  max-height: 50vh;
+  min-height: clamp(12rem, 32vh, 19rem);
+  max-height: max(12rem, 56vh);
   overflow: auto;
 }
 .discussion-terminal-log li {
@@ -185,7 +185,7 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   --discussion-input-text: #fff;
   --discussion-input-placeholder: #bfd6ff;
   --discussion-input-radius: 0;
-  --discussion-input-height: 6rem;
+  --discussion-input-height: clamp(9rem, 20vh, 12rem);
 }
 .market-discussion.discussion-classic .discussion-stockbar,
 .market-discussion.discussion-classic .discussion-current,
@@ -209,7 +209,7 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 }
 .market-discussion.discussion-classic .discussion-native-guestbook {
   border-top: 1px solid var(--discussion-terminal-line);
-  padding-block: .9rem;
+  padding-block: 1.1rem;
 }
 .market-discussion.discussion-classic .discussion-stockbar label,
 .market-discussion.discussion-classic .discussion-write-title {

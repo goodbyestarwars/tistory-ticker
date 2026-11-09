@@ -51,6 +51,8 @@ async function verify() {
       assert.equal(await terminal.locator(selector).count(), 1);
     }
     assert.equal(await terminal.locator('.discussion-write-note').count(), 0);
+    assert.equal(await page.getByRole('textbox', { name: '메시지' }).getAttribute('placeholder'), '메시지를 입력하세요.');
+    assert.ok((await log.boundingBox()).height >= 192);
     assert.equal(await terminal.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(0, 0, 128)');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.getByRole('button', { name: '삼성전자' }).click();
@@ -58,14 +60,14 @@ async function verify() {
     assert.equal(await page.getByRole('button', { name: '삼성전자' }).getAttribute('aria-pressed'), 'true');
     assert.equal(await page.getByRole('button', { name: '기본 방명록' }).count(), 0);
     assert.equal(await page.getByRole('button', { name: '답글' }).isVisible(), false);
-    await page.getByRole('textbox', { name: '의견' }).fill('테스트');
-    await page.getByRole('button', { name: '등록' }).click();
-    assert.equal(await page.getByRole('textbox', { name: '의견' }).inputValue(), '[005930] 테스트');
+    await page.getByRole('textbox', { name: '메시지' }).fill('테스트');
+    await page.getByRole('button', { name: '보내기' }).click();
+    assert.equal(await page.getByRole('textbox', { name: '메시지' }).inputValue(), '[005930] 테스트');
     assert.equal(requests.length, 1);
     page.once('dialog', dialog => dialog.dismiss());
     await page.getByRole('button', { name: '새로고침' }).click();
     assert.equal(requests.length, 1);
-    await page.getByRole('textbox', { name: '의견' }).fill('');
+    await page.getByRole('textbox', { name: '메시지' }).fill('');
     await Promise.all([page.waitForEvent('load'), page.getByRole('button', { name: '새로고침' }).click()]);
     assert.equal(requests.length, 2);
     await page.setViewportSize({ width: 1440, height: 900 });
