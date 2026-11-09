@@ -262,8 +262,6 @@
       }
     });
     panel.append(stockbar, room);
-    var status = addText(panel, 'p', 'discussion-terminal-status', '');
-    status.setAttribute('role', 'status');
     var log = addText(panel, 'ol', 'discussion-terminal-log', '');
     log.setAttribute('aria-label', '공개 채팅 목록, 최신 글부터');
     log.tabIndex = 0;
@@ -293,7 +291,6 @@
 
     renderClassic = function () {
       var visible = messages.filter(function (message) { return !message.entry.hidden; });
-      status.textContent = current.textContent + ' · 공개 원글 ' + visible.length + '개 · 최신순';
       log.replaceChildren();
       log.scrollTop = 0;
       if (!visible.length) addText(log, 'li', '', '표시할 공개 의견이 없습니다.');

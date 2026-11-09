@@ -204,13 +204,8 @@ html.dark .discussion-empty { color: var(--dk-mute); }
   color: #c9e9ff;
   font-size: .8em;
 }
-.discussion-terminal-status {
-  margin: 0;
-  padding: .45em .75em;
-  overflow-wrap: anywhere;
-}
-.discussion-terminal-status { color: #a4f5ff; border-bottom: 1px solid currentColor; }
 .discussion-terminal-log {
+  border-top: 1px solid var(--discussion-terminal-line);
   list-style: none;
   margin: 0;
   padding: .65em .75em;

@@ -41,6 +41,7 @@ async function verify() {
     await open();
     const terminal = page.locator('.discussion-terminal');
     const log = terminal.locator('ol');
+    assert.equal(await terminal.locator('.discussion-terminal-status').count(), 0);
     assert.equal(await log.locator('li').count(), 1);
     assert.match(await log.innerText(), /2026\.11\.09 10:20.*닉네임/s);
     assert.equal(await log.locator('.discussion-terminal-body').textContent(), '첫줄\n<img src=x onerror=alert(1)>');
