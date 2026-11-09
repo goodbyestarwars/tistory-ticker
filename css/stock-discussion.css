@@ -225,6 +225,12 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 .discussion-terminal-body { flex: 1 1 15rem; min-width: 0; white-space: pre-wrap; }
 .discussion-classic :focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
 @media (max-width: 720px) {
+  #tt-body-guestbook .main-layout:has(.discussion-classic) {
+    --main-layout-mobile-gutter: 0px;
+    padding: 0;
+  }
+  .market-discussion.discussion-classic { padding: 0; }
+  .discussion-terminal { border-inline: 0; }
   .discussion-terminal-body { flex-basis: 100%; }
 }
 

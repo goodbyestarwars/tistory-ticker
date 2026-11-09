@@ -8699,7 +8699,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 }
 @layer np {
   @media (max-width: 720px) {
-    html body .main-layout { padding-left: 16px !important; padding-right: 16px !important; }
+    html body .main-layout { padding-inline: var(--main-layout-mobile-gutter, 16px) !important; }
     html body .main-layout > .sidebar-left { margin-left: -16px !important; margin-right: -16px !important; }
     html body .post-single { padding-left: 0 !important; padding-right: 0 !important; }
 
