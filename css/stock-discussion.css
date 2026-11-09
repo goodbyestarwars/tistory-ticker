@@ -378,6 +378,9 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 
 @media (max-width: 720px) {
   .discussion-terminal-welcome { padding-block-start: 1rem; }
+  .discussion-terminal .discussion-terminal-bar strong,
+  .market-discussion.discussion-classic .discussion-current strong { font-size: 14px; }
+  .market-discussion.discussion-classic .discussion-stock-btn { font-size: 12px; }
   .discussion-terminal-etiquette { margin-block-start: .85rem; }
   .market-discussion.discussion-classic .discussion-stock-input-wrap { flex: 1 1 calc(100% - 5rem); }
   .market-discussion.discussion-classic .discussion-stockbar input,
