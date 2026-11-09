@@ -41,6 +41,7 @@
   display: grid; grid-template-columns: var(--nine-studies-list-width, 246px) 10px minmax(0, 1fr);
   width: min(660px, calc(100vw - 32px)); max-height: min(480px, 70vh); box-sizing: border-box;
   border: 1px solid var(--ui-rule); border-radius: 14px; background: var(--ui-surface); color: var(--ui-ink);
+  background: color-mix(in srgb, var(--ui-surface) 74%, transparent);
   box-shadow: 0 12px 32px rgba(15, 23, 42, .14); overflow: hidden; font-family: var(--font-ui); text-align: left;
 }
 .nine-studies-pop[hidden] { display: none; }
@@ -98,7 +99,7 @@
 .nine-ma-reset { color: var(--ui-muted); font-weight: 500; }
 .nine-ma-add:hover, .nine-ma-reset:hover { background: var(--ui-accent-soft); }
 @media (max-width: 720px) {
-  .nine-chart-options.is-open .nine-studies-backdrop { display: block; position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .32); }
+  .nine-chart-options.is-open .nine-studies-backdrop { display: block; position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .14); }
   .nine-studies-pop {
     position: fixed; z-index: 1001; top: auto; right: 0; bottom: 0; left: 0;
     grid-template-columns: 1fr; grid-template-rows: auto auto;
@@ -116,7 +117,7 @@
 html.dark .nine-chart-options-trigger { color: var(--dk-text); }
 html.dark .nine-chart-options-trigger:hover, html.dark .nine-chart-options.is-open .nine-chart-options-trigger,
 html.dark .nine-studies-items label:hover, html.dark .nine-ma-remove:hover, html.dark .nine-ma-add:hover, html.dark .nine-ma-reset:hover { background: var(--dk-inner); }
-html.dark .nine-studies-pop { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }
+html.dark .nine-studies-pop { background: var(--dk-card); background: color-mix(in srgb, var(--dk-card) 78%, transparent); border-color: var(--dk-line); color: var(--dk-text); box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }
 html.dark .nine-studies-list { border-color: var(--dk-line); }
 html.dark .nine-studies-resize::before { background: var(--dk-sub); }
 html.dark .nine-studies-resize:hover, html.dark .nine-studies-resize:focus-visible { background: var(--dk-inner); }
