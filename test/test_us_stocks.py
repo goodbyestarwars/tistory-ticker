@@ -114,6 +114,14 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['change'], -1.5)
         self.assertEqual(data['change_rate'], -0.74)
 
+    def test_yahoo_fallback_keeps_week52_fields(self):
+        data = us_stocks._normalize_quote({
+            'price': 177.39, 'previous_close': 181.6,
+            'week52_high': 243.37, 'week52_low': 164.27,
+        }, 'NVDA', 'Yahoo Finance 현재가 폴백', 'NMS')
+        self.assertEqual(data['week52_high'], 243.37)
+        self.assertEqual(data['week52_low'], 164.27)
+
     def test_broker_quote_repairs_absolute_change_for_negative_rate(self):
         data = us_stocks._normalize_quote({
             'cur_prc': '142.22', 'base_close_pric': '146.23',

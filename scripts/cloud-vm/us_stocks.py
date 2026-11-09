@@ -444,11 +444,13 @@ def _normalize_quote(row, symbol, provider, exchange):
         row, 'market_cap', 'marketCap', 'mcap', 'tomv', 'total_market_value',
     ))
     # 'h52p'/'l52p'는 KIS 해외주식 현재가상세(HHDFS76200200)의 52주 최고/최저 필드다.
+    # 'week52_high/low'는 Yahoo 폴백(_yahoo_quote)이 넘기는 이름이다. 빠져 있어 프리·애프터장
+    # (Yahoo 우선 경로)에서 52주 값이 늘 비었다(2026-11-09 사용자 지적 "52주 최고가 최저가 또 안 나와").
     week52_high = _number(_first(
-        row, 'h52p', '52wk_hgst_pric', 'fifty_two_week_high', 'h52hgpr', 'w52_hgpr',
+        row, 'h52p', '52wk_hgst_pric', 'fifty_two_week_high', 'h52hgpr', 'w52_hgpr', 'week52_high',
     ))
     week52_low = _number(_first(
-        row, 'l52p', '52wk_lwst_pric', 'fifty_two_week_low', 'h52lwpr', 'w52_lwpr',
+        row, 'l52p', '52wk_lwst_pric', 'fifty_two_week_low', 'h52lwpr', 'w52_lwpr', 'week52_low',
     ))
     # 상장주수(발행주식 수). 현재가상세의 'shar'로 들어온다 - 유통주식 수 표시에 쓴다.
     shares = _number(_first(
