@@ -1043,7 +1043,7 @@
       '</div><div class="learn-mobile-controls"><button type="button" data-learn-prev aria-label="이전 이야기">←</button><button type="button" data-learn-next aria-label="다음 이야기">→</button></div></div></nav>' +
       '<section class="site-footer-company" aria-label="회사 정보">' +
         '<img class="footer-falcon-logo" src="https://goodbyestarwars.github.io/tistory-ticker/img/falcon-logo-source.webp" alt="송골매 로고" width="80" height="80" loading="lazy">' +
-        '<div class="footer-company-copy"><strong>(주)윤미경 컴퍼니</strong><p>서울시 송파구 송파대로 111</p><p>개인정보 비공개</p><small>© 2026 팔콘 윤 Co., Ltd.</small></div>' +
+        '<div class="footer-company-copy"><strong>(주)팔콘 컴퍼니</strong><small><b>© 2026 팔콘 Co., Ltd.</b></small></div>' +
       '</section>'
   };
 
