@@ -54,7 +54,7 @@
       ]
     },
     { href: '/page/stock-calendar', label: '캘린더' },
-    { href: '/guestbook', label: '커뮤니티' },
+    { href: '/guestbook', label: '대화방' },
     { href: '/page/watchlist', label: 'MY' },
   ];
   // 자동매매 메뉴: 티스토리 관리자(블로그 소유자) 로그인 상태에서만 보인다(2026-10-11 요청 - 카카오 로그인으로 들어온 관리자 기준).

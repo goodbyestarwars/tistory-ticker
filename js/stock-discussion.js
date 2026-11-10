@@ -185,6 +185,7 @@
     }
   });
   var activeCode = '';
+  var showAll = false;
   var renderClassic = function () {};
 
   function addText(parent, tag, className, text) {
@@ -275,6 +276,22 @@
     var log = addText(panel, 'ol', 'discussion-terminal-log', '');
     log.setAttribute('aria-label', '공개 채팅 목록, 오래된 글부터');
     log.tabIndex = 0;
+    if (window.T?.config?.ROLE === 'owner') {
+      var adminBar = addText(panel, 'div', 'discussion-terminal-bar', '');
+      log.before(adminBar);
+      var all = addText(adminBar, 'button', '', '모든 방 글 보기');
+      all.type = 'button';
+      all.setAttribute('aria-pressed', 'false');
+      all.addEventListener('click', function () {
+        showAll = !showAll;
+        all.setAttribute('aria-pressed', String(showAll));
+        all.textContent = showAll ? '현재 방 글 보기' : '모든 방 글 보기';
+        renderClassic();
+      });
+      var manage = addText(adminBar, 'a', '', '티스토리 방명록 관리');
+      manage.href = '/manage/guestbook';
+      manage.style.color = 'inherit';
+    }
     form.querySelector('.discussion-write-note')?.remove();
     var textarea = form.querySelector('textarea');
     if (textarea) {
@@ -293,7 +310,12 @@
       textarea.placeholder = ' ';
       textarea.setAttribute('aria-label', '메시지');
       var guestFields = form.querySelector('.discussion-guest-fields');
-      if (guestFields) composer.append(guestFields);
+      if (guestFields) {
+        composer.append(guestFields);
+        guestFields.querySelectorAll('input[name=name], input[type=password]').forEach(function (field) {
+          field.required = true;
+        });
+      }
     }
     var submit = form.querySelector('.discussion-write input[type=submit]');
     if (submit) {
@@ -314,7 +336,7 @@
     }).filter(function (message) { return message.date && message.name && message.body; });
 
     renderClassic = function () {
-      var visible = messages.filter(function (message) { return !message.entry.hidden; });
+      var visible = messages.filter(function (message) { return showAll || !message.entry.hidden; });
       log.replaceChildren();
       if (!visible.length) addText(log, 'li', '', '표시할 공개 의견이 없습니다.');
       visible.reverse().forEach(function (message) {
@@ -386,6 +408,19 @@
   root.addEventListener('click', function (event) {
     var submit = event.target.closest && event.target.closest('.discussion-write input[type=submit]');
     if (!submit) return;
+    var fields = root.querySelectorAll('.discussion-guest-fields input[name=name], .discussion-guest-fields input[type=password]');
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+      if (field.value.trim()) continue;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      field.setCustomValidity(field.type === 'password' ? '비밀번호를 입력하세요.' : '이름을 입력하세요.');
+      field.reportValidity();
+      field.addEventListener('input', function clearValidity(event) {
+        event.currentTarget.setCustomValidity('');
+      }, { once: true });
+      return;
+    }
     var code = activeCode;
     if (!code) return;
     var textarea = root.querySelector('.discussion-write textarea');

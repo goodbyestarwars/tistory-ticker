@@ -18,7 +18,7 @@ async function verify() {
           <button data-discussion-stock="005930">삼성전자</button></div>
           <div class="discussion-current"><strong data-discussion-current></strong><button data-discussion-clear>해제</button></div>
           <div class="discussion-native-guestbook"><div class="discussion-write">
-            <span class="discussion-write-note">등록하면 티스토리 방명록에 저장됩니다.</span><textarea aria-label="의견"></textarea><input type="submit" value="등록">
+            <div class="discussion-guest-fields"><input name="name" aria-label="이름"><input type="password" aria-label="비밀번호"></div><span class="discussion-write-note">등록하면 티스토리 방명록에 저장됩니다.</span><textarea aria-label="의견"></textarea><input type="submit" value="등록">
           </div></div>
           <div class="discussion-list-heading"><span data-discussion-count></span></div>
           <div class="discussion-list"><ol>
@@ -56,6 +56,10 @@ async function verify() {
     assert.match(await log.innerText(), /일반방 글/);
     assert.doesNotMatch(await log.innerText(), /첫줄/);
     await page.getByRole('textbox', { name: '메시지' }).fill('일반방 테스트');
+    await page.getByRole('button', { name: '보내기' }).click();
+    assert.equal(await page.getByRole('textbox', { name: '이름' }).evaluate(el => el.validity.valid), false);
+    await page.getByRole('textbox', { name: '이름' }).fill('방문자');
+    await page.getByLabel('비밀번호').fill('test1234');
     await page.getByRole('button', { name: '보내기' }).click();
     assert.equal(await page.getByRole('textbox', { name: '메시지' }).inputValue(), '일반방 테스트');
     await page.getByRole('button', { name: '삼성전자' }).click();
