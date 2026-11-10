@@ -72,7 +72,7 @@
     NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });
     // Same display gate and group as auto-trader. Actual KIS access still requires
     // the verified Google administrator session at the server gateway.
-    NAV_ITEMS.push({href:'https://goodbyestar.cloud/kis-tool/', label:'KIS Trading Tool', end:true});
+    NAV_ITEMS.push({href:'https://goodbyestar.cloud/kis-tool/', label:'트레이딩 도구', end:true});
   }
 
 

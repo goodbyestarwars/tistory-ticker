@@ -339,7 +339,7 @@
   var COMMODITY_URL = 'https://goodbyestar.cloud/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,US2Y,US10Y,US30Y&stored_only=true';
   var COMMODITIES = [
     {symbol:'WTI', name:'WTI 원유', unit:'달러 / 배럴', source:'네이버 비공식 선물'},
-    {symbol:'BRENT', name:'브렌트유', unit:'달러 / 배럴', source:'KIS ICE 선물'},
+    {symbol:'BRENT', name:'브렌트유', unit:'달러 / 배럴', source:'ICE 선물'},
     {symbol:'GOLD', name:'금 선물', unit:'달러 / 트로이온스', source:'네이버 비공식 선물'}
   ];
   var TREASURIES = [{symbol:'US2Y',name:'2년물'}, {symbol:'US10Y',name:'10년물'}, {symbol:'US30Y',name:'30년물'}];

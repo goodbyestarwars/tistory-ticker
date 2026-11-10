@@ -1677,7 +1677,7 @@
     var components = (data && data.components) || [];
     if (!components.length) {
       body.innerHTML = '<p class="ss-etf-empty">이 ETF는 구성종목 정보를 제공하지 않습니다. '
-        + '해외 지수를 추종하는 ETF는 KIS 구성종목 조회 대상이 아닙니다.</p>';
+        + '해외 지수를 추종하는 ETF는 구성종목 조회 대상이 아닙니다.</p>';
       return;
     }
     var summaryCls = chgClass(data.changeRatePct);

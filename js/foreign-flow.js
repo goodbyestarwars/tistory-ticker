@@ -2768,7 +2768,7 @@
 
   function buildKisEvidenceRows(opinion) {
     var reports = opinion && opinion.reports || [];
-    if (!reports.length) return '<div class="ff-hint">KIS 관측치가 없습니다.</div>';
+    if (!reports.length) return '<div class="ff-hint">관측치가 없습니다.</div>';
     return '<div class="ff-opinion-evidence-list">' + reports.map(function (report) {
       var target = report.targetPrice ? Math.round(report.targetPrice).toLocaleString('ko-KR') + '원' : '목표가 없음';
       return '<div class="ff-opinion-evidence-row">'
@@ -2784,12 +2784,12 @@
     return '<details class="ff-opinion-evidence" data-code="' + escapeAttr(code) + '">'
       + '<summary>원문 · 산출 근거 보기</summary>'
       + '<div class="ff-opinion-evidence-body">'
-      + '<h4>KIS 산출 근거</h4>'
-      + '<p>KIS 원응답에는 날짜·투자의견·목표가만 있고 증권사명·보고서 제목·원문 URL은 없습니다. 아래는 평균 계산에 실제 사용한 날짜별 관측치입니다.</p>'
+      + '<h4>산출 근거</h4>'
+      + '<p>원응답에는 날짜·투자의견·목표가만 있고 증권사명·보고서 제목·원문 URL은 없습니다. 아래는 평균 계산에 실제 사용한 날짜별 관측치입니다.</p>'
       + buildKisEvidenceRows(opinion)
-      + (docsUrl ? '<a class="ff-opinion-source-link" href="' + escapeAttr(docsUrl) + '" target="_blank" rel="noopener noreferrer">KIS 공식 API 명세 ↗</a>' : '')
+      + (docsUrl ? '<a class="ff-opinion-source-link" href="' + escapeAttr(docsUrl) + '" target="_blank" rel="noopener noreferrer">공식 API 명세 ↗</a>' : '')
       + '<h4>무료 공개 리포트 원문</h4>'
-      + '<p class="ff-opinion-source-note">Npay 증권의 최근 3개월 리포트입니다. KIS 관측치와 공급원이 달라 1:1 대응하지 않습니다.</p>'
+      + '<p class="ff-opinion-source-note">Npay 증권의 최근 3개월 리포트입니다. 관측치와 공급원이 달라 1:1 대응하지 않습니다.</p>'
       + '<div class="ff-research-reports" data-state="idle"><div class="ff-hint">펼치면 원문 목록을 불러옵니다.</div></div>'
       + '</div></details>';
   }
@@ -2830,7 +2830,7 @@
         target.innerHTML = buildResearchReportsHtml(data);
       }).catch(function () {
         target.dataset.state = 'error';
-        target.innerHTML = '<div class="ff-hint">원문 목록을 불러오지 못했습니다. KIS 산출 근거는 위에서 확인할 수 있습니다.</div>';
+        target.innerHTML = '<div class="ff-hint">원문 목록을 불러오지 못했습니다. 산출 근거는 위에서 확인할 수 있습니다.</div>';
       });
     });
   }
@@ -2863,12 +2863,12 @@
         var weight = item.weightPct == null ? '-' : Number(item.weightPct).toFixed(2) + '%';
         return '<div><span>' + escapeHtml(item.name || item.code || '-') + '</span><b>' + escapeHtml(weight) + '</b></div>';
       }).join('') + '</div>' : '<div class="ff-hint">해외지수·파생형 ETF는 KIS에서 구성종목을 제공하지 않을 수 있습니다.</div>')
-      + '<p class="ff-etf-note">ETF 여부는 KRX 상장 ETF 목록, 구성종목·NAV는 KIS ETF 구성종목시세 기준입니다. 유형은 상품명 기준 분류입니다.</p>';
+      + '<p class="ff-etf-note">ETF 여부는 KRX 상장 ETF 목록, 구성종목·NAV는 ETF 구성종목시세 기준입니다. 유형은 상품명 기준 분류입니다.</p>';
   }
 
   function buildInvestOpinionBlock(opinion, currentPrice, code) {
     if (!opinion || !opinion.available) {
-      return '<div class="ff-hint">최근 3개월 KIS 투자의견 관측치가 없어 평균 투자의견을 표시할 수 없습니다.</div>'
+      return '<div class="ff-hint">최근 3개월 투자의견 관측치가 없어 평균 투자의견을 표시할 수 없습니다.</div>'
         + buildOpinionEvidence(opinion || {}, code);
     }
     var total = opinion.reportCount || 0;
@@ -2914,10 +2914,10 @@
       : '목표가가 있는 관측치가 없습니다.';
     var method = '<details class="ff-opinion-method">'
       + '<summary>계산 방법 · 데이터 범위</summary>'
-      + '<p>최근 3개월 KIS 날짜별 관측치의 투자의견 문구를 매수·중립·매도 3그룹으로 분류해 건수 비율(' + buyPct + '% · ' + holdPct + '% · ' + sellPct + '%)을 냈습니다. 목표가가 제시된 ' + (opinion.targetPriceSamples || 0) + '건만 골라 0원·공란을 제외하고 중앙값을 사용합니다.</p>'
-      + '<p class="ff-opinion-disclaimer">KIS 응답에는 증권사명·보고서 제목·원문 URL이 없어 개별 증권사 리포트 평균으로 단정할 수 없습니다. 국내 일반주식만 지원하며 투자 제안이나 매매 권유가 아닙니다.</p>'
+      + '<p>최근 3개월 날짜별 관측치의 투자의견 문구를 매수·중립·매도 3그룹으로 분류해 건수 비율(' + buyPct + '% · ' + holdPct + '% · ' + sellPct + '%)을 냈습니다. 목표가가 제시된 ' + (opinion.targetPriceSamples || 0) + '건만 골라 0원·공란을 제외하고 중앙값을 사용합니다.</p>'
+      + '<p class="ff-opinion-disclaimer">응답에는 증권사명·보고서 제목·원문 URL이 없어 개별 증권사 리포트 평균으로 단정할 수 없습니다. 국내 일반주식만 지원하며 투자 제안이나 매매 권유가 아닙니다.</p>'
       + '</details>';
-    return '<div class="ff-opinion-kicker">KIS 투자의견 관측치 종합 · 최근 3개월</div>'
+    return '<div class="ff-opinion-kicker">투자의견 관측치 종합 · 최근 3개월</div>'
       + '<div class="ff-opinion-lede">'
       + '<div class="ff-opinion-meta">'
       + '<span>관측치 <b>' + total + '건</b></span>'

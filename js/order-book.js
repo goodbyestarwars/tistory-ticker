@@ -419,7 +419,7 @@
     if (typeof quote.price !== 'number') return;
     state.lastBase = quote.price;
     if (quote.delayed) state.tradeFeedStatus = 'REST 시세 폴백 · 개별 체결 없음';
-    else if (quote.source === 'Kiwoom WebSocket' && state.liveTradeProvider !== 'Kiwoom') state.tradeFeedStatus = '키움 실시간 수신';
+    else if (quote.source === 'Kiwoom WebSocket' && state.liveTradeProvider !== 'Kiwoom') state.tradeFeedStatus = '실시간 수신';
     if (quote.trade && !quote.delayed && (quote.source === 'KIS WebSocket' || quote.source === 'Kiwoom WebSocket')) {
       var provider = quote.source === 'Kiwoom WebSocket' ? 'Kiwoom' : 'KIS';
       if (provider === 'Kiwoom' && state.liveTradeProvider !== 'Kiwoom') {
@@ -429,11 +429,11 @@
       if (provider === 'Kiwoom' || state.liveTradeProvider !== 'Kiwoom') {
         state.liveTradeProvider = provider;
         recordLiveTrade(quote.trade);
-        state.tradeFeedStatus = provider === 'Kiwoom' ? '키움 실시간 체결 수신' : 'KIS 실시간 수신 · 키움 대기';
+        state.tradeFeedStatus = provider === 'Kiwoom' ? '실시간 체결 수신' : '실시간 수신 · 보조 체결 대기';
         scheduleTradeRender(container);
       }
     }
-    if (state.liveTradeProvider === 'Kiwoom') state.tradeFeedStatus = '키움 실시간 체결 수신';
+    if (state.liveTradeProvider === 'Kiwoom') state.tradeFeedStatus = '실시간 체결 수신';
     if (quote.delayed || quote.source === 'Kiwoom WebSocket') scheduleTradeRender(container);
     state.lastRealtimeQuote = quote;
     state.lastRealtimeAt = Date.now();
@@ -1157,7 +1157,7 @@
     var stamp = meta.ws ? new Date(meta.at).toLocaleTimeString('ko-KR', { timeZone:'Asia/Seoul', hour12:false })
       : (meta.checkedAt ? String(meta.checkedAt).slice(11,19) : '미확인');
     var age = Date.now() - meta.at;
-    var source = meta.ws ? 'KIS 통합 WS' : (meta.source || 'REST');
+    var source = meta.ws ? '통합 WebSocket' : (meta.source || 'REST');
     var status = age > WALL_EVIDENCE_MS ? ' · ⚠️ 오래된 호가'
       : meta.ws ? ' · 실시간 수신' : ' · 조회시각만 확인(원천시각 미제공)';
     if (state.flatNote && Date.now() - state.flatNote.at <= 8000) status += ' · 벽 잔량 변동 없음 (' + state.flatNote.sec + '초)';
@@ -1502,15 +1502,15 @@
     // 긴 원본/수신 상세는 툴팁에, 본문에는 최대 두 줄로 읽히는 핵심만 표시한다.
     var detail = live
       ? (state.liveTradeProvider === 'Kiwoom'
-          ? '키움 0B 개별 수신 체결 · FID 15 부호 기준 방향 · 거래소 원본값 수신 · '
-          : 'KIS 개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ')
+          ? '개별 수신 체결 · FID 15 부호 기준 방향 · 거래소 원본값 수신 · '
+          : '개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ')
         + state.tradeFeedStatus + ' · 원본 이벤트 ID 없음(중복·누락 가능)'
       : state.trades.length ? 'REST 2초 표본(전체 체결 아님) · 방향 판정불가 · ' + state.tradeFeedStatus
       : state.tradeFeedStatus + ' · 수신한 체결부터 표시';
     var note = live
       ? (state.liveTradeProvider === 'Kiwoom'
-          ? '키움 0B 실시간 · FID 15 방향 · 중복·누락 가능'
-          : 'KIS 실시간 · 호가 기준 방향 추정 · 중복·누락 가능')
+          ? '실시간 · FID 15 방향 · 중복·누락 가능'
+          : '실시간 · 호가 기준 방향 추정 · 중복·누락 가능')
       : state.trades.length ? 'REST 2초 표본 · 방향 판정불가 · 전체 체결 아님'
       : '체결 수신 대기 중';
     if (state.tradeFeedStatus.indexOf('재연결 중') !== -1) {

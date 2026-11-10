@@ -1058,7 +1058,7 @@
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div></div>'
       + '<div class="mi-sub dmi-invflow-host"><div class="dmi-invflow-loading">불러오는 중...</div></div></section>'
       + '<section class="mi-block dmi-block dmi-investor-rank"><div class="mi-block-head dmi-subheading"><h3 class="mi-block-title"><span class="mi-block-no">02</span><span class="mi-block-name">종목별 순매수·순매도 상위</span></h3></div>'
-      + '<div class="mi-block-desc">KIS 장중 가집계 · 순매수 수량(주). 입력 시각에 따라 잠정치가 달라질 수 있습니다.</div>'
+      + '<div class="mi-block-desc">장중 가집계 · 순매수 수량(주). 입력 시각에 따라 잠정치가 달라질 수 있습니다.</div>'
       + '<div class="dmi-rank-grid">공식 순위 확인 중...</div>'
       + '<div class="mi-sub-cap">개인 종목 순위: 공식 응답 필드 미검증으로 미제공</div></section></div>';
     fetchJson().then(function (data) {

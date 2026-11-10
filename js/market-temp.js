@@ -713,13 +713,13 @@
 
 
   // ---- 내 카테고리 중심 구조 (2026-10-02 사용자 요청) ----
-  // 분류 체계가 셋(돈 몰린 섹터=키움 테마 / 카드=내 카테고리 / 활성 카드=WICS)으로 따로 놀아 "뭐가 맞는
+  // 분류 체계가 셋(돈 몰린 섹터=테마 / 카드=내 카테고리 / 활성 카드=WICS)으로 따로 놀아 "뭐가 맞는
   // 카테고리야?"가 됐다. 이제 기준은 하나다: 내 카테고리(내 섹터 카드 설정, 로그인하면 계정 동기화).
   //  - 카드·히트맵·시총비례는 내 카테고리로 그린다.
   //  - 활성 종목은 1차로 내 카테고리별로 묶고, 어느 카테고리에도 없는 활성 종목은 '편입 후보'로 따로 보여
   //    ＋로 카테고리에 편입한다.
-  //  - 새 카테고리는 키움 테마 목록에서 골라 추가한다.
-  //  - 증시온도의 '돈이 몰린 섹터'(키움 테마)는 내 카테고리와 구성종목 겹침으로 매핑해, 어느 카테고리가
+  //  - 새 카테고리는 테마 목록에서 골라 추가한다.
+  //  - 증시온도의 '돈이 몰린 섹터'(테마)는 내 카테고리와 구성종목 겹침으로 매핑해, 어느 카테고리가
   //    뜨는지 보이고 매핑이 없으면 한 번에 카테고리로 추가한다.
   var THEME_LIST_URL = 'https://goodbyestar.cloud/theme-list';
   var THEME_STOCKS_URL = 'https://goodbyestar.cloud/theme-stocks';
@@ -946,7 +946,7 @@
     mount.innerHTML = '<div class="mt-section mt-card mt-money-card">'
       + '<div class="mt-money-head"><strong>오늘 거래대금 상위 섹터 TOP10</strong><a href="/page/market-temp#mt-money-flow">거래대금 막대로 보기 →</a></div>'
       + (chips ? '<div class="mt-money-chips">' + chips + '</div>' : '<div class="mt-hint">거래대금 상위 섹터를 불러오지 못했습니다.</div>')
-      + '<p class="mt-top-note"><span class="mt-money-key is-mapped"></span>내 카테고리와 연결(누르면 카드로 이동) <span class="mt-money-key is-add"></span>내 카테고리에 없음(누르면 추가) · 키움증권 테마, 거래대금 순</p>'
+      + '<p class="mt-top-note"><span class="mt-money-key is-mapped"></span>내 카테고리와 연결(누르면 카드로 이동) <span class="mt-money-key is-add"></span>내 카테고리에 없음(누르면 추가) · 거래대금 순</p>'
       + '</div>';
     mount.onclick = function (event) {
       var focus = event.target.closest && event.target.closest('[data-focus-category]');
@@ -993,13 +993,13 @@
     });
   }
 
-  // ---- 새 카테고리: 키움 테마에서 고르기 ----
+  // ---- 새 카테고리: 테마에서 고르기 ----
   function openThemePicker_(host) {
     var existing = host.querySelector('.mt-theme-picker');
     if (existing) { existing.remove(); return; }
     var box = document.createElement('div');
     box.className = 'mt-theme-picker';
-    box.innerHTML = '<div class="mt-theme-picker-head"><strong>키움 테마로 카테고리 추가</strong><button type="button" data-picker-close aria-label="닫기">×</button></div>'
+    box.innerHTML = '<div class="mt-theme-picker-head"><strong>테마로 카테고리 추가</strong><button type="button" data-picker-close aria-label="닫기">×</button></div>'
       + '<input type="search" data-picker-search placeholder="테마 검색 (예: 화장품, 호텔)" autocomplete="off">'
       + '<div class="mt-theme-picker-list" data-picker-list><div class="mt-hint">테마 목록을 불러오는 중...</div></div>';
     host.insertBefore(box, host.firstChild);
@@ -1190,7 +1190,7 @@
   //
   // 2026-09-02 사용자 요청으로 추천을 섹터 단위로 바꿨다(흐름: 오늘의 섹터 → 그 종목 →
   // 파생 섹터). 2026-09-14 사용자 지적("광통신이 상한가 갔는데 하나도 없네, 내가 만든
-  // 섹터잖아, 증권사 섹터로 해")으로 섹터 출처를 손으로 만든 섹터 지도(data/sectors-v3.js)에서 키움 테마로
+  // 섹터잖아, 증권사 섹터로 해")으로 섹터 출처를 손으로 만든 섹터 지도(data/sectors-v3.js)에서 테마로
   // 바꿨다. 서버(/theme-flow)가 등락률 상위 테마 20개를 구성종목 거래대금 순으로 준다.
   var SECTOR_FLOW_URL = 'https://goodbyestar.cloud/theme-flow';
   var SECTOR_FLOW_TOP = 10;
@@ -1439,7 +1439,7 @@
     var picksByRow = selectMoneyPicks_(shown);
     var tracking = mount.querySelector('[data-pick-track]');
     var trackingHtml = tracking && tracking.outerHTML;
-    var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 막대는 1위 거래대금 대비 비율이며, 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
+    var basis = '오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 막대는 1위 거래대금 대비 비율이며, 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     var sfDate = mount.getAttribute('data-sf-date'), rankBasis = rows && rows[0] && rows[0].rank_basis ? stampHm_(rows[0].rank_basis) : '';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
       + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 거래대금 상위 섹터</div>'
@@ -1502,7 +1502,7 @@
       + '<div data-money-strip><div class="mt-hint">거래대금 상위 섹터를 불러오는 중입니다.</div></div>'
       + '</section>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>내 카테고리 모니터링</h2><p>거래대금 상위 카테고리가 앞에 옵니다. 활성 종목 탭에서 카테고리에 없는 종목을 편입하고, 새 카테고리는 키움 테마에서 추가합니다.</p></div>'
+      + '<div class="mt-section-head"><h2>내 카테고리 모니터링</h2><p>거래대금 상위 카테고리가 앞에 옵니다. 활성 종목 탭에서 카테고리에 없는 종목을 편입하고, 새 카테고리는 테마에서 추가합니다.</p></div>'
       + buildExploreCard(initialView)
       + '</section>'
       + '</div>';
@@ -2545,13 +2545,13 @@
   }
   function stateWord_(tone, arrowWord) { return tone === 'positive' ? '↗ ' + arrowWord[0] : tone === 'negative' ? '↘ ' + arrowWord[1] : '→ ' + arrowWord[2]; }
   // ---- 수급·심리·금리 블록(표시 전용, 점수 미반영) ----
-  // 프로그램매매: /domestic-market-indicators의 programTrading(KIS 일별, 코스피 비차익·차익, 단위 백만원). 강도는 응답 history 260거래일의
+  // 프로그램매매: /domestic-market-indicators의 programTrading(일별, 코스피 비차익·차익, 단위 백만원). 강도는 응답 history 260거래일의
   //   비차익 절댓값 분포(중앙값 이상 mild, 90백분위 이상 big)로 정한다.
   // 옵션: /option-flow(코스피200 옵션 최근월, KIS가 준 콜·풋 각 최대 100행 합계 - 전체시장 합계 아님). 이력이 없어 임계값을 만들지 않고
   //   풋 거래량이 콜보다 많은지(비율 1 기준)만 쓴다.
   // 금리: /futures의 US10Y·US2Y·KTB3Y 일봉. 장단기차 = 10년 - 2년, 강도는 일변화 절댓값의 중앙값·90백분위.
   function percentileOf_(sorted, q) { return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))] : null; }
-  // 프로그램매매 20거래일 누적(2026-10-23). 값은 /domestic-market-indicators programTrading.history(KIS 일별, 코스피, 백만원, 차익·비차익 순매수) 그대로.
+  // 프로그램매매 20거래일 누적(2026-10-23). 값은 /domestic-market-indicators programTrading.history(일별, 코스피, 백만원, 차익·비차익 순매수) 그대로.
   // 일별 순매수 = 차익 + 비차익(한 번만 합산). 외국인·기관 순매매와는 다른 수치다. 매수·매도 거래대금은 이 응답에 없어 수집·표시하지 않는다.
   // 장중(15:40 전)의 오늘 값은 잠정이라 누적에서 빼고 따로 보인다. 확정 일수가 20 미만이면 '집계 중 (N/20일)'(없는 날을 0으로 채우지 않는다).
   function moneyKr_(m) {
@@ -2671,7 +2671,7 @@
     var signTone = function (v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : ''; };
     var progCard = function (pg) {
       var c = pg.cum, todayTotal = pg.nonArb + pg.arb, todayRow = { k: pg.live ? '오늘 잠정' : '오늘', v: moneyKr_(todayTotal), t: signTone(todayTotal), sub: '차익 ' + moneyKr_(pg.arb) + ' · 비차익 ' + moneyKr_(pg.nonArb) };
-      var meta = '코스피 · ' + pg.time + ' · KIS 일별' + (pg.live ? ' (오늘 값은 잠정, 누적에서 제외)' : '');
+      var meta = '코스피 · ' + pg.time + ' · 일별' + (pg.live ? ' (오늘 값은 잠정, 누적에서 제외)' : '');
       var panel = { points: pg.points, base: 0, zeroBase: true, format: function (v) { return moneyKr_(v); } };
       var detail = '코스피 프로그램매매 일별 순매수(차익+비차익, 외국인·기관 순매매와 다른 수치) · 매수·매도 거래대금은 수집하지 않음';
       if (!c.complete) {
@@ -2728,7 +2728,7 @@
           delay = r.source_delay === '미확인' ? '지연 여부 미확인' : r.source_delay || '';
       return { text: fmt(it, price), rate: isFinite(rate) ? rate : null,
         closed: closed, asof: dateText,
-        time: closed ? dateText + (r.price_kind === 'daily_close' ? ' KIS 일봉 종가 · 휴장' : ' 마지막 유효 시세 · 휴장') :
+        time: closed ? dateText + (r.price_kind === 'daily_close' ? ' 일봉 종가 · 휴장' : ' 마지막 유효 시세 · 휴장') :
           pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 수신(' + ageText_(now - at) + ')',
         src: [src, delay].filter(Boolean).join(' · ') };
     }
@@ -3234,7 +3234,7 @@
         + '<b class="' + cls + '">' + pctText_(nr) + '</b><span class="mt-tm-say">' + stateWord(nr) + '</span></summary>'
         + '<dl class="mt-tm-ndetail">' + drow('야간 종가', Number(night.close).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
         + drow('주간 종가 대비', (night.change > 0 ? '+' : '') + Number(night.change).toFixed(2))
-        + drow('상태', '최종 마감') + drow('세션', ymdLabel_(night.sessionDate) + ' 저녁~다음 날 05:00') + drow('출처', 'KIS 야간선물') + drow('신호 계산', '반영됨') + '</dl></details></li>';
+        + drow('상태', '최종 마감') + drow('세션', ymdLabel_(night.sessionDate) + ' 저녁~다음 날 05:00') + drow('신호 계산', '반영됨') + '</dl></details></li>';
     } else {
       nightItem = '<li class="mt-tm-item mt-tm-nightcard is-none"><details class="mt-tm-nd"' + open + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
         + '<b class="mt-val-zero">시세 없음</b><span class="mt-tm-say">데이터 확인 중</span></summary>'
@@ -4081,7 +4081,7 @@
         groups.forEach(function (group) { summaries[(group.kind || '') + '|' + group.sector] = group; });
         panel.innerHTML = '<section class="mt-all-stock-browser">'
           + '<div class="mt-all-stock-head"><div><strong>주요 섹터 카드</strong><span>' + (isBoard ? '거래가 활발한 섹터' : '최근 거래일에 활발했던 주요 섹터') + '</span></div><span data-all-stock-count>' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준' + (isBoard ? '' : ' · 일일 스캔') + '</span></div>'
-          + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button><button type="button" data-theme-picker-open>＋ 키움 테마로 카테고리 추가</button></div>'
+          + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button><button type="button" data-theme-picker-open>＋ 테마로 카테고리 추가</button></div>'
           + '<p class="mt-all-stock-legend"><b>' + (isBoard ? '현재가' : '최근 거래일 가격·등락률') + '</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 종목 거래대금 10억원 이상' + (isBoard ? ' · 거래량 1만 주 이상' : ' · 스캔값은 거래량 미제공') + '<br>움직임 없는 종목(등락 0.5% 미만·거래대금 50억원 미만)과 알려진 시총 1,000억원 미만 종목 제외 · 나머지 모두 표시 · ETF·ETN·스팩 제외'
           + (!isBoard ? '<br>스캔: 선별 기준시각의 가격 · 시세: 시장판 조회값' + (selection.quoteCount ? ' (' + escapeHtml(selection.quoteAt) + ' 기준 · ' + selection.quoteCount + '종목)' : '') : '')
           + (selection.addedCount ? '<br>장중 조건을 충족한 ' + selection.addedCount + '종목 추가 · 기존 섹터 금액은 스캔 선별 종목 합계(추가 종목 제외)' : '') + '</p>'
@@ -4724,7 +4724,7 @@
       var cardStateClass = config.customized ? ' is-edited' : ' is-pending';
       var toolbar = '<div class="mt-sector-toolbar"><span class="mt-sector-config-status' + cardStateClass + '">' + escapeHtml(cardState) + '</span>' +
         '<span class="mt-card-realtime-status" data-card-realtime-status>실시간 연결 중</span>' +
-        '<button type="button" data-theme-picker-open>＋ 키움 테마로 추가</button>' +
+        '<button type="button" data-theme-picker-open>＋ 테마로 추가</button>' +
         '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
       panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');
       // 2026-08-20: 카드 보기는 이 최초 GAS 배치 조회 이후로 갱신이 없었다 - 실시간 체결가

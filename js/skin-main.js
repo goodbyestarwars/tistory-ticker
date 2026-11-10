@@ -3757,7 +3757,7 @@ document.documentElement.classList.add('skin-ready');
           + '<span class="vol-count">오늘 ' + (r.count == null ? '-' : r.count) + '회</span></li>';
       }).join('') + '</ul>';
       var basis = data.vi_basis || {};
-      return html + '<small class="vol-src">출처 KIS 변동성완화장치 현황(20초 갱신)' + (basis.ws_events ? ' · 실시간 H0STVIC0 보완 ' + basis.ws_events + '건' : '') + ' · 서버 가동 이후 수신분부터 쌓입니다</small>';
+      return html + '<small class="vol-src">변동성완화장치 현황(20초 갱신)' + (basis.ws_events ? ' · 실시간 H0STVIC0 보완 ' + basis.ws_events + '건' : '') + ' · 서버 가동 이후 수신분부터 쌓입니다</small>';
     }
 
     // 평소(이벤트가 없을 때)에는 카드 영역을 그리지 않는다. 발동 중인 것만 카드로: 서킷브레이커(빨강) · 사이드카(주황) · VI(회색).

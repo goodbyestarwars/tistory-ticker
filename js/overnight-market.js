@@ -399,7 +399,7 @@
       note += '<div class="ibd-ln"><small>출처: ' + escapeHtml(item.source)
         + (item.contract_code ? ' · 월물 ' + escapeHtml(item.contract_code) : '')
         + ' · 시세 지연 여부 ' + escapeHtml(item.source_delay || '미확인')
-        + (item.market_closed ? ' · 휴장 · 직전 ' + (item.price_kind === 'daily_close' ? 'KIS 일봉 종가' : '유효 시세') + ' · ' + escapeHtml(item.asof_date || '기준일 미확인') : item.stale ? ' · 최근 체결 시각 초과' : '')
+        + (item.market_closed ? ' · 휴장 · 직전 ' + (item.price_kind === 'daily_close' ? '일봉 종가' : '유효 시세') + ' · ' + escapeHtml(item.asof_date || '기준일 미확인') : item.stale ? ' · 최근 체결 시각 초과' : '')
         + '</small></div>';
     }
     return {

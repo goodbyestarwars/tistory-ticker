@@ -314,7 +314,7 @@
       + '<div class="kf-section-body">'
       + '<div class="mi-sub"><div class="mi-sub-title">콜·풋 거래량·남아 있는 계약 수</div>'
       + '<div class="mi-sub-cap">거래량은 거래된 계약 수, 미결제약정(OI)은 아직 청산되거나 만기가 끝나지 않은 계약 수입니다. 단위는 계약입니다.</div>'
-      + '<div class="mi-sub-cap">OI 증감은 KIS 제공값(비교 기준 미확인)입니다. 직전 수집값을 빼서 계산한 수치가 아닙니다.</div>'
+      + '<div class="mi-sub-cap">OI 증감은 제공값(비교 기준 미확인)입니다. 직전 수집값을 빼서 계산한 수치가 아닙니다.</div>'
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div></div>'
       + '<div class="mi-sub kf-option-profile" id="kfOptionProfile">'
       + '<div class="kf-option-profile-head"><b title="행사가(미리 정한 지수 수준)마다 거래된 계약 수와 남아 있는 계약 수가 얼마나 모여 있는지 보여주는 분포도입니다.">행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
@@ -359,10 +359,10 @@
     var t = optTendency(row, side);
     var sign = row.oi_change > 0 ? '+' : '';
     return '<div class="kf-opt-body">'
-      + '<span class="kf-opt-tendency ' + t.cls + '" title="KIS 제공 OI 증감의 부호입니다. 비교 기준 미확인 · 직전 수집 대비 아님. 증가해도 매수 우세나 상승을 뜻하지 않습니다.">' + t.label + '</span>'
+      + '<span class="kf-opt-tendency ' + t.cls + '" title="제공 OI 증감의 부호입니다. 비교 기준 미확인 · 직전 수집 대비 아님. 증가해도 매수 우세나 상승을 뜻하지 않습니다.">' + t.label + '</span>'
       + '<div class="kf-opt-row"><span title="당일 누적 거래 계약 수입니다. 같은 계약의 반복 거래도 포함합니다.">거래량</span><b>' + Math.round(row.volume || 0).toLocaleString('ko-KR') + '</b></div>'
       + '<div class="kf-opt-row"><span title="아직 청산되거나 만기가 끝나지 않은 계약 수입니다. 매수량이나 매도량이 아닙니다.">미결제약정(OI)</span><b>' + Math.round(row.oi || 0).toLocaleString('ko-KR') + '</b></div>'
-      + '<div class="kf-opt-row"><span title="KIS 제공 증감값의 합계입니다. 비교 기준 미확인 · 직전 수집 대비 아님.">OI 증감</span><b class="' + t.cls + '">' + (row.oi_change == null ? '미제공' : sign + Math.round(row.oi_change).toLocaleString('ko-KR')) + '</b></div>'
+      + '<div class="kf-opt-row"><span title="제공 증감값의 합계입니다. 비교 기준 미확인 · 직전 수집 대비 아님.">OI 증감</span><b class="' + t.cls + '">' + (row.oi_change == null ? '미제공' : sign + Math.round(row.oi_change).toLocaleString('ko-KR')) + '</b></div>'
       + '<div class="kf-opt-updated nt-stamp">' + ((window.NineTime && window.NineTime.updated(row.updated_at)) || ('업데이트 ' + fmtTime(row.updated_at))) + '</div>'
       + '</div>';
   }
