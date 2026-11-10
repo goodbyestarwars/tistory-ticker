@@ -154,7 +154,7 @@ html.dark #stock-calendar .sc-completed-badge { background: rgba(127, 176, 216, 
 }
 #stock-calendar .sc-dow small { display: block; margin-top: 4px; font-size: 9px; }
 #stock-calendar .sc-day {
-  height: clamp(45px, 8vw, 69px); display: flex; flex-direction: column;
+  position: relative; height: clamp(45px, 8vw, 69px); display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   border: 0; border-radius: 0; padding: 0; background: transparent; font: inherit;
   font-size: clamp(20px, 4vw, 38px); font-weight: 800; line-height: 1;
@@ -379,3 +379,4 @@ html.dark #stock-calendar .sc-completed-badge--us {
   #stock-calendar .sc-market-switch { width: 100%; }
   #stock-calendar .sc-market-btn { flex: 1 1 0; padding: 9px 6px; min-width: 0; }
 }
+
