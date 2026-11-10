@@ -91,9 +91,13 @@ async function verify() {
     assert.equal(await page.getByRole('button', { name: '삼성전자' }).getAttribute('aria-pressed'), 'true');
     assert.equal(await page.getByRole('button', { name: '기본 방명록' }).count(), 0);
     assert.equal(await page.getByRole('button', { name: '답글' }).isVisible(), false);
-    await page.getByRole('textbox', { name: '메시지' }).fill('테스트');
-    await page.getByRole('button', { name: '보내기' }).click();
-    assert.equal(await page.getByRole('textbox', { name: '메시지' }).inputValue(), '[005930] 테스트');
+    await message.fill('테스트');
+    await message.press('Enter');
+    assert.equal(await message.inputValue(), '테스트\n');
+    await message.dispatchEvent('keydown', { key: 'Enter', ctrlKey: true, isComposing: true });
+    assert.equal(await message.inputValue(), '테스트\n');
+    await message.press('Control+Enter');
+    assert.equal(await message.inputValue(), '[005930] 테스트\n');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('9pay.discussion.returnRoom')), '005930');
     assert.equal(requests.length, 1);
     page.once('dialog', dialog => dialog.dismiss());

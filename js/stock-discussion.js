@@ -333,7 +333,13 @@
     if (submit) {
       submit.value = '↵';
       submit.setAttribute('aria-label', '보내기');
-      submit.title = '보내기';
+      submit.title = '보내기 (Ctrl+Enter)';
+      submit.setAttribute('aria-keyshortcuts', 'Control+Enter');
+      if (textarea) textarea.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' || !event.ctrlKey || event.isComposing || event.keyCode === 229) return;
+        event.preventDefault();
+        if (!event.repeat && textarea.value.trim()) submit.click();
+      });
     }
     var messages = entries.filter(function (entry) {
       return entry.classList.contains('guest_general') &&
