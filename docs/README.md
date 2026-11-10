@@ -12,7 +12,6 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../CLAUDE.md` | 짧은 공통 정책·원본 문서 인덱스 | 작업 시작 시 |
 | `SERVICE_MAP.md` | 서비스·메뉴·공급자·DB·스케줄·주문 경계 상세 지도(규칙 원문은 자동매매 전용 문서) | 관련 구간만 |\n| `../quant-autotrade/docs/TRADING_RULES.md` | 자동매매 **매매규칙 공식 기준**: 우선순위·매수·청산·자금·주문 게이트 | 자동매매 정책 확인 |\n| `../quant-autotrade/docs/LIVE_OPERATIONS.md` | 실계좌 PC 설치/운영/승인 상태 및 코드·PC 불일치 | 설치·배포·안전 점검 |\n| `../quant-autotrade/docs/STRATEGY_TESTS.md` | 단타·스윙·중장기 모의/회귀/성과 근거와 미검증 항목 | 전략 검증 |\n| `../quant-autotrade/docs/CHANGELOG.md` | 자동매매 변경·승인·검증·적용 상태별 이력 | 정책 변경 시 |
 | `../ARCHITECTURE.md` | 인프라, 호출 흐름, 배포 경로 | 구조·배포 작업 |
-| [TISTORY_EMERGENCY_MIGRATION.md](TISTORY_EMERGENCY_MIGRATION.md) | 티스토리 운영 중단 시 글·이미지 복구, 독립 화면 전환, 비용·검증·롤백 | 비상 이전·복구 훈련 |
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
 | `SUPPLY_TRACE_CHART_2026-10-19.md` | 수급 흔적 차트: 3배 거래량·112/224/448 장기선·윗꼬리 후 회복 기준과 로컬 검증 | 차트 표시 |
