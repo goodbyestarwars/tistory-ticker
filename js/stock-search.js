@@ -96,7 +96,8 @@
     { code: '0053F0', name: '티앤이코리아', aliases: 'TNE코리아 tnekorea' },
     { code: '0205H0', name: '에스케이증권제14호기업인수목적', aliases: 'SK증권제14호스팩 SK증권스팩14호 에스케이증권제14호스팩' },
     { code: '0015M0', name: '디티에스', aliases: 'dts' },
-    { code: '0158S0', name: '엘리스', aliases: '엘리스그룹 elice' }
+    { code: '0158S0', name: '엘리스', aliases: '엘리스그룹 elice' },
+    { code: '0162D0', name: '동원파츠', aliases: '' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
