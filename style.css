@@ -3494,6 +3494,18 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 
 /* ============ 방명록 ============ */
 .guest-section { padding: 24px; }
+
+/* Give the deferred chat script time to render before showing the native fallback. */
+@media (scripting: enabled) {
+  #tt-body-guestbook [data-market-discussion]:not(.discussion-classic) {
+    visibility: hidden;
+    animation: guestbook-native-fallback 0s 4s forwards;
+  }
+}
+@keyframes guestbook-native-fallback {
+  to { visibility: visible; }
+}
+
 .guest-title {
   font-size: 15px; font-weight: 700; color: #0d1b40;
   margin-bottom: 6px;
