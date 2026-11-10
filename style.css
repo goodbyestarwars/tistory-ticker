@@ -8065,7 +8065,6 @@ html body :where(.ss-news-panel, .us-stocks-news-panel) {
 /* ── 11. 겹침 정리(점검에서 찾은 곳) : 바깥 상자와 안쪽 표가 같은 테두리를 그리던 곳은 한 쪽만 둔다 ── */
 html body .dmi-spot-quotes { border: 0 !important; }
 html body .ps-track-summary { border-bottom: 0 !important; }
-html body :where(.sc-day.sc-day-clickable) { border-radius: 10px !important; }
 html body .sc-nav { min-width: 32px !important; padding: 0 !important; border-radius: 50% !important; }
 html body .home-widget-grid { border-bottom: 0 !important; }
 html body :where(.home-widget-drag, .home-widget-menu-button) { border-radius: 8px !important; background: rgba(var(--np-ink), .07) !important; color: rgb(var(--np-ink)) !important; }
