@@ -1054,7 +1054,7 @@
         if (!quote || !quote.symbol) return;
         bySymbol[quote.symbol] = Object.assign({}, bySymbol[quote.symbol] || { symbol: quote.symbol }, quote);
       });
-      renderAll(indicatorsContainer, withLoadingPlaceholders(bySymbol));
+      renderAll(withLoadingPlaceholders(bySymbol));
       scheduleMissingDataDemotion(indicatorsContainer);
       setIndicatorStatus('실시간');
       if (indicatorsStaleTimer) clearTimeout(indicatorsStaleTimer);
