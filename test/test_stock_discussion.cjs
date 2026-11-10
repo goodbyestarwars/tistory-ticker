@@ -94,6 +94,7 @@ async function verify() {
     await page.getByRole('textbox', { name: '메시지' }).fill('테스트');
     await page.getByRole('button', { name: '보내기' }).click();
     assert.equal(await page.getByRole('textbox', { name: '메시지' }).inputValue(), '[005930] 테스트');
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('9pay.discussion.returnRoom')), '005930');
     assert.equal(requests.length, 1);
     page.once('dialog', dialog => dialog.dismiss());
     await page.getByRole('button', { name: '새로고침' }).click();
@@ -109,6 +110,10 @@ async function verify() {
     await page.goto('https://fixture.invalid/guestbook');
     assert.equal(await terminal.count(), 0);
     assert.equal(await page.getByRole('button', { name: '답글' }).isVisible(), true);
+    await page.evaluate(() => sessionStorage.setItem('9pay.discussion.returnRoom', '005930'));
+    await open();
+    assert.match(page.url(), /stock=005930/);
+    assert.match(await log.innerText(), /첫줄/);
   } finally {
     await browser.close();
   }

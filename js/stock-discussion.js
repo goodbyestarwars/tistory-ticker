@@ -185,6 +185,7 @@
     }
   });
   var activeCode = '';
+  var returnRoomKey = '9pay.discussion.returnRoom';
   var showAll = false;
   var renderClassic = function () {};
 
@@ -418,13 +419,26 @@
       }, { once: true });
       return;
     }
-    var code = activeCode;
-    if (!code) return;
     var textarea = root.querySelector('.discussion-write textarea');
-    if (textarea && textarea.value.trim() && textarea.value.indexOf('[' + code + ']') !== 0) textarea.value = '[' + code + '] ' + textarea.value;
+    if (!textarea || !textarea.value.trim()) return;
+    var code = activeCode;
+    try {
+      if (code) sessionStorage.setItem(returnRoomKey, code);
+      else sessionStorage.removeItem(returnRoomKey);
+    } catch (error) {
+      // Posting still works when browser storage is unavailable.
+    }
+    if (code && textarea.value.indexOf('[' + code + ']') !== 0) textarea.value = '[' + code + '] ' + textarea.value;
   }, true);
 
   var initial = new URLSearchParams(location.search).get('stock') || '';
+  var returnRoom = '';
+  try {
+    returnRoom = sessionStorage.getItem(returnRoomKey) || '';
+    sessionStorage.removeItem(returnRoomKey);
+  } catch (error) {
+    // The URL still selects the room when browser storage is unavailable.
+  }
   setupClassic();
-  applyFilter(initial, false);
+  applyFilter(initial || returnRoom, !initial && !!returnRoom);
 }());
