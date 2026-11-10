@@ -231,6 +231,10 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 .discussion-terminal-name { color: #fff47f; font-weight: 700; }
 .discussion-terminal-body { flex: 1 1 15rem; min-width: 0; white-space: pre-wrap; }
 .discussion-classic :focus-visible:not(:where(.discussion-composer-input textarea)) { outline: 2px solid currentColor; outline-offset: -3px; }
+@media (min-width: 721px) {
+  #tt-body-guestbook .main-layout:has(.discussion-classic) { max-width: 1600px; }
+  .market-discussion.discussion-classic { padding-inline: 12px; }
+}
 @media (max-width: 720px) {
   #tt-body-guestbook .main-layout:has(.discussion-classic) {
     --main-layout-mobile-gutter: 0px;
