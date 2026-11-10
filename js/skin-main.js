@@ -360,7 +360,7 @@ document.documentElement.classList.add('skin-ready');
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
-        key: 'investor', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
+        key: 'investor', badge: '수급 집계', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
         mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
         script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261110-no-summaries',
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
@@ -373,26 +373,26 @@ document.documentElement.classList.add('skin-ready');
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
-        key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
+        key: 'us-macro', badge: '발표 자료', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
         script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261025-tab-explainers',
         styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
-        key: 'crypto', label: '가상자산', slug: 'crypto-market',
+        key: 'crypto', badge: '가상자산 시세', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
         script: ASSET_BASE + 'js/crypto-market.js?v=20261025-tab-explainers',
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts',
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges',
           ASSET_BASE + 'css/crypto-market.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
         // 2026-10-11: 한국수출입은행 일별 공식 고시환율. 마운트(#fx-rates)는 아래 build()가 만든다 - skin.html 변경 없음.
         // ?tab=fx 로 이 탭을 바로 열 수 있다. 실시간 원/달러는 글로벌 시장지표 탭이 그대로 담당한다.
-        key: 'fx', label: '환율', slug: 'fx-rates',
+        key: 'fx', badge: '일별 고시', label: '환율', slug: 'fx-rates',
         mountIds: ['fx-rates'], globalName: 'FxRates',
         script: ASSET_BASE + 'js/fx-rates.js?v=20261025-tab-explainers',
         styles: [ASSET_BASE + 'css/fx-rates.css?v=20261025-plain-explainer-notes']
@@ -536,6 +536,12 @@ document.documentElement.classList.add('skin-ready');
         panel.className = 'mi-panel';
         panel.setAttribute('data-mi-panel', tab.key);
         wrap.appendChild(panel);
+        if (tab.badge) {
+          var badge = document.createElement('div');
+          badge.className = 'om-live-status';
+          badge.textContent = tab.badge;
+          panel.appendChild(badge);
+        }
         tab.mountIds.forEach(function (id) {
           var mount = document.getElementById(id);
           if (!mount) {
