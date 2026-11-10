@@ -715,7 +715,7 @@
       var cells = [];
       var day;
       for (day = 0; day < first.getDay(); day += 1) {
-        cells.push('<span class="sc-day sc-day-empty" aria-hidden="true"></span>');
+        cells.push('<span class="sc-day sc-day-empty" aria-hidden="true">' + new Date(state.viewYear, state.viewMonth, day - first.getDay() + 1).getDate() + '</span>');
       }
       for (day = 1; day <= daysInMonth; day += 1) {
         var current = new Date(state.viewYear, state.viewMonth, day);
@@ -725,18 +725,19 @@
         if (key === state.selectedKey) classes.push('sc-selected');
         cells.push('<button type="button" class="' + classes.join(' ') + '" data-calendar-date="' + key + '" aria-label="'
           + (state.viewMonth + 1) + '월 ' + day + '일' + (hasEventOn(state.events, key, state.marketFilter) ? ', 일정 있음' : '') + '" aria-pressed="'
-          + (key === state.selectedKey ? 'true' : 'false') + '">' + day
+          + (key === state.selectedKey ? 'true' : 'false') + '"><span class="sc-day-number">' + day + '</span>'
           + (hasEventOn(state.events, key, state.marketFilter) ? '<span class="sc-dot" aria-hidden="true"></span>' : '')
           + '</button>');
       }
-      while (cells.length % 7) cells.push('<span class="sc-day sc-day-empty" aria-hidden="true"></span>');
+      for (day = 1; cells.length % 7; day += 1) cells.push('<span class="sc-day sc-day-empty" aria-hidden="true">' + day + '</span>');
       var monthTitle = state.viewYear + '년 ' + (state.viewMonth + 1) + '월';
+      var monthName = first.toLocaleDateString('en', { month: 'long' }).toUpperCase();
       return '<div class="sc-cal-header">'
         + '<button type="button" class="sc-nav" data-calendar-action="previous" aria-label="이전 달">‹</button>'
-        + '<strong class="sc-cal-title">' + monthTitle + '</strong>'
+        + '<strong class="sc-cal-title" aria-label="' + monthTitle + '"><span aria-hidden="true">' + (state.viewMonth + 1) + '</span><small aria-hidden="true">' + state.viewYear + ' · ' + monthName + '</small></strong>'
         + '<button type="button" class="sc-nav" data-calendar-action="next" aria-label="다음 달">›</button>'
         + '</div>'
-        + '<div class="sc-dow" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>'
+        + '<div class="sc-dow" aria-hidden="true"><span>日<small>SUN</small></span><span>月<small>MON</small></span><span>火<small>TUE</small></span><span>水<small>WED</small></span><span>木<small>THU</small></span><span>金<small>FRI</small></span><span>土<small>SAT</small></span></div>'
         + '<div class="sc-grid">' + cells.join('') + '</div>';
     }
 
