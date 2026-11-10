@@ -13,7 +13,7 @@
  * 2026-07-16(2차): "간밤 시황"에서 "보조지수"로 개편(파일명은 유지 - URL이 티스토리 HTML에
  * 박제돼 있어 CLAUDE.md 규칙상 변경 불가). 코스피200 야간선물 카드는 별도 페이지
  * (js/kospi-futures.js)로 분리하며 여기서 제거하고, 대신 원/달러 환율 카드를 추가했다.
- * 규칙 기반 요약(buildSummaryText)만 표시한다. Groq 생성 참고의견은 제거했다.
+ * 시장지표 요약과 Groq 생성 참고의견을 표시하지 않는다.
  *
  * 2026-07-16(3차): 사용자 요청으로 "선물만 있고 현물지수가 없다"는 지적을 반영해 미국
  * 현물지수 3종(나스닥종합/S&P500/다우존스)과 BTC를 추가 - 관심지수 리본(js/quick-indices.js)에
@@ -439,8 +439,6 @@
 
   function buildShell() {
     return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
-      + '<div class="om-summary" id="omSummary" hidden></div>'
-      
       + '<div class="om-board" data-om-board></div>';
   }
 
@@ -463,8 +461,6 @@
         + '</div>';
     }).join('');
     return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
-      + '<div class="om-summary" id="omSummary" hidden></div>'
-      
       + groups;
   }
 
@@ -914,82 +910,6 @@
     });
   }
 
-  // ---- 글로벌 시장지표 요약(규칙 기반 - AI 호출 없이 클라이언트에서 즉시 계산) ----
-  //
-  // 단순히 "N개 중 M개 상승"만 세면 환율/VIX/채권처럼 오르는 게 오히려 시장에 부담인 지표가
-  // 섞여 오해를 준다(사용자 지적) - 카테고리별로 나눠 보여주고, 종합 톤은 CATEGORIES의
-  // direction(1=상승 호재, -1=상승 악재, 0=해석 없음)을 반영한 가중 평균으로 계산한다.
-
-  // 2026-07-21: 카테고리별 문장을 " · "로 이어붙인 한 줄짜리 blob이던 걸 사용자 요청("단락
-  // 구분 확실하게")으로 카테고리별 한 줄(paragraph)씩 끊어서 반환하도록 변경 - { label, text }
-  // 배열로 돌려주고 렌더링(renderSummary)이 각각 자기 줄에 그린다. 종합 톤 문장도 별도 줄로
-  // 분리해서 renderSummary가 맨 아래에 따로 붙인다.
-  function buildSummaryText(items) {
-    var bySymbol = {};
-    items.forEach(function (it) { bySymbol[it.symbol] = it; });
-
-    var lines = [];
-    var riskScoreSum = 0, riskCatCount = 0;
-
-    CATEGORIES.forEach(function (cat) {
-      var catItems = cat.symbols
-        .map(function (s) { return bySymbol[s]; })
-        .filter(function (it) { return it && typeof it.change_rate === 'number'; });
-      if (!catItems.length) return;
-
-      if (cat.symbols.length > 1 && !cat.listIndividually) {
-        var up = catItems.filter(function (it) { return it.change_rate > 0; }).length;
-        var down = catItems.filter(function (it) { return it.change_rate < 0; }).length;
-        var avg = catItems.reduce(function (s, it) { return s + it.change_rate; }, 0) / catItems.length;
-        lines.push({ label: cat.label, text: catItems.length + '개 중 ' + up + '개 상승·' + down + '개 하락(평균 '
-          + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%)' });
-        if (cat.direction !== 0) { riskScoreSum += avg * cat.direction; riskCatCount++; }
-      } else {
-        // 단일 종목 카테고리이거나(환율, 채권 등) listIndividually:true(변동성·환율처럼 묶여
-        // 있어도 등락폭 규모가 서로 달라 뭉뚱그리면 안 되는 경우) - 심볼별로 따로 풀어 쓴다.
-        var pieces = catItems.map(function (it) {
-          var note = cat.direction === -1
-            ? (it.change_rate > 0 ? '(부담)' : it.change_rate < 0 ? '(완화)' : '')
-            : '';
-          return LABELS[it.symbol] + ' ' + (it.change_rate >= 0 ? '+' : '') + it.change_rate.toFixed(2) + '%' + note;
-        });
-        lines.push({ label: cat.label, text: pieces.join(', ') });
-        catItems.forEach(function (it) {
-          if (cat.direction !== 0) { riskScoreSum += it.change_rate * cat.direction; riskCatCount++; }
-        });
-      }
-    });
-
-    if (!lines.length) return null;
-    var overallAvg = riskCatCount ? riskScoreSum / riskCatCount : 0;
-    var tone = overallAvg > 0.3 ? '우호적' : overallAvg < -0.3 ? '부담' : '혼조';
-    return {
-      lines: lines,
-      toneText: '방향성(환율·VIX·채권은 상승=부담)을 반영하면 전반적으로 ' + tone + ' 흐름입니다.'
-    };
-  }
-
-  // 헤더 라벨 앞에 붙는 간단한 바차트 아이콘 - currentColor라 다크모드에서도 별도 처리 없이
-  // 색이 따라간다.
-  var OM_SUMMARY_ICON = '<svg class="om-summary-icon" width="15" height="15" viewBox="0 0 24 24"'
-    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
-    + ' aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>';
-
-  function renderSummary(container, items) {
-    var box = container.querySelector('#omSummary');
-    if (!box) return;
-    var summary = buildSummaryText(items);
-    if (!summary) { box.hidden = true; return; }
-    box.hidden = false;
-    var linesHtml = summary.lines.map(function (l) {
-      return '<div class="om-summary-line"><b>' + escapeHtml(l.label) + '</b> ' + escapeHtml(l.text) + '</div>';
-    }).join('');
-    box.innerHTML = '<div class="om-summary-head">' + OM_SUMMARY_ICON + '<b>글로벌 시장지표 요약</b></div>'
-      + '<div class="om-summary-body">' + linesHtml
-      + '<div class="om-summary-tone">' + escapeHtml(summary.toneText) + '</div>'
-      + '</div>';
-  }
-
   // 백엔드(KIS stck_bsop_date, 네이버 localDate)는 'YYYYMMDD'를 주고, 과거 BTC DB에는
   // 일부 'YYYY-MM-DD' 행이 남아 있어 두 포맷이 섞일 수 있다. 차트 입력 전 항상 대시를
   // 제거해 한 포맷으로 통일한다.
@@ -1039,31 +959,24 @@
     if (!hasMissing || missingDataTimer) return;
     missingDataTimer = setTimeout(function () {
       missingDataTimer = null;
-      renderAll(container, currentItems.map(function (item) {
+      renderAll(currentItems.map(function (item) {
         return item && item._loading ? { symbol: item.symbol } : item;
       }));
     }, MISSING_DATA_GRACE_MS);
   }
 
-  function renderAll(container, items) {
+  function renderAll(items) {
     currentItems = items || [];
-    var bySymbol = {};
-    items.forEach(function (item) { bySymbol[item.symbol] = item; });
-
-    renderSummary(container, items);
     renderBoard(items);
   }
 
-  // VM(/futures, BTC 포함)을 SYMBOL_ORDER로 필터링해 renderAll에 넘긴다. 이 필터링이 없으면
-  // renderSummary가 VM 원본 응답의 심볼(코스피200 주간/야간선물 등 이 페이지에 안 쓰는
-  // 것들까지)을 전부 세어버리는 문제가 생긴다 - 과거 실제 발생한 버그.
   function refresh(container) {
     if (document.hidden || container.closest('[hidden]')) return;
     OvernightMarket.fetchFutures()
       .then(function (futuresItems) {
         var bySymbol = {};
         futuresItems.forEach(function (it) { bySymbol[it.symbol] = it; });
-        renderAll(container, withLoadingPlaceholders(bySymbol));
+        renderAll(withLoadingPlaceholders(bySymbol));
         // 일부 지표가 뒤늦게 도착하는 짧은 구간에는 '데이터 없음'으로 단정하지 않는다.
         scheduleMissingDataDemotion(container);
 
@@ -1072,7 +985,7 @@
           OvernightMarket.fetchFuturesFresh().then(function (freshItems) {
             var freshBySymbol = {};
             freshItems.forEach(function (it) { freshBySymbol[it.symbol] = it; });
-            renderAll(container, withLoadingPlaceholders(freshBySymbol));
+            renderAll(withLoadingPlaceholders(freshBySymbol));
             scheduleMissingDataDemotion(container);
           }).catch(function () { /* 캐시 화면은 그대로 유지한다. */ });
         }

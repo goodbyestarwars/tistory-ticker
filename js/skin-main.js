@@ -362,14 +362,14 @@ document.documentElement.classList.add('skin-ready');
       {
         key: 'investor', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
         mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
-        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261025-tab-explainers',
+        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261110-no-summaries',
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
         mountIds: ['overnight-market'],
         globalName: 'OvernightMarket',
-        script: ASSET_BASE + 'js/overnight-market.js?v=20261008-five-year-charts',
+        script: ASSET_BASE + 'js/overnight-market.js?v=20261110-no-summaries',
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
@@ -461,7 +461,7 @@ document.documentElement.classList.add('skin-ready');
         if (key !== 'us-macro' || (window.OvernightMarket && window.OvernightMarket.cryptoTools)) return archive;
         return Promise.all([archive, new Promise(function (resolve) {
           var script = document.createElement('script');
-          script.src = ASSET_BASE + 'js/overnight-market.js?v=20261008-five-year-charts';
+          script.src = ASSET_BASE + 'js/overnight-market.js?v=20261110-no-summaries';
           script.onload = script.onerror = resolve; document.head.appendChild(script);
         })]);
       });
@@ -493,98 +493,6 @@ document.documentElement.classList.add('skin-ready');
         }
       });
       activate(key);
-    }
-
-    // Summarize the rows already rendered by each tab. No extra data or AI
-    // request: keep labels, values and dates exactly as displayed in the source.
-    function installTabSummary(panel, tab) {
-      if (tab.key === 'global') return; // Its module already renders a rule-based summary first.
-      var selectors = {
-        domestic: '.dmi-spot-table tbody tr, .dmi-fund-board .ibd-row',
-        investor: '.ifl-lines li, .ibd-row',
-        'us-macro': '.ibd-row', crypto: '.ibd-row', fx: '.fxr-table tbody tr'
-      };
-      var summary = document.createElement('section');
-      summary.className = 'mi-tab-summary';
-      var status = document.createElement('div');
-      status.className = 'om-live-status';
-      status.setAttribute('role', 'status');
-      status.textContent = {domestic: 'REST 확인 중', investor: '수급 집계', 'us-macro': '발표 자료', crypto: '30초 갱신', fx: '일별 고시'}[tab.key];
-      summary.appendChild(status);
-      var box = document.createElement('div');
-      box.className = 'om-summary';
-      var head = document.createElement('div');
-      head.className = 'om-summary-head';
-      head.innerHTML = '<svg class="om-summary-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>';
-      var heading = document.createElement('h2');
-      heading.textContent = tab.label + ' 요약';
-      head.appendChild(heading);
-      box.appendChild(head);
-      var body = document.createElement('div');
-      body.className = 'om-summary-body';
-      box.appendChild(body);
-      var note = document.createElement('div');
-      note.className = 'mi-summary-note om-summary-tone';
-      note.textContent = '현재 탭에 표시된 자료 요약 · 각 항목의 기준일과 단위는 원본 표를 함께 확인하세요.';
-      box.appendChild(note);
-      summary.appendChild(box);
-      panel.insertBefore(summary, panel.firstChild);
-      function update() {
-        var connection = panel.querySelector('[data-dmi-connection]');
-        if (connection) {
-          if (status.textContent !== connection.textContent) status.textContent = connection.textContent;
-          var state = connection.getAttribute('data-state') || '';
-          if (status.getAttribute('data-state') !== state) status.setAttribute('data-state', state);
-        }
-        var basis = panel.querySelector(tab.key === 'fx' ? '[data-fx-meta]' : '[data-if-asof]');
-        var noteText = '현재 탭에 표시된 자료 요약 · 각 항목의 기준일과 단위는 원본 표를 함께 확인하세요.'
-          + (basis ? ' ' + basis.textContent.replace(/\s+/g, ' ').trim() : '');
-        if (note.textContent !== noteText) note.textContent = noteText;
-        var lines = Array.prototype.slice.call(panel.querySelectorAll(selectors[tab.key]));
-        lines = lines.map(function (row) {
-          // IndicatorBoard repeats values in hidden mobile-only copies. Use
-          // table cells once, rather than concatenating responsive duplicates.
-          var cells = row.querySelectorAll(':scope > th, :scope > td');
-          if (cells.length && !Array.prototype.some.call(row.querySelectorAll(':scope > td'), function (cell) {
-            return /\d/.test(cell.textContent);
-          })) return '';
-          var headers = row.closest('table') && row.closest('table').querySelectorAll('thead tr:last-child th');
-          return (cells.length ? Array.prototype.map.call(cells, function (cell, index) {
-            var label = cell.getAttribute('data-label') || (index > 0 && headers && headers[index] ? headers[index].textContent.trim() : '');
-            return (label ? label + ': ' : '') + cell.textContent.replace(/\s+/g, ' ').trim();
-          }).join(' · ') : row.textContent.replace(/\s+/g, ' ').trim());
-        }).filter(function (line) { return /\d/.test(line) && !/불러오는 중|불러오지 못|자료 없음|미수신|확인 중|요약하지 않습니다/.test(line); });
-        lines = lines.filter(function (line, i) { return lines.indexOf(line) === i; }).slice(0, 4);
-        var signature = lines.join('\n');
-        if (body.dataset.signature === signature) return;
-        body.dataset.signature = signature;
-        body.textContent = '';
-        if (!lines.length) {
-          var empty = document.createElement('p');
-          empty.textContent = '요약할 수 있는 수치가 없습니다. 아래 자료의 수신 상태를 확인하세요.';
-          body.appendChild(empty);
-          return;
-        }
-        lines.forEach(function (line) {
-          var row = document.createElement('div');
-          row.className = 'om-summary-line';
-          var split = line.indexOf(' · ');
-          if (split > 0) {
-            var label = document.createElement('b');
-            label.textContent = line.slice(0, split);
-            row.appendChild(label);
-            row.appendChild(document.createTextNode(' ' + line.slice(split + 3)));
-          } else row.textContent = line;
-          body.appendChild(row);
-        });
-      }
-      var queued = false;
-      new MutationObserver(function (records) {
-        if (records.every(function (record) { return summary.contains(record.target); }) || queued) return;
-        queued = true;
-        requestAnimationFrame(function () { queued = false; update(); });
-      }).observe(panel, { childList: true, characterData: true, attributes: true, attributeFilter: ['data-state'], subtree: true });
-      update();
     }
 
     function build() {
@@ -636,7 +544,6 @@ document.documentElement.classList.add('skin-ready');
           }
           panel.appendChild(mount);
         });
-        installTabSummary(panel, tab);
       });
 
       bar.addEventListener('click', function (event) {

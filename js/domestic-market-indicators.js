@@ -74,10 +74,6 @@
 
   function setLiveStatus(text) {
     var node = dmiRoot && dmiRoot.querySelector('[data-dmi-connection]');
-    if (!node && dmiRoot) {
-      var panel = dmiRoot.closest && dmiRoot.closest('.mi-panel');
-      node = panel && panel.querySelector('.mi-tab-summary .om-live-status');
-    }
     if (!node) return;
     node.textContent = text;
     node.setAttribute('data-state', LIVE_STATUS_STATE[text] || 'init');
@@ -1102,6 +1098,7 @@
       return '<div class="mi-block-head dmi-subheading"><h3 class="mi-block-title"><span class="mi-block-no">' + no + '</span><span class="mi-block-name">' + name + (extra || '') + '</span></h3>' + (buttonHtml || '') + '</div>';
     }
     root.innerHTML = '<div class="dmi-shell">'
+      + '<div class="om-live-status" data-dmi-connection role="status">REST 확인 중</div>'
       + '<section class="mi-block mi-block--first dmi-block dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
       + blockHead('01', '국내 주요 지수', ' <span class="dmi-market-status" data-dmi-market-status></span>',
         '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button>')
