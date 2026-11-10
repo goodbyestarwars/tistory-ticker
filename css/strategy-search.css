@@ -615,6 +615,7 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 #strategy-search .ss-etf-control,
 #strategy-search .ss-dividend-sort-select,
 #strategy-search .ss-nps-filter-select,
+#strategy-search .ss-nps-sort-select,
 #strategy-search .ss-etf-search-input {
   box-sizing: border-box;
   min-height: 40px;
@@ -627,7 +628,8 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 }
 #strategy-search .ss-etf-control,
 #strategy-search .ss-dividend-sort-select,
-#strategy-search .ss-nps-filter-select { min-width: 124px; padding: 0 30px 0 11px; }
+#strategy-search .ss-nps-filter-select,
+#strategy-search .ss-nps-sort-select { min-width: 124px; padding: 0 30px 0 11px; }
 /* 2026-08-20: 국민연금 보유종목 - 개수 상한(어제) 대신 지분율 임계값 필터로 바뀌면서
    추가한 셀렉트. 배당주 정렬 셀렉트와 같은 모양을 그대로 재사용한다. 개수 안내
    (ss-nps-filter-meta)를 같은 줄에 붙여서, 원래 .ss-hint(빈 상태용 큰 패딩) 재사용 때문에
@@ -763,7 +765,8 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
   #strategy-search .ss-tab { flex: 0 0 auto; }
   #strategy-search .ss-etf-control,
   #strategy-search .ss-dividend-sort-select,
-  #strategy-search .ss-nps-filter-select { min-width: 0; width: 100%; }
+  #strategy-search .ss-nps-filter-select,
+  #strategy-search .ss-nps-sort-select { min-width: 0; width: 100%; }
   #strategy-search .ss-nps-filter label { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
   #strategy-search .ss-etf-search-input { min-width: 0; width: 100%; }
   #strategy-search .ss-comparison-table td.ss-col-signal,
@@ -782,6 +785,7 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 html.dark #strategy-search .ss-etf-control,
 html.dark #strategy-search .ss-dividend-sort-select,
 html.dark #strategy-search .ss-nps-filter-select,
+html.dark #strategy-search .ss-nps-sort-select,
 html.dark #strategy-search .ss-etf-search-input { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); }
 html.dark #strategy-search .ss-nps-filter label { color: var(--dk-sub); }
 html.dark #strategy-search .ss-nps-filter-meta { color: var(--dk-mute); }
