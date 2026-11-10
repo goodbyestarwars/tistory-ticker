@@ -349,7 +349,7 @@ document.documentElement.classList.add('skin-ready');
       }
     };
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261025-plain-explainer-notes';
+    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261110-panel-spacing';
     var TABS = [
       {
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
