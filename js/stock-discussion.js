@@ -288,9 +288,6 @@
         all.textContent = showAll ? '현재 방 글 보기' : '모든 방 글 보기';
         renderClassic();
       });
-      var manage = addText(adminBar, 'a', '', '티스토리 방명록 관리');
-      manage.href = '/manage/guestbook';
-      manage.style.color = 'inherit';
     }
     form.querySelector('.discussion-write-note')?.remove();
     var textarea = form.querySelector('textarea');
