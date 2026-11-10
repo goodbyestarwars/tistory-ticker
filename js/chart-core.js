@@ -360,7 +360,7 @@
       var stamp = Number.isFinite(timestamp) ? timestamp : (lastFrameTime == null ? 0 : lastFrameTime + 1000 / 60);
       var elapsed = lastFrameTime == null ? 1000 / 60 : Math.max(0, Math.min(64, stamp - lastFrameTime));
       lastFrameTime = stamp;
-      var alpha = 1 - Math.exp(-elapsed / 60);
+      var alpha = 1 - Math.exp(-elapsed / (lastGesture === 'pan' ? 25 : 60));
       var from = now.from + (target.from - now.from) * alpha;
       var to = now.to + (target.to - now.to) * alpha;
       var done = Math.abs(target.from - from) < 0.035 && Math.abs(target.to - to) < 0.035;
@@ -417,7 +417,7 @@
       var span = base.to - base.from;
       if (panning) {
         // 트랙패드 가로 스크롤/Shift+휠은 시간축 좌우 이동.
-        var move = (dx || dy) * span / width;
+        var move = (dx || dy) * 1.25 * span / width;
         target = bounded(base.from + move, span);
       } else {
         // 마우스 아래 논리적 봉 위치를 줌 중심으로 보존한다.
@@ -494,7 +494,7 @@
       if (!(dt > 8) || Math.abs(b.span - a.span) > 0.5) return;   // 확대·축소 드래그는 관성 없음
       var v = (b.from - a.from) / dt;                              // 봉/ms
       if (!isFinite(v) || Math.abs(v) < 0.006) return;
-      v = Math.max(-0.6, Math.min(0.6, v));
+      v = Math.max(-0.75, Math.min(0.75, v * 1.25));
       inertia = { v: v, span: b.span };
       var last = null;
       function glide(timestamp) {
