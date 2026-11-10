@@ -114,6 +114,11 @@ async function verify() {
     await open();
     assert.match(page.url(), /stock=005930/);
     assert.match(await log.innerText(), /첫줄/);
+    assert.equal(await page.getByRole('textbox', { name: '이름' }).inputValue(), '방문자');
+    assert.equal(await page.getByLabel('비밀번호').inputValue(), 'test1234');
+    await page.getByLabel('비밀번호').fill('');
+    await open();
+    assert.equal(await page.getByLabel('비밀번호').inputValue(), '');
   } finally {
     await browser.close();
   }

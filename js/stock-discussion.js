@@ -186,6 +186,8 @@
   });
   var activeCode = '';
   var returnRoomKey = '9pay.discussion.returnRoom';
+  var guestSessionKey = '9pay.discussion.guest';
+  var guestFieldsSelector = '.discussion-guest-fields input[name=name], .discussion-guest-fields input[type=password]';
   var showAll = false;
   var renderClassic = function () {};
 
@@ -310,8 +312,20 @@
       var guestFields = form.querySelector('.discussion-guest-fields');
       if (guestFields) {
         composer.append(guestFields);
-        guestFields.querySelectorAll('input[name=name], input[type=password]').forEach(function (field) {
+        var savedGuest = [];
+        try {
+          savedGuest = JSON.parse(sessionStorage.getItem(guestSessionKey) || '[]');
+        } catch (error) {
+          // The fields can still be filled manually.
+        }
+        form.querySelectorAll(guestFieldsSelector).forEach(function (field, index) {
           field.required = true;
+          if (!field.value && Array.isArray(savedGuest) && typeof savedGuest[index] === 'string') {
+            field.value = savedGuest[index];
+          }
+          field.addEventListener('input', function () {
+            try { sessionStorage.removeItem(guestSessionKey); } catch (error) {}
+          });
         });
       }
     }
@@ -406,7 +420,7 @@
   root.addEventListener('click', function (event) {
     var submit = event.target.closest && event.target.closest('.discussion-write input[type=submit]');
     if (!submit) return;
-    var fields = root.querySelectorAll('.discussion-guest-fields input[name=name], .discussion-guest-fields input[type=password]');
+    var fields = root.querySelectorAll(guestFieldsSelector);
     for (var i = 0; i < fields.length; i++) {
       var field = fields[i];
       if (field.value.trim()) continue;
@@ -423,6 +437,11 @@
     if (!textarea || !textarea.value.trim()) return;
     var code = activeCode;
     try {
+      if (fields.length === 2) {
+        sessionStorage.setItem(guestSessionKey, JSON.stringify(Array.from(fields, function (field) {
+          return field.value.trim();
+        })));
+      }
       if (code) sessionStorage.setItem(returnRoomKey, code);
       else sessionStorage.removeItem(returnRoomKey);
     } catch (error) {
