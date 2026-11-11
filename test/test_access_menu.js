@@ -38,7 +38,7 @@ function policy(admin, off = []) {
         for (const forbidden of ['홈', '증시온도', '주요 뉴스', '종목분석', '검색기', '전략검색', '독립 차트', 'MY', '자동매매', 'KIS', '트레이딩', '화면 설정', '물타기']) {
           assert.ok(!text.includes(forbidden), `${name}/${width} must hide ${forbidden}: ${text}`);
         }
-        for (const must of ['캘린더', '커뮤니티', '마켓브리핑', '시장지표']) assert.ok(text.includes(must), `${name}/${width} must show ${must}: ${text}`);
+        for (const must of ['캘린더', '대화방', '마켓브리핑', '시장지표']) assert.ok(text.includes(must), `${name}/${width} must show ${must}: ${text}`);
         assert.equal(await page.locator('#navSearchInput').count(), 0, 'no stock search UI');
       } else {
         for (const must of ['홈', '종목분석', '검색기', 'MY', '자동매매', '화면 설정', '시장지표']) assert.ok(text.includes(must), `admin/${width} must show ${must}: ${text}`);

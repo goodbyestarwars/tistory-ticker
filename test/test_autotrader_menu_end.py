@@ -30,7 +30,7 @@ class AutoTraderMenuEndTests(unittest.TestCase):
 
     def test_other_menu_items_unchanged(self):
         menu = read('js/skin-menu.js')
-        for label in ("label: '홈'", "label: '시장'", "label: '종목'", "label: '캘린더'", "label: '커뮤니티'", "label: 'MY'"):
+        for label in ("label: '홈'", "label: '시장'", "label: '종목'", "label: '캘린더'", "label: '대화방'", "label: 'MY'"):
             self.assertIn(label, menu)
 
 
