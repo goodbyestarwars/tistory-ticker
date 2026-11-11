@@ -205,6 +205,17 @@
       .catch(function () { /* 버튼 없이 유지 */ });
   }
 
+  /* 비로그인이 홈·로고(송골매)·배너를 누르면 이동하지 않고 로그인 창을 연다. */
+  if (global.self === global.top) {
+    doc.addEventListener('click', function (e) {
+      if (current && current.authenticated) return;
+      var t = e.target && e.target.closest ? e.target.closest('.nav-logo, [data-mtab="home"], a[href="/"], a[href="https://ghlee.tistory.com/"]') : null;
+      if (!t) return;
+      e.preventDefault();
+      withLanding(function (L) { L.showLogin(!!(current && current.naverConfigured)); });
+    }, true);
+  }
+
   fetchPolicy().then(function (data) { current = data; failed = false; }, function () { current = null; failed = true; })
     .then(function () {
       applyClasses();
