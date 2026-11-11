@@ -195,3 +195,104 @@ html.dark .guest-home-story-card small { color: var(--dk-mute, #bbb); }
 @media (max-width: 360px) {
   .guest-home-story-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 비회원 홈 법적 푸터: 원본 shell 링크/회사 정보를 재사용하고
+   구형 .site-footer의 grid 영역·캐러셀 레이아웃은 가져오지 않는다. */
+.guest-home-footer {
+  box-sizing: border-box;
+  width: min(100%, calc(var(--home-content-max, 1380px) + 32px));
+  min-width: 0;
+  margin: 28px auto 0;
+  padding: 24px 16px 36px;
+  border-top: 1px solid var(--ui-border, #e5e7eb);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 32px;
+  row-gap: 14px;
+  color: var(--text-sub, #64748b);
+}
+.guest-home-footer .site-footer-version,
+.guest-home-footer .copyright { display: none; }
+.guest-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px 20px;
+  min-width: 0;
+}
+.guest-footer-links :is(a, button) {
+  box-sizing: border-box;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--text-sub, #64748b);
+  font-family: var(--font-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.guest-footer-links :is(a, button):hover { color: var(--text-main, #334155); text-decoration: underline; text-underline-offset: 3px; }
+.guest-footer-links :is(a, button):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.guest-footer-company {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 11px;
+  min-width: 0;
+}
+.guest-home-footer .guest-footer-company .footer-falcon-logo {
+  display: block;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  object-fit: contain;
+}
+.guest-footer-company-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
+.guest-footer-company-copy strong {
+  display: block;
+  color: var(--text-main, #334155);
+  font-family: var(--font-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+.guest-footer-company-copy small,
+.guest-footer-company-copy b {
+  display: block;
+  color: var(--text-sub, #64748b);
+  font-family: var(--font-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+html.dark .guest-home-footer { border-top-color: var(--dk-line, #333); }
+html.dark .guest-footer-links :is(a, button),
+html.dark .guest-footer-company-copy small,
+html.dark .guest-footer-company-copy b { color: var(--dk-mute, #aaa); }
+html.dark .guest-footer-links :is(a, button):hover,
+html.dark .guest-footer-company-copy strong { color: var(--dk-text, #eee); }
+@media (max-width: 900px) {
+  .guest-home-footer {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    padding: 18px 12px 28px;
+    gap: 8px;
+  }
+  .guest-footer-links { justify-content: center; gap: 4px 16px; }
+  .guest-footer-company { justify-content: center; }
+}
+@media (max-width: 520px) {
+  .guest-home-footer { padding-bottom: calc(24px + var(--mobile-tabbar-h, 0px)); }
+  .guest-footer-links { gap: 2px 12px; }
+  .guest-footer-links :is(a, button) { font-size: 12px; min-height: 36px; }
+}
