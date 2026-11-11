@@ -733,7 +733,13 @@
 
   // ---- 초기화: skin-menu.js가 먼저 로드됐으면 바로, 아니면 짧게 재시도 ----
 
+  // 2026-11-11: 종목 검색·관심종목 서랍은 서버가 확인한 관리자 세션에서만 시작한다.
   function init() {
+    if (global.NineAccess) { global.NineAccess.whenAdmin(initNow); return; }
+    global.addEventListener('nineaccess:ready', function (e) { if (e.detail && e.detail.admin) initNow(); }, { once: true });
+  }
+
+  function initNow() {
     try { recordPageView(); } catch (e) { /* 기록 실패는 검색 동작과 무관 */ }
     bootGlobalWatchlist();
     var tries = 0;

@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var NAV_ITEMS = [
+  var NAV_ALL = [
     { href: '/', label: '홈' },
     {
       label: '시장',
@@ -69,11 +69,31 @@
   window.__isBlogAdmin = isBlogAdmin;
   // end:true = PC(721px 이상)에서 메뉴바 오른쪽 끝에 붙인다(2026-10-11 요청: MY 옆이 아니라 오른쪽 끝). 모바일은 가로 스크롤 줄의 맨 끝 그대로.
   if (isBlogAdmin()) {
-    NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });
+    NAV_ALL.push({ href: '/page/auto-trader', label: '자동매매', end: true });
     // Same display gate and group as auto-trader. Actual KIS access still requires
     // the verified Google administrator session at the server gateway.
-    NAV_ITEMS.push({href:'https://goodbyestar.cloud/kis-tool/', label:'트레이딩 도구', end:true});
+    NAV_ALL.push({href:'https://goodbyestar.cloud/kis-tool/', label:'트레이딩 도구', end:true});
   }
+  // 관리자 화면 ON/OFF 설정(서버가 확인한 Google 관리자 세션일 때만 보인다 - NineAccess '@admin').
+  NAV_ALL.push({ href: '#access-settings', label: '화면 설정', end: true });
+
+  /* 2026-11-11 화면 접근 정책: 보이는 메뉴는 NineAccess(서버 정책)로 거른다. 판정 전·장애 시에는 공개 4개만.
+     NineAccess가 아직 로드되지 않았을 때도 같은 4개 주소만 허용한다(fail-closed). */
+  var PUBLIC_HREFS = ['/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', '/pages/kospi-futures'];
+  function menuAllows(href) {
+    if (window.NineAccess) return window.NineAccess.allowsHref(href);
+    return PUBLIC_HREFS.indexOf(href) >= 0;
+  }
+  var NAV_ITEMS = [];
+  function refreshNav() {
+    NAV_ITEMS = [];
+    NAV_ALL.forEach(function (item) {
+      if (!item.children) { if (menuAllows(item.href)) NAV_ITEMS.push(item); return; }
+      var kids = item.children.filter(function (child) { return menuAllows(child.href); });
+      if (kids.length) NAV_ITEMS.push(Object.assign({}, item, { children: kids }));
+    });
+  }
+  refreshNav();
 
 
   // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
@@ -312,6 +332,8 @@
       if (group && !group.contains(event.relatedTarget)) closeDropdowns(mount);
     });
     mount.addEventListener('click', function (event) {
+      var settingsLink = event.target.closest ? event.target.closest('a[href="#access-settings"]') : null;
+      if (settingsLink) { event.preventDefault(); openAccessSettings(); return; }
       var toolLink = event.target.closest ? event.target.closest('[data-invest-tool]') : null;
       if (toolLink) {
         event.preventDefault();
@@ -335,6 +357,18 @@
       var currentTrigger = mount.querySelector('.nav-group-trigger[data-group-index="' + nextIndex + '"]');
       if (currentTrigger) currentTrigger.focus();
     });
+  }
+
+  function openAccessSettings() {
+    var open = function () { if (window.NineAccessSettings) window.NineAccessSettings.open(); };
+    if (window.NineAccessSettings) { open(); return; }
+    var existing = document.querySelector('script[data-access-settings]');
+    if (existing) { existing.addEventListener('load', open, { once: true }); return; }
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-settings.js';
+    script.setAttribute('data-access-settings', '1');
+    script.onload = open;
+    document.body.appendChild(script);
   }
 
   function openInvestmentTool(tool) {
@@ -363,7 +397,9 @@
   function render() {
     var searchMount = document.getElementById('navSearchMount');
     var mount = document.getElementById('nav-menu-mount');
-    if (searchMount) searchMount.innerHTML = SEARCH_HTML;
+    // 종목 검색창은 관리자 세션 확인 뒤에만 만든다(비로그인·일반 회원에게는 검색 UI와 제한 API 호출 없음).
+    var adminSearch = !!(window.NineAccess && window.NineAccess.isAdmin());
+    if (searchMount) searchMount.innerHTML = adminSearch ? SEARCH_HTML : '';
 
     // 2026-09-11: 운영 스킨을 저장소의 skin.html로 갱신해서(사용자 반영), 여기 있던
     // 런타임 우회 세 가지를 걷어냈다 - 옛 폰트 전환 버튼 제거, 옛 MY 아이콘 제거,
@@ -375,11 +411,18 @@
     if (mount) {
       selectedGroupIndex = activeGroupIndex();
       renderMenu(mount);
-      wireNavigation(mount);
+      if (!navNavigationWired) { navNavigationWired = true; wireNavigation(mount); }
     }
-    if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
-    wireBigSearch();
+    if (adminSearch && window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
+    if (adminSearch) wireBigSearch();
   }
+
+  // 정책 판정이 끝나면 메뉴를 다시 그린다(로그인·로그아웃·ON/OFF 변경 반영).
+  var navNavigationWired = false;
+  function onAccessReady() { refreshNav(); render(); }
+  if (window.NineAccess) window.NineAccess.ready.then(onAccessReady);
+  else window.addEventListener('nineaccess:ready', onAccessReady, { once: true });
+  window.addEventListener('nineaccess:change', onAccessReady); // 관리자 ON/OFF 저장 직후
 
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);

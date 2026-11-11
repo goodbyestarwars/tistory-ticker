@@ -28,6 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse, Response
 
+import access_policy
 import autotrader_control
 import bond_yield
 import commodity_kis
@@ -1041,6 +1042,53 @@ async def autotrader_agent_sync(request: Request):
         raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
 
 
+@app.middleware('http')
+async def restrict_stock_data(request: Request, call_next):
+    """종목 단위 시세·분석 REST는 관리자 세션만. 비로그인 401, 일반 회원 403(응답 본문에 데이터 없음).
+    CORS/Origin은 보조 검사일 뿐이라 여기서 세션을 직접 확인한다. 인증 설정 오류도 닫힌 채로 둔다."""
+    if request.method != 'OPTIONS' and access_policy.is_restricted_path(request.url.path):
+        denied = _access_denied(request)
+        if denied is not None:
+            return denied
+    return await call_next(request)
+
+
+def _access_denied(request_like):
+    """관리자면 None, 아니면 (401|403|503) JSON 응답. HTTP/WebSocket 공용."""
+    from fastapi.responses import JSONResponse
+    if not GOOGLE_AUTH.configured:
+        return JSONResponse({'detail': 'login unavailable'}, status_code=503)
+    session = GOOGLE_AUTH.read_session(request_like.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    if not session:
+        return JSONResponse({'detail': 'login required'}, status_code=401)
+    if not GOOGLE_AUTH.is_admin(session):
+        return JSONResponse({'detail': 'admin only'}, status_code=403)
+    return None
+
+
+@app.get('/access-policy')
+def access_policy_get(request: Request):
+    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
+    return envelope(access_policy.view(bool(session), GOOGLE_AUTH.is_admin(session)))
+
+
+@app.put('/access-policy')
+async def access_policy_put(request: Request):
+    session = _autotrader_admin(request, write=True)  # 관리자 세션 + 허용 Origin
+    _check_rate_limit('access_policy_put', request, max_per_window=20)
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
+    try:
+        access_policy.update(body.get('screens') if isinstance(body, dict) else None, session.get('email'))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except OSError:
+        raise HTTPException(status_code=500, detail='저장에 실패해 이전 설정을 유지합니다.') from None
+    return envelope(access_policy.view(True, True))
+
+
 @app.get('/auth/google/logout')
 def google_auth_logout(return_to: str = None):
     response = RedirectResponse(_safe_google_return_url(return_to), status_code=303)
@@ -1718,6 +1766,10 @@ async def realtime_quote_socket(websocket: WebSocket):
     global _ws_active_connections
     origin = websocket.headers.get('origin')
     if origin != 'https://ghlee.tistory.com':
+        await websocket.close(code=1008)
+        return
+    # 2026-11-11: 종목 실시간 체결은 관리자 세션만(수락 전 거절 - 데이터 미전송).
+    if _access_denied(websocket) is not None:
         await websocket.close(code=1008)
         return
 
