@@ -751,7 +751,11 @@
     })();
   }
 
-  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist, closeGlobalWatchlist: closeGlobalWatchlist };
+  // 종목 작업 화면(js/stock-workspace.js)이 같은 저장소(stock:lastSelected·stock:recent)와 관심종목 목록을 재사용한다.
+  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist, closeGlobalWatchlist: closeGlobalWatchlist,
+    getRecent: getRecent, getFavorites: getFavorites,
+    getLast: function () { try { return localStorage.getItem(STORAGE_LAST) || ''; } catch (err) { return ''; } },
+    remember: function (code, name) { if (!code) return; setLast(code); addRecent(code, name || code); } };
   global.StockSearchPanel = StockSearchPanel;
 
   // defer scripts can run before skin-shell; DOMContentLoaded follows all defer scripts.

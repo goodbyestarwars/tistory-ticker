@@ -555,6 +555,7 @@
     wirePanelResize(container);
     wireSearch(container);
     autoSearchFromUrl(container);
+    loadWorkspaceModule();
 
     // 실시간 체결가 소켓의 visibilitychange 처리는 order-book.js가 자기 자신의 init()에서
     // 이미 하고 있다(#order-book 위젯을 그대로 재사용 - 위 applyRealtimeQuote 주석 참고).
@@ -565,6 +566,17 @@
         startMinuteRefresh(container, state.selectedCode);
       }
     });
+  }
+
+  // 종목 작업 화면(호가 | 차트 | 종목정보 3열, 머리말, 관심·최근 서랍)은 js/stock-workspace.js가 이 셸을 꾸며 만든다.
+  // 이 페이지의 스크립트 태그는 티스토리 본문에 있어 git으로 바꿀 수 없으므로 여기서 한 번 불러온다. 독립 차트에는 쓰지 않는다.
+  function loadWorkspaceModule() {
+    if (isIndependentChartMode() || document.querySelector('script[data-stock-workspace]')) return;
+    var script = document.createElement('script');
+    script.src = CHART_BASE + 'js/stock-workspace.js?v=20261112-workspace1';
+    script.async = true;
+    script.setAttribute('data-stock-workspace', '1');
+    document.head.appendChild(script);
   }
 
   function isUsRoute() {
@@ -1835,7 +1847,7 @@
         hideSearch: true,
         quoteOnly: isIndependentChartMode(),
         onQuote: function (quote) { applyRealtimeQuote(container, quote); },
-        onSummary: function (summary,code) { if(code===state.selectedCode)renderSessionCandle(container,summary); }
+        onSummary: function (summary,code) { if(code===state.selectedCode){renderSessionCandle(container,summary);document.dispatchEvent(new CustomEvent('nine-stock-session',{detail:{code:code,summary:summary}}));} }
       });
       state.ladderMounted = true;
     }
@@ -1991,6 +2003,7 @@
   function applyRealtimeQuote(container, quote) {
     if (state.selectedCode !== quote.code || !Number.isFinite(quote.price)) return;
     state.liveQuotes[quote.code] = quote;
+    document.dispatchEvent(new CustomEvent('nine-stock-quote', { detail: quote })); // 작업 화면 머리말·요약이 같은 체결값을 쓴다(소켓 추가 없음)
 
     // 검색 결과는 GAS 조회 시점의 스냅샷이고 상세 상단은 WebSocket 체결가이므로,
     // 장중에는 같은 종목이 서로 다른 가격으로 남을 수 있다. 선택된 결과 행도
@@ -3508,6 +3521,16 @@
         price: quote.price, changeRate: quote.changeRate };
     };
   }
+  // 작업 화면의 서랍·뒤로가기가 페이지 이동 없이 같은 검색 흐름(runSearch → selectStock)으로 종목을 바꾼다.
+  global.StockSearch.open = function (code, name) {
+    var container = document.querySelector(CONTAINER_SELECTOR);
+    if (!container || !code) return;
+    var input = container.querySelector('#ssInput');
+    if (input) input.value = name || code;
+    if (/^US:/i.test(code)) { openUsSymbol(container, code); return; }
+    setMarketMode(container, false);
+    runSearch(container, code);
+  };
   global.StockSearchChart = { mount: mountExternalChart, updateQuote: updateLiveChartQuote };
 
   if (document.readyState === 'loading') {
