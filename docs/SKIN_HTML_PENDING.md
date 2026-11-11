@@ -11,6 +11,10 @@
 운영 HTML의 기존 `maru-buri.css` 링크도 편집기에서 삭제해야 불필요한 구형 다운로드가 완전히 사라진다.
 전체 스킨 덮어쓰기 없이 해당 link 한 줄만 제거한다. 운영 저장·원문 확인 전까지 이 항목은 대기다.
 
+## 화면 접근 게이트 스크립트 — 2026-11-11 (선택, 반영 대기)
+
+`<head>`의 `skin-shell.js` 앞(첫 `<link rel="stylesheet">` 아래)에 `<script src="https://goodbyestarwars.github.io/tistory-ticker/js/access-gate.js"></script>`(defer 없음) 한 줄을 넣으면 보호 화면 판정이 첫 페인트 전에 시작돼 홈 카드가 잠깐 보이는 현상이 줄어든다. 없어도 `skin-shell.js`가 같은 스크립트를 동적으로 불러와 동작한다(우회가 아닌 폴백). 반영 후에도 폴백은 중복 로드하지 않는다.
+
 ## 규칙
 
 - `skin.html`을 바꾸면 해결되는 문제에 **런타임 우회를 새로 만들지 않는다.** 여기에

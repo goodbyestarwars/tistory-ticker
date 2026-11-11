@@ -3,7 +3,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const loadCommon=require('./helpers/load_http_client');
 function fixture(){
  const events={},calls=[];let queries=0;
- const location={pathname:'/fixture'},window={location,console};
+ const location={pathname:'/fixture'},window={location,console,NineAccess:{whenAdmin:f=>f(),ready:Promise.resolve()}};
  const document={readyState:'interactive',
   querySelector(selector){queries++;return selector==='.global-watchlist-drawer'?{}:null;},
   getElementById(){queries++;return null;},

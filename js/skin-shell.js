@@ -126,6 +126,16 @@
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineHttp */
 
+/* 2026-11-11 화면 접근 게이트: skin.html에 <script src=access-gate.js>가 아직 없어도 여기서 한 번 불러온다.
+   (skin.html 반영 전/후 모두 동작 - 중복 로드는 NineAccess 존재 검사로 막는다. docs/SKIN_HTML_PENDING.md) */
+(function (global) {
+  if (global.NineAccess || global.document.getElementById('nine-access-gate-js')) return;
+  var tag = global.document.createElement('script');
+  tag.id = 'nine-access-gate-js';
+  tag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-gate.js';
+  global.document.head.appendChild(tag);
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* NineUI: shared display primitives. Domain units remain explicit at call sites. */
 (function (global) {
   'use strict';

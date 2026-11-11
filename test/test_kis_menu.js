@@ -13,15 +13,17 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       window.T={config:{IS_LOGIN:true,ROLE:'owner'}};
       window.kisAllowed=false;
       window.NineAPI={kisToolAccess:async()=>({allowed:window.kisAllowed})};
+      // 2026-11-11: 메뉴는 서버 확인 관리자(NineAccess)일 때만 전체 표시 - 관리자 세션 스텁
+      window.NineAccess={allowsHref:()=>true,isAdmin:()=>true,ready:Promise.resolve()};
     });
     await page.addScriptTag({content:fs.readFileSync('js/skin-menu.js','utf8')});
     await page.waitForTimeout(50);
-    assert.equal(await page.getByRole('link',{name:'KIS Trading Tool',exact:true}).count(),1,'Tistory owner sees both links before Google login');
+    assert.equal(await page.getByRole('link',{name:'트레이딩 도구',exact:true}).count(),1,'Tistory owner sees both links before Google login');
     await page.evaluate(()=>{window.kisAllowed=true;window.dispatchEvent(new Event('focus'));});
-    const kis=page.getByRole('link',{name:'KIS Trading Tool',exact:true});
+    const kis=page.getByRole('link',{name:'트레이딩 도구',exact:true});
     await kis.waitFor();
     const group=page.locator('.nav-end-group');
-    assert.deepEqual(await group.locator('a').allTextContents(),['자동매매','KIS Trading Tool']);
+    assert.deepEqual(await group.locator('a').allTextContents(),['자동매매','트레이딩 도구','화면 설정']);
     const boxes=await group.locator('a').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top};}));
     assert.ok(boxes[1].left>=boxes[0].right-1,JSON.stringify({width,boxes}));
     assert.equal(Math.round(boxes[0].top),Math.round(boxes[1].top));
@@ -47,7 +49,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       await guest.addScriptTag({content:fs.readFileSync('js/skin-menu.js','utf8')});
       await guest.waitForTimeout(50);
       assert.equal(await guest.getByRole('link',{name:'자동매매',exact:true}).count(),0);
-      assert.equal(await guest.getByRole('link',{name:'KIS Trading Tool',exact:true}).count(),0,'Google admin alone must not reveal KIS');
+      assert.equal(await guest.getByRole('link',{name:'트레이딩 도구',exact:true}).count(),0,'Google admin alone must not reveal KIS');
       await guest.close();
     }
   }

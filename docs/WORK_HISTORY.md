@@ -1,3 +1,7 @@
+**2026-11-11 화면 접근 정책(비로그인 4개 화면·관리자 ON/OFF)**
+
+요청: 증권사 시세 제3자 제공 불허를 전제로 비로그인은 대화방·캘린더·마켓브리핑·시장지표만, 첫 화면 `/guestbook`, 관리자가 화면별 ON/OFF. 일반 회원에게 인증만으로 제한 시세를 열지 않음(첫 문장 "구현한다"는 본문과 충돌하는 오타로 보고 미구현 해석). 변경: `access_policy.py`·`/access-policy`(GET/PUT)·제한 REST 미들웨어(401/403)·`/ws/quotes` 인증 거절, `js/access-gate.js`(NineAccess)·`access-settings.js`, 메뉴·모바일 탭바·검색·관심종목·메모 게이팅, `skin-main.js` 보호 화면 판정 후 초기화. 시장지표 공급자 공개 가능 여부는 미확정(상세 `ACCESS_POLICY_2026-11-11.md`). 검증: `test_access_policy.py` 8·`test_access_gate.js`·`test_access_menu.js`(PC 1280/모바일 390·320, 비로그인·일반·장애·관리자)·FastAPI TestClient 통합(401/403/200·WS 거절·설정 저장). 배포: PR(초안) - 미병합, VM→Pages 순서·장중 재시작 금지·skin.html 수동 반영 대기. 실서버·실제 로그인 세션 검증 미실시.
+
 **2026-11-10 시장지표 요약 박스 제거**
 
 시장지표 전 탭의 요약 박스와 요약 갱신 로직 제거. 표·차트와 국내/글로벌 연결 상태 유지. master → Pages.

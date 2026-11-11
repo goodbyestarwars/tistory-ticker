@@ -65,7 +65,10 @@
     home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
     market: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>',
     stocks: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 11h8"/><path d="M7 16h3"/><path d="M7 6h12"/>',
-    more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'
+    more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+    chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    briefing: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9.5 8h5M9.5 12H16M9.5 16H14"/>'
   };
 
   var mq = global.matchMedia ? global.matchMedia(MQ) : null;
@@ -113,18 +116,37 @@
   function svg(name) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[name] + '</svg>';
   }
+  // 2026-11-11 접근 정책: 서버가 확인한 관리자만 기존 홈/시장/종목 탭, 그 외(판정 전·장애 포함)는 공개 4개 화면 탭.
+  function limitedViewer() { return !(global.NineAccess && global.NineAccess.isAdmin()); }
+  function limitedTab() {
+    var key = global.NineAccess ? global.NineAccess.screenOf(location.pathname, location.search) : '';
+    return key === 'guestbook' || key === 'calendar' || key === 'briefing' || key === 'indicators' ? key : '';
+  }
+  function barHtml() {
+    var more = '<button type="button" class="mtab-bar-item" data-mtab="more" aria-haspopup="dialog" aria-expanded="false">' + svg('more') + '<span>더보기</span></button>';
+    if (limitedViewer()) {
+      return '<a class="mtab-bar-item" data-mtab="guestbook" href="/guestbook">' + svg('chat') + '<span>대화방</span></a>' +
+        '<a class="mtab-bar-item" data-mtab="calendar" href="/page/stock-calendar">' + svg('calendar') + '<span>캘린더</span></a>' +
+        '<a class="mtab-bar-item" data-mtab="briefing" href="/category/마켓 브리핑">' + svg('briefing') + '<span>브리핑</span></a>' +
+        '<a class="mtab-bar-item" data-mtab="indicators" href="/pages/kospi-futures">' + svg('market') + '<span>시장지표</span></a>' + more;
+    }
+    return '<a class="mtab-bar-item" data-mtab="home" href="/">' + svg('home') + '<span>홈</span></a>' +
+      '<a class="mtab-bar-item" data-mtab="market" href="/page/market-temp">' + svg('market') + '<span>시장</span></a>' +
+      '<a class="mtab-bar-item" data-mtab="stocks" href="/page/market-temp?view=stocks">' + svg('stocks') + '<span>종목</span></a>' + more;
+  }
   function buildBar() {
     if (bar) return;
     bar = doc.createElement('nav');
     bar.className = 'mtab-bar';
     bar.id = 'mtabBar';
     bar.setAttribute('aria-label', '하단 메뉴');
-    bar.innerHTML =
-      '<a class="mtab-bar-item" data-mtab="home" href="/">' + svg('home') + '<span>홈</span></a>' +
-      '<a class="mtab-bar-item" data-mtab="market" href="/page/market-temp">' + svg('market') + '<span>시장</span></a>' +
-      '<a class="mtab-bar-item" data-mtab="stocks" href="/page/market-temp?view=stocks">' + svg('stocks') + '<span>종목</span></a>' +
-      '<button type="button" class="mtab-bar-item" data-mtab="more" aria-haspopup="dialog" aria-expanded="false">' + svg('more') + '<span>더보기</span></button>';
+    bar.innerHTML = barHtml();
     doc.body.appendChild(bar);
+    // 정책 판정이 끝나면 탭 구성을 다시 맞춘다(관리자 ↔ 공개 4개).
+    var refreshBar = function () { bar.innerHTML = barHtml(); syncBar(); };
+    if (global.NineAccess) global.NineAccess.ready.then(refreshBar);
+    else global.addEventListener('nineaccess:ready', refreshBar, { once: true });
+    global.addEventListener('nineaccess:change', refreshBar);
     bar.addEventListener('click', function (event) {
       var item = event.target.closest ? event.target.closest('.mtab-bar-item') : null;
       if (!item) return;
@@ -142,7 +164,7 @@
   }
   function syncBar() {
     if (!bar) return;
-    var current = currentTab();
+    var current = limitedViewer() ? limitedTab() : currentTab();
     var drawerOpen = !!(drawer && !drawer.hidden);
     Array.prototype.forEach.call(bar.querySelectorAll('.mtab-bar-item'), function (item) {
       var key = item.getAttribute('data-mtab');

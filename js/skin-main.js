@@ -25,6 +25,10 @@
    가릴 게 없으니 기다리지 않고 즉시 붙인다. */
 document.documentElement.classList.add('skin-ready');
 
+/* 2026-11-11 화면 접근 정책: 보호 화면(홈·종목·MY 등)은 서버 판정(NineAccess) 뒤에만 아래 초기화를 시작한다.
+   공개 4개 화면·일반 글은 기다리지 않고 바로 시작한다. 게이트 로드 실패 시에도 데이터는 서버 API가 막는다. */
+(function nineAccessBoot() {
+  function start() {
 /* DCF uses the existing page-body mount pattern. Create /page/dcf in Tistory;
    code, styles and per-company disclosures are maintained on GitHub Pages. */
 (function loadDcfPage() {
@@ -161,6 +165,10 @@ document.documentElement.classList.add('skin-ready');
      dashboard-enhancements와 달리 경로 제한 없이 항상 로드한다(어느 페이지에서든
      메모를 남길 수 있어야 하는 기능이라). */
   (function loadMemoWidget() {
+    if (window.NineAccess) { window.NineAccess.whenAdmin(loadMemoWidgetNow); return; }
+    loadMemoWidgetNow();
+  })();
+  function loadMemoWidgetNow() {
     if (document.querySelector('link[data-memo-widget-css]')) return;
     var link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -172,7 +180,7 @@ document.documentElement.classList.add('skin-ready');
     script.defer = true;
     script.setAttribute('data-memo-widget', '1');
     document.body.appendChild(script);
-  })();
+  }
 
   /* Dedicated MY screen: reuse the existing /page/watchlist Tistory page and
      append portfolio/holding analysis without changing other pages. */
@@ -3859,3 +3867,11 @@ document.documentElement.classList.add('skin-ready');
 
 /* 2026-10-05: 업종 로테이션은 홈에서 시장 > 증시온도 페이지(js/market-temp.js)로 옮겼다. */
 
+  }
+  function go() { window.NineAccess.run(start); }
+  if (window.NineAccess) { go(); return; }
+  var tag = document.getElementById('nine-access-gate-js');
+  if (!tag) { start(); return; }
+  tag.addEventListener('load', go, { once: true });
+  tag.addEventListener('error', start, { once: true });
+})();
