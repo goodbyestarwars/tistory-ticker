@@ -33,10 +33,12 @@ class PolicyTests(unittest.TestCase):
             self.assertTrue(ap.is_restricted_path(p), p)
         self.assertFalse(ap.is_restricted_path('/quotes-other'))  # 접두사 문자열 우회/오탐 없음
 
-    def test_anonymous_and_member_see_only_four_screens(self):
+    def test_anonymous_three_member_four_screens(self):
         for admin in (False,):
-            allowed = {k for k, v in ap.view(True, admin)['screens'].items() if v['allowed']}
-            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing', 'indicators'})
+            allowed = {k for k, v in ap.view(False, admin)['screens'].items() if v['allowed']}
+            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing'})  # 비로그인: 시장지표 없음
+            member = {k for k, v in ap.view(True, admin)['screens'].items() if v['allowed']}
+            self.assertEqual(member, {'guestbook', 'calendar', 'briefing', 'indicators'})  # 로그인 회원: 시장지표 추가
         allowed = {k for k, v in ap.view(True, True)['screens'].items() if v['allowed']}
         self.assertEqual(allowed, set(ap.SCREENS))
 

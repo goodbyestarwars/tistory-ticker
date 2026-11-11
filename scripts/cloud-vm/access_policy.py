@@ -15,21 +15,22 @@ import snapshot_io
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_PATH = os.environ.get('ACCESS_POLICY_PATH') or os.path.join(HERE, 'access_policy_state.json')
 
-# key -> (label, public). public=True 인 화면만 비로그인에게 보인다.
+# key -> (label, level). level: 'public'(비로그인 포함) / 'member'(로그인한 회원 누구나) / 'admin'(관리자만).
+# 2026-11-11: 시장지표는 로그인 후에만 보인다(비로그인 메뉴에는 이야기 시리즈).
 SCREENS = {
-    'guestbook': ('대화방', True),
-    'calendar': ('캘린더', True),
-    'briefing': ('마켓브리핑', True),
-    'indicators': ('시장지표', True),
-    'home': ('홈 대시보드', False),
-    'stocks': ('종목(주요종목·분석·검색기·전략검색·종목검색)', False),
-    'tools': ('투자도구·독립 차트', False),
-    'my': ('MY·관심종목·메모', False),
-    'market-temp': ('증시온도·주요 뉴스', False),
-    'autotrader': ('자동매매', False),
-    'kis': ('KIS Trading Tool', False),
+    'guestbook': ('대화방', 'public'),
+    'calendar': ('캘린더', 'public'),
+    'briefing': ('마켓브리핑', 'public'),
+    'indicators': ('시장지표', 'member'),
+    'home': ('홈 대시보드', 'admin'),
+    'stocks': ('종목(주요종목·분석·검색기·전략검색·종목검색)', 'admin'),
+    'tools': ('투자도구·독립 차트', 'admin'),
+    'my': ('MY·관심종목·메모', 'admin'),
+    'market-temp': ('증시온도·주요 뉴스', 'admin'),
+    'autotrader': ('자동매매', 'admin'),
+    'kis': ('KIS Trading Tool', 'admin'),
 }
-PUBLIC_SCREENS = frozenset(k for k, (_, pub) in SCREENS.items() if pub)
+PUBLIC_SCREENS = frozenset(k for k, (_, lv) in SCREENS.items() if lv == 'public')
 # 로그인 이동 목적지(/guestbook)와 비로그인 허용 화면이 꺼져 리다이렉트가 반복되지 않도록 고정한다.
 LOCKED_ON = frozenset({'guestbook'})
 
@@ -89,11 +90,11 @@ def view(authenticated, is_admin):
     """뷰어에게 보여 줄 정책. 비관리자에게는 공개 화면의 ON/OFF만 계산해 내려보낸다."""
     state = load_state()
     screens = {}
-    for key, (label, public) in SCREENS.items():
+    for key, (label, level) in SCREENS.items():
         enabled = state['screens'][key]
-        allowed = enabled and (public or is_admin)
-        screens[key] = {'label': label, 'public': public, 'enabled': enabled, 'allowed': bool(allowed),
-                        'locked': key in LOCKED_ON}
+        allowed = enabled and (level == 'public' or (level == 'member' and authenticated) or is_admin)
+        screens[key] = {'label': label, 'public': level == 'public', 'level': level, 'enabled': enabled,
+                        'allowed': bool(allowed), 'locked': key in LOCKED_ON}
     data = {'authenticated': bool(authenticated), 'isAdmin': bool(is_admin), 'screens': screens,
             'revision': state['revision']}
     if is_admin:
