@@ -44,7 +44,7 @@
     '.nl-credit:hover{color:#fff;text-decoration:underline}' +
     '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
     '.nl-modal[hidden]{display:none}' +
-    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:rgba(14,32,58,.92);border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
+    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:transparent;border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
     '.nl-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:0;background:none;color:#fff;font-size:26px;line-height:1;cursor:pointer}' +
     '.nl-card h2{margin:0 0 8px;font-size:clamp(24px,3.4vw,32px);font-weight:800}' +
     '.nl-card p{margin:0 0 20px;font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.88)}' +

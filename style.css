@@ -2322,7 +2322,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   /* Dashboard headings, including the briefing section moved on closed days. */
   html body#tt-body-index #homeMarketBoard > .home-card-heading strong,
   html body#tt-body-index #homeRealtimeBoard .hrt-head > div > strong,
-  html body#tt-body-index .home-briefing-section .home-section-heading > div > strong {
+  html body#tt-body-index .home-briefing-section .home-section-heading > div > strong,
+  html body#tt-body-index .guest-news .home-section-heading > div > strong {
     font-family: var(--font-serif) !important;
     font-weight: 700 !important;
   }

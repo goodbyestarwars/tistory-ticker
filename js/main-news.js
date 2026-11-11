@@ -353,7 +353,12 @@
     });
   }
 
-  var MainNews = { init: init, fetchJson: fetchJson };
+  // 비회원 홈 타임라인(js/guest-home.js)이 같은 조회·정렬·언론사명·제목·시각 규칙을 재사용한다(복제 금지).
+  var MainNews = {
+    init: init, fetchJson: fetchJson,
+    urls: { kr: DOMESTIC_API_URL, us: US_API_URL },
+    dateValue: dateValue, timeLabel: timeLabel, sourceLabel: sourceLabel, displayTitle: displayTitle, safeHref: safeHref
+  };
   global.MainNews = MainNews;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

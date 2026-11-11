@@ -25,6 +25,18 @@
    가릴 게 없으니 기다리지 않고 즉시 붙인다. */
 document.documentElement.classList.add('skin-ready');
 
+/* ── 다크모드 토글 (조기 적용 스크립트는 head에 있음) ──
+   헤더 공통 기능이라 화면 접근 판정과 무관하게 바로 연결한다. 아래 start() 안에 있을 때는
+   대시보드 초기화가 막히는 비회원 홈에서 버튼이 동작하지 않았다(2026-11-12). */
+(function () {
+  var btn = document.getElementById('darkModeBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var on = document.documentElement.classList.toggle('dark');
+    try { localStorage.setItem('bolt-dark', on ? '1' : '0'); } catch (e) {}
+  });
+})();
+
 /* 홈 마켓브리핑 캐러셀(최신 브리핑 카드를 좌우로 넘김). 회원 대시보드(buildHomeDashboard)와 비회원 홈(js/guest-home.js)이
    같은 마크업·같은 SiteInteractions.carousel을 쓴다. 카드는 티스토리 원본 .post-card를 옮겨 담는다(복제 금지). */
 window.NineHomeBriefing = window.NineHomeBriefing || {
@@ -187,16 +199,6 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   if (window !== window.top) {
     document.body.classList.add('iframe-mode');
   }
-
-  /* ── 다크모드 토글 (조기 적용 스크립트는 head에 있음) ── */
-  (function() {
-    var btn = document.getElementById('darkModeBtn');
-    if (!btn) return;
-    btn.addEventListener('click', function() {
-      var on = document.documentElement.classList.toggle('dark');
-      try { localStorage.setItem('bolt-dark', on ? '1' : '0'); } catch (e) {}
-    });
-  })();
 
   /* 시세·증시온도 페이지의 공통 시각 개선은 페이지별 위젯이 비동기로 DOM을
      만든 뒤에도 연결되어야 하므로 별도 모듈로 지연 로드한다. */
