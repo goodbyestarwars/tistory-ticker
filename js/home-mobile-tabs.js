@@ -130,7 +130,7 @@
         '<a class="mtab-bar-item" data-mtab="briefing" href="/category/마켓 브리핑">' + svg('briefing') + '<span>브리핑</span></a>' +
         (global.NineAccess && global.NineAccess.policy() && global.NineAccess.policy().authenticated
           ? '<a class="mtab-bar-item" data-mtab="indicators" href="/pages/kospi-futures">' + svg('market') + '<span>시장지표</span></a>'
-          : '<a class="mtab-bar-item" data-mtab="stories" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">' + svg('briefing') + '<span>이야기</span></a>') + more;
+          : '<a class="mtab-bar-item" data-mtab="stories" href="/guestbook#story-series">' + svg('briefing') + '<span>이야기</span></a>') + more;
     }
     return '<a class="mtab-bar-item" data-mtab="home" href="/">' + svg('home') + '<span>홈</span></a>' +
       '<a class="mtab-bar-item" data-mtab="market" href="/page/market-temp">' + svg('market') + '<span>시장</span></a>' +
