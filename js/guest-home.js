@@ -16,7 +16,7 @@
   if (global.NineGuestHome) return;
   var doc = global.document;
   var CATEGORY = '마켓 브리핑';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-card-fix2';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-footer-v1';
   var mounted = false;
 
   function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -82,6 +82,30 @@
       '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>' +
       '<a class="guest-home-more" href="/category/' + encodeURIComponent(CATEGORY) + '">브리핑 아카이브 · 더보기 →</a></div>' +
       '<div class="guest-home-briefing-grid" aria-label="마켓브리핑 카드"></div></section>';
+  }
+
+  /* 비회원 홈의 푸터는 오래된 홈 푸터(읽을거리 2행·버전)의 grid 면적을 사용하지 않는다.
+     원본 링크/회사 노드를 재사용하고 클래스만 분리한다. 관리자 푸터에는 영향을 주지 않는다. */
+  function tidyFooter() {
+    var footer = doc.querySelector('.site-footer');
+    if (!footer) return;
+    footer.classList.remove('site-footer');
+    footer.classList.add('guest-home-footer');
+    var links = footer.querySelector('nav.site-footer-links:not(.site-footer-learn)');
+    if (links) {
+      links.classList.remove('site-footer-links');
+      links.classList.add('guest-footer-links');
+    }
+    var company = footer.querySelector('.site-footer-company');
+    if (company) {
+      company.classList.remove('site-footer-company');
+      company.classList.add('guest-footer-company');
+      var copy = company.querySelector('.footer-company-copy');
+      if (copy) {
+        copy.classList.remove('footer-company-copy');
+        copy.classList.add('guest-footer-company-copy');
+      }
+    }
   }
 
   /* 이야기 시리즈: 푸터가 늦게 그려질 수 있어 잠시 기다린다. 끝내 없으면 안내 문구. */
@@ -154,6 +178,7 @@
       fetchCategoryCards().then(function (cards) { fillBriefing(section, cards.length ? cards : briefingCards); })
         .catch(function () { fillBriefing(section, briefingCards); });
     }
+    tidyFooter();
     attachStories(page.querySelector('.guest-home-stories-body'), 40);
     return true;
   }
