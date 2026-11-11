@@ -75,6 +75,26 @@
   }
   function isAdmin() { return !!(current && current.isAdmin); }
 
+  /* 메뉴 첫 그림용 임시 판정: 직전 방문에서 서버가 확인한 허용 화면을 기억해 둔다(깜빡임·탭 늦게 붙는 현상 방지).
+     화면 접근 판정(allowsScreen·run·리다이렉트)에는 쓰지 않는다 - 서버 응답이 오면 곧바로 확정값으로 다시 그린다. */
+  var CACHE_KEY = 'nine_policy_cache';
+  var cached = null;
+  try { cached = JSON.parse(global.localStorage.getItem(CACHE_KEY) || 'null'); } catch (e) { cached = null; }
+  function cacheWrite(data) {
+    try {
+      var map = {};
+      Object.keys(data.screens).forEach(function (k) { map[k] = !!data.screens[k].allowed; });
+      global.localStorage.setItem(CACHE_KEY, JSON.stringify({ a: map }));
+    } catch (e) { /* 저장소 차단 */ }
+  }
+  function menuAllowsScreen(key) {
+    if (!key) return true;
+    if (current) return allowsScreen(key);
+    if (key === '@admin') return false;
+    if (cached && cached.a && Object.prototype.hasOwnProperty.call(cached.a, key)) return !!cached.a[key];
+    return PUBLIC.indexOf(key) >= 0;
+  }
+
   var readyResolve;
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
 
@@ -222,6 +242,7 @@
   fetchPolicy().then(function (data) { current = data; failed = false; }, function () { current = null; failed = true; })
     .then(function () {
       applyClasses();
+      if (current) cacheWrite(current); else { try { global.localStorage.removeItem(CACHE_KEY); } catch (e) { /* 차단 */ } }
       setHint(!!(current && current.authenticated));
       if (landingApplies) {
         if (current && current.authenticated) { if (global.NineLanding) global.NineLanding.close(); }
@@ -248,6 +269,7 @@
     screenOfHref: screenOfHref,
     allowsScreen: allowsScreen,
     allowsHref: function (href) { return allowsScreen(screenOfHref(href)); },
+    menuAllowsHref: function (href) { return menuAllowsScreen(screenOfHref(href)); },
     isAdmin: isAdmin,
     isLimited: function () { return !isAdmin(); },
     failed: function () { return failed; },
