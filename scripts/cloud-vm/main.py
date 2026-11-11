@@ -1042,11 +1042,19 @@ async def autotrader_agent_sync(request: Request):
         raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
 
 
+def _has_server_api_key(request):
+    """서버 내부 호출(GAS·점검·모니터 스크립트)은 비밀 X-API-Key로 이미 인증한다. 브라우저에는 이 키가 없다."""
+    import hmac
+    expected = os.environ.get('API_TOKEN') or ''
+    given = request.headers.get('x-api-key') or ''
+    return bool(expected) and hmac.compare_digest(expected.encode('utf-8'), given.encode('utf-8'))
+
+
 @app.middleware('http')
 async def restrict_stock_data(request: Request, call_next):
     """종목 단위 시세·분석 REST는 관리자 세션만. 비로그인 401, 일반 회원 403(응답 본문에 데이터 없음).
     CORS/Origin은 보조 검사일 뿐이라 여기서 세션을 직접 확인한다. 인증 설정 오류도 닫힌 채로 둔다."""
-    if request.method != 'OPTIONS' and access_policy.is_restricted_path(request.url.path):
+    if request.method != 'OPTIONS' and access_policy.is_restricted_path(request.url.path) and not _has_server_api_key(request):
         denied = _access_denied(request)
         if denied is not None:
             return denied
