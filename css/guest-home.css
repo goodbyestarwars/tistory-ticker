@@ -10,6 +10,8 @@
   padding: 8px 0 32px;
 }
 html.guest-home-mode .feed > .guest-home { margin-top: 8px; }
+/* The index reserves a 292px sidebar, even if guests see no sidebar widgets. */
+html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
 .guest-home .guest-home-state {
   padding: 28px 8px;
   text-align: center;
@@ -60,7 +62,7 @@ html.guest-home-mode .feed > .guest-home { margin-top: 8px; }
   min-width: 0;
   width: 100%;
 }
-.guest-home-briefing-card.post-card {
+.guest-home-briefing-card {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -71,7 +73,10 @@ html.guest-home-mode .feed > .guest-home { margin-top: 8px; }
   border-radius: var(--ui-radius-card, 16px);
   background: var(--ui-card-surface, #fff);
   box-shadow: var(--ui-glass-shadow, 0 2px 10px rgba(0,0,0,.04));
+  transition: border-color .2s ease, transform .2s ease;
 }
+.guest-home-briefing-card:hover { border-color: var(--text-sub, #94a3b8); transform: translateY(-2px); }
+.guest-home-briefing-card:focus-within { outline: 2px solid var(--text-main, #334155); outline-offset: 2px; }
 .guest-home-briefing-card .post-header { margin-bottom: 12px; }
 .guest-home-briefing-card .post-title {
   display: -webkit-box;
@@ -161,7 +166,7 @@ html.guest-home-mode .feed > .guest-home { margin-top: 8px; }
   word-break: keep-all;
 }
 .guest-home-story-card small { display: block; margin-top: auto; color: var(--text-sub, #64748b); }
-html.dark .guest-home-briefing-card.post-card,
+html.dark .guest-home-briefing-card,
 html.dark .guest-home-story-card,
 html.dark .guest-home-more { background: var(--dk-card, #171717); border-color: var(--dk-line, #333); }
 html.dark .guest-home-heading h2,
