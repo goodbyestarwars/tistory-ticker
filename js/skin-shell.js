@@ -126,6 +126,24 @@
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineHttp */
 
+/* goodbyestar.cloud 요청은 세션 쿠키를 함께 보낸다(제한 API가 관리자 세션을 확인). access-gate.js는 아래에서 비동기로
+   불러오므로, 그 전에 시작하는 화면(증시온도 본문 스크립트 등)의 첫 요청이 쿠키 없이 나가 401이 되지 않도록 공통 전송
+   계층이 준비되는 이 시점에 먼저 적용한다. access-gate.js의 patchFetch는 같은 표식(__nineAccess)을 보고 건너뛴다. */
+(function (global) {
+  if (!global.fetch || global.fetch.__nineAccess) return;
+  var API = 'https://goodbyestar.cloud', original = global.fetch;
+  var wrapped = function (input, init) {
+    try {
+      if (typeof input === 'string' && input.indexOf(API + '/') === 0 && !(init && init.credentials)) {
+        init = Object.assign({}, init || {}, { credentials: 'include' });
+      }
+    } catch (e) { /* 원 요청 그대로 */ }
+    return original.call(this, input, init);
+  };
+  wrapped.__nineAccess = true;
+  global.fetch = wrapped;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* 2026-11-11 화면 접근 게이트: skin.html에 <script src=access-gate.js>가 아직 없어도 여기서 한 번 불러온다.
    (skin.html 반영 전/후 모두 동작 - 중복 로드는 NineAccess 존재 검사로 막는다. docs/SKIN_HTML_PENDING.md) */
 (function (global) {

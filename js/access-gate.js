@@ -20,7 +20,7 @@
   var doc = global.document;
   var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
   var GUEST_KEY = 'nine_guest'; // 비회원 입장 표시(탭 단위 sessionStorage). 인증 상태가 아니다.
-  var GUEST_HOME_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/guest-home.js?v=20261111-guest-tabs-v1';
+  var GUEST_HOME_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/guest-home.js?v=20261111-guest-carousel-v1';
 
   /* ───── 경로 → 화면 키. 알 수 없는 경로(일반 글·기타 페이지)는 '' = 정책 대상 아님 ───── */
   function norm(path) {
@@ -259,12 +259,39 @@
     }, true);
   }
 
+  /* 헤더 [로그아웃]: 사이트 회원 세션(Google/네이버 공용 쿠키)과 비회원 입장 표시를 함께 지우고 티스토리 로그아웃 뒤
+     홈으로 돌아와 로그인 창(랜딩)을 다시 연다. 비회원 화면으로 남지 않는다. 기존 버튼의 티스토리 로그아웃 주소는 그대로 쓴다. */
+  if (global.self === global.top) {
+    doc.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.nav-logout-btn') : null;
+      if (!btn) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      setGuest(false);
+      setHint(false);
+      try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (err) { /* 차단 */ }
+      var done = false;
+      function leave() {
+        if (done) return;
+        done = true;
+        global.location.href = 'https://www.tistory.com/auth/logout?redirectUrl=' + encodeURIComponent(global.location.origin + '/');
+      }
+      global.setTimeout(leave, 2500);
+      try {
+        global.fetch(API + '/auth/google/logout', { credentials: 'include', mode: 'no-cors', cache: 'no-store' }).then(leave, leave);
+      } catch (err) { leave(); }
+    }, true);
+  }
+
   fetchPolicy().then(function (data) { current = data; failed = false; }, function () { current = null; failed = true; })
     .then(function () {
       applyClasses();
       if (current) cacheWrite(current); else { try { global.localStorage.removeItem(CACHE_KEY); } catch (e) { /* 차단 */ } }
-      // 로그아웃(직전까지 로그인 이력이 있었는데 지금은 아님) → 비회원 화면으로 전환
-      if (current && !current.authenticated && hint()) setGuest(true);
+      // 로그아웃(직전까지 로그인 이력이 있었는데 지금은 아님) → 비회원 입장이 아니라 로그인 창(랜딩)으로 돌아간다
+      if (current && !current.authenticated && hint()) {
+        setGuest(false);
+        try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (e) { /* 차단 */ }
+      }
       setHint(!!(current && current.authenticated));
       if (landingApplies) {
         if ((current && current.authenticated) || isGuest()) { if (global.NineLanding) global.NineLanding.close(); }

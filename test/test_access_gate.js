@@ -2,9 +2,10 @@
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const src = fs.readFileSync(__dirname + '/../js/access-gate.js', 'utf8');
 
-function boot(path, search, policyFn, session) {
+function boot(path, search, policyFn, session, local) {
   const calls = { replace: [], fetches: [], events: [], scripts: [] };
   const store = Object.assign({}, session || {});
+  const localStore = Object.assign({}, local || {});
   const classes = new Set();
   const win = {
     location: { pathname: path, search: search || '', origin: 'https://ghlee.tistory.com', replace: (u) => calls.replace.push(u) },
@@ -12,7 +13,7 @@ function boot(path, search, policyFn, session) {
       documentElement: { classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c), toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) } },
       head: { appendChild: (el) => { if (el && el.src) calls.scripts.push(el.src); } }, addEventListener() {}, getElementById: () => null, createElement: () => ({ addEventListener() {} }),
     },
-    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    localStorage: { getItem: (k) => (k in localStore ? localStore[k] : null), setItem: (k, v) => { localStore[k] = String(v); }, removeItem: (k) => { delete localStore[k]; } },
     sessionStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
     dispatchEvent: (e) => calls.events.push(e.type), CustomEvent: function (t, o) { this.type = t; this.detail = o && o.detail; },
     AbortController, URL, URLSearchParams, Promise, setTimeout, clearTimeout, console,
@@ -75,6 +76,11 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   b = boot('/', '', policy(false)); await wait();
   assert.deepStrictEqual(b.calls.replace, ['/guestbook']); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
   // 비회원 입장 상태의 비공개 URL은 대화방으로(시장지표·종목·MY 등)
+  // 로그아웃(로그인 이력 힌트가 있는데 지금은 비로그인): 비회원 입장으로 넘기지 않고 로그인 창(랜딩)으로 돌아간다
+  b = boot('/', '', policy(false), { nine_guest: '1', nine_landing_seen: '1' }, { nine_authed: '1' }); await wait();
+  assert(!b.win.NineAccess.isGuest(), 'logout clears guest entry'); assert(!('nine_landing_seen' in b.store), 'logout re-arms landing');
+  assert(!b.calls.scripts.some((u) => /guest-home/.test(u)), 'logout does not mount guest home'); assert.deepStrictEqual(b.calls.replace, ['/guestbook']);
+  assert(b.calls.scripts.some((u) => /access-landing\.js/.test(u)), 'logout shows login landing');
   b = boot('/page/foreign-flow', '', policy(false), { nine_guest: '1' }); await wait();
   assert.deepStrictEqual(b.calls.replace, ['/guestbook']);
   // 주요 뉴스는 공개

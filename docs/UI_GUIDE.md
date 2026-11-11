@@ -400,7 +400,7 @@ WTI·브렌트유·금은 `/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,
 
 ### 모바일 하단 탭바 · 얇은 헤더 · 홈 섹션 스와이프 (2026-11-08)
 
-모바일(≤720px)만 해당하며 PC는 변경이 없다. 파일은 `css/home-mobile-tabs.css`·`js/home-mobile-tabs.js`(로더: `js/skin-main.js` `loadMobileTabs`, 720px 이하에서만 받음. 비회원 홈은 대시보드 초기화가 막혀 있어 `guest-home.js`의 `nine:guest-home` 신호로 같은 로더만 실행). `skin.html`은 수정하지 않는다.
+모바일(≤720px)만 해당하며 PC는 변경이 없다. 파일은 `css/home-mobile-tabs.css`·`js/home-mobile-tabs.js`(로더: `js/skin-main.js` `loadMobileTabs`, 720px 이하에서만 받음. 비회원 홈은 대시보드 초기화가 막혀 있어 `guest-home.js`의 `nine:guest-home` 신호로 같은 로더만 실행하고, 같은 래퍼 클래스를 쓰므로 브리핑/이야기 스와이프도 회원과 동일하게 동작). `skin.html`은 수정하지 않는다.
 
 - **롤백 스위치**: `body.m-tabs` 한 클래스다. 모든 모바일 규칙이 이 클래스 아래에 있어, 떼면 기존 모바일 화면이 그대로 돌아온다. 끄기: 주소 `?mtabs=off`·`localStorage.nineMobileTabs='off'`·라이브 `NineMobileTabs.disable()`, 영구 비활성은 `loadMobileTabs` 한 덩어리를 지운다.
 - **헤더**: 로고(엠블럼)+종목검색+다크모드 한 줄(실측 53px). 1·2차 가로 메뉴(`.sidebar-left`)와 보조 아이콘은 숨기고, 항목은 더보기 서랍으로 간다. 서랍은 `#nav-menu-mount`를 읽어 만들므로 메뉴 항목을 따로 복제하지 않는다(항목 손실 0). 투자도구(`data-invest-tool`)·관리자·글쓰기·로그아웃은 원래 요소에 `click()`을 넘겨 기존 핸들러를 그대로 쓴다.

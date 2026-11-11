@@ -25,6 +25,34 @@
    가릴 게 없으니 기다리지 않고 즉시 붙인다. */
 document.documentElement.classList.add('skin-ready');
 
+/* 홈 마켓브리핑 캐러셀(최신 브리핑 카드를 좌우로 넘김). 회원 대시보드(buildHomeDashboard)와 비회원 홈(js/guest-home.js)이
+   같은 마크업·같은 SiteInteractions.carousel을 쓴다. 카드는 티스토리 원본 .post-card를 옮겨 담는다(복제 금지). */
+window.NineHomeBriefing = window.NineHomeBriefing || {
+  build: function (cards) {
+    var briefing = document.createElement('section');
+    briefing.className = 'home-briefing-section';
+    briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 6h4" /> <path d="M2 10h4" /> <path d="M2 14h4" /> <path d="M2 18h4" /> <rect width="16" height="20" x="4" y="2" rx="2" /> <path d="M9.5 8h5" /> <path d="M9.5 12H16" /> <path d="M9.5 16H14" /> </svg> 마켓브리핑</strong>'
+      + '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>'
+      + '<a class="home-briefing-more" href="/category/마켓 브리핑"><svg class="briefing-archive-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg><span>브리핑 아카이브</span> <i aria-hidden="true">↗</i></a></div>'
+      + '<div class="home-briefing-grid briefing-carousel-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>'
+      + '<div class="briefing-carousel-controls"><input class="briefing-carousel-progress" type="range" min="0" max="1000" value="0" aria-label="브리핑 카드 이동 위치">'
+      + '<div><button type="button" data-briefing-prev aria-label="이전 브리핑">←</button><button type="button" data-briefing-next aria-label="다음 브리핑">→</button></div></div>';
+    var track = briefing.querySelector('.briefing-carousel-track');
+    cards.forEach(function (card, index) {
+      card.classList.add('home-briefing-card');
+      card.setAttribute('data-briefing-number', String(index + 1).padStart(2, '0'));
+      track.appendChild(card);
+    });
+    return briefing;
+  },
+  initCarousel: function (section) {
+    (window.SiteInteractionsReady || Promise.resolve(window.SiteInteractions)).then(function (module) {
+      if (!module) return;
+      module.carousel(section, {track:'.briefing-carousel-track',previous:'[data-briefing-prev]',next:'[data-briefing-next]',progress:'.briefing-carousel-progress',card:'.home-briefing-card'});
+    }).catch(function () {});
+  }
+};
+
 /* 모바일(≤720px) 하단 탭바 + 얇은 헤더 + 홈 섹션 스와이프(2026-11-08). 720px 이하에서만 파일을 받는다 - PC는 받지 않는다.
    끄려면 이 함수와 아래 두 호출을 지운다(라이브 점검은 주소 ?mtabs=off). js/home-mobile-tabs.js, css/home-mobile-tabs.css, docs/UI_GUIDE.md '모바일 하단 탭바' */
 function loadMobileTabs() {
@@ -585,12 +613,6 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
      여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {
     if (location.pathname !== '/' && location.pathname !== '') return;
-    function initBriefingCarousel(section) {
-      (window.SiteInteractionsReady || Promise.resolve(window.SiteInteractions)).then(function (module) {
-        if (!module) return;
-        module.carousel(section, {track:'.briefing-carousel-track',previous:'[data-briefing-prev]',next:'[data-briefing-next]',progress:'.briefing-carousel-progress',card:'.home-briefing-card'});
-      }).catch(function () {});
-    }
 
     var feed = document.querySelector('.feed');
     var investorMount = document.getElementById('investor-trend-widget');
@@ -3001,21 +3023,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     var briefing = null;
     if (selectedCards.length) {
-      briefing = document.createElement('section');
-      briefing.className = 'home-briefing-section';
-      briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 6h4" /> <path d="M2 10h4" /> <path d="M2 14h4" /> <path d="M2 18h4" /> <rect width="16" height="20" x="4" y="2" rx="2" /> <path d="M9.5 8h5" /> <path d="M9.5 12H16" /> <path d="M9.5 16H14" /> </svg> 마켓브리핑</strong>'
-        + '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>'
-        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><svg class="briefing-archive-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg><span>브리핑 아카이브</span> <i aria-hidden="true">↗</i></a></div>'
-        + '<div class="home-briefing-grid briefing-carousel-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>'
-        + '<div class="briefing-carousel-controls"><input class="briefing-carousel-progress" type="range" min="0" max="1000" value="0" aria-label="브리핑 카드 이동 위치">'
-        + '<div><button type="button" data-briefing-prev aria-label="이전 브리핑">←</button><button type="button" data-briefing-next aria-label="다음 브리핑">→</button></div></div>';
+      briefing = window.NineHomeBriefing.build(selectedCards); // 정의는 파일 위쪽 - 비회원 홈과 공유
       feed.appendChild(briefing);
-      selectedCards.forEach(function (card, index) {
-        card.classList.add('home-briefing-card');
-        card.setAttribute('data-briefing-number', String(index + 1).padStart(2, '0'));
-        briefing.querySelector('.briefing-carousel-track').appendChild(card);
-      });
-      initBriefingCarousel(briefing);
+      window.NineHomeBriefing.initCarousel(briefing);
     } else {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
