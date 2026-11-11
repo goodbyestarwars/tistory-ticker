@@ -1,6 +1,192 @@
-/* 비회원 전용 홈(js/guest-home.js). 카드·캐러셀 스타일은 style.css 의 홈 브리핑 섹션 규칙을 그대로 쓰고,
-   여기서는 두 영역의 간격만 맞춘다. */
-.guest-home { display: grid; gap: 40px; width: 100%; }
-.guest-home .guest-home-state { padding: 28px 8px; text-align: center; color: var(--ui-muted, #6b7280); }
-.guest-home .guest-home-stories .site-footer-learn { margin: 0; }
+/* 비회원 전용 홈: 전체 폭에 맞는 줄바꿈 카드 그리드. 관리자 홈 캐러셀에는 적용하지 않는다. */
+.guest-home {
+  display: grid;
+  gap: 34px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--home-content-max, 1380px);
+  min-width: 0;
+  margin-inline: auto;
+  padding: 8px 0 32px;
+}
 html.guest-home-mode .feed > .guest-home { margin-top: 8px; }
+.guest-home .guest-home-state {
+  padding: 28px 8px;
+  text-align: center;
+  color: var(--ui-muted, #6b7280);
+}
+.guest-home-section,
+.guest-home-stories {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+.guest-home-stories { border-top: 1px solid var(--ui-border, #e5e7eb); padding-top: 30px; }
+.guest-home-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.guest-home-heading h2,
+.guest-home-story-intro h2 {
+  margin: 6px 0 8px;
+  font-family: var(--font-serif, serif);
+  font-size: var(--ui-title-size, 26px);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text-strong, #1f2937);
+}
+.guest-home-heading p,
+.guest-home-story-intro p { margin: 0; color: var(--text-sub, #64748b); font-size: 14px; line-height: 1.6; }
+.guest-home-more {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 16px;
+  border: 1px solid var(--ui-border, #e5e7eb);
+  border-radius: 12px;
+  background: var(--ui-card-surface, #fff);
+  color: var(--text-main, #334155);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+}
+.guest-home-briefing-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ui-card-gap, 16px);
+  min-width: 0;
+  width: 100%;
+}
+.guest-home-briefing-card.post-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 292px;
+  padding: var(--ui-card-padding, 20px);
+  border: 1px solid var(--ui-border, #e5e7eb);
+  border-radius: var(--ui-radius-card, 16px);
+  background: var(--ui-card-surface, #fff);
+  box-shadow: var(--ui-glass-shadow, 0 2px 10px rgba(0,0,0,.04));
+}
+.guest-home-briefing-card .post-header { margin-bottom: 12px; }
+.guest-home-briefing-card .post-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  min-width: 0;
+  font-family: var(--font-serif, serif);
+  font-size: var(--home-editorial-card-title-size, 20px);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.guest-home-briefing-card .post-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  color: var(--text-sub, #64748b);
+  line-height: 1.7;
+}
+.guest-home-briefing-card .post-tags { display: none; }
+.guest-home-briefing-card .post-footer { margin-top: auto; }
+.guest-home-story-nav {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  color: var(--text-main, #334155);
+}
+.guest-home-story-intro { margin: 0 0 22px; }
+.guest-home-story-intro h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.guest-home-story-intro h2 br { display: none; }
+.guest-home-story-intro .learn-library-icon { display: inline-block; width: 23px; height: 23px; flex: none; }
+.guest-home-story-intro .learn-intro-line { display: inline; }
+.guest-home-story-intro .learn-intro-note { display: block; margin-top: 8px; color: var(--text-sub, #64748b); }
+.guest-home-story-area { min-width: 0; width: 100%; }
+.guest-home-story-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ui-card-gap, 16px);
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+.guest-home-story-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 205px;
+  padding: 22px;
+  border: 1px solid var(--ui-border, #e5e7eb);
+  border-radius: var(--ui-radius-card, 16px);
+  background: var(--ui-card-surface, #fff);
+  color: var(--text-main, #334155);
+  text-decoration: none;
+  gap: 8px;
+  transition: border-color .2s, transform .2s;
+}
+.guest-home-story-card:hover { border-color: var(--text-sub, #94a3b8); transform: translateY(-2px); }
+.guest-home-story-card:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.guest-home-story-card svg {
+  display: block;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--lc-a, #e2e8f0);
+  color: #334155;
+}
+.guest-home-story-card b {
+  display: block;
+  font-family: var(--font-serif, serif);
+  font-size: var(--home-editorial-card-title-size, 20px);
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: keep-all;
+  color: var(--text-strong, #1f2937);
+}
+.guest-home-story-card .learn-description {
+  display: block;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sub, #64748b);
+  word-break: keep-all;
+}
+.guest-home-story-card small { display: block; margin-top: auto; color: var(--text-sub, #64748b); }
+html.dark .guest-home-briefing-card.post-card,
+html.dark .guest-home-story-card,
+html.dark .guest-home-more { background: var(--dk-card, #171717); border-color: var(--dk-line, #333); }
+html.dark .guest-home-heading h2,
+html.dark .guest-home-story-intro h2,
+html.dark .guest-home-story-card b { color: var(--dk-text, #fff); }
+html.dark .guest-home-heading p,
+html.dark .guest-home-story-intro p,
+html.dark .guest-home-story-card .learn-description,
+html.dark .guest-home-story-card small { color: var(--dk-mute, #bbb); }
+@media (max-width: 1180px) {
+  .guest-home-briefing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .guest-home-briefing-grid,
+  .guest-home-story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .guest-home { gap: 24px; }
+  .guest-home-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .guest-home-briefing-grid { grid-template-columns: minmax(0, 1fr); }
+  .guest-home-story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .guest-home-story-card { padding: 14px; min-height: 210px; }
+  .guest-home-story-card b { font-size: 16px; }
+  .guest-home-story-card .learn-description { font-size: 12px; }
+}
+@media (max-width: 360px) {
+  .guest-home-story-grid { grid-template-columns: minmax(0, 1fr); }
+}
