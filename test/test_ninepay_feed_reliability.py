@@ -113,7 +113,7 @@ def test_websocket_cleanup_handles_absent_optional_tasks(monkeypatch, kis, domes
                 await asyncio.sleep(0)
                 raise WebSocketDisconnect()
         namespace = dict(asyncio=asyncio, os=__import__('os'), WebSocket=object,
-            WebSocketDisconnect=WebSocketDisconnect, _ws_active_connections=0,
+            WebSocketDisconnect=WebSocketDisconnect, _ws_active_connections=0, _access_denied=lambda ws: None,
             _WS_MAX_CONNECTIONS=200, _market_board_source=lambda: 'kis' if kis else 'kiwoom',
             realtime_quotes=SimpleNamespace(MAX_REQUEST_CODES=250,
                 normalize_codes=lambda *a, **k: ['005930'] if domestic else [], relay_quotes=relay),
