@@ -99,14 +99,6 @@
     return PUBLIC.indexOf(key) >= 0;
   }
 
-  /* 관리자 홈(2026-11-12): 서버가 확인한 관리자의 '/'는 종목 작업 화면(/page/stock-search)으로 연결한다.
-     기존 시장 대시보드는 '/?view=market'(메뉴: 시장 > 시장 대시보드)으로 그대로 열린다. 비회원·일반 회원의 홈은 바뀌지 않는다. */
-  var WORKSPACE_URL = '/page/stock-search';
-  function adminHomeRedirect() {
-    return startScreen === 'home' && isAdmin() && global.self === global.top
-      && !/(?:^|[?&])view=market(?:&|$)/.test(String(global.location.search || '').replace(/^\?/, ''));
-  }
-
   var readyResolve;
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
 
@@ -317,7 +309,6 @@
         if ((current && current.authenticated) || isGuest()) { if (global.NineLanding) global.NineLanding.close(); }
         else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured)); if (!(current && current.naverConfigured)) probeNaver(L); });
       }
-      if (adminHomeRedirect()) { global.location.replace(WORKSPACE_URL); return; }
       if (startScreen === 'home' && !allowsScreen('home')) {
         // 관리자가 아니면 홈은 항상 비회원 전용 홈(공개 콘텐츠)이다. 입장 전 비로그인은 그 위에 로그인 창(랜딩)이 덮이고,
         // [비회원 로그인]을 누르면 대화방을 거치지 않고 그 자리에서 랜딩만 닫힌다.
@@ -357,7 +348,7 @@
     /* 현재 화면이 보호 대상이면 판정 뒤에 fn, 공개 화면·일반 글은 기다리지 않고 바로 fn. 거부되면 fn을 실행하지 않는다. */
     run: function (fn) {
       if (!startRestricted) { fn(); return; }
-      ready.then(function () { if (allowsScreen(startScreen) && !adminHomeRedirect()) fn(); });
+      ready.then(function () { if (allowsScreen(startScreen)) fn(); });
     },
     /* 관리자 전용 전역 도구(검색·관심종목·메모). 판정 전에는 시작하지 않는다. */
     whenAdmin: function (fn) {

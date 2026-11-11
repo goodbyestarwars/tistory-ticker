@@ -70,9 +70,9 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   assert(b.calls.scripts.some((u) => /js\/guest-home\.js(?:\?.*)?$/.test(u)), 'guest home module loads'); assert(b.win.NineAccess.isGuest());
   b = boot('/', '', policy(false, [], true)); await wait();
   assert(b.calls.scripts.some((u) => /js\/guest-home\.js(?:\?.*)?$/.test(u)), 'logged-in non-admin gets guest home'); assert.deepStrictEqual(b.calls.replace, []);
-  // 관리자 홈은 종목 작업 화면으로 연결하고(대시보드 초기화 없음), 기존 대시보드는 '/?view=market'으로 그대로 연다
+  // 관리자 홈은 이동 없이 대시보드를 초기화한다. 이전 대시보드 주소도 호환 유지.
   b = boot('/', '', policy(true)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
-  assert(!ran); assert.deepStrictEqual(b.calls.replace, ['/page/stock-search']); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
+  assert(ran); assert.deepStrictEqual(b.calls.replace, []); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
   b = boot('/', '?view=market', policy(true)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
   assert(ran); assert.deepStrictEqual(b.calls.replace, []); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
   assert.strictEqual(b.win.NineAccess.screenOfHref('/?view=market'), '@admin');
