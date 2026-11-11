@@ -28,7 +28,7 @@
     '.nl-photo{position:absolute;inset:0;background:url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-interlaken.jpg) center/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,20,38,.62) 0%,rgba(7,20,38,.18) 52%,rgba(7,20,38,0) 78%),linear-gradient(0deg,rgba(7,20,38,.5) 0%,rgba(7,20,38,0) 40%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
-    '.nl-logo,.nl-title{font-family:"Noto Serif KR",var(--font-serif,serif);font-weight:700}' +
+    '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-weight:700}' +
     '.nl-logo{color:#fff;text-decoration:none;font-size:26px;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}' +
     '.nl-nav{display:flex;align-items:center;gap:clamp(14px,2.4vw,34px);flex-wrap:wrap;justify-content:flex-end}' +
     '.nl-nav a,.nl-nav button{color:#fff;font:inherit;font-size:15px;font-weight:600;text-decoration:none;background:none;border:0;padding:6px 2px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.4);opacity:.92}' +
@@ -40,7 +40,7 @@
     '.nl-sub{margin:18px 0 28px;font-size:clamp(15px,1.6vw,18px);line-height:1.6;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 2px 14px rgba(0,0,0,.4);max-width:520px}' +
     '.nl-cta{display:inline-flex;align-items:center;gap:10px;font:inherit;font-size:16px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:14px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
     '.nl-cta:hover{background:#fff}' +
-    '.nl-loginfab{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(20px,4vh,40px);font:inherit;font-size:15px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:12px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
+    '.nl-loginfab{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(20px,4vh,40px);font:inherit;font-size:15px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:0;padding:12px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
     '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.55)}' +
     '.nl-modal[hidden]{display:none}' +
     '.nl-card{width:min(380px,100%);max-height:100%;overflow:auto;padding:24px;border-radius:22px;background:rgba(18,38,66,.78);border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 24px 60px rgba(0,0,0,.4)}' +
@@ -130,7 +130,6 @@
     root.innerHTML = SCENE + '<div class="nl-photo"></div><div class="nl-shade"></div>' +
       '<div class="nl-top"><a class="nl-logo" href="/category/마켓 브리핑" data-nl-go="1">ㄱ ㅖ조 ㅏ 심폐소생술</a><nav class="nl-nav" aria-label="공개 메뉴">' + menu + '</nav></div>' +
       '<div class="nl-hero"><span class="nl-badge">시장을 차분하게 읽는 곳</span>' +
-      '<h1 class="nl-title">ㄱ ㅖ조 ㅏ 심폐소생술</h1>' +
       '<p class="nl-sub">대화방, 캘린더, 마켓브리핑, 이야기 시리즈는 로그인 없이 볼 수 있어요. 시장지표는 로그인 후에 열립니다.</p></div>' +
       '<button type="button" class="nl-loginfab" data-nl-login="1">로그인</button>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-label="로그인">' +
@@ -148,7 +147,13 @@
         markSeen();
         var u = new URL(go.getAttribute('href'), global.location.origin);
         var here = global.location.pathname + global.location.search;
-        if (decodeURIComponent(u.pathname + u.search) === decodeURIComponent(here)) { e.preventDefault(); close(); }
+        if (decodeURIComponent(u.pathname + u.search) === decodeURIComponent(here)) {
+          e.preventDefault(); close();
+          if (u.hash === '#story-series') { // 이야기 시리즈: 푸터 카드 영역으로
+            var target = doc.querySelector('.site-footer-learn');
+            if (target && target.scrollIntoView) setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+          }
+        }
         return; // 다른 화면이면 링크 이동
       }
       if (t.closest('[data-nl-login]')) {
@@ -163,10 +168,6 @@
     if (root) return;
     if (!doc.getElementById('nine-landing-css')) {
       var st = doc.createElement('style'); st.id = 'nine-landing-css'; st.textContent = CSS; (doc.head || doc.documentElement).appendChild(st);
-    }
-    if (!doc.getElementById('nine-landing-font')) {
-      var lk = doc.createElement('link'); lk.id = 'nine-landing-font'; lk.rel = 'stylesheet';
-      lk.href = 'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200..900&display=swap'; (doc.head || doc.documentElement).appendChild(lk);
     }
     root = doc.createElement('div');
     root.className = 'nl';

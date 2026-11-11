@@ -134,6 +134,8 @@
     var root = doc.documentElement;
     root.classList.remove('access-pending');
     root.classList.toggle('access-limited', !isAdmin());
+    // 관심종목 서랍은 관리자 전용이다. 저장된 '열림' 상태가 본문 오른쪽 378px 여백만 남기지 않게 비관리자는 해제한다.
+    if (!isAdmin()) root.classList.remove('wl-open');
     root.classList.toggle('access-admin', isAdmin());
   }
 
@@ -175,6 +177,7 @@
 
   patchFetch();
   injectStyle();
+  try { if (global.localStorage.getItem('nine_authed') !== '1') doc.documentElement.classList.remove('wl-open'); } catch (e) { /* 저장소 차단 */ }
   if (startRestricted) doc.documentElement.classList.add('access-pending');
 
   /* 비로그인 첫 화면(로그인 랜딩): 한 브라우저 세션에서 처음 보는 홈·공개 4개 화면·이동돼 온 보호 화면 위에 덮는다.
