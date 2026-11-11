@@ -10,8 +10,9 @@ function boot(path, search, policyFn, session) {
     location: { pathname: path, search: search || '', origin: 'https://ghlee.tistory.com', replace: (u) => calls.replace.push(u) },
     document: {
       documentElement: { classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c), toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) } },
-      head: { appendChild() {} }, getElementById: () => null, createElement: () => ({}),
+      head: { appendChild() {} }, getElementById: () => null, createElement: () => ({ addEventListener() {} }),
     },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     sessionStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
     dispatchEvent: (e) => calls.events.push(e.type), CustomEvent: function (t, o) { this.type = t; this.detail = o && o.detail; },
     AbortController, URL, URLSearchParams, Promise, setTimeout, clearTimeout, console,

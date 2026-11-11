@@ -155,9 +155,34 @@
   injectStyle();
   if (startRestricted) doc.documentElement.classList.add('access-pending');
 
+  /* 비로그인 첫 화면(로그인 랜딩): 한 브라우저 세션에서 처음 보는 홈·공개 4개 화면·이동돼 온 보호 화면 위에 덮는다.
+     로그인 이력 힌트(nine_authed)가 없을 때만 판정 전에 먼저 띄우고, 판정 후 로그인 상태면 바로 닫는다. */
+  var HINT_KEY = 'nine_authed';
+  function hint() { try { return global.localStorage.getItem(HINT_KEY) === '1'; } catch (e) { return false; } }
+  function setHint(on) { try { if (on) global.localStorage.setItem(HINT_KEY, '1'); else global.localStorage.removeItem(HINT_KEY); } catch (e) { /* 차단 */ } }
+  var landingApplies = !!startScreen && global.self === global.top;
+  var landingTag = null;
+  function withLanding(fn) {
+    if (global.NineLanding) { fn(global.NineLanding); return; }
+    if (!landingTag) {
+      landingTag = doc.createElement('script');
+      landingTag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-landing.js';
+      (doc.head || doc.documentElement).appendChild(landingTag);
+    }
+    landingTag.addEventListener('load', function () { if (global.NineLanding) fn(global.NineLanding); });
+  }
+  if (landingApplies && !hint()) {
+    withLanding(function (L) { if (!L.seen() && !(current && current.authenticated)) L.show(false); });
+  }
+
   fetchPolicy().then(function (data) { current = data; failed = false; }, function () { current = null; failed = true; })
     .then(function () {
       applyClasses();
+      setHint(!!(current && current.authenticated));
+      if (landingApplies) {
+        if (current && current.authenticated) { if (global.NineLanding) global.NineLanding.close(); }
+        else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured)); });
+      }
       if (!allowsScreen(startScreen)) { redirectFallback(); return; }
       // 로그인 후 원래 가려던 화면으로 복귀(한 번만). 대화방에서 시작한 경우에만.
       var target = takeRemembered();

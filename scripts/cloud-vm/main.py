@@ -1069,7 +1069,9 @@ def _access_denied(request_like):
 @app.get('/access-policy')
 def access_policy_get(request: Request):
     session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
-    return envelope(access_policy.view(bool(session), GOOGLE_AUTH.is_admin(session)))
+    data = access_policy.view(bool(session), GOOGLE_AUTH.is_admin(session))
+    data['naverConfigured'] = bool(NAVER_AUTH.configured and GOOGLE_AUTH.session_secret)  # 로그인 랜딩의 네이버 버튼 표시용
+    return envelope(data)
 
 
 @app.put('/access-policy')

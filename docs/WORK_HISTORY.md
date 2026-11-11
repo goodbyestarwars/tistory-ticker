@@ -1,3 +1,7 @@
+**2026-11-11 비로그인 로그인 랜딩(마테호른·인터라켄)**
+
+요청: 비로그인 첫 화면을 로그인 창이 먼저 뜨는 형태로(스위스 배경, 상단 공개 메뉴, Google·네이버·카카오). 또 첫 0.6초에 티스토리 원본 글 틀이 왼쪽에 먼저 보이다가 정리되는 깜빡임 제보. 변경: `js/access-landing.js`(외부 이미지 없이 SVG 풍경, 공개 메뉴 4개, 로그인 카드), `access-gate.js`가 비로그인·세션 첫 방문에만 띄우고(로그인 이력 힌트 `nine_authed`가 없으면 판정 전 즉시) 로그인 확인 시 닫음. 카카오는 사이트 회원 로그인이 아니라 기존 티스토리 관리자 로그인으로 연결(회원 이메일 검증 불가, 카드에 명시). 서버 `/access-policy`에 `naverConfigured` 추가(배포는 20:00 이후 VM 반영과 함께). 검증: `test_access_landing.js`(1440/390/320)·`test_access_gate.js`. 미확인: '시장지표 자리에 이야기 시리즈가 보임' 제보는 재현 못 함.
+
 **2026-11-11 화면 접근 정책(비로그인 4개 화면·관리자 ON/OFF)**
 
 요청: 증권사 시세 제3자 제공 불허를 전제로 비로그인은 대화방·캘린더·마켓브리핑·시장지표만, 첫 화면 `/guestbook`, 관리자가 화면별 ON/OFF. 일반 회원에게 인증만으로 제한 시세를 열지 않음(첫 문장 "구현한다"는 본문과 충돌하는 오타로 보고 미구현 해석). 변경: `access_policy.py`·`/access-policy`(GET/PUT)·제한 REST 미들웨어(401/403)·`/ws/quotes` 인증 거절, `js/access-gate.js`(NineAccess)·`access-settings.js`, 메뉴·모바일 탭바·검색·관심종목·메모 게이팅, `skin-main.js` 보호 화면 판정 후 초기화. 시장지표 공급자 공개 가능 여부는 미확정(상세 `ACCESS_POLICY_2026-11-11.md`). 검증: `test_access_policy.py` 8·`test_access_gate.js`·`test_access_menu.js`(PC 1280/모바일 390·320, 비로그인·일반·장애·관리자)·FastAPI TestClient 통합(401/403/200·WS 거절·설정 저장). 배포: PR(초안) - 미병합, VM→Pages 순서·장중 재시작 금지·skin.html 수동 반영 대기. 실서버·실제 로그인 세션 검증 미실시.
