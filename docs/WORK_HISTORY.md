@@ -1,3 +1,7 @@
+**2026-11-12 랜딩 로고 글꼴 수정**
+
+원인: `style.css`의 `html body * { font-family: ... !important }`가 랜딩 로고 CSS를 이겨 Pretendard로 표시됨. 수정: 로고 요소 인라인 스타일(`!important`)로 Noto Serif KR Site 700 적용, 문구를 스킨 원문(ㄱㅖ조 ㅏ심폐소생술)과 일치. 검증: 실사이트 위 로컬 파일 덮어쓰기로 계산 글꼴 확인.
+
 **2026-11-12 로그인·비회원 화면 분리(비회원 입장 + 비회원 홈)**
 
 요청: 시작 화면에 [로그인]·[비회원 로그인] 두 버튼, 로그인은 확대 모달(기존 Google/네이버/카카오 재사용), 비회원은 인증 없이 탭 단위(`sessionStorage nine_guest`) 입장. 비회원 메뉴는 홈·시장(주요뉴스·마켓브리핑)·캘린더·대화방만(PC 메뉴·모바일 서랍·하단 탭 동일), 이야기 시리즈 메뉴 항목 제거, 비회원 홈은 마켓브리핑+이야기 시리즈 두 영역만. 변경: `js/access-landing.js`(버튼·모달·ESC·바깥 클릭·포커스 트랩), `js/access-gate.js`(비회원 판정·`guest-home.js` 로드·비공개 URL은 /guestbook), 신규 `js/guest-home.js`·`css/guest-home.css`(피드의 마켓브리핑 카드·푸터 이야기 시리즈 재사용, 대시보드·시세 요청 없음), `js/skin-menu.js`·`js/home-mobile-tabs.js`, 서버 `access_policy.py`에 공개 화면 `news`(주요 뉴스) 추가. 일반 로그인 계정에 관리자 기능·제한 시세는 열지 않음. 검증(테스트): `test_access_gate/menu/landing/kis_menu/early_bootstrap`·`test_access_policy.py` 통과, 실사이트 HTML에 로컬 파일을 덮은 브라우저 확인(1280/390, 비회원 홈에 카드 8·이야기 12, 대시보드 0, 시세 요청 없음). 배포: master → Pages, 서버 `news`는 VM 자동 배포(평일 20:00 이후) 전까지 클라이언트가 `news`를 공개로 간주. skin.html 수동 반영 불필요.

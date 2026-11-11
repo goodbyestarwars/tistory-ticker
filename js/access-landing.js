@@ -163,7 +163,7 @@
 
   function build(naverConfigured) {
     root.innerHTML = SCENE + '<div class="nl-photo"></div><div class="nl-shade"></div>' +
-      '<div class="nl-top"><span class="nl-logo">ㄱ ㅖ조 ㅏ 심폐소생술</span></div>' +
+      '<div class="nl-top"><span class="nl-logo" style="font-family:Noto Serif KR Site,var(--font-serif,serif)!important;font-weight:700!important">ㄱㅖ조 ㅏ심폐소생술</span></div>' +
       '<div class="nl-hero"><span class="nl-badge">시장을 차분하게 읽는 곳</span>' +
       '<p class="nl-sub">로그인하면 전체 서비스를, 비회원으로 입장하면 마켓브리핑·이야기 시리즈·캘린더·대화방을 둘러볼 수 있어요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
