@@ -171,9 +171,17 @@
     build(!!naverConfigured);
   }
 
+  function showLogin(naverConfigured) {
+    if (!root) show(naverConfigured);
+    var card = root.querySelector('.nl-card'), hero = root.querySelector('.nl-hero');
+    card.hidden = false; hero.style.display = 'none';
+    var first = card.querySelector('a'); if (first) first.focus();
+  }
+
   global.NineLanding = {
     seen: seen,
     show: show,
+    showLogin: showLogin,
     close: close,
     isOpen: function () { return !!root; },
     /* 정책 판정 결과 반영: 로그인했으면 닫고, 비로그인이면 네이버 버튼 여부를 맞춘다. */

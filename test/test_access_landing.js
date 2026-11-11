@@ -27,6 +27,11 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.waitForTimeout(50);
     assert.equal(await page.locator('#nineLanding').count(), 0);
     assert.equal(await page.evaluate(() => window.NineLanding.seen()), true);
+    // 로고/홈 클릭 → 이동하지 않고 로그인 카드가 바로 열린다
+    await page.evaluate(() => window.NineLanding.showLogin(true));
+    assert.equal(await page.locator('.nl-card').isHidden(), false);
+    assert.equal(await page.locator('.nl-hero').evaluate(e => e.style.display), 'none');
+    await page.evaluate(() => window.NineLanding.close());
     // 로그인 확인되면 닫힌다
     await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.show(false); window.NineLanding.settle({authenticated: true}); });
     assert.equal(await page.locator('#nineLanding').count(), 0);
