@@ -41,6 +41,8 @@
     '.nl-cta{display:inline-flex;align-items:center;gap:10px;font:inherit;font-size:16px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:14px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
     '.nl-cta:hover{background:#fff}' +
     '.nl-loginfab{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(20px,4vh,40px);font:inherit;font-size:15px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:0;padding:12px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
+    '.nl-credit{position:absolute;right:clamp(12px,3vw,40px);bottom:10px;font-size:11px;color:rgba(255,255,255,.7);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
+    '.nl-credit:hover{color:#fff;text-decoration:underline}' +
     '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.55)}' +
     '.nl-modal[hidden]{display:none}' +
     '.nl-card{width:min(380px,100%);max-height:100%;overflow:auto;padding:24px;border-radius:22px;background:rgba(18,38,66,.78);border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 24px 60px rgba(0,0,0,.4)}' +
@@ -132,6 +134,7 @@
       '<div class="nl-hero"><span class="nl-badge">시장을 차분하게 읽는 곳</span>' +
       '<p class="nl-sub">대화방, 캘린더, 마켓브리핑, 이야기 시리즈는 로그인 없이 볼 수 있어요. 시장지표는 로그인 후에 열립니다.</p></div>' +
       '<button type="button" class="nl-loginfab" data-nl-login="1">로그인</button>' +
+      '<a class="nl-credit" href="https://commons.wikimedia.org/wiki/File:View_of_Interlaken_and_Lake_Brienz_from_Harder_Kulm_(Ank_Kumar)_06.jpg" target="_blank" rel="noopener">사진: Ank Kumar · CC BY-SA 4.0 · Wikimedia Commons</a>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-label="로그인">' +
       '<h2>로그인</h2><p>사용할 계정을 선택하세요. 승인된 계정으로 로그인하면 기존 대시보드가 열리고, 그 외 계정은 공개 화면을 이용합니다.</p>' +
       '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
