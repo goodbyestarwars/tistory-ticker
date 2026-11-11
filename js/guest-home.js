@@ -7,9 +7,9 @@
  *
  * 재사용(복제 금지):
  *  - 마켓브리핑 카드: 티스토리 피드의 .post-card(data-cat='마켓 브리핑'). 홈 피드에 없으면 /category/마켓 브리핑 을 읽어온다.
- *  - 카드/캐러셀 마크업·클래스: skin-main 의 홈 브리핑 섹션과 같은 클래스(.home-briefing-section 등)를 써서 style.css 를 공유한다.
- *  - 이야기 시리즈: skin-shell 이 푸터에 만드는 nav.site-footer-learn 을 옮겨 온다(복제하지 않는다).
- *  - 캐러셀 동작: SiteInteractions.carousel.
+ *  - 카드 콘텐츠: 기존 티스토리 .post-card 를 이동해 링크/내용을 그대로 유지한다.
+ *  - 이야기 시리즈: skin-shell 의 원본 nav 를 옮기되 푸터 캐러셀 전용 클래스는 분리한다.
+ *  - 비회원 홈은 마켓브리핑·이야기 모두 반응형 줄바꿈 그리드(가로 캐러셀 없음).
  */
 (function (global) {
   'use strict';
@@ -59,41 +59,63 @@
   }
 
   function fillBriefing(section, cards) {
-    var track = section.querySelector('.briefing-carousel-track');
-    var controls = section.querySelector('.briefing-carousel-controls');
+    var grid = section.querySelector('.guest-home-briefing-grid');
     if (!cards.length) {
-      track.insertAdjacentHTML('afterend', emptyState('최신 마켓브리핑을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.'));
-      track.remove();
-      if (controls) controls.remove();
+      grid.insertAdjacentHTML('afterend', emptyState('최신 마켓브리핑을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.'));
+      grid.remove();
       return;
     }
     cards.slice(0, 8).forEach(function (card, index) {
-      card.classList.add('home-briefing-card');
+      card.classList.add('guest-home-briefing-card');
       card.setAttribute('data-briefing-number', String(index + 1).padStart(2, '0'));
-      track.appendChild(card);
+      grid.appendChild(card);
     });
-    wireCardLinks(track);
-    (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
-      if (!module || !module.carousel) return;
-      module.carousel(section, { track: '.briefing-carousel-track', previous: '[data-briefing-prev]', next: '[data-briefing-next]', progress: '.briefing-carousel-progress', card: '.home-briefing-card' });
-    }).catch(function () { /* 캐러셀 없이도 가로 스크롤로 읽을 수 있다 */ });
+    wireCardLinks(grid);
   }
 
   function briefingHtml() {
-    return '<section class="home-briefing-section guest-home-briefing" aria-label="마켓브리핑">' +
-      '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong>마켓브리핑</strong>' +
+    return '<section class="guest-home-section guest-home-briefing" aria-label="마켓브리핑">' +
+      '<div class="guest-home-heading"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><h2>마켓브리핑</h2>' +
       '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>' +
-      '<a class="home-briefing-more" href="/category/' + encodeURIComponent(CATEGORY) + '"><span>브리핑 아카이브</span><strong>더보기</strong><i aria-hidden="true">→</i></a></div>' +
-      '<div class="home-briefing-grid briefing-carousel-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>' +
-      '<div class="briefing-carousel-controls"><input class="briefing-carousel-progress" type="range" min="0" max="1000" value="0" aria-label="브리핑 카드 이동 위치">' +
-      '<div><button type="button" data-briefing-prev aria-label="이전 브리핑">←</button><button type="button" data-briefing-next aria-label="다음 브리핑">→</button></div></div>' +
-      '</section>';
+      '<a class="guest-home-more" href="/category/' + encodeURIComponent(CATEGORY) + '">브리핑 아카이브 · 더보기 →</a></div>' +
+      '<div class="guest-home-briefing-grid" aria-label="마켓브리핑 카드"></div></section>';
   }
 
   /* 이야기 시리즈: 푸터가 늦게 그려질 수 있어 잠시 기다린다. 끝내 없으면 안내 문구. */
   function attachStories(holder, tries) {
     var nav = doc.querySelector('.site-footer-learn');
-    if (nav) { holder.innerHTML = ''; holder.appendChild(nav); return; }
+    if (nav) {
+      // 원본 카드와 링크를 그대로 이동하되, 푸터의 가로 캐러셀 규칙은 가져오지 않는다.
+      // 독립 비회원 홈 클래스만 사용해 다른 화면의 디자인·이동 기능을 보존한다.
+      nav.classList.remove('site-footer-learn', 'site-footer-links');
+      nav.classList.add('guest-home-story-nav');
+      var intro = nav.querySelector('.learn-intro');
+      if (intro) {
+        intro.classList.remove('learn-intro');
+        intro.classList.add('guest-home-story-intro');
+      }
+      var area = nav.querySelector('.learn-card-area');
+      if (area) {
+        area.classList.remove('learn-card-area');
+        area.classList.add('guest-home-story-area');
+      }
+      var grid = nav.querySelector('.learn-card-grid');
+      if (grid) {
+        grid.classList.remove('learn-card-grid');
+        grid.classList.add('guest-home-story-grid');
+        grid.removeAttribute('tabindex'); // 정적인 목록: 좌우 스크롤·캐러셀 키보드 조작 없음
+        grid.removeAttribute('role');
+      }
+      Array.prototype.forEach.call(nav.querySelectorAll('.learn-card'), function (card) {
+        card.classList.remove('learn-card');
+        card.classList.add('guest-home-story-card');
+      });
+      var controls = nav.querySelector('.learn-mobile-controls');
+      if (controls) controls.remove();
+      holder.innerHTML = '';
+      holder.appendChild(nav);
+      return;
+    }
     if (tries <= 0) {
       holder.innerHTML = emptyState('이야기 시리즈를 불러오지 못했습니다. 새로고침해 주세요.');
       return;
@@ -117,7 +139,7 @@
     Array.prototype.slice.call(feed.children).forEach(function (child) { child.remove(); });
 
     var page = doc.createElement('div');
-    page.className = 'home-editorial-page guest-home';
+    page.className = 'guest-home';
     page.setAttribute('aria-label', '비회원 홈');
     page.innerHTML = briefingHtml() +
       '<section class="guest-home-stories" aria-label="이야기 시리즈"><div class="guest-home-stories-body">' + emptyState('이야기 시리즈를 불러오는 중입니다.') + '</div></section>';
