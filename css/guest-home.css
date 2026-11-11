@@ -202,8 +202,8 @@ html.dark .guest-home-story-card small { color: var(--dk-mute, #bbb); }
   box-sizing: border-box;
   width: min(100%, calc(var(--home-content-max, 1380px) + 32px));
   min-width: 0;
-  margin: 28px auto 0;
-  padding: 24px 16px 36px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
   border-top: 1px solid var(--ui-border, #e5e7eb);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -291,8 +291,16 @@ html.dark .guest-footer-company-copy strong { color: var(--dk-text, #eee); }
   .guest-footer-links { justify-content: center; gap: 4px 16px; }
   .guest-footer-company { justify-content: center; }
 }
+/* 모바일: 법적 링크를 2열 3행으로 고정해 폭에 따라 4+3/3+4로 흐트러지지 않게 한다.
+   하단 탭바 여백은 css/home-mobile-tabs.css의 body.m-tabs .page-wrap이 소유한다(여기서 중복 계산 금지). */
 @media (max-width: 520px) {
-  .guest-home-footer { padding-bottom: calc(24px + var(--mobile-tabbar-h, 0px)); }
-  .guest-footer-links { gap: 2px 12px; }
-  .guest-footer-links :is(a, button) { font-size: 12px; min-height: 36px; }
+  .guest-home-footer { padding: 16px 12px 24px; }
+  .guest-footer-links {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: center;
+    gap: 0 28px;
+  }
+  .guest-footer-links :is(a, button) { justify-content: flex-start; font-size: 12px; }
+  .guest-footer-links .site-footer-viewmode { grid-column: 1 / -1; justify-self: center; }
 }

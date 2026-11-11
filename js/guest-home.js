@@ -16,7 +16,7 @@
   if (global.NineGuestHome) return;
   var doc = global.document;
   var CATEGORY = '마켓 브리핑';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-footer-v1';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-footer-v2';
   var mounted = false;
 
   function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
