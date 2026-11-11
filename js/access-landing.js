@@ -28,20 +28,22 @@
     '.nl-photo{position:absolute;inset:0;background:url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-interlaken.jpg) center/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,20,38,.62) 0%,rgba(7,20,38,.18) 52%,rgba(7,20,38,0) 78%),linear-gradient(0deg,rgba(7,20,38,.5) 0%,rgba(7,20,38,0) 40%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
-    '.nl-logo,.nl-title{font-family:"Black Han Sans","Do Hyeon",var(--font-ui,sans-serif)}' +
-    '.nl-logo{font-size:26px;font-weight:400;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}' +
+    '.nl-logo,.nl-title{font-family:"Noto Serif KR",var(--font-serif,serif);font-weight:700}' +
+    '.nl-logo{color:#fff;text-decoration:none;font-size:26px;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}' +
     '.nl-nav{display:flex;align-items:center;gap:clamp(14px,2.4vw,34px);flex-wrap:wrap;justify-content:flex-end}' +
     '.nl-nav a,.nl-nav button{color:#fff;font:inherit;font-size:15px;font-weight:600;text-decoration:none;background:none;border:0;padding:6px 2px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.4);opacity:.92}' +
     '.nl-nav a:hover,.nl-nav button:hover{opacity:1;text-decoration:underline;text-underline-offset:6px}' +
     '.nl-nav .nl-login{padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}' +
-    '.nl-hero{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(48px,12vh,130px);max-width:min(640px,calc(100% - 40px))}' +
+    '.nl-hero{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(80px,16vh,160px);max-width:min(760px,calc(100% - 40px))}' +
     '.nl-badge{display:inline-block;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-bottom:18px}' +
-    '.nl-title{margin:0;font-size:clamp(40px,7vw,84px);line-height:1.12;font-weight:400;letter-spacing:-.01em;text-shadow:0 4px 30px rgba(0,0,0,.35)}' +
+    '.nl-title{margin:0;font-size:clamp(30px,5vw,64px);line-height:1.2;letter-spacing:-.01em;text-shadow:0 4px 30px rgba(0,0,0,.35)}' +
     '.nl-sub{margin:18px 0 28px;font-size:clamp(15px,1.6vw,18px);line-height:1.6;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 2px 14px rgba(0,0,0,.4);max-width:520px}' +
     '.nl-cta{display:inline-flex;align-items:center;gap:10px;font:inherit;font-size:16px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:14px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
     '.nl-cta:hover{background:#fff}' +
-    '.nl-card{position:absolute;right:clamp(20px,6vw,96px);bottom:clamp(48px,12vh,130px);width:min(360px,calc(100% - 40px));padding:22px;border-radius:22px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 24px 60px rgba(0,0,0,.35)}' +
-    '.nl-card[hidden]{display:none}' +
+    '.nl-loginfab{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(20px,4vh,40px);font:inherit;font-size:15px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:12px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
+    '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.55)}' +
+    '.nl-modal[hidden]{display:none}' +
+    '.nl-card{width:min(380px,100%);max-height:100%;overflow:auto;padding:24px;border-radius:22px;background:rgba(18,38,66,.78);border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 24px 60px rgba(0,0,0,.4)}' +
     '.nl-card h2{margin:0 0 4px;font-size:20px;font-weight:800}' +
     '.nl-card p{margin:0 0 16px;font-size:13px;line-height:1.5;color:rgba(255,255,255,.85)}' +
     '.nl-pv{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:13px 16px;border:0;border-radius:14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;text-align:left;text-decoration:none;box-sizing:border-box}' +
@@ -56,7 +58,7 @@
     '@keyframes nl-drift{from{transform:translateX(-40px)}to{transform:translateX(60px)}}' +
     '@media (prefers-reduced-motion:reduce){.nl-cloud{animation:none}}' +
     '@media (max-width:720px){.nl svg.nl-scene{left:-30%;width:150%}.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
-    '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(40px,9vh)}.nl-card{left:20px;right:20px;width:auto;bottom:max(24px,5vh)}}';
+    '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(76px,13vh)}.nl-loginfab{left:20px}}';
 
   // 마테호른(좌측 밝은 면·우측 그늘 면)과 인터라켄 호수·소나무를 단순화해 그린 장면.
   var SCENE =
@@ -117,22 +119,27 @@
     doc.documentElement.classList.remove('nine-landing-open');
   }
 
+  function openModal() {
+    var modal = root.querySelector('.nl-modal');
+    modal.hidden = false;
+    var first = modal.querySelector('a'); if (first) first.focus();
+  }
+
   function build(naverConfigured) {
     var menu = MENU.map(function (m) { return '<a href="' + esc(m[1]) + '" data-nl-go="1">' + esc(m[0]) + '</a>'; }).join('');
     root.innerHTML = SCENE + '<div class="nl-photo"></div><div class="nl-shade"></div>' +
-      '<div class="nl-top"><span class="nl-logo">ㄱ ㅖ조 ㅏ 심폐소생술</span><nav class="nl-nav" aria-label="공개 메뉴">' + menu +
-      '<button type="button" class="nl-login" data-nl-login="1">로그인</button></nav></div>' +
+      '<div class="nl-top"><a class="nl-logo" href="/category/마켓 브리핑" data-nl-go="1">ㄱ ㅖ조 ㅏ 심폐소생술</a><nav class="nl-nav" aria-label="공개 메뉴">' + menu + '</nav></div>' +
       '<div class="nl-hero"><span class="nl-badge">시장을 차분하게 읽는 곳</span>' +
       '<h1 class="nl-title">ㄱ ㅖ조 ㅏ 심폐소생술</h1>' +
-      '<p class="nl-sub">대화방, 캘린더, 마켓브리핑, 이야기 시리즈는 로그인 없이 볼 수 있어요. 시장지표는 로그인 후에 열립니다.</p>' +
-      '<button type="button" class="nl-cta" data-nl-login="1">로그인 <span aria-hidden="true">→</span></button></div>' +
-      '<section class="nl-card" role="dialog" aria-modal="true" aria-label="로그인" hidden>' +
-      '<h2>로그인</h2><p>사용할 계정을 선택하세요.</p>' +
-      '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기</span></a>' +
-      (naverConfigured ? '<a class="nl-pv nl-naver" href="' + API + '/auth/naver/start?return_to=' + ret() + '"><i>N</i><span>네이버로 계속하기</span></a>' : '') +
+      '<p class="nl-sub">대화방, 캘린더, 마켓브리핑, 이야기 시리즈는 로그인 없이 볼 수 있어요. 시장지표는 로그인 후에 열립니다.</p></div>' +
+      '<button type="button" class="nl-loginfab" data-nl-login="1">로그인</button>' +
+      '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-label="로그인">' +
+      '<h2>로그인</h2><p>사용할 계정을 선택하세요. 승인된 계정으로 로그인하면 기존 대시보드가 열리고, 그 외 계정은 공개 화면을 이용합니다.</p>' +
+      '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
+      (naverConfigured ? '<a class="nl-pv nl-naver" href="' + API + '/auth/naver/start?return_to=' + ret() + '"><i>N</i><span>네이버로 계속하기<small>네이버 계정으로 로그인</small></span></a>' : '') +
       '<a class="nl-pv nl-kakao" href="' + esc(kakaoUrl()) + '"><i>K</i><span>카카오로 계속하기<small>블로그 관리자(Tistory) 로그인</small></span></a>' +
       '<p class="nl-note">카카오는 블로그 관리자 로그인입니다. 서비스 기능은 관리자 승인 계정에 한해 제공됩니다.</p>' +
-      '<button type="button" class="nl-back" data-nl-back="1">← 돌아가기</button></section>';
+      '<button type="button" class="nl-back" data-nl-back="1">닫기</button></section></div>';
     root.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null;
       if (!t) return;
@@ -145,11 +152,9 @@
         return; // 다른 화면이면 링크 이동
       }
       if (t.closest('[data-nl-login]')) {
-        var card = root.querySelector('.nl-card'), hero = root.querySelector('.nl-hero');
-        card.hidden = false; hero.style.display = 'none';
-        var first = card.querySelector('a'); if (first) first.focus();
-      } else if (t.closest('[data-nl-back]')) {
-        root.querySelector('.nl-card').hidden = true; root.querySelector('.nl-hero').style.display = '';
+        openModal();
+      } else if (t.closest('[data-nl-back]') || t.classList.contains('nl-modal')) {
+        root.querySelector('.nl-modal').hidden = true;
       }
     });
   }
@@ -161,7 +166,7 @@
     }
     if (!doc.getElementById('nine-landing-font')) {
       var lk = doc.createElement('link'); lk.id = 'nine-landing-font'; lk.rel = 'stylesheet';
-      lk.href = 'https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap'; (doc.head || doc.documentElement).appendChild(lk);
+      lk.href = 'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200..900&display=swap'; (doc.head || doc.documentElement).appendChild(lk);
     }
     root = doc.createElement('div');
     root.className = 'nl';
@@ -173,9 +178,7 @@
 
   function showLogin(naverConfigured) {
     if (!root) show(naverConfigured);
-    var card = root.querySelector('.nl-card'), hero = root.querySelector('.nl-hero');
-    card.hidden = false; hero.style.display = 'none';
-    var first = card.querySelector('a'); if (first) first.focus();
+    openModal();
   }
 
   global.NineLanding = {
