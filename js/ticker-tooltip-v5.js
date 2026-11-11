@@ -488,9 +488,18 @@
   // 본문 종목 배지는 글 내용 "장식"이라 첫 화면 필수가 아니므로 load 이후 유휴 시간으로
   // 미룬다. 최종 결과는 같고 실행 순서만 바뀐다(배지 표시는 체감상 그대로 - 어차피
   // krx_map + GAS 시세를 기다려야 나온다).
+  /* 화면 접근 정책(2026-11-11): 본문 종목 배지는 종목 시세(/domestic-quotes, 관리자 전용)를 쓰므로 서버가 확인한
+     관리자에게만 시작한다. 비회원·일반 회원 화면에서는 시세 요청 자체를 보내지 않는다(기존 NineAccess.whenAdmin 재사용).
+     게이트가 아직 로드 중이면 로드를 기다리고, 게이트가 없는 구형 스킨에서만 기존처럼 바로 시작한다. */
+  function initForAdmin() {
+    if (global.NineAccess) { global.NineAccess.whenAdmin(init); return; }
+    var tag = document.getElementById('nine-access-gate-js');
+    if (!tag) { init(); return; }
+    tag.addEventListener('load', function () { if (global.NineAccess) global.NineAccess.whenAdmin(init); }, { once: true });
+  }
   function bootWhenIdle() {
-    if (typeof global.requestIdleCallback === 'function') global.requestIdleCallback(function () { init(); }, { timeout: 2000 });
-    else global.setTimeout(init, 200);
+    if (typeof global.requestIdleCallback === 'function') global.requestIdleCallback(function () { initForAdmin(); }, { timeout: 2000 });
+    else global.setTimeout(initForAdmin, 200);
   }
   if (document.readyState === 'complete') bootWhenIdle();
   else global.addEventListener('load', bootWhenIdle, { once: true });
