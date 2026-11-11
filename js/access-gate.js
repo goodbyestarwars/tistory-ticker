@@ -49,7 +49,7 @@
       return href === '#access-settings' ? '@admin' : 'tools';
     }
     if (/^https?:\/\/goodbyestar\.cloud\/kis-tool/.test(href)) return 'kis';
-    if (/^https?:\/\/goodbyestarwars\.github\.io\/tistory-ticker\/learn\//.test(href)) return ''; // 이야기 시리즈: 공개
+    if (href === '#story-series') return ''; // 이야기 시리즈(푸터 카드 영역): 공개
     // 같은 사이트의 상대 경로는 직접 분해한다(origin이 'null'인 문서·파싱 실패에도 같은 판정).
     if (href.charAt(0) === '/') {
       var hashAt = href.indexOf('#');
@@ -78,11 +78,32 @@
   var readyResolve;
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
 
+  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'indicators', 'home', 'stocks', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
+  function legacyPolicy() {
+    return global.fetch(API + '/auth/google/me', { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('me ' + r.status); return r.json(); })
+      .then(function (b) {
+        var me = (b && b.data) || {};
+        var screens = {};
+        SCREEN_KEYS.forEach(function (k) {
+          var open = PUBLIC.indexOf(k) >= 0 || (k === 'indicators' && !!me.authenticated) || !!me.isAdmin;
+          screens[k] = { label: k, public: PUBLIC.indexOf(k) >= 0, enabled: true, allowed: open };
+        });
+        return { data: { authenticated: !!me.authenticated, isAdmin: !!me.isAdmin, naverConfigured: !!me.naverConfigured, screens: screens, revision: 0, legacy: true } };
+      });
+  }
+
   function fetchPolicy() {
     var controller = typeof global.AbortController === 'function' ? new global.AbortController() : null;
     var timer = setTimeout(function () { if (controller) controller.abort(); }, 6000);
     return global.fetch(POLICY_URL, { credentials: 'include', cache: 'no-store', signal: controller ? controller.signal : undefined })
-      .then(function (r) { if (!r.ok) throw new Error('policy ' + r.status); return r.json(); })
+      .then(function (r) {
+        // 서버에 /access-policy가 아직 배포되지 않은 동안(404)만 기존 로그인 상태(/auth/google/me)로 판정한다.
+        // 이때는 서버 제한도 아직 없으므로 화면 껍데기만 로그인 상태를 따른다. 그 외 오류는 fail-closed.
+        if (r.status === 404) return legacyPolicy();
+        if (!r.ok) throw new Error('policy ' + r.status);
+        return r.json();
+      })
       .then(function (body) {
         var data = body && body.data;
         if (!data || !data.screens) throw new Error('policy shape');

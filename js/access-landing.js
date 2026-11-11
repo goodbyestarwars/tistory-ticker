@@ -18,7 +18,7 @@
     ['대화방', '/guestbook'],
     ['캘린더', '/page/stock-calendar'],
     ['마켓브리핑', '/category/마켓 브리핑'],
-    ['이야기 시리즈', 'https://goodbyestarwars.github.io/tistory-ticker/learn/index.html']
+    ['이야기 시리즈', '/guestbook#story-series']
   ];
 
   var CSS =

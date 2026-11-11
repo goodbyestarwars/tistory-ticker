@@ -75,16 +75,22 @@
     NAV_ALL.push({href:'https://goodbyestar.cloud/kis-tool/', label:'트레이딩 도구', end:true});
   }
   // 관리자 화면 ON/OFF 설정(서버가 확인한 Google 관리자 세션일 때만 보인다 - NineAccess '@admin').
-  NAV_ALL.push({ href: 'https://goodbyestarwars.github.io/tistory-ticker/learn/index.html', label: '이야기 시리즈' });
+  NAV_ALL.push({ href: '#story-series', label: '이야기 시리즈' });
   NAV_ALL.push({ href: '#access-settings', label: '화면 설정', end: true });
 
   /* 2026-11-11 화면 접근 정책: 보이는 메뉴는 NineAccess(서버 정책)로 거른다. 판정 전·장애 시에는 공개 4개만.
      NineAccess가 아직 로드되지 않았을 때도 같은 4개 주소만 허용한다(fail-closed). */
-  var PUBLIC_HREFS = ['/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', 'https://goodbyestarwars.github.io/tistory-ticker/learn/index.html'];
+  var PUBLIC_HREFS = ['/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', '#story-series'];
   function menuAllows(href) {
     if (window.NineAccess) return window.NineAccess.allowsHref(href);
     return PUBLIC_HREFS.indexOf(href) >= 0;
   }
+  // 이야기 시리즈(주식·채권 이야기 등)는 모든 페이지 푸터의 .site-footer-learn 카드 영역이다. 그 자리로 이동한다.
+  function scrollToStories() {
+    var t = document.querySelector('.site-footer-learn');
+    if (t && t.scrollIntoView) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (location.hash === '#story-series') setTimeout(scrollToStories, 1200);
   var NAV_ITEMS = [];
   function refreshNav() {
     NAV_ITEMS = [];
@@ -333,6 +339,8 @@
       if (group && !group.contains(event.relatedTarget)) closeDropdowns(mount);
     });
     mount.addEventListener('click', function (event) {
+      var storyLink = event.target.closest ? event.target.closest('a[href="#story-series"]') : null;
+      if (storyLink) { event.preventDefault(); scrollToStories(); closeDropdowns(mount); return; }
       var settingsLink = event.target.closest ? event.target.closest('a[href="#access-settings"]') : null;
       if (settingsLink) { event.preventDefault(); openAccessSettings(); return; }
       var toolLink = event.target.closest ? event.target.closest('[data-invest-tool]') : null;
