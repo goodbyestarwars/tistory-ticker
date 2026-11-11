@@ -29,11 +29,10 @@
     // (차트검색이 왜 '종목'이 아닌지 설명하기 어렵다) 하위 2개짜리가 1차 한 칸을
     // 쓰고 있었다. 1차 메뉴는 모바일에서 가로 스크롤이라 칸 수가 곧 사용성이다.
     //
-    // 종목 작업 화면은 홈 이동과 분리하고 기존 종목 검색 주소를 재사용한다.
+    // 종목 상세는 공통 검색에서 연다. 별도 작업 화면 메뉴를 추가하지 않는다.
     {
       label: '종목',
       children: [
-        { href: '/page/stock-search', label: '종목 작업 화면' },
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/page/foreign-flow', label: '종목분석' },
         { href: '/page/pattern-scan', label: '검색기' },
