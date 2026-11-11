@@ -16,7 +16,7 @@
   if (global.NineGuestHome) return;
   var doc = global.document;
   var CATEGORY = '마켓 브리핑';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-card-fix2';
   var mounted = false;
 
   function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -52,7 +52,7 @@
     // 카드 어디를 눌러도 글로 이동(기존 홈 카드와 같은 동작). 안쪽 링크는 그대로 둔다.
     track.addEventListener('click', function (e) {
       if (e.target.closest && e.target.closest('a')) return;
-      var card = e.target.closest ? e.target.closest('.post-card') : null;
+      var card = e.target.closest ? e.target.closest('.guest-home-briefing-card') : null;
       var url = card && card.getAttribute('data-url');
       if (url) global.location.assign(url);
     });
@@ -66,6 +66,9 @@
       return;
     }
     cards.slice(0, 8).forEach(function (card, index) {
+      // The site-wide .post-card receives transparent background !important.
+      // Detach that generic class here only; original content and links remain.
+      card.classList.remove('post-card', 'feed-headline-item', 'feed-featured', 'feed-cards-item', 'feed-duo-item', 'feed-briefing-cards-item');
       card.classList.add('guest-home-briefing-card');
       card.setAttribute('data-briefing-number', String(index + 1).padStart(2, '0'));
       grid.appendChild(card);
