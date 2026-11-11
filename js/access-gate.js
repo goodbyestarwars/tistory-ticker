@@ -259,27 +259,37 @@
     }, true);
   }
 
-  /* 헤더 [로그아웃]: 사이트 회원 세션(Google/네이버 공용 쿠키)과 비회원 입장 표시를 함께 지우고 티스토리 로그아웃 뒤
-     홈으로 돌아와 로그인 창(랜딩)을 다시 연다. 비회원 화면으로 남지 않는다. 기존 버튼의 티스토리 로그아웃 주소는 그대로 쓴다. */
+  /* 헤더 [로그아웃]: 전부 로그아웃한 뒤 로그인 창(랜딩)으로 돌아간다. 비회원 화면으로 남지 않는다.
+     1) 사이트 회원 세션(Google/네이버 공용 쿠키): 서버 로그아웃 주소로 최상위 이동한다. 다른 사이트 fetch 응답의
+        쿠키 삭제는 브라우저가 받아들이지 않아(SameSite 미지정 Set-Cookie) 세션이 남는다.
+     2) 돌아오면(LOGOUT_KEY) 기존 버튼과 같은 티스토리 로그아웃 주소로 이어 간다. 3) 홈에서 랜딩이 열린다. */
+  var LOGOUT_KEY = 'nine_logout_step';
+  var TISTORY_LOGOUT = 'https://www.tistory.com/auth/logout?redirectUrl=' + encodeURIComponent(global.location.origin + '/');
+  function clearEntry() {
+    setGuest(false);
+    setHint(false);
+    try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (err) { /* 차단 */ }
+  }
+  var logoutStep = null;
+  try { logoutStep = global.sessionStorage.getItem(LOGOUT_KEY); if (logoutStep) global.sessionStorage.removeItem(LOGOUT_KEY); } catch (err) { /* 차단 */ }
+  if (logoutStep === 'tistory' && global.self === global.top) {
+    clearEntry();
+    global.location.replace(TISTORY_LOGOUT);
+    return;
+  }
   if (global.self === global.top) {
     doc.addEventListener('click', function (e) {
       var btn = e.target && e.target.closest ? e.target.closest('.nav-logout-btn') : null;
       if (!btn) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      setGuest(false);
-      setHint(false);
-      try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (err) { /* 차단 */ }
-      var done = false;
-      function leave() {
-        if (done) return;
-        done = true;
-        global.location.href = 'https://www.tistory.com/auth/logout?redirectUrl=' + encodeURIComponent(global.location.origin + '/');
-      }
-      global.setTimeout(leave, 2500);
+      clearEntry();
+      var next = TISTORY_LOGOUT;
       try {
-        global.fetch(API + '/auth/google/logout', { credentials: 'include', mode: 'no-cors', cache: 'no-store' }).then(leave, leave);
-      } catch (err) { leave(); }
+        global.sessionStorage.setItem(LOGOUT_KEY, 'tistory');
+        next = API + '/auth/google/logout?return_to=' + encodeURIComponent(global.location.origin + '/');
+      } catch (err) { /* 저장소 차단: 티스토리 로그아웃만 */ }
+      global.location.href = next;
     }, true);
   }
 

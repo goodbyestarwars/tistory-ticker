@@ -18,7 +18,7 @@
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,Pretendard,system-ui,sans-serif);background:#0f2a4a;overflow:hidden}' +
     '.nl svg.nl-scene{position:absolute;inset:0;width:100%;height:100%}' +
-    '.nl-photo{position:absolute;inset:0;background:url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-interlaken.jpg) center/cover no-repeat}' +
+    '.nl-photo{position:absolute;inset:0;background:url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-murren.jpg) center/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,20,38,.62) 0%,rgba(7,20,38,.18) 52%,rgba(7,20,38,0) 78%),linear-gradient(0deg,rgba(7,20,38,.5) 0%,rgba(7,20,38,0) 40%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
     '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-weight:700}' +
@@ -169,7 +169,7 @@
       '<p class="nl-sub">로그인하면 전체 서비스를, 비회원으로 입장하면 마켓브리핑·이야기 시리즈·캘린더·대화방을 둘러볼 수 있어요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
-      '<a class="nl-credit" href="https://commons.wikimedia.org/wiki/File:View_of_Interlaken_and_Lake_Brienz_from_Harder_Kulm_(Ank_Kumar)_06.jpg" target="_blank" rel="noopener">사진: Ank Kumar · CC BY-SA 4.0 · Wikimedia Commons</a>' +
+      '<a class="nl-credit" href="https://commons.wikimedia.org/wiki/File:View_to_Lauterbrunnen_valley_at_M%C3%BCrren,_Bern,_Switzerland,_2012_August.jpg" target="_blank" rel="noopener">사진: Ximonic (Simo Räsänen) · CC BY-SA 4.0 · Wikimedia Commons</a>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>사용할 계정을 선택하세요. 승인된 계정으로 로그인하면 기존 대시보드가 열리고, 그 외 계정은 공개 화면을 이용합니다.</p>' +

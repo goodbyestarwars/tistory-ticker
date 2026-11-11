@@ -81,6 +81,10 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   assert(!b.win.NineAccess.isGuest(), 'logout clears guest entry'); assert(!('nine_landing_seen' in b.store), 'logout re-arms landing');
   assert.deepStrictEqual(b.calls.replace, [], 'logout stays on home under the landing');
   assert(b.calls.scripts.some((u) => /access-landing\.js/.test(u)), 'logout shows login landing');
+  // 헤더 로그아웃 2단계: 사이트 세션 로그아웃에서 돌아오면 티스토리 로그아웃으로 이어 가고 입장 표시를 지운다
+  b = boot('/', '', policy(true), { nine_logout_step: 'tistory', nine_guest: '1' }, { nine_authed: '1' }); await wait();
+  assert.strictEqual(b.calls.replace.length, 1); assert(/^https:\/\/www\.tistory\.com\/auth\/logout\?redirectUrl=/.test(b.calls.replace[0]));
+  assert(!('nine_logout_step' in b.store)); assert(!('nine_guest' in b.store)); assert.strictEqual(b.calls.fetches.length, 0);
   b = boot('/page/foreign-flow', '', policy(false), { nine_guest: '1' }); await wait();
   assert.deepStrictEqual(b.calls.replace, ['/guestbook']);
   // 주요 뉴스는 공개
