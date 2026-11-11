@@ -75,11 +75,12 @@
     NAV_ALL.push({href:'https://goodbyestar.cloud/kis-tool/', label:'트레이딩 도구', end:true});
   }
   // 관리자 화면 ON/OFF 설정(서버가 확인한 Google 관리자 세션일 때만 보인다 - NineAccess '@admin').
+  NAV_ALL.push({ href: 'https://goodbyestarwars.github.io/tistory-ticker/learn/index.html', label: '이야기 시리즈' });
   NAV_ALL.push({ href: '#access-settings', label: '화면 설정', end: true });
 
   /* 2026-11-11 화면 접근 정책: 보이는 메뉴는 NineAccess(서버 정책)로 거른다. 판정 전·장애 시에는 공개 4개만.
      NineAccess가 아직 로드되지 않았을 때도 같은 4개 주소만 허용한다(fail-closed). */
-  var PUBLIC_HREFS = ['/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', '/pages/kospi-futures'];
+  var PUBLIC_HREFS = ['/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', 'https://goodbyestarwars.github.io/tistory-ticker/learn/index.html'];
   function menuAllows(href) {
     if (window.NineAccess) return window.NineAccess.allowsHref(href);
     return PUBLIC_HREFS.indexOf(href) >= 0;

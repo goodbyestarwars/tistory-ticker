@@ -3497,7 +3497,8 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 
 /* Give the deferred chat script time to render before showing the native fallback. */
 @media (scripting: enabled) {
-  #tt-body-guestbook [data-market-discussion]:not(.discussion-classic) {
+  #tt-body-guestbook [data-market-discussion]:not(.discussion-classic),
+  #tt-body-guestbook [data-market-discussion]:not(.discussion-classic) * { /* textarea 등 자체 visibility:visible 규칙도 함께 숨긴다 */
     visibility: hidden;
     animation: guestbook-native-fallback 0s 4s forwards;
   }

@@ -18,23 +18,25 @@
     ['대화방', '/guestbook'],
     ['캘린더', '/page/stock-calendar'],
     ['마켓브리핑', '/category/마켓 브리핑'],
-    ['시장지표', '/pages/kospi-futures']
+    ['이야기 시리즈', 'https://goodbyestarwars.github.io/tistory-ticker/learn/index.html']
   ];
 
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,Pretendard,system-ui,sans-serif);background:#0f2a4a;overflow:hidden}' +
     '.nl svg.nl-scene{position:absolute;inset:0;width:100%;height:100%}' +
+    '.nl-photo{position:absolute;inset:0;background:url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-interlaken.jpg) center/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,20,38,.62) 0%,rgba(7,20,38,.18) 52%,rgba(7,20,38,0) 78%),linear-gradient(0deg,rgba(7,20,38,.5) 0%,rgba(7,20,38,0) 40%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
-    '.nl-logo{font-size:26px;font-weight:800;letter-spacing:-.02em;text-shadow:0 2px 14px rgba(0,0,0,.35)}' +
+    '.nl-logo,.nl-title{font-family:"Black Han Sans","Do Hyeon",var(--font-ui,sans-serif)}' +
+    '.nl-logo{font-size:26px;font-weight:400;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}' +
     '.nl-nav{display:flex;align-items:center;gap:clamp(14px,2.4vw,34px);flex-wrap:wrap;justify-content:flex-end}' +
     '.nl-nav a,.nl-nav button{color:#fff;font:inherit;font-size:15px;font-weight:600;text-decoration:none;background:none;border:0;padding:6px 2px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.4);opacity:.92}' +
     '.nl-nav a:hover,.nl-nav button:hover{opacity:1;text-decoration:underline;text-underline-offset:6px}' +
     '.nl-nav .nl-login{padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}' +
     '.nl-hero{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(48px,12vh,130px);max-width:min(640px,calc(100% - 40px))}' +
     '.nl-badge{display:inline-block;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-bottom:18px}' +
-    '.nl-title{margin:0;font-size:clamp(40px,7vw,84px);line-height:1.04;font-weight:800;letter-spacing:-.035em;text-shadow:0 4px 30px rgba(0,0,0,.35)}' +
+    '.nl-title{margin:0;font-size:clamp(40px,7vw,84px);line-height:1.12;font-weight:400;letter-spacing:-.01em;text-shadow:0 4px 30px rgba(0,0,0,.35)}' +
     '.nl-sub{margin:18px 0 28px;font-size:clamp(15px,1.6vw,18px);line-height:1.6;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 2px 14px rgba(0,0,0,.4);max-width:520px}' +
     '.nl-cta{display:inline-flex;align-items:center;gap:10px;font:inherit;font-size:16px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:14px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
     '.nl-cta:hover{background:#fff}' +
@@ -117,12 +119,12 @@
 
   function build(naverConfigured) {
     var menu = MENU.map(function (m) { return '<a href="' + esc(m[1]) + '" data-nl-go="1">' + esc(m[0]) + '</a>'; }).join('');
-    root.innerHTML = SCENE + '<div class="nl-shade"></div>' +
-      '<div class="nl-top"><span class="nl-logo">9Pay</span><nav class="nl-nav" aria-label="공개 메뉴">' + menu +
+    root.innerHTML = SCENE + '<div class="nl-photo"></div><div class="nl-shade"></div>' +
+      '<div class="nl-top"><span class="nl-logo">ㄱ ㅖ조 ㅏ 심폐소생술</span><nav class="nl-nav" aria-label="공개 메뉴">' + menu +
       '<button type="button" class="nl-login" data-nl-login="1">로그인</button></nav></div>' +
       '<div class="nl-hero"><span class="nl-badge">시장을 차분하게 읽는 곳</span>' +
-      '<h1 class="nl-title">9Pay</h1>' +
-      '<p class="nl-sub">대화방, 캘린더, 마켓브리핑, 시장지표는 로그인 없이 바로 볼 수 있어요.</p>' +
+      '<h1 class="nl-title">ㄱ ㅖ조 ㅏ 심폐소생술</h1>' +
+      '<p class="nl-sub">대화방, 캘린더, 마켓브리핑, 이야기 시리즈는 로그인 없이 볼 수 있어요. 시장지표는 로그인 후에 열립니다.</p>' +
       '<button type="button" class="nl-cta" data-nl-login="1">로그인 <span aria-hidden="true">→</span></button></div>' +
       '<section class="nl-card" role="dialog" aria-modal="true" aria-label="로그인" hidden>' +
       '<h2>로그인</h2><p>사용할 계정을 선택하세요.</p>' +
@@ -156,6 +158,10 @@
     if (root) return;
     if (!doc.getElementById('nine-landing-css')) {
       var st = doc.createElement('style'); st.id = 'nine-landing-css'; st.textContent = CSS; (doc.head || doc.documentElement).appendChild(st);
+    }
+    if (!doc.getElementById('nine-landing-font')) {
+      var lk = doc.createElement('link'); lk.id = 'nine-landing-font'; lk.rel = 'stylesheet';
+      lk.href = 'https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap'; (doc.head || doc.documentElement).appendChild(lk);
     }
     root = doc.createElement('div');
     root.className = 'nl';

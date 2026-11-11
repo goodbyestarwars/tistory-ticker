@@ -12,6 +12,12 @@
 
 **2026-11-10 보조지표 목록 너비 조절**
 
+## 2026-11-11 시장지표 로그인 후 전환·랜딩 문구/폰트
+
+- 목적: 시장지표는 로그인 후, 비로그인에는 이야기 시리즈. 랜딩 브랜드 문구·폰트 변경, 네이버 버튼 표시 보완.
+- 변경: access_policy.py(level public/member/admin), access-gate/skin-menu/home-mobile-tabs/access-landing, 테스트·문서.
+- 검증: test_access_policy.py, test_access_gate/menu/landing/kis_menu/early_bootstrap 통과. 배포·운영 확인은 병합 후.
+
 ## 2026-11-10 시장지표 Groq 요약 제거
 
 증시자금 참고의견 마크업·렌더링·GAS 호출 제거. Node 구문 검사. master → Pages.

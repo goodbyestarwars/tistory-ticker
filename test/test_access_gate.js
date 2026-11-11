@@ -25,7 +25,7 @@ function boot(path, search, policyFn, session) {
 const policy = (admin, off = []) => () => Promise.resolve({ ok: true, json: () => Promise.resolve({ data: {
   isAdmin: admin, authenticated: admin,
   screens: Object.fromEntries(['guestbook','calendar','briefing','indicators','home','stocks','tools','my','market-temp','autotrader','kis'].map(k => {
-    const pub = ['guestbook','calendar','briefing','indicators'].includes(k); const en = !off.includes(k);
+    const pub = ['guestbook','calendar','briefing'].includes(k); const en = !off.includes(k);
     return [k, { public: pub, enabled: en, allowed: en && (pub || admin) }]; })) } }) });
 const fail = () => Promise.reject(new TypeError('network'));
 const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
@@ -58,8 +58,11 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   // 인증 서버 장애 → 보호 화면 차단, 공개 화면은 유지
   b = boot('/page/foreign-flow', '', fail); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
   assert.deepStrictEqual(b.calls.replace, ['/guestbook']); assert(!ran); assert(b.win.NineAccess.failed());
-  b = boot('/pages/kospi-futures', '', fail); ran = false; b.win.NineAccess.run(() => { ran = true; }); assert(ran); await wait();
+  b = boot('/page/stock-calendar', '', fail); ran = false; b.win.NineAccess.run(() => { ran = true; }); assert(ran); await wait();
   assert.deepStrictEqual(b.calls.replace, []);
+  // 시장지표는 로그인 후: 비로그인·장애면 /guestbook 으로
+  b = boot('/pages/kospi-futures', '', policy(false)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
+  assert.deepStrictEqual(b.calls.replace, ['/guestbook']); assert(!ran);
 
   // 공개 화면은 판정을 기다리지 않고 시작, /guestbook은 반복 이동 없음
   b = boot('/guestbook', '', policy(false)); ran = false; b.win.NineAccess.run(() => { ran = true; }); assert(ran); await wait();

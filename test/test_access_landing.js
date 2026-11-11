@@ -12,7 +12,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.setContent('<html><head></head><body><a class="nav-manage-btn" href="https://www.tistory.com/manage">m</a></body></html>');
     await page.addScriptTag({content: fs.readFileSync('js/access-landing.js', 'utf8')});
     await page.evaluate(() => window.NineLanding.show(true));
-    assert.deepEqual((await page.locator('.nl-nav a').allInnerTexts()).map(t => t.trim()), ['대화방', '캘린더', '마켓브리핑', '시장지표']);
+    assert.deepEqual((await page.locator('.nl-nav a').allInnerTexts()).map(t => t.trim()), ['대화방', '캘린더', '마켓브리핑', '이야기 시리즈']);
     assert.equal(await page.locator('.nl-card').isHidden(), true);
     await page.click('.nl-cta');
     const hrefs = await page.locator('.nl-card a').evaluateAll(a => a.map(x => x.getAttribute('href')));

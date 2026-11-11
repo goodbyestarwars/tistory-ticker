@@ -5,7 +5,7 @@
  * 세션 쿠키로 판정)다. 이 파일은 그 결과를 한 번만 조회해 공유하고(NineAccess.ready), 메뉴·직접 URL·
  * 전역 도구(검색/관심종목/메모)가 같은 판정을 쓰게 한다. 브라우저 값(티스토리 ROLE 등)은 판정에 쓰지 않는다.
  *
- * - 조회 실패/장애: 비로그인(공개 4개 화면만)으로 취급한다 - 보호 화면을 임시로 열지 않는다.
+ * - 조회 실패/장애: 비로그인(공개 3개 화면만)으로 취급한다 - 보호 화면을 임시로 열지 않는다.
  * - 데이터 보호는 서버(REST 401/403, WebSocket 거절)가 한다. 이 파일은 화면 껍데기 정책이다.
  * - 롤백: 이 파일 로드를 끊으면 기존 화면이 그대로 나온다. 단 서버 API 제한은 유지된다(공개로 되돌리지 않는다).
  */
@@ -18,7 +18,7 @@
   var FALLBACK = '/guestbook';
   var FROM_KEY = 'nine_access_from';
   var doc = global.document;
-  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'indicators'];
+  var PUBLIC = ['guestbook', 'calendar', 'briefing']; // 시장지표(indicators)는 로그인 후(서버 level=member)
 
   /* ───── 경로 → 화면 키. 알 수 없는 경로(일반 글·기타 페이지)는 '' = 정책 대상 아님 ───── */
   function norm(path) {
@@ -49,6 +49,7 @@
       return href === '#access-settings' ? '@admin' : 'tools';
     }
     if (/^https?:\/\/goodbyestar\.cloud\/kis-tool/.test(href)) return 'kis';
+    if (/^https?:\/\/goodbyestarwars\.github\.io\/tistory-ticker\/learn\//.test(href)) return ''; // 이야기 시리즈: 공개
     // 같은 사이트의 상대 경로는 직접 분해한다(origin이 'null'인 문서·파싱 실패에도 같은 판정).
     if (href.charAt(0) === '/') {
       var hashAt = href.indexOf('#');
@@ -175,13 +176,21 @@
     withLanding(function (L) { if (!L.seen() && !(current && current.authenticated)) L.show(false); });
   }
 
+  /* 네이버 버튼 표시 여부: 정책 응답에 없으면(서버 배포 전) 기존 /auth/google/me 로 확인한다. */
+  function probeNaver(L) {
+    global.fetch(API + '/auth/google/me', { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (b) { var d = (b && b.data) || b || {}; if (d.naverConfigured) L.settle({ authenticated: false, naverConfigured: true }); })
+      .catch(function () { /* 버튼 없이 유지 */ });
+  }
+
   fetchPolicy().then(function (data) { current = data; failed = false; }, function () { current = null; failed = true; })
     .then(function () {
       applyClasses();
       setHint(!!(current && current.authenticated));
       if (landingApplies) {
         if (current && current.authenticated) { if (global.NineLanding) global.NineLanding.close(); }
-        else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured)); });
+        else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured)); if (!(current && current.naverConfigured)) probeNaver(L); });
       }
       if (!allowsScreen(startScreen)) { redirectFallback(); return; }
       // 로그인 후 원래 가려던 화면으로 복귀(한 번만). 대화방에서 시작한 경우에만.
