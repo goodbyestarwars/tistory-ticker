@@ -1,6 +1,6 @@
 """9Pay 화면 접근 정책(2026-11-11).
 
-- 비로그인·일반 회원: 대화방·캘린더·마켓브리핑·시장지표 4개 화면만.
+- 비로그인(비회원)·일반 회원: 대화방·캘린더·마켓브리핑·주요 뉴스 + 비회원 전용 홈(클라이언트 화면). 로그인한 일반 회원은 시장지표를 더한다.
 - 관리자(Google 관리자 세션): 기존 9Pay 전체. 일반 회원에게 시세/분석 API를 인증만으로 열지 않는다.
 - 관리자가 화면별 ON/OFF를 서버에 저장한다. 공개 범위는 PUBLIC_SCREENS 고정 집합이며
   ON/OFF로 넓힐 수 없다(증권사 시세 이용허가는 별개의 결정이다).
@@ -21,12 +21,13 @@ SCREENS = {
     'guestbook': ('대화방', 'public'),
     'calendar': ('캘린더', 'public'),
     'briefing': ('마켓브리핑', 'public'),
+    'news': ('주요 뉴스', 'public'),
     'indicators': ('시장지표', 'member'),
     'home': ('홈 대시보드', 'admin'),
     'stocks': ('종목(주요종목·분석·검색기·전략검색·종목검색)', 'admin'),
     'tools': ('투자도구·독립 차트', 'admin'),
     'my': ('MY·관심종목·메모', 'admin'),
-    'market-temp': ('증시온도·주요 뉴스', 'admin'),
+    'market-temp': ('증시온도', 'admin'),
     'autotrader': ('자동매매', 'admin'),
     'kis': ('KIS Trading Tool', 'admin'),
 }

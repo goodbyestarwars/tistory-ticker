@@ -36,9 +36,9 @@ class PolicyTests(unittest.TestCase):
     def test_anonymous_three_member_four_screens(self):
         for admin in (False,):
             allowed = {k for k, v in ap.view(False, admin)['screens'].items() if v['allowed']}
-            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing'})  # 비로그인: 시장지표 없음
+            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing', 'news'})  # 비로그인: 시장지표 없음
             member = {k for k, v in ap.view(True, admin)['screens'].items() if v['allowed']}
-            self.assertEqual(member, {'guestbook', 'calendar', 'briefing', 'indicators'})  # 로그인 회원: 시장지표 추가
+            self.assertEqual(member, {'guestbook', 'calendar', 'briefing', 'news', 'indicators'})  # 로그인 회원: 시장지표 추가
         allowed = {k for k, v in ap.view(True, True)['screens'].items() if v['allowed']}
         self.assertEqual(allowed, set(ap.SCREENS))
 

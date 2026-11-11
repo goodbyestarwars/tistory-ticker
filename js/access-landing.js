@@ -14,13 +14,6 @@
   var API = 'https://goodbyestar.cloud';
   var root = null;
 
-  var MENU = [
-    ['대화방', '/guestbook'],
-    ['캘린더', '/page/stock-calendar'],
-    ['마켓브리핑', '/category/마켓 브리핑'],
-    ['이야기 시리즈', '/guestbook#story-series']
-  ];
-
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,Pretendard,system-ui,sans-serif);background:#0f2a4a;overflow:hidden}' +
@@ -40,15 +33,22 @@
     '.nl-sub{margin:18px 0 28px;font-size:clamp(15px,1.6vw,18px);line-height:1.6;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 2px 14px rgba(0,0,0,.4);max-width:520px}' +
     '.nl-cta{display:inline-flex;align-items:center;gap:10px;font:inherit;font-size:16px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:14px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
     '.nl-cta:hover{background:#fff}' +
-    '.nl-loginfab{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(20px,4vh,40px);font:inherit;font-size:15px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:0;padding:12px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
+    '.nl-actions{position:absolute;left:clamp(20px,5vw,80px);bottom:clamp(28px,6vh,72px);display:flex;gap:14px;flex-wrap:wrap}' +
+    '.nl-btn{box-sizing:border-box;min-width:200px;max-width:240px;height:60px;padding:0 28px;border-radius:0;font:inherit;font-size:17px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:1 1 200px}' +
+    '.nl-btn.primary{background:#fff;color:#16324f;border:2px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
+    '.nl-btn.primary:hover{background:#eaf1fb}' +
+    '.nl-btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:2px solid rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}' +
+    '.nl-btn.ghost:hover{background:rgba(255,255,255,.26)}' +
+    '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}' +
     '.nl-credit{position:absolute;right:clamp(12px,3vw,40px);bottom:10px;font-size:11px;color:rgba(255,255,255,.7);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
     '.nl-credit:hover{color:#fff;text-decoration:underline}' +
-    '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.55)}' +
+    '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
     '.nl-modal[hidden]{display:none}' +
-    '.nl-card{width:min(380px,100%);max-height:100%;overflow:auto;padding:24px;border-radius:22px;background:rgba(18,38,66,.78);border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 24px 60px rgba(0,0,0,.4)}' +
-    '.nl-card h2{margin:0 0 4px;font-size:20px;font-weight:800}' +
-    '.nl-card p{margin:0 0 16px;font-size:13px;line-height:1.5;color:rgba(255,255,255,.85)}' +
-    '.nl-pv{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:13px 16px;border:0;border-radius:14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;text-align:left;text-decoration:none;box-sizing:border-box}' +
+    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:rgba(14,32,58,.92);border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
+    '.nl-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:0;background:none;color:#fff;font-size:26px;line-height:1;cursor:pointer}' +
+    '.nl-card h2{margin:0 0 8px;font-size:clamp(24px,3.4vw,32px);font-weight:800}' +
+    '.nl-card p{margin:0 0 20px;font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.88)}' +
+    '.nl-pv{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:18px 20px;border:0;border-radius:0;font:inherit;font-size:17px;font-weight:700;cursor:pointer;text-align:left;text-decoration:none;box-sizing:border-box}' +
     '.nl-pv i{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-style:normal;font-weight:800;font-size:14px;flex:none}' +
     '.nl-pv small{display:block;font-size:11.5px;font-weight:500;opacity:.7}' +
     '.nl-google{background:#fff;color:#1f2937}.nl-google i{background:#f1f3f4;color:#4285f4}' +
@@ -60,7 +60,7 @@
     '@keyframes nl-drift{from{transform:translateX(-40px)}to{transform:translateX(60px)}}' +
     '@media (prefers-reduced-motion:reduce){.nl-cloud{animation:none}}' +
     '@media (max-width:720px){.nl svg.nl-scene{left:-30%;width:150%}.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
-    '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(76px,13vh)}.nl-loginfab{left:20px}}';
+    '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(190px,24vh)}.nl-actions{left:20px;right:20px;flex-direction:column;gap:12px}.nl-btn{max-width:none;flex:none;width:100%;height:56px}}';
 
   // 마테호른(좌측 밝은 면·우측 그늘 면)과 인터라켄 호수·소나무를 단순화해 그린 장면.
   var SCENE =
@@ -117,54 +117,74 @@
 
   function close() {
     if (!root) return;
+    doc.removeEventListener('keydown', onKey);
     root.remove(); root = null;
     doc.documentElement.classList.remove('nine-landing-open');
   }
 
+  var lastFocus = null;
+  function focusables(box) {
+    return Array.prototype.slice.call(box.querySelectorAll('a[href],button:not([disabled])')).filter(function (n) { return n.offsetParent !== null || n === doc.activeElement; });
+  }
+  function closeModal() {
+    if (!root) return;
+    var modal = root.querySelector('.nl-modal');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
   function openModal() {
     var modal = root.querySelector('.nl-modal');
+    lastFocus = doc.activeElement;
     modal.hidden = false;
-    var first = modal.querySelector('a'); if (first) first.focus();
+    var first = modal.querySelector('.nl-pv'); if (first) first.focus();
+  }
+  /* 비회원 입장: 인증 없이 공개 화면(비회원 홈)으로. 인증된 사용자가 아니다. */
+  function enterGuest() {
+    markSeen();
+    try { global.sessionStorage.setItem('nine_guest', '1'); } catch (e) { /* 저장소 차단 */ }
+    close();
+    global.location.assign('/');
+  }
+
+  function onKey(e) {
+    if (!root) return;
+    var modal = root.querySelector('.nl-modal');
+    if (!modal || modal.hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+    if (e.key === 'Tab') { // 모달 안에서만 포커스 이동
+      var items = focusables(modal);
+      if (!items.length) return;
+      var first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && doc.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && doc.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
   }
 
   function build(naverConfigured) {
-    var menu = MENU.map(function (m) { return '<a href="' + esc(m[1]) + '" data-nl-go="1">' + esc(m[0]) + '</a>'; }).join('');
     root.innerHTML = SCENE + '<div class="nl-photo"></div><div class="nl-shade"></div>' +
-      '<div class="nl-top"><a class="nl-logo" href="/category/마켓 브리핑" data-nl-go="1">ㄱ ㅖ조 ㅏ 심폐소생술</a><nav class="nl-nav" aria-label="공개 메뉴">' + menu + '</nav></div>' +
+      '<div class="nl-top"><span class="nl-logo">ㄱ ㅖ조 ㅏ 심폐소생술</span></div>' +
       '<div class="nl-hero"><span class="nl-badge">시장을 차분하게 읽는 곳</span>' +
-      '<p class="nl-sub">대화방, 캘린더, 마켓브리핑, 이야기 시리즈는 로그인 없이 볼 수 있어요. 시장지표는 로그인 후에 열립니다.</p></div>' +
-      '<button type="button" class="nl-loginfab" data-nl-login="1">로그인</button>' +
+      '<p class="nl-sub">로그인하면 전체 서비스를, 비회원으로 입장하면 마켓브리핑·이야기 시리즈·캘린더·대화방을 둘러볼 수 있어요.</p></div>' +
+      '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
+      '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
       '<a class="nl-credit" href="https://commons.wikimedia.org/wiki/File:View_of_Interlaken_and_Lake_Brienz_from_Harder_Kulm_(Ank_Kumar)_06.jpg" target="_blank" rel="noopener">사진: Ank Kumar · CC BY-SA 4.0 · Wikimedia Commons</a>' +
-      '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-label="로그인">' +
-      '<h2>로그인</h2><p>사용할 계정을 선택하세요. 승인된 계정으로 로그인하면 기존 대시보드가 열리고, 그 외 계정은 공개 화면을 이용합니다.</p>' +
+      '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
+      '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
+      '<h2 id="nlLoginTitle">로그인</h2><p>사용할 계정을 선택하세요. 승인된 계정으로 로그인하면 기존 대시보드가 열리고, 그 외 계정은 공개 화면을 이용합니다.</p>' +
       '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
       (naverConfigured ? '<a class="nl-pv nl-naver" href="' + API + '/auth/naver/start?return_to=' + ret() + '"><i>N</i><span>네이버로 계속하기<small>네이버 계정으로 로그인</small></span></a>' : '') +
       '<a class="nl-pv nl-kakao" href="' + esc(kakaoUrl()) + '"><i>K</i><span>카카오로 계속하기<small>블로그 관리자(Tistory) 로그인</small></span></a>' +
       '<p class="nl-note">카카오는 블로그 관리자 로그인입니다. 서비스 기능은 관리자 승인 계정에 한해 제공됩니다.</p>' +
-      '<button type="button" class="nl-back" data-nl-back="1">닫기</button></section></div>';
+      '</section></div>';
     root.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null;
       if (!t) return;
-      var go = t.closest('[data-nl-go]');
-      if (go) {
-        markSeen();
-        var u = new URL(go.getAttribute('href'), global.location.origin);
-        var here = global.location.pathname + global.location.search;
-        if (decodeURIComponent(u.pathname + u.search) === decodeURIComponent(here)) {
-          e.preventDefault(); close();
-          if (u.hash === '#story-series') { // 이야기 시리즈: 푸터 카드 영역으로
-            var target = doc.querySelector('.site-footer-learn');
-            if (target && target.scrollIntoView) setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
-          }
-        }
-        return; // 다른 화면이면 링크 이동
-      }
-      if (t.closest('[data-nl-login]')) {
-        openModal();
-      } else if (t.closest('[data-nl-back]') || t.classList.contains('nl-modal')) {
-        root.querySelector('.nl-modal').hidden = true;
-      }
+      if (t.closest('[data-nl-guest]')) { enterGuest(); return; }
+      if (t.closest('[data-nl-login]')) { openModal(); return; }
+      if (t.closest('[data-nl-back]') || t.classList.contains('nl-modal')) closeModal();
     });
+    doc.addEventListener('keydown', onKey);
   }
 
   function show(naverConfigured) {

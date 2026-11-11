@@ -5,8 +5,8 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
-const KEYS = ['guestbook','calendar','briefing','indicators','home','stocks','tools','my','market-temp','autotrader','kis'];
-const PUB = ['guestbook','calendar','briefing'];
+const KEYS = ['guestbook','calendar','briefing','news','indicators','home','stocks','tools','my','market-temp','autotrader','kis'];
+const PUB = ['guestbook','calendar','briefing','news'];
 function policy(admin, off = []) {
   return {data: {isAdmin: admin, authenticated: admin, screens: Object.fromEntries(KEYS.map(k => {
     const en = !off.includes(k); return [k, {label: k, public: PUB.includes(k), enabled: en, allowed: en && (PUB.includes(k) || admin), locked: k === 'guestbook'}];
@@ -35,11 +35,12 @@ function policy(admin, off = []) {
       const links = await page.locator('#nav-menu-mount a, #nav-menu-mount .nav-group-trigger').allTextContents();
       const text = links.map(t => t.trim()).join('|');
       if (!admin) {
-        for (const forbidden of ['홈', '증시온도', '주요 뉴스', '종목분석', '검색기', '전략검색', '독립 차트', 'MY', '자동매매', 'KIS', '트레이딩', '화면 설정', '물타기']) {
+        for (const forbidden of ['증시온도', '종목분석', '검색기', '전략검색', '독립 차트', 'MY', '자동매매', 'KIS', '트레이딩', '화면 설정', '물타기']) {
           assert.ok(!text.includes(forbidden), `${name}/${width} must hide ${forbidden}: ${text}`);
         }
         assert.ok(!text.includes('시장지표'), `${name}/${width} must hide 시장지표 before login: ${text}`);
-        for (const must of ['캘린더', '대화방', '마켓브리핑', '이야기 시리즈']) assert.ok(text.includes(must), `${name}/${width} must show ${must}: ${text}`);
+        assert.ok(!text.includes('이야기 시리즈'), `${name}/${width} story series is dashboard content, not a menu: ${text}`);
+        for (const must of ['홈', '시장', '주요 뉴스', '마켓브리핑', '캘린더', '대화방']) assert.ok(text.includes(must), `${name}/${width} must show ${must}: ${text}`);
         assert.equal(await page.locator('#navSearchInput').count(), 0, 'no stock search UI');
       } else {
         for (const must of ['홈', '종목분석', '검색기', 'MY', '자동매매', '화면 설정', '시장지표']) assert.ok(text.includes(must), `admin/${width} must show ${must}: ${text}`);
@@ -70,9 +71,9 @@ function policy(admin, off = []) {
     await page.waitForTimeout(200);
     const labels = (await page.locator('#mtabBar .mtab-bar-item').allTextContents()).map(t => t.trim());
     if (admin) assert.deepEqual(labels, ['홈', '시장', '종목', '더보기']);
-    else assert.deepEqual(labels, ['대화방', '캘린더', '브리핑', '이야기', '더보기']);
+    else assert.deepEqual(labels, ['홈', '시장', '캘린더', '대화방', '더보기']);
     console.log('PASS mobile tabbar', name, labels.join('/'));
     await page.close();
   }
   await browser.close();
-})().catch(e => { console.error(e); process.exitCode = 1; });
+})().catch(e => { console.error(e); process.exit(1); });
