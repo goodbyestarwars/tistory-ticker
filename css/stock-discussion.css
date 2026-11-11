@@ -42,8 +42,8 @@
   color:var(--discussion-input-text, #263b55) !important;
   resize:var(--discussion-input-resize, vertical) !important;
   opacity:1 !important;
-  visibility:visible !important;
 }
+.market-discussion.discussion-classic .discussion-write textarea { visibility:visible !important; } /* 렌더 전에는 style.css의 숨김이 적용된다 */
 .market-discussion .discussion-write textarea::placeholder { color:var(--discussion-input-placeholder, #9aaabd) !important; opacity:1 !important; }
 .discussion-write-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; }
 .discussion-write-note { color:#91a0b0; font-size:12px; }
