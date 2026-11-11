@@ -2,7 +2,7 @@
 """자동매매 연구용 후보 생성 + 모의 진입 기록 (2026-10-11, 읽기 전용·실주문 없음).
 
 원칙
-- 후보는 고정 시각(21:00)에 가져오지 않는다. 운영 서버의 `GET /pattern-scan`(이미 공개된 읽기 전용 경로)을 확인해
+- 후보는 고정 시각(21:00)에 가져오지 않는다. 운영 서버의 `GET /pattern-scan`(서버 간 서명 인증 읽기 전용 경로)을 확인해
   '그날 스캔이 정상 완료되어 결과가 확정됐을 때만' 생성한다. 스캔이 실패하면 서버 캐시가 전일 값을 그대로 들고 있으므로
   (daily_scan.py는 실패 시 캐시를 비우지 않는다) 아래 검사로 전일·부분 결과를 걸러낸다.
     1) 항목들의 마지막 봉 날짜(data_date)가 한 값으로 모이고, scannedAt이 그날 20:10 이후 (전일·혼합 데이터 차단)
@@ -19,6 +19,8 @@
 - 기존 차트검색기 산식·스케줄은 건드리지 않는다. 이 모듈은 서버 응답을 읽기만 한다.
 """
 import json
+import hashlib
+import hmac
 import os
 import sqlite3
 import sys
@@ -91,7 +93,18 @@ def connect(path):
 
 
 def fetch_scan(url=None, timeout=30):
-    req = urllib.request.Request((url or API) + '/pattern-scan?_=%d' % int(time.time()), headers={'User-Agent': 'Mozilla/5.0'})
+    secret = (os.environ.get('CONTROL_SECRET') or '').strip()
+    if len(secret) < 32:
+        raise RuntimeError('research scan authentication is not configured')
+    base = url or API
+    if base.rstrip('/') != API.rstrip('/'):
+        raise ValueError('research scan authentication requires the configured server')
+    stamp = str(int(time.time()))
+    message = (stamp + '.').encode() + b'GET /pattern-scan'
+    signature = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
+    req = urllib.request.Request(base.rstrip('/') + '/pattern-scan?_=' + stamp,
+                                 headers={'User-Agent': 'Mozilla/5.0',
+                                          'X-Ts': stamp, 'X-Sig': signature})
     with urllib.request.urlopen(req, timeout=timeout) as res:
         body = json.loads(res.read().decode('utf-8'))
     return body.get('data') if isinstance(body, dict) and isinstance(body.get('data'), dict) else body  # {success, updatedAt, data:{...}} 래퍼

@@ -75,6 +75,7 @@
 - 로그인 랜딩 배경은 `access-landing.js`의 뮈렌 사진 하나만 표시하며 로딩 중은 단색이다. 과거 SVG를 사진 아래에 깔지 않는다. 로그아웃 중간 복귀 단계는 랜딩 초기화보다 먼저 처리한다.
 - 헤더 [로그아웃]은 `access-gate.js`가 전부 로그아웃한다: 서버 로그아웃 주소로 최상위 이동해 사이트 회원 세션을 지우고(교차 사이트 fetch로는 쿠키가 지워지지 않는다) 이어서 티스토리 로그아웃 뒤 홈의 로그인 창(랜딩)으로 돌아간다. 로그아웃을 비회원 입장으로 전환하지 않는다. 관리자가 아닌 `/`는 대화방으로 보내지 않고 항상 비회원 홈을 그린 뒤 입장 전이면 그 위에 랜딩을 덮는다([비회원 로그인]은 이동 없이 랜딩만 닫음). `goodbyestar.cloud` 요청의 세션 쿠키 첨부는 `skin-shell.js`가 동기 시점에 먼저 적용한다(게이트 비동기 로드 전 첫 요청의 401 방지).
 - 관리자 홈(`/`)은 종목 작업 화면 `/page/stock-search`로 연결한다(2026-11-12, `access-gate.js`). 기존 홈 대시보드는 `/?view=market`(시장 > 시장 대시보드, 관리자 메뉴)로 보존한다. 작업 화면은 새 화면이 아니라 기존 `stock-search.js` 셸을 `js/stock-workspace.js`·`css/stock-workspace.css`가 꾸미는 구조다: 호가(`order-book.js`)·차트·뉴스 노드는 옮기기만 하고 소켓·타이머·요청을 늘리지 않으며, 종목 변경은 `StockSearch.open`·`nine-stock-selection`/`nine-stock-quote`/`nine-stock-session` 이벤트, 관심·최근·마지막 선택은 `StockSearchPanel`의 기존 저장소를 쓴다. 3열(호가 | 차트 | 종목정보 탭) → 1499px 이하 종목정보 서랍 → 860px 이하 차트/호가/종목정보 탭. 주문 기능을 넣지 않는다.
+- 연구 후보 조회 `GET /pattern-scan`은 기존 제어 비밀의 HMAC(`timestamp + '.' + 'GET /pattern-scan'`, 60초 창)으로 서버 간 읽기만 허용한다. 다른 경로·메서드·제어 요청에 서명을 재사용하지 않는다. 연구 클라이언트는 기존 로컬 `CONTROL_SECRET`만 사용하며 키를 URL/로그/Git에 남기지 않는다.
 - 종목 단위 시세 REST는 관리자 전용(401/403), `/ws/quotes`는 관리자만. 새 종목 시세 API는 `access_policy.RESTRICTED_PREFIXES`에 넣는다. 일반 회원에게 인증만으로 제한 시세를 열지 않는다. 상세·배포 순서는 `docs/ACCESS_POLICY_2026-11-11.md`.
 
 ## 운영·주문 경계

@@ -1065,11 +1065,24 @@ def _has_server_api_key(request):
     return bool(expected) and hmac.compare_digest(expected.encode('utf-8'), given.encode('utf-8'))
 
 
+def _has_research_scan_signature(request):
+    """기존 에이전트 HMAC으로 GET /pattern-scan 조회만 인증한다."""
+    if request.method != 'GET' or request.url.path != '/pattern-scan':
+        return False
+    try:
+        autotrader_control.verify_agent(
+            request.headers.get('x-ts'), request.headers.get('x-sig'),
+            b'GET /pattern-scan')
+        return True
+    except autotrader_control.ControlError:
+        return False
+
+
 @app.middleware('http')
 async def restrict_stock_data(request: Request, call_next):
     """종목 단위 시세·분석 REST는 관리자 세션만. 비로그인 401, 일반 회원 403(응답 본문에 데이터 없음).
     CORS/Origin은 보조 검사일 뿐이라 여기서 세션을 직접 확인한다. 인증 설정 오류도 닫힌 채로 둔다."""
-    if request.method != 'OPTIONS' and access_policy.is_restricted_path(request.url.path) and not _has_server_api_key(request):
+    if request.method != 'OPTIONS' and access_policy.is_restricted_path(request.url.path) and not _has_server_api_key(request) and not _has_research_scan_signature(request):
         denied = _access_denied(request)
         if denied is not None:
             return denied
