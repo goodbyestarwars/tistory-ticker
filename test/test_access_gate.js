@@ -48,8 +48,7 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   let b = boot('/', '', policy(false)); let ran = false;
   assert(b.classes.has('access-pending'));
   b.win.NineAccess.run(() => { ran = true; }); await wait();
-  assert.deepStrictEqual(b.calls.replace, ['/guestbook']); assert(!ran); assert(!b.classes.has('access-pending'));
-  assert.strictEqual(b.store.nine_access_from, '/');
+  assert.deepStrictEqual(b.calls.replace, []); assert(!ran); assert(!b.classes.has('access-pending'));
   assert(b.classes.has('access-limited'));
 
   // 관리자 '/' → 홈 유지
@@ -73,13 +72,14 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   assert(b.calls.scripts.some((u) => /js\/guest-home\.js(?:\?.*)?$/.test(u)), 'logged-in non-admin gets guest home'); assert.deepStrictEqual(b.calls.replace, []);
   b = boot('/', '', policy(true)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
   assert(ran); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
+  // 입장 전 비로그인의 '/'도 대화방으로 보내지 않고 비회원 홈 위에 로그인 창(랜딩)을 덮는다
   b = boot('/', '', policy(false)); await wait();
-  assert.deepStrictEqual(b.calls.replace, ['/guestbook']); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
+  assert.deepStrictEqual(b.calls.replace, []); assert(b.calls.scripts.some((u) => /guest-home/.test(u))); assert(b.calls.scripts.some((u) => /access-landing\.js/.test(u)));
   // 비회원 입장 상태의 비공개 URL은 대화방으로(시장지표·종목·MY 등)
   // 로그아웃(로그인 이력 힌트가 있는데 지금은 비로그인): 비회원 입장으로 넘기지 않고 로그인 창(랜딩)으로 돌아간다
   b = boot('/', '', policy(false), { nine_guest: '1', nine_landing_seen: '1' }, { nine_authed: '1' }); await wait();
   assert(!b.win.NineAccess.isGuest(), 'logout clears guest entry'); assert(!('nine_landing_seen' in b.store), 'logout re-arms landing');
-  assert(!b.calls.scripts.some((u) => /guest-home/.test(u)), 'logout does not mount guest home'); assert.deepStrictEqual(b.calls.replace, ['/guestbook']);
+  assert.deepStrictEqual(b.calls.replace, [], 'logout stays on home under the landing');
   assert(b.calls.scripts.some((u) => /access-landing\.js/.test(u)), 'logout shows login landing');
   b = boot('/page/foreign-flow', '', policy(false), { nine_guest: '1' }); await wait();
   assert.deepStrictEqual(b.calls.replace, ['/guestbook']);

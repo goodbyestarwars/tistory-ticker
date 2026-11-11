@@ -144,7 +144,8 @@
     markSeen();
     try { global.sessionStorage.setItem('nine_guest', '1'); } catch (e) { /* 저장소 차단 */ }
     close();
-    global.location.assign('/');
+    // 홈에서 입장하면 비회원 홈이 이미 랜딩 아래에 그려져 있다 - 다시 불러오지 않는다.
+    if (global.location.pathname !== '/' && global.location.pathname !== '') global.location.assign('/');
   }
 
   function onKey(e) {

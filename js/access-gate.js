@@ -297,8 +297,10 @@
         if ((current && current.authenticated) || isGuest()) { if (global.NineLanding) global.NineLanding.close(); }
         else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured)); if (!(current && current.naverConfigured)) probeNaver(L); });
       }
-      if (startScreen === 'home' && !allowsScreen('home') && (isGuest() || (current && current.authenticated))) {
-        mountGuestHome(); // 관리자가 아닌 입장: 비회원 전용 홈
+      if (startScreen === 'home' && !allowsScreen('home')) {
+        // 관리자가 아니면 홈은 항상 비회원 전용 홈(공개 콘텐츠)이다. 입장 전 비로그인은 그 위에 로그인 창(랜딩)이 덮이고,
+        // [비회원 로그인]을 누르면 대화방을 거치지 않고 그 자리에서 랜딩만 닫힌다.
+        mountGuestHome();
       } else if (!allowsScreen(startScreen)) { redirectFallback(); return; }
       // 로그인 후 원래 가려던 화면으로 복귀(한 번만). 대화방에서 시작한 경우에만.
       var target = takeRemembered();
