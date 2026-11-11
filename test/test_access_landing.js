@@ -14,7 +14,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.evaluate(() => window.NineLanding.show(true));
     assert.deepEqual((await page.locator('.nl-nav a').allInnerTexts()).map(t => t.trim()), ['대화방', '캘린더', '마켓브리핑', '이야기 시리즈']);
     assert.equal(await page.locator('.nl-card').isHidden(), true);
-    await page.click('.nl-cta');
+    await page.click('.nl-loginfab');
     const hrefs = await page.locator('.nl-card a').evaluateAll(a => a.map(x => x.getAttribute('href')));
     assert.ok(/\/auth\/google\/start\?return_to=/.test(hrefs[0]) && /\/auth\/naver\/start\?return_to=/.test(hrefs[1]) && /tistory\.com\/manage/.test(hrefs[2]), hrefs.join());
     const box = await page.locator('.nl-card').boundingBox();
@@ -30,7 +30,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     // 로고/홈 클릭 → 이동하지 않고 로그인 카드가 바로 열린다
     await page.evaluate(() => window.NineLanding.showLogin(true));
     assert.equal(await page.locator('.nl-card').isHidden(), false);
-    assert.equal(await page.locator('.nl-hero').evaluate(e => e.style.display), 'none');
+    assert.equal(await page.locator('.nl-login').count(), 0, 'top nav has no login button');
     await page.evaluate(() => window.NineLanding.close());
     // 로그인 확인되면 닫힌다
     await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.show(false); window.NineLanding.settle({authenticated: true}); });

@@ -205,14 +205,14 @@
       .catch(function () { /* 버튼 없이 유지 */ });
   }
 
-  /* 비로그인이 홈·로고(송골매)·배너를 누르면 이동하지 않고 로그인 창을 연다. */
+  /* 비로그인이 홈·로고(송골매)·배너를 누르면 마켓브리핑(+푸터 이야기 시리즈)으로 보낸다. 로그인은 랜딩 왼쪽 하단 버튼. */
   if (global.self === global.top) {
     doc.addEventListener('click', function (e) {
       if (current && current.authenticated) return;
       var t = e.target && e.target.closest ? e.target.closest('.nav-logo, [data-mtab="home"], a[href="/"], a[href="https://ghlee.tistory.com/"]') : null;
-      if (!t) return;
+      if (!t || (t.closest && t.closest('#nineLanding'))) return;
       e.preventDefault();
-      withLanding(function (L) { L.showLogin(!!(current && current.naverConfigured)); });
+      global.location.assign('/category/마켓 브리핑'); // 마켓브리핑 + (푸터) 이야기 시리즈
     }, true);
   }
 
