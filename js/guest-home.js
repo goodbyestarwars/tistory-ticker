@@ -66,9 +66,9 @@
 
   /* ───── 지금 주목할 뉴스(텍스트 타임라인) ─────
      최근 24시간·발행시각이 확인된 기사 전부(기존 API 시장별 최대 25건)를 중복 없이 최신순으로 정렬한다.
-     첫 화면은 4건이지만 페이지 버튼으로 나머지도 열람한다. 중요도·시장별 인위적인 쿼터는 만들지 않는다. */
+     첫 화면은 3건이지만 페이지 버튼으로 나머지도 열람한다. 중요도·시장별 인위적인 쿼터는 만들지 않는다. */
   var NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261112-guest-timeline';
-  var NEWS_PAGE_SIZE = 4;
+  var NEWS_PAGE_SIZE = 3;
   var DAY_MS = 24 * 60 * 60 * 1000;
   var MARKET_LABEL = { kr: '국내', us: '미국' };
 

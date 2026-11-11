@@ -49,8 +49,8 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
   gap: 12px;
   width: 100%;
   min-width: 0;
-  min-height: 300px;
-  padding: var(--ui-card-padding-lg);
+  min-height: 210px;
+  padding: var(--ui-card-padding);
   background: var(--ui-surface);
   border: 1px solid var(--ui-rule);
   border-radius: 14px;
@@ -113,7 +113,7 @@ html.dark .gnt-marker { border-color: var(--dk-mute); background: var(--dk-card)
 html.dark .gnt-item.is-latest .gnt-marker { border-color: var(--dk-text); background: var(--dk-text); }
 
 
-/* 현재 페이지는 기존 4장 카드 비율을 유지하고, 수집된 24시간 기사 전체는 페이지 버튼으로 탐색한다. */
+/* 현재 페이지는 3장씩 간결하게 표시하고, 수집된 24시간 기사 전체는 페이지 버튼으로 탐색한다. */
 .gnt-pager {
   display: flex;
   justify-content: space-between;
@@ -170,7 +170,7 @@ html.dark .gnt-controls button:hover:not(:disabled) { border-color: var(--dk-mut
     border-top: 0;
     border-bottom: 10px solid var(--gnt-line);
   }
-  .gnt-card { min-height: 240px; padding: var(--ui-card-padding); gap: 12px; }
+  .gnt-card { min-height: 170px; padding: var(--ui-card-padding); gap: 12px; }
   .gnt-marker { left: -28px; top: 20px; bottom: auto; }
 }
 
