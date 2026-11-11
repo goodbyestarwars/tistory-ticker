@@ -16,7 +16,7 @@
   if (global.NineGuestHome) return;
   var doc = global.document;
   var CATEGORY = '마켓 브리핑';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-footer-v2';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-tabs-v1';
   var mounted = false;
 
   function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -159,6 +159,8 @@
     var root = doc.documentElement;
     root.classList.add('guest-home-mode');
     root.classList.remove('home-render-pending', 'access-pending');
+    // 모바일 하단 탭바: skin-main의 공통 로더가 이 신호(또는 위 클래스)로 시작한다. 대시보드 초기화는 계속 막힌다.
+    try { doc.dispatchEvent(new global.CustomEvent('nine:guest-home')); } catch (e) { /* 구형 브라우저: 탭바 없이 유지 */ }
 
     var homeCards = cardsOf(feed);
     var briefingCards = homeCards.filter(isBriefing);

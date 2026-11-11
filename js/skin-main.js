@@ -25,6 +25,29 @@
    가릴 게 없으니 기다리지 않고 즉시 붙인다. */
 document.documentElement.classList.add('skin-ready');
 
+/* 모바일(≤720px) 하단 탭바 + 얇은 헤더 + 홈 섹션 스와이프(2026-11-08). 720px 이하에서만 파일을 받는다 - PC는 받지 않는다.
+   끄려면 이 함수와 아래 두 호출을 지운다(라이브 점검은 주소 ?mtabs=off). js/home-mobile-tabs.js, css/home-mobile-tabs.css, docs/UI_GUIDE.md '모바일 하단 탭바' */
+function loadMobileTabs() {
+  if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
+  if (document.querySelector('script[data-mobile-tabs]')) return;
+  var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var version = '20261108-mobile-tabs2';
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = ASSET_BASE + 'css/home-mobile-tabs.css?v=' + version;
+  link.setAttribute('data-mobile-tabs-css', '1');
+  document.head.appendChild(link);
+  var script = document.createElement('script');
+  script.src = ASSET_BASE + 'js/home-mobile-tabs.js?v=' + version;
+  script.defer = true;
+  script.setAttribute('data-mobile-tabs', '1');
+  document.body.appendChild(script);
+}
+/* 비회원 홈(/)은 NineAccess.run이 아래 start()를 막아 대시보드를 시작하지 않는다. 탭바는 시세·위젯과 무관한
+   공개 내비게이션이므로 guest-home.js가 마운트를 알리면(html.guest-home-mode + nine:guest-home) 같은 로더만 실행한다. */
+if (document.documentElement.classList.contains('guest-home-mode')) loadMobileTabs();
+else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true });
+
 /* 2026-11-11 화면 접근 정책: 보호 화면(홈·종목·MY 등)은 서버 판정(NineAccess) 뒤에만 아래 초기화를 시작한다.
    공개 4개 화면·일반 글은 기다리지 않고 바로 시작한다. 게이트 로드 실패 시에도 데이터는 서버 API가 막는다. */
 (function nineAccessBoot() {
@@ -275,24 +298,7 @@ document.documentElement.classList.add('skin-ready');
     document.body.appendChild(script);
   })();
 
-  /* 모바일(≤720px) 하단 탭바 + 얇은 헤더 + 홈 섹션 스와이프(2026-11-08). 720px 이하에서만 파일을 받는다 - PC는 받지 않는다.
-     끄려면 이 IIFE 한 덩어리를 지운다(라이브 점검은 주소 ?mtabs=off). js/home-mobile-tabs.js, css/home-mobile-tabs.css, docs/UI_GUIDE.md '모바일 하단 탭바' */
-  (function loadMobileTabs() {
-    if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
-    if (document.querySelector('script[data-mobile-tabs]')) return;
-    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20261108-mobile-tabs2';
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = ASSET_BASE + 'css/home-mobile-tabs.css?v=' + version;
-    link.setAttribute('data-mobile-tabs-css', '1');
-    document.head.appendChild(link);
-    var script = document.createElement('script');
-    script.src = ASSET_BASE + 'js/home-mobile-tabs.js?v=' + version;
-    script.defer = true;
-    script.setAttribute('data-mobile-tabs', '1');
-    document.body.appendChild(script);
-  })();
+  loadMobileTabs(); // 정의는 파일 위쪽 - 비회원 홈과 공유
 
   /* 증시온도(/page/market-temp): 티스토리 본문에 오래된 <script>/<link>가 남아 있어도
      최신 팔레트·순위 시각화·단기흐름 그래프가 적용되도록 스킨에서 한 번 더 보장한다. */
