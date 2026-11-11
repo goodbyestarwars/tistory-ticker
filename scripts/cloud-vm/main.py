@@ -95,7 +95,7 @@ import us_options
 import us_stocks
 import weekly_report
 import watchlist
-from google_auth import GoogleAuthError, GoogleAuthService
+from google_auth import GoogleAuthError, GoogleAuthService, session_provider
 from naver_auth import NaverAuthError, NaverAuthService
 
 import log_setup
@@ -1042,6 +1042,21 @@ async def autotrader_agent_sync(request: Request):
         raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
 
 
+def _site_admin(session):
+    """화면·시세 조회용 사이트 관리자: Google 관리자 또는 등록된 네이버 계정.
+    네이버 email은 소유 검증이 안 되므로 쓰지 않고, 네이버 고유 ID의 비가역 참조값(log_setup.user_ref)만
+    환경변수 ADMIN_NAVER_REFS(쉼표 구분)와 대조한다. 자동매매 제어·화면 설정 변경은 여전히 Google 관리자만 한다."""
+    if not session:
+        return False
+    if GOOGLE_AUTH.is_admin(session):
+        return True
+    if session_provider(session) != 'naver':
+        return False
+    refs = {r.strip() for r in (os.environ.get('ADMIN_NAVER_REFS') or '').split(',') if r.strip()}
+    ref = log_setup.user_ref(session.get('sub'), GOOGLE_AUTH.session_secret)
+    return bool(refs) and ref in refs
+
+
 def _has_server_api_key(request):
     """서버 내부 호출(GAS·점검·모니터 스크립트)은 비밀 X-API-Key로 이미 인증한다. 브라우저에는 이 키가 없다."""
     import hmac
@@ -1069,7 +1084,7 @@ def _access_denied(request_like):
     session = GOOGLE_AUTH.read_session(request_like.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
     if not session:
         return JSONResponse({'detail': 'login required'}, status_code=401)
-    if not GOOGLE_AUTH.is_admin(session):
+    if not _site_admin(session):
         return JSONResponse({'detail': 'admin only'}, status_code=403)
     return None
 
@@ -1077,7 +1092,7 @@ def _access_denied(request_like):
 @app.get('/access-policy')
 def access_policy_get(request: Request):
     session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
-    data = access_policy.view(bool(session), GOOGLE_AUTH.is_admin(session))
+    data = access_policy.view(bool(session), _site_admin(session))
     data['naverConfigured'] = bool(NAVER_AUTH.configured and GOOGLE_AUTH.session_secret)  # 로그인 랜딩의 네이버 버튼 표시용
     return envelope(data)
 
