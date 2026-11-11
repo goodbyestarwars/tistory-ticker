@@ -2,7 +2,7 @@
  * 비회원 전용 홈 (2026-11-12, 2026-11-11 회원 화면과 같은 컴포넌트로 통일).
  *
  * 관리자가 아닌 입장(비회원 입장·로그인했지만 관리자 아닌 계정)의 `/`는 전체 대시보드 대신
- * 마켓브리핑 + 이야기 시리즈 두 영역만 보여 준다. js/access-gate.js 가 NineAccess.run 으로 skin-main 의
+ * 지금 주목할 뉴스 + 마켓브리핑 + 이야기 시리즈를 보여 준다. js/access-gate.js 가 NineAccess.run 으로 skin-main 의
  * 대시보드 코드를 막으므로 실시간 위젯·시세 요청은 시작되지 않는다(여기서도 시작하지 않는다).
  *
  * 재사용(복제 금지) - 모양·글꼴·넘김 화살표는 회원 대시보드와 같은 컴포넌트가 그린다:
@@ -18,7 +18,7 @@
   if (global.NineGuestHome) return;
   var doc = global.document;
   var CATEGORY = '마켓 브리핑';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261111-guest-timeline-v1';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261112-guest-timeline-v2';
   var mounted = false;
 
   function injectCss() {
@@ -65,10 +65,10 @@
   }
 
   /* ───── 지금 주목할 뉴스(텍스트 타임라인) ─────
-     최근 24시간·발행시각이 확인된 기사만, 중복 없이 최대 4건. 국내·미국이 모두 있으면 2건씩 고르고 모자라면 다른 쪽으로 채운다.
-     중요도는 만들지 않는다 - 각 시장의 최신순에서 고른 뒤 과거 → 최신으로 세운다. */
+     최근 24시간·발행시각이 확인된 기사 전부(기존 API 시장별 최대 25건)를 중복 없이 최신순으로 정렬한다.
+     첫 화면은 4건이지만 페이지 버튼으로 나머지도 열람한다. 중요도·시장별 인위적인 쿼터는 만들지 않는다. */
   var NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261112-guest-timeline';
-  var NEWS_MAX = 4;
+  var NEWS_PAGE_SIZE = 4;
   var DAY_MS = 24 * 60 * 60 * 1000;
   var MARKET_LABEL = { kr: '국내', us: '미국' };
 
@@ -94,28 +94,25 @@
 
   function pickNews(M, lists, now) {
     var seen = {};
-    var pools = {};
+    var collected = [];
     Object.keys(lists).forEach(function (market) {
-      pools[market] = lists[market].filter(function (item) {
-        var at = M.dateValue(item.pubDate);
-        var link = M.safeHref(item.link);
-        var title = M.displayTitle(item);
-        if (!at || at > now + 5 * 60000 || now - at > DAY_MS || !link || !title) return false; // 발행시각·원문이 확인된 최근 24시간 기사만
-        var key = title.replace(/\s+/g, '').toLowerCase();
-        if (seen[link] || seen[key]) return false;
-        seen[link] = seen[key] = true;
+      (lists[market] || []).forEach(function (item) {
         item._market = market;
-        return true;
+        collected.push(item);
       });
     });
-    var markets = Object.keys(pools).filter(function (market) { return pools[market].length; });
-    var picked = [];
-    var share = markets.length ? Math.ceil(NEWS_MAX / markets.length) : 0;
-    markets.forEach(function (market) { picked = picked.concat(pools[market].splice(0, share)); });
-    var rest = markets.reduce(function (all, market) { return all.concat(pools[market]); }, [])
-      .sort(function (a, b) { return M.dateValue(b.pubDate) - M.dateValue(a.pubDate); });
-    picked = picked.slice(0, NEWS_MAX).concat(rest).slice(0, NEWS_MAX);
-    return picked.sort(function (a, b) { return M.dateValue(a.pubDate) - M.dateValue(b.pubDate); }); // 과거 → 최신
+    // 시장별 2건 같은 선할당 없이 두 시장을 실제 발행시각 기준으로 합친다.
+    collected.sort(function (a, b) { return M.dateValue(b.pubDate) - M.dateValue(a.pubDate); });
+    return collected.filter(function (item) {
+      var at = M.dateValue(item.pubDate);
+      var link = M.safeHref(item.link);
+      var title = M.displayTitle(item);
+      if (!at || at > now + 5 * 60000 || now - at > DAY_MS || !link || !title) return false;
+      var key = title.replace(/\s+/g, '').toLowerCase();
+      if (seen[link] || seen[key]) return false;
+      seen[link] = seen[key] = true;
+      return true;
+    });
   }
 
   function newsItemHtml(M, item, now, latest) {
@@ -134,27 +131,57 @@
     return '<section class="guest-news home-widget home-widget--full" aria-label="지금 주목할 뉴스">' +
       // 머리말·더보기 버튼은 마켓브리핑과 같은 공통 클래스(.briefing-intro, .home-briefing-more)를 그대로 쓴다.
       '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시간 순으로 읽는 시장</span>' +
-      '<strong>지금 주목할 뉴스</strong><p>최근 24시간 국내·미국 주요뉴스를 발행 순서대로 살펴보세요.</p></div>' +
+      '<strong>지금 주목할 뉴스</strong><p>최근 24시간 국내·미국 주요뉴스를 최신순으로 살펴보세요.</p></div>' +
       '<a class="home-briefing-more" href="/pages/main-news"><span>전체 뉴스 보기</span> <i aria-hidden="true">↗</i></a></div>' +
       '<div class="guest-news-body" data-guest-news><div class="home-card-state">뉴스를 불러오는 중입니다.</div></div></section>';
   }
 
   /* 홈 첫 그림을 막지 않도록 마운트 뒤에 따로 조회한다. 한쪽 시장이 실패해도 받은 쪽만으로 그린다. */
   function fillNews(body) {
+    var M = null;
+    var items = [];
+    var page = 0;
+    var failed = 0;
     function state(message) { body.innerHTML = '<div class="home-card-state">' + message + '</div>'; }
-    loadMainNews().then(function (M) {
+    function render() {
+      var start = page * NEWS_PAGE_SIZE;
+      var visible = items.slice(start, start + NEWS_PAGE_SIZE);
+      var pageCount = Math.ceil(items.length / NEWS_PAGE_SIZE);
+      var now = Date.now();
+      body.innerHTML = '<ol class="gnt-list" data-count="' + visible.length + '">' + visible.map(function (item, index) {
+        return newsItemHtml(M, item, now, page === 0 && index === 0);
+      }).join('') + '</ol>' +
+        '<div class="gnt-pager"><span class="gnt-count">최근 24시간 수집 기사 ' + items.length +
+        '건 · ' + (start + 1) + '–' + (start + visible.length) + '건 표시</span>' +
+        (pageCount > 1 ? '<div class="gnt-controls" aria-label="뉴스 페이지 이동">' +
+          '<button type="button" data-gnt-page="newer"' + (page === 0 ? ' disabled' : '') + '>← 최신 뉴스</button>' +
+          '<span class="gnt-page" aria-live="polite">' + (page + 1) + ' / ' + pageCount + '</span>' +
+          '<button type="button" data-gnt-page="older"' + (page + 1 >= pageCount ? ' disabled' : '') + '>지난 뉴스 →</button>' +
+          '</div>' : '') + '</div>' +
+        (failed ? '<p class="gnt-note">일부 시장 뉴스 응답에 실패하여 수집된 기사만 표시합니다.</p>' : '');
+    }
+    body.addEventListener('click', function (event) {
+      var button = event.target.closest('button[data-gnt-page]');
+      if (!button || !body.contains(button) || button.disabled || !M) return;
+      var next = page + (button.getAttribute('data-gnt-page') === 'older' ? 1 : -1);
+      if (next < 0 || next >= Math.ceil(items.length / NEWS_PAGE_SIZE)) return;
+      page = next;
+      render();
+    });
+    // 홈 첫 그림을 막지 않고 기존 뉴스 API·공통 전송·서버 캐시만 재사용한다.
+    loadMainNews().then(function (loaded) {
+      M = loaded;
       var lists = {};
-      var failed = 0;
       var jobs = ['kr', 'us'].map(function (market) {
-        return M.fetchJson(M.urls[market]).then(function (items) { lists[market] = items; }, function () { failed += 1; });
+        return M.fetchJson(M.urls[market]).then(function (rows) { lists[market] = rows; }, function () { failed += 1; });
       });
       return Promise.all(jobs).then(function () {
-        var now = Date.now();
-        var items = pickNews(M, lists, now);
-        if (!items.length) { state(failed === jobs.length ? '뉴스를 불러오지 못했습니다. 잠시 뒤 다시 확인해 주세요.' : '최근 24시간 안에 새로 올라온 주요뉴스가 없습니다.'); return; }
-        body.innerHTML = '<ol class="gnt-list" data-count="' + items.length + '">' + items.map(function (item, index) {
-          return newsItemHtml(M, item, now, index === items.length - 1);
-        }).join('') + '</ol>';
+        items = pickNews(M, lists, Date.now());
+        if (!items.length) {
+          state(failed ? '뉴스를 불러오지 못했거나 최근 24시간 기사를 확인할 수 없습니다.' : '최근 24시간 안에 새로 올라온 주요뉴스가 없습니다.');
+          return;
+        }
+        render();
       });
     }).catch(function () { state('뉴스를 불러오지 못했습니다. 잠시 뒤 다시 확인해 주세요.'); });
   }
