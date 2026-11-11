@@ -22,6 +22,8 @@
   --ui-radius-module: var(--ui-radius-card);
   --ui-control-height: 38px;
   --ui-control-gap: 8px;
+  --ui-editorial-hover-border: rgba(var(--np-ink), .2);
+  --ui-editorial-hover-shadow: 0 10px 24px rgba(var(--np-ink), .1);
 }
 
 /* Chart studies popover (NineUI.chartOptions, 2026-11-07): '+ 보조지표' 버튼 → 왼쪽 지표 목록 · 오른쪽 설명/상세.
@@ -360,5 +362,15 @@ html.dark body .nt-stamp { color: var(--dk-sub) !important; }
 /* 오르내림 숫자 글자색 단일 기준(2026-10-23 사용자 지시: "관측 고점/저점 색으로 모든 붉은·파란 숫자 통일").
    기준은 홈 관측 고점(#ad706b)·저점(#6386b2). 글자색(color)에만 쓴다 - 막대·선·배경 채움은 각자의 기존 색을 유지한다. */
 :root { --num-up: #c8372d; --num-down: #1261c4; }
-html.dark { --num-up: var(--dk-up); --num-down: var(--dk-down); --ui-focus: #e5e7eb; }
+html.dark {
+  --num-up: var(--dk-up); --num-down: var(--dk-down);
+  --ui-ink: var(--dk-text);
+  --ui-muted: var(--dk-sub);
+  --ui-rule: var(--dk-line);
+  --ui-surface: var(--dk-card);
+  --ui-page: var(--dk-bg);
+  --ui-accent-soft: var(--dk-inner);
+  --ui-accent-ink: var(--dk-text);
+  --ui-focus: var(--dk-text);
+}
 html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-hover); }

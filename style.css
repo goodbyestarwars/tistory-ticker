@@ -4957,8 +4957,8 @@ html.dark {
   --dk-panel: #272f3a;
   --dk-line: #37424e;
   --dk-text: #f1f4f8;
-  --dk-sub: #a6b5c5;
-  --dk-mute: #8899ad;
+  --dk-sub: #b7c3d1;
+  --dk-mute: #9dacc0;
   --dk-hover: #344355;
   --dk-active: #3a4d65;
   --dk-up: #e28d98;
@@ -4972,6 +4972,7 @@ html.dark {
   --text-main: var(--dk-text);
   --text-strong: var(--dk-text);
   --text-sub: var(--dk-sub);
+  color-scheme: dark;
 
   --page-bg: var(--dk-bg);
   --surface: var(--dk-bg);
@@ -7714,7 +7715,7 @@ html.dark {
   --np-ink: var(--dk-ink-rgb);
   --np-paper: var(--dk-bg);
   --np-tint: var(--dk-bg);
-  --ui-card-surface: var(--ui-glass-surface);
+  --ui-card-surface: var(--dk-card);
   --ui-inner-surface: var(--dk-inner);
   --ui-panel-surface: var(--ui-glass-panel);
   --ui-border: var(--dk-line);
@@ -7929,11 +7930,11 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 /* ── 7. 칩 : 알약형, 가는 선 ── */
 /* Calendar disclosure search: a readable field, rather than a full-width nested box. */
 html body #stock-calendar .sc-disclosure-search {
-  width: 100% !important; max-width: 560px !important; margin-bottom: 24px !important;
+  width: 100%; max-width: 760px; margin-bottom: var(--ui-section-gap);
 }
 html body #stock-calendar .sc-disclosure-search .sc-search {
   display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 8px !important;
-  margin: 0 0 8px !important; padding: 0 !important; border: 0 !important; background: transparent !important;
+  margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent !important;
 }
 html body #stock-calendar .sc-disclosure-search .sc-search span {
   font: 600 14px/1.5 var(--font-ui) !important; color: rgb(var(--np-ink)) !important;
@@ -8431,7 +8432,7 @@ html body#tt-body-index .briefing-carousel-track::-webkit-scrollbar { display:no
 html body#tt-body-index .briefing-carousel-track.is-dragging { cursor:grabbing; scroll-snap-type:none; user-select:none; }
 html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important;  overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important;  background:var(--wd-glass,var(--np-paper))!important; box-shadow:var(--wd-glass-shadow,0 6px 18px rgba(var(--np-ink),.06))!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
 html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { content:attr(data-briefing-number); position:absolute; bottom:60px; right:26px; font:400 110px/1 Georgia,serif; color:rgba(var(--np-ink),.045); pointer-events:none; }
-html body#tt-body-index .briefing-carousel-track .home-briefing-card:hover { border-color:rgba(var(--np-ink),.2)!important; box-shadow:0 10px 24px rgba(var(--np-ink),.1)!important; }
+html body#tt-body-index .briefing-carousel-track .home-briefing-card:hover { border-color:var(--ui-editorial-hover-border)!important; box-shadow:var(--ui-editorial-hover-shadow)!important; }
 html body#tt-body-index .briefing-carousel-track .post-header { display:flex!important; justify-content:flex-start!important; margin:0 0 20px!important; }
 html body#tt-body-index .briefing-carousel-track .post-date { font:500 12px/1.5 var(--font-ui)!important; color:rgba(var(--np-ink),.55)!important; }
 html body#tt-body-index .briefing-carousel-track .post-title { display:-webkit-box!important; -webkit-box-orient:vertical; -webkit-line-clamp:4; overflow:hidden!important; word-break:keep-all!important; overflow-wrap:anywhere; font-family:var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-size:26px!important; font-weight:400!important; line-height:1.5!important; margin:0 0 24px!important; min-height:0!important; max-height:none!important; }

@@ -221,6 +221,14 @@
     }
     landingTag.addEventListener('load', function () { if (global.NineLanding) fn(global.NineLanding); });
   }
+  var logoutStep = null;
+  try { logoutStep = global.sessionStorage.getItem('nine_logout_step'); if (logoutStep) global.sessionStorage.removeItem('nine_logout_step'); } catch (err) { /* 차단 */ }
+  if (logoutStep === 'tistory' && global.self === global.top) {
+    clearEntry();
+    global.location.replace('https://www.tistory.com/auth/logout?redirectUrl=' + encodeURIComponent(global.location.origin + '/'));
+    return;
+  }
+
   if (landingApplies && !hint() && !isGuest()) {
     withLanding(function (L) { if (!L.seen() && !isGuest() && !(current && current.authenticated)) L.show(false); });
   }
@@ -269,13 +277,6 @@
     setGuest(false);
     setHint(false);
     try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (err) { /* 차단 */ }
-  }
-  var logoutStep = null;
-  try { logoutStep = global.sessionStorage.getItem(LOGOUT_KEY); if (logoutStep) global.sessionStorage.removeItem(LOGOUT_KEY); } catch (err) { /* 차단 */ }
-  if (logoutStep === 'tistory' && global.self === global.top) {
-    clearEntry();
-    global.location.replace(TISTORY_LOGOUT);
-    return;
   }
   if (global.self === global.top) {
     doc.addEventListener('click', function (e) {
