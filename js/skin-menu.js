@@ -82,7 +82,7 @@
      NineAccess가 아직 로드되지 않았을 때도 같은 4개 주소만 허용한다(fail-closed). */
   var PUBLIC_HREFS = ['/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', '#story-series'];
   function menuAllows(href) {
-    if (window.NineAccess) return window.NineAccess.allowsHref(href);
+    if (window.NineAccess) return (window.NineAccess.menuAllowsHref || window.NineAccess.allowsHref)(href); // 캐시된 옛 게이트와 섞여도 동작
     return PUBLIC_HREFS.indexOf(href) >= 0;
   }
   // 이야기 시리즈(주식·채권 이야기 등)는 모든 페이지 푸터의 .site-footer-learn 카드 영역이다. 그 자리로 이동한다.
@@ -429,6 +429,7 @@
   // 정책 판정이 끝나면 메뉴를 다시 그린다(로그인·로그아웃·ON/OFF 변경 반영).
   var navNavigationWired = false;
   function onAccessReady() { refreshNav(); render(); }
+  render(); // 정책 응답을 기다리지 않고 즉시 그린다(직전 확인값 또는 공개 메뉴) - 응답이 오면 확정값으로 다시 그린다.
   if (window.NineAccess) window.NineAccess.ready.then(onAccessReady);
   else window.addEventListener('nineaccess:ready', onAccessReady, { once: true });
   window.addEventListener('nineaccess:change', onAccessReady); // 관리자 ON/OFF 저장 직후

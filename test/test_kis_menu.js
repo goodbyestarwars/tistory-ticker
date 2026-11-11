@@ -14,7 +14,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       window.kisAllowed=false;
       window.NineAPI={kisToolAccess:async()=>({allowed:window.kisAllowed})};
       // 2026-11-11: 메뉴는 서버 확인 관리자(NineAccess)일 때만 전체 표시 - 관리자 세션 스텁
-      window.NineAccess={allowsHref:()=>true,isAdmin:()=>true,ready:Promise.resolve()};
+      window.NineAccess={allowsHref:()=>true,menuAllowsHref:()=>true,isAdmin:()=>true,ready:Promise.resolve()};
     });
     await page.addScriptTag({content:fs.readFileSync('js/skin-menu.js','utf8')});
     await page.waitForTimeout(50);
