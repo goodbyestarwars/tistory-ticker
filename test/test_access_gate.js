@@ -3,14 +3,14 @@ const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const src = fs.readFileSync(__dirname + '/../js/access-gate.js', 'utf8');
 
 function boot(path, search, policyFn, session) {
-  const calls = { replace: [], fetches: [], events: [] };
+  const calls = { replace: [], fetches: [], events: [], scripts: [] };
   const store = Object.assign({}, session || {});
   const classes = new Set();
   const win = {
     location: { pathname: path, search: search || '', origin: 'https://ghlee.tistory.com', replace: (u) => calls.replace.push(u) },
     document: {
       documentElement: { classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c), toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) } },
-      head: { appendChild() {} }, addEventListener() {}, getElementById: () => null, createElement: () => ({ addEventListener() {} }),
+      head: { appendChild: (el) => { if (el && el.src) calls.scripts.push(el.src); } }, addEventListener() {}, getElementById: () => null, createElement: () => ({ addEventListener() {} }),
     },
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     sessionStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
@@ -22,10 +22,10 @@ function boot(path, search, policyFn, session) {
   vm.runInNewContext(src, win);
   return { win, calls, classes, store };
 }
-const policy = (admin, off = []) => () => Promise.resolve({ ok: true, json: () => Promise.resolve({ data: {
-  isAdmin: admin, authenticated: admin,
+const policy = (admin, off = [], authed = admin) => () => Promise.resolve({ ok: true, json: () => Promise.resolve({ data: {
+  isAdmin: admin, authenticated: authed,
   screens: Object.fromEntries(['guestbook','calendar','briefing','indicators','home','stocks','tools','my','market-temp','autotrader','kis'].map(k => {
-    const pub = ['guestbook','calendar','briefing'].includes(k); const en = !off.includes(k);
+    const pub = ['guestbook','calendar','briefing','news'].includes(k); const en = !off.includes(k);
     return [k, { public: pub, enabled: en, allowed: en && (pub || admin) }]; })) } }) });
 const fail = () => Promise.reject(new TypeError('network'));
 const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
@@ -63,6 +63,24 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   // 시장지표는 로그인 후: 비로그인·장애면 /guestbook 으로
   b = boot('/pages/kospi-futures', '', policy(false)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
   assert.deepStrictEqual(b.calls.replace, ['/guestbook']); assert(!ran);
+
+  // 비회원 전용 홈: 비회원 입장·로그인한 일반 회원의 '/'는 guest-home.js, 관리자는 전체 대시보드, 입장 전 비로그인은 대화방(시작 화면)
+  b = boot('/', '', policy(false), { nine_guest: '1' }); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
+  assert.deepStrictEqual(b.calls.replace, []); assert(!ran, 'dashboard code must not run for guests');
+  assert(b.calls.scripts.some((u) => /js\/guest-home\.js$/.test(u)), 'guest home module loads'); assert(b.win.NineAccess.isGuest());
+  b = boot('/', '', policy(false, [], true)); await wait();
+  assert(b.calls.scripts.some((u) => /js\/guest-home\.js$/.test(u)), 'logged-in non-admin gets guest home'); assert.deepStrictEqual(b.calls.replace, []);
+  b = boot('/', '', policy(true)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
+  assert(ran); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
+  b = boot('/', '', policy(false)); await wait();
+  assert.deepStrictEqual(b.calls.replace, ['/guestbook']); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
+  // 비회원 입장 상태의 비공개 URL은 대화방으로(시장지표·종목·MY 등)
+  b = boot('/page/foreign-flow', '', policy(false), { nine_guest: '1' }); await wait();
+  assert.deepStrictEqual(b.calls.replace, ['/guestbook']);
+  // 주요 뉴스는 공개
+  assert.strictEqual(s('/pages/main-news', ''), 'news');
+  b = boot('/pages/main-news', '', policy(false)); ran = false; b.win.NineAccess.run(() => { ran = true; }); assert(ran); await wait();
+  assert.deepStrictEqual(b.calls.replace, []);
 
   // 공개 화면은 판정을 기다리지 않고 시작, /guestbook은 반복 이동 없음
   b = boot('/guestbook', '', policy(false)); ran = false; b.win.NineAccess.run(() => { ran = true; }); assert(ran); await wait();

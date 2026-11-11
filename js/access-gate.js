@@ -18,7 +18,9 @@
   var FALLBACK = '/guestbook';
   var FROM_KEY = 'nine_access_from';
   var doc = global.document;
-  var PUBLIC = ['guestbook', 'calendar', 'briefing']; // 시장지표(indicators)는 로그인 후(서버 level=member)
+  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
+  var GUEST_KEY = 'nine_guest'; // 비회원 입장 표시(탭 단위 sessionStorage). 인증 상태가 아니다.
+  var GUEST_HOME_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/guest-home.js';
 
   /* ───── 경로 → 화면 키. 알 수 없는 경로(일반 글·기타 페이지)는 '' = 정책 대상 아님 ───── */
   function norm(path) {
@@ -35,7 +37,7 @@
     if (/^\/pages?\/stock-calendar$/.test(p)) return 'calendar';
     if (/^\/category\/마켓 ?브리핑(?:\/|$)/.test(p)) return 'briefing';
     if (/^\/pages?\/(?:kospi-futures|overnight-market)$/.test(p)) return 'indicators';
-    if (/^\/pages?\/main-news$/.test(p)) return 'market-temp';
+    if (/^\/pages?\/main-news$/.test(p)) return 'news';
     if (/^\/pages?\/market-temp$/.test(p)) return q.get('view') === 'stocks' ? 'stocks' : 'market-temp';
     if (/^\/pages?\/stock-search$/.test(p)) return q.get('tool') === 'independent-chart' ? 'tools' : 'stocks';
     if (/^\/pages?\/(?:foreign-flow|pattern-scan|strategy-search|dcf)(?:\/|$)/.test(p)) return 'stocks';
@@ -89,6 +91,7 @@
   }
   function menuAllowsScreen(key) {
     if (!key) return true;
+    if (key === 'home') return true; // 관리자는 전체 대시보드, 그 외는 비회원 전용 홈(guest-home.js)
     if (current) return allowsScreen(key);
     if (key === '@admin') return false;
     if (cached && cached.a && Object.prototype.hasOwnProperty.call(cached.a, key)) return !!cached.a[key];
@@ -98,7 +101,7 @@
   var readyResolve;
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
 
-  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'indicators', 'home', 'stocks', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
+  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'news', 'indicators', 'home', 'stocks', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
   function legacyPolicy() {
     return global.fetch(API + '/auth/google/me', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('me ' + r.status); return r.json(); })
@@ -205,6 +208,8 @@
   var HINT_KEY = 'nine_authed';
   function hint() { try { return global.localStorage.getItem(HINT_KEY) === '1'; } catch (e) { return false; } }
   function setHint(on) { try { if (on) global.localStorage.setItem(HINT_KEY, '1'); else global.localStorage.removeItem(HINT_KEY); } catch (e) { /* 차단 */ } }
+  function isGuest() { try { return global.sessionStorage.getItem(GUEST_KEY) === '1'; } catch (e) { return false; } }
+  function setGuest(on) { try { if (on) global.sessionStorage.setItem(GUEST_KEY, '1'); else global.sessionStorage.removeItem(GUEST_KEY); } catch (e) { /* 차단 */ } }
   var landingApplies = !!startScreen && global.self === global.top;
   var landingTag = null;
   function withLanding(fn) {
@@ -216,8 +221,21 @@
     }
     landingTag.addEventListener('load', function () { if (global.NineLanding) fn(global.NineLanding); });
   }
-  if (landingApplies && !hint()) {
-    withLanding(function (L) { if (!L.seen() && !(current && current.authenticated)) L.show(false); });
+  if (landingApplies && !hint() && !isGuest()) {
+    withLanding(function (L) { if (!L.seen() && !isGuest() && !(current && current.authenticated)) L.show(false); });
+  }
+
+  /* 비회원 전용 홈: 전체 대시보드 코드는 돌리지 않고(NineAccess.run이 막는다) 마켓브리핑·이야기 시리즈만 그린다. */
+  var guestTag = null;
+  function mountGuestHome() {
+    function go() { if (global.NineGuestHome) global.NineGuestHome.mount(); }
+    if (global.NineGuestHome) { go(); return; }
+    if (!guestTag) {
+      guestTag = doc.createElement('script');
+      guestTag.src = GUEST_HOME_URL;
+      (doc.head || doc.documentElement).appendChild(guestTag);
+    }
+    guestTag.addEventListener('load', go);
   }
 
   /* 네이버 버튼 표시 여부: 정책 응답에 없으면(서버 배포 전) 기존 /auth/google/me 로 확인한다. */
@@ -228,14 +246,16 @@
       .catch(function () { /* 버튼 없이 유지 */ });
   }
 
-  /* 비로그인이 홈·로고(송골매)·배너를 누르면 마켓브리핑(+푸터 이야기 시리즈)으로 보낸다. 로그인은 랜딩 왼쪽 하단 버튼. */
+  /* 로그인도 비회원 입장도 하지 않은 상태에서 홈·로고(송골매)·배너를 누르면 시작 화면(랜딩)을 다시 연다.
+     비회원 입장 상태에서는 기본 동작(/ = 비회원 홈)을 그대로 둔다. */
   if (global.self === global.top) {
     doc.addEventListener('click', function (e) {
-      if (current && current.authenticated) return;
+      if (isGuest() || hint() || (current && current.authenticated)) return;
       var t = e.target && e.target.closest ? e.target.closest('.nav-logo, [data-mtab="home"], a[href="/"], a[href="https://ghlee.tistory.com/"]') : null;
       if (!t || (t.closest && t.closest('#nineLanding'))) return;
       e.preventDefault();
-      global.location.assign('/category/마켓 브리핑'); // 마켓브리핑 + (푸터) 이야기 시리즈
+      try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (err) { /* 차단 */ }
+      withLanding(function (L) { if (!L.isOpen()) L.show(!!(current && current.naverConfigured)); });
     }, true);
   }
 
@@ -243,12 +263,16 @@
     .then(function () {
       applyClasses();
       if (current) cacheWrite(current); else { try { global.localStorage.removeItem(CACHE_KEY); } catch (e) { /* 차단 */ } }
+      // 로그아웃(직전까지 로그인 이력이 있었는데 지금은 아님) → 비회원 화면으로 전환
+      if (current && !current.authenticated && hint()) setGuest(true);
       setHint(!!(current && current.authenticated));
       if (landingApplies) {
-        if (current && current.authenticated) { if (global.NineLanding) global.NineLanding.close(); }
+        if ((current && current.authenticated) || isGuest()) { if (global.NineLanding) global.NineLanding.close(); }
         else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured)); if (!(current && current.naverConfigured)) probeNaver(L); });
       }
-      if (!allowsScreen(startScreen)) { redirectFallback(); return; }
+      if (startScreen === 'home' && !allowsScreen('home') && (isGuest() || (current && current.authenticated))) {
+        mountGuestHome(); // 관리자가 아닌 입장: 비회원 전용 홈
+      } else if (!allowsScreen(startScreen)) { redirectFallback(); return; }
       // 로그인 후 원래 가려던 화면으로 복귀(한 번만). 대화방에서 시작한 경우에만.
       var target = takeRemembered();
       if (target && /^\/guestbook(?:\/|$)/.test(norm(global.location.pathname))) {
@@ -271,6 +295,9 @@
     allowsHref: function (href) { return allowsScreen(screenOfHref(href)); },
     menuAllowsHref: function (href) { return menuAllowsScreen(screenOfHref(href)); },
     isAdmin: isAdmin,
+    isGuest: isGuest,
+    /* 비회원 입장: 인증 없이 공개 화면만. 인증된 사용자로 취급하지 않는다. */
+    enterGuest: function () { setGuest(true); },
     isLimited: function () { return !isAdmin(); },
     failed: function () { return failed; },
     policy: function () { return current; },

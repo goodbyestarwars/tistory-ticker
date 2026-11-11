@@ -1,5 +1,5 @@
 'use strict';
-// node test/test_access_landing.js (Playwright + Edge) - 로그인 랜딩: 공개 메뉴 4개·3개 로그인 경로·닫기/세션 기억
+// node test/test_access_landing.js (Playwright + Edge) - 시작 화면: 큰 버튼 2개, 로그인 모달(닫기·ESC·바깥 클릭·포커스), 비회원 입장
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
@@ -10,33 +10,49 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.goto('https://ghlee.tistory.com/guestbook', {waitUntil: 'commit'}).catch(() => {});
     await page.route('**/*', r => r.abort());
     await page.setContent('<html><head></head><body><a class="nav-manage-btn" href="https://www.tistory.com/manage">m</a></body></html>');
-    await page.addScriptTag({content: fs.readFileSync('js/access-landing.js', 'utf8')});
+    // 비회원 입장의 페이지 이동(location.assign('/'))만 플래그로 바꿔 검사한다
+    await page.addScriptTag({content: fs.readFileSync('js/access-landing.js', 'utf8').replace("global.location.assign('/')", "global.__guestGo = true")});
     await page.evaluate(() => window.NineLanding.show(true));
-    assert.deepEqual((await page.locator('.nl-nav a').allInnerTexts()).map(t => t.trim()), ['대화방', '캘린더', '마켓브리핑', '이야기 시리즈']);
-    assert.equal(await page.locator('.nl-card').isHidden(), true);
-    await page.click('.nl-loginfab');
-    const hrefs = await page.locator('.nl-card a').evaluateAll(a => a.map(x => x.getAttribute('href')));
+    // 시작 화면: 상단 공개 메뉴·로그인 버튼 없음, 왼쪽 하단 큰 버튼 2개
+    assert.equal(await page.locator('.nl-nav').count(), 0);
+    const names = (await page.locator('.nl-actions .nl-btn').allInnerTexts()).map(t => t.trim());
+    assert.deepEqual(names, ['로그인', '비회원 로그인']);
+    const boxes = await page.locator('.nl-actions .nl-btn').evaluateAll(a => a.map(n => { const r = n.getBoundingClientRect(); return {x: r.x, y: r.y, w: r.width, h: r.height}; }));
+    for (const b of boxes) { assert.ok(b.h >= 56 && b.h <= 64, 'button height ' + b.h); assert.ok(b.x >= 0 && b.x + b.w <= width + 1 && b.y + b.h <= 800, 'inside viewport ' + JSON.stringify(b)); }
+    if (width > 720) { assert.ok(boxes[0].w >= 200 && boxes[0].w <= 241 && boxes[0].x < width / 2, 'desktop width/left ' + JSON.stringify(boxes[0])); assert.ok(Math.abs(boxes[0].y - boxes[1].y) < 2, 'same row'); }
+    else assert.ok(boxes[1].y > boxes[0].y, 'stacked on mobile');
+    assert.equal(await page.locator('.nl-modal').isHidden(), true);
+    // 로그인 → 큰 모달 + 포커스 이동 + 3개 제공자
+    await page.click('[data-nl-login]');
+    assert.equal(await page.locator('.nl-modal').isHidden(), false);
+    const hrefs = await page.locator('.nl-card a.nl-pv').evaluateAll(a => a.map(x => x.getAttribute('href')));
     assert.ok(/\/auth\/google\/start\?return_to=/.test(hrefs[0]) && /\/auth\/naver\/start\?return_to=/.test(hrefs[1]) && /tistory\.com\/manage/.test(hrefs[2]), hrefs.join());
-    const box = await page.locator('.nl-card').boundingBox();
-    assert.ok(box.x >= 0 && box.x + box.width <= width + 1 && box.y >= 0 && box.y + box.height <= 800, 'card inside viewport ' + JSON.stringify(box));
-    await page.click('.nl-back');
-    assert.equal(await page.locator('.nl-card').isHidden(), true);
-    // 현재 화면과 같은 메뉴를 누르면 닫히고 세션 동안 다시 뜨지 않는다
-    await page.evaluate(() => { history.replaceState(null, '', '/guestbook'); });
-    await page.locator('.nl-nav a', {hasText: '대화방'}).click();
-    await page.waitForTimeout(50);
+    const card = await page.locator('.nl-card').boundingBox();
+    assert.ok(card.x >= 0 && card.x + card.width <= width + 1 && card.y >= 0 && card.y + card.height <= 800 + 1, 'card inside ' + JSON.stringify(card));
+    if (width > 720) assert.ok(card.width >= 560 && card.width <= 601, 'modal width ' + card.width);
+    assert.equal(await page.evaluate(() => document.activeElement.classList.contains('nl-pv')), true, 'focus moves into modal');
+    // 포커스 가둠: 마지막에서 Tab → 첫 요소(닫기 버튼 또는 첫 제공자)
+    for (let i = 0; i < 8; i++) await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => !!document.activeElement.closest('.nl-modal')), true, 'focus stays inside modal');
+    // ESC / 닫기 버튼 / 바깥 클릭
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.nl-modal').isHidden(), true, 'ESC closes');
+    await page.click('[data-nl-login]'); await page.click('.nl-x');
+    assert.equal(await page.locator('.nl-modal').isHidden(), true, 'x closes');
+    await page.click('[data-nl-login]'); await page.mouse.click(4, 4);
+    assert.equal(await page.locator('.nl-modal').isHidden(), true, 'outside click closes');
+    // 로그인 확인되면 시작 화면이 닫힌다
+    await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.settle({authenticated: true}); });
     assert.equal(await page.locator('#nineLanding').count(), 0);
-    assert.equal(await page.evaluate(() => window.NineLanding.seen()), true);
-    // 로고/홈 클릭 → 이동하지 않고 로그인 카드가 바로 열린다
-    await page.evaluate(() => window.NineLanding.showLogin(true));
-    assert.equal(await page.locator('.nl-card').isHidden(), false);
-    assert.equal(await page.locator('.nl-login').count(), 0, 'top nav has no login button');
-    await page.evaluate(() => window.NineLanding.close());
-    // 로그인 확인되면 닫힌다
-    await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.show(false); window.NineLanding.settle({authenticated: true}); });
+    // 비회원 로그인: 인증 없이 비회원 표시(sessionStorage)를 남기고 시작 화면을 닫는다
+    await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.show(false); });
+    await page.evaluate(() => document.querySelector('[data-nl-guest]').click());
+    assert.equal(await page.evaluate(() => window.__guestGo), true, 'guest goes to /');
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('nine_guest')), '1');
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('nine_authed') || localStorage.getItem('nine_authed')), null, 'guest is not authenticated');
     assert.equal(await page.locator('#nineLanding').count(), 0);
     console.log('PASS landing', width);
     await page.close();
   }
   await browser.close();
-})().catch(e => { console.error(e); process.exitCode = 1; });
+})().catch(e => { console.error(e); process.exit(1); });

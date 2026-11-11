@@ -1,0 +1,6 @@
+/* 비회원 전용 홈(js/guest-home.js). 카드·캐러셀 스타일은 style.css 의 홈 브리핑 섹션 규칙을 그대로 쓰고,
+   여기서는 두 영역의 간격만 맞춘다. */
+.guest-home { display: grid; gap: 40px; width: 100%; }
+.guest-home .guest-home-state { padding: 28px 8px; text-align: center; color: var(--ui-muted, #6b7280); }
+.guest-home .guest-home-stories .site-footer-learn { margin: 0; }
+html.guest-home-mode .feed > .guest-home { margin-top: 8px; }

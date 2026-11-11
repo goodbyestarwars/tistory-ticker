@@ -120,17 +120,17 @@
   function limitedViewer() { return !(global.NineAccess && global.NineAccess.isAdmin()); }
   function limitedTab() {
     var key = global.NineAccess ? global.NineAccess.screenOf(location.pathname, location.search) : '';
-    return key === 'guestbook' || key === 'calendar' || key === 'briefing' || key === 'indicators' ? key : '';
+    if (key === 'briefing' || key === 'news' || key === 'indicators') return 'market';
+    return key === 'guestbook' || key === 'calendar' || key === 'home' ? key : '';
   }
   function barHtml() {
     var more = '<button type="button" class="mtab-bar-item" data-mtab="more" aria-haspopup="dialog" aria-expanded="false">' + svg('more') + '<span>더보기</span></button>';
     if (limitedViewer()) {
-      return '<a class="mtab-bar-item" data-mtab="guestbook" href="/guestbook">' + svg('chat') + '<span>대화방</span></a>' +
+      // 비회원(및 관리자가 아닌 입장): 홈 / 시장(마켓브리핑·주요뉴스) / 캘린더 / 대화방. 상단 메뉴·서랍과 같은 정책.
+      return '<a class="mtab-bar-item" data-mtab="home" href="/">' + svg('home') + '<span>홈</span></a>' +
+        '<a class="mtab-bar-item" data-mtab="market" href="/category/마켓 브리핑">' + svg('market') + '<span>시장</span></a>' +
         '<a class="mtab-bar-item" data-mtab="calendar" href="/page/stock-calendar">' + svg('calendar') + '<span>캘린더</span></a>' +
-        '<a class="mtab-bar-item" data-mtab="briefing" href="/category/마켓 브리핑">' + svg('briefing') + '<span>브리핑</span></a>' +
-        (global.NineAccess && global.NineAccess.policy() && global.NineAccess.policy().authenticated
-          ? '<a class="mtab-bar-item" data-mtab="indicators" href="/pages/kospi-futures">' + svg('market') + '<span>시장지표</span></a>'
-          : '<a class="mtab-bar-item" data-mtab="stories" href="/guestbook#story-series">' + svg('briefing') + '<span>이야기</span></a>') + more;
+        '<a class="mtab-bar-item" data-mtab="guestbook" href="/guestbook">' + svg('chat') + '<span>대화방</span></a>' + more;
     }
     return '<a class="mtab-bar-item" data-mtab="home" href="/">' + svg('home') + '<span>홈</span></a>' +
       '<a class="mtab-bar-item" data-mtab="market" href="/page/market-temp">' + svg('market') + '<span>시장</span></a>' +
