@@ -67,9 +67,9 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   // 비회원 전용 홈: 비회원 입장·로그인한 일반 회원의 '/'는 guest-home.js, 관리자는 전체 대시보드, 입장 전 비로그인은 대화방(시작 화면)
   b = boot('/', '', policy(false), { nine_guest: '1' }); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
   assert.deepStrictEqual(b.calls.replace, []); assert(!ran, 'dashboard code must not run for guests');
-  assert(b.calls.scripts.some((u) => /js\/guest-home\.js$/.test(u)), 'guest home module loads'); assert(b.win.NineAccess.isGuest());
+  assert(b.calls.scripts.some((u) => /js\/guest-home\.js(?:\?.*)?$/.test(u)), 'guest home module loads'); assert(b.win.NineAccess.isGuest());
   b = boot('/', '', policy(false, [], true)); await wait();
-  assert(b.calls.scripts.some((u) => /js\/guest-home\.js$/.test(u)), 'logged-in non-admin gets guest home'); assert.deepStrictEqual(b.calls.replace, []);
+  assert(b.calls.scripts.some((u) => /js\/guest-home\.js(?:\?.*)?$/.test(u)), 'logged-in non-admin gets guest home'); assert.deepStrictEqual(b.calls.replace, []);
   b = boot('/', '', policy(true)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
   assert(ran); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
   b = boot('/', '', policy(false)); await wait();
