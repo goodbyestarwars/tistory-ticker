@@ -40,3 +40,12 @@
 ## 2026-11-12 연구 후보 수집 인증 복구
 
 연구 수집기의 익명 `/pattern-scan` 조회가 401로 실패하던 것을 기존 제어 HMAC 검증으로 인증한다. Google의 기존 CONTROL_SECRET과 Oracle의 기존 AUTOTRADER_CONTROL_SECRET을 그대로 사용한다(새 키·복사 없음). `X-Ts`/`X-Sig` 서명 본문은 `GET /pattern-scan` 고정 바이트이며 60초 창, 정확한 GET/경로에만 유효하다. 제어 sync 본문 서명과 분리하며 익명·일반 회원 제한과 주문 게이트는 유지한다.
+
+## 2026-11-12 원천 시세 API 접근 차단(공급자 권한 확인 전)
+
+- 관리자 전용: `/futures` 및 하위 `/futures/avg`·`/futures/refresh-macro` 등 경로 전체. `access_policy.RESTRICTED_PREFIXES`의 공통 HTTP 미들웨어가 비로그인 401, 일반 회원 403(관리자 인증 설정 오류 503)으로 거절한다. 내부 서버 호출의 기존 X-API-Key 예외는 유지.
+- 관리자 전용: `/ws/market-indicators`. 기존 Origin 검사에 더해 `_access_denied(websocket)`를 `websocket.accept()` **이전**에 실행한다. 비관리자는 1008 종료, 최초 스냅샷 및 스트리밍 데이터 모두 미전달.
+- 일반 회원 `indicators` 화면 등급은 기존 `member` 그대로 유지되지만, 위 두 경로의 시세는 접근 불가하다. 비회원 홈·뉴스·마켓브리핑·캘린더·대화방과 이외 API·키움/KIS 수집·주문 기능은 불변.
+- 이는 공개 화면에서 원천 시세가 노출되던 경계 수정이며 공급자별 재배포 권한 확인·공개용 데이터 교체와 별개. `/domestic-market-indicators`·`/fx-rates`·`/kofia-market` 등 **다른 API의 권한 상태는 변경하지 않았다**.
+- 배포: master → Oracle `kiwoom-deploy.timer` 경로. 평일 08:00~20:00 KST에는 `deploy_check.sh`가 VM 코드 변경의 pull·복사·재시작을 보류하고 20:00 이후 재시도한다. GitHub 커밋과 운영 적용을 구분해 확인한다.
+
