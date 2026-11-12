@@ -1,3 +1,10 @@
+**2026-11-12 /futures·시장지표 WS 비관리자 원천시세 노출 차단**
+
+- 문제: 비회원·일반 회원은 시세 화면이 대부분 막혔지만 `/futures`(원자재·국채·가상자산 등을 합친 REST/일봉/평균)와 `/ws/market-indicators`(시세 스냅샷)가 공개 접근 가능했다. URL 직접 요청/WS Origin 일치로 시세 열람 가능.
+- 수정: `scripts/cloud-vm/access_policy.py`에 `/futures` 접두사 추가하여 하위 경로 전체를 기존 관리자 인증 미들웨어(익명 401·일반 회원 403·미구성 503)로 보호. `main.py` 시장지표 WS에 `_access_denied(websocket)`를 `accept()` 전에 적용, 비관리자 1008 종료. 기존 내부 X-API-Key 호출 유지, 다른 API·화면 등급·시세 공급자·실주문 불변.
+- 검증: `test/test_access_policy.py`의 제한/공개 REST 목록을 보정하고 WS 인가 전 거절·접두사 경계 회귀 테스트 추가. 일반 회원 시장지표 메뉴 자체는 `member` 등급으로 그대로 남아 있으며 해당 시세 응답만 제한된다.
+- 배포: master → Oracle 기존 자동 배포. `deploy_check.sh`의 평일 08:00~20:00 KST 피드 보호 시간에는 서버 pull·재시작 보류, 이후 배포 확인 필요.
+
 **2026-11-12 종목 차트 마우스 조작 경량화·보조지표 버튼 아이콘**
 
 증상: 지수 차트보다 종목 차트의 이동·확대·십자선이 무거움. 원인(모의 하네스 CPU 프로파일): `NineUI.number`가 호출마다 `toLocaleString('ko-KR')`로 포맷터를 새로 만들어 확대 중 CPU 1위(679ms), 종목 OHLC 툴팁이 십자선 이벤트마다 `innerHTML`을 다시 그림(634ms). 수정: `skin-shell.js` 숫자 포맷을 `Intl.NumberFormat` 캐시로(출력 동일, 전 화면 공통), `stock-search.js` 툴팁을 프레임당 1회로 모으고 같은 봉에서는 위치만 갱신. 측정(1920px, 같은 조작): 확대 CPU 5,693 → 3,220ms·프레임 p95 66.6 → 33.4ms, 이동 CPU 4,085 → 2,589ms·같은 시간 프레임 수 266 → 421. 보조지표 버튼은 ‘+’ 글자 대신 채운 원 안의 추세선+더하기 아이콘과 테두리 알약 모양(`ui-system.css`, 다크 포함). 검증: `test_chart_core`·`chart_interactions`·`chart_toolbar_capture_layout`·`http_client` 통과, 그 외 실패 항목은 수정 전후 동일.
