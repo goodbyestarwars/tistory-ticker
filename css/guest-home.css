@@ -88,6 +88,42 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
   line-height: 1.5;
 }
 .gnt-market { font-weight: 500; }
+/* 기사에 직접 명시된 종목만, 가격 정보 없는 연녹색 태그로 표시한다. */
+.gnt-related {
+  display: flex;
+  align-items: center;
+  align-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 2px;
+  padding-top: 9px;
+  border-top: 1px solid var(--ui-rule);
+}
+.gnt-related-label { margin-right: 2px; color: var(--ui-muted); font-size: 11px; white-space: nowrap; }
+.gnt-stock-badge {
+  display: inline-flex;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 4px 9px;
+  border: 1px solid #b9dfc5;
+  border-radius: 999px;
+  background: #e8f7ed;
+  color: #21603b;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html.dark .gnt-related { border-color: var(--dk-line); }
+html.dark .gnt-related-label { color: var(--dk-mute); }
+html.dark .gnt-stock-badge {
+  background: color-mix(in srgb, var(--dk-card) 76%, #72b78a);
+  border-color: color-mix(in srgb, var(--dk-line) 60%, #72b78a);
+  color: #c6f2d4;
+}
 .gnt-press + .gnt-market::before { content: "·"; margin-right: 8px; }
 .gnt-marker {
   position: absolute;

@@ -754,6 +754,10 @@
   // 종목 작업 화면(js/stock-workspace.js)이 같은 저장소(stock:lastSelected·stock:recent)와 관심종목 목록을 재사용한다.
   var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist, closeGlobalWatchlist: closeGlobalWatchlist,
     getRecent: getRecent, getFavorites: getFavorites,
+    // 뉴스에서도 이미 있는 미국 종목 사전을 이름 확인용으로만 재사용(시세·인증 호출 없음).
+    knownUsStocks: function () { return LOCAL_US_SYMBOLS.map(function (row) {
+      return { symbol: row.symbol, name: row.name, aliases: row.aliases };
+    }); },
     getLast: function () { try { return localStorage.getItem(STORAGE_LAST) || ''; } catch (err) { return ''; } },
     remember: function (code, name) { if (!code) return; setLast(code); addRecent(code, name || code); } };
   global.StockSearchPanel = StockSearchPanel;
