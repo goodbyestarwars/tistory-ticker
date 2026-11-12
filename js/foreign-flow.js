@@ -2611,7 +2611,7 @@
       + '<details class="ff-cloud-all"><summary>전체 핵심어·기사 수</summary><div></div></details>'
       + '<section class="ff-cloud-evidence" aria-label="핵심어 근거 기사"><h4>핵심어를 선택하면 근거 기사를 표시합니다</h4><div></div></section>'
       + '<details class="ff-cloud-interest"><summary>이슈별 검색 관심도 (보조)</summary><div></div></details>'
-      + '<p class="ff-cloud-note">이메일·URL·기자 서명을 제외하고 제목·검색 요약에서 기업 언급을 확인했습니다. 핵심어는 기사 제목에서 추출하며 같은 기사는 핵심어마다 한 번만 셉니다. 동일 제목·URL은 중복 제거합니다. 최소 2건 반복된 상위 40개 핵심어와 최근 20일 이내의 대표 기사 최대 5건을 제공합니다. 전체 기사나 전체 시장의 언급량을 뜻하지 않습니다.</p>';
+      + '<p class="ff-cloud-note">이메일·URL·기자 서명을 제외하고 제목에 기업명·별칭이 직접 언급된 기사만 집계했습니다. 핵심어는 기사 제목에서 추출하며 같은 기사는 핵심어마다 한 번만 셉니다. 동일 제목·URL은 중복 제거합니다. 최소 2건 반복된 상위 40개 핵심어와 최근 20일 이내의 대표 기사 최대 5건을 제공합니다. 전체 기사나 전체 시장의 언급량을 뜻하지 않습니다.</p>';
   }
 
   function wireMomentumCloud(box, data) {

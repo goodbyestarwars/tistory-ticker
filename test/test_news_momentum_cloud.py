@@ -24,7 +24,11 @@ class KeywordCloudTests(unittest.TestCase):
     def test_title_and_clean_summary_mentions_and_aliases(self):
         items=[article('네이버 AI 클라우드 확대'), article('NAVER 커머스 매출 증가'),
                article('클라우드 계약 체결', '네이버는 기업용 서비스를 공급했다.')]
-        self.assertEqual(len(nm.relevant_news('035420','NAVER',items,TODAY)),3)
+        self.assertEqual(len(nm.relevant_news('035420','NAVER',items,TODAY)),2)
+    def test_summary_only_market_roundup_and_english_stopwords(self):
+        self.assertEqual(nm.relevant_news('035420','NAVER',[article('삼성전자 반도체 수출 증가','NAVER도 상승했다')],TODAY),[])
+        words=nm._headline_keywords('Naver to launch new AI cloud logistics robot service','035420','NAVER')
+        self.assertIn('AI',words);self.assertIn('물류',words);self.assertNotIn('TO',words)
     def test_dedup_url_and_normalized_title(self):
         items=[article('NAVER AI 매출 증가',url='https://a/1'),
                article('NAVER AI 매출 증가!',url='https://b/2'),

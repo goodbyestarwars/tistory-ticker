@@ -203,7 +203,7 @@ GAS `getStrategyScanResult`와 필드 projection이 같다. 파일 mtime별 JSON
 
 ### `GET /news-momentum/{code}`
 
-2026-11-13: 기존 `topics`/DataLab 계약은 보존하고 `keywordCloud`를 추가한다. `null`은 관련성 재집계 대기(기존 집계를 대체 표시하지 않음). v2는 `dataAsOf`·`generatedAt`·`stale`·`expired`·`rejectedCount`·`verifiedTopicNames`와 `windows["7"|"30"] = {articleCount, keywords:[{text,count,articles:[{title,url,date}]}]}`다. 제목/검색 요약에서 이메일·URL·기자 서명을 제거한 뒤 기업명/명시적 별칭을 확인하고, 동일 제목/URL 중복 제거 후 제목 핵심어별 기사 수를 센다. 최소 2건·상위40개, 링크는 최근20일 대표 최대5건이다. 검색 결과 표본이며 전체시장 빈도·긍부정 점수가 아니다. 부분 수집·기준일은 명시한다. 배치 예산·순환 커서·사용자 요청의 외부 API 미호출은 유지한다.
+2026-11-13: 기존 `topics`/DataLab 계약은 보존하고 `keywordCloud`를 추가한다. `null`은 관련성 재집계 대기(기존 집계를 대체 표시하지 않음). v2는 `dataAsOf`·`generatedAt`·`stale`·`expired`·`rejectedCount`·`verifiedTopicNames`와 `windows["7"|"30"] = {articleCount, keywords:[{text,count,articles:[{title,url,date}]}]}`다. 제목에서 이메일·URL·기자 서명을 제거한 뒤 기업명/명시적 별칭을 확인하고, 동일 제목/URL 중복 제거 후 제목 핵심어별 기사 수를 센다. 최소 2건·상위40개, 링크는 최근20일 대표 최대5건이다. 검색 결과 표본이며 전체시장 빈도·긍부정 점수가 아니다. 부분 수집·기준일은 명시한다. 배치 예산·순환 커서·사용자 요청의 외부 API 미호출은 유지한다.
 
 
 | 항목 | 내용 |

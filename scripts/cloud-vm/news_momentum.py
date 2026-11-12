@@ -426,13 +426,13 @@ COMPANY_ALIASES = {'035420': ('NAVER', '네이버'), '035720': ('카카오', 'KA
 CLOUD_TERMS = {
     'AI': r'(?<![A-Za-z])AI(?![A-Za-z])|인공지능',
     'HBM': r'(?<![A-Za-z])HBM\d*[A-Za-z]?(?![A-Za-z])|고대역폭\s*메모리',
-    '클라우드': r'클라우드', '커머스': r'커머스|전자상거래', '광고': r'광고',
-    '검색': r'검색', '반도체': r'반도체', '데이터센터': r'데이터\s*센터',
+    '클라우드': r'클라우드|\bcloud\b', '커머스': r'커머스|전자상거래|\bcommerce\b', '광고': r'광고|\badvertising\b',
+    '검색': r'검색|\bsearch\b', '반도체': r'반도체|\bsemiconductors?\b', '데이터센터': r'데이터\s*센터|\bdata\s*centers?\b',
     '플랫폼': r'플랫폼', '콘텐츠': r'콘텐츠|컨텐츠', '웹툰': r'웹툰',
     '전기차': r'전기차', '자율주행': r'자율\s*주행', '배터리': r'배터리|이차전지|2차전지',
-    '로봇': r'로봇', '신약': r'신약', '임상': r'임상', '백신': r'백신',
+    '로봇': r'로봇|\brobots?\b', '물류': r'물류|\blogistics\b', '신약': r'신약', '임상': r'임상', '백신': r'백신',
     '조선': r'조선', '방산': r'방산|방위산업', '원전': r'원전|원자력',
-    '실적': r'실적', '영업이익': r'영업\s*이익', '매출': r'매출', '흑자': r'흑자',
+    '실적': r'실적', '영업이익': r'영업\s*(?:이익|익)|\boperating\s*profit\b', '매출': r'매출|\brevenues?\b', '흑자': r'흑자',
     '적자': r'적자', '수주': r'수주', '공급계약': r'공급\s*계약', '증설': r'증설',
     '인수합병': r'인수|합병|M&A', '배당': r'배당', '자사주': r'자사주',
     '소송': r'소송', '규제': r'규제|제재', '투자': r'투자', '협력': r'협력|제휴',
@@ -443,6 +443,8 @@ CLOUD_STOP = STOP_WORDS | MARKET_SESSION_WORDS | {
     '경제', '한국', '서울', '대해', '위해', '있는', '있다', '한다', '기록', '돌파',
     '기대', '주목', '목표', '목표가', '유지', '분석', '보고서', '이유', '대비',
     '발표', '체결', '사업', '추진', '진출', '성과', '달성', '나선다', '선정', '가운데',
+    'TO', 'OF', 'AND', 'THE', 'IN', 'ON', 'AT', 'BY', 'FOR', 'WITH', 'FROM', 'AS',
+    'IS', 'ITS', 'IT', 'US', 'AN', 'OR', 'BE', 'NEW', 'NOW', 'HIS', 'HAS', 'ARE',
 }
 
 
@@ -483,8 +485,9 @@ def relevant_news(stock_code, stock_name, items, today=None):
     for item in items or []:
         title = _editorial_text(item.get('title'))
         description = _editorial_text(item.get('description'))
-        # Very short/ambiguous names require a headline mention.
-        if not _has_company(title, aliases) and not (len(stock_name) > 2 and _has_company(description, aliases)):
+        # A summary-only mention can be a market roundup/list, not a company story.
+        # Prefer precision: require an editorial headline mention for every stock.
+        if not _has_company(title, aliases):
             continue
         raw_date = item.get('pubDate') or item.get('datetime')
         try:
@@ -515,6 +518,8 @@ def _headline_keywords(title, stock_code, stock_name):
             text = re.sub(pattern, ' ', text, flags=re.I)
     # Conservative nouns/acronyms supplement the shared domain phrases, no morphological model.
     for token in re.findall(r'[A-Za-z][A-Za-z0-9]{1,14}|[가-힣]{2,12}', text):
+        if token.isascii() and not token.isupper():
+            continue  # English function words/verbs are not headline keywords; phrases above are normalized.
         token = re.sub(r'(에서는|으로는|에서|으로|까지|부터|에도|보다|의|은|는|을|를|이|가|와|과)$', '', token)
         if len(token) < 2 or token in CLOUD_STOP or token in _WEAK_KEYWORD_TOKENS:
             continue
@@ -555,7 +560,7 @@ def build_keyword_cloud(stock_code, stock_name, items, today=None):
         words.sort(key=lambda w: (-w['count'], w['text']))
         windows[str(days)] = {'articleCount': len(selected), 'keywords': words[:40]}
     return {'version': 2, 'dataAsOf': today.isoformat(), 'generatedAt': _iso_now(),
-            'method': 'company-relevance-headline-article-frequency-v2',
+            'method': 'company-headline-article-frequency-v2',
             'rejectedCount': len(items or []) - len(articles), 'windows': windows}
 
 
@@ -573,6 +578,8 @@ def _load_keyword_cloud(row, today=None):
     today = today or datetime.now(KST).date()
     try:
         cloud = json.loads(row['keyword_cloud_json'])
+        if cloud.get('method') != 'company-headline-article-frequency-v2':
+            return None
         asof = date.fromisoformat(cloud['dataAsOf'])
     except (ValueError, TypeError, KeyError):
         return None
@@ -960,7 +967,7 @@ def load_coverage_dates(conn, require_cloud=False):
     for row in conn.execute(
         'SELECT stock_code, updated_at, keyword_cloud_json FROM news_stock_coverage'
     ).fetchall():
-        if require_cloud and not row['keyword_cloud_json']:
+        if require_cloud and not _load_keyword_cloud(row):
             continue  # Rebuild old unverified snapshots without resetting the cursor or budgets.
         updated_at = row['updated_at']
         if not updated_at:
