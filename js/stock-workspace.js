@@ -25,7 +25,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-workspace\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CSS_URL = BASE + 'css/stock-workspace.css?v=20261113-news-panel2';
+  var CSS_URL = BASE + 'css/stock-workspace.css?v=20261113-news-panel4';
   var PROFILES_URL = BASE + 'data/company-profiles.js';
   var API = 'https://goodbyestar.cloud';
   var FLOW_TTL_MS = 5 * 60 * 1000; // 서버 캐시와 같은 5분
@@ -364,6 +364,14 @@
         .filter(function (r) { return num(r[1]) != null; });
       if (qRows.length) html += '<h5 class="ssw-sub">최근 실적 <small>' + esc(q.period_label || q.label || '') + ' · 전년 동기 대비</small></h5>'
         + '<table class="ssw-table"><tbody>' + qRows.map(function (r) {
+          return '<tr><th scope="row">' + r[0] + '</th><td class="' + loss(r[1]) + '">' + won(r[1]) + '</td><td class="' + tone(r[2]).trim() + '">' + pct(r[2], true) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+      // 올해 누적(정기보고서로 확인된 분기까지, 종목분석 펀더멘탈과 같은 1~3분기 조건). 연간 추정치가 아니다.
+      var ytd = q.ytd && q.ytd.through_quarter >= 1 && q.ytd.through_quarter <= 3 ? q.ytd : null;
+      var yRows = ytd ? [['매출액', ytd.revenue, ytd.revenue_yoy_pct], ['영업이익', ytd.operating_income, ytd.operating_income_yoy_pct], ['순이익', ytd.net_income, ytd.net_income_yoy_pct]]
+        .filter(function (r) { return num(r[1]) != null; }) : [];
+      if (yRows.length) html += '<h5 class="ssw-sub">올해 누적 <small>' + esc(ytd.year) + '년 ' + (ytd.through_quarter === 1 ? '1분기' : '1~' + ytd.through_quarter + '분기') + ' · 전년 동기 대비</small></h5>'
+        + '<table class="ssw-table"><tbody>' + yRows.map(function (r) {
           return '<tr><th scope="row">' + r[0] + '</th><td class="' + loss(r[1]) + '">' + won(r[1]) + '</td><td class="' + tone(r[2]).trim() + '">' + pct(r[2], true) + '</td></tr>';
         }).join('') + '</tbody></table>';
     }
