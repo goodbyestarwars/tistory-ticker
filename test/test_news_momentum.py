@@ -1054,7 +1054,7 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertIn('PYTHON="$APP_DIR/venv/bin/python"', script)
         self.assertIn('if [ "$(id -un)" != "goodbyestarwars" ]', script)
         self.assertIn('TZ=Asia/Seoul date +%F', script)
-        self.assertIn('MOMENTUM_SCHEMA_VERSION="3"', script)
+        self.assertIn('MOMENTUM_SCHEMA_VERSION="4"', script)
         self.assertIn('flock -n -E 75', script)
         # 2026-08-02: 파일럿 8종목 고정 목록 -> 전 상장종목 커서 이어달리기(--full)
         self.assertIn('--full', script)
@@ -1179,3 +1179,4 @@ class NewsMomentumTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

@@ -2604,7 +2604,7 @@
     var coverage = data.coverage || {};
     return intro + '<div class="ff-cloud-controls" role="group" aria-label="뉴스 핵심어 기간">'
       + '<button type="button" data-cloud-days="7" aria-pressed="true">최근 7일</button><button type="button" data-cloud-days="30" aria-pressed="false">최근 30일</button></div>'
-      + '<p class="ff-cloud-meta">기준일 ' + escapeHtml(cloud.dataAsOf) + (cloud.stale ? ' · 갱신 지연' : '')
+      + '<p class="ff-cloud-meta">자료: NAVER 뉴스 검색 · 기준일 ' + escapeHtml(cloud.dataAsOf) + (cloud.stale ? ' · 갱신 지연' : '')
       + ' · 수집 범위 ' + escapeHtml(coverage.actualStartDate || '—') + ' ~ ' + escapeHtml(coverage.actualEndDate || '—')
       + (coverage.backfillComplete ? ' · 기간 수집 완료' : ' · 부분 수집') + '</p>'
       + '<p class="ff-cloud-count" aria-live="polite"></p><div class="ff-wordcloud" aria-label="뉴스 핵심어 워드클라우드"></div>'
@@ -2635,7 +2635,7 @@
       b.onclick = function () { evidence(word); }; return b;
     }
     function layout() {
-      if (!box.isConnected) { if (sizeObserver) sizeObserver.disconnect(); return; }
+      if (!box.isConnected || !area.isConnected) { if (sizeObserver) sizeObserver.disconnect(); return; }
       var windowData = (cloud.windows || {})[days] || {keywords:[],articleCount:0};
       var words = windowData.keywords || [], width = area.clientWidth;
       if (!width) return;
