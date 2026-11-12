@@ -2,8 +2,7 @@
 
 - 비로그인(비회원)·일반 회원: 대화방·캘린더·마켓브리핑·주요 뉴스 + 비회원 전용 홈(클라이언트 화면). 로그인한 일반 회원은 시장지표를 더한다.
 - 관리자(Google 관리자 세션): 기존 9Pay 전체. 일반 회원에게 시세/분석 API를 인증만으로 열지 않는다.
-- 관리자가 화면별 ON/OFF를 서버에 저장한다. 공개 범위는 PUBLIC_SCREENS 고정 집합이며
-  ON/OFF로 넓힐 수 없다(증권사 시세 이용허가는 별개의 결정이다).
+- 관리자는 비회원/일반회원/관리자 화면 표시를 독립적으로 설정한다. 최대 허용 등급과 시세/주문 경계는 변경하지 않는다.
 - 저장 실패·파일 손상 시 기본 정책(전부 ON)으로 읽고, 쓰기 실패는 이전 정책을 유지한다.
 """
 import os
@@ -34,6 +33,12 @@ SCREENS = {
 PUBLIC_SCREENS = frozenset(k for k, (_, lv) in SCREENS.items() if lv == 'public')
 # 로그인 이동 목적지(/guestbook)와 비로그인 허용 화면이 꺼져 리다이렉트가 반복되지 않도록 고정한다.
 LOCKED_ON = frozenset({'guestbook'})
+# 기존 public/member/admin 최대 등급은 관리자가 설정해도 넘길 수 없다.
+ROLE_PERMISSIONS = {
+    'public': ('guest', 'member', 'admin'),
+    'member': ('member', 'admin'),
+    'admin': ('admin',),
+}
 
 # 관리자 전용 REST 경로 접두사. 종목 단위 시세·분석·수급·검색기와 원천 시세가 섞인
 # /futures(하위 /futures/avg 등 포함)를 보호한다. 회원 시장지표 메뉴가 열려 있어도
@@ -66,7 +71,13 @@ def is_restricted_path(path):
 
 
 def default_state():
-    return {'screens': {k: True for k in SCREENS}, 'revision': 0, 'updatedAt': None, 'updatedBy': None}
+    # 구형 screens bool은 관리자 열의 ON/OFF로 유지한다.
+    return {
+        'screens': {k: True for k in SCREENS},
+        'roles': {k: {role: role in ROLE_PERMISSIONS[level] for role in ('guest', 'member', 'admin')}
+                  for k, (_, level) in SCREENS.items()},
+        'revision': 0, 'updatedAt': None, 'updatedBy': None,
+    }
 
 
 def load_state():
@@ -75,28 +86,42 @@ def load_state():
         import json
         with open(STATE_PATH, 'r', encoding='utf-8') as f:
             saved = json.load(f)
+        # 구형 화면 ON/OFF 값을 허용되는 모든 역할에 그대로 이관한다.
         for key, value in (saved.get('screens') or {}).items():
             if key in SCREENS and isinstance(value, bool):
-                state['screens'][key] = value
+                for role in ROLE_PERMISSIONS[SCREENS[key][1]]:
+                    state['roles'][key][role] = value
+        # 신규 역할별 값이 있으면 우선하며, 최대 허용 등급 밖은 무시한다.
+        for key, settings in (saved.get('roles') or {}).items():
+            if key not in SCREENS or not isinstance(settings, dict):
+                continue
+            for role in ROLE_PERMISSIONS[SCREENS[key][1]]:
+                if isinstance(settings.get(role), bool):
+                    state['roles'][key][role] = settings[role]
         state['revision'] = int(saved.get('revision') or 0)
         state['updatedAt'] = saved.get('updatedAt')
         state['updatedBy'] = saved.get('updatedBy')
     except (OSError, ValueError, TypeError, AttributeError):
         pass
     for key in LOCKED_ON:
-        state['screens'][key] = True
+        for role in ROLE_PERMISSIONS[SCREENS[key][1]]:
+            state['roles'][key][role] = True
+    state['screens'] = {key: settings['admin'] for key, settings in state['roles'].items()}
     return state
 
 
 def view(authenticated, is_admin):
-    """뷰어에게 보여 줄 정책. 비관리자에게는 공개 화면의 ON/OFF만 계산해 내려보낸다."""
+    """서버 인증 역할의 허용값만 적용. 관리자는 편집용 역할 행렬을 함께 받는다."""
     state = load_state()
+    viewer = 'admin' if is_admin else ('member' if authenticated else 'guest')
     screens = {}
     for key, (label, level) in SCREENS.items():
-        enabled = state['screens'][key]
-        allowed = enabled and (level == 'public' or (level == 'member' and authenticated) or is_admin)
-        screens[key] = {'label': label, 'public': level == 'public', 'level': level, 'enabled': enabled,
-                        'allowed': bool(allowed), 'locked': key in LOCKED_ON}
+        item = {'label': label, 'public': level == 'public', 'level': level,
+                'enabled': state['screens'][key],
+                'allowed': bool(state['roles'][key][viewer]), 'locked': key in LOCKED_ON}
+        if is_admin:
+            item['roles'] = dict(state['roles'][key])
+        screens[key] = item
     data = {'authenticated': bool(authenticated), 'isAdmin': bool(is_admin), 'screens': screens,
             'revision': state['revision']}
     if is_admin:
@@ -104,22 +129,43 @@ def view(authenticated, is_admin):
     return data
 
 
-def update(changes, email):
-    """changes: {screenKey: bool}. 검증 실패는 ValueError, 저장 실패는 OSError(이전 정책 유지)."""
-    if not isinstance(changes, dict) or not changes:
+def update(changes, email, roles=None):
+    """구형 changes={screen:bool} 또는 신규 roles={screen:{guest/member/admin:bool}}."""
+    if changes is not None and not isinstance(changes, dict):
+        raise ValueError('화면 설정 형식이 올바르지 않습니다.')
+    if roles is not None and not isinstance(roles, dict):
+        raise ValueError('역할별 화면 설정 형식이 올바르지 않습니다.')
+    if not changes and not roles:
         raise ValueError('변경할 화면이 없습니다.')
-    for key, value in changes.items():
+    for key, value in (changes or {}).items():
         if key not in SCREENS:
             raise ValueError('알 수 없는 화면: %s' % key)
         if not isinstance(value, bool):
             raise ValueError('ON/OFF 값이 올바르지 않습니다.')
         if key in LOCKED_ON and value is False:
-            raise ValueError('%s 화면은 끌 수 없습니다(비로그인 이동 목적지).' % SCREENS[key][0])
+            raise ValueError('%s 화면은 끌 수 없습니다.' % SCREENS[key][0])
+    for key, settings in (roles or {}).items():
+        if key not in SCREENS:
+            raise ValueError('알 수 없는 화면: %s' % key)
+        if not isinstance(settings, dict) or not settings:
+            raise ValueError('역할별 ON/OFF 형식이 올바르지 않습니다.')
+        for role, enabled in settings.items():
+            if role not in ROLE_PERMISSIONS[SCREENS[key][1]]:
+                raise ValueError('%s 화면은 %s에게 공개할 수 없습니다.' % (SCREENS[key][0], role))
+            if not isinstance(enabled, bool):
+                raise ValueError('ON/OFF 값이 올바르지 않습니다.')
+            if key in LOCKED_ON and enabled is False:
+                raise ValueError('%s 화면은 끌 수 없습니다.' % SCREENS[key][0])
     with _lock:
         state = load_state()
-        state['screens'].update(changes)
+        for key, enabled in (changes or {}).items():
+            for role in ROLE_PERMISSIONS[SCREENS[key][1]]:
+                state['roles'][key][role] = enabled
+        for key, settings in (roles or {}).items():
+            state['roles'][key].update(settings)
+        state['screens'] = {key: settings['admin'] for key, settings in state['roles'].items()}
         state['revision'] += 1
         state['updatedAt'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
         state['updatedBy'] = str(email or '')
-        snapshot_io.atomic_json(STATE_PATH, state)  # 실패하면 예외 - 기존 파일은 그대로
+        snapshot_io.atomic_json(STATE_PATH, state)
     return state

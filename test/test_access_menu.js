@@ -7,17 +7,22 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
 const KEYS = ['guestbook','calendar','briefing','news','indicators','home','stocks','tools','my','market-temp','autotrader','kis'];
 const PUB = ['guestbook','calendar','briefing','news'];
-function policy(admin, off = []) {
-  return {data: {isAdmin: admin, authenticated: admin, screens: Object.fromEntries(KEYS.map(k => {
-    const en = !off.includes(k); return [k, {label: k, public: PUB.includes(k), enabled: en, allowed: en && (PUB.includes(k) || admin), locked: k === 'guestbook'}];
+function policy(admin, authenticated = admin, off = []) {
+  return {data: {isAdmin: admin, authenticated, screens: Object.fromEntries(KEYS.map(k => {
+    const level = PUB.includes(k) ? 'public' : k === 'indicators' ? 'member' : 'admin';
+    const en = !off.includes(k);
+    const roles = {guest: en && level === 'public', member: en && level !== 'admin', admin: en};
+    return [k, {label: k, public: level === 'public', level, enabled: en,
+      allowed: admin ? roles.admin : authenticated ? roles.member : roles.guest,
+      locked: k === 'guestbook', roles}];
   }))}};
 }
 
 (async () => {
   const browser = await chromium.launch({channel: 'msedge', headless: true});
-  const scenarios = [['비로그인', false, null], ['일반회원', false, null], ['인증장애', false, 'fail'], ['관리자', true, null]];
+  const scenarios = [['비로그인', false, false, null], ['일반회원', false, true, null], ['인증장애', false, false, 'fail'], ['관리자', true, true, null]];
   for (const width of [1280, 390, 320]) {
-    for (const [name, admin, mode] of scenarios) {
+    for (const [name, admin, authenticated, mode] of scenarios) {
       const page = await browser.newPage({viewport: {width, height: 800}});
       await page.setContent('<html><head></head><body><nav class="navbar"><div id="navSearchMount"></div></nav><div id="nav-menu-mount"></div></body></html>');
       await page.addStyleTag({content: fs.readFileSync('style.css', 'utf8')});
@@ -28,7 +33,7 @@ function policy(admin, off = []) {
         window.fetch = (u, i) => /access-policy/.test(u)
           ? (mode === 'fail' ? Promise.reject(new TypeError('down')) : Promise.resolve({ok: true, json: () => Promise.resolve(window.__policy)}))
           : real(u, i);
-      }, [policy(admin), mode]);
+      }, [policy(admin, authenticated), mode]);
       await page.addScriptTag({content: fs.readFileSync('js/access-gate.js', 'utf8')});
       await page.addScriptTag({content: fs.readFileSync('js/skin-menu.js', 'utf8')});
       await page.waitForTimeout(150);
@@ -38,7 +43,8 @@ function policy(admin, off = []) {
         for (const forbidden of ['증시온도', '종목분석', '검색기', '전략검색', '독립 차트', 'MY', '자동매매', 'KIS', '트레이딩', '화면 설정', '물타기']) {
           assert.ok(!text.includes(forbidden), `${name}/${width} must hide ${forbidden}: ${text}`);
         }
-        assert.ok(!text.includes('시장지표'), `${name}/${width} must hide 시장지표 before login: ${text}`);
+        if (authenticated && mode !== 'fail') assert.ok(text.includes('시장지표'), `${name}/${width} member must show 시장지표: ${text}`);
+        else assert.ok(!text.includes('시장지표'), `${name}/${width} guest must hide 시장지표: ${text}`);
         assert.ok(!text.includes('이야기 시리즈'), `${name}/${width} story series is dashboard content, not a menu: ${text}`);
         for (const must of ['홈', '시장', '주요 뉴스', '마켓브리핑', '캘린더', '대화방']) assert.ok(text.includes(must), `${name}/${width} must show ${must}: ${text}`);
         assert.equal(await page.locator('#navSearchInput').count(), 0, 'no stock search UI');

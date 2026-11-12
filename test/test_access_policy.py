@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import sys
@@ -52,6 +53,47 @@ class PolicyTests(unittest.TestCase):
         # 관리자 전용 화면을 켜도 비로그인에게는 열리지 않는다.
         self.assertFalse(ap.view(False, False)['screens']['home']['allowed'])
         self.assertEqual(ap.load_state()['revision'], 2)
+
+    def test_roles_are_independent(self):
+        ap.update(None, 'a@x', roles={
+            'calendar': {'guest': False, 'member': True, 'admin': False},
+            'indicators': {'member': False},
+        })
+        self.assertFalse(ap.view(False, False)['screens']['calendar']['allowed'])
+        self.assertTrue(ap.view(True, False)['screens']['calendar']['allowed'])
+        self.assertFalse(ap.view(True, True)['screens']['calendar']['allowed'])
+        self.assertFalse(ap.view(True, False)['screens']['indicators']['allowed'])
+        self.assertTrue(ap.view(True, True)['screens']['indicators']['allowed'])
+        self.assertEqual(ap.view(True, True)['screens']['calendar']['roles'],
+                         {'guest': False, 'member': True, 'admin': False})
+        self.assertNotIn('roles', ap.view(True, False)['screens']['calendar'])
+
+    def test_old_state_and_api_are_compatible(self):
+        with open(ap.STATE_PATH, 'w', encoding='utf-8') as f:
+            json.dump({'screens': {'calendar': False, 'indicators': False}, 'revision': 8}, f)
+        self.assertFalse(ap.view(False, False)['screens']['calendar']['allowed'])
+        self.assertFalse(ap.view(True, False)['screens']['calendar']['allowed'])
+        self.assertFalse(ap.view(True, True)['screens']['calendar']['allowed'])
+        ap.update(None, 'a@x', roles={'calendar': {'member': True}})
+        self.assertFalse(ap.view(False, False)['screens']['calendar']['allowed'])
+        self.assertTrue(ap.view(True, False)['screens']['calendar']['allowed'])
+        self.assertFalse(ap.view(True, True)['screens']['calendar']['allowed'])
+        self.assertEqual(ap.load_state()['revision'], 9)
+        ap.update({'calendar': True}, 'a@x')
+        self.assertTrue(ap.view(False, False)['screens']['calendar']['allowed'])
+        self.assertTrue(ap.view(True, True)['screens']['calendar']['allowed'])
+
+    def test_role_ceiling_and_lock(self):
+        for invalid in (
+            {'home': {'guest': True}}, {'home': {'member': False}},
+            {'indicators': {'guest': True}}, {'stocks': {'member': True}},
+            {'calendar': {'stranger': True}}, {'calendar': {'guest': 'yes'}},
+            {'calendar': {}}, {'guestbook': {'guest': False}},
+            {'guestbook': {'admin': False}},
+        ):
+            with self.assertRaises(ValueError, msg=str(invalid)):
+                ap.update(None, 'a@x', roles=invalid)
+        self.assertFalse(os.path.exists(ap.STATE_PATH))
 
     def test_validation_and_lock(self):
         for bad in ({}, {'nope': True}, {'calendar': 'x'}, {'guestbook': False}, None):

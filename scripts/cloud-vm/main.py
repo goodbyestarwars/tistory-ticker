@@ -1119,7 +1119,8 @@ async def access_policy_put(request: Request):
     except ValueError:
         raise HTTPException(status_code=400, detail='JSON 형식 오류') from None
     try:
-        access_policy.update(body.get('screens') if isinstance(body, dict) else None, session.get('email'))
+        access_policy.update(body.get('screens') if isinstance(body, dict) else None, session.get('email'),
+                             roles=body.get('roles') if isinstance(body, dict) else None)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from None
     except OSError:

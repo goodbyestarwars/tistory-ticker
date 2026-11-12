@@ -1,7 +1,7 @@
 /**
- * 관리자 화면별 ON/OFF 설정 (2026-11-11).
+ * 관리자 역할별(비회원·일반회원·관리자) 화면 설정 (2026-11-12).
  * 서버(Oracle /access-policy)에만 저장하고, 서버가 확인한 Google 관리자 세션만 변경할 수 있다.
- * 이 설정은 '화면 표시' 정책이다. 공개 범위(비로그인 4개 화면)를 넓히지 못하며 증권사 시세 이용허가와 별개다.
+ * 서버가 정한 최대 공개 등급은 넓히지 않으며 시세 재제공/주문 권한과 별개다.
  * 홈 개인 위젯 숨김(js/home-widgets.js, localStorage)과는 독립이다.
  */
 (function (global) {
@@ -13,30 +13,56 @@
 
   var CSS =
     '.acs-backdrop{position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}' +
-    '.acs-dialog{width:min(440px,100%);max-height:calc(100vh - 32px);overflow:auto;background:var(--ui-inner-surface,#fff);color:var(--ui-ink,#1f2937);' +
+    '.acs-dialog{width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;background:var(--ui-inner-surface,#fff);color:var(--ui-ink,#1f2937);' +
     'border:1px solid var(--ui-border,#e5e7eb);border-radius:14px;padding:20px}' +
     'html.dark .acs-dialog{background:var(--dk-surface,#242424);color:var(--dk-text,#eee);border-color:var(--dk-border,#3a3a3a)}' +
     '.acs-dialog h2{margin:0 0 4px;font-size:18px;font-weight:700}' +
     '.acs-note{margin:0 0 14px;font-size:12.5px;line-height:1.5;color:var(--ui-muted,#6b7280)}' +
-    '.acs-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--ui-border,#e5e7eb)}' +
-    '.acs-label{font-size:14px;min-width:0}.acs-tag{display:block;font-size:11.5px;color:var(--ui-muted,#6b7280)}' +
-    '.acs-row input{width:20px;height:20px;flex:none}' +
+    '.acs-head,.acs-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,62px);gap:4px;align-items:center}' +
+    '.acs-head{font-size:12px;font-weight:700;color:var(--ui-muted,#6b7280);padding:8px 0}' +
+    '.acs-head span:not(:first-child){text-align:center}' +
+    '.acs-row{padding:9px 0;border-top:1px solid var(--ui-border,#e5e7eb)}' +
+    '.acs-label{font-size:13px;min-width:0;overflow-wrap:anywhere}.acs-tag{display:block;font-size:11px;color:var(--ui-muted,#6b7280)}' +
+    '.acs-cell{display:flex;justify-content:center;align-items:center}.acs-na{color:var(--ui-muted,#6b7280);font-size:13px}' +
+    '.acs-row input{width:19px;height:19px;flex:none;cursor:pointer;accent-color:var(--ui-primary,#1677ff)}' +
+    '.acs-row input:disabled{cursor:default}' +
+    '@media(max-width:480px){.acs-dialog{padding:14px}.acs-head,.acs-row{grid-template-columns:minmax(0,1fr) repeat(3,48px)}}' +
     '.acs-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}' +
     '.acs-msg{font-size:12.5px;color:var(--ui-muted,#6b7280)}' +
     '.acs-btn{border:1px solid var(--ui-border,#d1d5db);background:transparent;color:inherit;border-radius:8px;padding:8px 14px;font:inherit;font-size:13px;cursor:pointer}' +
-    '.acs-btn.primary{font-weight:700}';
+    '.acs-btn.primary{font-weight:700}.acs-btn:disabled{opacity:.5;cursor:default}';
 
   function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function msg(text) { var m = modal && modal.querySelector('.acs-msg'); if (m) m.textContent = text; }
 
+  var roleReady = false;
+  var ROLES = [{key: 'guest', label: '비회원'}, {key: 'member', label: '일반회원'}, {key: 'admin', label: '관리자'}];
+
   function render(data) {
-    var rows = Object.keys(data.screens).map(function (key) {
-      var s = data.screens[key];
-      return '<label class="acs-row"><span class="acs-label">' + esc(s.label) +
-        '<span class="acs-tag">' + (s.public ? '비로그인 공개 화면' : '관리자 전용') + (s.locked ? ' · 항상 켜짐' : '') + '</span></span>' +
-        '<input type="checkbox" data-key="' + esc(key) + '"' + (s.enabled ? ' checked' : '') + (s.locked ? ' disabled' : '') + '></label>';
+    var keys = Object.keys(data.screens || {});
+    roleReady = !!keys.length && keys.every(function (key) { return !!data.screens[key].roles; });
+    var head = '<div class="acs-head"><span>화면</span>' +
+      ROLES.map(function (role) { return '<span>' + role.label + '</span>'; }).join('') + '</div>';
+    var rows = keys.map(function (key) {
+      var s = data.screens[key], level = s.level || (s.public ? 'public' : 'admin');
+      var cells = ROLES.map(function (role) {
+        var permitted = role.key === 'admin' || (role.key === 'member' && level !== 'admin') ||
+          (role.key === 'guest' && level === 'public');
+        if (!permitted) return '<span class="acs-cell acs-na" title="서버 정책상 공개 불가">—</span>';
+        var checked = s.roles ? !!s.roles[role.key] : !!s.enabled;
+        var disabled = !!s.locked || !roleReady;
+        return '<span class="acs-cell"><input type="checkbox" data-key="' + esc(key) + '" data-role="' + role.key +
+          '" aria-label="' + esc(s.label + ' ' + role.label) + '"' + (checked ? ' checked' : '') +
+          (disabled ? ' disabled' : '') + '></span>';
+      }).join('');
+      var desc = level === 'public' ? '공개 가능' : level === 'member' ? '로그인 회원 이상' : '관리자 전용';
+      return '<div class="acs-row"><span class="acs-label">' + esc(s.label) +
+        '<span class="acs-tag">' + desc + (s.locked ? ' · 필수 화면' : '') + '</span></span>' + cells + '</div>';
     }).join('');
-    modal.querySelector('.acs-body').innerHTML = rows;
+    modal.querySelector('.acs-body').innerHTML = head + rows;
+    var saveButton = modal.querySelector('[data-acs="save"]');
+    if (saveButton) saveButton.disabled = !roleReady;
+    return roleReady;
   }
 
   function load() {
@@ -45,22 +71,29 @@
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (b) {
         if (!b.data || !b.data.isAdmin) throw new Error('admin');
-        render(b.data); msg('');
+        msg(render(b.data) ? '' : '서버 역할별 설정 업데이트 후 사용할 수 있습니다.');
       })
       .catch(function () { msg('관리자 로그인 상태를 확인할 수 없습니다.'); });
   }
 
   function save() {
-    var changes = {};
-    Array.prototype.forEach.call(modal.querySelectorAll('input[data-key]:not(:disabled)'), function (i) {
-      changes[i.getAttribute('data-key')] = i.checked;
+    if (!roleReady) { msg('서버 역할별 설정 업데이트 후 사용할 수 있습니다.'); return; }
+    var roles = {};
+    Array.prototype.forEach.call(modal.querySelectorAll('input[data-role]:not(:disabled)'), function (i) {
+      var key = i.getAttribute('data-key');
+      if (!roles[key]) roles[key] = {};
+      roles[key][i.getAttribute('data-role')] = i.checked;
     });
     msg('저장 중…');
-    return global.fetch(URL_, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ screens: changes }) })
+    return global.fetch(URL_, { method: 'PUT', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roles: roles }) })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (b) {
-        render(b.data); msg('저장했습니다. 모든 접속자에게 적용됩니다.');
-        if (global.NineAccess) global.NineAccess.refresh().then(function () { global.dispatchEvent(new CustomEvent('nineaccess:change', { detail: { admin: true } })); });
+        if (!b.data || !b.data.isAdmin) throw new Error('admin');
+        render(b.data); msg('역할별 설정을 저장했습니다.');
+        if (global.NineAccess) global.NineAccess.refresh().then(function () {
+          global.dispatchEvent(new CustomEvent('nineaccess:change', { detail: { admin: true } }));
+        });
       })
       .catch(function () { msg('저장에 실패해 이전 설정이 유지됩니다.'); load(); });
   }
@@ -75,7 +108,7 @@
     modal = doc.createElement('div');
     modal.className = 'acs-backdrop';
     modal.innerHTML = '<section class="acs-dialog" role="dialog" aria-modal="true" aria-label="화면 설정">' +
-      '<h2>화면 설정</h2><p class="acs-note">끄면 해당 화면의 메뉴와 직접 주소 접근이 모두 막힙니다. 비로그인 공개 범위는 이 설정으로 넓힐 수 없습니다.</p>' +
+      '<h2>화면 설정</h2><p class="acs-note">비회원·일반회원·관리자를 각각 설정합니다. — 표시는 공개 불가, 회색 체크는 필수 화면입니다. 일반 홈은 공개 브리핑이고, 홈 대시보드는 관리자 전용입니다. 제한 시세 API 권한은 변경되지 않습니다.</p>' +
       '<div class="acs-body"></div><div class="acs-foot"><span class="acs-msg" aria-live="polite"></span>' +
       '<span><button type="button" class="acs-btn" data-acs="close">닫기</button> <button type="button" class="acs-btn primary" data-acs="save">저장</button></span></div></section>';
     doc.body.appendChild(modal);

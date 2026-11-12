@@ -49,3 +49,11 @@
 - 이는 공개 화면에서 원천 시세가 노출되던 경계 수정이며 공급자별 재배포 권한 확인·공개용 데이터 교체와 별개. `/domestic-market-indicators`·`/fx-rates`·`/kofia-market` 등 **다른 API의 권한 상태는 변경하지 않았다**.
 - 배포: master → Oracle `kiwoom-deploy.timer` 경로. 평일 08:00~20:00 KST에는 `deploy_check.sh`가 VM 코드 변경의 pull·복사·재시작을 보류하고 20:00 이후 재시도한다. GitHub 커밋과 운영 적용을 구분해 확인한다.
 
+
+## 2026-11-12 화면 설정 역할별 분리
+
+- 관리자 화면 설정은 **비회원 / 일반회원 / 관리자** 3열이다. `SCREENS`의 `public/member/admin`은 최대 허용 등급으로 유지하며, 관리자 화면을 비회원·일반 회원에게 공개하는 체크박스는 제공하지 않는다(서버에서도 거부).
+- `PUT /access-policy`는 신규 `roles: {screen: {guest/member/admin: bool}}`를 받는다. 기존 `screens: {screen: bool}` 요청과 저장 파일을 유지하고, 신규 역할별 설정이 우선한다. 편집용 `roles`는 서버가 확인한 관리자에게만 응답하고 비관리자는 자신에게 허용된 `allowed`만 받는다.
+- 대화방(`guestbook`)은 세 역할 모두 필수 ON이다. 홈(`/`)의 비회원·일반회원용 브리핑은 기존 예외 동작이고 설정의 `home`은 관리자 대시보드만 뜻한다.
+- UI는 서버에서 역할별 상태를 응답하기 전까지 저장을 비활성화한다(평일 VM 배포 보호시간 동안 구 서버에 신규 요청 전송 금지). `NineAccess`·PC/모바일 메뉴·직접 URL의 기존 `allowed` 판정을 재사용하며 원천 시세 REST/WS 접근 제한과 거래/주문 경계는 변경하지 않는다.
+- 검증 기준: `test/test_access_policy.py`(역할 독립·구형 이관·허용 등급·필수 항목)·`test/test_access_gate.js`·`test/test_access_menu.js`. 티스토리의 정적 페이지를 메뉴에서 숨기는 것은 서버 콘텐츠 보안과 다르므로 제한 데이터는 별도 API에서 계속 보호해야 한다.
