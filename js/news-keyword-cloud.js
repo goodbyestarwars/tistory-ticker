@@ -38,7 +38,7 @@
     });
   }
   // Market overview: simple repeated title terms, distinct from company-verified 7/30-day snapshots.
-  var stop = new Set(('관련 대한 통해 위한 올해 내년 오늘 내일 전망 주가 증권 종목 기업 시장 업계 기자 단독 종합 속보 뉴스 경제 한국 서울 미국 최근 최대 최초 공개 확대 증가 감소 상승 하락 급등 급락 사진 제공 무단 전재 재배포 금지 이메일 메일 대해 위해 있는 있다 한다 기록 돌파 기대 주목 목표 목표가 유지 분석 보고서 이유 대비 발표 체결 사업 추진 진출 성과 달성 나선다 선정 가운데 장중 마감 장초반 거래 거래일 거래량 거래대금 현재 이번 지난 경우 확인 업데이트 실시간 소식 대한 것은 것을 있다며 했다 한다 된다 이다 향후 앞두고 따른 따라 THE AND FOR WITH FROM THIS THAT WILL HAVE HAS ARE WAS WERE ITS INTO OVER AFTER SAYS SAID CEO CFO CNBC BLOOMBERG REUTERS KST ET US').split(' '));
+  var stop = new Set(('가장 이후 인해 주식 코스피 코스닥 대해서 어떻게 모든 또한 함께 이미 아직 다시 위한 관련 대한 통해 위한 올해 내년 오늘 내일 전망 주가 증권 종목 기업 시장 업계 기자 단독 종합 속보 뉴스 경제 한국 서울 미국 최근 최대 최초 공개 확대 증가 감소 상승 하락 급등 급락 사진 제공 무단 전재 재배포 금지 이메일 메일 대해 위해 있는 있다 한다 기록 돌파 기대 주목 목표 목표가 유지 분석 보고서 이유 대비 발표 체결 사업 추진 진출 성과 달성 나선다 선정 가운데 장중 마감 장초반 거래 거래일 거래량 거래대금 현재 이번 지난 경우 확인 업데이트 실시간 소식 대한 것은 것을 있다며 했다 한다 된다 이다 향후 앞두고 따른 따라 OF TO IN ON AT BY AS IS IT AN OR BE NEW NOW HIS OUT UP DOWN THAN MORE CAN NOT BUT ABOUT WHEN WHY WHAT WHO HOW THE AND FOR WITH FROM THIS THAT WILL HAVE HAS ARE WAS WERE ITS INTO OVER AFTER SAYS SAID CEO CFO CNBC BLOOMBERG REUTERS KST ET US').split(' '));
   function terms(title) {
     var clean = String(title || '').replace(/https?:\/\/\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]+/g, ' ')
       .replace(/\[[^\]]*\]|【[^】]*】/g, ' ');
