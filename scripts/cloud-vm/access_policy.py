@@ -35,9 +35,10 @@ PUBLIC_SCREENS = frozenset(k for k, (_, lv) in SCREENS.items() if lv == 'public'
 # 로그인 이동 목적지(/guestbook)와 비로그인 허용 화면이 꺼져 리다이렉트가 반복되지 않도록 고정한다.
 LOCKED_ON = frozenset({'guestbook'})
 
-# 인증이 필요한(관리자 전용) REST 경로 접두사. 종목 단위 시세·분석·수급·검색기 계열이다.
-# 시장지표·캘린더·브리핑·뉴스·환율·선물 계열(/futures, /fx-rates, /domestic-market-indicators ...)은
-# 공개 화면의 데이터이므로 포함하지 않는다. 공급자별 공개 이용 권한은 운영자가 별도로 확인한다.
+# 관리자 전용 REST 경로 접두사. 종목 단위 시세·분석·수급·검색기와 원천 시세가 섞인
+# /futures(하위 /futures/avg 등 포함)를 보호한다. 회원 시장지표 메뉴가 열려 있어도
+# 데이터 재제공 권한은 별개이므로 로그인만으로 원천 시세 조회를 허용하지 않는다.
+# 뉴스·캘린더·브리핑 및 다른 미확인 경로는 기존 정책을 유지한다.
 RESTRICTED_PREFIXES = (
     '/sector-quotes', '/domestic-quotes', '/quote', '/us-search', '/us-quote', '/us-quotes',
     '/us-orderbook', '/us-options', '/us-chart', '/us-news', '/us-analysis', '/us-sector-rotation',
@@ -50,7 +51,7 @@ RESTRICTED_PREFIXES = (
     '/theme-flow', '/hour-direction', '/hour-candidates', '/volume-surge-live', '/gap-shadow',
     '/market-rank', '/market-participation', '/market-board', '/order-book', '/stock-members',
     '/investor-trend', '/week52-batch', '/news-momentum', '/option-flow', '/industry-flow',
-    '/binance-kr-equity', '/market-temp', '/watchlist/disclosures',
+    '/binance-kr-equity', '/market-temp', '/watchlist/disclosures', '/futures',
 )
 
 _lock = threading.Lock()
