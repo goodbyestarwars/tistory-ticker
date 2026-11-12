@@ -1965,12 +1965,16 @@
     if (!mount) return;
     var code = item.code;
     mount.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(item.name) + ' 뉴스를 불러오는 중...</div>';
+    // 종목 작업 화면(js/stock-workspace.js)의 종목정보 패널은 최근 7일·30건을 받아 패널형으로 그린다(2026-11-13).
+    // 서버가 hours를 아직 모르면 기존 24시간 응답이 오고, 그대로 같은 패널형으로 표시된다.
+    var panel = !!(mount.closest && mount.closest('.ss-workspace'));
     fetchJson('https://goodbyestar.cloud/domestic-news?code=' + encodeURIComponent(code)
-      + '&name=' + encodeURIComponent(item.name) + '&limit=10')
+      + '&name=' + encodeURIComponent(item.name) + (panel ? '&limit=30&hours=168' : '&limit=10'))
       .then(function (payload) {
         if (state.selectedCode !== code) return;
         var data = payload && payload.data ? payload.data : payload;
-        renderDomesticNews(mount, (data && data.items) || []);
+        if (panel && mount.closest('.ss-workspace')) renderNewsPanel(mount, (data && data.items) || []);
+        else renderDomesticNews(mount, (data && data.items) || []);
       })
       .catch(function () {
         if (state.selectedCode === code) mount.innerHTML = '<div class="ss-hint ss-error">뉴스를 불러오지 못했습니다.</div>';
@@ -1998,6 +2002,103 @@
           + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--한국">한국</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
           + '<strong>' + escapeHtml(item.title || '') + '</strong></div></a>';
       }).join('') + '</div>';
+  }
+
+  /* ───── 종목정보 패널형 뉴스(2026-11-13): 공시 위 / 뉴스 아래, 전체·공시·뉴스 선택, 오늘·어제·날짜 구분,
+     24시간이 지난 자료는 흐리게(최근 7일까지). 사이트 공통 .app-news-timeline 컴포넌트는 그대로 둔다. ───── */
+  var NEWS_PANEL_DAYS = 7;
+  function kstDateKey(item) {
+    var raw = String(item && item.pubDate || '').trim();
+    if (/^\d{8}$/.test(raw)) return raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8); // DART: 날짜만
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    var date = parseDomesticNewsDate(raw);
+    if (isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  }
+  function hasClock(item) { return !/^\d{8}$|^\d{4}-\d{2}-\d{2}$/.test(String(item && item.pubDate || '').trim()); }
+  function newsPanelDayLabel(key, todayKey) {
+    if (!key) return '날짜 미확인';
+    var day = Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10));
+    var today = Date.UTC(+todayKey.slice(0, 4), +todayKey.slice(5, 7) - 1, +todayKey.slice(8, 10));
+    var diff = Math.round((today - day) / 86400000);
+    if (diff === 0) return '오늘';
+    if (diff === 1) return '어제';
+    return key.slice(5, 7) + '.' + key.slice(8, 10) + ' (' + '일월화수목금토'.charAt(new Date(day).getUTCDay()) + ')';
+  }
+  function newsPanelTime(item, now) {
+    if (!hasClock(item)) return '';
+    var t = domesticNewsTimestamp(item);
+    if (!t) return '';
+    var minutes = Math.floor((now - t) / 60000);
+    if (minutes >= 0 && minutes < 60) return minutes < 1 ? '방금' : minutes + '분 전';
+    return domesticNewsTime(item.pubDate);
+  }
+  function renderNewsPanel(mount, items) {
+    var now = Date.now();
+    var todayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now));
+    var oldest = Date.UTC(+todayKey.slice(0, 4), +todayKey.slice(5, 7) - 1, +todayKey.slice(8, 10)) - (NEWS_PANEL_DAYS - 1) * 86400000;
+    var seen = {};
+    var rows = (items || []).filter(function (item) {
+      var key = kstDateKey(item);
+      if (!key || !item.title) return false;
+      if (Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10)) < oldest) return false; // 7일보다 오래된 공시 제외
+      var dedupe = (item.link || '') + '|' + item.title;
+      if (seen[dedupe]) return false;
+      seen[dedupe] = true;
+      return true;
+    }).sort(function (a, b) {
+      var ka = kstDateKey(a), kb = kstDateKey(b);
+      if (ka !== kb) return ka < kb ? 1 : -1;
+      return domesticNewsTimestamp(b) - domesticNewsTimestamp(a);
+    });
+    var head = mount.parentNode && mount.parentNode.querySelector('.ss-news-panel-head span');
+    if (head) head.textContent = '최근 ' + NEWS_PANEL_DAYS + '일';
+    if (!rows.length) { mount.innerHTML = '<div class="ss-hint">최근 ' + NEWS_PANEL_DAYS + '일 관련 뉴스·공시가 없습니다.</div>'; return; }
+    var disclosures = rows.filter(function (item) { return item.kind === 'disclosure'; });
+    var news = rows.filter(function (item) { return item.kind !== 'disclosure'; });
+    function isOld(item) {
+      if (!hasClock(item)) return kstDateKey(item) !== todayKey && newsPanelDayLabel(kstDateKey(item), todayKey) !== '어제';
+      var t = domesticNewsTimestamp(item);
+      return !t || now - t > 24 * 3600 * 1000;
+    }
+    function row(item, disclosure) {
+      var category = disclosure && item.category && item.category !== '공시' ? item.category : '';
+      var when = newsPanelTime(item, now);
+      var meta = [when, item.source || item.publisher || (disclosure ? 'DART' : '')].filter(Boolean).map(escapeHtml).join(' · ');
+      return '<li><a class="ssn-item' + (disclosure ? ' is-disclosure' : '') + (isOld(item) ? ' is-old' : '') + '" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener">'
+        + (category ? '<span class="ssn-cat">' + escapeHtml(category) + '</span>' : '')
+        + '<strong>' + escapeHtml(item.title) + '</strong>'
+        + (meta ? '<small>' + meta + '</small>' : '') + '</a></li>';
+    }
+    function grouped(list, disclosure) {
+      var html = '', last = null;
+      list.forEach(function (item) {
+        var label = newsPanelDayLabel(kstDateKey(item), todayKey);
+        if (label !== last) { html += (last === null ? '' : '</ul>') + '<h5 class="ssn-day">' + escapeHtml(label) + '</h5><ul class="ssn-list">'; last = label; }
+        html += row(item, disclosure);
+      });
+      return html + (last === null ? '' : '</ul>');
+    }
+    var filter = mount.getAttribute('data-ssn-filter') || 'all';
+    if (filter === 'disclosure' && !disclosures.length) filter = 'all';
+    if (filter === 'news' && !news.length) filter = 'all';
+    mount.setAttribute('data-ssn-filter', filter);
+    mount.innerHTML = '<div class="ssn-filter" role="group" aria-label="공시·뉴스 보기">'
+      + [['all', '전체', rows.length], ['disclosure', '공시', disclosures.length], ['news', '뉴스', news.length]].map(function (f) {
+        return '<button type="button" data-ssn-filter="' + f[0] + '" aria-pressed="' + (f[0] === filter) + '"' + (f[2] ? '' : ' disabled') + '>' + f[1] + ' <b>' + f[2] + '</b></button>';
+      }).join('') + '</div>'
+      + (disclosures.length ? '<section class="ssn-section" data-ssn-kind="disclosure"><h4>공시</h4>' + grouped(disclosures, true) + '</section>' : '')
+      + (news.length ? '<section class="ssn-section" data-ssn-kind="news"><h4>뉴스</h4>' + grouped(news, false) + '</section>' : '');
+    if (!mount.__ssnWired) {
+      mount.__ssnWired = true;
+      mount.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('[data-ssn-filter]') : null;
+        if (!btn || !mount.contains(btn) || btn.tagName !== 'BUTTON') return;
+        mount.setAttribute('data-ssn-filter', btn.getAttribute('data-ssn-filter'));
+        mount.querySelectorAll('.ssn-filter button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+        mount.scrollTop = 0;
+      });
+    }
   }
 
   function applyRealtimeQuote(container, quote) {

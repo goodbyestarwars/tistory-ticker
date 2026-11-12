@@ -1,3 +1,10 @@
+**2026-11-13 종목정보 공시·뉴스 패널형 디자인·최근 7일**
+
+- 목적: 340px 패널에서 날짜 열·세로선·`한국` 배지가 폭을 차지하고 공시/뉴스 경계가 약하며 24시간만 보여 빈 화면이 잦았음(사용자 승인안).
+- 변경: `scripts/cloud-vm/main.py` `/domestic-news`에 `hours`(기본 24, 최대 168) 추가, `news_window.recent_items(window_seconds)` 확장(기본 동작·수집·캐시·호출 예산 불변). `js/stock-search.js` 작업 화면일 때만 `limit=30&hours=168` 요청과 `renderNewsPanel`(전체/공시/뉴스 건수 선택, 공시 위·종류 배지, 오늘·어제·날짜 구분, 상대 시각, 24시간 경과 흐림, 7일 초과 공시 제외, 중복 제거). 기존 `renderDomesticNews`·공통 타임라인 불변. `css/stock-workspace.css` 패널형 스타일·다크, 중복 '관련 뉴스' 제목 숨김. `API_REFERENCE.md` 파라미터 기록.
+- 검증: `test_news_window.py`(7일 창·기본 24시간 유지 신규)·`test_domestic_news.py` 통과. 실제 렌더 함수를 모의 자료로 하네스에서 1600 라이트/다크·390 확인, 필터 전환. `test_ui_ia.py` 실패 16건·stock_search layout 2건은 변경 전과 동일. 서버 배포 전에는 기존 24시간 응답으로 같은 패널형 표시.
+- 배포: master → Pages, VM은 장외(01시대 KST) 자동 배포.
+
 **2026-11-13 KB금융 등 금융사 최근 분기·올해 누적 누락 수정**
 
 - 원인: `fundamentals.fetch_latest_quarter`가 표준 매출액 행을 필수로 요구해 영업이익/순이익만 있는 은행·금융지주 보고서를 전부 건너뜀. 기존 KB금융 캐시는 latest_quarter=null이었고, 기존 ytd 마이그레이션도 이 경우를 재수집 대상으로 잡지 못함.

@@ -32,6 +32,12 @@ class NewsWindowTests(unittest.TestCase):
         for stamp in ['20261008','2026-10-08','2026-03-08 02:30:00','2026-11-01 01:30:00']:
             self.assertIsNone(nw.publication_time(stamp,'us'))
 
+    def test_custom_window_extends_to_seven_days_without_changing_default(self):
+        now = datetime(2026, 11, 13, 0, tzinfo=timezone.utc)
+        rows = [{'title': str(h), 'pubDate': (now - timedelta(hours=h)).isoformat()} for h in (1, 30, 167, 169)]
+        self.assertEqual([x['title'] for x in nw.recent_items(rows, 'domestic', now)], ['1'])
+        self.assertEqual([x['title'] for x in nw.recent_items(rows, 'domestic', now, window_seconds=168 * 3600)], ['1', '30', '167'])
+
     def test_disclosures_and_original_archive_not_filtered(self):
         row={'pubDate':'2020-01-01','kind':'disclosure'}
         self.assertEqual(nw.recent_items([row],'domestic',keep_disclosures=True),[row])

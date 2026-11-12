@@ -3834,8 +3834,12 @@ def domestic_news_endpoint(
     kind: str = Query('all', max_length=10),
     limit: int = Query(10, ge=1, le=50),
     fresh: bool = Query(False),
+    hours: int = Query(24, ge=1, le=168),
 ):
     """국내 전체/종목별 뉴스와 DART 공시를 시간순으로 반환한다.
+
+    hours(기본 24, 최대 168): 뉴스 발행시각 창. 종목 작업 화면 종목정보 패널이 24시간 안 자료가
+    적을 때 최근 7일을 흐리게 이어 보여 주려고 2026-11-13 추가했다(수집·캐시·호출 예산은 그대로).
 
     브라우저가 네이버·DART 키를 알 필요 없도록 서버에서 수집하고,
     캐시된 결과를 우선 반환한다. 종목 코드는 국내 6자리 숫자만 허용한다.
@@ -3848,8 +3852,9 @@ def domestic_news_endpoint(
     item_kind = 'news' if kind.strip().lower() == 'news' else 'all'
     result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind)
     result = dict(result or {})
-    result['items'] = news_window.recent_items(result.get('items', []), 'domestic', keep_disclosures=True)
-    result.update(newsWindowHours=24, newsTimeZone='Asia/Seoul')
+    result['items'] = news_window.recent_items(result.get('items', []), 'domestic', keep_disclosures=True,
+                                               window_seconds=hours * 60 * 60)
+    result.update(newsWindowHours=hours, newsTimeZone='Asia/Seoul')
     if not normalized_code and not name.strip() and not query.strip():
         domestic_items = result.get('items', []) if isinstance(result, dict) else []
         # 2026-08-30: 이 두 호출이 이 엔드포인트에서 실제로 초 단위를 먹는 구간이다

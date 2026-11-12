@@ -30,10 +30,10 @@ def publication_time(value, market='domestic'):
     except (ValueError, TypeError, OverflowError):
         return None
 
-def recent_items(items, market='domestic', now=None, keep_disclosures=False):
+def recent_items(items, market='domestic', now=None, keep_disclosures=False, window_seconds=WINDOW_SECONDS):
     # Compare instants, not local calendar days: DST must not produce 23/25-hour windows.
     current = (now or datetime.now(timezone.utc)).timestamp()
-    cutoff = current - WINDOW_SECONDS
+    cutoff = current - window_seconds
     selected = []
     for item in items or []:
         if keep_disclosures and item.get('kind') == 'disclosure':
