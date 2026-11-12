@@ -44,12 +44,18 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     // 로그인 확인되면 시작 화면이 닫힌다
     await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.settle({authenticated: true}); });
     assert.equal(await page.locator('#nineLanding').count(), 0);
-    // 비회원 로그인: 인증 없이 비회원 표시(sessionStorage)를 남기고 시작 화면을 닫는다
+    // /guestbook에서 비회원 입장: 이동 완료 전까지 랜딩 유지(대화방 순간 노출 방지)
     await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.show(false); });
     await page.evaluate(() => document.querySelector('[data-nl-guest]').click());
     assert.equal(await page.evaluate(() => window.__guestGo), true, 'guest goes to /');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('nine_guest')), '1');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('nine_authed') || localStorage.getItem('nine_authed')), null, 'guest is not authenticated');
+    assert.equal(await page.locator('#nineLanding').count(), 1, 'landing stays over guestbook while navigation starts');
+    assert.equal(await page.evaluate(() => document.documentElement.classList.contains('nine-landing-open')), true);
+    // 이미 홈(/)에서 비회원 입장하면 이동 없이 랜딩만 닫는다.
+    await page.evaluate(() => { history.replaceState(null, '', '/'); window.__guestGo = false; });
+    await page.evaluate(() => document.querySelector('[data-nl-guest]').click());
+    assert.equal(await page.evaluate(() => window.__guestGo), false, 'home entry does not navigate');
     assert.equal(await page.locator('#nineLanding').count(), 0);
     console.log('PASS landing', width);
     await page.close();

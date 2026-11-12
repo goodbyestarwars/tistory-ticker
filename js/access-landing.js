@@ -96,9 +96,14 @@
   function enterGuest() {
     markSeen();
     try { global.sessionStorage.setItem('nine_guest', '1'); } catch (e) { /* 저장소 차단 */ }
+    // 다른 화면(예: /guestbook)에서는 이동이 끝날 때까지 랜딩을 유지한다.
+    // 먼저 닫으면 네트워크가 느릴 때 이전 화면이 잠깐 드러난다.
+    if (global.location.pathname !== '/' && global.location.pathname !== '') {
+      global.location.assign('/');
+      return;
+    }
+    // 홈에서는 페이지 이동 없이 기존 비회원 홈을 보여 준다.
     close();
-    // 홈에서 입장하면 비회원 홈이 이미 랜딩 아래에 그려져 있다 - 다시 불러오지 않는다.
-    if (global.location.pathname !== '/' && global.location.pathname !== '') global.location.assign('/');
   }
 
   function onKey(e) {
