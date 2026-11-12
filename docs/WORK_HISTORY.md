@@ -1,3 +1,10 @@
+**2026-11-13 관심종목 서랍 첫 표시·시세 대기 단축**
+
+- 원인(코드 흐름): ① 목록 표시가 `/watchlist`와 중복 로그인 확인 `/auth/google/me` 둘 다를 기다림 ② 국내·미국 시세를 `Promise.all`로 묶어 국내 카드·미국 포함 시 실시간 연결까지 가장 느린 미국 조회(최대 8초)를 기다림 ③ 서랍을 열 때 watchlist.js 73KB를 그때 받고 매번 빈 목록부터 시작.
+- 변경: `js/watchlist.js` 목록 성공=세션 확인(/me는 비차단 표시용, 목록 실패 시에만 로그인 판단), 탭 미리보기(`wl_preview_v1`, 코드·이름·그룹만, inert·흐림, 시세 조회·실시간·저장은 서버 목록 확정 뒤 1회, 401/미로그인 시 삭제), `fetchQuotesProgressive`로 국내·미국 도착 즉시 표시(미국 실시간 등록 순서 유지, 공개 fetchQuotes 불변). `js/stock-search-panel.js` 닫힌 서랍은 유휴 시 watchlist.js prefetch만(실행·서버 요청 없음), 자산 `?v=` 갱신. `css/watchlist.css` 미리보기 흐림 1줄.
+- 검증: `test_watchlist_loading.js` 10개(미리보기·보유수량 제외·401 삭제·/me 지연 비차단·미국 지연 중 국내 캐시 신규 포함) 통과, startup/group_delete/config/first_paint/readonly·신규상장 회귀 통과, `test_ui_ia.py` 실패 16건은 변경 전과 동일(낡은 토큰 1개 갱신). 실제 관리자 세션 체감 시간은 미측정.
+- 배포: master → Pages. VM·GAS·스킨·주문 변경 없음.
+
 **2026-11-13 모멘텀 운영 표본 정밀화**
 
 - 실제 NAVER 표본 점검에서 검색 요약의 기업 단순 나열이 타사 중심 시장 기사까지 연결하므로 기업명/별칭의 제목 직접 언급을 필수로 강화. 이메일·서명·URL 차단과 동일 기사 중복 제거는 유지. 영어 일반 단어를 제외하고 cloud/commerce/logistics 등은 공통 한국어 핵심어로 정규화. 이전 관련성 스냅샷은 새 방식으로 재집계 전까지 숨김.

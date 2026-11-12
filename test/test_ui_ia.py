@@ -1470,7 +1470,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "[8, 0], [9, 0], [15, 30], [17, 0], [22, 30]",
             "var QUOTES_CACHE_KEY = 'watchlist_quotes_v2';",
             "function readQuoteCache(codes)",
-            "var remoteDataPromise = fetchRemoteWatchlistState()",
+            # 2026-11-13: 목록 조회가 세션 확인을 겸하고 /auth/google/me는 기다리지 않는다.
+            "loadInFlight = fetchRemoteWatchlistState().then(function (data) {",
+            "function fetchQuotesProgressive(codes, onPart)",
             "API_BASE_URL + '/us-quotes?symbols='",
             "function publishQuote(code, quote)",
             "watchlist:quote",

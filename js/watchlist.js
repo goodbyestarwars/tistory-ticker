@@ -431,6 +431,7 @@
   }
 
   function notifyChanged() {
+    writePreview();
     changeListeners.slice().forEach(function (listener) { try { listener(remoteState.items.slice()); } catch (err) {} });
     try { global.dispatchEvent(new Event('watchlist:changed')); } catch (err) {}
   }
@@ -468,28 +469,50 @@
       });
   }
 
+  // 2026-11-13 첫 표시 단축: 탭 안에 마지막 목록 구성(코드·이름·그룹만, 보유수량 제외)을 두었다가 서버 응답 전에
+  // 조작 불가(inert) 미리보기로 먼저 그린다. 시세 조회·실시간 연결·저장은 서버 목록을 받은 뒤에만 시작한다.
+  var PREVIEW_KEY = 'wl_preview_v1';
+  function writePreview() {
+    try {
+      if (!remoteReady || !authState.authenticated) { sessionStorage.removeItem(PREVIEW_KEY); return; }
+      sessionStorage.setItem(PREVIEW_KEY, JSON.stringify({
+        items: remoteState.items.map(function (it) { return { code: it.code, name: it.name, groupId: it.groupId }; }),
+        groups: remoteState.groups.map(function (g) { return { id: g.id, name: g.name, collapsed: !!g.collapsed }; })
+      }));
+    } catch (err) { /* 저장소 차단·용량 초과는 미리보기만 생략 */ }
+  }
+  function readPreview() {
+    try {
+      var v = JSON.parse(sessionStorage.getItem(PREVIEW_KEY) || 'null');
+      return v && Array.isArray(v.items) && Array.isArray(v.groups) && v.items.length ? v : null;
+    } catch (err) { return null; }
+  }
+  function clearPreview() { try { sessionStorage.removeItem(PREVIEW_KEY); } catch (err) { /* 차단 */ } }
+  function setPreviewMode(container, on) {
+    var grid = container.querySelector('#wlGrid');
+    if (!grid) return;
+    grid.classList.toggle('is-preview', on);
+    if (on) { grid.setAttribute('inert', ''); grid.setAttribute('aria-busy', 'true'); }
+    else { grid.removeAttribute('inert'); grid.removeAttribute('aria-busy'); }
+  }
+
   function loadRemoteState(container) {
     if (loadInFlight) return loadInFlight;
     setLoadState('loading');
-    // 인증 확인과 관심종목 조회는 서로 독립적이므로 동시에 시작해 첫 화면을 빠르게 연다.
-    var remoteDataPromise = fetchRemoteWatchlistState().then(function (data) { return { data: data }; }, function (error) { return { error: error }; });
-    loadInFlight = fetchAuthState().then(function (nextAuth) {
-      authState = nextAuth;
-      renderAuthStatus(container);
-      if (!authState.configured || !authState.authenticated) {
-        remoteReady = false;
-        remoteState = { items: [], groups: [], revision: 0 };
-        stopRealtimeQuotes();
-        renderLoginRequired(container, authState.configured ? '관심종목을 저장하려면 로그인하세요.' : '로그인 서버 설정을 확인 중입니다.');
-        setLoadState(authState.configured ? 'signed-out' : 'error', authState.configured ? '관심종목을 보려면 로그인하세요.' : '로그인 서버 설정을 확인 중입니다.');
-        return null;
-      }
-      return remoteDataPromise.then(function (result) {
-        if (result.error) throw result.error;
-        return result.data;
+    if (!remoteReady) {
+      var preview = readPreview();
+      if (preview) { render(container, preview); setPreviewMode(container, true); }
+    }
+    // 목록 조회가 성공하면 그 자체가 로그인 세션 확인이다(401이면 미로그인). 계정 표시용 /auth/google/me는
+    // 기다리지 않고 도착하면 머리말만 갱신한다. 목록이 실패했을 때만 로그인/설정 안내 판단에 쓴다.
+    var authPromise = fetchAuthState().then(function (next) { return next; }, function () { return null; });
+    loadInFlight = fetchRemoteWatchlistState().then(function (data) {
+      authState = Object.assign({}, authState, { configured: true, authenticated: true });
+      authPromise.then(function (next) {
+        if (!next || !next.authenticated) return; // 목록 성공 뒤의 /me 실패·불일치로 화면을 되돌리지 않는다
+        authState = next;
+        renderAuthStatus(container);
       });
-    }).then(function (data) {
-      if (!data) return;
       var localItems = loadLocalList();
       var localGroups = loadLocalGroups();
       remoteState.items = Array.isArray(data.items) ? data.items : [];
@@ -505,25 +528,34 @@
       }
       if (!migrateUsWatchlist(container) && migratedLegacy) persistRemoteState(container);
       renderAuthStatus(container);
+      setPreviewMode(container, false);
       render(container);
       var msg = container.querySelector('#wlMsg');
       if (msg) msg.hidden = true;
       setLoadState('ready');
       notifyChanged();
     }).catch(function (error) {
-      if (error.status === 401) {
-        authState.authenticated = false;
-        remoteReady = false;
-        remoteState = { items: [], groups: [], revision: 0 };
-        stopRealtimeQuotes();
-        renderAuthStatus(container);
-        renderLoginRequired(container, '로그인 세션을 다시 확인해 주세요.');
-        setLoadState('signed-out', '로그인 세션을 다시 확인해 주세요.');
-      } else {
-        var message = error.kind === 'timeout' ? '서버 응답이 지연되고 있습니다. 잠시 후 다시 불러와 주세요.' : '목록 조회에 실패했습니다. 다시 불러오기를 눌러 주세요.';
-        renderLoadError(container, message);
-        setLoadState('error', message);
-      }
+      setPreviewMode(container, false);
+      return authPromise.then(function (nextAuth) {
+        if (nextAuth) authState = nextAuth;
+        if (error.status === 401 || (nextAuth && (!nextAuth.configured || !nextAuth.authenticated))) {
+          clearPreview();
+          var configured = !nextAuth || nextAuth.configured;
+          authState.authenticated = false;
+          remoteReady = false;
+          remoteState = { items: [], groups: [], revision: 0 };
+          stopRealtimeQuotes();
+          renderAuthStatus(container);
+          var text = error.status === 401 && nextAuth && nextAuth.authenticated ? '로그인 세션을 다시 확인해 주세요.'
+            : configured ? '관심종목을 저장하려면 로그인하세요.' : '로그인 서버 설정을 확인 중입니다.';
+          renderLoginRequired(container, text);
+          setLoadState(configured ? 'signed-out' : 'error', configured ? '관심종목을 보려면 로그인하세요.' : text);
+        } else {
+          var message = error.kind === 'timeout' ? '서버 응답이 지연되고 있습니다. 잠시 후 다시 불러와 주세요.' : '목록 조회에 실패했습니다. 다시 불러오기를 눌러 주세요.';
+          renderLoadError(container, message);
+          setLoadState('error', message);
+        }
+      });
     }).then(function () { loadInFlight = null; });
     return loadInFlight;
   }
@@ -845,9 +877,9 @@
 
   // ---- 렌더링 ----
 
-  function render(container) {
-    var list = loadList();
-    var groups = loadGroups();
+  function render(container, preview) {
+    var list = preview ? preview.items : loadList();
+    var groups = preview ? preview.groups : loadGroups();
     var grid = container.querySelector('#wlGrid');
     var empty = container.querySelector('#wlEmpty');
     var count = container.querySelector('#wlCount');
@@ -871,25 +903,21 @@
     codes.forEach(function (code) {
       if (cachedQuotes[code]) updateCard(container, code, cachedQuotes[code]);
     });
+    if (preview) return; // 미리보기: 저장 시세만. 조회·실시간 연결은 서버 목록 확정 뒤 한 번만 시작한다.
     // 국내 종목만이면 WebSocket을 스냅샷과 동시에 연다. GAS 스냅샷(실측 2~8초)이나
     // 느린 VM 응답을 기다리느라 실시간 연결이 늦어지지 않게 한다.
     var hasUs = codes.some(function (code) { return /^US:/i.test(code); });
     if (!hasUs) startRealtimeQuotes(container, codes);
-    Watchlist.fetchQuotes(codes)
-      .then(function (quoteByCode) {
-        writeQuoteCache(quoteByCode);
-        list.forEach(function (it) {
-          if (quoteByCode[it.code] && !isLiveCard(container, it.code)) updateCard(container, it.code, quoteByCode[it.code]);
-        });
-      })
-      .catch(function () {
-        // 최초 시세 조회 실패 시에도 WebSocket 연결과 저빈도 폴백이 이어서 갱신한다.
-      })
-      .then(function () {
-        // 미국 REST가 확인한 실제 거래소를 서버가 실시간 등록키에 재사용한다.
-        // 초기 스냅샷 뒤 연결해야 미국 종목을 NAS/NYS/AMS에 중복 등록하지 않는다.
-        if (hasUs) startRealtimeQuotes(container, codes);
+    // 2026-11-13: 국내·미국 스냅샷을 각각 도착하는 대로 표시한다(국내 카드가 느린 미국 조회를 기다리지 않음).
+    fetchQuotesProgressive(codes, function (quoteByCode) {
+      list.forEach(function (it) {
+        if (quoteByCode[it.code] && !isLiveCard(container, it.code)) updateCard(container, it.code, quoteByCode[it.code]);
       });
+    }).then(function () {
+      // 미국 REST가 확인한 실제 거래소를 서버가 실시간 등록키에 재사용한다.
+      // 초기 스냅샷 뒤 연결해야 미국 종목을 NAS/NYS/AMS에 중복 등록하지 않는다.
+      if (hasUs) startRealtimeQuotes(container, codes);
+    });
   }
 
   // WebSocket 체결이 이미 들어온 카드는 늦게 도착한 REST 스냅샷이 덮어쓰지 않는다.
@@ -910,18 +938,13 @@
     codes.forEach(function (code) {
       if (cachedQuotes[code]) updateCard(container, code, cachedQuotes[code]);
     });
-    Watchlist.fetchQuotes(codes)
-      .then(function (quoteByCode) {
-        writeQuoteCache(quoteByCode);
-        list.forEach(function (it) {
-          if (quoteByCode[it.code]) updateCard(container, it.code, quoteByCode[it.code]);
-        });
-      })
-      .catch(function () {
-        // 실패해도 아래 웹소켓/폴백이 이어서 갱신하고, 화면엔 직전 값이 그대로 남는다
-        // (render()처럼 "-"로 되돌리지 않음 - 이게 이 함수를 만든 이유).
-      })
-      .then(function () { startRealtimeQuotes(container, codes); });
+    // 실패해도 아래 웹소켓/폴백이 이어서 갱신하고, 화면엔 직전 값이 그대로 남는다
+    // (render()처럼 "-"로 되돌리지 않음 - 이게 이 함수를 만든 이유).
+    fetchQuotesProgressive(codes, function (quoteByCode) {
+      list.forEach(function (it) {
+        if (quoteByCode[it.code]) updateCard(container, it.code, quoteByCode[it.code]);
+      });
+    }).then(function () { startRealtimeQuotes(container, codes); });
   }
 
   function buildGroup(group, items) {
@@ -1410,6 +1433,27 @@
     ]).then(function (parts) {
       return Object.assign({}, parts[0], parts[1]);
     });
+  }
+
+  // 관심종목 서랍 전용: 국내·미국 결과를 각각 도착하는 즉시 onPart로 넘기고 캐시에 쓴다. 둘 다 끝나면(실패 포함) 완료.
+  // 공개 Watchlist.fetchQuotes(전체를 한 번에 돌려주는 계약)는 다른 화면이 쓰므로 그대로 둔다.
+  function fetchQuotesProgressive(codes, onPart) {
+    if (!codes.length) return Promise.resolve();
+    var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
+    var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
+    var merged = {}; // 캐시는 통째로 덮어쓰므로 이번 조회분을 모아 쓴다(먼저 온 국내분이 뒤의 미국분에 지워지지 않게)
+    function part(load) {
+      return Promise.resolve().then(load).then(function (byCode) {
+        if (!byCode || !Object.keys(byCode).length) return;
+        writeQuoteCache(Object.assign(merged, byCode));
+        onPart(byCode);
+      }).catch(function () { /* 최초 시세 실패 시에도 WebSocket과 저빈도 폴백이 이어서 갱신한다 */ });
+    }
+    return Promise.all([
+      part(function () { return fetchDomesticQuotes(domesticCodes); }),
+      // 종목 상세에서 닫힌 서랍은 미국 REST를 보내지 않는다(fetchQuotes와 같은 규칙).
+      part(function () { return withTimeout(fetchUsQuotes(isClosedOnStockSearchPage() ? [] : usCodes), FETCH_TIMEOUT_MS); })
+    ]);
   }
 
   // 미국 시세 요청에는 타임아웃이 없어 VM이 느리면 국내 시세 표시까지 함께 붙잡았다.

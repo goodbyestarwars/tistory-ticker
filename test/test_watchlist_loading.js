@@ -7,20 +7,23 @@ const data = {items:[{code:'005930',name:'Fixture',groupId:'default'}],groups:[{
 function fixture() {
   let mounted = false;
   const nodes = new Map(), calls = [], requests = [];
-  function node() { return {innerHTML:'',textContent:'',hidden:false,disabled:false,addEventListener(){},querySelector(){return null;},querySelectorAll(){return [];}}; }
+  function node() { const attrs={},classes=new Set(); return {innerHTML:'',textContent:'',hidden:false,disabled:false,attrs,classes,addEventListener(){},querySelector(){return null;},querySelectorAll(){return [];},
+    setAttribute(k,v){attrs[k]=String(v);},removeAttribute(k){delete attrs[k];},getAttribute(k){return k in attrs?attrs[k]:null;},classList:{toggle(c,on){if(on)classes.add(c);else classes.delete(c);},contains:c=>classes.has(c)}}; }
   for (const key of ['#wlInput','#wlAddBtn','#wlGroupAddBtn','#wlGrid','#wlEmpty','#wlCount','#wlMsg','.wl-auth']) nodes.set(key,node());
   const header=node(); header.querySelector=selector=>nodes.get(selector)||null; nodes.set('.wl-header',header);
   const mount=node(); mount.querySelector=selector=>nodes.get(selector)||null;
-  const storage=new Map();
+  const storage=new Map(), session=new Map();
   const window={location:{href:'https://ghlee.tistory.com/page/watchlist'},console,addEventListener(){},dispatchEvent(){}};
   const state={auth:{configured:true,authenticated:true,email:'fixture@example.test'},reply:{data},status:200,pending:false,pendingOnce:false,authPendingOnce:false};
   const document={readyState:'interactive',hidden:false,querySelector:()=>mounted?mount:null,addEventListener(){},querySelectorAll(){return [];}};
   const scope=vm.createContext({window,document,console,Promise,Map,Set,Date,Event,CustomEvent,
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
+    sessionStorage:{getItem:k=>session.get(k)||null,setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)},
     setTimeout:(fn,ms)=>ms===8000?setTimeout(fn,15):ms===750?setTimeout(fn,1):0,clearTimeout,setInterval:()=>0,clearInterval(){},
     fetch:async (url,options)=>{
       calls.push(url);
       requests.push({url,options});
+      if(url.endsWith('/auth/google/me')&&state.authPending)return new Promise(()=>{});
       if(url.endsWith('/auth/google/me')&&state.authPendingOnce){state.authPendingOnce=false;return new Promise(()=>{});}
       if(url.endsWith('/auth/google/me'))return {ok:true,json:async()=>({data:state.auth})};
       if(url.endsWith('/watchlist')){
@@ -32,7 +35,7 @@ function fixture() {
     }});
   loadCommon(scope); vm.runInContext(source,scope); mounted=true;
   window.Watchlist.fetchQuotes=async()=>({});
-  return {window,state,nodes,calls,requests,scope,mount};
+  return {window,state,nodes,calls,requests,scope,mount,session};
 }
 test('authenticated saved list renders and private GETs include session cookies',async()=>{
   const f=fixture();await f.window.Watchlist.refresh();
@@ -96,8 +99,35 @@ test('one timed out private list or auth read recovers automatically',async()=>{
     const f=fixture();f.state[key]=true;await f.window.Watchlist.refresh();
     assert.equal(f.window.Watchlist.getStatus().phase,'ready');
     assert.equal(f.window.Watchlist.getList()[0].code,'005930');
-    assert.equal(f.calls.filter(u=>u.endsWith(key==='pendingOnce'?'/watchlist':'/auth/google/me')).length,2);
+    // 목록 재시도는 완료 전에 끝나야 하고, 계정 표시용 /me 재시도는 목록 표시를 막지 않는다(2026-11-13).
+    if(key==='pendingOnce')assert.equal(f.calls.filter(u=>u.endsWith('/watchlist')).length,2);
   }
+});
+test('a stalled account-display read never blocks a successful list (2026-11-13)',async()=>{
+  const f=fixture();f.state.authPending=true;await f.window.Watchlist.refresh();
+  assert.equal(f.window.Watchlist.getStatus().phase,'ready');
+  assert.equal(f.window.Watchlist.isReady(),true);
+  assert.match(f.nodes.get('#wlGrid').innerHTML,/005930/);
+});
+test('tab preview renders the last list inert and is replaced by the server list; sign-out clears it',async()=>{
+  const f=fixture();await f.window.Watchlist.refresh();
+  const saved=JSON.parse(f.session.get('wl_preview_v1'));
+  assert.deepEqual(saved.items.map(i=>i.code),['005930']);
+  assert.equal('holding' in saved.items[0],false,'보유수량은 미리보기에 남기지 않는다');
+  const g=fixture();g.session.set('wl_preview_v1',JSON.stringify({items:[{code:'000660',name:'Preview',groupId:'default'}],groups:[{id:'default',name:'기본'}]}));
+  g.state.pending=true;g.window.Watchlist.refresh();
+  await new Promise(r=>setTimeout(r,1));
+  const grid=g.nodes.get('#wlGrid');
+  assert.match(grid.innerHTML,/000660/);
+  assert.equal(grid.getAttribute('inert'),'');
+  assert.equal(g.window.Watchlist.isReady(),false,'미리보기 중에는 저장·조작 경로가 열리지 않는다');
+  g.state.pending=false;g.state.pendingOnce=false;await g.window.Watchlist.refresh();
+  const h=fixture();h.session.set('wl_preview_v1',JSON.stringify({items:[{code:'000660',name:'Preview',groupId:'default'}],groups:[{id:'default',name:'기본'}]}));
+  await h.window.Watchlist.refresh();
+  assert.match(h.nodes.get('#wlGrid').innerHTML,/005930/);
+  assert.equal(h.nodes.get('#wlGrid').getAttribute('inert'),null);
+  h.state.status=401;await h.window.Watchlist.refresh();
+  assert.equal(h.session.has('wl_preview_v1'),false);
 });
 test('permanent timeout has two attempts only, no duplicated error and no save',async()=>{
   const f=fixture();f.state.pending=true;await f.window.Watchlist.refresh();
@@ -106,4 +136,17 @@ test('permanent timeout has two attempts only, no duplicated error and no save',
   assert.equal(f.nodes.get('#wlMsg').hidden,true);
   assert.match(f.nodes.get('#wlGrid').innerHTML,/ui-btn ui-btn-secondary/);
   assert(f.requests.every(r=>!r.options.method||r.options.method==='GET'));
+});
+test('domestic snapshot is cached and shown without waiting for a stalled US quote (2026-11-13)',async()=>{
+  const f=fixture();
+  f.state.reply={data:{items:[{code:'005930',name:'Fixture',groupId:'default'},{code:'US:AAPL',name:'Apple',groupId:'default'}],groups:[{id:'default',name:'기본'}],revision:1}};
+  f.window.NineAPI={domesticQuotes:async()=>[{code:'005930',price:70000}]};
+  f.scope.location={pathname:'/page/watchlist'};
+  const fetchBase=f.scope.fetch;
+  f.scope.fetch=async(url,options)=>/\/us-quotes?/.test(url)?new Promise(()=>{}):fetchBase(url,options);
+  await f.window.Watchlist.refresh();
+  await new Promise(r=>setTimeout(r,5));
+  const cache=JSON.parse(f.scope.localStorage.getItem('watchlist_quotes_v2'));
+  assert.equal(cache.data['005930'].price,70000);
+  assert.equal(cache.data['US:AAPL'],undefined);
 });

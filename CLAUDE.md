@@ -78,7 +78,7 @@
 
 - 홈 활동성에는 거래량 제목과 평균 100 기준을 그룹별로 한 번만 쓰고 종목별 값은 숫자만 표시한다. 차트 봉 주기·작도·독립 차트 버튼은 첫 줄 윗선을 맞춘다.
 
-- 관심종목 서랍의 `stock-search-panel.js`는 창 모듈과 KRX 검색 사전을 병렬 로드한다. 사전 다운로드가 목록·인증 조회를 막지 않으며 `watchlist.js`의 검색·추가는 공통 `StockSearchPanel.ensureKrxMap` 완료 후 처리한다. 닫힌 서랍의 시세·인증 조회 지연 로드와 서버 계정별 저장 계약은 유지한다(2026-11-13).
+- 관심종목 서랍의 `stock-search-panel.js`는 창 모듈과 KRX 검색 사전을 병렬 로드한다. 사전 다운로드가 목록·인증 조회를 막지 않으며 `watchlist.js`의 검색·추가는 공통 `StockSearchPanel.ensureKrxMap` 완료 후 처리한다. 닫힌 서랍의 시세·인증 조회 지연 로드와 서버 계정별 저장 계약은 유지한다(2026-11-13). 첫 표시(2026-11-13): `/watchlist` 성공을 세션 확인으로 보고 `/auth/google/me`는 계정 표시용으로 기다리지 않는다. 탭 `sessionStorage`의 `wl_preview_v1`(코드·이름·그룹만, 보유수량 제외)로 서버 응답 전 inert 미리보기를 그리고 미로그인·401이면 지운다. 서랍 시세는 `fetchQuotesProgressive`로 국내·미국을 도착 즉시 표시하며 공개 `Watchlist.fetchQuotes` 계약은 유지한다. 닫힌 서랍은 실행 없이 watchlist.js만 유휴 시간에 prefetch한다.
 
 ## 화면 접근 정책 (2026-11-11)
 

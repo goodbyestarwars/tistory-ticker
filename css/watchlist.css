@@ -252,6 +252,8 @@
 #watchlist .wl-grid {
   display: block;
 }
+/* 서버 목록 확인 전 미리보기(js/watchlist.js setPreviewMode): 조작은 inert로 막고 흐리게만 표시한다. */
+#watchlist .wl-grid.is-preview { opacity: .6; transition: opacity .15s ease; }
 #watchlist .wl-group { border-top: 1px solid #e1e5eb; }
 #watchlist .wl-group:first-child { border-top: 0; }
 #watchlist .wl-group-head { display: flex; align-items: center; gap: 10px; min-height: 42px; }

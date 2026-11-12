@@ -20,8 +20,8 @@
   'use strict';
 
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js?v=20261026-auth-readonly-v1';
-  var WATCHLIST_CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/watchlist.css?v=20260831-touch-reorder-v1';
+  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js?v=20261113-fast-open';
+  var WATCHLIST_CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/watchlist.css?v=20261113-fast-open';
   var WATCHLIST_OPEN_KEY = 'wl_drawer_open_v1';
   // 상단/사이드바 종목검색은 먼저 실시간 호가와 차트를 확인하는 흐름으로 연결한다.
   // 종목분석은 실시간 시세 상세의 명시적 버튼에서 이어간다.
@@ -726,7 +726,25 @@
 
     if (initiallyOpen) {
       loadWatchlistOnDemand();
+    } else {
+      prefetchWatchlistScript();
     }
+  }
+
+  // 2026-11-13: 닫힌 서랍은 시세·인증 조회를 하지 않는 계약 그대로, 화면이 한가할 때 watchlist.js 파일만 브라우저
+  // 캐시에 미리 받아 둔다(실행하지 않으므로 서버 요청 없음). 처음 열 때 73KB 다운로드를 기다리지 않게 한다.
+  function prefetchWatchlistScript() {
+    if (global.Watchlist || document.querySelector('link[data-wl-prefetch]')) return;
+    var run = function () {
+      var link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'script';
+      link.href = WATCHLIST_JS;
+      link.setAttribute('data-wl-prefetch', '1');
+      document.head.appendChild(link);
+    };
+    if (typeof global.requestIdleCallback === 'function') global.requestIdleCallback(run, { timeout: 4000 });
+    else setTimeout(run, 2000);
   }
 
   // ---- 포맷 유틸 ----
