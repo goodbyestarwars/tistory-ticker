@@ -1,5 +1,5 @@
 'use strict';
-// node test/test_guest_news_stock_badges.js - 제목 직접 언급 종목만 연녹색 태그(비회원 시세 요청 없음)
+// node test/test_guest_news_stock_badges.js - 제목 직접 언급 종목만 일반 텍스트(비회원 시세 요청 없음)
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
@@ -24,8 +24,13 @@ assert.deepEqual(related('한국은행 기준금리 동결…환율 안정'), []
 assert.deepEqual(related('Nvidia and Microsoft unveil AI partnership'), ['엔비디아', '마이크로소프트']);
 assert.deepEqual(related('A meta analysis of stocks'), []);
 assert.deepEqual(related('삼성전자우 거래량 증가'), []);
-assert.ok(fs.readFileSync('css/guest-home.css', 'utf8').includes('#e8f7ed'));
+const css = fs.readFileSync('css/guest-home.css', 'utf8');
+const style = css.match(/\.gnt-stock-name\s*\{([^}]*)\}/);
+assert.ok(style, 'plain stock name style exists');
+assert.ok(/color:\s*var\(--ui-ink\)/.test(style[1]), 'ordinary text color');
+assert.ok(!/(?:background|border|border-radius|padding):/.test(style[1]), 'no badge decoration');
+assert.ok(css.includes('html.dark .gnt-stock-name { color: var(--dk-text); }'), 'dark text remains readable');
 const script=fs.readFileSync('js/guest-home.js', 'utf8');
-assert.ok(script.includes('gnt-stock-badge'));
+assert.ok(script.includes('gnt-stock-name'));
 assert.ok(!/domestic-quotes|market-board|us-quote/.test(script));
 console.log('guest-news stock badges: passed');

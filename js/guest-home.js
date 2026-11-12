@@ -219,7 +219,7 @@
     var press = M.sourceLabel(item);
     var related = relatedStocks(item);
     var stockFooter = related.length ? '<span class="gnt-related"><span class="gnt-related-label">관련 종목</span>' +
-      related.map(function (stock) { return '<span class="gnt-stock-badge">' + esc(stock.name) + '</span>'; }).join('') + '</span>' : '';
+      related.map(function (stock) { return '<span class="gnt-stock-name">' + esc(stock.name) + '</span>'; }).join('') + '</span>' : '';
     return '<li class="gnt-item' + (latest ? ' is-latest' : '') + '">' +
       '<a class="gnt-card" href="' + esc(M.safeHref(item.link)) + '" target="_blank" rel="noopener noreferrer">' +
       '<time class="gnt-time" datetime="' + esc(new Date(at).toISOString()) + '" title="' + esc(M.timeLabel(item.pubDate, item._market)) + '">' + esc(relativeLabel(at, now)) + '</time>' +
