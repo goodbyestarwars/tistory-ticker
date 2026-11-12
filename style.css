@@ -259,8 +259,7 @@ a { text-decoration: none; color: inherit; }
   margin-top: 2px;
 }
 .nav-search {
-  /* Logo and action buttons reserve their natural widths; search uses only
-     the remaining space, rather than floating over either side. */
+  /* 모바일은 기존 흐름 정렬을 유지한다. PC는 아래에서 뷰포트 기준 중앙 정렬. */
   position: relative;
   flex: 1 1 0;
   min-width: 0;
@@ -268,6 +267,20 @@ a { text-decoration: none; color: inherit; }
   max-width: 700px;
   margin: 0 auto;
   transform: none;
+}
+
+/* PC 검색창은 로고·우측 아이콘 폭에 좌우 위치가 끌려가지 않도록 화면 정중앙에 둔다.
+   500px은 좌우 도구 공간의 합계 여유폭: 좁은 PC에서도 요소가 겹치지 않게 줄인다. */
+@media (min-width: 721px) {
+  .navbar .nav-search {
+    position: absolute;
+    left: 50%;
+    width: min(560px, calc(100% - 500px));
+    max-width: none;
+    flex: none;
+    margin: 0;
+    transform: translateX(-50%);
+  }
 }
 
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
