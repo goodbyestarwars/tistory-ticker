@@ -20,7 +20,7 @@
   var doc = global.document;
   var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
   var GUEST_KEY = 'nine_guest'; // 비회원 입장 표시(탭 단위 sessionStorage). 인증 상태가 아니다.
-  var GUEST_HOME_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/guest-home.js?v=20261111-guest-timeline-v1';
+  var GUEST_HOME_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/guest-home.js?v=20261112-paper-v1';
 
   /* ───── 경로 → 화면 키. 알 수 없는 경로(일반 글·기타 페이지)는 '' = 정책 대상 아님 ───── */
   function norm(path) {

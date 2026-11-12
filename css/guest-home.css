@@ -8,6 +8,7 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
    박스 면은 .home-widget, 머리말은 마켓브리핑과 같은 .briefing-intro, 기사 제목은 공통
    .ui-section-title(명조 700·--ui-section-size)을 그대로 받는다. 여기서 font-family를 다시 지정하지 않는다. */
 .guest-news { box-sizing: border-box; min-width: 0; margin-bottom: var(--ui-section-gap, 20px); }
+/* 신문 한 면(2026-11-12): 바깥 종이(각진 모서리·겹친 단면)는 style.css np.np '투자 노트' 블록, 안쪽 지면은 아래 규칙이 그린다. */
 
 /* 뉴스 탐색은 가벼운 에디토리얼 링크, 브리핑 아카이브의 카드형 CTA는 유지한다. */
 .guest-news-more {
@@ -36,67 +37,71 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
 .guest-news-more:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 html.dark .guest-news-more { color: var(--dk-text); }
 
+/* 날짜선: 굵은 선 + 가는 선 사이에 날짜·범위·건수·면수 */
+.gnt-dateline {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 12px;
+  padding: 7px 2px;
+  border-top: 3px solid rgb(var(--np-ink));
+  border-bottom: 1px solid rgb(var(--np-ink));
+  color: rgba(var(--np-ink), .75);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+}
+/* 기사 단(칼럼): 카드 대신 가는 세로선으로 나눈다. 아래 시간축(최신 ← 과거)은 유지한다. */
 .gnt-list {
-  --gnt-line: var(--ui-rule);
-  --gnt-rail: 34px;
+  --gnt-line: rgba(var(--np-ink), .2);
+  --gnt-rail: 28px;
   position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  gap: var(--ui-card-gap, 16px);
-  margin: 0;
+  gap: 0;
+  margin: 4px 0 0;
   padding: 0 0 var(--gnt-rail);
   list-style: none;
 }
-/* 연결선과 진행 방향 화살표(최신 ← 과거) */
 .gnt-list::before {
   content: "";
   position: absolute;
-  left: 9px;
+  left: 0;
   right: 0;
   bottom: 9px;
-  height: 2px;
+  height: 1px;
   background: var(--gnt-line);
 }
-.gnt-list::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 4px;
-  border-right: 10px solid var(--gnt-line);
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-}
 .gnt-item { position: relative; display: flex; min-width: 0; }
+.gnt-item + .gnt-item { border-left: 1px solid rgba(var(--np-ink), .12); }
 .gnt-card {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   min-width: 0;
-  min-height: 160px;
-  padding: calc(var(--ui-card-padding) / 2) var(--ui-card-padding);
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-rule);
-  border-radius: 14px;
+  min-height: 190px;
+  padding: 16px 16px 14px;
   color: var(--ui-ink);
   text-decoration: none;
-  transition: box-shadow .2s ease, border-color .2s ease;
 }
-.gnt-card:hover { border-color: var(--ui-editorial-hover-border); box-shadow: var(--ui-editorial-hover-shadow); }
+.gnt-item:first-child .gnt-card { padding-left: 2px; }
 .gnt-card:hover .gnt-title { color: #6366f1; }
 .gnt-card:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.gnt-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
 .gnt-time {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--ui-accent-soft);
-  color: var(--ui-accent-ink);
+  color: rgb(var(--np-ink));
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .gnt-title {
   margin: 0;
@@ -104,43 +109,40 @@ html.dark .guest-news-more { color: var(--dk-text); }
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
+.gnt-item.is-latest .gnt-title { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .gnt-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 8px;
-  margin-top: auto;
+  gap: 2px 6px;
+  min-width: 0;
   color: var(--ui-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
 }
+.gnt-press { overflow-wrap: anywhere; }
 .gnt-market { font-weight: 500; }
-/* 기사에 직접 명시된 관련 종목을 일반 텍스트로 표시한다(배경·테두리·뱃지 없음). */
+.gnt-press + .gnt-market::before { content: "·"; margin-right: 6px; }
+/* 기사에 직접 명시된 관련 종목: 지면 아래쪽 작은 글자(배경·테두리·뱃지 없음). */
 .gnt-related {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   align-content: flex-start;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 2px 6px;
   width: 100%;
   min-width: 0;
-  margin-top: 2px;
-  padding-top: 9px;
-  border-top: 1px solid var(--ui-rule);
+  margin-top: auto;
+  padding-top: 8px;
 }
 .gnt-related-label {
-  display: inline-flex;
-  align-items: center;
   flex-shrink: 0;
   margin-right: 2px;
-  padding: 3px 8px;
-  border: 1px solid #b9dfc5;
-  border-radius: 999px;
-  background: #e8f7ed;
-  color: #21603b;
-  font-size: 11px;
+  color: var(--ui-muted);
+  font-size: 10.5px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.5;
+  letter-spacing: .06em;
   white-space: nowrap;
 }
 .gnt-stock-name {
@@ -155,65 +157,55 @@ html.dark .guest-news-more { color: var(--dk-text); }
   margin-right: 6px;
   color: var(--ui-muted);
 }
-html.dark .gnt-related { border-color: var(--dk-line); }
-html.dark .gnt-related-label {
-  border-color: color-mix(in srgb, var(--dk-line) 60%, #72b78a);
-  background: color-mix(in srgb, var(--dk-card) 76%, #72b78a);
-  color: #c6f2d4;
-}
-html.dark .gnt-stock-name { color: var(--dk-text); }
-html.dark .gnt-stock-name + .gnt-stock-name::before { color: var(--dk-mute); }
-.gnt-press + .gnt-market::before { content: "·"; margin-right: 8px; }
 .gnt-marker {
   position: absolute;
-  left: 20px;
+  left: 16px;
   bottom: calc(4px - var(--gnt-rail));
   box-sizing: border-box;
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--ui-muted);
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--ui-muted);
   border-radius: 50%;
   background: var(--ui-surface);
 }
-.gnt-item.is-latest .gnt-marker { border-color: var(--ui-ink); background: var(--ui-ink); }
+.gnt-item:first-child .gnt-marker { left: 2px; }
+.gnt-item.is-latest .gnt-marker { border-color: rgb(var(--np-ink)); background: rgb(var(--np-ink)); }
 
-html.dark .gnt-list { --gnt-line: var(--dk-line); }
-html.dark .gnt-card { border-color: var(--dk-line); color: var(--dk-text); }
-html.dark .gnt-card:hover { border-color: var(--ui-editorial-hover-border); }
+html.dark .gnt-card { color: var(--dk-text); }
 html.dark .gnt-card:hover .gnt-title { color: var(--dk-down); }
 html.dark .gnt-title { color: var(--dk-text); }
-html.dark .gnt-time { background: var(--dk-inner); color: var(--dk-text); }
-html.dark .gnt-meta { color: var(--dk-mute); }
+html.dark .gnt-meta, html.dark .gnt-related-label { color: var(--dk-mute); }
+html.dark .gnt-stock-name { color: var(--dk-text); }
+html.dark .gnt-stock-name + .gnt-stock-name::before { color: var(--dk-mute); }
 html.dark .gnt-marker { border-color: var(--dk-mute); background: var(--dk-card); }
-html.dark .gnt-item.is-latest .gnt-marker { border-color: var(--dk-text); background: var(--dk-text); }
 
-
-/* 현재 페이지는 6장씩 간결하게 표시하고, 수집된 24시간 기사 전체는 페이지 버튼으로 탐색한다. */
+/* 한 면에 6건씩 보이고, 수집된 24시간 기사 전체는 면 넘김 버튼으로 탐색한다. */
 .gnt-pager {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px 16px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 .gnt-count, .gnt-page, .gnt-note {
   color: var(--ui-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.gnt-controls { display: flex; align-items: center; gap: 8px; }
-.gnt-page { min-width: 42px; text-align: center; }
+.gnt-controls { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.gnt-page { min-width: 48px; text-align: center; font-family: var(--font-serif); }
 .gnt-controls button {
   min-height: 36px;
-  padding: 7px 11px;
+  padding: 7px 12px;
   border: 1px solid var(--ui-rule);
-  border-radius: 8px;
+  border-radius: 3px;
   background: var(--ui-surface);
   color: var(--ui-ink);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 .gnt-controls button:hover:not(:disabled) { border-color: var(--ui-muted); }
@@ -225,30 +217,19 @@ html.dark .gnt-count, html.dark .gnt-page, html.dark .gnt-note { color: var(--dk
 html.dark .gnt-controls button { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); }
 html.dark .gnt-controls button:hover:not(:disabled) { border-color: var(--dk-mute); }
 
-/* 좁은 화면: 세로 타임라인(위 = 최신, 아래 = 과거). 가로 넘침 없이 제목이 자연스럽게 줄바꿈된다. */
+/* 좁은 화면: 세로 타임라인(위 = 최신, 아래 = 과거). 기사 사이는 가로줄로 나눈다. */
 @media (max-width: 900px) {
   .gnt-list {
     grid-auto-flow: row;
     grid-auto-columns: auto;
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    padding: 0 0 18px 28px;
+    margin-top: 6px;
+    padding: 0 0 0 22px;
   }
-  .gnt-list::before { left: 5px; right: auto; top: 9px; bottom: 0; width: 2px; height: auto; }
-  .gnt-list::after {
-    left: 0;
-    right: auto;
-    top: 0;
-    bottom: auto;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 0;
-    border-bottom: 10px solid var(--gnt-line);
-  }
-  .gnt-card { min-height: 120px; padding: calc(var(--ui-card-padding) / 2) var(--ui-card-padding); gap: 8px; }
-  .gnt-marker { left: -28px; top: 20px; bottom: auto; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gnt-card { transition: none; }
+  .gnt-list::before { left: 5px; right: auto; top: 16px; bottom: 12px; width: 1px; height: auto; }
+  .gnt-item + .gnt-item { border-left: 0; border-top: 1px solid rgba(var(--np-ink), .1); }
+  .gnt-card, .gnt-item:first-child .gnt-card { min-height: 0; padding: 12px 0; gap: 8px; }
+  .gnt-related { padding-top: 0; }
+  .gnt-marker, .gnt-item:first-child .gnt-marker { left: -22px; top: 15px; bottom: auto; }
+  .gnt-count { display: none; }
 }

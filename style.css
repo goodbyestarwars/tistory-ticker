@@ -7728,6 +7728,9 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --ui-inner-surface: #fff;
   --ui-panel-surface: var(--ui-glass-panel);
   --ui-border: var(--rule);
+  /* 종이 계열(신문·노트) 낱장 단면: 뒤에 겹친 종이 한 장/두 장. 책은 --learn-book-edges. */
+  --paper-edge-1: 3px 3px 0 -1px var(--ui-card-surface), 3px 3px 0 0 var(--ui-border);
+  --paper-edge-2: var(--paper-edge-1), 6px 6px 0 -1px var(--ui-card-surface), 6px 6px 0 0 var(--ui-border);
 
   --rule: rgba(17, 17, 17, .1);
 }
@@ -8874,6 +8877,39 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   }
 }
 
+/* 마켓브리핑 '철해 둔 투자 노트' (2026-11-12): 캐러셀 카드를 노트 낱장으로 표시한다.
+   회원 대시보드·비회원 홈·휴장 화면이 같은 NineHomeBriefing 마크업을 쓰므로 이 블록 하나가 모두에 적용된다. */
+@layer np.np {
+  html body#tt-body-index .home-briefing-section { --note-radius: 3px; --note-pad-left: 46px; --note-label-top: 30px; --note-label-right: 32px; }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { border-color: rgba(var(--np-ink), .12) !important; box-shadow: var(--paper-edge-1) !important; }
+  html.dark body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { border-color: var(--dk-line) !important; }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card:hover { border-color: rgba(var(--np-ink), .4) !important; box-shadow: var(--paper-edge-1) !important; }
+  /* 왼쪽 여백선 + 철 구멍 3개 */
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::before {
+    content: "" !important; position: absolute !important; left: 0; top: 0; bottom: 0; width: 22px; border-right: 1px solid rgba(var(--np-ink), .1); pointer-events: none;
+    background-image: radial-gradient(circle, var(--page-bg) 0 3.5px, rgba(var(--np-ink), .18) 3.5px 4.5px, transparent 5px), radial-gradient(circle, var(--page-bg) 0 3.5px, rgba(var(--np-ink), .18) 3.5px 4.5px, transparent 5px), radial-gradient(circle, var(--page-bg) 0 3.5px, rgba(var(--np-ink), .18) 3.5px 4.5px, transparent 5px);
+    background-size: 22px 22px; background-repeat: no-repeat; background-position: center 24px, center 50%, center calc(100% - 24px);
+  }
+  /* 큰 워터마크 숫자 대신 오른쪽 위 '노트 01' */
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::after {
+    content: "노트 " attr(data-briefing-number) !important; top: var(--note-label-top) !important; right: var(--note-label-right) !important; bottom: auto !important;
+    font: 400 12px/1 var(--font-serif) !important; color: rgba(var(--np-ink), .5) !important;
+  }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .post-header { padding-bottom: 10px !important; border-bottom: 1px solid rgba(var(--np-ink), .12) !important; }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .post-footer-right { gap: 16px !important; }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track :is(.btn-share, .btn-read) {
+    height: auto !important; min-height: 0 !important; padding: 0 0 3px !important; border: 0 !important; border-bottom: 1px solid rgba(var(--np-ink), .45) !important; border-radius: 0 !important; background: none !important; box-shadow: none !important;
+    font: 500 12px/1.4 var(--font-ui) !important; letter-spacing: 0 !important; color: rgba(var(--np-ink), .75) !important;
+  }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track :is(.btn-share, .btn-read):hover { color: rgb(var(--np-ink)) !important; border-bottom-color: currentColor !important; }
+  html body#tt-body-index .home-briefing-section .briefing-intro .home-briefing-more { border-radius: var(--note-radius) !important; }
+  /* 비회원 홈 '지금 주목할 뉴스' = 신문 한 면: 각진 종이 + 뒤에 겹친 두 장(안쪽 지면은 css/guest-home.css). */
+  html body#tt-body-index .home-editorial-page .guest-news.home-widget { border-radius: 3px !important; box-shadow: var(--paper-edge-2) !important; }
+  @media (max-width: 720px) {
+    html body#tt-body-index .home-briefing-section { --note-pad-left: 36px; --note-label-top: calc(var(--ui-card-padding) + 2px); --note-label-right: var(--ui-card-padding); }
+  }
+}
+
 /* 관리자 도구는 한 묶음으로 둔다. 좁은 화면은 기존 메뉴 줄에서 가로로 이동한다. */
 @layer np {
   .nav-end-group { display: flex; flex: 0 0 auto; align-items: center; }
@@ -9014,7 +9050,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body#tt-body-index .briefing-intro .home-briefing-more { min-width: 225px !important; padding: 16px 22px !important; gap: 11px !important; border-radius: 13px !important; font: 700 14.4px/1.5 var(--font-ui) !important; }
   html body#tt-body-index .briefing-intro .briefing-archive-icon { width: 20px; height: 20px; }
   html body#tt-body-index .home-editorial-page .briefing-carousel-track { gap: var(--ui-card-gap) !important; padding: 0 0 var(--ui-section-gap) !important; }
-  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: auto !important; padding: var(--ui-card-padding-lg) !important; border-radius: var(--ui-radius-card) !important; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: auto !important; padding: var(--ui-card-padding-lg) !important; padding-left: var(--note-pad-left) !important; border-radius: var(--note-radius) !important; }
   html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { bottom: 54px; right: 23px; font-size: 99px; }
   html body#tt-body-index .briefing-carousel-track .post-header { margin: 0 0 var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-track .post-date { font-size: 11px !important; }
@@ -9056,7 +9092,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body#tt-body-index .briefing-intro strong { font-size: var(--ui-title-size) !important; }
     html body#tt-body-index .briefing-intro p { font-size: 13.5px !important; }
     html body#tt-body-index .briefing-intro .home-briefing-more { margin-top: 18px !important; font-size: 13.5px !important; padding: 16px 22px !important; }
-    html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: auto !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
+    html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: auto !important; padding: var(--ui-card-padding) !important; padding-left: var(--note-pad-left) !important; border-radius: var(--note-radius) !important; }
     html body#tt-body-index .briefing-carousel-track .post-title { font-size: var(--home-editorial-card-title-size) !important; }
     html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
     html body#tt-body-index .briefing-carousel-controls { gap: 16px; }
@@ -9140,10 +9176,10 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
    휴장일 때만(.is-market-closed) 적용하고 2열 배치와 글 내용은 그대로 둔다. */
 @layer np.np {
   html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card {
-    box-sizing: border-box; padding: var(--closed-card-pad, var(--ui-card-padding)) !important; border: 1px solid var(--ui-border) !important; border-radius: var(--ui-radius-card) !important;
-    background: var(--np-paper) !important; box-shadow: none !important;
+    box-sizing: border-box; padding: var(--closed-card-pad, var(--ui-card-padding)) !important; padding-left: var(--note-pad-left) !important; border-radius: var(--note-radius) !important; border: 1px solid var(--ui-border) !important;
+    background: var(--np-paper) !important; box-shadow: var(--paper-edge-1) !important;
   }
-  html.dark body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card { background: var(--wd-glass,var(--dk-card)) !important; border-color: var(--dk-line) !important; box-shadow: var(--wd-glass-shadow,none) !important; }
+  html.dark body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card { background: var(--wd-glass,var(--dk-card)) !important; border-color: var(--dk-line) !important; box-shadow: var(--paper-edge-1) !important; }
 }
 
 /* 2026-10-24 휴장 화면의 마켓브리핑도 장중 화면처럼 가로로 넘기는 카드(캐러셀): 휴장 때 브리핑 섹션이 .home-editorial-page 안의
