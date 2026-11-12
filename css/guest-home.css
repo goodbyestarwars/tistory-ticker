@@ -19,7 +19,7 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
   min-height: 44px;
   padding: 0;
   color: var(--ui-ink);
-  font: 500 14px/1.5 var(--font-ui);
+  font: 700 14px/1.5 var(--font-ui);
   text-decoration: none;
   white-space: nowrap;
 }
