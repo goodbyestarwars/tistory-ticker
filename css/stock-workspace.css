@@ -7,7 +7,7 @@ html.ssw-page .main-layout { max-width: 1880px; }
 /* 티스토리 글 제목·작성일 머리는 작업 화면에서 세로 공간만 차지하므로 접는다(문서 제목은 그대로 남는다). */
 html.ssw-page .post-single:has(#stock-search.ss-workspace) .post-single-header { display: none; }
 
-#stock-search.ss-workspace { --ssw-info-width: 300px; --ssw-gap: var(--ui-card-gap, 16px); }
+#stock-search.ss-workspace { --ssw-gap: var(--ui-card-gap, 16px); }
 
 /* ── 검색 줄 + 관심·최근 서랍 ── */
 #stock-search.ss-workspace .ss-search { position: relative; flex-wrap: wrap; }
@@ -101,17 +101,23 @@ html.ssw-page .post-single:has(#stock-search.ss-workspace) .post-single-header {
 /* 선택 종목 하나뿐인 검색 결과 표는 머리말과 겹치므로 접는다(여러 건이면 그대로 고를 수 있게 둔다). */
 #stock-search.ss-workspace .ss-results:has(.ss-result-row):not(:has(.ss-result-row ~ .ss-result-row)) { display: none; }
 
-/* ── 3열: 호가 | 손잡이 | 차트 | 종목정보 ── */
+/* ── 호가 | 손잡이 | 차트. 종목정보는 상시 열로 두지 않고 서랍으로 연다(차트 폭 우선, 2026-11-12 사용자 지시) ── */
 #stock-search.ss-workspace .ss-detail { margin-top: 14px; }
 #stock-search.ss-workspace .ss-panels {
   --ss-left-width: 320px;
-  grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr) var(--ssw-info-width);
+  grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr);
   column-gap: 0;
 }
+/* 시가·고가·저가 아래 전일 대비·거래량: 같은 .ss-session 표기를 그대로 쓴다. */
+/* 같은 3칸 격자에서 거래량은 숫자가 길어 두 칸을 쓴다(줄바꿈 방지). */
+#stock-search.ss-workspace .ss-panel-left > .ssw-session-extra .ss-session-values div:last-child { grid-column: span 2; }
+#stock-search.ss-workspace .ssw-session-extra b.up { color: var(--num-up, #d92d20); }
+#stock-search.ss-workspace .ssw-session-extra b.down { color: var(--num-down, #1d5fd1); }
+html.dark #stock-search.ss-workspace .ssw-session-extra b.up { color: var(--dk-up); }
+html.dark #stock-search.ss-workspace .ssw-session-extra b.down { color: var(--dk-down); }
 #stock-search.ss-workspace .ssw-info {
   box-sizing: border-box;
   min-width: 0;
-  margin-left: var(--ssw-gap);
   border: 1px solid var(--ui-rule);
   border-radius: 14px;
   background: var(--ui-surface);
@@ -144,9 +150,6 @@ html.ssw-page .post-single:has(#stock-search.ss-workspace) .post-single-header {
 #stock-search.ss-workspace .ssw-facts > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--ui-rule); }
 #stock-search.ss-workspace .ssw-facts dt { color: var(--ui-muted); font-size: 13px; }
 #stock-search.ss-workspace .ssw-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
-#stock-search.ss-workspace .ssw-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-#stock-search.ss-workspace .ssw-tags span { padding: 2px 10px; border-radius: 999px; background: var(--ui-accent-soft); color: var(--ui-accent-ink); font-size: 12px; }
-#stock-search.ss-workspace .ssw-link { display: inline-block; margin-top: 14px; color: var(--ui-ink); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 #stock-search.ss-workspace .ssw-table { width: 100%; margin-top: 10px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 #stock-search.ss-workspace .ssw-table caption { padding: 14px 0 4px; color: var(--ui-muted); font-size: 12px; text-align: left; }
 #stock-search.ss-workspace .ssw-table :is(th, td) { padding: 7px 4px; border-bottom: 1px solid var(--ui-rule); font-size: 13px; text-align: right; white-space: nowrap; }
@@ -168,18 +171,16 @@ html.ssw-page .post-single:has(#stock-search.ss-workspace) .post-single-header {
 html.dark #stock-search.ss-workspace :is(.ssw-drawer-btn, .ssw-info-toggle) { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-text); }
 html.dark #stock-search.ss-workspace :is(.ssw-drawer-btn:hover, .ssw-drawer-btn[aria-expanded="true"], .ssw-drawer li button:hover) { background: var(--dk-inner); }
 html.dark #stock-search.ss-workspace :is(.ssw-drawer, .ssw-info, .ss-summary) { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-text); }
-html.dark #stock-search.ss-workspace :is(.ssw-drawer li button, .ssw-tabs button[aria-selected="true"], .ssw-head-market, .ssw-link, .ssw-error) { color: var(--dk-text); }
+html.dark #stock-search.ss-workspace :is(.ssw-drawer li button, .ssw-tabs button[aria-selected="true"], .ssw-head-market, .ssw-error) { color: var(--dk-text); }
 html.dark #stock-search.ss-workspace .ssw-tabs button[aria-selected="true"] { border-bottom-color: var(--dk-text); }
 html.dark #stock-search.ss-workspace :is(.ssw-tabs button, .ssw-drawer h4, .ssw-drawer li small, .ssw-head-meta, .ssw-state, .ssw-note, .ssw-facts dt, .ssw-table thead th, .ssw-table caption, .ssw-info-close) { color: var(--dk-mute); }
 html.dark #stock-search.ss-workspace :is(.ssw-info-head, .ssw-facts > div, .ssw-table th, .ssw-table td, .ssw-head-market) { border-color: var(--dk-line); }
-html.dark #stock-search.ss-workspace .ssw-tags span { background: var(--dk-inner); color: var(--dk-text); }
 html.dark #stock-search.ss-workspace :is(.ssw-drawer-btn, .ssw-info-toggle, .ssw-info-close, .ssw-tabs button, .ssw-mtabs button, .ssw-drawer button):focus-visible { outline-color: var(--dk-text); }
 html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-table td, .ssw-streaks span).up { color: var(--dk-up); }
 html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-table td, .ssw-streaks span).down { color: var(--dk-down); }
 
-/* ── 좁은 PC·태블릿: 종목정보는 오른쪽 서랍으로 접고 차트 폭을 지킨다 ── */
-@media (max-width: 1499px) {
-  #stock-search.ss-workspace .ss-panels { grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr); }
+/* ── PC(861px 이상): 종목정보는 머리말 [종목정보] 버튼으로 여는 오른쪽 서랍 ── */
+@media (min-width: 861px) {
   #stock-search.ss-workspace .ssw-info-toggle { display: inline-flex; align-items: center; }
   #stock-search.ss-workspace .ssw-info-close { display: block; }
   #stock-search.ss-workspace .ssw-info {
@@ -201,7 +202,7 @@ html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-table td, .ssw-stre
   #stock-search.ss-workspace.ssw-info-open .ssw-backdrop { display: block; position: fixed; inset: 0; z-index: 1190; background: rgba(15, 23, 42, .35); }
   #stock-search.ss-workspace .ssw-backdrop[hidden] { display: none; }
 }
-@media (max-width: 1499px) and (prefers-reduced-motion: reduce) {
+@media (min-width: 861px) and (prefers-reduced-motion: reduce) {
   #stock-search.ss-workspace .ssw-info { transition: none; }
 }
 @media (max-width: 720px) {

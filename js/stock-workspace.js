@@ -1,11 +1,12 @@
 /**
  * 종목 작업 화면 (2026-11-12).
  *
- * /page/stock-search(js/stock-search.js)의 기존 셸을 [호가 | 차트 | 종목정보] 3열 작업 화면으로 꾸민다.
+ * /page/stock-search(js/stock-search.js)의 기존 셸을 [호가 | 차트] 작업 화면으로 꾸민다(종목정보는 머리말 버튼으로 여는 서랍).
  * 새 화면을 따로 만들지 않는 이유: 호가(js/order-book.js)·차트(js/chart-core.js 계열)·관련 뉴스·실시간 소켓이
  * 이미 이 페이지 한 곳에 묶여 있고(소켓 1개), 종목 URL 계약(?code=&name=)도 여기에 있다. 이 파일은 그 위에
  *   - 종목 머리말(기존 #ssSummary에 시장·자료 기준시각 보강)
- *   - 오른쪽 종목정보 탭(요약 / 수급 / 공시·뉴스 / 기업정보) - 기존 제공 자료만 사용
+ *   - 종목정보 서랍(수급 / 공시·뉴스 / 기업정보) - 기존 제공 자료만 사용. 차트 폭을 위해 상시 열로 두지 않는다
+ *   - 호가 패널 시가·고가·저가 아래 전일 대비·거래량
  *   - 검색 옆 관심·최근 서랍(헤더 검색과 같은 저장소 stock:recent·관심종목 목록 재사용)
  *   - 첫 종목 결정(URL → 마지막 선택 → 관심종목 첫 항목), 종목 변경 시 주소 기록(뒤로가기)
  *   - 좁은 화면 전환(종목정보 서랍, 모바일 차트/호가/종목정보 탭)
@@ -28,10 +29,10 @@
   var PROFILES_URL = BASE + 'data/company-profiles.js';
   var API = 'https://goodbyestar.cloud';
   var FLOW_TTL_MS = 5 * 60 * 1000; // 서버 캐시와 같은 5분
-  var TABS = [['summary', '요약'], ['flow', '수급'], ['news', '공시·뉴스'], ['company', '기업정보']];
+  var TABS = [['flow', '수급'], ['news', '공시·뉴스'], ['company', '기업정보']];
   var PANELS = [['chart', '차트'], ['book', '호가'], ['info', '종목정보']];
 
-  var state = { code: '', name: '', tab: 'summary', panel: 'chart', session: null, quote: null, flowToken: 0, profiles: null };
+  var state = { code: '', name: '', tab: 'flow', panel: 'chart', session: null, quote: null, flowToken: 0, profiles: null };
   var el = {};
 
   function esc(value) { return global.NineUI.escapeHtml(value); }
@@ -164,23 +165,24 @@
     meta.querySelector('.ssw-head-time').textContent = text;
   }
 
-  /* ───── 요약 탭 ───── */
-  function sectorsOf(code) { return sectorEntries(code).map(function (row) { return row.sector; }).slice(0, 4); }
-  function renderSummary() {
-    var pane = el.info.querySelector('#sswPane-summary');
-    if (!state.code) { pane.innerHTML = '<p class="ssw-state">종목을 선택하면 요약이 표시됩니다.</p>'; return; }
+  /* ───── 호가 패널의 시가·고가·저가 아래: 전일 대비·거래량(2026-11-12 사용자 지시로 오른쪽 요약 칸에서 옮김) ─────
+     #ssSessionCandle은 stock-search.js가 통째로 다시 그리므로 바로 아래 형제 노드에 그린다. */
+  function renderSessionExtra() {
+    var anchor = root.querySelector('#ssSessionCandle');
+    if (!anchor) return;
+    var box = root.querySelector('#sswSessionExtra');
+    if (!box) {
+      box = doc.createElement('div');
+      box.id = 'sswSessionExtra';
+      box.className = 'ss-session ssw-session-extra';
+      anchor.parentNode.insertBefore(box, anchor.nextSibling);
+    }
     var s = state.session || {}, q = state.quote && state.quote.code === state.code ? state.quote : {};
     var volume = num(s.liveVolume != null ? s.liveVolume : s.volume);
-    var rows = [['시가', fmt(s.open), ''], ['고가', fmt(s.high), ' up'], ['저가', fmt(s.low), ' down'],
-      ['전일 대비', q.change == null ? '—' : signed(q.change) + '원', tone(q.change)],
-      ['거래량', volume > 0 ? fmt(volume) + '주' : '—', '']]; // 0·미수신은 거래량 0으로 꾸미지 않는다
-    var sectors = sectorsOf(state.code);
-    pane.innerHTML = '<dl class="ssw-facts">' + rows.map(function (r) {
-      return '<div><dt>' + r[0] + '</dt><dd class="' + r[2].trim() + '">' + esc(r[1]) + '</dd></div>';
-    }).join('') + '</dl>'
-      + '<p class="ssw-note">' + (s.date ? esc(s.date) + ' 일봉 기준. ' : '') + '수신하지 못한 값은 —로 표시합니다.</p>'
-      + (sectors.length ? '<div class="ssw-tags" aria-label="업종·테마">' + sectors.map(function (name) { return '<span>' + esc(name) + '</span>'; }).join('') + '</div>' : '')
-      + '<a class="ssw-link" href="/page/foreign-flow?code=' + encodeURIComponent(state.code) + '&amp;name=' + encodeURIComponent(state.name) + '">종목분석 열기 →</a>';
+    var change = num(q.change);
+    box.innerHTML = '<div class="ss-session-values">'
+      + '<div><span>전일 대비</span><b class="' + tone(change).trim() + '">' + (change == null ? '—' : signed(change) + '원') + '</b></div>'
+      + '<div><span>거래량</span><b>' + (volume > 0 ? fmt(volume) + '주' : '—') + '</b></div></div>'; // 0·미수신은 0으로 꾸미지 않는다
   }
 
   /* ───── 수급 탭: 기존 /foreign-flow/{code}(외국인·기관·개인 일별 순매수, 주 단위) ───── */
@@ -269,8 +271,7 @@
     state.tab = key;
     el.info.querySelectorAll('[data-ssw-tab]').forEach(function (btn) { btn.setAttribute('aria-selected', String(btn.getAttribute('data-ssw-tab') === key)); });
     el.info.querySelectorAll('.ssw-pane').forEach(function (pane) { pane.hidden = pane.id !== 'sswPane-' + key; });
-    if (key === 'summary') renderSummary();
-    else if (key === 'flow') loadFlow();
+    if (key === 'flow') loadFlow();
     else if (key === 'company') loadCompany();
   }
 
@@ -353,6 +354,7 @@
       syncUrl();
       ['flow', 'company'].forEach(function (key) { if (changed) el.info.querySelector('#sswPane-' + key).removeAttribute('data-code'); });
       showTab(state.tab);
+      renderSessionExtra();
       // #ssSummary는 이 이벤트 직후 stock-search.js가 다시 그린다 → 그 뒤에 머리말을 보강한다.
       global.setTimeout(decorateHead, 0);
     });
@@ -361,14 +363,14 @@
       if (q.code !== state.code) return;
       state.quote = q;
       decorateHead();
-      if (state.tab === 'summary') renderSummary();
+      renderSessionExtra();
     });
     doc.addEventListener('nine-stock-session', function (e) {
       var d = e.detail || {};
       if (d.code !== state.code) return;
       state.session = d.summary || null;
       decorateHead();
-      if (state.tab === 'summary') renderSummary();
+      renderSessionExtra();
     });
     global.addEventListener('popstate', function () {
       var code = urlCode();
