@@ -18,7 +18,7 @@
   var FALLBACK = '/guestbook';
   var FROM_KEY = 'nine_access_from';
   var doc = global.document;
-  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news', 'public-chart']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
+  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
   var GUEST_KEY = 'nine_guest'; // 비회원 입장 표시(탭 단위 sessionStorage). 인증 상태가 아니다.
   var GUEST_HOME_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/guest-home.js?v=20261112-paper-v1';
 
@@ -32,7 +32,7 @@
   function screenOf(path, search) {
     var p = norm(path);
     var q = new URLSearchParams(search || '');
-    if (p === '/') return q.get('view') === 'public-chart' ? 'public-chart' : 'home';
+    if (p === '/') return 'home';
     if (/^\/guestbook(?:\/|$)/.test(p)) return 'guestbook';
     if (/^\/pages?\/stock-calendar$/.test(p)) return 'calendar';
     if (/^\/category\/마켓 ?브리핑(?:\/|$)/.test(p)) return 'briefing';
@@ -356,4 +356,3 @@
     }
   };
 })(window);
-

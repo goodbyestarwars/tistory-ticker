@@ -3886,21 +3886,10 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 /* 2026-10-05: 업종 로테이션은 홈에서 시장 > 증시온도 페이지(js/market-temp.js)로 옮겼다. */
 
   }
-  function go() {
-    if (location.pathname === '/' && new URLSearchParams(location.search).get('view') === 'public-chart') {
-      loadMobileTabs();
-      var publicChart = document.createElement('script');
-      publicChart.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/public-stock-chart.js';
-      publicChart.onerror = function () { var feed = document.querySelector('.feed'); if (feed) feed.textContent = '차트 화면을 불러오지 못했습니다. 새로고침해 주세요.'; };
-      document.head.appendChild(publicChart);
-      return;
-    }
-    window.NineAccess.run(start);
-  }
+  function go() { window.NineAccess.run(start); }
   if (window.NineAccess) { go(); return; }
   var tag = document.getElementById('nine-access-gate-js');
   if (!tag) { start(); return; }
   tag.addEventListener('load', go, { once: true });
   tag.addEventListener('error', start, { once: true });
 })();
-

@@ -35,7 +35,7 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   // 경로 → 화면
   const { win } = boot('/guestbook', '', policy(false));
   const s = win.NineAccess.screenOf;
-  const table = [['/', '?view=public-chart', 'public-chart'], ['/', '', 'home'], ['/guestbook', '', 'guestbook'], ['/page/stock-calendar', '', 'calendar'], ['/pages/stock-calendar', '', 'calendar'],
+  const table = [['/', '', 'home'], ['/guestbook', '', 'guestbook'], ['/page/stock-calendar', '', 'calendar'], ['/pages/stock-calendar', '', 'calendar'],
     ['/category/' + encodeURIComponent('마켓 브리핑'), '', 'briefing'], ['/category/마켓 브리핑/', '', 'briefing'], ['/pages/kospi-futures', '?x=1', 'indicators'],
     ['/pages/overnight-market', '', 'indicators'], ['/page/market-temp', '?view=stocks', 'stocks'], ['/page/market-temp', '', 'market-temp'],
     ['/page/foreign-flow', '?code=005930', 'stocks'], ['/page/pattern-scan', '', 'stocks'], ['/page/stock-search', '?tool=independent-chart', 'tools'],
@@ -124,15 +124,5 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   // whenAdmin: 일반 회원은 시작하지 않는다
   b = boot('/guestbook', '', policy(false)); let adminRan = false; b.win.NineAccess.whenAdmin(() => { adminRan = true; }); await wait();
   assert(!adminRan);
-  // Public widget is independent of admin stock screens, including policy outage.
-  for (const p of [policy(false), policy(false, [], true), fail]) {
-    const publicPage = boot('/', '?view=public-chart', p, {nine_guest:'1'});
-    let started = false; publicPage.win.NineAccess.run(() => { started = true; });
-    await wait();
-    assert(started); assert(publicPage.win.NineAccess.allowsScreen('public-chart'));
-    assert(!publicPage.win.NineAccess.allowsScreen('stocks'));
-    assert.strictEqual(publicPage.calls.replace.length, 0);
-  }
   console.log('access-gate: all passed');
 })().catch((e) => { console.error(e); process.exit(1); });
-

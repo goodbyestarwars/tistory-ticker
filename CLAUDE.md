@@ -75,13 +75,6 @@
 
 - 관심종목 서랍의 `stock-search-panel.js`는 창 모듈과 KRX 검색 사전을 병렬 로드한다. 사전 다운로드가 목록·인증 조회를 막지 않으며 `watchlist.js`의 검색·추가는 공통 `StockSearchPanel.ensureKrxMap` 완료 후 처리한다. 닫힌 서랍의 시세·인증 조회 지연 로드와 서버 계정별 저장 계약은 유지한다(2026-11-13).
 
-## 공개 TradingView 차트 (2026-11-13)
-
-- `/?view=public-chart`는 공개 종목검색·공식 외부 위젯 전용 화면이다. `NineAccess`의 별도 공개 키 `public-chart`로 분리하며 기존 `stocks`·관리자 시세 REST/WS 권한은 유지한다. 기존 홈·뉴스·브리핑 렌더러는 실행하지 않는다.
-- 비회원·일반회원 홈은 뉴스 아래·브리핑 위의 독립 마운트에서 `NinePublicStockChart.mount(host, {embedded:true})` 렌더러를 재사용한다. 홈 URL·뉴스·브리핑·이야기·모바일 스와이프 그룹은 유지하고 종목 선택 전 외부 위젯을 요청하지 않는다.
-- `StockSearchPanel.mountDomesticSearch`가 기존 공개 KRX_MAP·검색 정렬·검색 결과 UI를 재사용한다. 공개 검색에서 시세·관심종목·미국검색 API를 요청하지 않는다. 차트는 `public-stock-chart.js`가 종목 선택 후 공식 TradingView embed만 생성한다(공통 chart-core는 자체 시세 렌더러이므로 이 외부 iframe에는 사용하지 않음). 출처·브랜딩을 보존하고 데이터 프록시·추출을 금지한다.
-- 2026-11-13 실제 확인: 삼성전자·SK하이닉스·한화오션·녹십자는 외부 위젯에서 ‘TradingView에서만 제공되는 심볼’로 거절됐다. 검색 성공·iframe 생성과 가격 차트 성공을 구분한다. 화면에 확인일·미지원 안내·공식 종목 페이지 링크를 표시하며 다른 KRX 종목도 지원을 보장하지 않는다.
-
 ## 화면 접근 정책 (2026-11-11)
 
 - 비로그인(비회원 입장 포함)·일반 회원은 홈(비회원 홈=마켓브리핑+이야기 시리즈, `js/guest-home.js`)·시장(주요뉴스·마켓브리핑)·캘린더·대화방만(로그인 회원은 시장지표 추가), 서버가 확인한 Google 관리자만 기존 전체 화면. 판정은 `NineAccess`(`js/access-gate.js`)·`/access-policy` 단일 출처이며 티스토리 ROLE은 표시용일 뿐이다. 메뉴·직접 URL·모바일 탭·전역 도구는 같은 판정을 쓴다.

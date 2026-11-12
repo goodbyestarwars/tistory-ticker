@@ -322,23 +322,7 @@
     feed.appendChild(page);
     fillNews(page.querySelector('[data-guest-news]'));
 
-    // Keep the existing news first and the briefing/story carousel unchanged.
-    // Reuse the public chart renderer in its own mount, outside mobile swipe groups.
-    var chartMount = doc.createElement('div');
-    chartMount.setAttribute('data-guest-stock-chart', '');
-    chartMount.setAttribute('data-no-swipe', '');
     var grid = page.querySelector('.home-widget-grid');
-    page.insertBefore(chartMount, grid);
-    function mountChart() { if (global.NinePublicStockChart) global.NinePublicStockChart.mount(chartMount, { embedded: true }); }
-    if (global.NinePublicStockChart) mountChart();
-    else {
-      var chartScript = doc.createElement('script');
-      chartScript.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/public-stock-chart.js';
-      chartScript.onload = mountChart;
-      chartScript.onerror = function () { chartMount.innerHTML = '<p>종목검색을 불러오지 못했습니다. <a href="/?view=public-chart">국내 종목 차트 열기</a></p>'; };
-      doc.head.appendChild(chartScript);
-    }
-
     if (briefingCards.length >= 3) fillBriefing(grid, briefingCards, 40);
     else {
       fetchCategoryCards().then(function (cards) { fillBriefing(grid, cards.length ? cards : briefingCards, 40); })
@@ -349,4 +333,3 @@
 
   global.NineGuestHome = { mount: mount, relatedStocks: relatedStocks };
 })(window);
-

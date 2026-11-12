@@ -103,7 +103,7 @@
   function currentTab() {
     var info = pathInfo();
     var p = info.path;
-    if (p === '/') return info.query.get('view') === 'public-chart' ? 'stocks' : 'home';
+    if (p === '/') return 'home';
     if (p === '/page/market-temp' || p === '/pages/market-temp') {
       return info.query.get('view') === 'stocks' ? 'stocks' : 'market';
     }
@@ -747,4 +747,3 @@
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', init);
   else init();
 })(window);
-
