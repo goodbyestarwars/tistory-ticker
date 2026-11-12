@@ -4,7 +4,7 @@
 const fs=require('node:fs'),readline=require('node:readline');
 const AW=require('../../js/auto-wave.js');
 const LIMIT=60;
-// High-basis research tags (2026-11-08). Shown inside existing menus; observation only.
+// High-basis research tags (2026-11-08). Kept in a separate research bucket; observation only.
 const EDGE={
  surgeNextDay:{group:'trendBreakout',label:'급등 다음날 시가 관찰',horizon:'1~5거래일',
    note:'당일 +20% 이상 마감 · 다음 거래일 시가 기준 고점 관찰'},
@@ -16,20 +16,20 @@ const EDGE={
 const RESMOM_TOP=.4;
 (async()=>{
  const keys=['liveFlow','trendBreakout','bottomFormation','pullbackRebreak','longTermQuality'];
- const groups={},observed={},filteredOut={};
- for(const key of keys){groups[key]=[];observed[key]=[];filteredOut[key]=0;}
+ const groups={},observed={},extended={},research={},filteredOut={};
+ for(const key of keys){groups[key]=[];observed[key]=[];extended[key]=[];research[key]=[];filteredOut[key]=0;}
  let benchmarks=null;
  try{benchmarks=process.argv[3]?JSON.parse(fs.readFileSync(process.argv[3],'utf8')):null;}catch(_){benchmarks=null;}
  if(benchmarks && !Object.keys(benchmarks).length)benchmarks=null;
  let rsMissing=0,rsChecked=0;
  const edgeCounts={surgeNextDay:0,gapVolumeClose:0,rsHighResidual:0},resmoms=[],swing=[];
- // Public observation list bound, never a signal/order gate. Research tags sort first.
- const keep=(list,row)=>{list.push(row);list.sort((a,b)=>(b.edgeRank||0)-(a.edgeRank||0) || b.score-a.score || a.code.localeCompare(b.code));if(list.length>LIMIT)list.length=LIMIT;};
+ // Bound each display bucket independently. Geometry ranks first; research never promotes it.
+ const keep=(list,row)=>{list.push(row);list.sort((a,b)=>b.score-a.score || a.code.localeCompare(b.code));if(list.length>LIMIT)list.length=LIMIT;};
  const tag=key=>Object.assign({key},EDGE[key]);
  const edgeRow=(stock,daily,key,rs)=>{
    const last=daily[daily.length-1],previous=daily[daily.length-2],shape=AW.shapeOf(daily.slice(-40)),info=EDGE[key];
    const detail={status:'EDGE_OBSERVE',shapeLabel:info.label,shape,observationOnly:true,orderAuthorized:false,
-     selectionVersion:'shape-selection-v1',windowBars:40,edgeOnly:true,edgeSignals:[tag(key)],
+     selectionVersion:'shape-selection-v1',strategyVersion:'chart-first-v2',listKind:'research',windowBars:40,edgeOnly:true,edgeSignals:[tag(key)],
      signal:{date:last.date,price:last.close},score:shape.score,reasons:[info.note],
      interpretation:info.label+' · 고점 기준 연구 관찰(주문 신호 아님)',relativeStrength:rs};
    return {code:stock.code,name:stock.name,price:last.close,changeRate:(last.close/previous.close-1)*100,date:last.date,
@@ -52,25 +52,22 @@ const RESMOM_TOP=.4;
      for(const detail of selected[key] || []){
        if(key==='longTermQuality' && !(stock.financialScreen && stock.financialScreen.passed===true))continue;
        const myWay=AW.myWayOf(getRs(),key);
-       const edgeKey=want[key];
        const row={code:stock.code,name:stock.name,price:last.close,
-         changeRate:(last.close/previous.close-1)*100,date:last.date,score:detail.score,edgeRank:edgeKey?1:0,
-         reasons:detail.reasons.concat(myWay.reasons || []),interpretation:detail.interpretation,
-         patternDetail:Object.assign({},detail,{relativeStrength:rs,myWay:myWay},edgeKey?{edgeSignals:[tag(edgeKey)]}:{}),
+         changeRate:(last.close/previous.close-1)*100,date:last.date,score:detail.score,edgeRank:0,
+         reasons:detail.reasons.concat(['상대강도는 보조 확인'].concat(myWay.reasons || [])),interpretation:detail.interpretation,
+         patternDetail:Object.assign({},detail,{relativeStrength:rs,relativeContext:AW.relativeContextOf(daily,benchmarks,detail),myWay:Object.assign({},myWay,{applied:false,advisory:true}),listKind:detail.stage==='extended'?'extended':'primary'}),
          financialScreen:key==='longTermQuality'?stock.financialScreen:undefined,
          longTermLiquidity:key==='longTermQuality'?stock.longTermLiquidity:undefined,
          miniChart:daily.slice(-20).map(b=>({date:b.date,close:b.close}))};
-       if(edgeKey){edgeCounts[edgeKey]++;delete want[key];}
+       if(detail.stage==='extended'){keep(extended[key],row);continue;}
        keep(observed[key],row);
-       // Unknown relative strength is shown unfiltered (flagged), never treated as a pass or fail.
-       // A research-tagged row stays visible: the tag was measured without the my-way filter.
-       if(myWay.pass===false && !edgeKey){filteredOut[key]++;continue;}
+       // Relative strength explains the setup; it cannot create or reject a shape.
        keep(groups[key],row);
      }
    }
    for(const key of Object.keys(want)){
      const row=edgeRow(stock,daily,want[key],getRs());
-     edgeCounts[want[key]]++;keep(observed[key],row);keep(groups[key],row);
+     edgeCounts[want[key]]++;keep(research[key],row);
    }
    if(edge.rsHigh60===true && Number.isFinite(edge.resmom20))swing.push({stock,daily,value:edge.resmom20,rs:getRs()});
  }
@@ -80,21 +77,14 @@ const RESMOM_TOP=.4;
  if(cut!=null)for(const s of swing){
    if(s.value<cut)continue;
    const key=EDGE.rsHighResidual.group;
-   const existing=groups[key].concat(observed[key]).filter(r=>r.code===s.stock.code);
    edgeCounts.rsHighResidual++;
-   if(existing.length){
-     existing.forEach(r=>{if(!(r.patternDetail.edgeSignals || []).some(t=>t.key==='rsHighResidual')){
-       r.patternDetail.edgeSignals=(r.patternDetail.edgeSignals || []).concat(tag('rsHighResidual'));r.edgeRank=(r.edgeRank||0)+1;}});
-     if(!groups[key].some(r=>r.code===s.stock.code))keep(groups[key],existing[0]);
-     continue;
-   }
    const row=edgeRow(s.stock,s.daily,'rsHighResidual',s.rs);
    row.patternDetail.residualMomentum20=s.value;
-   keep(observed[key],row);keep(groups[key],row);
+   keep(research[key],row);
  }
- for(const key of keys)for(const list of [groups[key],observed[key]])list.sort((a,b)=>(b.edgeRank||0)-(a.edgeRank||0) || b.score-a.score || a.code.localeCompare(b.code));
+ for(const key of keys)for(const list of [groups[key],observed[key],extended[key],research[key]])list.sort((a,b)=>b.score-a.score || a.code.localeCompare(b.code));
  const status=!benchmarks?'missing':rsMissing&&rsMissing===rsChecked?'missing':rsMissing?'partial':'ok';
- process.stdout.write(JSON.stringify({groups,observed,relativeStrength:{version:'my-way-v1',status,basis:'KOSPI+KOSDAQ',
+ process.stdout.write(JSON.stringify({strategyVersion:'chart-first-v2',groups,observed,extended,research,relativeStrength:{version:'my-way-v1',role:'advisory',status,basis:'KOSPI+KOSDAQ',
    checked:rsChecked,missing:rsMissing,filteredOut},
    edgeSignals:{version:'edge-v1',counts:edgeCounts,resmomCut:cut,resmomChecked:resmoms.length,
      benchmarks:benchmarks?'ok':'missing'}}));

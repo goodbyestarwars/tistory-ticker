@@ -1086,6 +1086,9 @@
 
   // patternDetail.status → 목록 배지. 형성 중 / 돌파 준비 / 돌파 확인을 한눈에 가른다(2026-10-15).
   var PATTERN_STATE = {
+    SHAPE_PREPARE:{label:'준비 구간 관찰',tone:'is-form'},
+    SHAPE_TRANSITION:{label:'첫 구조 변화 관찰',tone:'is-form'},
+    SHAPE_EXTENDED:{label:'추격·확장 관찰',tone:'is-form'},
     SHAPE_FORMING:{label:'모양 형성 중',tone:'is-form'},
     SHAPE_REBOUND:{label:'반등 시도 관찰',tone:'is-form'},
     SHAPE_BREAKOUT:{label:'저항 회복 관찰',tone:'is-form'},
@@ -1277,8 +1280,10 @@
     entries.forEach(function(entry) {
       (entry.items || []).forEach(function(item) {
         if (!item || !item.code || hiddenCodes[String(item.code)]) return;
-        var code=String(item.code), row=byCode[code];
-        if(!row) { row=byCode[code]=Object.assign({},item,{_sourceKey:entry.key,members:[]}); order.push(row); }
+        var code=String(item.code), bucket=(item.patternDetail || {}).listKind;
+        var rowKey=code+((item.patternDetail || {}).strategyVersion==='chart-first-v2' && bucket?'|'+bucket:'');
+        var row=byCode[rowKey];
+        if(!row) { row=byCode[rowKey]=Object.assign({},item,{_sourceKey:entry.key,members:[]}); order.push(row); }
         if(!row.miniChart && item.miniChart)row.miniChart=item.miniChart;
         var identity=entry.key+'|'+String(item._gpStage || '')+'|'+String((item.patternDetail || {}).status || '')+'|'+String(item.stage || '')+(item.track?'|track:'+String(item.track.id || item.track.detected_date || ''):'');
         if(!row.members.some(function(m){return m.identity===identity;}))row.members.push({key:entry.key,item:item,identity:identity});
@@ -1323,13 +1328,14 @@
   function myWayCopy(selection, key) {
     var rs=selection && selection.relativeStrength;
     if(!rs || key==='longTermQuality')return '';
+    if(rs.role==='advisory')return rs.status==='missing'?' 지수 자료 미확인 · 모양 판정은 유지하며 상대강도는 미확인으로 표시합니다.':' 상대강도는 조정 구간의 버팀을 확인하는 보조 자료이며 후보 통과·탈락 조건으로 사용하지 않습니다.';
     if(rs.status==='missing')return ' 지수 일봉 미확인으로 상대강도 필터를 적용하지 않았습니다.';
     var out=(rs.filteredOut || {})[key];
     return ' 상대강도 필터: KOSPI·KOSDAQ 두 지수보다 강하고 자체 흐름도 오르는 종목만 표시'+(Number.isFinite(out)?' · 이 메뉴에서 '+out+'종목 제외':'')+(rs.status==='partial'?' · 일부 종목은 지수 대조 불가로 필터 미적용':'')+'.';
   }
   function shapeSelectionItems(selection, key) {
     var now=Date.now(),stamp=Date.parse(selection.scannedAt || '');
-    return (selection.groups[key] || []).map(function(it){
+    return (selection.groups[key] || []).concat((selection.extended || {})[key] || [],(selection.research || {})[key] || []).map(function(it){
       var stale=!Number.isFinite(stamp) || now<stamp || now-stamp>36*3600000;
       return Object.assign({},it,{_observationStale:stale,_observationMissing:!Number.isFinite(stamp)});
     });
@@ -1434,10 +1440,10 @@
       pullbackRebreak:'선행 상승 뒤 조정 거래량·봉 변동폭이 줄고 저점이 유지되는 눌림과 반등을 찾습니다.',
       longTermQuality:'장기 저점 지지·가격 응축·저항 회복 모양을 먼저 찾고 기존 재무 관문을 확인합니다.'};
     shortPurpose={liveFlow:'가격 지지·거래량 재확장 모양',trendBreakout:'고점 연결 저항 회복 모양',bottomFormation:'반복 저점 지지·바닥 모양',pullbackRebreak:'상승 뒤 눌림·반등 모양',longTermQuality:'장기 지지·응축 모양 + 재무 확인'};
-    box.innerHTML='<p>기본 후보: 상승·조정·지지·반등, 고점 연결 저항 회복, 바닥 다지기와 변동폭 축소를 함께 평가합니다. 일봉 모양 관찰이며 실시간 매수 신호가 아닙니다.</p><details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
-      +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 최근 일봉 종가의 모양·흐름을 우선 정렬합니다. 기본 후보는 전체 저장 일봉에서 모양으로 새로 선정합니다. 기존 수치 검색 이력과 실시간 A/B·주문 경로는 개별 검색기 기록에서 별도로 유지합니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
+    box.innerHTML='<p>기본 후보: 준비 구간 → 첫 구조 변화 → 현재 위치를 먼저 확인합니다. 상대강도·거래량은 보조 근거이며, 추격·확장과 연구는 별도 목록입니다. 일봉 모양 관찰이며 실시간 매수 신호가 아닙니다.</p><details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
+      +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 준비된 구조의 모양·현재 위치를 우선 정렬합니다. 기본 후보는 전체 저장 일봉에서 모양으로 새로 선정합니다. 기존 수치 검색 이력과 실시간 A/B·주문 경로는 개별 검색기 기록에서 별도로 유지합니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
       +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
-      +(EDGE_TAGS[activeTab]?'<p><b>연구 태그: '+escapeHtml(EDGE_LABELS[EDGE_TAGS[activeTab]])+'</b> '+escapeHtml(EDGE_DESC[EDGE_TAGS[activeTab]])+' 태그 종목을 먼저 정렬하며 관찰 전용입니다.</p>':'')
+      +(EDGE_TAGS[activeTab]?'<p><b>연구 태그: '+escapeHtml(EDGE_LABELS[EDGE_TAGS[activeTab]])+'</b> '+escapeHtml(EDGE_DESC[EDGE_TAGS[activeTab]])+' 기본 후보와 분리된 연구 목록에서 확인하며 관찰 전용입니다.</p>':'')
       +'<p><b>이전 수치 검색 조건 (이력 확인용)</b></p>'+group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
     var history=container.querySelector('#psSourceHistory');
     var keys=group.sources.filter(function(k){return k!=='ninepayLive';});
@@ -1482,7 +1488,7 @@
   }
 
   // Presentation policy only: never changes detector, stored rows or order gates.
-  var PUBLIC_LABELS={all:'전체',confirmed:'확정',observation:'관찰',research:'연구',excluded:'제외',expired:'만료'};
+  var PUBLIC_LABELS={all:'기본 후보',confirmed:'확정',observation:'관찰',extended:'추격·확장',research:'연구',excluded:'제외',expired:'만료'};
   function publicStockVisible(item) {
     if(!item)return false;
     var code=String(item.code || ''), types=global.SCANNER_SECURITY_TYPES || {};
@@ -1504,6 +1510,8 @@
     if(it.entryInvalid || stage==='invalidated' || stage==='INVALIDATED')return {key:'expired',reason:'조건 무효화 · 현재 유효 신호 아님'};
     if(it._observationMissing)return {key:'research',reason:'관측 시각 미확인 · 현재 신호 검증 미완료'};
     if(it._observationStale)return {key:'expired',reason:'관측 정보 지연 · 현재 유효 신호 아님'};
+    if(d.listKind==='research' || d.edgeOnly)return {key:'research',reason:d.interpretation || '독립 연구 관찰 · 기본 후보와 별도'};
+    if(d.listKind==='extended' || d.stage==='extended')return {key:'extended',reason:d.interpretation || '준비 구간에서 이격된 상태 · 기본 후보에서 분리'};
     if(member.key.indexOf('shape:')===0) {
       if(d.selectionVersion!=='shape-selection-v1' || d.orderAuthorized!==false || d.observationOnly!==true)
         return {key:'research',reason:'모양 선정 계약 미확인'};
@@ -1534,18 +1542,22 @@
     return AW.shapeOf(rows);
   }
   function shapeOrder(a,b) {
-    var ea=(detailFor(a).edgeSignals || []).length, eb=(detailFor(b).edgeSignals || []).length;
-    if(ea!==eb)return eb-ea;
+    var da=detailFor(a),db=detailFor(b);
+    if(da.strategyVersion==='chart-first-v2' && db.strategyVersion==='chart-first-v2')return (db.score || 0)-(da.score || 0);
     return (b.chartShape && b.chartShape.score || 0)-(a.chartShape && a.chartShape.score || 0);
   }
   function shapeHtml(item) {
     var s=item.chartShape || scannerShape(item);
-    return '<div class="ps-shape-context"><b>'+escapeHtml(s.label)+'</b><br><small>'+escapeHtml(detailFor(item).selectionVersion==='shape-selection-v1'?'일봉 OHLCV 모양 선정 · 기준일 '+(item.dataAsOf || item.date || '미확인'):'최근 20일 일봉 종가 모양 · 거래량·실시간 흐름은 별도 확인')+'</small></div>'+edgeTagsHtml(item);
+    var d=detailFor(item),setup=d.setup;
+    var evidence=setup?'<br><small>준비: '+escapeHtml(setup.prepared)+'<br>변화: '+escapeHtml(setup.changed)+'<br>미확인: '+escapeHtml(setup.pending)+'</small>':'';
+    if(d.volumeContext)evidence+='<br><small>'+escapeHtml((d.reasons || []).filter(function(x){return x.indexOf('거래량')>=0;}).join(' · '))+'</small>';
+    if(d.relativeContext)evidence+='<br><small>'+escapeHtml(d.relativeContext.label)+'</small>';
+    return '<div class="ps-shape-context"><b>'+escapeHtml(s.label)+'</b><br><small>'+escapeHtml(detailFor(item).selectionVersion==='shape-selection-v1'?'일봉 OHLCV 모양 선정 · 기준일 '+(item.dataAsOf || item.date || '미확인'):'최근 20일 일봉 종가 모양 · 거래량·실시간 흐름은 별도 확인')+'</small>'+evidence+'</div>'+edgeTagsHtml(item);
   }
 
   function publicModel(rows,state,now) {
-    var counts={confirmed:0,observation:0,research:0,excluded:0,expired:0};
-    var priority=['confirmed','observation','research','excluded','expired'];
+    var counts={confirmed:0,observation:0,extended:0,research:0,excluded:0,expired:0};
+    var priority=['confirmed','observation','extended','research','excluded','expired'];
     var output=rows.filter(publicStockVisible).map(function(row){
       var classified=row.members.map(function(m){
         var observed=row._quoteBasis && row._quoteBasis.indexOf('9Pay 수신')===0?{key:m.key,item:Object.assign({},m.item,{price:row.price})}:m;
@@ -1566,12 +1578,12 @@
     var combined=mergeScannerRows(current.reduce(function(out,row){row.members.forEach(function(m){out.push({key:m.key,items:[m.item]});});return out;},[]).concat(historyEntries));
     var model=publicModel(combined,ninepayData,Date.now());
     var selection=shapeSelection(),known=!!selection && !scanError;
-    var visible=model.rows.filter(function(r){return publicView==='all'?['confirmed','observation','research'].indexOf(r.publicStatus.key)>=0:r.publicStatus.key===publicView;});
-    var countAll=model.counts.confirmed+model.counts.observation+model.counts.research;
+    var visible=model.rows.filter(function(r){return publicView==='all'?['confirmed','observation'].indexOf(r.publicStatus.key)>=0:r.publicStatus.key===publicView;});
+    var countAll=model.counts.confirmed+model.counts.observation;
     container.querySelectorAll('[data-status]').forEach(function(button){button.setAttribute('aria-pressed',String(button.getAttribute('data-status')===publicView));});
     container.querySelectorAll('[data-status-count]').forEach(function(el){var k=el.getAttribute('data-status-count');el.textContent='('+String(k==='all'?countAll:model.counts[k])+')';el.title=known?'조회된 결과 집계':'집계 확인 중 · 수신된 자료 기준 잠정 집계';});
     var summary=container.querySelector('#psConfirmationStatus');
-    summary.textContent=known?'현재 유효 확정 '+model.counts.confirmed+'종목 · 관찰 '+model.counts.observation+'종목 · 연구 '+model.counts.research+'종목':'집계 확인 중 · 숫자는 수신된 자료 기준입니다 (일부 조회 실패·누락 가능)';
+    summary.textContent=known?'현재 유효 확정 '+model.counts.confirmed+'종목 · 관찰 '+model.counts.observation+'종목 · 추격·확장 '+model.counts.extended+'종목 · 연구 '+model.counts.research+'종목':'집계 확인 중 · 숫자는 수신된 자료 기준입니다 (일부 조회 실패·누락 가능)';
     global.PatternScan.publicSummary={counts:model.counts,known:known};
     if(typeof global.CustomEvent==='function')document.dispatchEvent(new global.CustomEvent('scanner-public-state',{detail:global.PatternScan.publicSummary}));
     var list=container.querySelector('#psList');
@@ -1579,7 +1591,7 @@
     var selectionCopy=selection?'모양 기준으로 전체 일봉 '+selection.coverage.universe+'종목 중 '+selection.coverage.eligible+'종목을 검사했습니다. 기준일 '+selection.dataDate+' · 기존 수치 검색과 독립 선정 · 일봉 관찰 후보입니다.'+myWayCopy(selection,activeTab):'모양 기준 전종목 스캔을 기다리고 있습니다. 기존 수치 검색 결과로 대신 표시하지 않습니다.';
     list.innerHTML='<p class="ps-state-meaning">'+escapeHtml(selectionCopy)+'</p><p class="ps-state-meaning">확정은 검색기 검증 충족이며 수익 보장이 아닙니다. 관찰·연구는 매수 지시가 아니며, 과거 돌파 성공은 체결·수익과 별개입니다.<br>집계: 선택한 검색기의 수신 결과·조회된 추적 기록. 전체 과거 이력은 개별 검색기 이력에서 확인합니다.'+(!global.SCANNER_SECURITY_TYPES?' 종목 유형 자료 미수신 · 확인 가능한 유형·이름 기준으로 스팩 제외 중.':'')+'</p>'
       + (visible.length?'': '<p class="ps-state-empty">'+(known?'선택한 상태의 종목이 없습니다.':'자료를 확인하지 못했습니다. 수신 상태와 데이터 기준을 확인해 주세요.')+'</p>')
-      + ['confirmed','observation','research','excluded','expired'].map(function(k){var rows=visible.filter(function(r){return r.publicStatus.key===k;});if(!rows.length)return '';return '<section class="ps-state-section" data-section="'+k+'"><h3>'+PUBLIC_LABELS[k]+' '+rows.length+'</h3>'+rows.map(function(r){
+      + ['confirmed','observation','extended','research','excluded','expired'].map(function(k){var rows=visible.filter(function(r){return r.publicStatus.key===k;});if(!rows.length)return '';return '<section class="ps-state-section" data-section="'+k+'"><h3>'+PUBLIC_LABELS[k]+' '+rows.length+'</h3>'+rows.map(function(r){
         var chosen=r.classified[0].member,it=chosen.item,proof=r.publicStatus.proof || {},review=it.signalReview || {};
         var stamp=it.lastObservedAt || it.sampleAt || it.at || it.scannedAt || (it.patternDetail || {}).scanned_at || it.date;
         var ms=typeof stamp==='number'?stamp*1000:Date.parse(stamp || '');
@@ -2822,7 +2834,7 @@
     var count = detail.windowBars, end = daily.findIndex(function (bar) { return bar.date === detail.signal.date; });
     if (!Number.isInteger(count) || count < 8 || end + 1 < count || Number(daily[end].close) !== Number(detail.signal.price)) return [];
     var rows = daily.slice(end + 1 - count, end + 1);
-    if (key === 'pullbackRebreak') {
+    if (detail.strategyVersion !== 'chart-first-v2' && key === 'pullbackRebreak') {
       if (typeof wave.shapeOf !== 'function') return [];
       var shape = wave.shapeOf(rows);
       if (shape.type !== detail.shape.type || !Array.isArray(shape.pullbackIndexes)) return [];

@@ -1,11 +1,15 @@
 require('./helpers/common_runtime');
 const assert=require('assert'),AW=require('../js/auto-wave.js'),fs=require('fs'),cp=require('child_process'),os=require('os'),path=require('path');
-function bars(vals,vol){return vals.map((c,i)=>({date:new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10),open:c-.1,high:c+.3,low:c-.3,close:c,volume:vol?vol[i]:1000}));}
-const vals=Array.from({length:60},(_,i)=>i<30?100+i*.4:i<45?112-(i-30)*.2:109+(i%3)*.03);
+function bars(vals,vol){return vals.map((c,i)=>({date:new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10),open:c-.1,high:c+.8,low:c-.8,close:c,volume:vol?vol[i]:1000}));}
+const anchors=[[0,100],[90,110],[130,145],[150,130],[160,135],[170,131],[180,132]],vals=[];
+for(let j=1;j<anchors.length;j++)for(let i=0;i<anchors[j][0]-anchors[j-1][0];i++)vals.push(anchors[j-1][1]+(anchors[j][1]-anchors[j-1][1])*i/(anchors[j][0]-anchors[j-1][0]));
+vals.push(anchors.at(-1)[1]);
 const input=bars(vals,vals.map((_,i)=>i<30?2000:800));
 const before=JSON.stringify(input),selected=AW.selectShapesOf(input);
-assert.ok(selected.pullbackRebreak.length,'shallow correction selected by shape, below old 5% drop minimum');
-assert.ok((112-input.at(-1).close)/112<.05);
+assert.ok(selected.pullbackRebreak.length,'a real confirmed rise followed by a supported correction is selected');
+assert.strictEqual(selected.pullbackRebreak[0].stage,'prepare');
+assert.ok(selected.pullbackRebreak[0].setup.pending);
+assert.ok(selected.pullbackRebreak[0].volumeContext);
 assert.strictEqual(JSON.stringify(input),before);
 const down=AW.selectShapesOf(bars(Array.from({length:224},(_,i)=>400-i)));
 assert.ok(Object.values(down).every(v=>v.length===0),'unbroken falling lows are not a base/pullback');
@@ -31,11 +35,11 @@ assert.strictEqual(model.counts.observation,1);assert.strictEqual(model.counts.c
 console.log('shape selection: new shallow candidate, falling negative, scale/missing/immutability, bounded shared worker, financial/order separation, web observation OK');
 // my-way relative strength: beat both indices, missing index is "missing" (never pass/fail)
 {
-  const days=Array.from({length:70},(_,i)=>new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10));
+  const days=Array.from({length:input.length+10},(_,i)=>new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10));
   const mk=(f)=>days.map((d,i)=>({date:d,open:f(i),high:f(i)*1.01,low:f(i)*.99,close:f(i),volume:1000}));
   const falling=days.map((d,i)=>({date:d,close:1000-i*3}));
   const flat=days.map((d)=>({date:d,close:500}));
-  const strong=mk(i=>100+i*.5), weak=mk(i=>100-i*.8);
+  const strong=mk(i=>100+i*.5), weak=mk(i=>300-i*.8);
   const rs=AW.relativeStrengthOf(strong,{KOSPI:falling,KOSDAQ:flat});
   assert.strictEqual(rs.status,'ok');assert.ok(rs.rs20>0 && rs.rs60>0);
   assert.strictEqual(rs.rs20,Math.min(rs.vs.KOSPI.rs20,rs.vs.KOSDAQ.rs20),'weakest comparison summarizes');
@@ -54,8 +58,8 @@ console.log('shape selection: new shallow candidate, falling negative, scale/mis
     const up=days.map((d,i)=>({date:d,close:500+i*20}));
     fs.writeFileSync(b,JSON.stringify({KOSPI:up,KOSDAQ:up}));
     let out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',f,b],{encoding:'utf8'}));
-    assert.strictEqual(out.observed.pullbackRebreak.length,1);assert.strictEqual(out.groups.pullbackRebreak.length,0,'lagging a rising market is filtered');
-    assert.strictEqual(out.relativeStrength.filteredOut.pullbackRebreak,1);assert.strictEqual(out.relativeStrength.status,'ok');
+    assert.strictEqual(out.observed.pullbackRebreak.length,1);assert.strictEqual(out.groups.pullbackRebreak.length,1,'relative strength cannot reject a valid geometric setup');
+    assert.strictEqual(out.relativeStrength.filteredOut.pullbackRebreak,0);assert.strictEqual(out.relativeStrength.role,'advisory');assert.strictEqual(out.relativeStrength.status,'ok');
     out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',f],{encoding:'utf8'}));
     assert.strictEqual(out.groups.pullbackRebreak.length,1);assert.strictEqual(out.relativeStrength.status,'missing');
     assert.strictEqual(out.groups.pullbackRebreak[0].patternDetail.myWay.pass,null);
@@ -64,8 +68,8 @@ console.log('shape selection: new shallow candidate, falling negative, scale/mis
 }
 {
   // falling less than a crashing market is not "my way"
-  const days=Array.from({length:70},(_,i)=>new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10));
-  const crash=days.map((d,i)=>({date:d,close:1000-i*8}));
+  const days=Array.from({length:input.length+10},(_,i)=>new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10));
+  const crash=days.map((d,i)=>({date:d,close:3000-i*8}));
   const sagging=days.map((d,i)=>({date:d,open:100-i*.2,high:100-i*.2+1,low:100-i*.2-1,close:100-i*.2,volume:1}));
   const rs=AW.relativeStrengthOf(sagging,{KOSPI:crash,KOSDAQ:crash});
   assert.ok(rs.rs20>0 && rs.own20<0);
@@ -106,10 +110,11 @@ console.log('shape selection: new shallow candidate, falling negative, scale/mis
     fs.writeFileSync(f,JSON.stringify({code:'777770',name:'급등',daily:surge,financialScreen:{passed:false}})+'\n'+
       JSON.stringify({code:'888880',name:'갭',daily:gap,financialScreen:{passed:false}})+'\n');
     const out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',f],{encoding:'utf8'}));
-    const tb=out.groups.trendBreakout.find(x=>x.code==='777770'),lf=out.groups.liveFlow.find(x=>x.code==='888880');
+    const tb=out.research.trendBreakout.find(x=>x.code==='777770'),lf=out.research.liveFlow.find(x=>x.code==='888880');
     assert.ok(tb && tb.patternDetail.edgeSignals.some(t=>t.key==='surgeNextDay'));
     assert.ok(lf && lf.patternDetail.edgeSignals.some(t=>t.key==='gapVolumeClose'));
-    assert.strictEqual(out.groups.trendBreakout[0].code,'777770','tagged row sorts first');
+    assert.ok(!out.groups.trendBreakout.some(x=>x.code==='777770'),'research tag cannot create a primary candidate');
+    assert.strictEqual(tb.patternDetail.listKind,'research');
     assert.strictEqual(tb.patternDetail.orderAuthorized,false);assert.strictEqual(tb.patternDetail.observationOnly,true);
     assert.strictEqual(out.edgeSignals.counts.surgeNextDay,1);assert.strictEqual(out.edgeSignals.resmomCut,null,'too few stocks for a cross-sectional cut');
     // web: tag rendered, label/history key mapped
@@ -117,4 +122,41 @@ console.log('shape selection: new shallow candidate, falling negative, scale/mis
     assert.ok(html.indexOf('ps-edge-tag')>0 && html.indexOf('주문 신호 아님')>0);
   }finally{fs.rmSync(tmp,{recursive:true,force:true});}
   console.log('edge-v1: surge/gap-volume/limit-up/uptrend rules, ratio-line high + residual momentum, missing index unknown, worker tagging/sorting, web tag OK');
+}
+
+// First cross vs extension; a larger candle cannot earn entry to the basic list.
+{
+ const fs=require('fs'),os=require('os'),cp=require('child_process'),path=require('path');
+ const f=path.join(os.tmpdir(),'shape-position-'+process.pid+'.jsonl');
+ const ext=input.map(b=>({...b}));ext.at(-1).close=150;ext.at(-1).high=151;
+ fs.writeFileSync(f,JSON.stringify({code:'123450',name:'확장',daily:ext,financialScreen:{passed:false}})+'\n');
+ try{const o=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',f]));
+  assert.ok(o.extended.pullbackRebreak.length,'a distant first cross is retained separately');
+  assert.strictEqual(o.groups.pullbackRebreak.length,0,'extended setup is absent from primary');
+ }finally{fs.unlinkSync(f);}
+ const old=input.map(b=>({...b}));old[old.length-3].close=150;old[old.length-3].high=151;
+ assert.ok(AW.selectShapesOf(old).pullbackRebreak.every(d=>d.stage!=='trigger'),'a completed recovery followed by a retreat is not a new first recovery');
+ const details=selected.pullbackRebreak[0];
+ const contextual=AW.relativeContextOf(input,{KOSPI:input.map(b=>({date:b.date,close:100})),KOSDAQ:input.map(b=>({date:b.date,close:100}))},details);
+ assert.strictEqual(contextual.status,'ok');
+ assert.strictEqual(contextual.from,input[details.origin.riseEnd].date);
+ const current={...selected.pullbackRebreak[0],listKind:'primary'};
+ const research={...current,listKind:'research',edgeOnly:true,status:'EDGE_OBSERVE'};
+ const extended={...current,listKind:'extended',stage:'extended',status:'SHAPE_EXTENDED'};
+ const merged=api.mergeScannerRows([{key:'shape:pullbackRebreak',items:[current,research,extended].map(patternDetail=>({code:'123450',patternDetail}))}]);
+ const model=api.publicModel(merged,{},Date.now());
+ assert.strictEqual(model.counts.observation,1);assert.strictEqual(model.counts.research,1);assert.strictEqual(model.counts.extended,1);
+ assert.ok(api.shapeHtml({patternDetail:current}).includes('미확인:'));
+ assert.ok(api.shapeHtml({patternDetail:current}).includes('거래량'));
+}
+console.log('chart-first-v2: preparation, first-cross exclusion, extension separation, advisory RS, research separation and explanations OK');
+{
+ const anchors=[[0,150],[80,130],[100,100],[120,120],[145,102],[160,118],[175,108],[185,117]],values=[];
+ for(let j=1;j<anchors.length;j++)for(let i=0;i<anchors[j][0]-anchors[j-1][0];i++)values.push(anchors[j-1][1]+(anchors[j][1]-anchors[j-1][1])*i/(anchors[j][0]-anchors[j-1][0]));
+ values.push(117);const base=bars(values);
+ assert.strictEqual(AW.selectShapesOf(base).trendBreakout[0].stage,'prepare');
+ const crossing=base.map(b=>({...b}));Object.assign(crossing.at(-1),{open:117.8,close:118,high:118.8});
+ assert.strictEqual(AW.selectShapesOf(crossing).trendBreakout[0].stage,'trigger');
+ const neckline=base.map(b=>({...b}));Object.assign(neckline.at(-1),{open:119.8,close:120,high:120.8});
+ assert.strictEqual(AW.selectShapesOf(neckline).bottomFormation[0].stage,'trigger','a higher repeated low requires neckline recovery in a broad decline');
 }

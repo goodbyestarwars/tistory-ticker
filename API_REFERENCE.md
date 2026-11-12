@@ -550,3 +550,8 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 
 `GET /pattern-scan`에 `shapeSelection`을 추가한다. `null`은 새 선정 스냅샷 미준비/구버전/만료/기준일 불일치다. 유효하면 `{version:'shape-selection-v1',mode:'observation',orderAuthorized:false,status:'ok',scannedAt,dataDate,coverage:{universe,eligible,skipped},groups:{liveFlow,trendBreakout,bottomFormation,pullbackRebreak,longTermQuality}}`다. 각 그룹은 기존 종목 행 형식이며 `patternDetail`에 `selectionVersion`, `observationOnly:true`, `orderAuthorized:false`, `shapeLabel`, `shape`, `windowBars`, 지지/저항·이유가 있다. 확정/주문 필드는 생성하지 않는다. 장기는 기존 재무 관문을 통과하고 공개 시 만료를 재검사한다. 기존 `patterns`와 실시간 A/B·신호 피드·이력은 보존한다. 상세: [검색기 선정 기준](docs/SCANNER_FIVE_GROUPS_2026-10-19.md).
 
+
+
+### 검색기 관찰 목록 분리 (2026-11-13)
+
+`shapeSelection`의 기존 `version:'shape-selection-v1'` 계약은 유지한다. `strategyVersion:'chart-first-v2'`, `extended:{<5개 그룹>:[]}`, `research:{<5개 그룹>:[]}`를 추가한다. `groups`는 준비/첫 변화 기본 후보이며 연구 태그로 생성·승격하지 않는다. 별도 두 버킷도 동일 시각/재무 만료 검사를 거친다. `relativeStrength.role:'advisory'`는 새 후보에 기존 myWay 탈락 필터를 적용하지 않았다는 뜻이다. 행의 `patternDetail.listKind`는 `primary|extended|research`, `stage`는 `prepare|trigger|extended`이며 연구는 기존 `EDGE_OBSERVE` 상태를 유지한다. `setup`, `position`, `volumeContext`, `relativeContext`는 확보된 모양/지수 자료에 따라 제공되는 보조 근거다. 기존 patterns·확정/실시간/주문 응답과 과거 통계는 변경하지 않는다.

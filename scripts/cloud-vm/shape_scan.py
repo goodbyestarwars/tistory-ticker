@@ -35,14 +35,15 @@ def record_tracks(snapshot, conn=None):
         # Track every shape candidate (before the relative-strength filter) so the
         # filter itself can be judged later from patternDetail.myWay.
         groups = snapshot.get('observed') or snapshot.get('groups') or {}
-        out = {key: pattern_tracker.record_new(conn, snapshot['dataDate'], TRACK_PREFIX + key,
+        prefix = 'pattern:shape-v2:' if snapshot.get('strategyVersion') == 'chart-first-v2' else TRACK_PREFIX
+        out = {key: pattern_tracker.record_new(conn, snapshot['dataDate'], prefix + key,
                                                [r for r in groups.get(key) or [] if not (r.get('patternDetail') or {}).get('edgeOnly')])
                for key in GROUPS}
         # Research tags (edge-v1) get their own scanner keys so menu statistics stay unchanged.
         for edge in EDGE_KEYS:
             rows, seen = [], set()
             for key in GROUPS:
-                for r in groups.get(key) or []:
+                for r in (groups.get(key) or []) + (snapshot.get('research', {}).get(key) or []):
                     tags = (r.get('patternDetail') or {}).get('edgeSignals') or []
                     if r.get('code') not in seen and any(t.get('key') == edge for t in tags):
                         seen.add(r.get('code')); rows.append(r)
@@ -146,17 +147,20 @@ def refresh():
             observed = worker.get('observed') or groups
             relative_strength = worker.get('relativeStrength') or dict(status='missing')
             edge_signals = worker.get('edgeSignals') or dict(version='edge-v1', status='missing')
+            extended = worker.get('extended') or {key: [] for key in GROUPS}
+            research = worker.get('research') or {key: [] for key in GROUPS}
     finally:
         conn.close()
     at = datetime.now(timezone.utc).isoformat()
-    for bucket in (groups, observed):
+    for bucket in (groups, observed, extended, research):
         for items in bucket.values():
             for item in items:
                 item.update(scannedAt=at, lastObservedAt=at, dataAsOf=basis)
                 item['patternDetail']['scanned_at'] = at
     snapshot = dict(version=VERSION, mode='observation', orderAuthorized=False, status='ok',
                     scannedAt=at, dataDate=basis, coverage=coverage, groups=groups,
-                    relativeStrength=relative_strength, edgeSignals=edge_signals)
+                    relativeStrength=relative_strength, edgeSignals=edge_signals,
+                    strategyVersion=worker.get('strategyVersion'), extended=extended, research=research)
     def apply(cache):
         if cache.get('dataDate') != original.get('dataDate') or cache.get('generatedAt') != original.get('generatedAt'):
             raise ValueError('Daily snapshot changed during shape scan')
@@ -190,6 +194,14 @@ def public_snapshot(snapshot, now=None, basis=None):
     out = copy.deepcopy(snapshot)
     if not isinstance(out.get('groups'), dict) or any(not isinstance(out['groups'].get(k), list) for k in GROUPS):
         return None
+    for name in ('extended', 'research'):
+        if name in out and (not isinstance(out[name], dict) or any(not isinstance(out[name].get(k), list) for k in GROUPS)):
+            return None
+        if name in out:
+            # A separate bucket must never bypass the long-term financial expiry gate.
+            check = dict(version=1, excludedItems=[], reasonCounts={}, technical=len(out[name]['longTermQuality']))
+            out[name]['longTermQuality'], _ = pd.validated_long_term_snapshot(
+                {'patterns': {'longTermQuality': out[name]['longTermQuality']}, 'longTermFilter': check}, now=now)
     summary = dict(version=1, excludedItems=[], reasonCounts={}, technical=len(out['groups']['longTermQuality']))
     valid, _ = pd.validated_long_term_snapshot(
         {'patterns': {'longTermQuality': out['groups']['longTermQuality']}, 'longTermFilter': summary}, now=now)

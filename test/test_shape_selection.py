@@ -66,6 +66,27 @@ class ShapeSelection(unittest.TestCase):
         self.assertEqual(result['shapeSelection'],{'marker':'observation'})
         self.assertNotIn('shapeSelection',data['patternScan'])
 
+    def test_separate_buckets_validate_contract(self):
+        m=self.module;now=datetime(2026,11,4,15,tzinfo=timezone.utc)
+        groups={k:[] for k in m.GROUPS}
+        s=dict(version=m.VERSION,mode='observation',orderAuthorized=False,status='ok',dataDate='2026-11-04',
+               scannedAt=now.isoformat(),groups=copy.deepcopy(groups),extended=copy.deepcopy(groups),research=copy.deepcopy(groups))
+        self.assertIsNotNone(m.public_snapshot(s,now=now))
+        bad=copy.deepcopy(s);bad['extended']['trendBreakout']={}
+        self.assertIsNone(m.public_snapshot(bad,now=now))
+
+    def test_new_selection_tracks_do_not_mix_with_previous_policy(self):
+        import sqlite3
+        conn=sqlite3.connect(':memory:')
+        conn.execute('CREATE TABLE daily_prices (code TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume REAL)')
+        for r in self.rows:conn.execute('INSERT INTO daily_prices VALUES (?,?,?,?,?,?,?)',('123450',r['date'],r['open'],r['high'],r['low'],r['close'],r['volume']))
+        row=dict(code='123450',name='모양',price=10000,score=80,patternDetail={'status':'SHAPE_PREPARE','support':9990})
+        groups={k:[] for k in self.module.GROUPS};groups['trendBreakout']=[row]
+        research={k:[] for k in self.module.GROUPS};research['trendBreakout']=[dict(row,patternDetail={'edgeOnly':True,'edgeSignals':[{'key':'surgeNextDay'}]})]
+        self.module.record_tracks(dict(dataDate='2026-10-24',strategyVersion='chart-first-v2',groups=groups,research=research),conn=conn)
+        keys=sorted(r[0] for r in conn.execute('SELECT scanner FROM pattern_tracks'))
+        self.assertEqual(keys,['pattern:edge:surgeNextDay','pattern:shape-v2:trendBreakout'])
+
     def test_refresh_reads_universe_and_preserves_legacy(self):
         from datetime import timedelta
         m=self.module
@@ -73,11 +94,16 @@ class ShapeSelection(unittest.TestCase):
             @classmethod
             def now(cls,tz=None):
                 return datetime(2026,11,4,16,tzinfo=timezone.utc).astimezone(tz or timezone.utc)
+        anchors=[(0,100),(90,110),(130,145),(150,130),(160,135),(170,131),(180,132)]
+        values=[]
+        for (a,x),(b,y) in zip(anchors,anchors[1:]):
+            values.extend(x+(y-x)*i/(b-a) for i in range(b-a))
+        values.append(anchors[-1][1])
         daily=[]
-        for i in range(60):
-            c=(100+i*.4 if i<30 else 112-(i-30)*.2 if i<45 else 109+(i%3)*.03)*100
-            daily.append(dict(date=(datetime(2026,11,4)-timedelta(days=59-i)).date().isoformat(),
-                              open=c-10,high=c+30,low=c-30,close=c,volume=2000000 if i<30 else 800000))
+        for i,value in enumerate(values):
+            c=value*100
+            daily.append(dict(date=(datetime(2026,11,4)-timedelta(days=180-i)).date().isoformat(),
+                              open=c-10,high=c+80,low=c-80,close=c,volume=2000000 if i<130 else 800000))
         original=dict(dataDate='2026-11-04',generatedAt='2026-11-04T12:00:00+00:00',
                       patternScan={'patterns':{'doubleBottom':[{'code':'legacy'}]}},
                       pullbackScan={'matches':[{'code':'legacy2'}]})
@@ -102,6 +128,9 @@ class ShapeSelection(unittest.TestCase):
         self.assertEqual(live['pullbackScan'],original['pullbackScan'])
         self.assertEqual(live['generatedAt'],original['generatedAt'])
         self.assertIs(live['shapeSelection'],result)
+        self.assertEqual(result['strategyVersion'],'chart-first-v2')
+        self.assertIn('research',result)
+        self.assertIn('extended',result)
 
     def test_record_tracks_uses_separate_keys_and_is_idempotent(self):
         import sqlite3

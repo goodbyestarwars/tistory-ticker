@@ -914,6 +914,142 @@
     return {pass:!!pass,applied:true,reasons:reasons};
   }
 
+  // Shared chart-first structural selection. Never uses future bars or research tags.
+  function setupMedian(a){a=a.slice().sort(function(x,y){return x-y;});return a.length?a[Math.floor(a.length/2)]:0;}
+  const med=setupMedian,max=a=>Math.max.apply(null,a),min=a=>Math.min.apply(null,a);
+function setupShapesOf(bars){
+ const n=bars.length,last=bars[n-1],prev=bars[n-2],out={liveFlow:[],trendBreakout:[],bottomFormation:[],pullbackRebreak:[]};
+ if(n<100)return out;
+ const prior=bars.slice(-15,-1),atr=med(prior.map((b,i)=>Math.max(b.high-b.low,Math.abs(b.high-bars[n-16+i].close),Math.abs(b.low-bars[n-16+i].close))));
+ if(!(atr>0))return out;
+ const waves=analyze(bars),medium=waves.levels.medium.filter(w=>!w.isBox&&!w.suppressed),minor=waves.levels.minor.filter(w=>!w.isBox&&!w.suppressed);
+ const closed=medium.filter(w=>w.confirmed),highs=closed.filter(w=>w.kind==='up').map(w=>({i:w.end,p:w.endPrice})),lows=closed.filter(w=>w.kind==='down').map(w=>({i:w.end,p:w.endPrice}));
+ const context=shapeOf(bars.slice(-80));
+ const emit=(key,stage,score,support,resistance,origin,why)=>{
+  if(!Number.isFinite(support)||!Number.isFinite(resistance)||resistance<=support)return;
+  const extension=(last.close-resistance)/atr;
+  const labels={liveFlow:'지지·응축 뒤 가격 회복',trendBreakout:'반복 고점 저항의 첫 회복',bottomFormation:'반복 저점 지지와 가까운 고점 회복',pullbackRebreak:'선행 상승 뒤 조정·지지·재상승'};
+  const stages={prepare:'준비 구간',trigger:'첫 구조 변화',extended:'추격·확장 구간'};
+  const start=origin.riseStart!=null?origin.riseStart:origin.a?origin.a.i:origin.from;
+  const pivot=origin.riseEnd!=null?origin.riseEnd:origin.b?origin.b.i:origin.to;
+  const rise=bars.slice(Math.max(0,start),Math.max(start+1,pivot+1)),correction=bars.slice(Math.max(0,pivot+1),-1);
+  const risingVolume=med(rise.map(x=>x.volume)),correctionVolume=med(correction.map(x=>x.volume));
+  const beforeVolume=med(bars.slice(-6,-1).map(x=>x.volume));
+  const volumeContext={correctionToRise:risingVolume>0&&correctionVolume>0?correctionVolume/risingVolume:null,
+    recoveryToCorrection:beforeVolume>0?last.volume/beforeVolume:null};
+  const volumeCopy=volumeContext.correctionToRise==null?'조정 거래량 비교 미확인':
+    '조정/선행 구간 거래량 '+Math.round(volumeContext.correctionToRise*100)+'%';
+  const recoveryCopy=volumeContext.recoveryToCorrection==null?'전환 거래량 미확인':
+    '최근 조정 대비 당일 거래량 '+volumeContext.recoveryToCorrection.toFixed(2)+'배';
+  const prepared=labels[key]+' · 지지 '+support.toFixed(0)+' / 저항 '+resistance.toFixed(0);
+  const changed=stages[stage]+' · 저항 대비 '+((last.close/resistance-1)*100).toFixed(2)+'%';
+  const pending=stage==='prepare'?'저항 회복 미확인':stage==='extended'?'이격 축소·새 지지 미확인':'회복한 저항의 지지 전환 미확인';
+  const shape=Object.assign({},context,{score:Math.round(score),label:labels[key]});
+  const line=(price)=>[{date:bars[Math.max(0,start)].date,price},{date:last.date,price}];
+  const resistancePoints=key==='trendBreakout'&&origin.a&&origin.b?
+    [{date:bars[origin.a.i].date,price:origin.a.p},{date:bars[origin.b.i].date,price:origin.b.p},{date:last.date,price:resistance}]:line(resistance);
+  out[key].push({stage,status:stage==='prepare'?'SHAPE_PREPARE':stage==='trigger'?'SHAPE_TRANSITION':'SHAPE_EXTENDED',
+    shapeLabel:labels[key]+' · '+stages[stage],shape,score:Math.round(score),support,resistance,origin,atr,extension,
+    context:context.type,why,volumeContext,setup:{prepared,changed,pending},
+    position:{resistancePct:(last.close/resistance-1)*100,supportRiskPct:(support/last.close-1)*100,extensionATR:extension},
+    patternLines:[{tone:'shape',points:line(support)},{tone:'resistance',points:resistancePoints}],
+    selectionVersion:'shape-selection-v1',strategyVersion:'chart-first-v2',windowBars:n,signal:{date:last.date,price:last.close},
+    reasons:[prepared,changed,volumeCopy,recoveryCopy,pending],interpretation:prepared+' · '+changed+' · '+pending,
+    observationOnly:true,orderAuthorized:false});
+ };
+ // Repeated descending/flat swing highs, an intervening dip and a first nearby recovery.
+ if(highs.length>=2){
+  const [a,b]=highs.slice(-2),span=b.i-a.i;
+  if(span>=4&&n-1-a.i<=80&&n-1-b.i>=2&&b.p<=a.p+atr*.3){
+   const slope=(b.p-a.p)/span,line=i=>a.p+slope*(i-a.i),r=line(n-1);
+   const support=min(bars.slice(a.i+1,b.i).map(x=>x.low));
+   const tested=bars.slice(Math.max(b.i,n-6),n-1).every((x,j)=>x.close<=line(Math.max(b.i,n-6)+j)+atr*.2);
+   const alreadyRecovered=bars.slice(b.i+1,n-1).some((x,j)=>x.close>line(b.i+1+j)+atr*.15);
+   if(r>support+atr&&tested&&!alreadyRecovered){
+    const trigger=prev.close<=line(n-2)+atr*.15&&last.close>r+atr*.1&&last.close>prev.close&&last.close>last.open;
+    const extended=last.close>r+atr*.8||last.close-last.open>atr*1.5;
+    if(trigger)emit('trendBreakout',extended?'extended':'trigger',80+Math.min(10,span/3),support,r,{a,b},'confirmed swing-high resistance; dip; first recovery');
+    else if(last.close<=r+atr*.1&&last.close>=r-atr*.8&&last.close>support+atr*.5)
+     emit('trendBreakout','prepare',70+Math.min(10,span/3),support,r,{a,b},'resistance contacts with price still near/below line');
+   }
+  }
+ }
+ // A genuine rising leg followed by an orderly correction, not an old annual peak plus a collapse.
+ for(let i=medium.length-2;i>=1;i--){
+  const u=medium[i-1],d=medium[i];
+  if(u.kind!=='up'||!u.confirmed||d.kind!=='down'||d.start!==u.end)continue;
+  if(n-1-u.end>60||u.end-u.start<3||d.end-d.start<3)continue;
+  const rise=u.endPrice-u.startPrice,post=bars.slice(u.end+1),low=min(post.map(x=>x.low)),li=u.end+1+post.findIndex(x=>x.low===low),retrace=(u.endPrice-low)/rise;
+  if(!(rise>atr*2&&low>u.startPrice+atr*.25&&retrace>0&&retrace<.75&&li<=n-3))continue;
+  const riseRanges=bars.slice(u.start,u.end+1).map(x=>x.high-x.low),corrRanges=bars.slice(u.end+1,li+1).map(x=>x.high-x.low);
+  if(med(corrRanges)>med(riseRanges)*1.5)continue;
+  const minorHigh=minor.filter(w=>w.confirmed&&w.kind==='up'&&w.end>li&&w.end<n-1).slice(-1)[0];
+  const recoveryBars=bars.slice(Math.max(li+1,n-5),n-1);
+  if(!recoveryBars.length)continue;
+  const r=minorHigh?minorHigh.endPrice:max(recoveryBars.map(x=>x.high));
+  const alreadyRecovered=bars.slice(li+1,n-1).some(x=>x.close>r+atr*.15);
+  if(alreadyRecovered)continue;
+  const trigger=prev.close<=r+atr*.15&&last.close>r+atr*.1&&last.close>prev.close&&last.close>last.open;
+  const extended=last.close-r>atr*.8||last.close-low>atr*2||last.close-last.open>atr*1.5;
+  const origin={riseStart:u.start,riseEnd:u.end,correctionLow:li};
+  if(trigger)emit('pullbackRebreak',extended?'extended':'trigger',85-retrace*10,low,r,origin,'rising leg -> supported orderly correction -> first local-high recovery');
+  else if(!extended&&last.close>=low+atr*.3&&last.close<=r+atr*.1)
+   emit('pullbackRebreak','prepare',75-retrace*10,low,r,origin,'supported corrective leg with price still near the correction base');
+  break;
+ }
+ // A decline, distinct stable lows and intervening recovery. Continuing broad declines require
+ // a higher second low AND neckline recovery, not just a bounce from the lowest low.
+ if(lows.length>=2){
+  const [a,b]=lows.slice(-2),span=b.i-a.i;
+  if(span>=6&&n-1-a.i<=100&&n-1-b.i>=2&&b.p>=a.p-atr*.3){
+   const between=bars.slice(a.i+1,b.i),r=between.length?max(between.map(x=>x.high)):0;
+   const before=bars.slice(Math.max(0,a.i-60),a.i),oldHigh=before.length?max(before.map(x=>x.high)):0;
+   const support=Math.min(a.p,b.p),broadDown=context.slope<0&&context.lowerHighs>=2;
+   const alreadyRecovered=bars.slice(b.i+1,n-1).some(x=>x.close>r+atr*.15);
+   if(r>support+atr*1.2&&oldHigh>r+atr&&r-support<atr*12&&!alreadyRecovered){
+    const trigger=prev.close<=r+atr*.15&&last.close>r+atr*.1&&last.close>prev.close&&last.close>last.open;
+    const extended=last.close-r>atr*.8||last.close-last.open>atr*1.5;
+    const higherLow=b.p>a.p+atr*.1;
+    if(trigger&&(!broadDown||higherLow))emit('bottomFormation',extended?'extended':'trigger',80+Math.min(span/5,10),support,r,{a,b},'decline -> repeated lows -> neckline recovery');
+    else if(!broadDown&&last.close>=r-atr*.8&&last.close<=r+atr*.1&&higherLow)
+     emit('bottomFormation','prepare',70+Math.min(span/5,10),support,r,{a,b},'supported higher low, near an unreclaimed neckline');
+   }
+  }
+ }
+ // Short-horizon compression/support, followed by a nearby first range recovery.
+ const box=bars.slice(-6,-1),older=bars.slice(-21,-6),lo=min(box.map(x=>x.low)),hi=max(box.map(x=>x.high));
+ const olderLow=min(older.map(x=>x.low)),small=med(box.map(x=>x.high-x.low))<=med(older.map(x=>x.high-x.low));
+ const recentSupport=minor.filter(w=>w.confirmed&&w.kind==='down'&&w.end>=n-20&&w.end<n-2).slice(-1)[0];
+ if(!(context.slope<0&&context.lowerHighs>=2)&&recentSupport&&lo>=olderLow-atr*.2&&hi-lo>=atr*.5&&hi-lo<=atr*2.5&&small){
+  const trigger=prev.close<=hi&&last.close>hi+atr*.1&&last.close>prev.close&&last.close>last.open,extended=last.close-hi>atr*.8||last.close-lo>atr*2||last.close-last.open>atr*1.5;
+  if(trigger)emit('liveFlow',extended?'extended':'trigger',80,lo,hi,{from:n-6,to:n-2},'small-range support -> first range recovery');
+  else if(!extended&&last.close<=hi+atr*.1&&last.close>=hi-atr*.5)
+   emit('liveFlow','prepare',70,lo,hi,{from:n-6,to:n-2},'small-range support with price near upper boundary');
+ }
+ for(const k of Object.keys(out))out[k].sort((a,b)=>b.score-a.score);
+ return out;
+}
+
+  // Compare the actual correction/support interval, rather than requiring a recent price rise.
+  function relativeContextOf(bars, benchmarks, detail) {
+    const origin=detail.origin || {},start=origin.riseEnd!=null?origin.riseEnd:origin.b?origin.b.i:origin.from;
+    if(!Number.isInteger(start)||start<0||start>=bars.length-1)return {status:'missing',label:'조정 구간 상대강도 미확인'};
+    const segment=bars.slice(start),vs={};
+    for(const name of ['KOSPI','KOSDAQ']){
+      const map={};(benchmarks && benchmarks[name] || []).forEach(b=>{if(b.close>0)map[b.date]=b.close;});
+      if(segment.some(b=>!map[b.date]))return {status:'missing',label:'조정 구간 지수 자료 미확인'};
+      const first=segment[0],last=segment[segment.length-1];let down=0,held=0;
+      for(let i=1;i<segment.length;i++){
+        const a=segment[i-1],b=segment[i],market=map[b.date]/map[a.date]-1;
+        if(market<0){down++;if(b.close/a.close-1>=market)held++;}
+      }
+      vs[name]={excessPct:(last.close/first.close-map[last.date]/map[first.date])*100,downDays:down,heldDownDays:held};
+    }
+    const excess=Math.min(vs.KOSPI.excessPct,vs.KOSDAQ.excessPct);
+    return {status:'ok',from:segment[0].date,to:segment[segment.length-1].date,vs,
+      label:'조정·지지 구간 두 지수 대비 '+(excess>=0?'+':'')+excess.toFixed(2)+'%p · 보조 확인'};
+  }
+
   // Daily web selection, independent of legacy numeric scanner/order feeds.
   // Windows are observation scales, not required pattern durations.
   function selectShapesOf(bars) {
@@ -922,6 +1058,7 @@
     if(bars.some(function(b,i){return !b || ![b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite) ||
       b.close<=0 || b.volume<0 || b.low>Math.min(b.open,b.close) || b.high<Math.max(b.open,b.close) ||
       i && String(b.date)<=String(bars[i-1].date);}))return groups;
+    if(bars.length>=100)Object.assign(groups,setupShapesOf(bars));
     function med(a){a=a.slice().sort(function(x,y){return x-y;});var k=Math.floor(a.length/2);return a.length%2?a[k]:(a[k-1]+a[k])/2;}
     function points(rows, indexes, field) {
       return indexes.map(function (index) { return {date:rows[index].date,price:rows[index][field]}; });
@@ -931,10 +1068,18 @@
     }
     function emit(key,win,shape,label,stage,reasons,extra) {
       var last=win[win.length-1], detail=Object.assign({status:stage,shapeLabel:label,shape:shape,
-        observationOnly:true,orderAuthorized:false,selectionVersion:'shape-selection-v1',
+        observationOnly:true,orderAuthorized:false,selectionVersion:'shape-selection-v1',strategyVersion:'chart-first-v2',stage:'prepare',
         windowBars:win.length,support:Math.min.apply(null,win.slice(-5).map(function(b){return b.low;})),
         signal:{date:last.date,price:last.close},score:shape.score,reasons:reasons,
         interpretation:label+' · 일봉 모양 관찰'},extra || {});
+      if(key==='longTermQuality' && detail.resistance>0){
+        var range=atrSeries(win,14)[win.length-1];
+        if(range>0 && (last.close-detail.resistance>range*.8 || last.close-last.open>range*1.5)){
+          detail.stage='extended';detail.status='SHAPE_EXTENDED';
+          detail.shapeLabel=label+' · 추격·확장 구간';
+          detail.interpretation=label+' · 최근 변동폭 대비 이격·큰 봉을 기본 후보에서 분리';
+        }
+      }
       if(!groups[key].length || detail.score>groups[key][0].score)groups[key]=[detail];
     }
     [24,40,80,160,224].forEach(function(length) {
@@ -973,32 +1118,6 @@
       var structuralRise=shape.higherLows>=2 && shape.slope>0 && shape.coherence>.5;
       var reasons=[shape.label,calm?'최근 봉 변동폭 축소':'최근 봉 변동폭 유지',
         quietVolume?'조정 거래량 감소':'거래량 감소 미확인'];
-      if(stable && !panic && (highBreak || descendingBreak) && risingTail) {
-        var rail=descendingBreak ? points(win,[a,b],'high').concat({date:last.date,price:resistance})
-          : level(win,priorHighIndex,priorHigh);
-        emit('trendBreakout',win,shape,'고점 연결 저항을 넘어서는 전환','SHAPE_BREAKOUT',reasons.concat('직전 저항을 종가로 회복'),
-          {resistance:resistance || priorHigh,patternLines:[{tone:'resistance',points:rail}]});
-      }
-      if(stable && !panic && ['pullback','rebound'].indexOf(shape.type)>=0 && (calm || quietVolume)) {
-        emit('pullbackRebreak',win,shape,shape.type==='rebound'?'상승 뒤 눌림·반등 시도':'상승 뒤 눌림 형성',
-          shape.type==='rebound'?'SHAPE_REBOUND':'SHAPE_FORMING',reasons,{patternLines:[{tone:'shape',points:points(win,shape.pullbackIndexes,'close')}]});
-      }
-      // Base: decline first, then repeated low tests without a fresh close breakdown.
-      var middle=win.slice(Math.floor(n*.35),Math.floor(n*.75));
-      var middleLow=Math.min.apply(null,middle.map(function(b){return b.low;}));
-      var earlierHigh=Math.max.apply(null,head.map(function(b){return b.high;}));
-      var tested=win.slice(Math.floor(n*.35)).filter(function(b){return b.low<=middleLow+atr;}).length>=3;
-      if(earlierHigh-middleLow>atr*3 && tested && recentLow>=middleLow-atr*.5 &&
-          last.close>middleLow+atr*.5 && (calm || shape.higherLows>=2) && !panic)
-        emit('bottomFormation',win,shape,'하락 뒤 저점 지지·바닥 다지기','SHAPE_FORMING',reasons,{support:middleLow,patternLines:[{tone:'shape',points:level(win,
-          Math.floor(n*.35)+middle.findIndex(function(bar){return bar.low===middleLow;}),middleLow)}]});
-      var recentVol=med(win.slice(-5,-1).map(function(b){return b.volume;}));
-      if(stable && !panic && risingTail && (highBreak || structuralRise) &&
-          recentVol>0 && last.volume>recentVol && last.close>win[n-2].high) {
-        var supportBar=tail.slice(0,-1).reduce(function(low,bar){return bar.low<low.low?bar:low;});
-        emit('liveFlow',win,shape,'가격 지지 뒤 거래량 재확장','SHAPE_REBOUND',reasons.concat('일봉 거래량과 가격 동반 회복'),
-          {patternLines:[{tone:'shape',points:[{date:supportBar.date,price:supportBar.low},{date:last.date,price:last.close}]}]});
-      }
       if(length>=160 && !panic && stable && (shape.type==='compression' || structuralRise || highBreak) &&
           (calm || quietVolume || highBreak))
         emit('longTermQuality',win,shape,'장기 저점 지지·응축 또는 저항 회복','SHAPE_FORMING',reasons,{resistance:priorHigh,patternLines:[
@@ -1009,7 +1128,7 @@
     return groups;
   }
 
-  var api = { selectShapesOf: selectShapesOf, relativeStrengthOf: relativeStrengthOf, edgeSignalsOf: edgeSignalsOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+  var api = { selectShapesOf: selectShapesOf, relativeContextOf: relativeContextOf, relativeStrengthOf: relativeStrengthOf, edgeSignalsOf: edgeSignalsOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;
