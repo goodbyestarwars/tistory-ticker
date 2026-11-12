@@ -1993,6 +1993,11 @@ async def market_indicators_socket(websocket: WebSocket):
     if websocket.headers.get('origin') != 'https://ghlee.tistory.com':
         await websocket.close(code=1008)
         return
+    # Origin은 접속 사이트만 확인한다. 실제 시세 재분배는 서버가 검증한 관리자 세션만 허용한다.
+    # 미인증/일반 회원/인증 설정 오류는 accept 전에 거절하여 첫 스냅샷도 노출하지 않는다.
+    if _access_denied(websocket) is not None:
+        await websocket.close(code=1008)
+        return
     raw = (websocket.query_params.get('symbols') or '').split(',')
     symbols = {item.strip().upper() for item in raw if item.strip() in _MARKET_INDICATOR_SYMBOLS}
     if not symbols:
