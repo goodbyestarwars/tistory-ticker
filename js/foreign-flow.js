@@ -2607,7 +2607,7 @@
       + '<p class="ff-cloud-meta">자료: NAVER 뉴스 검색 · 기준일 ' + escapeHtml(cloud.dataAsOf) + (cloud.stale ? ' · 갱신 지연' : '')
       + ' · 수집 범위 ' + escapeHtml(coverage.actualStartDate || '—') + ' ~ ' + escapeHtml(coverage.actualEndDate || '—')
       + (coverage.backfillComplete ? ' · 기간 수집 완료' : ' · 부분 수집') + '</p>'
-      + '<p class="ff-cloud-count" aria-live="polite"></p><div class="ff-wordcloud" aria-label="뉴스 핵심어 워드클라우드"></div>'
+      + '<p class="ff-cloud-count" aria-live="polite"></p><div class="ff-wordcloud news-keyword-cloud" aria-label="뉴스 핵심어 워드클라우드"></div>'
       + '<details class="ff-cloud-all"><summary>전체 핵심어·기사 수</summary><div></div></details>'
       + '<section class="ff-cloud-evidence" aria-label="핵심어 근거 기사"><h4>핵심어를 선택하면 근거 기사를 표시합니다</h4><div></div></section>'
       + '<details class="ff-cloud-interest"><summary>이슈별 검색 관심도 (보조)</summary><div></div></details>'
@@ -2617,6 +2617,11 @@
   function wireMomentumCloud(box, data) {
     var cloud = data && data.keywordCloud;
     if (!cloud || cloud.version !== 2 || cloud.expired || !box.querySelector('.ff-wordcloud')) return;
+    if (!global.NineKeywordCloud) {
+      global.NineUI.loadKeywordCloud().then(function () { if (box.isConnected) wireMomentumCloud(box, data); }).catch(function () { box.querySelector('.ff-cloud-count').textContent = '핵심어 화면을 불러오지 못했습니다. 탭을 다시 열어 주세요.'; });
+      return;
+    }
+    global.NineUI.loadKeywordCloud().catch(function () {});
     var days = '7', selected = '', sizeObserver;
     var area = box.querySelector('.ff-wordcloud');
     function evidence(word) {
@@ -2643,30 +2648,10 @@
       box.querySelector('.ff-cloud-count').textContent = '최근 ' + days + '일 · 관련 기사 ' + windowData.articleCount + '건 · 반복 핵심어 ' + words.length + '개';
       var all = box.querySelector('.ff-cloud-all div'); all.replaceChildren();
       if (!words.length) { area.textContent = '관련 기사에서 2건 이상 반복된 핵심어가 없습니다.'; return; }
-      var max = Math.max.apply(null, words.map(function (w) { return w.count; })), min = Math.min.apply(null, words.map(function (w) { return w.count; }));
-      var height = width < 500 ? 320 : 390, placed = [];
-      area.style.height = height + 'px';
-      words.forEach(function (word, index) {
+      words.forEach(function (word) {
         var entry = wordButton(word); entry.textContent += ' · ' + word.count; all.appendChild(entry);
-        var button = wordButton(word); area.appendChild(button);
-        var size = min === max ? 23 : 14 + 34 * Math.sqrt((word.count - min) / (max - min));
-        if (width < 500) size = Math.min(size, 36);
-        button.style.fontSize = size + 'px'; button.style.fontWeight = index < 5 ? '700' : '500';
-        button.style.position = 'absolute'; button.style.visibility = 'hidden';
-        var w = button.offsetWidth, h = button.offsetHeight;
-        if (w > width - 12) { button.style.fontSize = Math.max(12, size * (width - 12) / w) + 'px'; w = button.offsetWidth; h = button.offsetHeight; }
-        var hit = null;
-        for (var step = 0; step < 2400; step++) {
-          var t = step * .26, radius = 4.1 * Math.sqrt(step);
-          var x = width / 2 + radius * Math.cos(t) * (width / height) - w / 2;
-          var y = height / 2 + radius * Math.sin(t) - h / 2;
-          if (x < 4 || y < 4 || x + w > width - 4 || y + h > height - 4) continue;
-          if (placed.some(function (p) { return x < p.x + p.w + 3 && x + w + 3 > p.x && y < p.y + p.h + 3 && y + h + 3 > p.y; })) continue;
-          hit = {x:x,y:y,w:w,h:h}; break;
-        }
-        if (hit) { placed.push(hit); button.style.left = hit.x + 'px'; button.style.top = hit.y + 'px'; button.style.visibility = 'visible'; }
-        else button.remove(); // Every word remains available in the accessible full list below.
       });
+      global.NineKeywordCloud.layout(area, words, wordButton);
     }
     box.querySelectorAll('[data-cloud-days]').forEach(function (button) { button.onclick = function () {
       days = button.dataset.cloudDays; selected = '';

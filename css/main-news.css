@@ -137,6 +137,21 @@ html.dark #main-news .mn-market--crypto { color: #c4b5fd; background: rgba(109, 
 }
 #main-news .mn-state--error { color: var(--up); }
 
+/* The public overview reuses the same cloud layout and interaction as company momentum. */
+#main-news .mn-keywords { margin:var(--ui-section-gap,20px) 0; color:var(--ui-ink); }
+#main-news .mn-keywords h3 { margin:0 0 8px; font-size:var(--ui-section-size,17px); }
+#main-news .mn-keywords p { margin:0 0 12px; font-size:12px; line-height:1.7; color:var(--ui-muted); }
+#main-news .mn-keywords-all { margin-top:12px; font-size:12px; }
+#main-news .mn-keywords-all summary { cursor:pointer; }
+#main-news .mn-keywords-all > div { display:flex; flex-wrap:wrap; gap:6px; padding-top:10px; }
+#main-news .mn-keywords-all button { padding:6px 10px; border:1px solid var(--ui-rule); border-radius:var(--ui-radius-inner); background:var(--ui-surface); color:var(--ui-ink); font:inherit; cursor:pointer; text-decoration:none; }
+#main-news .mn-keywords-all button:is(:hover,[aria-pressed="true"]) { color:var(--ui-muted); }
+#main-news .mn-keywords-evidence { padding:16px 0; }
+#main-news .mn-keywords-evidence h4 { margin:0 0 8px; font-size:14px; }
+#main-news .mn-keywords-evidence ul { list-style:none; margin:0; padding:0; }
+#main-news .mn-keywords-evidence li { padding:10px 0; border-bottom:1px solid var(--ui-rule); overflow-wrap:anywhere; }
+#main-news .mn-keywords-evidence a { color:var(--ui-ink); font-size:13px; line-height:1.6; }
+
 html.dark #main-news .mn-tab { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-sub); }
 html.dark #main-news .mn-tab.is-active { border-color: var(--dk-down); background: #235d9f; color: #fff; }
 

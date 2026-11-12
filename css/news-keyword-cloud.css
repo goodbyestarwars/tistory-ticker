@@ -1,0 +1,12 @@
+/* Shared by company momentum and the main-news market overview. */
+.news-keyword-cloud { position:relative; min-height:180px; width:100%; overflow:hidden; color:var(--ui-ink); background:var(--ui-surface); border:1px solid var(--ui-rule); border-radius:var(--ui-radius-module); box-sizing:border-box; }
+.news-keyword-cloud .nkc-word { padding:2px 4px; margin:0; border:0; border-radius:4px; background:transparent; color:var(--ui-ink); font-family:var(--font-ui); line-height:1.25; white-space:nowrap; cursor:pointer; text-decoration:none; transition:color .2s ease; }
+.news-keyword-cloud .nkc-word > span { display:block; color:var(--nkc-word-ink,var(--ui-ink)); font:inherit; transition:color .2s ease; animation:nkc-drift var(--nkc-duration,8s) ease-in-out var(--nkc-delay,0s) infinite; }
+.news-keyword-cloud .nkc-word:is(:hover,:focus-visible,[aria-pressed="true"]) { --nkc-word-ink:var(--ui-muted); text-decoration:none; background:transparent; }
+.news-keyword-cloud:has(.nkc-word:is(:hover,:focus-visible)) .nkc-word > span { animation-play-state:paused; }
+.news-keyword-cloud .nkc-word:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
+@keyframes nkc-drift { 0%,100% { transform:translateY(-2px); } 50% { transform:translateY(2px); } }
+@media (prefers-reduced-motion:reduce) {
+  .news-keyword-cloud .nkc-word, .news-keyword-cloud .nkc-word > span { transition:none; }
+  .news-keyword-cloud .nkc-word > span { animation:none; }
+}

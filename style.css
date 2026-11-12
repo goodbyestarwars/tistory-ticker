@@ -5034,7 +5034,7 @@ html.dark .post-excerpt { color: var(--dk-sub); }
    우선순위가 높아 다크모드에서 글자가 안 보이는 문제 -> !important로 강제 크림색.
    단, 등락 표시용 빨강(#d24f45)/파랑(#1261c4)·기본 red/blue 계열 inline 색상은 예외로 유지. */
 html.dark .post-single-body,
-html.dark .post-single-body * {
+html.dark .post-single-body *:not(:where(.news-keyword-cloud, .news-keyword-cloud *)) {
   color: var(--dk-text) !important;
 }
 /* 반전(밝은 채움) 활성 버튼은 위 일괄 글자색을 이기고 어두운 글자를 쓴다. */

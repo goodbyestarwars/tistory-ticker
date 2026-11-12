@@ -203,6 +203,12 @@
       + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span data-mn-refresh-label>갱신</span></button>'
       + '<small class="nt-stamp" data-mn-updated>자동 갱신 대기 중</small></div></div>'
       + '</div>'
+      + '<section class="mn-keywords" aria-label="뉴스 핵심 키워드"><h3>뉴스에서 반복된 키워드</h3>'
+      + '<p data-mn-cloud-meta>현재 탭의 최근 24시간 기사 제목을 집계합니다.</p>'
+      + '<div class="news-keyword-cloud" data-mn-cloud role="group" aria-label="반복 키워드"></div>'
+      + '<details class="mn-keywords-all"><summary>전체 키워드·기사 수</summary><div data-mn-cloud-all></div></details>'
+      + '<section class="mn-keywords-evidence" data-mn-cloud-evidence hidden aria-live="polite"></section>'
+      + '</section>'
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
   }
 
@@ -224,6 +230,49 @@
     if (label) label.textContent = loading ? '갱신 중' : '갱신';
   }
 
+  var cloudRenderToken = 0, cloudObserver = null;
+  function renderKeywordCloud_(container, items, failed) {
+    var token = ++cloudRenderToken;
+    var area = container.querySelector('[data-mn-cloud]');
+    if (!area) return;
+    global.NineUI.loadKeywordCloud().then(function (shared) {
+      if (token !== cloudRenderToken || !container.isConnected) return;
+      var model = shared.fromHeadlines(items, displayTitle, safeHref), selected = '';
+      var all = container.querySelector('[data-mn-cloud-all]');
+      var evidence = container.querySelector('[data-mn-cloud-evidence]');
+      evidence.replaceChildren(); evidence.hidden = true; all.replaceChildren();
+      container.querySelector('[data-mn-cloud-meta]').textContent =
+        (VIEWS.filter(function (v) { return v.key === state.view; })[0] || VIEWS[0]).label
+        + ' · 최근 24시간 수집 기사 ' + model.articleCount + '건 · 제목에서 2건 이상 반복된 상위 ' + model.keywords.length
+        + '개 · 글자 크기=기사 수 (긍부정·시장 전체 언급량 아님)' + (failed.length ? ' · 일부 시장 수집 실패' : '');
+      function button(word) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = word.text;
+        b.dataset.word = word.text; b.setAttribute('aria-pressed', String(selected === word.text));
+        b.setAttribute('aria-label', word.text + ' ' + word.count + '건, 근거 기사 보기'); b.title = word.text + ' · ' + word.count + '건';
+        b.onclick = function () {
+          selected = word.text;
+          container.querySelectorAll('[data-word]').forEach(function (entry) { entry.setAttribute('aria-pressed', String(entry.dataset.word === selected)); });
+          evidence.hidden = false;
+          evidence.innerHTML = '<h4>' + escapeHtml(word.text) + ' · ' + word.count + '건</h4><ul>'
+            + word.articles.map(function (a) { return '<li><a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(a.title) + '</a></li>'; }).join('') + '</ul>';
+        };
+        return b;
+      }
+      model.keywords.forEach(function (word) { var b = button(word); b.textContent += ' · ' + word.count; all.appendChild(b); });
+      function layout() { if (token === cloudRenderToken && area.isConnected) shared.layout(area, model.keywords, button); }
+      layout();
+      if (cloudObserver) cloudObserver.disconnect();
+      if (global.ResizeObserver) {
+        var width = area.clientWidth;
+        cloudObserver = new ResizeObserver(function () { if (width !== area.clientWidth) { width = area.clientWidth; layout(); } });
+        cloudObserver.observe(area);
+      }
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+    }).catch(function () {
+      if (token === cloudRenderToken) area.textContent = '키워드를 불러오지 못했습니다. 뉴스 목록은 아래에서 확인할 수 있습니다.';
+    });
+  }
+
   function renderNews_(container) {
     var list = container.querySelector('[data-mn-list]');
     var updated = container.querySelector('[data-mn-updated]');
@@ -238,6 +287,7 @@
       : state.view === 'all' ? currentItems : currentItems.filter(function (item) { return item._market === state.view; });
     var failed = cryptoView ? (state.cryptoFailed ? [CRYPTO_MARKET.label] : []) : state.failed;
     if (!list) return;
+    renderKeywordCloud_(container, items, failed);
     state.loading = false;
     setRefreshState_(container, false);
     if (!items.length) {
