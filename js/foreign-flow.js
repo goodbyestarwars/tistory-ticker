@@ -2593,6 +2593,96 @@
     return intro + '<div class="ff-momentum-list">' + cards + '</div>';
   }
 
+  function momentumCloudHtml(data, name) {
+    var cloud = data && data.keywordCloud;
+    var intro = '<div class="ff-momentum-intro"><b>' + escapeHtml(name || data.stockName || '') + ' 뉴스 핵심어</b>'
+      + '<span>글자 크기 = 해당 핵심어를 다룬 중복 제거 기사 수 · 호재·악재 점수가 아닙니다.</span></div>';
+    if (!cloud || cloud.version !== 2 || cloud.expired) {
+      return intro + '<div class="ff-momentum-empty"><b>' + (data && data.enabled === false ? '모멘텀 수집이 일시 중지됨' : '관련 기사 재집계 대기 중')
+        + '</b><span>기업 관련성을 다시 확인한 뉴스부터 표시합니다. 이전 방식의 집계를 핵심어로 대신 표시하지 않습니다.</span></div>';
+    }
+    var coverage = data.coverage || {};
+    return intro + '<div class="ff-cloud-controls" role="group" aria-label="뉴스 핵심어 기간">'
+      + '<button type="button" data-cloud-days="7" aria-pressed="true">최근 7일</button><button type="button" data-cloud-days="30" aria-pressed="false">최근 30일</button></div>'
+      + '<p class="ff-cloud-meta">기준일 ' + escapeHtml(cloud.dataAsOf) + (cloud.stale ? ' · 갱신 지연' : '')
+      + ' · 수집 범위 ' + escapeHtml(coverage.actualStartDate || '—') + ' ~ ' + escapeHtml(coverage.actualEndDate || '—')
+      + (coverage.backfillComplete ? ' · 기간 수집 완료' : ' · 부분 수집') + '</p>'
+      + '<p class="ff-cloud-count" aria-live="polite"></p><div class="ff-wordcloud" aria-label="뉴스 핵심어 워드클라우드"></div>'
+      + '<details class="ff-cloud-all"><summary>전체 핵심어·기사 수</summary><div></div></details>'
+      + '<section class="ff-cloud-evidence" aria-label="핵심어 근거 기사"><h4>핵심어를 선택하면 근거 기사를 표시합니다</h4><div></div></section>'
+      + '<details class="ff-cloud-interest"><summary>이슈별 검색 관심도 (보조)</summary><div></div></details>'
+      + '<p class="ff-cloud-note">이메일·URL·기자 서명을 제외하고 제목·검색 요약에서 기업 언급을 확인했습니다. 핵심어는 기사 제목에서 추출하며 같은 기사는 핵심어마다 한 번만 셉니다. 동일 제목·URL은 중복 제거합니다. 최소 2건 반복된 상위 40개 핵심어와 최근 20일 이내의 대표 기사 최대 5건을 제공합니다. 전체 기사나 전체 시장의 언급량을 뜻하지 않습니다.</p>';
+  }
+
+  function wireMomentumCloud(box, data) {
+    var cloud = data && data.keywordCloud;
+    if (!cloud || cloud.version !== 2 || cloud.expired || !box.querySelector('.ff-wordcloud')) return;
+    var days = '7', selected = '', sizeObserver;
+    var area = box.querySelector('.ff-wordcloud');
+    function evidence(word) {
+      selected = word.text;
+      box.querySelector('.ff-cloud-evidence h4').textContent = word.text + ' · ' + word.count + '건';
+      var refs = (word.articles || []).filter(function (a) { return safeExternalUrl(a.url); });
+      box.querySelector('.ff-cloud-evidence div').innerHTML = refs.length ? '<ul>' + refs.map(function (a) {
+        return '<li><a href="' + escapeAttr(a.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(a.title) + '</a><small>' + escapeHtml(a.date) + '</small></li>';
+      }).join('') + '</ul>' : '<p>보관 기간 안의 대표 기사 링크가 없습니다. 집계 건수와 제공 링크 수는 다를 수 있습니다.</p>';
+      area.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.word === selected)); });
+    }
+    function wordButton(word) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = word.text;
+      b.dataset.word = word.text; b.setAttribute('aria-label', word.text + ' ' + word.count + '건, 근거 기사 보기');
+      b.setAttribute('aria-pressed', String(selected === word.text)); b.title = word.text + ' · ' + word.count + '건';
+      b.onclick = function () { evidence(word); }; return b;
+    }
+    function layout() {
+      if (!box.isConnected) { if (sizeObserver) sizeObserver.disconnect(); return; }
+      var windowData = (cloud.windows || {})[days] || {keywords:[],articleCount:0};
+      var words = windowData.keywords || [], width = area.clientWidth;
+      if (!width) return;
+      area.replaceChildren();
+      box.querySelector('.ff-cloud-count').textContent = '최근 ' + days + '일 · 관련 기사 ' + windowData.articleCount + '건 · 반복 핵심어 ' + words.length + '개';
+      var all = box.querySelector('.ff-cloud-all div'); all.replaceChildren();
+      if (!words.length) { area.textContent = '관련 기사에서 2건 이상 반복된 핵심어가 없습니다.'; return; }
+      var max = Math.max.apply(null, words.map(function (w) { return w.count; })), min = Math.min.apply(null, words.map(function (w) { return w.count; }));
+      var height = width < 500 ? 320 : 390, placed = [];
+      area.style.height = height + 'px';
+      words.forEach(function (word, index) {
+        var entry = wordButton(word); entry.textContent += ' · ' + word.count; all.appendChild(entry);
+        var button = wordButton(word); area.appendChild(button);
+        var size = min === max ? 23 : 14 + 34 * Math.sqrt((word.count - min) / (max - min));
+        if (width < 500) size = Math.min(size, 36);
+        button.style.fontSize = size + 'px'; button.style.fontWeight = index < 5 ? '700' : '500';
+        button.style.position = 'absolute'; button.style.visibility = 'hidden';
+        var w = button.offsetWidth, h = button.offsetHeight;
+        if (w > width - 12) { button.style.fontSize = Math.max(12, size * (width - 12) / w) + 'px'; w = button.offsetWidth; h = button.offsetHeight; }
+        var hit = null;
+        for (var step = 0; step < 2400; step++) {
+          var t = step * .26, radius = 4.1 * Math.sqrt(step);
+          var x = width / 2 + radius * Math.cos(t) * (width / height) - w / 2;
+          var y = height / 2 + radius * Math.sin(t) - h / 2;
+          if (x < 4 || y < 4 || x + w > width - 4 || y + h > height - 4) continue;
+          if (placed.some(function (p) { return x < p.x + p.w + 3 && x + w + 3 > p.x && y < p.y + p.h + 3 && y + h + 3 > p.y; })) continue;
+          hit = {x:x,y:y,w:w,h:h}; break;
+        }
+        if (hit) { placed.push(hit); button.style.left = hit.x + 'px'; button.style.top = hit.y + 'px'; button.style.visibility = 'visible'; }
+        else button.remove(); // Every word remains available in the accessible full list below.
+      });
+    }
+    box.querySelectorAll('[data-cloud-days]').forEach(function (button) { button.onclick = function () {
+      days = button.dataset.cloudDays; selected = '';
+      box.querySelectorAll('[data-cloud-days]').forEach(function (b) { b.setAttribute('aria-pressed', String(b === button)); });
+      layout(); box.querySelector('.ff-cloud-evidence h4').textContent = '핵심어를 선택하면 근거 기사를 표시합니다'; box.querySelector('.ff-cloud-evidence div').replaceChildren();
+    }; });
+    var verified = cloud.verifiedTopicNames || [];
+    var interests = (data.topics || []).filter(function (t) { return verified.indexOf(t.topicName) !== -1 && t.latestSearchInterest != null; });
+    box.querySelector('.ff-cloud-interest div').innerHTML = interests.length ? '<ul>' + interests.map(function (t) {
+      return '<li>' + escapeHtml(t.topicName) + ': ' + Number(t.latestSearchInterest).toFixed(1) + '</li>';
+    }).join('') + '</ul><p>기존 DataLab 조회 묶음의 최고 검색량=100인 상대지수입니다. 이슈 간 절대 검색량 비교나 뉴스 방향성 판단에 쓰지 않습니다.</p>' : '<p>관련 이슈의 검색 관심도 자료가 없습니다.</p>';
+    layout();
+    if (global.ResizeObserver) { var lastWidth = area.clientWidth; sizeObserver = new ResizeObserver(function () { if (lastWidth !== area.clientWidth) { lastWidth = area.clientWidth; layout(); } }); sizeObserver.observe(area); }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+  }
+
   function loadNewsMomentum(box, code, name) {
     box.innerHTML = '<div class="ff-loading"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>뉴스·검색 관심도 모멘텀을 불러오는 중...</div></div>';
     // 테스트 페이지에서 외부 VM 호출 없이 고정 데이터를 주입할 수 있도록 공개 API를 경유한다.
@@ -2601,7 +2691,8 @@
     api(code).then(function (data) {
       // 조회는 됐는데 그리다가 실패한 경우와 조회 자체가 실패한 경우를 구분해 안내한다.
       try {
-        box.innerHTML = buildNewsMomentumPanel(data, name);
+        box.innerHTML = momentumCloudHtml(data, name);
+        wireMomentumCloud(box, data);
       } catch (err) {
         box.innerHTML = '<div class="ff-error">모멘텀 데이터를 표시하지 못했어요. 응답 형식이 예상과 달라 화면을 그릴 수 없습니다.</div>';
       }
@@ -7222,6 +7313,7 @@
     renderVolumeProfileHtml: renderVolumeProfileHtml,
     ensureVolumeProfileAnalysis: ensureVpAnalysis,
     fetchNewsMomentum: fetchNewsMomentum,
+    renderNewsMomentum: function (box, data, name) { box.innerHTML = momentumCloudHtml(data, name); wireMomentumCloud(box, data); },
     // js/stock-news.js "종목분석 요약" 패널 전용 경량 API(위 정의부 주석 참고) - #foreign-flow
     // 마운트 없이도(즉 이 스크립트를 로드만 해도) 호출 가능.
     fetchAnalysisSummary: fetchAnalysisSummary,
@@ -7237,4 +7329,5 @@
     init();
   }
 })(window);
+
 

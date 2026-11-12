@@ -9,7 +9,7 @@ DEPLOYED_FILE="$APP_DIR/.last_deployed_sha"
 DEPLOY_LOCK="$APP_DIR/.deploy_check.lock"
 MOMENTUM_MARKER="$APP_DIR/.news_momentum_last_run_date"
 MOMENTUM_SCHEMA_MARKER="$APP_DIR/.news_momentum_batch_schema_version"
-MOMENTUM_SCHEMA_VERSION="3"
+MOMENTUM_SCHEMA_VERSION="4"
 MOMENTUM_LOCK="$APP_DIR/.news_momentum_timer.lock"
 MOMENTUM_DB="$APP_DIR/news_momentum.db"
 SEARCH_SCAN_LOCK="$APP_DIR/.search_scan_refresh.lock"
@@ -450,3 +450,4 @@ if [ $((10#$(date -u +%M) % 15)) -lt 5 ]; then
   "$PYTHON" "$APP_DIR/latency_monitor.py" 200>&- >/dev/null 2>&1 &
   disown
 fi
+

@@ -203,6 +203,9 @@ GAS `getStrategyScanResult`와 필드 projection이 같다. 파일 mtime별 JSON
 
 ### `GET /news-momentum/{code}`
 
+2026-11-13: 기존 `topics`/DataLab 계약은 보존하고 `keywordCloud`를 추가한다. `null`은 관련성 재집계 대기(기존 집계를 대체 표시하지 않음). v2는 `dataAsOf`·`generatedAt`·`stale`·`expired`·`rejectedCount`·`verifiedTopicNames`와 `windows["7"|"30"] = {articleCount, keywords:[{text,count,articles:[{title,url,date}]}]}`다. 제목/검색 요약에서 이메일·URL·기자 서명을 제거한 뒤 기업명/명시적 별칭을 확인하고, 동일 제목/URL 중복 제거 후 제목 핵심어별 기사 수를 센다. 최소 2건·상위40개, 링크는 최근20일 대표 최대5건이다. 검색 결과 표본이며 전체시장 빈도·긍부정 점수가 아니다. 부분 수집·기준일은 명시한다. 배치 예산·순환 커서·사용자 요청의 외부 API 미호출은 유지한다.
+
+
 | 항목 | 내용 |
 |---|---|
 | 인증 필요 여부 | **불필요** (공개, 기존 VM CORS 정책 적용) |
@@ -546,3 +549,4 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 ## 모양 기준 공개 후보 (2026-11-05)
 
 `GET /pattern-scan`에 `shapeSelection`을 추가한다. `null`은 새 선정 스냅샷 미준비/구버전/만료/기준일 불일치다. 유효하면 `{version:'shape-selection-v1',mode:'observation',orderAuthorized:false,status:'ok',scannedAt,dataDate,coverage:{universe,eligible,skipped},groups:{liveFlow,trendBreakout,bottomFormation,pullbackRebreak,longTermQuality}}`다. 각 그룹은 기존 종목 행 형식이며 `patternDetail`에 `selectionVersion`, `observationOnly:true`, `orderAuthorized:false`, `shapeLabel`, `shape`, `windowBars`, 지지/저항·이유가 있다. 확정/주문 필드는 생성하지 않는다. 장기는 기존 재무 관문을 통과하고 공개 시 만료를 재검사한다. 기존 `patterns`와 실시간 A/B·신호 피드·이력은 보존한다. 상세: [검색기 선정 기준](docs/SCANNER_FIVE_GROUPS_2026-10-19.md).
+

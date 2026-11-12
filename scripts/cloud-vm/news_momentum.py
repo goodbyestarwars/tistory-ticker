@@ -150,6 +150,7 @@ def create_schema(conn):
         'neutral_count': 'INTEGER',
         'negative_count': 'INTEGER',
     })
+    _add_missing_columns(conn, 'news_stock_coverage', {'keyword_cloud_json': 'TEXT'})
     conn.commit()
 
 
@@ -419,11 +420,179 @@ def _momentum_change(recent_count, previous_count):
     return change_rate, status
 
 
+# Relevance-checked headline metadata only; no article body/HTML is persisted.
+COMPANY_ALIASES = {'035420': ('NAVER', '네이버'), '035720': ('카카오', 'KAKAO'),
+                   '000660': ('SK하이닉스', 'SK 하이닉스'), '006280': ('녹십자', 'GC녹십자')}
+CLOUD_TERMS = {
+    'AI': r'(?<![A-Za-z])AI(?![A-Za-z])|인공지능',
+    'HBM': r'(?<![A-Za-z])HBM\d*[A-Za-z]?(?![A-Za-z])|고대역폭\s*메모리',
+    '클라우드': r'클라우드', '커머스': r'커머스|전자상거래', '광고': r'광고',
+    '검색': r'검색', '반도체': r'반도체', '데이터센터': r'데이터\s*센터',
+    '플랫폼': r'플랫폼', '콘텐츠': r'콘텐츠|컨텐츠', '웹툰': r'웹툰',
+    '전기차': r'전기차', '자율주행': r'자율\s*주행', '배터리': r'배터리|이차전지|2차전지',
+    '로봇': r'로봇', '신약': r'신약', '임상': r'임상', '백신': r'백신',
+    '조선': r'조선', '방산': r'방산|방위산업', '원전': r'원전|원자력',
+    '실적': r'실적', '영업이익': r'영업\s*이익', '매출': r'매출', '흑자': r'흑자',
+    '적자': r'적자', '수주': r'수주', '공급계약': r'공급\s*계약', '증설': r'증설',
+    '인수합병': r'인수|합병|M&A', '배당': r'배당', '자사주': r'자사주',
+    '소송': r'소송', '규제': r'규제|제재', '투자': r'투자', '협력': r'협력|제휴',
+}
+CLOUD_STOP = STOP_WORDS | MARKET_SESSION_WORDS | {
+    '최대', '최초', '공개', '확대', '증가', '감소', '상승', '하락', '급등', '급락',
+    '사진', '제공', '무단', '전재', '재배포', '금지', '이메일', '메일', '뉴스',
+    '경제', '한국', '서울', '대해', '위해', '있는', '있다', '한다', '기록', '돌파',
+    '기대', '주목', '목표', '목표가', '유지', '분석', '보고서', '이유', '대비',
+    '발표', '체결', '사업', '추진', '진출', '성과', '달성', '나선다', '선정', '가운데',
+}
+
+
+def _editorial_text(value):
+    import html
+    text = html.unescape(value or '')
+    text = re.sub(r'[\w.+-]+\s*@\s*[\w.-]+\.[A-Za-z]{2,}', ' ', text)
+    text = re.sub(r'https?://\S+|www\.\S+|\b(?:[A-Za-z0-9-]+\.)+(?:com|net|co\.kr|kr)\b', ' ', text, flags=re.I)
+    text = _clean_title(text)
+    text = re.sub(r'[가-힣A-Za-z]{2,12}\s*(?:기자|특파원|통신원)\b.*$', ' ', text)
+    text = re.sub(r'(?:사진|자료|출처)\s*[=:：].*$', ' ', text)
+    text = re.sub(r'무단\s*전재.*$|저작권.*$', ' ', text)
+    return text.strip()
+
+
+def _company_aliases(stock_code, stock_name):
+    return tuple(dict.fromkeys((stock_name,) + COMPANY_ALIASES.get(stock_code, ())))
+
+
+def _has_company(text, aliases):
+    for alias in aliases:
+        if not alias:
+            continue
+        # ASCII boundaries avoid domain/account substrings; Korean particles remain valid.
+        pattern = re.escape(alias).replace(r'\ ', r'\s*')
+        boundary = 'A-Za-z0-9_가-힣' if len(alias) <= 2 else 'A-Za-z0-9_'
+        if re.search(r'(?<![' + boundary + r'])' + pattern + r'(?![' + boundary + r'])', text, re.I):
+            return True
+    return False
+
+
+def relevant_news(stock_code, stock_name, items, today=None):
+    """Search hits are candidates, never evidence of company relevance by themselves."""
+    today = today or datetime.now(KST).date()
+    cutoff = (today - timedelta(days=29)).isoformat()
+    aliases = _company_aliases(stock_code, stock_name)
+    seen_titles, seen_urls, accepted = set(), set(), []
+    for item in items or []:
+        title = _editorial_text(item.get('title'))
+        description = _editorial_text(item.get('description'))
+        # Very short/ambiguous names require a headline mention.
+        if not _has_company(title, aliases) and not (len(stock_name) > 2 and _has_company(description, aliases)):
+            continue
+        raw_date = item.get('pubDate') or item.get('datetime')
+        try:
+            published = _parse_date(raw_date, '__invalid__') if raw_date else ''
+            date.fromisoformat(published)
+        except (ValueError, OverflowError):
+            continue
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', published or '') or not cutoff <= published <= today.isoformat():
+            continue
+        key = re.sub(r'[^가-힣A-Za-z0-9]', '', title).casefold()
+        url = item.get('link') or ''
+        if not key or key in seen_titles or (url and url in seen_urls):
+            continue
+        seen_titles.add(key)
+        if url: seen_urls.add(url)
+        accepted.append(dict(item, title=title, description=description, _cloud_date=published))
+    return accepted
+
+
+def _headline_keywords(title, stock_code, stock_name):
+    text = title
+    for alias in sorted(_company_aliases(stock_code, stock_name), key=len, reverse=True):
+        text = re.sub(re.escape(alias), ' ', text, flags=re.I)
+    words = set()
+    for label, pattern in CLOUD_TERMS.items():
+        if re.search(pattern, text, re.I):
+            words.add(label)
+            text = re.sub(pattern, ' ', text, flags=re.I)
+    # Conservative nouns/acronyms supplement the shared domain phrases, no morphological model.
+    for token in re.findall(r'[A-Za-z][A-Za-z0-9]{1,14}|[가-힣]{2,12}', text):
+        token = re.sub(r'(에서는|으로는|에서|으로|까지|부터|에도|보다|의|은|는|을|를|이|가|와|과)$', '', token)
+        if len(token) < 2 or token in CLOUD_STOP or token in _WEAK_KEYWORD_TOKENS:
+            continue
+        if any(token.casefold() in a.casefold() or a.casefold() in token.casefold()
+               for a in _company_aliases(stock_code, stock_name) if a):
+            continue
+        if re.search(r'(했다|한다|된다|이다|하며|하는|위한|억원|조원|만원|퍼센트)$', token):
+            continue
+        words.add(token.upper() if token.isascii() else token)
+    return words
+
+
+def build_keyword_cloud(stock_code, stock_name, items, today=None):
+    today = today or datetime.now(KST).date()
+    articles = relevant_news(stock_code, stock_name, items, today)
+    windows = {}
+    for days in (7, 30):
+        cutoff = (today - timedelta(days=days - 1)).isoformat()
+        selected = [a for a in articles if a['_cloud_date'] >= cutoff]
+        grouped = defaultdict(list)
+        for article in selected:
+            for keyword in _headline_keywords(article['title'], stock_code, stock_name):
+                grouped[keyword].append(article)
+        words = []
+        for keyword, matches in grouped.items():
+            # Single mentions are noisy; never manufacture words to fill an empty cloud.
+            if len(matches) < 2:
+                continue
+            refs = []
+            for a in sorted(matches, key=lambda a: a['_cloud_date'], reverse=True):
+                if a['_cloud_date'] < (today - timedelta(days=19)).isoformat():
+                    continue
+                if not re.match(r'^https?://', a.get('link') or '', re.I):
+                    continue
+                refs.append({'title': a['title'][:180], 'url': a['link'], 'date': a['_cloud_date']})
+                if len(refs) == 5: break
+            words.append({'text': keyword, 'count': len(matches), 'articles': refs})
+        words.sort(key=lambda w: (-w['count'], w['text']))
+        windows[str(days)] = {'articleCount': len(selected), 'keywords': words[:40]}
+    return {'version': 2, 'dataAsOf': today.isoformat(), 'generatedAt': _iso_now(),
+            'method': 'company-relevance-headline-article-frequency-v2',
+            'rejectedCount': len(items or []) - len(articles), 'windows': windows}
+
+
+def save_keyword_cloud(conn, stock_code, cloud, topic_names):
+    # Coverage already exists; replace the stock snapshot, never merge unfiltered old counts.
+    payload = dict(cloud, verifiedTopicNames=list(topic_names))
+    with conn:
+        conn.execute('UPDATE news_stock_coverage SET keyword_cloud_json=? WHERE stock_code=?',
+                     (json.dumps(payload, ensure_ascii=False), stock_code))
+
+
+def _load_keyword_cloud(row, today=None):
+    if not row or 'keyword_cloud_json' not in row.keys() or not row['keyword_cloud_json']:
+        return None
+    today = today or datetime.now(KST).date()
+    try:
+        cloud = json.loads(row['keyword_cloud_json'])
+        asof = date.fromisoformat(cloud['dataAsOf'])
+    except (ValueError, TypeError, KeyError):
+        return None
+    age = (today - asof).days
+    cloud['stale'] = age > 1
+    cloud['expired'] = age >= RETENTION_DAYS
+    for window in cloud.get('windows', {}).values():
+        for word in window['keywords']:
+            word['articles'] = [a for a in word.get('articles', [])
+                                if a['date'] >= (today - timedelta(days=19)).isoformat()]
+        if cloud['expired']: window['keywords'] = []
+    return cloud
+
+
+
 def extract_topics(stock_code, stock_name, news_items, today=None):
     """서로 다른 기사 2건 이상에서 반복된 복합 이슈만 반환한다."""
     today_iso = (today or date.today()).isoformat()
     grouped = defaultdict(dict)
-    for item in news_items or []:
+    for item in relevant_news(stock_code, stock_name, news_items, today):
         title = _clean_title(item.get('title', ''))
         if not title:
             continue
@@ -760,6 +929,13 @@ def prune_old_details(conn, today=None, retention_days=RETENTION_DAYS,
     datalab_cutoff = (today_value - timedelta(days=datalab_retention_days)).isoformat()
     url_cutoff = (today_value - timedelta(days=url_retention_days)).isoformat()
     with conn:
+        # Keep bounded metadata only; stale snapshots must not retain expired article titles/URLs.
+        if 'keyword_cloud_json' in {r['name'] for r in conn.execute('PRAGMA table_info(news_stock_coverage)')}:
+            for coverage_row in conn.execute('SELECT stock_code,keyword_cloud_json FROM news_stock_coverage WHERE keyword_cloud_json IS NOT NULL'):
+                cloud = _load_keyword_cloud(coverage_row, today_value)
+                if cloud:
+                    conn.execute('UPDATE news_stock_coverage SET keyword_cloud_json=? WHERE stock_code=?',
+                                 (None if cloud.get('expired') else json.dumps(cloud, ensure_ascii=False), coverage_row['stock_code']))
         daily_deleted = conn.execute(
             'DELETE FROM news_topic_daily WHERE date<?', (cutoff,)
         ).rowcount
@@ -777,13 +953,15 @@ def prune_old_details(conn, today=None, retention_days=RETENTION_DAYS,
             'urlsCleared': urls_cleared, 'cutoff': cutoff}
 
 
-def load_coverage_dates(conn):
+def load_coverage_dates(conn, require_cloud=False):
     """{종목코드: 마지막 수집 KST 날짜}. --full 이어달리기가 이미 처리한 종목을
     건너뛰는 데 쓴다. updated_at은 UTC ISO 문자열이라 KST 날짜로 환산한다."""
     result = {}
     for row in conn.execute(
-        'SELECT stock_code, updated_at FROM news_stock_coverage'
+        'SELECT stock_code, updated_at, keyword_cloud_json FROM news_stock_coverage'
     ).fetchall():
+        if require_cloud and not row['keyword_cloud_json']:
+            continue  # Rebuild old unverified snapshots without resetting the cursor or budgets.
         updated_at = row['updated_at']
         if not updated_at:
             continue
@@ -898,5 +1076,7 @@ def load_stock_momentum(conn, stock_code, daily_days=30):
         ),
         'dataAsOf': coverage['actualEndDate'] if coverage else None,
         'coverage': coverage,
+        'keywordCloud': _load_keyword_cloud(coverage_row),
         'topics': topics,
     }
+

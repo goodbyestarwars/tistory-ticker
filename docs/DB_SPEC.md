@@ -568,6 +568,10 @@ erDiagram
 
 화면의 "데이터 기준일"/"최근 90일 뉴스 백필 완료/부분" 표시는 이 테이블 값을 그대로 쓴다.
 
+### 3.4.1 핵심어 스냅샷 (2026-11-13)
+
+`news_stock_coverage.keyword_cloud_json` nullable TEXT를 기존 `create_schema`의 멱등 마이그레이션으로 추가한다. 기사 본문·HTML은 보관하지 않고 관련성 확인된 제목 핵심어의 7/30일 건수·최대40개 핵심어·대표 기사 제목/URL/날짜(각 최대5건)만 저장한다. 종목별 한 JSON을 교체하며 미검증 과거 집계와 합치지 않는다. 대표 기사 메타데이터는 발행일 기준20일, 집계 스냅샷은30일 보관하며 읽기/기존 prune 양쪽에서 만료를 적용한다. 신규 필드가 없는 DB도 기존 API는 `keywordCloud:null`로 호환한다. 배치는 이 필드가 없는 종목을 재집계하되 기존 커서·예산을 초기화하지 않는다.
+
 ### 3.5 인덱스
 
 `idx_news_topics_stock_code`, `idx_news_topics_stock_status(stock_code, status)`, `idx_news_topics_last_seen`, `idx_news_topic_daily_topic_date(topic_id, date)`, `idx_news_topic_daily_stock_date(stock_code, date)`, `idx_datalab_trends_topic_fetched(topic_id, fetched_at)`.
@@ -700,3 +704,4 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 홈 미국 현물 2종·CME 선물 2종의 기존 시세 폴러 관측을 30분별로 보존. PK `(symbol,session,slot)`, `open/high/low/close`는 실제 수집 표본, `ts`는 공급자 시세 UTC 초. 같은 구간 최신 시세로 종가 갱신·고저 보존, 역순 시세로 종가 후퇴 없음. 14일 전 날짜 삭제. 새 외부 호출/스레드 없음. 야간은 별도 저장 없이 `future_chart_minute`를 읽어 집계한다.
 
 2026-10-22 추가: `symbol='KOSPI200_NIGHT'`도 저장한다. 야간선물 실시간 틱(`night_futures_ws._upsert_tick` → `home_session_chart.record_night_tick`)을 같은 30분 구간 관측값으로 모아(구간별 10초마다 저장) 두고, 홈 야간선물 차트(`get_results`)가 **KIS 분봉(`future_chart_minute`)이 없는 구간만** 이 관측값으로 채운다(분봉 우선, 틈은 틈으로 유지). 분봉 수집이 자정 이후 멈춰 차트가 23:58에서 끊긴 사고 대응이며, 새 외부 공급자를 쓰지 않고 이미 수신 중인 같은 KIS 틱만 쓴다.
+

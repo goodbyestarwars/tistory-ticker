@@ -322,7 +322,7 @@ def run(args):
             coverage_dates = {}
         else:
             universe = rotate_from_cursor(full_universe, cursor_state['cursor'])
-            coverage_dates = news_momentum.load_coverage_dates(conn)
+            coverage_dates = news_momentum.load_coverage_dates(conn, require_cloud=True)
             if news_budget <= 0:
                 stop_reason = 'news-budget-exhausted'
                 universe = []
@@ -367,6 +367,11 @@ def run(args):
                     len(items),
                     coverage['newsApiCalls'],
                     coverage['backfillDays'],
+                )
+                news_momentum.save_keyword_cloud(
+                    conn, stock['code'],
+                    news_momentum.build_keyword_cloud(stock['code'], stock['name'], items, today),
+                    [topic['topic_name'] for topic in topics],
                 )
                 topic_count += len(topics)
 
@@ -487,3 +492,4 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
+

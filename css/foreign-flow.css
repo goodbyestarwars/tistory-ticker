@@ -1365,6 +1365,29 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:var(--dk-text); b
   color: #3b6085;
   font-size: 11px;
 }
+/* News keyword cloud: the shared UI tokens also supply dark surfaces and contrast. */
+#foreign-flow .ff-cloud-controls { display:flex; gap:6px; margin:12px 0; }
+#foreign-flow .ff-cloud-controls button,
+#foreign-flow .ff-cloud-all button { font:inherit; padding:6px 12px; border:1px solid var(--ui-rule); border-radius:var(--ui-radius-inner); background:var(--ui-surface); color:var(--ui-ink); cursor:pointer; }
+#foreign-flow .ff-cloud-controls button[aria-pressed="true"] { background:var(--ui-ink); color:var(--ui-surface); }
+#foreign-flow .ff-cloud-meta,
+#foreign-flow .ff-cloud-count,
+#foreign-flow .ff-cloud-note { color:var(--ui-muted); font-size:12px; line-height:1.7; }
+#foreign-flow .ff-wordcloud { position:relative; min-height:180px; width:100%; overflow:hidden; color:var(--ui-ink); background:var(--ui-surface); border:1px solid var(--ui-rule); border-radius:var(--ui-radius-module); box-sizing:border-box; }
+#foreign-flow .ff-wordcloud button { padding:2px 4px; margin:0; border:0; border-radius:4px; background:transparent; color:var(--ui-ink); font-family:var(--font-sans, sans-serif); line-height:1.25; white-space:nowrap; cursor:pointer; }
+#foreign-flow .ff-wordcloud button[aria-pressed="true"] { background:var(--ui-accent-soft); text-decoration:underline; }
+#foreign-flow .ff-wordcloud button:hover { text-decoration:underline; }
+#foreign-flow :is(.ff-wordcloud,.ff-cloud-all,.ff-cloud-controls) button:focus-visible { outline:2px solid var(--ui-ink); outline-offset:1px; }
+#foreign-flow :is(.ff-cloud-all,.ff-cloud-interest) { margin:12px 0; padding:12px; background:var(--ui-surface); color:var(--ui-ink); border:1px solid var(--ui-rule); border-radius:var(--ui-radius-inner); font-size:12px; }
+#foreign-flow :is(.ff-cloud-all,.ff-cloud-interest) summary { cursor:pointer; }
+#foreign-flow .ff-cloud-all div { display:flex; flex-wrap:wrap; gap:6px; padding-top:10px; }
+#foreign-flow .ff-cloud-evidence { padding:16px 0; color:var(--ui-ink); }
+#foreign-flow .ff-cloud-evidence h4 { margin:0 0 10px; font-size:14px; }
+#foreign-flow .ff-cloud-evidence ul { list-style:none; margin:0; padding:0; }
+#foreign-flow .ff-cloud-evidence li { display:flex; flex-direction:column; gap:4px; padding:10px 0; border-bottom:1px solid var(--ui-rule); overflow-wrap:anywhere; }
+#foreign-flow .ff-cloud-evidence a { color:var(--ui-ink); font-size:13px; line-height:1.6; }
+#foreign-flow .ff-cloud-evidence small { color:var(--ui-muted); font-size:11px; }
+
 #foreign-flow .ff-momentum-list { display: grid; gap: 12px; }
 #foreign-flow .ff-momentum-card {
   padding: 15px;
@@ -3498,3 +3521,4 @@ html.dark #foreign-flow .ff-story-row, html.dark #foreign-flow .ff-story-row spa
 /* 카드 안 글자는 모두 굵게(제목 서체는 그대로) */
 #foreign-flow .ff-wide :is(p, em, td, b) { font-weight: 700; }
 #foreign-flow .ff-wide :is(small, th) { font-weight: 600; }
+
