@@ -11,14 +11,14 @@ import access_policy as ap  # noqa: E402
 
 MAIN = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm', 'main.py')
 # 공개 4개 화면과 인증/건강 확인이 쓰는 경로는 제한 대상이 아니어야 한다.
-PUBLIC_PATHS = ['/health', '/auth/google/me', '/access-policy', '/futures', '/futures/avg', '/fx-rates',
+PUBLIC_PATHS = ['/health', '/auth/google/me', '/access-policy', '/fx-rates',
                 '/fx-rates/history', '/domestic-market-indicators', '/domestic-market-indicators/chart',
                 '/kofia-market', '/earnings-calendar', '/morning-briefing', '/ai-comments', '/crypto-news',
                 '/foreign-news', '/domestic-news', '/naver-news', '/weekly-report', '/weekend-us-themes',
                 '/domestic-disclosures']
 RESTRICTED_PATHS = ['/quote', '/us-search', '/ohlc/005930', '/investor-flow/005930', '/pattern-scan',
                     '/market-board', '/order-book/005930', '/investor-trend/history', '/market-temp',
-                    '/strategy-scan-batch', '/us-quote/NVDA']
+                    '/strategy-scan-batch', '/us-quote/NVDA', '/futures', '/futures/avg', '/futures/refresh-macro']
 
 
 class PolicyTests(unittest.TestCase):
@@ -90,6 +90,20 @@ class PolicyTests(unittest.TestCase):
         src = open(MAIN, encoding='utf-8').read()
         block = src.split("async def realtime_quote_socket", 1)[1].split("await websocket.accept()", 1)[0]
         self.assertIn('_access_denied(websocket)', block)
+
+    def test_market_indicator_websocket_requires_admin_before_accept(self):
+        src = open(MAIN, encoding='utf-8').read()
+        block = src.split("async def market_indicators_socket", 1)[1].split("await websocket.accept()", 1)[0]
+        self.assertIn("websocket.headers.get('origin')", block)
+        self.assertIn('_access_denied(websocket)', block)
+        self.assertIn('await websocket.close(code=1008)', block)
+
+    def test_futures_prefix_does_not_restrict_other_public_routes(self):
+        self.assertTrue(all(ap.is_restricted_path(p) for p in
+                            ('/futures', '/futures/avg', '/futures/refresh-macro')))
+        self.assertFalse(ap.is_restricted_path('/futures-public'))
+        for p in ('/domestic-news', '/foreign-news', '/crypto-news', '/earnings-calendar'):
+            self.assertFalse(ap.is_restricted_path(p), p)
 
 
 if __name__ == '__main__':
