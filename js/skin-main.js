@@ -649,7 +649,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261106-home-investor-bars';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261113-pc-paged';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
 
@@ -874,7 +874,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261107-market-aux';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261113-pc-relayout';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }

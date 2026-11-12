@@ -575,7 +575,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > .hmb-investor-trend { border-top: 0 !important; padding-top: 0 !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row { justify-content: flex-start !important; }
   /* 왼쪽 위젯 높이가 바뀌어도 경제뉴스 카드 안의 목록이 남는 높이를 채우도록만 맞춘다(뉴스 항목 디자인·데이터는 그대로). */
-  body#tt-body-index .home-editorial-page #homeEconomicNews { display: flex !important; flex-direction: column !important; }
+  /* 1024px 이상은 아래 'PC 홈 재배치'가 이 래퍼를 display:contents로 풀어 격자에 직접 배치한다. */
+  @media (max-width: 1023px) { body#tt-body-index .home-editorial-page #homeEconomicNews { display: flex !important; flex-direction: column !important; } }
   body#tt-body-index .home-editorial-page #homeEconomicNews .hen-list { flex: 1 1 auto !important; min-height: 0 !important; max-height: none !important; height: auto !important; overflow-y: auto !important; }
 }
 
@@ -657,3 +658,85 @@ body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content .h
 @media (max-width: 640px) {
   body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content:not([hidden]) { display: block; }
 }
+
+/* ── PC 홈 재배치(2026-11-13 사용자 승인, 1024px 이상만) ─────────────────────────────
+   DOM·data-* 계약·렌더러는 그대로 두고 두 열 래퍼(#homeMarketBoard·#homeEconomicNews)를 display:contents로 풀어
+   하나의 격자에 다시 놓는다(기존 #homeMarketBoard.hmb2 … 하위 선택자는 DOM이 같아 그대로 적용된다).
+     1행: 지수 카드(KOSPI·KOSDAQ / 미국 3지수) | 시장 보조 지표(원/달러·주간선물) 또는 야간선물
+     2행~: 국내/미국 시장 → 투자자 동향 → (미국) ETF → 관심종목 공시 | 경제 종합뉴스(왼쪽 높이에 맞춰 안에서 스크롤)
+   글꼴(제목·뉴스 Noto Serif, 본문 Pretendard)·크기는 바꾸지 않는다. 모바일(≤720 home-mobile-tabs)·태블릿은 기존 배치 그대로. */
+@media (min-width: 1024px) {
+  body#tt-body-index .home-editorial-page .home-overview-grid:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(360px, .92fr);
+    grid-template-areas:
+      "idx      idx      aux"
+      "overview overview news"
+      "summary  summary  news"
+      "etf      etf      news"
+      "disc     disc     news";
+    grid-template-rows: auto auto auto auto 1fr;
+    gap: var(--ui-section-gap, 16px);
+    align-items: stretch;
+    border-bottom: 0;
+  }
+  body#tt-body-index .home-editorial-page .home-overview-grid > :is(#homeMarketBoard, #homeEconomicNews) { display: contents; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-market-overview { grid-area: overview; margin: 0; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-index-strip { grid-area: idx; margin: 0; align-self: stretch; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-market-summary { grid-area: summary; margin: 0; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .hmb-etf { grid-area: etf; margin: 0; }
+  body#tt-body-index .home-editorial-page #homeEconomicNews > .home-economic-disclosures-slot { grid-area: disc; margin: 0; align-self: start; }
+  body#tt-body-index .home-editorial-page #homeEconomicNews > :is(.home-market-aux, .home-night-content) { grid-area: aux; margin: 0; }
+  /* 뉴스는 왼쪽 열 높이를 늘리지 않는다: 높이 0 + 최소 100%로 격자 영역 높이에 맞추고 목록만 스크롤한다. */
+  body#tt-body-index .home-editorial-page #homeEconomicNews > .home-economic-content {
+    grid-area: news;
+    display: flex;
+    flex-direction: column;
+    height: 0;
+    min-height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+  body#tt-body-index .home-editorial-page #homeEconomicNews > .home-economic-content > :not(.hen-list) { flex: none; }
+  body#tt-body-index .home-editorial-page #homeEconomicNews > .home-economic-content > .hen-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  /* 국내 시장 카드가 넓어졌으므로 판정(왼쪽)과 주도·주의 업종(오른쪽)을 나란히 둔다. */
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-index-strip .home-index-card { height: 100%; box-sizing: border-box; }
+  /* 작은 기준시각·출처 주석: 한 줄로 줄이고 카드에 마우스를 올리면 전체를 보여 준다(문구·글꼴은 그대로). */
+  body#tt-body-index .home-editorial-page .home-overview-grid :is(.hmp-note, .ui-kpi-source, .hmb-investor-asof, .hmb-metric-asof, .hmb-investor-mini-fallback) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body#tt-body-index .home-editorial-page .home-overview-grid .ui-content-block:hover :is(.hmp-note, .ui-kpi-source, .hmb-investor-asof, .hmb-metric-asof, .hmb-investor-mini-fallback) {
+    overflow: visible;
+    white-space: normal;
+  }
+  /* 관심종목 공시가 비었으면 칸을 만들지 않는다. */
+  body#tt-body-index .home-editorial-page #homeEconomicNews > .home-economic-disclosures-slot:not(:has(> section:not([hidden]))) { display: none; }
+}
+/* 넓은 화면: 본문 폭을 넓혀 양옆 빈 공간을 줄인다(홈 대시보드에서만). */
+@media (min-width: 1600px) {
+  body#tt-body-index .main-layout:has(.home-editorial-page) { max-width: 1560px; }
+}
+/* 관심종목 서랍이 열려 본문이 좁아지면 한 열로 쌓는다(style.css의 wl-open 한 열 규칙과 같은 조건). */
+@media (min-width: 1024px) {
+  html.wl-open body#tt-body-index .home-editorial-page .home-overview-grid:not([hidden]),
+  body#tt-body-index:has(.global-watchlist-drawer.is-open) .home-editorial-page .home-overview-grid:not([hidden]) {
+    grid-template-areas: "idx" "aux" "overview" "summary" "etf" "news" "disc";
+    grid-template-rows: none;
+  }
+  html.wl-open body#tt-body-index .home-editorial-page #homeEconomicNews > .home-economic-content,
+  body#tt-body-index:has(.global-watchlist-drawer.is-open) .home-editorial-page #homeEconomicNews > .home-economic-content { height: auto; max-height: 720px; }
+}
+/* 실시간 종목판 [상세 열](js/home-realtime-table.js): 꺼져 있으면 52주 최고·최저가·업종 열을 숨긴다. 모바일 탭 모드는 기존 표 그대로. */
+body#tt-body-index:not(.m-tabs) .home-realtime-board[data-hrt-detail="off"] :is(th, td):is([data-field="week52High"], [data-field="week52Low"], [data-field="industry"]) { display: none; }
+body#tt-body-index.m-tabs .home-realtime-board [data-hrt-detail-toggle] { display: none; }
+/* PC 실시간 종목판 더보기: 모바일(home-mobile-tabs.css)과 같은 전체 폭 버튼 모양. 글꼴은 상속 그대로. */
+body#tt-body-index:not(.m-tabs) .home-editorial-page .home-realtime-board .hrt-more:not([hidden]) { display: block; padding: 10px 0 2px; }
+body#tt-body-index:not(.m-tabs) .home-editorial-page .home-realtime-board .hrt-more :is(button, a) {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 40px;
+  border: 1px solid var(--ui-border); border-radius: var(--ui-radius-inner, 9px); background: var(--ui-inner-surface, #fff);
+  color: var(--ui-ink); font: inherit; text-decoration: none; cursor: pointer;
+}
+body#tt-body-index:not(.m-tabs) .home-editorial-page .home-realtime-board .hrt-more small { color: var(--ui-muted); }
+html.dark body#tt-body-index:not(.m-tabs) .home-editorial-page .home-realtime-board .hrt-more :is(button, a) { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
