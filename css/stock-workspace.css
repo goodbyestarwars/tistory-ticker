@@ -211,6 +211,8 @@ html.dark #stock-search.ss-workspace .ssw-session-extra b.down { color: var(--dk
 #stock-search.ss-workspace .ssw-co-fund .ssw-table { margin-top: 4px; }
 #stock-search.ss-workspace .ssw-more { display: block; margin-top: 16px; padding: 10px 0 0; border-top: 1px solid var(--ui-rule); color: var(--ui-ink); font-size: 13px; font-weight: 600; text-decoration: none; }
 #stock-search.ss-workspace .ssw-more:hover { text-decoration: underline; }
+#stock-search.ss-workspace .ssw-co-sources { margin-top: 10px; }
+#stock-search.ss-workspace .ssw-co-sources .ssw-note { margin-top: 2px; }
 /* 옮겨 온 관련 뉴스 패널: 탭 안에서는 바깥 테두리·여백을 중복하지 않는다. */
 #stock-search.ss-workspace .ssw-pane .ss-news-panel { padding: 0; border: 0; }
 #stock-search.ss-workspace .ssw-pane .ss-domestic-news { max-height: none; }
@@ -250,7 +252,14 @@ html.dark #stock-search.ss-workspace :is(.ssw-sub, .ssw-more, .ssw-co-industry) 
   html.dark #stock-search.ss-workspace .ssw-info-toggle[aria-expanded="true"] { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-card); }
   #stock-search.ss-workspace .ssw-info-close { display: block; }
   #stock-search.ss-workspace .ssw-info { display: none; }
-  #stock-search.ss-workspace.ssw-info-open .ssw-info { display: block; overflow-y: auto; overscroll-behavior: contain; }
+  /* 탭 머리는 고정하고 내용(탭 패널)만 스크롤한다. 공시·뉴스는 뉴스 목록 자체가 남은 높이를 채우는 스크롤 상자다(2026-11-13). */
+  #stock-search.ss-workspace.ssw-info-open .ssw-info { display: flex; flex-direction: column; overflow: hidden; }
+  #stock-search.ss-workspace .ssw-info-head { flex: none; }
+  #stock-search.ss-workspace .ssw-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #stock-search.ss-workspace #sswPane-news:not([hidden]) { display: flex; flex-direction: column; overflow: hidden; }
+  #stock-search.ss-workspace #sswPane-news .ss-news-panel { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+  #stock-search.ss-workspace #sswPane-news .ss-news-panel-head { flex: none; }
+  #stock-search.ss-workspace #sswPane-news .ss-domestic-news { flex: 1 1 auto; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; }
   #stock-search.ss-workspace .ssw-backdrop { display: none; }
 }
 /* 넓은 PC(1280px 이상): 차트 오른쪽 열로 붙는다. 차트는 남은 폭으로 줄어들 뿐 가려지지 않는다.

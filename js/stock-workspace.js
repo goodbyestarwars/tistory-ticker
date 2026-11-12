@@ -25,7 +25,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-workspace\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CSS_URL = BASE + 'css/stock-workspace.css?v=20261113-info-dock';
+  var CSS_URL = BASE + 'css/stock-workspace.css?v=20261113-info-scroll';
   var PROFILES_URL = BASE + 'data/company-profiles.js';
   var API = 'https://goodbyestar.cloud';
   var FLOW_TTL_MS = 5 * 60 * 1000; // 서버 캐시와 같은 5분
@@ -296,12 +296,46 @@
     });
     return state.profiles;
   }
+  /* GAS ?action=fundamentals는 매 호출 VM 현재가 조회를 거쳐 실측 약 2.3~2.5초가 걸린다(2026-11-13).
+     최근 응답을 브라우저에 종목별로 저장해 두고 다시 볼 때는 저장값을 즉시 그린 뒤(조회 시각 표시) 10분이 지났으면
+     뒤에서 새로 받아 바꾼다. 같은 종목의 동시 요청은 하나로 합친다. 실적(DART)은 하루 1회 갱신 자료다. */
+  var FUND_STORE_KEY = 'ssw_fund_v1', FUND_STORE_MAX = 40, FUND_FRESH_MS = 10 * 60 * 1000, FUND_KEEP_MS = 24 * 60 * 60 * 1000;
+  var fundInflight = {};
+  function fundStore() { try { return JSON.parse(global.localStorage.getItem(FUND_STORE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function fundCached(code) {
+    var hit = fundStore()[code];
+    return hit && hit.d && Date.now() - hit.t < FUND_KEEP_MS ? hit : null;
+  }
+  function fundSave(code, data) {
+    try {
+      var all = fundStore();
+      all[code] = { t: Date.now(), d: data };
+      var keys = Object.keys(all).sort(function (a, b) { return all[b].t - all[a].t; });
+      keys.slice(FUND_STORE_MAX).forEach(function (k) { delete all[k]; });
+      global.localStorage.setItem(FUND_STORE_KEY, JSON.stringify(all));
+    } catch (e) { /* 저장소 차단·용량 초과: 저장 없이 계속 */ }
+  }
   function loadFundamentals(code) {
+    if (fundInflight[code]) return fundInflight[code];
     var gas = global.NineAPI && global.NineAPI.gasUrl;
     if (!gas) return Promise.reject(new Error('gas'));
-    return global.NineHttp.json(gas + '?action=fundamentals&code=' + encodeURIComponent(code), { timeoutMs: 20000, ttlMs: FUND_TTL_MS })
-      .then(function (body) { var d = global.NineAPI.unwrap(body); if (!d || (!d.valuation && !d.fundamentals)) throw new Error('empty'); return d; });
+    fundInflight[code] = global.NineHttp.json(gas + '?action=fundamentals&code=' + encodeURIComponent(code), { timeoutMs: 20000, ttlMs: FUND_TTL_MS })
+      .then(function (body) {
+        var d = global.NineAPI.unwrap(body);
+        if (!d || (!d.valuation && !d.fundamentals)) throw new Error('empty');
+        fundSave(code, d);
+        return d;
+      })
+      .then(function (d) { delete fundInflight[code]; return d; }, function (err) { delete fundInflight[code]; throw err; });
+    return fundInflight[code];
   }
+  // 종목정보가 열려 있으면 탭과 무관하게 종목 선택 직후 미리 받아 둔다(기업정보 탭을 누를 때 기다리지 않게).
+  function warmFundamentals(code) {
+    if (!isDomestic(code) || !root.classList.contains('ssw-info-open')) return;
+    var hit = fundCached(code);
+    if (!hit || Date.now() - hit.t >= FUND_FRESH_MS) loadFundamentals(code).catch(function () { /* 탭에서 다시 시도 */ });
+  }
+  function clockOf(t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
   function pct(value, sign) {
     var n = num(value);
     if (n == null) return '—';
@@ -346,8 +380,12 @@
         }).join('') + '</tbody></table>';
     }
     if (!q && !years.length) html += '<p class="ssw-note">공시 재무 자료가 없는 종목입니다(미제출 또는 배치 수집 전).</p>';
-    return html + '<p class="ssw-note">PER·PBR·시가총액·외국인 보유는 조회 시점 시세 기준, 실적·ROE·부채비율은 DART 정기보고서 기준'
-      + (f.collected_at ? '(수집 ' + esc(String(f.collected_at).slice(0, 10)) + ')' : '') + '</p>';
+    return html;
+  }
+  function fundSourceText(res, fetchedAt) {
+    var f = res.fundamentals || {};
+    return 'PER·PBR·시가총액·외국인 보유: 시세 기준(' + clockOf(fetchedAt) + ' 조회) · 실적·ROE·부채비율: DART 정기보고서'
+      + (f.collected_at ? '(수집 ' + String(f.collected_at).slice(0, 10) + ')' : '');
   }
   function loadCompany() {
     var pane = el.info.querySelector('#sswPane-company');
@@ -361,7 +399,8 @@
       + (themes.length ? '<p class="ssw-chips" aria-label="테마">' + themes.slice(0, 6).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</p>' : '')
       + '<div class="ssw-co-profile"><p class="ssw-state" role="status">기업 개요를 불러오는 중입니다.</p></div>'
       + '<div class="ssw-co-fund"><p class="ssw-state" role="status">재무·지표를 불러오는 중입니다.</p></div>'
-      + '<a class="ssw-more" href="/page/foreign-flow?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(state.name) + '">종목분석에서 펀더멘탈 자세히 보기 →</a>';
+      + '<a class="ssw-more" href="/page/foreign-flow?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(state.name) + '">종목분석에서 펀더멘탈 자세히 보기 →</a>'
+      + '<div class="ssw-co-sources"><p class="ssw-note" data-src="profile" hidden></p><p class="ssw-note" data-src="fund" hidden></p></div>'; // 출처는 맨 끝에 모은다
     var failed = 0;
     function retryable() { if (++failed === 2) pane.removeAttribute('data-code'); } // 둘 다 실패하면 다시 열 때 재시도
     loadProfiles().then(function (all) {
@@ -370,18 +409,30 @@
       var box = pane.querySelector('.ssw-co-profile');
       if (!item) { box.innerHTML = '<p class="ssw-note">이 종목의 기업 개요 자료가 없습니다.</p>'; return; }
       if (item.industry) { var ind = pane.querySelector('.ssw-co-industry'); ind.textContent = item.industry; ind.hidden = false; }
-      box.innerHTML = '<p class="ssw-body">' + esc(item.summary || '') + '</p>'
-        + '<p class="ssw-note">개요 출처 ' + esc(all.source || '') + (all.asOf ? ' · ' + esc(all.asOf) + ' 기준' : '') + '</p>';
+      box.innerHTML = '<p class="ssw-body">' + esc(item.summary || '') + '</p>';
+      var src = pane.querySelector('[data-src="profile"]');
+      src.textContent = '개요: ' + (all.source || '') + (all.asOf ? ' · ' + all.asOf + ' 기준' : '');
+      src.hidden = false;
     }).catch(function () {
       if (state.code !== code) return;
       pane.querySelector('.ssw-co-profile').innerHTML = '<p class="ssw-note ssw-error">기업 개요를 받지 못했습니다.</p>';
       retryable();
     });
+    function showFund(res, fetchedAt) {
+      pane.querySelector('.ssw-co-fund').innerHTML = companyFundHtml(res);
+      var src = pane.querySelector('[data-src="fund"]');
+      src.textContent = fundSourceText(res, fetchedAt);
+      src.hidden = false;
+    }
+    var hit = fundCached(code);
+    if (hit) showFund(hit.d, hit.t); // 저장값을 먼저 그린다(시세 조회 시각을 함께 표시)
+    if (hit && Date.now() - hit.t < FUND_FRESH_MS) return;
     loadFundamentals(code).then(function (res) {
       if (state.code !== code) return;
-      pane.querySelector('.ssw-co-fund').innerHTML = companyFundHtml(res);
+      showFund(res, Date.now());
     }).catch(function () {
       if (state.code !== code) return;
+      if (hit) return; // 저장값이 보이고 있으면 그대로 둔다(조회 시각으로 오래된 값임을 알 수 있다)
       pane.querySelector('.ssw-co-fund').innerHTML = '<p class="ssw-note ssw-error">재무·지표를 받지 못했습니다.</p>';
       retryable();
     });
@@ -426,7 +477,7 @@
     el.backdrop.hidden = true;
     var toggle = root.querySelector('.ssw-info-toggle');
     if (toggle) toggle.setAttribute('aria-expanded', String(open));
-    if (open) showTab(state.tab);
+    if (open) { showTab(state.tab); warmFundamentals(state.code); }
     if (!keep) { try { global.localStorage.setItem(INFO_OPEN_KEY, open ? '1' : '0'); } catch (e) { /* 저장소 차단 */ } }
     // 차트 열 폭이 바뀌므로 크기를 다시 재게 한다(showPanel과 같은 방식, 구독은 그대로).
     if (was !== open) global.requestAnimationFrame(function () { global.dispatchEvent(new global.Event('resize')); });
@@ -497,6 +548,7 @@
       syncUrl();
       ['flow', 'company'].forEach(function (key) { if (changed) el.info.querySelector('#sswPane-' + key).removeAttribute('data-code'); });
       showTab(state.tab);
+      warmFundamentals(state.code);
       renderSessionExtra();
       // #ssSummary는 이 이벤트 직후 stock-search.js가 다시 그린다 → 그 뒤에 머리말을 보강한다.
       global.setTimeout(decorateHead, 0);
