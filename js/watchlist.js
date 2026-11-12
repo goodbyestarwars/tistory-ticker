@@ -6,7 +6,7 @@
  * 종목 행 클릭 시 우리 사이트 실시간 시세 페이지로 이동(js/stock-search.js).
  * 관심종목은 사용자가 만든 그룹으로 분류하고 블록 드래그앤드롭으로 순서와 그룹을 바꿀 수 있다.
  *
- * window.KRX_MAP(종목명->코드)이 이 스크립트보다 먼저 로드되어야 함.
+ * 종목 사전은 목록과 병렬 로드하며 검색·추가 시 StockSearchPanel의 공통 로더를 기다린다.
  * data-code 속성을 순서대로 유지해두어 향후 Drag & Drop으로 순서 변경을 붙이기 쉽게 해둔다.
  *
  * 2026-07-27: add/has/remove를 공개 API로 노출 - js/stock-search.js의 검색 결과 ⭐
@@ -175,7 +175,7 @@
       + '</div>'
       + '</div>'
       + '<div id="wlMsg" class="wl-msg" hidden></div>'
-      + '<div id="wlGrid" class="wl-grid"></div>'
+      + '<div id="wlGrid" class="wl-grid"><div class="wl-msg" role="status">관심종목을 불러오는 중입니다.</div></div>'
       + '<div id="wlEmpty" class="wl-empty" hidden>관심종목이 없습니다. 종목을 검색해서 추가해보세요.</div>';
   }
 
@@ -622,7 +622,19 @@
     return !!etfNameSet[name];
   }
 
+  function waitForCatalog() {
+    if (global.KRX_MAP || !global.StockSearchPanel || !global.StockSearchPanel.ensureKrxMap) return null;
+    return global.StockSearchPanel.ensureKrxMap();
+  }
+
   function renderSuggestions(container, box, query) {
+    var catalog = waitForCatalog();
+    if (catalog && query) {
+      catalog.then(function () {
+        if (container.querySelector('#wlInput').value.trim() === query) renderSuggestions(container, box, query);
+      }).catch(function () { showMsg(container, '종목 목록을 불러오지 못했습니다. 다시 검색해 주세요.'); });
+      return;
+    }
     var map = global.KRX_MAP || {};
     if (!query) { hideSuggestions(box); return; }
 
@@ -788,6 +800,14 @@
   }
 
   function addByQuery(container, query, explicitName) {
+    var catalog = waitForCatalog();
+    if (catalog) {
+      var pendingInput = container.querySelector('#wlInput').value;
+      catalog.then(function () {
+        if (container.querySelector('#wlInput').value === pendingInput) addByQuery(container, query, explicitName);
+      }).catch(function () { showMsg(container, '종목 목록을 불러오지 못했습니다. 다시 추가해 주세요.'); });
+      return;
+    }
     var stock = resolveStock(query);
     if (stock && /^US:/i.test(stock.code)) stock.name = localizedUsName(stock.code, explicitName || stock.name);
     var input = container.querySelector('#wlInput');

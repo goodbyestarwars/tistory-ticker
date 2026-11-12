@@ -670,7 +670,9 @@
     // 관심종목 드로어는 모든 페이지에 노출되지만, 닫힌 상태에서는 시세·로그인 상태를
     // 조회할 이유가 없다. 특히 미국 종목은 종목별 VM REST 호출이라 홈 진입마다
     // 수십 건을 동시에 보내면 상세 화면과 같은 rate limit을 소모한다.
-    ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
+    // 검색 사전은 목록 표시의 선행 조건이 아니다. 두 정적 자산을 동시에 받는다.
+    ensureKrxMap().catch(function () { /* 검색 시 기존 로더로 재시도 */ });
+    loadWatchlistScript();
   }
 
   function bootGlobalWatchlist() {
@@ -753,7 +755,7 @@
 
   // 종목 작업 화면(js/stock-workspace.js)이 같은 저장소(stock:lastSelected·stock:recent)와 관심종목 목록을 재사용한다.
   var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist, closeGlobalWatchlist: closeGlobalWatchlist,
-    getRecent: getRecent, getFavorites: getFavorites,
+    getRecent: getRecent, getFavorites: getFavorites, ensureKrxMap: ensureKrxMap,
     mountDomesticSearch: function (host, onSelect) {
       host.innerHTML = '<form><label>국내 종목명 또는 6자리 코드<input type="search" maxlength="80" autocomplete="off" placeholder="한화오션 · 녹십자 · 042660" aria-label="국내 종목 검색"></label><button type="submit">검색</button></form><div class="public-stock-results" aria-live="polite"></div>';
       var input = host.querySelector('input'), results = host.querySelector('.public-stock-results');
