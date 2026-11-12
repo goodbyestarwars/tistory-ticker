@@ -4,6 +4,9 @@
 
 /* 작업 화면은 차트 폭이 우선이라 본문 폭 제한을 넓힌다(다른 화면의 .main-layout은 그대로). */
 html.ssw-page .main-layout { max-width: 1880px; }
+/* 전역 관심종목 손잡이(화면 오른쪽 끝 48px, css/watchlist.css)가 차트·종목정보 끝을 덮지 않도록 PC에서 그 폭만큼 비워 둔다.
+   관심종목이 열리면 style.css가 본문 여백(손잡이 포함)을 따로 잡으므로 이 여백은 뺀다. */
+@media (min-width: 861px) { html.ssw-page:not(.wl-open) .main-layout { padding-right: 56px; } }
 /* 티스토리 글 제목·작성일 머리는 작업 화면에서 세로 공간만 차지하므로 접는다(문서 제목은 그대로 남는다). */
 html.ssw-page .post-single:has(#stock-search.ss-workspace) .post-single-header { display: none; }
 
@@ -157,9 +160,57 @@ html.dark #stock-search.ss-workspace .ssw-session-extra b.down { color: var(--dk
 #stock-search.ss-workspace .ssw-table :is(th:first-child, td:first-child) { text-align: left; font-weight: 500; }
 #stock-search.ss-workspace .ssw-streaks { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13px; }
 #stock-search.ss-workspace .ssw-streaks b { font-weight: 600; }
-#stock-search.ss-workspace :is(.ssw-facts dd, .ssw-table td, .ssw-streaks span).up { color: var(--num-up, #d92d20); }
-#stock-search.ss-workspace :is(.ssw-facts dd, .ssw-table td, .ssw-streaks span).down { color: var(--num-down, #1d5fd1); }
+#stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).up { color: var(--num-up, #d92d20); }
+#stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).down { color: var(--num-down, #1d5fd1); }
 #stock-search.ss-workspace .ssw-error { color: var(--ui-ink); }
+/* 수급 탭(2026-11-13): 기간 선택 → 주체별 0 기준 막대 → 연속·전환 → 외국인 보유율 → 10거래일 열지도.
+   막대·열지도 채움은 OHLC 채움 토큰(--chart-ohlc-fill-up/down), 숫자는 기존 상승 빨강·하락 파랑. */
+#stock-search.ss-workspace .ssw-seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; padding: 2px; border-radius: 10px; background: var(--ui-rule); }
+#stock-search.ss-workspace .ssw-seg button { min-height: 32px; border: 0; border-radius: 8px; background: none; color: var(--ui-muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+#stock-search.ss-workspace .ssw-seg button[aria-pressed="true"] { background: var(--ui-surface); color: var(--ui-ink); font-weight: 700; box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
+#stock-search.ss-workspace .ssw-seg button:focus-visible { outline: 2px solid var(--ui-ink); outline-offset: 1px; }
+#stock-search.ss-workspace .ssw-flow-rows { display: grid; gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
+#stock-search.ss-workspace .ssw-flow-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) 92px; align-items: center; gap: 10px; }
+#stock-search.ss-workspace .ssw-flow-name { display: grid; line-height: 1.3; }
+#stock-search.ss-workspace .ssw-flow-name b { font-size: 14px; font-weight: 600; }
+#stock-search.ss-workspace .ssw-flow-name small { font-size: 11px; white-space: nowrap; }
+#stock-search.ss-workspace .ssw-flow-bar { position: relative; height: 18px; border-radius: 4px; background: color-mix(in srgb, var(--ui-rule) 45%, transparent); }
+#stock-search.ss-workspace .ssw-flow-bar::after { content: ''; position: absolute; top: -3px; bottom: -3px; left: 50%; width: 1px; background: var(--ui-muted); opacity: .5; }
+#stock-search.ss-workspace .ssw-flow-bar i { position: absolute; top: 0; bottom: 0; }
+#stock-search.ss-workspace .ssw-flow-bar i.up { left: 50%; border-radius: 0 4px 4px 0; background: var(--chart-ohlc-fill-up, #E88D86); }
+#stock-search.ss-workspace .ssw-flow-bar i.down { right: 50%; border-radius: 4px 0 0 4px; background: var(--chart-ohlc-fill-down, #79A7DE); }
+#stock-search.ss-workspace .ssw-flow-val { display: grid; text-align: right; line-height: 1.3; font-variant-numeric: tabular-nums; }
+#stock-search.ss-workspace .ssw-flow-val b { font-size: 14px; font-weight: 700; white-space: nowrap; }
+#stock-search.ss-workspace .ssw-flow-val small { color: var(--ui-muted); font-size: 11px; white-space: nowrap; }
+#stock-search.ss-workspace .ssw-flow-signals { margin: 12px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--ui-accent-soft); font-size: 12px; list-style: none; }
+#stock-search.ss-workspace .ssw-flow-signals b { font-weight: 600; }
+#stock-search.ss-workspace .ssw-flow-rows + .ssw-facts, #stock-search.ss-workspace .ssw-flow-signals + .ssw-facts { margin-top: 12px; border-top: 1px solid var(--ui-rule); }
+#stock-search.ss-workspace .ssw-facts dd small { margin-left: 4px; font-size: 11px; font-weight: 500; }
+#stock-search.ss-workspace .ssw-heat td { position: relative; z-index: 0; }
+#stock-search.ss-workspace .ssw-heat td.ssw-heat-cell:is(.up, .down)::before { content: ''; position: absolute; inset: 1px; z-index: -1; border-radius: 3px; opacity: calc(var(--heat, 0%) * .55 + 6%); }
+#stock-search.ss-workspace .ssw-heat td.ssw-heat-cell.up::before { background: var(--chart-ohlc-fill-up, #E88D86); }
+#stock-search.ss-workspace .ssw-heat td.ssw-heat-cell.down::before { background: var(--chart-ohlc-fill-down, #79A7DE); }
+#stock-search.ss-workspace .ssw-heat td.ssw-heat-na { color: var(--ui-muted); }
+#stock-search.ss-workspace .ssw-heat :is(th, td) { padding: 6px 4px; }
+
+/* 기업정보 탭(2026-11-13): 이름·업종·테마 → 개요 → 핵심 지표 6칸 → 최근 분기 → 연간 실적 → 종목분석 연결. */
+#stock-search.ss-workspace .ssw-co-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+#stock-search.ss-workspace .ssw-co-head b { font-size: 16px; font-weight: 700; }
+#stock-search.ss-workspace .ssw-co-head small { color: var(--ui-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+#stock-search.ss-workspace .ssw-co-industry { margin-left: auto; padding: 2px 8px; border: 1px solid var(--ui-rule); border-radius: 999px; font-size: 12px; font-weight: 600; }
+#stock-search.ss-workspace .ssw-co-industry[hidden] { display: none; }
+#stock-search.ss-workspace .ssw-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 0; }
+#stock-search.ss-workspace .ssw-chips span { padding: 1px 7px; border-radius: 999px; background: var(--ui-accent-soft); color: var(--ui-muted); font-size: 11px; }
+#stock-search.ss-workspace .ssw-co-profile .ssw-body { margin-top: 10px; }
+#stock-search.ss-workspace .ssw-sub { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 18px 0 0; color: var(--ui-ink); font-size: 13px; font-weight: 700; }
+#stock-search.ss-workspace .ssw-sub small { color: var(--ui-muted); font-size: 11px; font-weight: 400; }
+#stock-search.ss-workspace .ssw-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 8px; border: 1px solid var(--ui-rule); border-radius: 10px; overflow: hidden; background: var(--ui-rule); }
+#stock-search.ss-workspace .ssw-kpis > div { display: grid; gap: 2px; padding: 8px 10px; background: var(--ui-surface); }
+#stock-search.ss-workspace .ssw-kpis span { color: var(--ui-muted); font-size: 11px; }
+#stock-search.ss-workspace .ssw-kpis b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#stock-search.ss-workspace .ssw-co-fund .ssw-table { margin-top: 4px; }
+#stock-search.ss-workspace .ssw-more { display: block; margin-top: 16px; padding: 10px 0 0; border-top: 1px solid var(--ui-rule); color: var(--ui-ink); font-size: 13px; font-weight: 600; text-decoration: none; }
+#stock-search.ss-workspace .ssw-more:hover { text-decoration: underline; }
 /* 옮겨 온 관련 뉴스 패널: 탭 안에서는 바깥 테두리·여백을 중복하지 않는다. */
 #stock-search.ss-workspace .ssw-pane .ss-news-panel { padding: 0; border: 0; }
 #stock-search.ss-workspace .ssw-pane .ss-domestic-news { max-height: none; }
@@ -176,34 +227,60 @@ html.dark #stock-search.ss-workspace .ssw-tabs button[aria-selected="true"] { bo
 html.dark #stock-search.ss-workspace :is(.ssw-tabs button, .ssw-drawer h4, .ssw-drawer li small, .ssw-head-meta, .ssw-state, .ssw-note, .ssw-facts dt, .ssw-table thead th, .ssw-table caption, .ssw-info-close) { color: var(--dk-mute); }
 html.dark #stock-search.ss-workspace :is(.ssw-info-head, .ssw-facts > div, .ssw-table th, .ssw-table td, .ssw-head-market) { border-color: var(--dk-line); }
 html.dark #stock-search.ss-workspace :is(.ssw-drawer-btn, .ssw-info-toggle, .ssw-info-close, .ssw-tabs button, .ssw-mtabs button, .ssw-drawer button):focus-visible { outline-color: var(--dk-text); }
-html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-table td, .ssw-streaks span).up { color: var(--dk-up); }
-html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-table td, .ssw-streaks span).down { color: var(--dk-down); }
+html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).up { color: var(--dk-up); }
+html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).down { color: var(--dk-down); }
+html.dark #stock-search.ss-workspace .ssw-seg { background: var(--dk-inner); }
+html.dark #stock-search.ss-workspace .ssw-seg button { color: var(--dk-mute); }
+html.dark #stock-search.ss-workspace .ssw-seg button[aria-pressed="true"] { background: var(--dk-card); color: var(--dk-text); }
+html.dark #stock-search.ss-workspace .ssw-flow-bar { background: var(--dk-inner); }
+html.dark #stock-search.ss-workspace .ssw-heat td.ssw-heat-cell:is(.up, .down)::before { opacity: calc(var(--heat, 0%) * .3 + 4%); }
+html.dark #stock-search.ss-workspace :is(.ssw-flow-val small, .ssw-co-head small, .ssw-sub small, .ssw-kpis span, .ssw-heat-na, .ssw-chips span) { color: var(--dk-mute); }
+html.dark #stock-search.ss-workspace :is(.ssw-kpis, .ssw-co-industry, .ssw-more) { border-color: var(--dk-line); }
+html.dark #stock-search.ss-workspace .ssw-kpis { background: var(--dk-line); }
+html.dark #stock-search.ss-workspace .ssw-kpis > div { background: var(--dk-card); }
+html.dark #stock-search.ss-workspace :is(.ssw-flow-signals, .ssw-chips span) { background: var(--dk-inner); }
+html.dark #stock-search.ss-workspace :is(.ssw-sub, .ssw-more, .ssw-co-industry) { color: var(--dk-text); }
 
-/* ── PC(861px 이상): 종목정보는 머리말 [종목정보] 버튼으로 여는 오른쪽 서랍 ── */
+/* ── PC(861px 이상): 종목정보는 머리말 [종목정보] 버튼으로 여닫는 비모달 패널(2026-11-13).
+   배경을 가리지 않으므로 열린 채로 차트를 계속 조작할 수 있다. 같은 오른쪽을 쓰는 전역 관심종목과는
+   JS가 기존 닫기 API로 하나만 열리게 한다. ── */
 @media (min-width: 861px) {
   #stock-search.ss-workspace .ssw-info-toggle { display: inline-flex; align-items: center; }
+  #stock-search.ss-workspace .ssw-info-toggle[aria-expanded="true"] { border-color: var(--ui-ink); background: var(--ui-ink); color: var(--ui-surface); }
+  html.dark #stock-search.ss-workspace .ssw-info-toggle[aria-expanded="true"] { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-card); }
   #stock-search.ss-workspace .ssw-info-close { display: block; }
-  #stock-search.ss-workspace .ssw-info {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1200;
-    width: min(360px, 92vw);
-    margin: 0;
-    border-radius: 0;
-    border-width: 0 0 0 1px;
-    overflow-y: auto;
-    transform: translateX(100%);
-    visibility: hidden;
-    transition: transform .2s ease, visibility 0s linear .2s;
-  }
-  #stock-search.ss-workspace.ssw-info-open .ssw-info { transform: none; visibility: visible; transition: transform .2s ease; }
-  #stock-search.ss-workspace.ssw-info-open .ssw-backdrop { display: block; position: fixed; inset: 0; z-index: 1190; background: rgba(15, 23, 42, .35); }
-  #stock-search.ss-workspace .ssw-backdrop[hidden] { display: none; }
+  #stock-search.ss-workspace .ssw-info { display: none; }
+  #stock-search.ss-workspace.ssw-info-open .ssw-info { display: block; overflow-y: auto; overscroll-behavior: contain; }
+  #stock-search.ss-workspace .ssw-backdrop { display: none; }
 }
-@media (min-width: 861px) and (prefers-reduced-motion: reduce) {
-  #stock-search.ss-workspace .ssw-info { transition: none; }
+/* 넓은 PC(1280px 이상): 차트 오른쪽 열로 붙는다. 차트는 남은 폭으로 줄어들 뿐 가려지지 않는다.
+   화면을 내려도 머리 메뉴 아래에 붙어 있도록 sticky로 두고, 내용은 열 안에서 스크롤한다. */
+@media (min-width: 1280px) {
+  #stock-search.ss-workspace.ssw-info-open .ss-panels {
+    grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr) clamp(320px, 22vw, 380px);
+  }
+  #stock-search.ss-workspace.ssw-info-open .ssw-info {
+    grid-column: 4;
+    grid-row: 1;
+    position: sticky;
+    top: calc(56px + var(--topbar-height, 48px) + 12px);
+    max-height: calc(100vh - 56px - var(--topbar-height, 48px) - 24px);
+    margin-left: 12px;
+  }
+}
+/* 좁은 PC(861~1279px): 열을 하나 더 두면 차트가 너무 좁아지므로 오른쪽에 떠 있는 패널로 둔다(배경 가림 없음). */
+@media (min-width: 861px) and (max-width: 1279px) {
+  #stock-search.ss-workspace.ssw-info-open .ssw-info {
+    position: fixed;
+    top: calc(56px + var(--topbar-height, 48px));
+    right: 48px; /* 관심종목 손잡이 자리는 비워 둔다 */
+    bottom: 0;
+    z-index: 290;
+    width: min(360px, 92vw);
+    border-radius: 0;
+    border-width: 0 1px;
+    box-shadow: -8px 0 24px rgba(15, 23, 42, .12);
+  }
 }
 @media (max-width: 720px) {
   #stock-search.ss-workspace .ss-summary { padding: 10px 12px; }
