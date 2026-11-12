@@ -25,7 +25,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-workspace\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CSS_URL = BASE + 'css/stock-workspace.css?v=20261113-news-panel4';
+  var CSS_URL = BASE + 'css/stock-workspace.css?v=20261113-news-timeline';
   var PROFILES_URL = BASE + 'data/company-profiles.js';
   var API = 'https://goodbyestar.cloud';
   var FLOW_TTL_MS = 5 * 60 * 1000; // 서버 캐시와 같은 5분

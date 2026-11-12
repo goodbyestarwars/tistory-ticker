@@ -213,41 +213,6 @@ html.dark #stock-search.ss-workspace .ssw-session-extra b.down { color: var(--dk
 #stock-search.ss-workspace .ssw-more:hover { text-decoration: underline; }
 #stock-search.ss-workspace .ssw-co-sources { margin-top: 10px; }
 #stock-search.ss-workspace .ssw-co-sources .ssw-note { margin-top: 2px; }
-/* 공시·뉴스 패널형(2026-11-13, js/stock-search.js renderNewsPanel): 선택 버튼 → 공시(왼쪽 굵은 선·종류 배지) → 뉴스.
-   제목이 폭을 다 쓰고 아래에 시각·출처. 24시간이 지난 자료는 흐리게. 공통 .app-news-timeline은 건드리지 않는다. */
-/* 고정(sticky) 선택 버튼: --ui-rule은 반투명이라 아래 목록이 비친다 → 불투명 면 위에 깔고, 위·아래로 면 색 띠를 둘러 스크롤되는 글이 겹쳐 보이지 않게 한다. */
-#stock-search.ss-workspace .ssn-filter { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 2px; border-radius: 10px; background: linear-gradient(var(--ui-rule), var(--ui-rule)), var(--ui-surface); box-shadow: 0 -8px 0 var(--ui-surface), 0 8px 0 var(--ui-surface); margin-bottom: 8px; }
-#stock-search.ss-workspace .ssn-filter button { min-height: 30px; border: 0; border-radius: 8px; background: none; color: var(--ui-muted); font-size: 13px; font-weight: 500; cursor: pointer; }
-#stock-search.ss-workspace .ssn-filter button b { margin-left: 2px; font-weight: 600; font-variant-numeric: tabular-nums; }
-#stock-search.ss-workspace .ssn-filter button[aria-pressed="true"] { background: var(--ui-surface); color: var(--ui-ink); font-weight: 700; box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
-#stock-search.ss-workspace .ssn-filter button:disabled { opacity: .45; cursor: default; }
-#stock-search.ss-workspace .ssn-filter button:focus-visible { outline: 2px solid var(--ui-ink); outline-offset: 1px; }
-#stock-search.ss-workspace .ss-domestic-news[data-ssn-filter="news"] [data-ssn-kind="disclosure"],
-#stock-search.ss-workspace .ss-domestic-news[data-ssn-filter="disclosure"] [data-ssn-kind="news"] { display: none; }
-/* 공시/뉴스 구분은 선택 버튼과 공시 행 모양이 맡으므로 섹션 제목은 화면에서 숨기고 읽기 보조로만 남긴다. */
-#stock-search.ss-workspace .ssn-section h4 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-#stock-search.ss-workspace .ssn-section + .ssn-section { margin-top: 10px; }
-#stock-search.ss-workspace .ssn-day { margin: 8px 0 0; padding-bottom: 4px; border-bottom: 1px solid var(--ui-rule); color: var(--ui-muted); font-size: 11px; font-weight: 600; }
-#stock-search.ss-workspace .ssn-list { margin: 0; padding: 0; list-style: none; }
-#stock-search.ss-workspace .ssn-item { display: grid; gap: 3px; padding: 9px 4px; border-bottom: 1px solid var(--ui-rule); color: var(--ui-ink); text-decoration: none; }
-#stock-search.ss-workspace .ssn-list li:last-child .ssn-item { border-bottom: 0; }
-#stock-search.ss-workspace .ssn-item:hover strong { text-decoration: underline; }
-#stock-search.ss-workspace .ssn-item:focus-visible { outline: 2px solid var(--ui-ink); outline-offset: -2px; border-radius: 6px; }
-#stock-search.ss-workspace .ssn-item strong { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 14px; font-weight: 600; line-height: 1.45; word-break: keep-all; overflow-wrap: anywhere; }
-#stock-search.ss-workspace .ssn-item small { color: var(--ui-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-#stock-search.ss-workspace .ssn-item.is-disclosure { margin-top: 6px; padding: 8px 10px; border: 0; border-left: 3px solid var(--ui-ink); border-radius: 0 8px 8px 0; background: var(--ui-accent-soft); }
-#stock-search.ss-workspace .ssn-cat { justify-self: start; padding: 1px 6px; border: 1px solid var(--ui-rule); border-radius: 4px; background: var(--ui-surface); color: var(--ui-muted); font-size: 11px; font-weight: 600; }
-#stock-search.ss-workspace .ssn-item.is-old strong { color: var(--ui-muted); font-weight: 500; }
-/* 다크에서 옮겨 온 뉴스 패널 면은 신문 디자인 토큰 --np-paper(=--dk-bg, style.css)이므로 띠도 같은 색으로 맞춘다. */
-html.dark #stock-search.ss-workspace .ssn-filter { background: linear-gradient(var(--dk-inner), var(--dk-inner)), var(--np-paper, var(--dk-card)); box-shadow: 0 -8px 0 var(--np-paper, var(--dk-card)), 0 8px 0 var(--np-paper, var(--dk-card)); }
-html.dark #stock-search.ss-workspace .ssn-filter button { color: var(--dk-mute); }
-html.dark #stock-search.ss-workspace .ssn-filter button[aria-pressed="true"] { background: var(--dk-card); color: var(--dk-text); }
-html.dark #stock-search.ss-workspace .ssn-item { color: var(--dk-text); }
-html.dark #stock-search.ss-workspace :is(.ssn-day, .ssn-item small, .ssn-cat, .ssn-item.is-old strong) { color: var(--dk-mute); }
-html.dark #stock-search.ss-workspace :is(.ssn-day, .ssn-item, .ssn-cat) { border-color: var(--dk-line); }
-html.dark #stock-search.ss-workspace .ssn-item.is-disclosure { border-left-color: var(--dk-text); background: var(--dk-inner); }
-html.dark #stock-search.ss-workspace .ssn-cat { background: var(--dk-card); }
-
 /* 옮겨 온 관련 뉴스 패널: 탭 안에서는 바깥 테두리·여백을 중복하지 않는다. */
 #stock-search.ss-workspace .ssw-pane .ss-news-panel { padding: 0; border: 0; }
 #stock-search.ss-workspace .ssw-pane .ss-domestic-news { max-height: none; }
