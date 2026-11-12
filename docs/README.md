@@ -41,6 +41,8 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `MA256_BACKTEST_2026-10-17.md` | 256 기법(5·20·60일선 골든크로스) 5년 일봉 백테스트: 손익비·비용 민감도·시장 구간별과 현재 흡사 종목(연구용, 실전 연결 없음) | 스윙 검색기 연구 |
 | `ACCUMULATION_BAR_CONTEXT_2026-10-17.md` | 차트 매집봉 후보 표시의 기준·5년 일봉 맥락별 사후 성과(후속 확인·상승 뒤 털기?)와 화면 반영 | 차트 매집봉 작업 |
 | `AI_COLLABORATION.md` | ChatGPT·Claude Code 공동 개발 협업 규약(Issue 논의·PR 검토·합의/미합의·실계좌 승인) | AI가 Issue/PR로 협업할 때 |
+| `SCANNER_CHANGELOG.md` | 검색기 현재 기준·과거 핵심 변경·전후 검증/배포 대장·다음 확인 항목 | 검색기 수정 전후 |
+| `SCANNER_HISTORY_INDEX.md` | 2026-07-11부터 복원한 검색기/전략검색/스캔 과거 원문·초기 커밋 색인 | 과거 변경 근거를 찾을 때만 |
 | `WORK_HISTORY.md` | 중요한 기능·구조·배포 이력(최근 50건) | 이력 확인·갱신 시 |
 | `SCHEDULER_CONSOLIDATION_2026-10-20.md` | PC·VM·Actions·GAS 스케줄 통합 근거, 기준 성능, 원상복구 | 스케줄러 운영·점검 |
 | `history/WORK_HISTORY_*.md` | 옮겨 둔 지난 이력 | 과거 항목을 `grep`으로 찾을 때만 |
