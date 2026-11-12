@@ -30,11 +30,15 @@
    목록은 화면의 기존 checkbox label 노드를 그대로 옮긴 것이다. 720px 이하는 아래에서 올라오는 시트로 쌓는다. */
 .nine-chart-options { position: relative; display: flex; justify-content: flex-end; min-width: 0; margin-block: 4px; padding-inline: 12px; }
 .nine-chart-options-trigger {
-  display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 10px;
-  border: 0; border-radius: 6px; background: transparent; color: var(--ui-ink);
-  font: 600 13px/1 var(--font-ui); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 12px 0 5px;
+  border: 1px solid var(--ui-rule); border-radius: 999px; background: var(--ui-surface); color: var(--ui-ink);
+  font: 700 13px/1 var(--font-ui); cursor: pointer;
 }
-.nine-chart-options-trigger span { font-size: 16px; font-weight: 500; }
+/* 지표 추가 아이콘(추세선 + 더하기)을 채운 원 안에 넣어 버튼이 한눈에 보이게 한다(2026-11-12, 기존 '+' 글자 대체). */
+.nine-chart-options-icon {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; flex: none;
+  border-radius: 50%; background: var(--ui-ink); color: var(--ui-surface);
+}
 .nine-chart-options-trigger:hover, .nine-chart-options.is-open .nine-chart-options-trigger { background: var(--ui-accent-soft); }
 .nine-chart-options-trigger:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
 .nine-studies-backdrop { display: none; }
@@ -116,7 +120,8 @@
   .nine-ma-line select, .nine-ma-line input[type="number"] { padding: 0 6px; }
   .nine-ma-line input[type="color"] { width: 36px; }
 }
-html.dark .nine-chart-options-trigger { color: var(--dk-text); }
+html.dark .nine-chart-options-trigger { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-text); }
+html.dark .nine-chart-options-icon { background: var(--dk-text); color: var(--dk-card); }
 html.dark .nine-chart-options-trigger:hover, html.dark .nine-chart-options.is-open .nine-chart-options-trigger,
 html.dark .nine-studies-items label:hover, html.dark .nine-ma-remove:hover, html.dark .nine-ma-add:hover, html.dark .nine-ma-reset:hover { background: var(--dk-inner); }
 html.dark .nine-studies-pop { background: var(--dk-card); background: color-mix(in srgb, var(--dk-card) 78%, transparent); border-color: var(--dk-line); color: var(--dk-text); box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }

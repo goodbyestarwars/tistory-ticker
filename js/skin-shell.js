@@ -169,9 +169,16 @@
     var n = Number(value);
     if (options.round) n = Math.round(n);
     var digits = options.digits;
-    return n.toLocaleString(options.locale || 'ko-KR', digits == null ? undefined : {
+    return numberFormat(options.locale || 'ko-KR', digits).format(n);
+  }
+  // toLocaleString(locale)는 호출마다 포맷터를 새로 만들어 느리다. 차트 축·범례·툴팁이 마우스 이동·확대마다
+  // 수십 번 부르므로(2026-11-12 실측: 확대 중 CPU 1위) 같은 결과를 내는 Intl.NumberFormat을 한 번 만들어 재사용한다.
+  var numberFormats = {};
+  function numberFormat(locale, digits) {
+    var key = locale + '|' + (digits == null ? '' : digits);
+    return numberFormats[key] || (numberFormats[key] = new Intl.NumberFormat(locale, digits == null ? undefined : {
       minimumFractionDigits: digits, maximumFractionDigits: digits
-    });
+    }));
   }
   function percent(value, options) {
     options = options || {};
@@ -277,7 +284,7 @@
     var doc = global.document;
     var wrap = doc.createElement('div');
     wrap.className = 'nine-chart-options';
-    wrap.innerHTML = '<button type="button" class="nine-chart-options-trigger" aria-haspopup="dialog" aria-expanded="false"><span aria-hidden="true">+</span> 보조지표</button>'
+    wrap.innerHTML = '<button type="button" class="nine-chart-options-trigger" aria-haspopup="dialog" aria-expanded="false"><span class="nine-chart-options-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 6-8"/><path d="M19 15v6M16 18h6"/></svg></span>보조지표</button>'
       + '<div class="nine-studies-backdrop" aria-hidden="true"></div>'
       + '<div class="nine-studies-pop" role="dialog" aria-label="보조지표 설정" hidden>'
       + '<div class="nine-studies-list"><div class="nine-studies-head"><strong>보조지표</strong><button type="button" class="nine-studies-close" aria-label="닫기">×</button></div></div>'

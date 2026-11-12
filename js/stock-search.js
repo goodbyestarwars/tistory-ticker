@@ -2799,17 +2799,33 @@
     tooltip.hidden = true;
     tooltip.setAttribute('aria-live', 'polite');
     container.appendChild(tooltip);
-    var onCrosshairMove = function (param) {
+    // 십자선 이벤트는 마우스 이동·확대·이동 중 프레임보다 자주 온다. 화면 갱신은 프레임당 한 번으로 모으고,
+    // 같은 봉 위에서는 내용을 다시 만들지 않고 위치만 옮긴다(종목 차트 조작이 지수 차트보다 무겁던 원인, 2026-11-12).
+    var pending = null, frame = 0, shownKey = '', shownLeft = -1, width = 0;
+    var measure = function () { width = container.clientWidth || 0; };
+    measure();
+    var resizeWatch = global.ResizeObserver ? new global.ResizeObserver(measure) : null;
+    if (resizeWatch) resizeWatch.observe(container);
+    var paint = function () {
+      frame = 0;
+      var param = pending;
       var point = param && param.point;
       var bar = param && param.seriesData && param.seriesData.get ? param.seriesData.get(candleSeries) : null;
       if (!point || !bar || !Number.isFinite(Number(bar.close))) {
-        tooltip.hidden = true;
+        if (!tooltip.hidden) tooltip.hidden = true;
+        shownKey = '';
         return;
       }
-      var width = container.clientWidth || 0;
+      if (!resizeWatch) measure();
       var left = Math.max(8, Math.min(Math.max(8, width - 282), Number(point.x || 0) + 14));
       if (Number(point.x || 0) > width * 0.58) left = Math.max(8, Number(point.x || 0) - 282);
-      tooltip.style.left = left + 'px';
+      left = Math.round(left);
+      if (left !== shownLeft) { tooltip.style.left = left + 'px'; shownLeft = left; }
+      var time = param.time;
+      var key = (time && typeof time === 'object' ? time.year + '-' + time.month + '-' + time.day : String(time))
+        + '|' + bar.open + '|' + bar.high + '|' + bar.low + '|' + bar.close;
+      if (key === shownKey) { if (tooltip.hidden) tooltip.hidden = false; return; }
+      shownKey = key;
       tooltip.innerHTML = '<b>' + escapeHtml(chartOhlcDateText(param.time)) + '</b>'
         + '<span>시 <em>' + chartPriceText(bar.open, isUsChart) + '</em></span>'
         + '<span>고 <em>' + chartPriceText(bar.high, isUsChart) + '</em></span>'
@@ -2818,9 +2834,15 @@
         + stockVolumeTooltipHtml(volInfo, param.time);
       tooltip.hidden = false;
     };
+    var onCrosshairMove = function (param) {
+      pending = param;
+      if (!frame) frame = global.requestAnimationFrame(paint);
+    };
     chart.subscribeCrosshairMove(onCrosshairMove);
     return function () {
       if (chart.unsubscribeCrosshairMove) chart.unsubscribeCrosshairMove(onCrosshairMove);
+      if (frame) global.cancelAnimationFrame(frame);
+      if (resizeWatch) resizeWatch.disconnect();
       tooltip.remove();
     };
   }
