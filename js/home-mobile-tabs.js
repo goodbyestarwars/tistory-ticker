@@ -25,7 +25,7 @@
     { key: 'stocks', label: '종목판', sel: '#homeRealtimeBoard' },
     { key: 'news', label: '공시·뉴스', sel: '#homeEconomicNews' },
     { key: 'brief', label: '브리핑', sel: '.home-briefing-section' },
-    { key: 'story', label: '이야기', sel: '#homeStorySeries' }
+    { key: 'story', label: '경제이야기', sel: '#homeStorySeries' }
   ];
   // 휴장 그룹(#homeWeeklyReport). 원래 부모를 바꾸지 않고, 둘 이상을 한 쪽으로 묶는 휴장 머리말+지수만 래퍼(.mtab-pack)에 담는다.
   var CLOSED_GROUPS = [
@@ -35,7 +35,7 @@
     { key: 'c-coin', label: '가상자산', sel: '.wd-live-panel' },
     { key: 'c-news', label: '뉴스', sel: '.wd-news-section' },
     { key: 'c-brief', label: '브리핑', sel: '[data-wd-briefing]' },
-    { key: 'c-story', label: '이야기', sel: '[data-wd-stories]' }
+    { key: 'c-story', label: '경제이야기', sel: '[data-wd-stories]' }
   ];
   var MODES = {
     open: { groups: OPEN_GROUPS, label: '홈 섹션', hashRe: /tab=(market|stocks|news|brief|story)\b/ },
