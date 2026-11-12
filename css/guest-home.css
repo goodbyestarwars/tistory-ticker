@@ -101,7 +101,21 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
   padding-top: 9px;
   border-top: 1px solid var(--ui-rule);
 }
-.gnt-related-label { margin-right: 2px; color: var(--ui-muted); font-size: 11px; white-space: nowrap; }
+.gnt-related-label {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 2px;
+  padding: 3px 8px;
+  border: 1px solid #b9dfc5;
+  border-radius: 999px;
+  background: #e8f7ed;
+  color: #21603b;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
 .gnt-stock-name {
   color: var(--ui-ink);
   font-size: 12px;
@@ -115,7 +129,11 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
   color: var(--ui-muted);
 }
 html.dark .gnt-related { border-color: var(--dk-line); }
-html.dark .gnt-related-label { color: var(--dk-mute); }
+html.dark .gnt-related-label {
+  border-color: color-mix(in srgb, var(--dk-line) 60%, #72b78a);
+  background: color-mix(in srgb, var(--dk-card) 76%, #72b78a);
+  color: #c6f2d4;
+}
 html.dark .gnt-stock-name { color: var(--dk-text); }
 html.dark .gnt-stock-name + .gnt-stock-name::before { color: var(--dk-mute); }
 .gnt-press + .gnt-market::before { content: "·"; margin-right: 8px; }

@@ -1,5 +1,5 @@
 'use strict';
-// node test/test_guest_news_stock_badges.js - 제목 직접 언급 종목만 일반 텍스트(비회원 시세 요청 없음)
+// node test/test_guest_news_stock_badges.js - 관련 종목 라벨만 연녹색 뱃지, 종목명 일반 텍스트(비회원 시세 요청 없음)
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
@@ -25,6 +25,13 @@ assert.deepEqual(related('Nvidia and Microsoft unveil AI partnership'), ['엔비
 assert.deepEqual(related('A meta analysis of stocks'), []);
 assert.deepEqual(related('삼성전자우 거래량 증가'), []);
 const css = fs.readFileSync('css/guest-home.css', 'utf8');
+const labelStyle = css.match(/\.gnt-related-label\s*\{([^}]*)\}/);
+assert.ok(labelStyle, 'related-stock label style exists');
+assert.ok(/background:\s*#e8f7ed/.test(labelStyle[1]), 'label alone has pale green background');
+assert.ok(/border:\s*1px solid #b9dfc5/.test(labelStyle[1]), 'label alone has pale green border');
+assert.ok(/color:\s*#21603b/.test(labelStyle[1]), 'label text is dark green');
+assert.ok(/border-radius:\s*999px/.test(labelStyle[1]), 'label is a pill');
+assert.ok(/html\.dark \.gnt-related-label\s*\{[^}]*background:/.test(css), 'dark label has visible background');
 const style = css.match(/\.gnt-stock-name\s*\{([^}]*)\}/);
 assert.ok(style, 'plain stock name style exists');
 assert.ok(/color:\s*var\(--ui-ink\)/.test(style[1]), 'ordinary text color');
