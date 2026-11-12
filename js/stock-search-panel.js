@@ -641,6 +641,7 @@
   }
 
   function setWatchlistDrawerOpen(drawer, open) {
+    if (open && global.StockWorkspace && global.StockWorkspace.closeInfo) global.StockWorkspace.closeInfo();
     drawer.classList.toggle('is-open', open);
     // html.wl-open: skin.html 머리말 스크립트가 첫 페인트 전에 붙이는 같은 표시. style.css 의 본문 여백 규칙이 이 클래스도 받는다.
     document.documentElement.classList.toggle('wl-open', open);
@@ -772,4 +773,5 @@
     init();
   }
 })(window);
+
 

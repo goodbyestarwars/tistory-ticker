@@ -295,6 +295,8 @@
     el.drawerBtn.setAttribute('aria-expanded', String(open));
   }
   function setInfoOpen(open) {
+    if (!el.backdrop) return;
+    if (open && panelApi() && panelApi().closeGlobalWatchlist) panelApi().closeGlobalWatchlist();
     root.classList.toggle('ssw-info-open', open);
     el.backdrop.hidden = !open;
     var toggle = root.querySelector('.ssw-info-toggle');
@@ -428,7 +430,8 @@
     resolveInitial();
   }
 
-  global.StockWorkspace = { showTab: showTab, showPanel: showPanel, state: function () { return { code: state.code, tab: state.tab, panel: state.panel }; } };
+  global.StockWorkspace = { closeInfo: function () { setInfoOpen(false); }, showTab: showTab, showPanel: showPanel, state: function () { return { code: state.code, tab: state.tab, panel: state.panel }; } };
   // 배치 CSS가 온 뒤에 꾸민다(스타일 없는 3열이 잠깐 보이지 않게). 실패하면 기존 화면 그대로 둔다.
   global.NineUI.loadStyle(CSS_URL).then(start, function () { /* 기존 2열 화면 유지 */ });
 })(window);
+
