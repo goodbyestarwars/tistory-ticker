@@ -31,7 +31,7 @@ html.guest-home-mode body#tt-body-index .sidebar-right { display: none; }
   text-decoration-thickness: 1px;
   text-underline-offset: 5px;
 }
-.guest-news-more > i { font-size: 17px; font-style: normal; line-height: 1; }
+.guest-news-more-icon { display: block; flex: none; width: 20px; height: 20px; }
 .guest-news-more:hover > span { text-decoration-color: currentColor; }
 .guest-news-more:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 html.dark .guest-news-more { color: var(--dk-text); }

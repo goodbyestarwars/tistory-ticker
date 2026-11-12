@@ -234,7 +234,7 @@
       // 머리말은 공통 briefing-intro, 뉴스 CTA는 브리핑 아카이브 카드와 구분되는 텍스트 링크다.
       '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시간 순으로 읽는 시장</span>' +
       '<strong>지금 주목할 뉴스</strong><p>최근 24시간 국내·미국 주요뉴스를 최신순으로 살펴보세요.</p></div>' +
-      '<a class="guest-news-more" href="/pages/main-news"><span>전체 뉴스 보기</span> <i aria-hidden="true">↗</i></a></div>' +
+      '<a class="guest-news-more" href="/pages/main-news"><svg class="guest-news-more-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M9 3H3v6M15 3h6v6M21 15v6h-6M9 21H3v-6"/></svg><span>전체 뉴스 보기</span></a></div>' +
       '<div class="guest-news-body" data-guest-news><div class="home-card-state">뉴스를 불러오는 중입니다.</div></div></section>';
   }
 
