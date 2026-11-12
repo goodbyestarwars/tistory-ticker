@@ -1,3 +1,10 @@
+**2026-11-13 홈 PC 재배치·여백 축소(디자인 유지)**
+
+- 요청: 디자인은 그대로, 종목 화면처럼 배치만 합치고 여백을 줄일 것(신문 1면·모던 핀테크·매거진 시안은 검토 후 미채택).
+- 변경: `css/home-market-board.css` 1024px 이상에서 두 열 래퍼를 display:contents로 풀어 한 격자 배치(지수|보조 지표 → 시장·투자자·공시 | 뉴스 내부 스크롤), 홈 한정 여백 토큰(카드 28/32→16/20px, 간격 20→12px), 종목판 행 여백 축소, 주석 한 줄(카드 hover 시 전체), 1600px 이상 본문 1560px, 관심종목 서랍 열림 시 한 열. 기존 layered `#homeEconomicNews` flex 규칙은 1023px 이하로 한정. `js/home-realtime-table.js` PC도 10행+더보기, [상세 열] 토글(꺼짐 시 미국 52주 보강 조회 생략), 업종 칸 data-field. `js/skin-main.js` 자산 ?v=.
+- 검증: 실제 dashboardHtml·사이트 CSS·실제 종목판 모듈 하네스에서 1920/1440(라이트·다크)/1100, 동일 자료 페이지 높이 3,406→1,842px, 가로 넘침 없음, 더보기 10→20, 상세 열 전환. 종목판 관련 테스트 통과, `test_ui_ia.py` 16·`test_home_realtime_tone.js`·`test_mobile_touch_targets.py` 실패는 변경 전과 동일. 실제 시세·미국 모드 화면은 미확인.
+- 배포: master → Pages. 모바일·VM·GAS 변경 없음.
+
 **2026-11-13 종목정보 공시·뉴스 원래 타임라인으로 원복**
 
 - 사용자 지시로 패널형(`renderNewsPanel`·`ssn-*` CSS·7일 요청)을 제거하고 기존 `renderDomesticNews` 공통 타임라인(최근 24시간·10건)으로 복귀. `js/stock-search.js`는 패널형 이전과 동일. 유지: 탭 머리 고정·뉴스 목록 스크롤 상자·중복 머리 숨김, 기업정보 올해 누적. `/domestic-news`의 `hours` 파라미터(기본 24)는 호환상 남김(현재 화면 미사용).
