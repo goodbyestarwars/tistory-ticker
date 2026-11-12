@@ -2,8 +2,9 @@
 (function (global) {
   'use strict';
   var doc = global.document, base = 'https://goodbyestarwars.github.io/tistory-ticker/';
-  var feed = doc.querySelector('.feed');
-  if (!feed) return;
+  function mount(feed, options) {
+  if (!feed || feed.querySelector('.public-stock-chart')) return;
+  options = options || {};
   doc.documentElement.classList.remove('home-render-pending', 'access-pending');
   var css = doc.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/public-stock-chart.css'; doc.head.appendChild(css);
   feed.innerHTML = '<section class="public-stock-chart ui-content-block" data-no-swipe><h1 class="ui-section-title">국내 종목 차트</h1><p>공개 종목 목록에서 검색하고 TradingView 공식 차트를 확인하세요.</p><div data-public-search></div><div class="public-stock-shortcuts" aria-label="시험 종목"></div><h2 class="ui-section-title" data-public-title>종목을 선택해 주세요</h2><p role="status" data-public-status></p><div data-public-widget></div><p>차트·시세 제공: TradingView. 지원 종목과 지연 여부는 제공사 정책에 따릅니다. 검색 목록에 있어도 위젯에서 지원되지 않을 수 있습니다.</p><p>차트가 비어 있거나 지원되지 않는다는 안내가 나오면 다른 종목을 선택하거나 <a data-public-link target="_blank" rel="noopener noreferrer" href="https://www.tradingview.com/">TradingView에서 확인</a>해 주세요. 외부 위젯 내부의 데이터 수신 여부는 이 화면에서 자동 판별할 수 없습니다. <button type="button" data-public-retry>다시 불러오기</button></p></section>';
@@ -36,6 +37,7 @@
       if (frame) { frame.title = name + ' TradingView 공식 차트'; observer.disconnect(); }
     }); observer.observe(container, {childList:true,subtree:true});
     setTimeout(function () { observer.disconnect(); }, 16000);
+    if (options.embedded) return;
     var next = new URL(global.location.href); next.searchParams.set('code', code); next.searchParams.set('name', name); global.history.replaceState(null, '', next);
   }
   [['005930','삼성전자'],['000660','SK하이닉스'],['042660','한화오션'],['006280','GC녹십자']].forEach(function (row) {
@@ -53,6 +55,10 @@
     var s = doc.createElement('script'); s.src = base + 'js/stock-search-panel.js'; s.onload = searchReady;
     s.onerror = function () { page.querySelector('[data-public-search]').textContent = '검색 화면 로드 실패. 새로고침해 주세요.'; }; doc.head.appendChild(s);
   }
-  var query = new URLSearchParams(global.location.search), code = query.get('code');
+  var query = new URLSearchParams(options.embedded ? '' : global.location.search), code = query.get('code');
   if (/^\d{6}$/.test(code || '')) open(code, (query.get('name') || code).slice(0, 80));
+  }
+  global.NinePublicStockChart = { mount: mount };
+  if (global.location.pathname === '/' && new URLSearchParams(global.location.search).get('view') === 'public-chart') mount(doc.querySelector('.feed'));
 })(window);
+
