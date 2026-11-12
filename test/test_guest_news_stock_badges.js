@@ -27,11 +27,11 @@ assert.deepEqual(related('삼성전자우 거래량 증가'), []);
 const css = fs.readFileSync('css/guest-home.css', 'utf8');
 const labelStyle = css.match(/\.gnt-related-label\s*\{([^}]*)\}/);
 assert.ok(labelStyle, 'related-stock label style exists');
-assert.ok(/background:\s*#e8f7ed/.test(labelStyle[1]), 'label alone has pale green background');
-assert.ok(/border:\s*1px solid #b9dfc5/.test(labelStyle[1]), 'label alone has pale green border');
-assert.ok(/color:\s*#21603b/.test(labelStyle[1]), 'label text is dark green');
-assert.ok(/border-radius:\s*999px/.test(labelStyle[1]), 'label is a pill');
-assert.ok(/html\.dark \.gnt-related-label\s*\{[^}]*background:/.test(css), 'dark label has visible background');
+// 신문 지면(2026-11-12): 라벨도 알약이 아닌 작은 글자(배경·테두리 없음).
+assert.ok(!/(?:background|border|border-radius|padding):/.test(labelStyle[1]), 'label is plain small text');
+assert.ok(/color:\s*var\(--ui-muted\)/.test(labelStyle[1]), 'label uses muted text color');
+assert.ok(/\.gnt-dateline\s*\{[^}]*border-top:\s*3px solid/.test(css), 'newspaper dateline rule exists');
+assert.ok(/\.gnt-item \+ \.gnt-item\s*\{\s*border-left:/.test(css), 'columns are divided by rules, not cards');
 const style = css.match(/\.gnt-stock-name\s*\{([^}]*)\}/);
 assert.ok(style, 'plain stock name style exists');
 assert.ok(/color:\s*var\(--ui-ink\)/.test(style[1]), 'ordinary text color');
@@ -39,5 +39,6 @@ assert.ok(!/(?:background|border|border-radius|padding):/.test(style[1]), 'no ba
 assert.ok(css.includes('html.dark .gnt-stock-name { color: var(--dk-text); }'), 'dark text remains readable');
 const script=fs.readFileSync('js/guest-home.js', 'utf8');
 assert.ok(script.includes('gnt-stock-name'));
+assert.ok(script.includes('gnt-dateline') && script.includes('gnt-head'));
 assert.ok(!/domestic-quotes|market-board|us-quote/.test(script));
 console.log('guest-news stock badges: passed');

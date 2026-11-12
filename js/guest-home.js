@@ -18,7 +18,7 @@
   if (global.NineGuestHome) return;
   var doc = global.document;
   var CATEGORY = '마켓 브리핑';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261112-guest-timeline-v2';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/guest-home.css?v=20261112-paper-v1';
   var mounted = false;
 
   function injectCss() {
@@ -214,6 +214,12 @@
     return found.slice(0, 3);
   }
 
+  function datelineLabel(now) {
+    try {
+      return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date(now));
+    } catch (e) { return ''; }
+  }
+
   function newsItemHtml(M, item, now, latest) {
     var at = M.dateValue(item.pubDate);
     var press = M.sourceLabel(item);
@@ -222,10 +228,11 @@
       related.map(function (stock) { return '<span class="gnt-stock-name">' + esc(stock.name) + '</span>'; }).join('') + '</span>' : '';
     return '<li class="gnt-item' + (latest ? ' is-latest' : '') + '">' +
       '<a class="gnt-card" href="' + esc(M.safeHref(item.link)) + '" target="_blank" rel="noopener noreferrer">' +
-      '<time class="gnt-time" datetime="' + esc(new Date(at).toISOString()) + '" title="' + esc(M.timeLabel(item.pubDate, item._market)) + '">' + esc(relativeLabel(at, now)) + '</time>' +
-      '<h3 class="gnt-title ui-section-title">' + esc(M.displayTitle(item)) + '</h3>' +
+      // 신문 기사 머리줄: 시각 · 언론사 · 시장을 제목 위 한 줄에 둔다.
+      '<span class="gnt-head"><time class="gnt-time" datetime="' + esc(new Date(at).toISOString()) + '" title="' + esc(M.timeLabel(item.pubDate, item._market)) + '">' + esc(relativeLabel(at, now)) + '</time>' +
       '<span class="gnt-meta">' + (press ? '<span class="gnt-press">' + esc(press) + '</span>' : '') +
-      '<span class="gnt-market">' + MARKET_LABEL[item._market] + '</span></span>' + stockFooter + '</a>' +
+      '<span class="gnt-market">' + MARKET_LABEL[item._market] + '</span></span></span>' +
+      '<h3 class="gnt-title ui-section-title">' + esc(M.displayTitle(item)) + '</h3>' + stockFooter + '</a>' +
       '<span class="gnt-marker" aria-hidden="true"></span></li>';
   }
 
@@ -233,7 +240,7 @@
     return '<section class="guest-news home-widget home-widget--full" aria-label="지금 주목할 뉴스">' +
       // 머리말은 공통 briefing-intro, 뉴스 CTA는 브리핑 아카이브 카드와 구분되는 텍스트 링크다.
       '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시간 순으로 읽는 시장</span>' +
-      '<strong>지금 주목할 뉴스</strong><p>최근 24시간 국내·미국 주요뉴스를 최신순으로 살펴보세요.</p></div>' +
+      '<strong>지금 주목할 뉴스</strong></div>' +
       '<a class="guest-news-more" href="/pages/main-news"><svg class="guest-news-more-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M9 3H3v6M15 3h6v6M21 15v6h-6M9 21H3v-6"/></svg><span>전체 뉴스 보기</span></a></div>' +
       '<div class="guest-news-body" data-guest-news><div class="home-card-state">뉴스를 불러오는 중입니다.</div></div></section>';
   }
@@ -250,14 +257,16 @@
       var visible = items.slice(start, start + NEWS_PAGE_SIZE);
       var pageCount = Math.ceil(items.length / NEWS_PAGE_SIZE);
       var now = Date.now();
-      body.innerHTML = '<ol class="gnt-list" data-count="' + visible.length + '">' + visible.map(function (item, index) {
+      // 신문 머리줄(날짜선): 오늘 날짜(KST)·수집 범위·건수·면수. 새 조회 없이 이미 받은 목록만 센다.
+      body.innerHTML = '<div class="gnt-dateline"><span>' + esc(datelineLabel(now)) + ' · 최근 24시간 · 국내·미국</span>' +
+        '<span>수집 ' + items.length + '건 · ' + (page + 1) + ' / ' + pageCount + '면</span></div>' +
+        '<ol class="gnt-list" data-count="' + visible.length + '">' + visible.map(function (item, index) {
         return newsItemHtml(M, item, now, page === 0 && index === 0);
       }).join('') + '</ol>' +
-        '<div class="gnt-pager"><span class="gnt-count">최근 24시간 수집 기사 ' + items.length +
-        '건 · ' + (start + 1) + '–' + (start + visible.length) + '건 표시</span>' +
+        '<div class="gnt-pager"><span class="gnt-count">최신 → 과거 순 · ' + (start + 1) + '–' + (start + visible.length) + '건 표시</span>' +
         (pageCount > 1 ? '<div class="gnt-controls" aria-label="뉴스 페이지 이동">' +
           '<button type="button" data-gnt-page="newer"' + (page === 0 ? ' disabled' : '') + '>← 최신 뉴스</button>' +
-          '<span class="gnt-page" aria-live="polite">' + (page + 1) + ' / ' + pageCount + '</span>' +
+          '<span class="gnt-page" aria-live="polite">' + (page + 1) + ' / ' + pageCount + '면</span>' +
           '<button type="button" data-gnt-page="older"' + (page + 1 >= pageCount ? ' disabled' : '') + '>지난 뉴스 →</button>' +
           '</div>' : '') + '</div>' +
         (failed ? '<p class="gnt-note">일부 시장 뉴스 응답에 실패하여 수집된 기사만 표시합니다.</p>' : '');
