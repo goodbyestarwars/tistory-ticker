@@ -1,9 +1,8 @@
-**2026-11-13 홈 PC 재배치·여백 축소(디자인 유지)**
+**2026-11-13 홈 재배치 원복 · 넓은 화면 좌우 폭만 확대**
 
-- 요청: 디자인은 그대로, 종목 화면처럼 배치만 합치고 여백을 줄일 것(신문 1면·모던 핀테크·매거진 시안은 검토 후 미채택).
-- 변경: `css/home-market-board.css` 1024px 이상에서 두 열 래퍼를 display:contents로 풀어 한 격자 배치(지수|보조 지표 → 시장·투자자·공시 | 뉴스 내부 스크롤), 홈 한정 여백 토큰(카드 28/32→16/20px, 간격 20→12px), 종목판 행 여백 축소, 주석 한 줄(카드 hover 시 전체), 1600px 이상 본문 1560px, 관심종목 서랍 열림 시 한 열. 기존 layered `#homeEconomicNews` flex 규칙은 1023px 이하로 한정. `js/home-realtime-table.js` PC도 10행+더보기, [상세 열] 토글(꺼짐 시 미국 52주 보강 조회 생략), 업종 칸 data-field. `js/skin-main.js` 자산 ?v=.
-- 검증: 실제 dashboardHtml·사이트 CSS·실제 종목판 모듈 하네스에서 1920/1440(라이트·다크)/1100, 동일 자료 페이지 높이 3,406→1,842px, 가로 넘침 없음, 더보기 10→20, 상세 열 전환. 종목판 관련 테스트 통과, `test_ui_ia.py` 16·`test_home_realtime_tone.js`·`test_mobile_touch_targets.py` 실패는 변경 전과 동일. 실제 시세·미국 모드 화면은 미확인.
-- 배포: master → Pages. 모바일·VM·GAS 변경 없음.
+- 사용자 지시로 홈 PC 재배치·여백 축소·종목판 10행/상세 열(커밋 553b4b3·a5aea54·46c3dde)을 되돌려 `css/home-market-board.css`·`js/home-realtime-table.js`·`js/skin-main.js`를 이전과 동일하게 복구.
+- 변경: `style.css` 1600px 이상에서 홈에서만 `--home-content-max`를 `min(1720px, 100vw − 160px)`로 확대(다른 화면의 같은 토큰 불변).
+- 검증: 하네스 폭 1440→1408(불변)·1600→1440·1920→1720·2560→1720, 가로 넘침 없음. 배포: master → Pages.
 
 **2026-11-13 종목정보 공시·뉴스 원래 타임라인으로 원복**
 

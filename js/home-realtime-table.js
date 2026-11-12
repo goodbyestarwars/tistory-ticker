@@ -187,23 +187,6 @@
   function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
   // 모바일 하단 탭 모드(js/home-mobile-tabs.js가 body에 .m-tabs를 붙임)에서만 목록을 접는다. PC는 기존 그대로.
   function compact() { return !!(document.body && document.body.classList.contains('m-tabs')); }
-  // 2026-11-13 PC 홈 재배치: PC도 처음 10행 + 더보기(10행씩)로 보여 홈 첫 화면을 표가 덮지 않게 한다. 접힌 행은 DOM에 두지 않는다.
-  function paged() { return true; }
-  // 52주 최고·최저·업종은 PC에서 [상세 열]로 켤 때만 보인다(모바일 탭 모드는 기존 표시 그대로). 꺼져 있으면 미국 52주 보강 조회도 하지 않는다.
-  var DETAIL_KEY = 'hrt_detail_cols_v1';
-  var detailMemory = null; // 저장소가 막힌 브라우저에서도 이번 화면에서는 전환이 되게 한다
-  function detailOn() {
-    if (compact()) return true;
-    if (detailMemory !== null) return detailMemory;
-    try { return localStorage.getItem(DETAIL_KEY) === 'on'; } catch (err) { return false; }
-  }
-  function updateDetailToggle() {
-    if (!state.mount) return;
-    var on = detailOn();
-    state.mount.setAttribute('data-hrt-detail', on ? 'on' : 'off');
-    var button = state.mount.querySelector('[data-hrt-detail-toggle]');
-    if (button) button.setAttribute('aria-pressed', String(on));
-  }
   function detailHref() { return state.market === 'us' ? '/page/stock-search?market=us' : '/page/market-temp?view=stocks'; }
 
   // 2026-09-04: KIS 해외 순위 응답은 ETF에서 한글명 칸에 영문 정식명을 넣어 보낸다
@@ -572,7 +555,7 @@
       cap: '<td data-field="cap">' + fmtMarketCap(marketCap, item.currency) + '</td>',
       week52High: '<td data-field="week52High">' + fmtPrice(item.week52_high, item.currency) + '</td>',
       week52Low: '<td data-field="week52Low">' + fmtPrice(item.week52_low, item.currency) + '</td>',
-      industry: '<td class="hrt-industry" data-field="industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
+      industry: '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
     };
     var delayedClass = state.delayedCodes && state.delayedCodes[code] ? ' class="hrt-delayed"' : '';
     return '<tr data-code="' + escapeHtml(code) + '"' + delayedClass + '>' + columnsForActive().map(function (column) {
@@ -626,8 +609,7 @@
     mount.setAttribute('data-hrt-active', state.active);
     state.rendered = false; // 새 껍데기는 첫 그림을 다시 그려야 한다
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
-      + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle hrt-detail-toggle" data-hrt-detail-toggle aria-pressed="false" title="52주 최고·최저가와 업종 열을 보이거나 숨깁니다">상세 열</button>'
-      + '<button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false">ETF·ETN 제외</button>'
+      + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false">ETF·ETN 제외</button>'
       + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
       + tabs.map(function (tab) {
@@ -777,7 +759,7 @@
     if (state.rendered && compact() && state.mount.getAttribute('data-mtab-idle') === '1') { state.dirty = true; return; }
     state.rendered = true;
     var allRows = rowsForActive().slice(0, state.active === 'volumePower' ? 15 : HOME_ROW_LIMIT);
-    var rows = paged() ? allRows.slice(0, Math.min(state.shown, COMPACT_MAX)) : allRows;
+    var rows = compact() ? allRows.slice(0, Math.min(state.shown, COMPACT_MAX)) : allRows;
     state.dirty = false;
     state.mount.setAttribute('data-hrt-active', state.active);
     body.innerHTML = rows.length
@@ -787,8 +769,7 @@
       : '<tr><td colspan="' + tableColspan() + '" class="hrt-state">' + emptyStateText() + '</td></tr>';
     renderTableHead();
     renderMore(allRows.length, rows.length);
-    updateDetailToggle();
-    if (detailOn()) fillVisibleWeek52(rows);
+    fillVisibleWeek52(rows);
     var foot = state.mount.querySelector('[data-hrt-foot]');
     if (foot) foot.textContent = state.active === 'industry'
       ? (state.market === 'us' ? '거래대금 합계 순 · 현재 수집 종목 기준 · 업종은 자체 분류' : '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준')
@@ -806,7 +787,7 @@
   function renderMore(total, shown) {
     var box = state.mount && state.mount.querySelector('[data-hrt-more]');
     if (!box) return;
-    if (!paged() || total <= COMPACT_STEP) { box.hidden = true; box.innerHTML = ''; return; }
+    if (!compact() || total <= COMPACT_STEP) { box.hidden = true; box.innerHTML = ''; return; }
     var limit = Math.min(total, COMPACT_MAX);
     box.hidden = false;
     if (shown < limit) {
@@ -1149,13 +1130,6 @@
         stopRealtime();
         renderRows();
         startRealtime();
-        return;
-      }
-      var detail = event.target.closest ? event.target.closest('[data-hrt-detail-toggle]') : null;
-      if (detail) {
-        detailMemory = !detailOn();
-        try { localStorage.setItem(DETAIL_KEY, detailMemory ? 'on' : 'off'); } catch (err) { /* 저장소 차단: 이번 화면만 */ }
-        renderRows();
         return;
       }
       var more = event.target.closest ? event.target.closest('[data-hrt-more-btn]') : null;

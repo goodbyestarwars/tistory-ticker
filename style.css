@@ -6065,6 +6065,11 @@ html:not(.font-gothic) body .account-login-dialog {
 
 /* Home width is the shared 1440px reading width plus the 16px main-layout gutters. */
 body#tt-body-index .main-layout { max-width: calc(var(--home-content-max) + 32px); }
+/* 2026-11-13 사용자 지시 '좌우 폭만 개선': 넓은 화면(1600px 이상)에서는 홈에서만 읽기 폭을 화면에 맞춰 넓힌다
+   (양옆 각 80px·최대 1720px). 같은 토큰을 쓰는 홈 지면·푸터가 함께 넓어지고, 자동매매·KIS 등 다른 화면은 1440px 그대로다. */
+@media (min-width: 1600px) {
+  body#tt-body-index { --home-content-max: min(1720px, calc(100vw - 160px)); }
+}
 
 /* ============ 홈 편집 지면 재설계 ============
    홈은 위젯 카드 모음이 아니라 경제신문의 첫 화면처럼 읽힌다. 데이터 바인딩과
