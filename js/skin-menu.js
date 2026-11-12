@@ -33,6 +33,7 @@
     {
       label: '종목',
       children: [
+        { href: '/?view=public-chart', label: '국내 종목 차트' },
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/page/foreign-flow', label: '종목분석' },
         { href: '/page/pattern-scan', label: '검색기' },
@@ -73,7 +74,7 @@
 
   /* 2026-11-11 화면 접근 정책: 보이는 메뉴는 NineAccess(서버 정책)로 거른다. 판정 전·장애 시에는 공개 4개만.
      NineAccess가 아직 로드되지 않았을 때도 같은 4개 주소만 허용한다(fail-closed). */
-  var PUBLIC_HREFS = ['/', '/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', '/pages/main-news'];
+  var PUBLIC_HREFS = ['/?view=public-chart', '/', '/guestbook', '/page/stock-calendar', '/category/마켓 브리핑', '/pages/main-news'];
   function menuAllows(href) {
     if (window.NineAccess) return (window.NineAccess.menuAllowsHref || window.NineAccess.allowsHref)(href); // 캐시된 옛 게이트와 섞여도 동작
     return PUBLIC_HREFS.indexOf(href) >= 0;
@@ -431,3 +432,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
   else render();
 })();
+

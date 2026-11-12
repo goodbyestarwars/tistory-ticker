@@ -754,6 +754,32 @@
   // 종목 작업 화면(js/stock-workspace.js)이 같은 저장소(stock:lastSelected·stock:recent)와 관심종목 목록을 재사용한다.
   var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist, closeGlobalWatchlist: closeGlobalWatchlist,
     getRecent: getRecent, getFavorites: getFavorites,
+    mountDomesticSearch: function (host, onSelect) {
+      host.innerHTML = '<form><label>국내 종목명 또는 6자리 코드<input type="search" maxlength="80" autocomplete="off" placeholder="한화오션 · 녹십자 · 042660" aria-label="국내 종목 검색"></label><button type="submit">검색</button></form><div class="public-stock-results" aria-live="polite"></div>';
+      var input = host.querySelector('input'), results = host.querySelector('.public-stock-results');
+      function search() {
+        var q = input.value.trim();
+        if (!q) { results.textContent = '종목명을 입력해 주세요.'; return; }
+        results.textContent = '종목 목록을 불러오는 중입니다.';
+        ensureKrxMap().then(function () {
+          if (input.value.trim() !== q) return;
+          var query = q.replace(/^GC\s*/i, '');
+          var names = /^\d{6}$/.test(query) ? Object.keys(global.KRX_MAP).filter(function (n) { return global.KRX_MAP[n] === query; }).slice(0, MAX_SUGGEST) : suggestNames(query);
+          results.replaceChildren();
+          names.forEach(function (name) {
+            var code = global.KRX_MAP[name];
+            if (!/^\d{6}$/.test(code)) return;
+            var button = document.createElement('button'); button.type = 'button';
+            button.className = 'nav-search-suggest-item'; button.textContent = name + ' · ' + code;
+            button.onclick = function () { onSelect(code, name); }; results.appendChild(button);
+          });
+          if (!results.children.length) results.textContent = '공개 종목 목록에 없습니다. 정식 종목명 또는 6자리 코드를 확인해 주세요.';
+        }).catch(function () { results.textContent = '종목 목록 로드 실패. 다시 검색해 주세요.'; });
+      }
+      host.querySelector('form').onsubmit = function (e) { e.preventDefault(); search(); };
+      var debounce;
+      input.addEventListener('input', function () { clearTimeout(debounce); debounce = setTimeout(search, 180); });
+    },
     // 뉴스에서도 이미 있는 미국 종목 사전을 이름 확인용으로만 재사용(시세·인증 호출 없음).
     knownUsStocks: function () { return LOCAL_US_SYMBOLS.map(function (row) {
       return { symbol: row.symbol, name: row.name, aliases: row.aliases };
@@ -770,3 +796,4 @@
     init();
   }
 })(window);
+
