@@ -2846,7 +2846,7 @@
     // 오늘 투자 체크포인트는 5분 레인(page.lanes.check)만 다시 쓴다. 07:00 브리핑과 장중 변화는 page.checkContext에서 읽는다.
     function checkpoint() {
       var mount = container.querySelector('[data-market-checkpoint]'), page = container.__mtLivePage;
-      if (mount && state.data) html(mount, buildStrategy(state.data, state.models, state.macro, page && page.checkContext ? page.checkContext(Date.now()) : null));
+      if (mount && state.data) html(mount, buildStrategy(state.data, state.models, state.macro, page && page.checkContext ? page.checkContext(Date.now()) : null, state.domestic));
     }
     function render(focusSelector) {
       if (!panel.isConnected) return;
@@ -3573,28 +3573,68 @@
     return quotesAreStale_(data) ? '직전 거래일 마감 기준' : m[1] + '.' + m[2] + ' 기준';
   }
 
-  function checkpointFacts_(data, models, macro) {
+
+  // 체크포인트는 합산 모델이 아니라 같은 응답의 시장별 원본 수급을 사용한다.
+  // 시장 간 기준일·부분 집계가 달라도 서로 채우거나 과거 값으로 대체하지 않는다.
+  function checkpointMarketFlows_(domestic) {
+    var investor = domestic && domestic.investor;
+    if (!investor) return [];
+    return [['KOSPI', '코스피'], ['KOSDAQ', '코스닥']].map(function (spec) {
+      var market = investor[spec[0]] || {};
+      var latest = (Array.isArray(market.rows) ? market.rows : []).map(function (row) {
+        return { date: indicatorDate_(row.date || row.label, market.asOf), row: row };
+      }).filter(function (entry) { return entry.date; }).sort(function (a, b) {
+        return a.date.localeCompare(b.date);
+      }).slice(-1)[0];
+      return {
+        name: spec[1], date: latest ? latest.date : null,
+        actors: [['foreign', '외국인'], ['institution', '기관'], ['individual', '개인']].map(function (item) {
+          return { label: item[1], value: latest ? indicatorNumber_(latest.row[item[0]]) : null };
+        })
+      };
+    });
+  }
+
+  function renderCheckpointMarketFlows_(markets) {
+    return '<div class="mt-cp-market-flows">' + markets.map(function (market) {
+      var available = market.actors.some(function (actor) { return actor.value != null; });
+      return '<section class="mt-cp-market-flow" aria-label="' + escapeHtml(market.name) + ' 수급">'
+        + '<div class="mt-cp-market-head"><b>' + escapeHtml(market.name) + '</b><span class="mt-cp-market-date">'
+        + (market.date ? escapeHtml(shortDate_(market.date)) + ' 기준' : '기준일 미확인') + '</span></div>'
+        + (available ? '<div class="mt-cp-market-actors">' + market.actors.map(function (actor) {
+          var value = actor.value, tone = value == null || value === 0 ? 'is-flat' : value > 0 ? 'is-buy' : 'is-sell';
+          var amount = value == null ? '미집계' : (value > 0 ? '+' : '') + indicatorMoney_(value * 1e8);
+          var side = value == null ? '자료 없음' : value > 0 ? '순매수' : value < 0 ? '순매도' : '순매매 없음';
+          return '<span class="mt-cp-market-actor"><span>' + escapeHtml(actor.label)
+            + '</span><strong class="' + tone + '">' + escapeHtml(amount)
+            + '</strong><span class="mt-cp-market-side">' + side + '</span></span>';
+        }).join('') + '</div>' : '<p class="mt-cp-market-empty">수급 자료 없음</p>')
+        + '</section>';
+    }).join('') + '</div>';
+  }
+
+  function checkpointFacts_(data, models, macro, domestic) {
     models = models || [];
     var story = frontPageStory_(data), b = story.breadth, items = [], avoid = [];
     var down = b && b.down > b.up * 1.5, up = b && b.up > b.down * 1.5;
     var title = down ? '하락이 넓게 퍼졌습니다. 내 종목의 변화부터 확인하세요.'
       : up ? '오르는 종목이 많습니다. 수급도 함께 붙는지 살펴보세요.'
       : b ? '종목마다 방향이 다릅니다. 내 종목의 근거를 먼저 살펴보세요.' : '확인된 시장 자료부터 차례로 살펴보세요.';
-    var shares = investorShares_(models), actors = shares && shares.items;
+    var markets = checkpointMarketFlows_(domestic);
     function find(id) { return models.filter(function (m) { return m.id === id; })[0]; }
-    if (actors) {
-      var selling = actors[0].value < 0 && actors[1].value < 0, buying = actors[0].value > 0 && actors[1].value > 0;
-      if (selling && down) title = actors[2].value > 0 ? '개인이 받고, 외국인·기관은 팔고 있습니다.' : '하락 종목이 많고, 외국인·기관은 함께 팔고 있습니다.';
-      else if (selling && up) title = '오르는 종목은 많지만, 외국인·기관 수급은 매도 쪽입니다.';
-      else if (buying && down) title = '하락 종목은 많지만, 외국인·기관은 함께 사고 있습니다.';
-      else if (buying && up) title = '외국인·기관의 순매수와 종목 상승이 함께 나타납니다.';
-      items.push({ label: '누가 사고파는지', evidence: actors.map(function (r) {
-        return r.label + ' ' + (r.value > 0 ? '순매수 ' : r.value < 0 ? '순매도 ' : '순매매 없음 ') + indicatorMoney_(Math.abs(r.value));
-      }).join(' · '), date: shortDate_(shares.date) + ' 기준',
-        check: selling ? '보유 종목의 외국인·기관 수급도 같은 흐름인지 비교하세요.' : buying ? '오르는 종목에도 순매수가 이어지는지 확인하세요.' : '시장 전체의 수급과 보유 종목의 수급을 나란히 확인하세요.' });
-      if (selling) avoid.push('개인의 순매수만 보고 외국인·기관의 순매도를 놓치지 마세요.');
-      else if (buying) avoid.push('외국인·기관이 산다는 이유만으로 이미 오른 종목을 따라 사지 마세요.');
-      else avoid.push('시장 전체의 순매수를 내 종목의 매수 근거로 그대로 옮기지 마세요.');
+    if (markets.length && markets.some(function (m) {
+      return m.actors.some(function (a) { return a.value != null; });
+    })) {
+      var foreign = markets.map(function (m) { return m.actors[0].value; });
+      title = foreign.every(function (v) { return v != null; }) && foreign[0] * foreign[1] < 0
+        ? '코스피와 코스닥의 외국인 수급 방향이 엇갈립니다.'
+        : '코스피와 코스닥의 수급을 나눠 살펴보세요.';
+      items.push({
+        label: '누가 사고파는지', evidence: '코스피·코스닥 시장별 수급', marketFlows: markets,
+        date: '시장별 집계일 · 금액은 억원 기준',
+        check: '각 시장의 외국인·기관·개인 수급을 따로 보고, 보유 종목의 흐름과 비교하세요.'
+      });
+      avoid.push('코스피와 코스닥 수급을 합산한 숫자만으로 개별 시장의 매수·매도 방향을 판단하지 마세요.');
     }
     var volumes = ['kospi-volume', 'kosdaq-volume'].map(find).filter(function (m) { return m && m.value != null; });
     if (volumes.length) items.push({ label: '거래가 따라오는지', evidence: volumes.map(function (m) {
@@ -3635,8 +3675,8 @@
   }
 
   // ctx(buildCheckContext_ 결과)가 있으면 07:00 브리핑 전망과 장중 변화를 따로 보여 주고, 제목 옆에 이 카드를 마지막으로 다시 쓴 시각을 적는다(장중 5분 갱신).
-  function buildStrategy(data, models, macro, ctx) {
-    var facts = checkpointFacts_(data, models, macro), dateText = checkpointDate_(data);
+  function buildStrategy(data, models, macro, ctx, domestic) {
+    var facts = checkpointFacts_(data, models, macro, domestic), dateText = checkpointDate_(data);
     if (ctx && ctx.time) dateText = ctx.time + ' 기준' + (dateText && /직전 거래일/.test(dateText) ? ' · 직전 거래일 자료' : '');
     return '<div class="mt-strategy-panel mt-ant-guide mt-checkpoint-facts" id="mt-ant-guide">'
       + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 투자 체크포인트</div>'
@@ -3647,7 +3687,8 @@
       + '<div class="mt-strategy-action">' + sentenceHtml_(facts.title) + '</div><p class="mt-ant-mood">' + sentenceHtml_(facts.mood) + '</p>'
       + '</div><div class="mt-cp-actions">'
       + '<div class="mt-cp-next"><h3>지금 할 것</h3><ol>' + facts.items.map(function (item) {
-        return '<li><b>' + escapeHtml(item.label) + '</b><p class="mt-cp-evidence">' + (item.html ? item.evidence : escapeHtml(item.evidence)) + '</p>'
+        return '<li><b>' + escapeHtml(item.label) + '</b>'
+          + (item.marketFlows ? renderCheckpointMarketFlows_(item.marketFlows) : '<p class="mt-cp-evidence">' + (item.html ? item.evidence : escapeHtml(item.evidence)) + '</p>')
           + '<small>' + escapeHtml(item.date) + '</small><p class="mt-cp-check">' + escapeHtml(item.check) + '</p></li>';
       }).join('') + '</ol></div><div class="mt-cp-avoid mt-cp-next"><h3>지금 하지 말아야 할 것</h3><ol>' + facts.avoid.map(function (text) {
         return '<li><p class="mt-cp-check">' + escapeHtml(text) + '</p></li>';

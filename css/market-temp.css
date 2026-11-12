@@ -2924,6 +2924,20 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html.dark body #market-temp .mt-cp-next li::before { color: var(--dk-down); background: rgba(var(--dk-down-rgb),0.12); }
   html body #market-temp .mt-cp-next :is(.mt-cp-evidence, .mt-cp-check) { margin: 5px 0 0 !important; font-size: 12px; line-height: 1.75; word-break: keep-all; }
   html body #market-temp .mt-cp-next .mt-cp-evidence { color: var(--cp-sub) !important; }
+  /* 체크포인트 시장별 수급: 두 시장을 합산하지 않고 각 집계일·투자자별 금액을 표시 */
+  html body #market-temp .mt-cp-market-flows { display: grid; gap: 4px; margin-top: 7px; }
+  html body #market-temp .mt-cp-market-flow { min-width: 0; padding: 7px 0 10px; border-bottom: 1px solid var(--cp-line); }
+  html body #market-temp .mt-cp-market-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  html body #market-temp .mt-cp-market-head b { font-size: 12px; color: var(--cp-ink); }
+  html body #market-temp .mt-cp-market-date { color: var(--cp-sub); font-size: 10px; white-space: nowrap; }
+  html body #market-temp .mt-cp-market-actors { display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 8px; }
+  html body #market-temp .mt-cp-market-actor { display: grid; gap: 2px; min-width: 0; font-size: 11px; color: var(--cp-sub); }
+  html body #market-temp .mt-cp-market-actor strong { font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  html body #market-temp .mt-cp-market-actor strong.is-buy { color: var(--num-up); }
+  html body #market-temp .mt-cp-market-actor strong.is-sell { color: var(--num-down); }
+  html body #market-temp .mt-cp-market-actor strong.is-flat { color: var(--cp-sub); }
+  html body #market-temp .mt-cp-market-side { font-size: 10px; }
+  html body #market-temp .mt-cp-market-empty { margin: 0; color: var(--cp-sub); font-size: 11px; }
   html body #market-temp .mt-cp-next small { display: block; margin-top: 3px !important; font-size: 10px; color: var(--cp-sub) !important; }
   @media (min-width: 761px) {
     html body #market-temp .mt-front-page { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) !important; }
