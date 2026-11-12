@@ -1061,8 +1061,8 @@
          같은 방식으로 한 번 더 추가한다.
          2026-10-04 요청("하단에 이야기 시리즈로 절세 이야기 넣자"): 같은 방식으로 맨 끝에 추가한다. */
       '<nav class="site-footer-links site-footer-learn" aria-label="경제이야기">' +
-        '<div class="learn-intro"><span class="learn-eyebrow">배우고, 이해하고, 투자하기</span><h2><svg class="learn-library-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <rect width="8" height="18" x="3" y="3" rx="1" /> <path d="M7 3v18" /> <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z" /> </svg> 경제이야기 <br>한눈에 보기</h2><p><span class="learn-intro-line">주식부터 경제까지,</span><span class="learn-intro-line">궁금한 이야기를 골라 읽어보세요.</span></p><span class="learn-intro-note">시장과 투자를 이해하는 11가지 이야기</span></div>' +
-        '<div class="learn-card-area"><div class="learn-card-grid" tabindex="0" role="region" aria-label="이야기 카드">' +
+        '<div class="learn-intro"><span class="learn-eyebrow">배우고, 이해하고, 투자하기</span><h2><svg class="learn-library-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <rect width="8" height="18" x="3" y="3" rx="1" /> <path d="M7 3v18" /> <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z" /> </svg> 경제이야기 <br>한눈에 보기</h2><span class="learn-volume">전 11장</span><p><span class="learn-intro-line">주식부터 경제까지,</span><span class="learn-intro-line">궁금한 이야기를 골라 읽어보세요.</span></p><span class="learn-intro-note">시장과 투자를 이해하는 11가지 이야기</span><span class="learn-folio">9Pay 이야기 시리즈</span></div>' +
+        '<div class="learn-card-area"><div class="learn-toc-head" aria-hidden="true"><b>목차</b><i></i></div><div class="learn-card-grid" tabindex="0" role="region" aria-label="이야기 카드">' +
         '<a class="learn-card" style="--lc-a:#fde8cf;--lc-b:#f8c9a0" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5v4"/><rect width="4" height="6" x="7" y="9" rx="1"/><path d="M9 15v2"/><path d="M17 3v2"/><rect width="4" height="8" x="15" y="5" rx="1"/><path d="M17 13v3"/><path d="M3 3v16a2 2 0 0 0 2 2h16"/></svg><b>주식 이야기</b><span class="learn-description">주문과 수급부터 시작해, 주식 투자의 기본을 차근차근 익혀요.</span><small>기초 7장</small></a>' +
         '<a class="learn-card" style="--lc-a:#e3ebff;--lc-b:#b9c9f7" href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8l1.2 2.6 2.8.3-2.1 1.9.6 2.8-2.5-1.4-2.5 1.4.6-2.8L8 10.9l2.8-.3z"/></svg><b>미국 주식 이야기</b><span class="learn-description">거래시간과 미국 시장의 특징, 옵션이 주가에 미치는 영향을 살펴봐요.</span><small>프리마켓·0DTE</small></a>' +
         '<a class="learn-card" style="--lc-a:#fff3c2;--lc-b:#f5d97a" href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17l4.5-5 3.5 3 4-7 4 4"/><path d="M4 20h16"/></svg><b>차트 이야기</b><span class="learn-description">캔들·이동평균과 지지·저항으로 가격의 흐름을 읽어요.</span><small>정배열·패턴</small></a>' +
@@ -1075,7 +1075,7 @@
         '<a class="learn-card" style="--lc-a:#e0f1d2;--lc-b:#b7dd96" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><b>경제 이야기</b><span class="learn-description">물가·금리·경기가 연결되는 원리를 쉬운 예로 이해해요.</span><small>한국은행 6장</small></a>' +
         '<a class="learn-card" style="--lc-a:#f5e6ef;--lc-b:#e3b9d0" href="https://goodbyestarwars.github.io/tistory-ticker/learn/glossary.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M8 11h8"/><path d="M8 7h6"/></svg><b>금융용어사전</b><span class="learn-description">뉴스와 투자 공부에서 만나는 낯선 금융용어를 찾아봐요.</span><small>용어 찾아보기</small></a>' +
         '<a class="learn-card" style="--lc-a:#d8f1ee;--lc-b:#a6d8d2" href="https://goodbyestarwars.github.io/tistory-ticker/learn/tax-story.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v16l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 20V4z"/><path d="M9.5 14.5l5-5M9.7 9.7h.01M14.3 14.3h.01"/></svg><b>절세 이야기</b><span class="learn-description">투자에 붙는 세금과 계좌별 차이를 알아보고 세후 수익을 생각해요.</span><small>세후수익률</small></a>' +
-      '</div><div class="learn-mobile-controls"><button type="button" data-learn-prev aria-label="이전 이야기">←</button><button type="button" data-learn-next aria-label="다음 이야기">→</button></div></div></nav>' +
+      '</div><div class="learn-mobile-controls"><button type="button" data-learn-prev aria-label="이전 이야기">←</button><span class="learn-page-count" aria-live="polite"></span><button type="button" data-learn-next aria-label="다음 이야기">→</button></div><span class="learn-folio learn-folio-page" aria-hidden="true"></span></div></nav>' +
       '<section class="site-footer-company" aria-label="회사 정보">' +
         '<img class="footer-falcon-logo" src="https://goodbyestarwars.github.io/tistory-ticker/img/falcon-logo-source.webp" alt="송골매 로고" width="80" height="80" loading="lazy">' +
         '<div class="footer-company-copy"><strong>(주)팔콘 컴퍼니</strong><small><b>© 2026 팔콘 Co., Ltd.</b></small></div>' +
@@ -1094,10 +1094,19 @@
     var area = track.parentElement;
     var previous = area.querySelector('[data-learn-prev]');
     var next = area.querySelector('[data-learn-next]');
+    var pageCount = area.querySelector('.learn-page-count');
+    var folioPage = area.querySelector('.learn-folio-page');
     function sync() {
       var max = Math.max(0, track.scrollWidth - track.clientWidth);
       previous.disabled = track.scrollLeft <= 1;
       next.disabled = max <= 1 || track.scrollLeft >= max - 1;
+      // 책 쪽수 표기(2026-11-12): 한 번에 넘기는 폭(보이는 열 묶음)을 한 쪽으로 센다.
+      var step = track.clientWidth + (parseFloat(getComputedStyle(track).columnGap) || 0);
+      if (!(step > 0)) return;
+      var total = Math.max(1, Math.ceil(max / step - 0.01) + 1);
+      var page = next.disabled && max > 1 ? total : Math.min(total, Math.round(track.scrollLeft / step) + 1);
+      if (pageCount) pageCount.textContent = page + ' / ' + total + '쪽';
+      if (folioPage) folioPage.textContent = '— ' + page + ' —';
     }
     function move(direction) {
       var gap = parseFloat(getComputedStyle(track).columnGap) || 0;

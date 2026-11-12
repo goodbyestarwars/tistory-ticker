@@ -1,3 +1,9 @@
+**2026-11-12 이야기 시리즈 ‘펼친 책’ 모양**
+
+- 목적: 둥근 네모 상자였던 이야기 시리즈를 책 한 권(표지 | 제본선 | 목차)으로 표현(사용자 시안 승인).
+- 변경: `js/skin-shell.js` 원본 nav에 `전 11장`·판권 문구·`목차` 머리줄·쪽수(`1 / 2쪽`, 구석 쪽번호) 추가, 캐러셀 `sync()`가 쪽수만 갱신(새 타이머·요청 없음). `style.css` np.np 레이어에 책등·가름끈·제본선·종이 단면(`--learn-book-edges`) 추가, 카드 번호 `01`→`제1장`, 금융용어사전은 `부록`(장 번호 제외), 카드 모서리 `--ui-radius-inner`. 1100px 이하는 표지 위·목차 아래 한 단. 카드·링크·이동/복원·스와이프 계약 불변.
+- 검증: 로컬 하네스(실제 style.css·skin-shell.js)로 PC 1440 라이트/다크·1000px·휴장 래퍼·모바일 390 라이트/다크와 다음 쪽 넘김(PC 2쪽, 모바일 3쪽) 캡처 확인, 가로 넘침 없음. `test_mobile_home_story_card.js`(책 마크업 계약 추가)·`test_weekend_native_content.js`·`test_site_interactions.js`·`test_shared_ui_api.js` 통과. 운영 화면 실측은 배포 후 확인 필요. 배포: master → Pages.
+
 **2026-11-12 화면 설정 비회원·일반회원·관리자 분리**
 
 - 원인: 서버는 public/member/admin 3단계인데 화면 설정 UI는 public/admin만 구분해 일반 회원의 시장지표를 관리자 전용으로 잘못 표기함.
