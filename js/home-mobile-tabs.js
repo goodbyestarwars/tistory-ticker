@@ -6,8 +6,8 @@
  *   영구 비활성은 js/skin-main.js의 loadMobileTabs 한 줄을 지운다.
  * - 1·2차 가로 메뉴는 숨기고(CSS) 항목은 더보기 서랍으로 옮긴다. 서랍은 #nav-menu-mount가 그린 메뉴를 읽어 만들고,
  *   투자도구 항목은 원래 링크의 click을 그대로 넘겨 기존 핸들러(js/skin-menu.js openInvestmentTool)를 쓴다.
- * - 홈: 시장 / 종목판 / 공시·뉴스 / 브리핑 4그룹을 .home-widget-grid 직속 섹션의 표시 전환만으로 만든다.
- *   DOM은 옮기지 않으므로 ID·이벤트·전역 객체 계약은 그대로다(순서는 CSS order).
+ * - 홈: 시장 / 종목판 / 공시·뉴스 / 브리핑 / 경제이야기 5그룹. 이야기 원본만 푸터에서 이동하고
+ *   나머지 섹션은 표시만 전환한다. 이동용 마운트는 카드가 아닌 레이아웃 컨테이너다.
  * 규칙 문서: docs/UI_GUIDE.md '모바일 하단 탭바'.
  */
 (function (global) {
@@ -587,7 +587,7 @@
       if (!mount) {
         mount = doc.createElement('section');
         mount.id = 'homeStorySeries';
-        mount.className = 'home-story-section home-widget';
+        mount.className = 'home-story-section'; // 원본 .site-footer-learn만 카드: 이중 테두리·상단 56px 패딩 방지
         mount.hidden = true;
         grid.appendChild(mount);
       }

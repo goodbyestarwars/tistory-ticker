@@ -236,6 +236,21 @@
   body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="brief"] { order: 4; }
   body.m-tabs .home-widget-grid.mtab-swipe > [data-mtab-group="story"] { order: 5; }
 
+  /* 경제이야기: 이동용 마운트는 레이아웃 전용.
+     원본 nav 한 장이 마켓브리핑과 같은 면·테두리·공통 카드 패딩을 소유한다. */
+  body.m-tabs #homeStorySeries > nav.site-footer-learn {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ui-section-gap);
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--ui-card-padding);
+    align-items: start;
+    text-align: left;
+  }
+
   /* 휴장 보고서: 묶음 래퍼(머리말+지수)와, 부모(.wd-market-overview·.wd-reading)를 레이아웃에서 빼 각 패널이 한 쪽씩 되게 한다. 순서는 CSS order. */
   body.m-tabs .weekend-dashboard.mtab-swipe :is(.wd-market-overview, .wd-reading) { display: contents; }
   body.m-tabs .weekend-dashboard.mtab-swipe .mtab-pack { display: grid; gap: var(--ui-section-gap, 20px); align-content: start; }
