@@ -1,3 +1,8 @@
+**2026-11-13 모든 메뉴 좌우 폭 확대(1600px 이상)**
+
+- 변경: `style.css` 홈 전용이던 폭 확대를 공통으로 전환 — 1600px 이상에서 `html:root`의 `--home-content-max`를 `min(1720px, 100vw − 160px)`로(뒤쪽 테마 블록 :root 기본값보다 우선), 공통 `.main-layout`(기본 1380px)도 토큰+32px. `css/dcf.css`(1400px 고정)·`css/stock-discussion.css`(대화방 1600px)는 공통 폭 이상을 따르게 변경. 종목 작업 화면 1880px 유지, 1600px 미만 불변.
+- 검증: 하네스(홈·일반 페이지) 1440→1380/1440 불변, 1600→1472, 1920·2560→1752(본문 1720), 가로 넘침 없음. 관련 테스트 단언 없음. 배포: master → Pages.
+
 **2026-11-13 홈 재배치 원복 · 넓은 화면 좌우 폭만 확대**
 
 - 사용자 지시로 홈 PC 재배치·여백 축소·종목판 10행/상세 열(커밋 553b4b3·a5aea54·46c3dde)을 되돌려 `css/home-market-board.css`·`js/home-realtime-table.js`·`js/skin-main.js`를 이전과 동일하게 복구.

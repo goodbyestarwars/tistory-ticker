@@ -6065,10 +6065,12 @@ html:not(.font-gothic) body .account-login-dialog {
 
 /* Home width is the shared 1440px reading width plus the 16px main-layout gutters. */
 body#tt-body-index .main-layout { max-width: calc(var(--home-content-max) + 32px); }
-/* 2026-11-13 사용자 지시 '좌우 폭만 개선': 넓은 화면(1600px 이상)에서는 홈에서만 읽기 폭을 화면에 맞춰 넓힌다
-   (양옆 각 80px·최대 1720px). 같은 토큰을 쓰는 홈 지면·푸터가 함께 넓어지고, 자동매매·KIS 등 다른 화면은 1440px 그대로다. */
+/* 2026-11-13 사용자 지시 '모든 메뉴 좌우 폭 개선': 넓은 화면(1600px 이상)에서는 공통 읽기 폭 토큰을 화면에 맞춰 넓히고
+   (양옆 각 80px·최대 1720px) 모든 화면의 공통 본문 틀(.main-layout, 기본 1380px)도 같은 폭을 쓴다.
+   더 넓게 쓰는 종목 작업 화면(1880px)·대화방(1600px)의 자체 지정은 그대로 둔다. 1600px 미만은 기존 폭 그대로. */
 @media (min-width: 1600px) {
-  body#tt-body-index { --home-content-max: min(1720px, calc(100vw - 160px)); }
+  html:root { --home-content-max: min(1720px, calc(100vw - 160px)); } /* 아래 테마 블록의 :root 기본값(1440px)보다 우선 */
+  .main-layout { max-width: calc(var(--home-content-max) + 32px); }
 }
 
 /* ============ 홈 편집 지면 재설계 ============
