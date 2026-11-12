@@ -231,10 +231,10 @@
 
   function newsShellHtml() {
     return '<section class="guest-news home-widget home-widget--full" aria-label="지금 주목할 뉴스">' +
-      // 머리말·더보기 버튼은 마켓브리핑과 같은 공통 클래스(.briefing-intro, .home-briefing-more)를 그대로 쓴다.
+      // 머리말은 공통 briefing-intro, 뉴스 CTA는 브리핑 아카이브 카드와 구분되는 텍스트 링크다.
       '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시간 순으로 읽는 시장</span>' +
       '<strong>지금 주목할 뉴스</strong><p>최근 24시간 국내·미국 주요뉴스를 최신순으로 살펴보세요.</p></div>' +
-      '<a class="home-briefing-more" href="/pages/main-news"><span>전체 뉴스 보기</span> <i aria-hidden="true">↗</i></a></div>' +
+      '<a class="guest-news-more" href="/pages/main-news"><span>전체 뉴스 보기</span> <i aria-hidden="true">↗</i></a></div>' +
       '<div class="guest-news-body" data-guest-news><div class="home-card-state">뉴스를 불러오는 중입니다.</div></div></section>';
   }
 
