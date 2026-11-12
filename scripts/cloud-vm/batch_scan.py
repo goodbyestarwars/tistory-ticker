@@ -174,6 +174,8 @@ def needs_ytd_backfill(entry, now=None):
     """신규 올해 누적실적 필드가 없는 기존 분기 캐시를 배치에서 점진적으로 채운다."""
     now = now or datetime.now(timezone.utc)
     q = (entry or {}).get('latest_quarter') or {}
+    if not q and (entry or {}).get('annual') and (entry or {}).get('quarter_schema_version', 0) < 2:
+        return True  # Revisit legacy financial-company caches once; do not wait 90 days.
     return (q.get('year') == now.year
             and q.get('reprt_code') in ('11013', '11012', '11014')
             and 'ytd' not in q)
@@ -335,3 +337,4 @@ def scan_fundamentals(codes_map, candidate_only=False):
 
 if __name__ == '__main__':
     main()
+

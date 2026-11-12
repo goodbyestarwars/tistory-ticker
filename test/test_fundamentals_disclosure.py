@@ -141,6 +141,38 @@ class BatchRefetchTest(unittest.TestCase):
 
 
 class QuarterFetchTest(unittest.TestCase):
+    def test_bank_quarter_and_ytd_survive_missing_sales(self):
+        rows = [{'sj_div':'IS','account_id':'dart_OperatingIncomeLoss','account_nm':'영업이익',
+                 'thstrm_amount':'270','thstrm_add_amount':'540','frmtrm_q_amount':'250',
+                 'frmtrm_add_amount':'500','rcept_no':'20260814000001','fs_div':'CFS'},
+                {'sj_div':'IS','account_id':'ifrs-full_ProfitLoss','account_nm':'당기순이익',
+                 'thstrm_amount':'180','thstrm_add_amount':'350','frmtrm_q_amount':'160',
+                 'frmtrm_add_amount':'320','rcept_no':'20260814000001','fs_div':'CFS'}]
+        with mock.patch.object(fundamentals,'call_fnltt_any',side_effect=[[],rows]), \
+             mock.patch.object(fundamentals,'compute_bps',return_value={}), \
+             mock.patch.object(fundamentals.time,'sleep'):
+            q=fundamentals.fetch_latest_quarter('k','c',current_year=2026)
+        self.assertEqual(q['reprt_code'],'11012');self.assertIsNone(q['revenue'])
+        self.assertEqual(q['operating_income'],270);self.assertEqual(q['ytd']['operating_income'],540)
+        self.assertEqual(q['ytd']['net_income'],350);self.assertIsNone(q['ytd']['revenue'])
+        self.assertEqual(q['rcept_no'],'20260814000001')
+
+    def test_net_income_only_report_is_valid_but_empty_statement_is_not(self):
+        row={'sj_div':'IS','account_id':'ifrs-full_ProfitLoss','account_nm':'당기순이익',
+             'thstrm_amount':'0','thstrm_add_amount':'12','rcept_no':'20261113000001','fs_div':'CFS'}
+        with mock.patch.object(fundamentals,'call_fnltt_any',return_value=[row]), \
+             mock.patch.object(fundamentals,'compute_bps',return_value={}):
+            q=fundamentals.fetch_latest_quarter('k','c',current_year=2026)
+        self.assertEqual(q['net_income'],0);self.assertEqual(q['ytd']['net_income'],12)
+        with mock.patch.object(fundamentals,'call_fnltt_any',return_value=[dict(row,thstrm_amount='',thstrm_add_amount='')]), \
+             mock.patch.object(fundamentals.time,'sleep'):
+            self.assertIsNone(fundamentals.fetch_latest_quarter('k','c',current_year=2026))
+
+    def test_empty_legacy_quarter_is_backfilled_once(self):
+        entry={'annual':{'years':[{'year':2025}]},'latest_quarter':None}
+        self.assertTrue(batch_scan.needs_ytd_backfill(entry))
+        self.assertFalse(batch_scan.needs_ytd_backfill(dict(entry,quarter_schema_version=2)))
+
     def test_latest_quarter_carries_same_report_bps_and_filed_date(self):
         rows = [{'sj_div': 'IS', 'account_id': 'ifrs-full_Revenue', 'account_nm': '매출액', 'thstrm_amount': '100',
                  'frmtrm_q_amount': '50', 'rcept_no': '20260814000001', 'thstrm_nm': '제58기 반기', 'fs_div': 'CFS'}] + bs()
@@ -203,3 +235,4 @@ class YearToDateTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

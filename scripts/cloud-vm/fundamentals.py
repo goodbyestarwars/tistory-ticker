@@ -230,8 +230,13 @@ def fetch_latest_quarter(api_key, corp_code, current_year=None):
         rows = call_fnltt_any(api_key, corp_code, yr, reprt_code)
         if not rows:
             continue
-        row = find_row(rows, REVENUE_IDS, '매출액', ('IS', 'CIS'))
-        if not row:
+        # Financial firms may report operating/net income without a standard sales row.
+        # The absence of sales must not discard the entire filed quarter.
+        evidence = [find_row(rows, ids, name, ('IS', 'CIS')) for ids, name in (
+            (REVENUE_IDS, '매출액'), (OPERATING_INCOME_IDS, '영업이익'), (NET_INCOME_IDS, '당기순이익'))]
+        row = next((r for r in evidence if r and any(
+            to_num(r.get(k)) is not None for k in ('thstrm_amount', 'thstrm_add_amount'))), None)
+        if row is None:
             continue
         prior_key = 'frmtrm_q_amount' if reprt_code != '11011' else 'frmtrm_amount'
 
@@ -341,7 +346,8 @@ def fetch_stock(api_key, corp_code, include_screening=True):
     dividend = fetch_dividend_history(api_key, corp_code)
     if annual is None and latest_quarter is None:
         return None
-    result = {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend}
+    result = {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend,
+              'quarter_schema_version': 2}
     filing = None
     try:
         time.sleep(THROTTLE_SEC)
@@ -451,3 +457,4 @@ def screening_cache_fresh(entry, checked_at=None, now=None, max_days=7):
                 and (int(filing.get('year',0)), order.get(filing.get('reprt_code'),0)) >= (expected[0], order[expected[1]]))
     except (TypeError, ValueError):
         return False
+
