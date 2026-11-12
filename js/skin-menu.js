@@ -213,7 +213,8 @@
     var parts = item.href.split('?');
     if (currentPath() !== parts[0]) return false;
     var query = new URLSearchParams(location.search);
-    if (!parts[1]) return query.get('view') !== 'stocks';
+    if (!parts[1]) return query.get('view') !== 'stocks' && query.get('view') !== 'public-chart';
+    if (parts[1] === 'view=public-chart') return query.get('view') === 'public-chart';
     if (parts[1].indexOf('tool=independent-chart') === 0) return query.get('tool') === 'independent-chart';
     if (parts[1].indexOf('view=stocks') === 0) {
       return query.get('view') === 'stocks' && (parts[1].indexOf('panel=heatmap') === -1 || query.get('panel') === 'heatmap');
