@@ -150,7 +150,7 @@ class ControlTest(unittest.TestCase):
                                                                    'score': 7.5, 'basePrice': 'x', 'reason': 'private'}]}}
         out = ac.sanitize_activity(raw)
         self.assertEqual(len(out['orders']), 1)
-        self.assertEqual(set(out['orders'][0]), {'no', 'ts', 'code', 'name', 'side', 'qty', 'price', 'state', 'reason'})
+        self.assertEqual(set(out['orders'][0]), {'no', 'ts', 'code', 'name', 'side', 'qty', 'price', 'state', 'reason', 'decision'})
         self.assertEqual(out['orders'][0]['side'], 'BUY')
         self.assertEqual(out['orders'][0]['qty'], 4)
         self.assertEqual(set(out['positions'][0]), {'code', 'name', 'qty', 'state', 'buyDay', 'avg'})
@@ -158,6 +158,35 @@ class ControlTest(unittest.TestCase):
         self.assertNotIn('reason', out['candidates']['rows'][0])
         self.assertEqual(out['candidates']['rows'][0]['reasons'], [])
         self.assertEqual(ac.sanitize_activity('junk')['orders'], [])
+
+    def test_activity_decision_logs_are_safe_and_finite(self):
+        raw = {'orders': [{'code': '026890', 'side': 'BUY', 'qty': 1, 'state': 'ACK',
+                           'decision': {'scanner': 'invHeadShoulders', 'scan_date': '2026-11-11',
+                                        'rank': 18, 'ranked_total': 22, 'base': 8530,
+                                        'entry_vs_base_pct': 1.06,
+                                        'score': {'traded_value_eok': 2.95, 'trend_vs_20d': .0937,
+                                                  'unlisted': 'secret'},
+                                        'secret': 'no', 'signal_id': 'hidden',
+                                        'gain_pct': float('nan')},
+                           'order_no': 'do-not-expose', 'note': 'never'}],
+               'skips': [{'day': '2026-11-13', 'code': '026890', 'reason': 'SLOTS_FULL',
+                          'count': 4, 'detail': 'cash=123456'},
+                         {'day': 'oops', 'code': 'UNKNOWN', 'reason': 'BAD'}],
+               'botOrders': [{'ts': '2026-11-13 10:00:00', 'code': '079160', 'qty': 3,
+                              'reason': 'STOP', 'status': 'SENT', 'ord_no': 'private', 'detail': 'account'}]}
+        out = ac.sanitize_activity(raw)
+        order = out['orders'][0]
+        self.assertNotIn('note', order)
+        self.assertNotIn('order_no', order)
+        self.assertEqual(order['decision']['scanner'], 'invHeadShoulders')
+        self.assertEqual(order['decision']['rank'], 18)
+        self.assertEqual(order['decision']['score']['traded_value_eok'], 2.95)
+        self.assertNotIn('gain_pct', order['decision'])
+        self.assertNotIn('secret', order['decision'])
+        self.assertNotIn('unlisted', order['decision']['score'])
+        self.assertEqual(len(out['skips']), 1)
+        self.assertEqual(set(out['skips'][0]), {'day', 'code', 'reason', 'count'})
+        self.assertEqual(set(out['botOrders'][0]), {'ts', 'code', 'name', 'qty', 'reason', 'status'})
 
     def test_activity_is_stored_and_only_exposed_when_received(self):
         now = MON
