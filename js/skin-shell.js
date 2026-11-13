@@ -393,7 +393,12 @@
     }
     wrap.__place = function () {
       var narrow = global.matchMedia && global.matchMedia('(max-width: 720px)').matches;
-      if (narrow) { pop.style.top = pop.style.left = ''; return; }
+      if (narrow) { pop.style.top = pop.style.left = pop.style.maxHeight = ''; return; }
+      // 화면 아래로 넘치지 않게 남은 높이까지만 쓰고, 나머지는 목록 안에서 스크롤한다.
+      global.requestAnimationFrame(function () {
+        var room = doc.documentElement.clientHeight - pop.getBoundingClientRect().top - 12;
+        pop.style.maxHeight = Math.max(220, Math.min(480, room)) + 'px';
+      });
       if (moved) { var m = clampPos(moved.left, moved.top); pop.style.left = m.left + 'px'; pop.style.top = m.top + 'px'; return; }
       var r = trigger.getBoundingClientRect(), vw = doc.documentElement.clientWidth;
       var width = Math.min(660, vw - 32);
