@@ -295,3 +295,29 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 }
 #auto-trader .at-why { margin: 0; padding-left: 16px; font-size: 12.5px; line-height: 1.55; color: var(--at-mute); }
 #auto-trader .at-why li + li { margin-top: 2px; }
+
+/* 매매 판단 로그 — 주문 근거 읽기 전용, PC·모바일 공통 */
+#auto-trader .at-review-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0 16px; }
+#auto-trader .at-review-tools label { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; }
+#auto-trader .at-review-tools input { height: 34px; box-sizing: border-box; border: 1px solid var(--at-line); border-radius: 8px; background: transparent; color: var(--at-ink); padding: 4px 8px; }
+#auto-trader .at-review-tools .at-mute { font-size: 12px; }
+#auto-trader .at-review-list { display: grid; gap: 10px; margin-top: 10px; }
+#auto-trader .at-review-item { min-width: 0; padding: 14px 16px; border: 1px solid var(--at-line); border-left: 3px solid var(--at-down); border-radius: 8px; background: var(--at-panel); }
+#auto-trader .at-review-item.is-buy { border-left-color: var(--at-up); }
+#auto-trader .at-review-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px 12px; font-size: 12px; }
+#auto-trader .at-review-top time { color: var(--at-mute); }
+#auto-trader .at-review-side { font-weight: 700; color: var(--at-down); }
+#auto-trader .at-review-item.is-buy .at-review-side { color: var(--at-up); }
+#auto-trader .at-review-state { margin-left: auto; color: var(--at-mute); }
+#auto-trader .at-review-name { font-size: 15px; margin-top: 6px; font-weight: 600; overflow-wrap: anywhere; }
+#auto-trader .at-review-name small { font-size: 11px; font-weight: 400; color: var(--at-mute); }
+#auto-trader .at-review-key { font-size: 13px; font-weight: 700; margin-top: 8px; }
+#auto-trader .at-review-why { margin: 8px 0 0; padding-left: 18px; line-height: 1.7; font-size: 12.5px; color: var(--at-mute); overflow-wrap: anywhere; }
+#auto-trader .at-review-why li + li { margin-top: 3px; }
+#auto-trader .at-review-item .at-note { margin-top: 8px; }
+@media (max-width: 640px) {
+  #auto-trader .at-review-tools { align-items: stretch; }
+  #auto-trader .at-review-tools .at-mute { flex-basis: 100%; }
+  #auto-trader .at-review-item { padding: 12px; }
+  #auto-trader .at-review-state { margin-left: 0; }
+}
