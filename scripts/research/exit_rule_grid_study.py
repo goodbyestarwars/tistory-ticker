@@ -6,7 +6,7 @@
 규칙: 고정 손절(-5/-7/-10/-15%) × 고정 익절(+10/+15/+20/+30%/없음), ATR 손절(진입 시 ATR14 × 2), 구조 손절(진입 전 20봉 최저가 -1%),
       추적 손절(보유 중 최고 종가 대비 -10/-15%), 구조 손절 + 추적 -15%.
 비교 기준: 같은 규칙을 '아무 종목'(같은 날짜 무작위 동수 표본)에 적용.
-결과(기간별): 100번 거래 중 수익 거래 수, 거래당 평균 순수익, 평균 보유일, 최악 10% 거래 평균.
+결과(기간별): 100번 거래 중 수익 거래 수, 거래당 평균 순수익, 평균 보유일, 최악 10% 거래 평균, 평균 이익·평균 손실(손익비).
 실행: python exit_rule_grid_study.py <작업 폴더(prep.pkl·shape.tsv·cache/)> <out.json>
 """
 import json
@@ -112,7 +112,8 @@ def main(lab, out_path):
         q = g.ret.quantile(0.1)
         res.append({'grp': grp, 'period': per, 'rule': rule, 'n': len(g), 'wins_per100': round(float((g.ret > 0).mean()) * 100, 1),
                     'avg_net': round(float(g.ret.mean()) * 100, 2), 'avg_hold': round(float(g.held.mean()), 1),
-                    'worst10_avg': round(float(g.ret[g.ret <= q].mean()) * 100, 1)})
+                    'worst10_avg': round(float(g.ret[g.ret <= q].mean()) * 100, 1),
+                    'avg_win': round(float(g.ret[g.ret > 0].mean()) * 100, 2), 'avg_loss': round(float(g.ret[g.ret <= 0].mean()) * 100, 2)})
     json.dump(res, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     r = pd.DataFrame(res)
     pv = r.pivot_table(index='rule', columns=['grp', 'period'], values=['wins_per100', 'avg_net'])
