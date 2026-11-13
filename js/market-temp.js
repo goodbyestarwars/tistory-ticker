@@ -947,10 +947,10 @@
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-money-card">'
       + '<div class="mt-money-head"><strong>오늘 거래대금 상위 섹터 TOP10</strong>'
-      + '<a href="/page/market-temp?view=map">섹터·종목 시장맵 보기 →</a></div>'
+      + '<a href="/page/market-temp?view=map">시장 흐름 지도 보기 →</a></div>'
       + (chips ? '<div class="mt-money-chips">' + chips + '</div>'
         : '<div class="mt-hint">거래대금 상위 섹터를 불러오지 못했습니다.</div>')
-      + '<p class="mt-top-note">거래대금 순위에 따른 테마 흐름입니다. 시장맵은 WICS 업종분류를 사용하므로 두 분류는 일치하지 않을 수 있습니다.</p>'
+      + '<p class="mt-top-note">거래대금 순위에 따른 테마 흐름입니다. 시장 흐름 지도는 WICS 업종분류를 사용하므로 두 분류는 일치하지 않을 수 있습니다.</p>'
       + '</div>';
   }
 
@@ -1517,12 +1517,14 @@
   function buildStocksOnlyPage() {
     return '<div class="mt-stocks-only">'
       + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1>'
-      + '<p>오늘 거래대금 상위 섹터를 확인하고, 업종별 종목·주가·등락은 시장맵에서 비교합니다.</p></div>'
+      + '<p>거래가 활발한 국내 종목을 업종별로 확인하고, 시장 흐름 지도에서 강약을 비교합니다.</p></div>'
       + '<section class="mt-section-block">'
       + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2>'
-      + '<p>거래대금 순위를 간단히 확인하고 시장맵에서 종목을 살펴보세요.</p></div>'
+      + '<p>거래대금 순위와 아래 업종별 종목 목록을 함께 살펴보세요.</p></div>'
       + '<div data-money-strip><div class="mt-hint">거래대금 상위 섹터를 불러오는 중입니다.</div></div>'
-      + '</section></div>';
+      + '</section><section class="mt-section-block"><div class="mt-section-head"><h2>업종별 주요종목</h2>'
+      + '<p>회사명·가격·등락률을 한 줄로 비교합니다. 표시된 자료 기준시각을 확인해 주세요.</p></div>'
+      + '<div class="mt-view-panel" data-stocks-list></div></section></div>';
   }
 
   // 기존 티스토리 /page/market-temp?view=map 에 새 화면을 부착한다.
@@ -1585,10 +1587,10 @@
   function bootMapView_(container) {
     if (container.__mtMapStarted) return;
     container.__mtMapStarted = true;
-    container.innerHTML = '<p class="mt-hint">시장맵 접근 권한을 확인하고 있습니다.</p>';
+    container.innerHTML = '<p class="mt-hint">시장 흐름 지도 접근 권한을 확인하고 있습니다.</p>';
     waitMarketMapAccess_().then(function (access) {
       if (!access.isAdmin()) {
-        container.innerHTML = '<p class="mt-error">시장맵은 시세 재배포 권한 보호를 위해 관리자 전용입니다.</p>';
+        container.innerHTML = '<p class="mt-error">시장 흐름 지도은 시세 재배포 권한 보호를 위해 관리자 전용입니다.</p>';
         return;
       }
       if (!document.querySelector('link[data-market-map-css]')) {
@@ -1600,7 +1602,7 @@
       }
       function finish() {
         return ensureWicsMap_().then(function (wics) {
-          if (!global.MarketMap) throw new Error('시장맵 스크립트를 불러오지 못했습니다.');
+          if (!global.MarketMap) throw new Error('시장 흐름 지도 스크립트를 불러오지 못했습니다.');
           global.MarketMap.init(container, wics);
         });
       }
@@ -1610,13 +1612,13 @@
         script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/market-map.js';
         script.async = true;
         script.onload = resolve;
-        script.onerror = function () { reject(new Error('시장맵 화면을 불러오지 못했습니다.')); };
+        script.onerror = function () { reject(new Error('시장 흐름 지도 화면을 불러오지 못했습니다.')); };
         document.body.appendChild(script);
       }).then(finish);
     }).catch(function () {
       // 실패 시에도 보호 데이터는 불러오지 않는다. 동일 페이지에서 재시도 가능.
       container.__mtMapStarted = false;
-      container.innerHTML = '<p class="mt-error">접근 정책 또는 시장맵을 불러오지 못했습니다. '
+      container.innerHTML = '<p class="mt-error">접근 정책 또는 시장 흐름 지도을 불러오지 못했습니다. '
         + '<button type="button" data-mtm-boot-retry>다시 시도</button></p>';
       var retry = container.querySelector('[data-mtm-boot-retry]');
       if (retry) retry.addEventListener('click', function () { bootMapView_(container); }, { once: true });
@@ -1633,7 +1635,19 @@
       if (container.__mtStocksInitialized) return;
       container.__mtStocksInitialized = true;
       container.innerHTML = buildStocksOnlyPage();
-      loadMoneyStrip_(container);
+      waitMarketMapAccess_().then(function (access) {
+        var panel = container.querySelector('[data-stocks-list]');
+        if (!access.isAdmin()) {
+          container.querySelector('[data-money-strip]').innerHTML = '<p class="mt-hint">거래대금 순위는 제한 시세를 포함해 관리자만 조회할 수 있습니다.</p>';
+          panel.innerHTML = '<p class="mt-hint">화면 접근은 허용되지만 종목 시세·목록 데이터는 관리자 전용입니다. 시세 재제공 권한 확인 전에는 일반회원에게 제공하지 않습니다.</p>';
+          return;
+        }
+        loadMoneyStrip_(container);
+        loadAllStocksPanel(panel, { readOnly: true });
+      }).catch(function () {
+        container.querySelector('[data-money-strip]').innerHTML = '<p class="mt-hint">접근 권한을 확인하지 못했습니다. 새로고침해 주세요.</p>';
+        container.querySelector('[data-stocks-list]').innerHTML = '<p class="mt-error">종목 목록 접근 권한 확인에 실패했습니다.</p>';
+      });
       return;
     }
     if (container.__mtLivePage) return;
@@ -4118,18 +4132,19 @@
     return allStockSnapshotPromise_;
   }
 
-  function renderAllStockRetry_(panel, empty) {
+  function renderAllStockRetry_(panel, empty, options) {
     panel.innerHTML = '<div class="mt-hint mt-all-stock-retry"><strong>' + (empty ? '현재 기준에 맞는 주요 섹터가 없습니다.' : '주요 섹터 시세를 불러오지 못했습니다.')
       + '</strong><span>거래대금 10억원 이상 · 움직임 없는 종목·시총 1,000억원 미만 제외</span><button type="button" data-all-stock-retry>다시 연결</button></div>';
     var retry = panel.querySelector('[data-all-stock-retry]');
     if (retry) retry.addEventListener('click', function () {
       allStockSnapshotCache_ = null;
       panel.__allStockBrowser = false;
-      loadAllStocksPanel(panel);
+      loadAllStocksPanel(panel, options);
     });
   }
 
-  function loadAllStocksPanel(panel) {
+  function loadAllStocksPanel(panel, options) {
+    options = options || {};
     if (!panel || panel.__allStockBrowser) return;
     panel.__allStockBrowser = true;
     panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '거래가 활발한 주요 섹터를 불러오는 중...</div>';
@@ -4137,7 +4152,7 @@
     var snapshotRequest = requestAllStockSnapshot_();
     var categoryConfig = null;
     Promise.all([ensureKrxMap_().catch(function () { return {}; }), ensureWicsMap_().catch(function () { return {}; }), snapshotRequest,
-      fetchSectorConfig_().catch(function () { return null; })]).then(function (results) {
+      options.readOnly ? Promise.resolve(null) : fetchSectorConfig_().catch(function () { return null; })]).then(function (results) {
       var sources = results[2];
       categoryConfig = results[3];
       var allGroups = sources.scan ? activeStockGroups_(sources.scan, results[1]) : [];
@@ -4195,7 +4210,7 @@
       return { snapshot: sources.board, groups: sources.board ? activeStockGroups_(sources.board, results[1]) : [], quoteCount: 0 };
     }).then(function (selection) {
       var snapshot = selection.snapshot;
-      var allGroups = regroupByCategories_(selection.groups, categoryConfig);
+      var allGroups = options.readOnly ? selection.groups : regroupByCategories_(selection.groups, categoryConfig);
       var isBoard = snapshot && snapshot.data && Array.isArray(snapshot.data.rows);
       var scannedAt = snapshot && snapshot.data && snapshot.data.scannedAt ? String(snapshot.data.scannedAt).replace('T', ' ') : '시각 확인 중';
       if (!isBoard && snapshot && snapshot.data && snapshot.data.scannedAt) {
@@ -4204,7 +4219,7 @@
       }
       var state = { query: '' };
       if (!allGroups.length) {
-        renderAllStockRetry_(panel, true);
+        renderAllStockRetry_(panel, true, options);
         return;
       }
 
@@ -4238,7 +4253,7 @@
         groups.forEach(function (group) { summaries[(group.kind || '') + '|' + group.sector] = group; });
         panel.innerHTML = '<section class="mt-all-stock-browser">'
           + '<div class="mt-all-stock-head"><div><strong>주요 섹터 카드</strong><span>' + (isBoard ? '거래가 활발한 섹터' : '최근 거래일에 활발했던 주요 섹터') + '</span></div><span data-all-stock-count>' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준' + (isBoard ? '' : ' · 일일 스캔') + '</span></div>'
-          + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button><button type="button" data-theme-picker-open>＋ 테마로 카테고리 추가</button></div>'
+          + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button>' + (options.readOnly ? '' : '<button type="button" data-theme-picker-open>＋ 테마로 카테고리 추가</button>') + '</div>'
           + '<p class="mt-all-stock-legend"><b>' + (isBoard ? '현재가' : '최근 거래일 가격·등락률') + '</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 종목 거래대금 10억원 이상' + (isBoard ? ' · 거래량 1만 주 이상' : ' · 스캔값은 거래량 미제공') + '<br>움직임 없는 종목(등락 0.5% 미만·거래대금 50억원 미만)과 알려진 시총 1,000억원 미만 종목 제외 · 나머지 모두 표시 · ETF·ETN·스팩 제외'
           + (!isBoard ? '<br>스캔: 선별 기준시각의 가격 · 시세: 시장판 조회값' + (selection.quoteCount ? ' (' + escapeHtml(selection.quoteAt) + ' 기준 · ' + selection.quoteCount + '종목)' : '') : '')
           + (selection.addedCount ? '<br>장중 조건을 충족한 ' + selection.addedCount + '종목 추가 · 기존 섹터 금액은 스캔 선별 종목 합계(추가 종목 제외)' : '') + '</p>'
@@ -4276,7 +4291,7 @@
           // 검색은 같은 응답을 써서 종목 수와 무관하게 요청을 중복하지 않는다.
           allStockSnapshotCache_ = null;
           panel.__allStockBrowser = false;
-          loadAllStocksPanel(panel);
+          loadAllStocksPanel(panel, options);
         });
         function wireCards() {
           if (!grid.__groupAdoptBound) {
@@ -4315,7 +4330,7 @@
         if (pickerButton) pickerButton.addEventListener('click', function () { openThemePicker_(panel); });
       }
       render();
-    }).catch(function () { renderAllStockRetry_(panel); });
+    }).catch(function () { renderAllStockRetry_(panel, false, options); });
   }
 
   var INVEST_SIGNAL_URL = 'https://goodbyestar.cloud/invest-signal';

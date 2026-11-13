@@ -70,8 +70,10 @@ assert.ok(src.includes("credentials:'include'"));
 assert.ok(!src.includes('Math.random'));
 assert.ok(!src.includes('curated'));
 assert.ok(!src.includes('X축: 250거래일, Y축: 20거래일')); // default view is jargon-free
-assert.ok(src.includes('오른쪽 = 지난 1년 시장보다 강함'));
-assert.ok(src.includes('위쪽 = 최근 한 달 시장보다 강함'));
+assert.ok(!src.includes('오른쪽 = 지난 1년 시장보다 강함'));
+assert.ok(!src.includes('위쪽 = 최근 한 달 시장보다 강함'));
+assert.ok(src.includes('data-mtm-dialog') && src.includes('dialog.showModal()'));
+assert.ok(src.includes('data-mtm-category') && src.includes('사업분야'));
 assert.ok(src.includes('최근 강해짐') && src.includes('꾸준히 강함') && src.includes('최근 주춤'));
 assert.ok(src.includes('<details class="mtm-method">')); // raw methodology opt-in
 assert.ok(src.includes('종목 수익률에서 해당 시장(KOSPI 또는 KOSDAQ) 지수 수익률을 뺀 값'));
@@ -85,6 +87,17 @@ assert.ok(src.includes('mtm-bubble-number')); // stock bubble ↔ list number
 assert.ok(src.includes('mtm-business-panel')); // selected company's business
 assert.ok(css.includes('.mtm-list-business') && css.includes('.mtm-business-panel'));
 assert.ok(css.includes('.mtm-bubble-number') && css.includes('.mtm-list-number'));
+const large=Object.fromEntries(Array.from({length:350},(_,i)=>[String(100000+i),{name:'회사'+i,sector:'IT',industry:'반도체'}]));
+assert.equal(map.chooseCandidates(large).length,350,'entire classified universe is searchable, not 24 per sector');
+const catalog=map.chooseCandidates({},null,null,{'새회사':'0012A0','상장ETF':'001234','예시ETN':'001235','예시스팩':'001236'},['상장ETF']);
+assert.equal(catalog.length,1);assert.equal(catalog[0].code,'0012A0');assert.equal(catalog[0].sector,'업종 미등록');
+assert.equal(map.chooseCandidates({'001236':{name:'예시스팩',sector:'금융',industry:'금융'}}).length,0);
+const tagged=map.chooseCandidates({'005930':wics['005930']},{반도체:[{code:'005930'}]},
+ {companies:{'005930':{summary:'반도체 장비를 제조하고 반도체 소재를 생산함.'}}});
+assert(tagged[0].tags.includes('반도체 장비') && tagged[0].tags.includes('반도체 소재'));
+assert(!map.businessTags({code:'x',industry:'의료'},{companies:{}},{}).includes('원자력'));
+assert(!map.businessTags({code:'x',industry:'반도체'},{companies:{x:{summary:'시스템 반도체 후공정 테스트와 웨이퍼 테스트 사업을 영위함.'}}},{}).includes('반도체 소재'));
+assert(!map.businessTags({code:'x',industry:'반도체'},{companies:{x:{summary:'가전용 부품 중심 시스템반도체 설계와 판매를 영위함.'}}},{}).includes('반도체 부품'));
 const stock = {key:'000660',kind:'stock',code:'000660',name:'SK하이닉스',price:95000,
   rate:1.2,cap:100e12,industry:'반도체와반도체장비',rs1m:2.3};
 const profileState={profiles:{asOf:'2026-10-07',source:'네이버 증권 · WISEreport',
