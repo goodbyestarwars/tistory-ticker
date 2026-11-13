@@ -41,6 +41,16 @@ class SessionCharts(unittest.TestCase):
         self.assertEqual((opening['slot'], closing['slot'], closing['slotCount']), (0, 14, 15))
         self.assertIsNone(charts.session('KOSPI200_NIGHT', datetime.fromisoformat('2026-11-13T09:00:00+09:00')))
 
+    def test_day_reference_uses_close_before_its_own_session(self):
+        stamp = int(datetime.fromisoformat('2026-11-12T09:00:00+09:00').timestamp())
+        db_schema.upsert_future_chart_minute_rows(self.conn, 'KOSPI200_DAY',
+            [dict(ts=stamp, open=102, high=103, low=101, close=102)])
+        with mock.patch.object(db_schema, 'load_future_chart', return_value=[
+                dict(date='20261111', close=100), dict(date='20261113', close=999)]):
+            result = next(r for r in charts._read_results() if r['symbol'] == 'KOSPI200_DAY')
+        self.assertEqual(result['reference'], 100)
+        self.assertEqual(result['referenceBasis'], 'previous-stored-close')
+
     def test_observations_keep_high_low_and_latest_not_older_quote(self):
         self.put(100)
         self.put(110, '2026-10-15T10:05:00-04:00')

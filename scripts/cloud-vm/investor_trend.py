@@ -599,3 +599,58 @@ def start_background(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, ki
     )
     t.start()
     return t
+
+
+# On-demand home futures snapshot; no new worker/timer and no equity amount conversion.
+_futures_flow_lock = threading.Lock()
+_futures_flow_cache = None
+_futures_flow_retry_at = 0.0
+
+
+def parse_futures_investors(payload):
+    rows = payload.get('output') if isinstance(payload, dict) else None
+    row = rows[0] if isinstance(rows, list) and len(rows) == 1 else rows if isinstance(rows, dict) else None
+    if not isinstance(row, dict):
+        raise ValueError('futures investor snapshot missing')
+    result = {}
+    for who, prefix in (('foreign', 'frgn'), ('institution', 'orgn'), ('individual', 'prsn')):
+        values = []
+        for suffix in ('shnu_vol', 'seln_vol', 'ntby_qty'):
+            raw = row.get(prefix + '_' + suffix)
+            try:
+                value = float(str(raw).replace(',', '').strip())
+            except (TypeError, ValueError):
+                raise ValueError('futures investor quantity missing') from None
+            if not math.isfinite(value) or not value.is_integer():
+                raise ValueError('futures investor quantity invalid')
+            values.append(int(value))
+        buy, sell, net = values
+        if buy < 0 or sell < 0 or buy - sell != net:
+            raise ValueError('futures investor quantity inconsistent')
+        result[who] = dict(buy=buy, sell=sell, net=net)
+    return result
+
+
+def get_futures_result(appkey=None, appsecret=None):
+    global _futures_flow_cache, _futures_flow_retry_at
+    with _futures_flow_lock:
+        now = time.monotonic()
+        if now < _futures_flow_retry_at:
+            return dict(_futures_flow_cache) if _futures_flow_cache else dict(
+                available=False, stale=True, unit='contracts', market='K2I', category='F001')
+        try:
+            if not appkey or not appsecret:
+                raise ValueError('futures investor credentials unavailable')
+            token = kis_client.get_token(appkey, appsecret)
+            participants = parse_futures_investors(kis_client.fetch_futures_investors(token, appkey, appsecret))
+            _futures_flow_cache = dict(available=True, stale=False, unit='contracts', market='K2I', category='F001',
+                scope='KOSPI200 futures whole market', participants=participants,
+                retrievedAt=datetime.now(KST).isoformat(timespec='seconds'),
+                sourceDate=None, sourceTime=None, provisional=True)
+            _futures_flow_retry_at = now + 300
+        except Exception:
+            _futures_flow_retry_at = now + 30
+            if _futures_flow_cache:
+                _futures_flow_cache = dict(_futures_flow_cache, stale=True)
+        return dict(_futures_flow_cache) if _futures_flow_cache else dict(
+            available=False, stale=True, unit='contracts', market='K2I', category='F001')

@@ -827,6 +827,10 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
             + '<small class="ui-kpi-source" data-global-field="time">확인 중</small></article>';
         }).join('')
         + '</div></div></section>'
+        + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 선물 투자자 동향</strong><span>당일 순매수 · 계약</span></div>'
+        + '<dl class="hff-list">' + [['foreign','외국인'],['institution','기관'],['individual','개인']].map(function (p) {
+          return '<div><dt>' + p[1] + '</dt><dd data-futures-flow="' + p[0] + '">확인 중</dd></div>';
+        }).join('') + '</dl><small class="ui-kpi-source" data-futures-flow-meta>선물 전체 · 자료 확인 중</small></section>'
         // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
         // 공통 머리말 아래 ETF 8개를 1일·1개월·YTD 비교 표로 표시한다. 값은 기존 /us-etf-returns.
         + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 3개월 · 6개월 · 연초 이후</span></div>'
@@ -948,6 +952,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (domesticRotation) domesticRotation.hidden = isUs;
       var globalBlock = dashboardSection.querySelector('[data-home-global]');
       if (globalBlock) globalBlock.hidden = !isUs;
+      var futuresFlow = dashboardSection.querySelector('[data-home-futures-flow]');
+      if (futuresFlow) futuresFlow.hidden = isUs;
       // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(투자자 동향 목록은 국내 모드 전용).
       var coreList = dashboardSection.querySelector('#homeMarketBoard .hmb2-core');
       if (coreList) coreList.hidden = isUs;
@@ -1723,14 +1729,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           if (group.length < 2) return;
           var points = group.map(function (r) { return x(r.slot) + ',' + y(r.close); }).join(' ');
           ['buy', 'sell'].forEach(function (side) {
-            marks += '<g class="hmb-investor-' + (hasReference ? side : 'flat') + '" clip-path="url(#' + id + '-' + side + ')"><polygon class="hmb-investor-area" points="'
+            marks += '<g class="hmb-investor-' + side + '" clip-path="url(#' + id + '-' + side + ')"><polygon class="hmb-investor-area" points="'
               + x(group[0].slot) + ',' + zero + ' ' + points + ' ' + x(group[group.length - 1].slot) + ',' + zero
               + '"/><polyline class="hmb-investor-line" vector-effect="non-scaling-stroke" points="' + points + '"/></g>';
           });
         });
       }
       rows.forEach(function (r) {
-        var tone = !hasReference ? 'flat' : r.close > base ? 'buy' : r.close < base ? 'sell' : 'flat';
+        var tone = r.close > base ? 'buy' : r.close < base ? 'sell' : 'flat';
         var title = '<title>' + time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' 구간 · ' + amount(r.close) + ' · 관측 ' + time(r.ts) + '</title>';
         marks += mode === 'bar'
           ? '<rect data-price-slot="' + r.slot + '" class="hmb-investor-' + tone + '" x="' + (x(r.slot) - 28 / meta.slotCount) + '" y="' + Math.min(zero, y(r.close)) + '" width="' + 56 / meta.slotCount + '" height="' + Math.max(.6, Math.abs(zero - y(r.close))) + '">' + title + '</rect>'
@@ -1749,7 +1755,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '<div class="hmb-investor-axis"><span>' + time(Date.parse(meta.start) / 1000) + '</span><span>' + time(Date.parse(meta.end) / 1000) + '</span></div>'
         + '<div class="hmb-investor-extrema"><span>관측 고점 <b>' + amount(high.high) + '</b></span><span>저점 <b>' + amount(low.low) + '</b></span></div>'
         + '<div class="hmb-investor-asof">' + meta.date + ' · 관측 ' + time(rows[rows.length - 1].ts) + ' · ' + rows.length + '/' + meta.slotCount + '개</div>'
-        + '<div class="hmb-investor-asof">' + result.basis + (hasReference ? ' · 전일 종가 ' + amount(base) : ' · 전일 종가 미확인(중립색)') + '</div>';
+        + '<div class="hmb-investor-asof">' + result.basis + (hasReference ? ' · ' + (result.referenceBasis === 'previous-stored-close' ? '직전 거래일 저장 종가 ' : '전일 기준값 ') + amount(base) : ' · 첫 관측 시가 기준 ' + amount(base) + ' (전일 기준값 미확인)') + '</div>';
     }
     dashboardSection.addEventListener('click', function (event) {
       var metricModeButton = event.target.closest('[data-home-metric-mode]');
@@ -2231,8 +2237,29 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         renderHomeIndexChart(chart, item && item.chart, symbol, p != null && c != null ? p - c : null);
       });
     }
+    var futuresFlowRequestedAt = 0;
+    function loadHomeFuturesFlow() {
+      if (Date.now() - futuresFlowRequestedAt < 300000) return;
+      futuresFlowRequestedAt = Date.now();
+      var card = dashboardSection.querySelector('[data-home-futures-flow]');
+      if (!card) return;
+      fetchHomeJson('https://goodbyestar.cloud/futures/investor-flow', 15000).then(function (env) {
+        var data = env && env.data || env || {}, rows = data.participants || {};
+        ['foreign', 'institution', 'individual'].forEach(function (key) {
+          var n = data.available && rows[key] ? homeNum(rows[key].net) : null;
+          homeFill(card, 'data-futures-flow', key, n == null ? '미집계' : (n > 0 ? '+' : n < 0 ? '−' : '') + homeFmt(Math.abs(n), 0) + '계약 ' + (n > 0 ? '순매수' : n < 0 ? '순매도' : '보합'), homeTone(n));
+        });
+        card.querySelector('[data-futures-flow-meta]').textContent = 'KOSPI200 선물 전체 · 수집 시점 잠정·잔고 아님'
+          + (data.retrievedAt ? ' · 조회 ' + homeKstTime(data.retrievedAt) : '')
+          + ' · 원본 기준일/시각 미제공' + (data.stale ? ' · 지연/조회 실패' : '');
+      }).catch(function () {
+        futuresFlowRequestedAt = Date.now() - 240000;
+        card.querySelector('[data-futures-flow-meta]').textContent = '조회 실패 · 이전 표시 유지 · 다음 갱신 시 재시도';
+      });
+    }
     function loadHomeDayFutures() {
       if (homeMarketSession().market !== 'domestic' || document.hidden) return;
+      loadHomeFuturesFlow();
       if (homeDayFutureLoading || Date.now() - homeDayFutureRequestedAt < 50000) return;
       homeDayFutureLoading = true;
       homeDayFutureRequestedAt = Date.now();

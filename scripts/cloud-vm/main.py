@@ -3330,6 +3330,14 @@ def home_session_prices(request: Request):
 _CALENDAR_MACRO_SYMBOLS = ('US_INITIAL_CLAIMS', 'US_DURABLE_GOODS', 'US_FACTORY_ORDERS', 'US_HOUSING_STARTS',
                            'US_NEW_HOME_SALES', 'US_INDUSTRIAL_PRODUCTION', 'US_TRADE_BALANCE', 'US_PRODUCTIVITY')
 
+@app.get('/futures/investor-flow')
+def futures_investor_flow_endpoint(request: Request):
+    """Admin-only via existing /futures prefix; KOSPI200 whole-market net contracts."""
+    _check_rate_limit('futures_investor_flow', request, max_per_window=20)
+    return envelope(investor_trend.get_futures_result(
+        os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET')))
+
+
 @app.get('/futures')
 def futures(request: Request, interval: str = 'day', days: int = 90, symbols: str = '', stored_only: bool = False):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +

@@ -253,8 +253,21 @@ def _read_results():
                         night_reference = ref
             except (KeyError, TypeError, ValueError):
                 night_reference = None
+            reference_basis = 'same-session-quote' if night_reference is not None else None
+            if symbol == 'KOSPI200_DAY' and night_reference is None and latest:
+                # Use the saved close preceding this chart's own session, never today's quote for yesterday's chart.
+                daily = db_schema.load_future_chart(conn, symbol, limit_days=30)
+                previous = [r for r in daily if str(r.get('date', '')).replace('-', '') < latest['date'].replace('-', '')]
+                if previous:
+                    try:
+                        value = float(previous[-1]['close'])
+                        if math.isfinite(value) and value > 0:
+                            night_reference = value
+                            reference_basis = 'previous-stored-close'
+                    except (KeyError, TypeError, ValueError):
+                        pass
             output.append(dict(symbol=symbol, rows=sorted(buckets.values(), key=lambda r: r['slot']), session=latest,
-                               reference=night_reference,
+                               reference=night_reference, referenceBasis=reference_basis,
                                basis='실제 분봉 + 분봉이 없는 구간은 시세 수집 관측값 + 같은 세션 최신 시세', intervalMinutes=30))
         return output
     finally:

@@ -1089,3 +1089,11 @@ def fetch_us_new_highlow_rank(token, appkey, appsecret, exchange, gubn='1', limi
         '/uapi/overseas-stock/v1/ranking/new-highlow', 'HHDFS76300000',
         {'GUBN': gubn, 'GUBN2': '1', 'NDAY': '6', 'VOL_RANG': '0', 'AUTH': ''}, limit,
     )
+
+
+def fetch_futures_investors(token, appkey, appsecret):
+    """KOSPI200 futures market (K2I/F001), whole market cumulative contracts; read-only."""
+    return _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market',
+        'FHPTJ04030000', {'FID_INPUT_ISCD': 'K2I', 'FID_INPUT_ISCD_2': 'F001'})
