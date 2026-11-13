@@ -137,6 +137,7 @@
     supplyMode: 'detail',
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
+    buyZoneEnabled: false,          // 매수 관찰 박스(js/chart-sr.js buyZone)
     rsiEnabled: false,             // RSI(14) 서브패널(기본 끔)
     rsiDivergenceEnabled: false,   // RSI 다이버전스(js/chart-divergence.js)
     volumeMultipleEnabled: false,   // 거래량 체감 배수(진한 막대·3배↑ 라벨)
@@ -162,7 +163,7 @@
   if (global.NineUI && global.NineUI.persistPrefs) {
     var prefAccessors = {};
     ['studyOrder', 'lineHighlight', 'movingAverageShortEnabled', 'movingAverageLongEnabled', 'customMaPeriods', 'maEnabled', 'maLines', 'ichimokuEnabled', 'bollingerEnabled',
-     'accumulationEnabled', 'supplyMode', 'volumeProfileEnabled', 'supportResistanceEnabled', 'rsiEnabled', 'rsiDivergenceEnabled',
+     'accumulationEnabled', 'supplyMode', 'volumeProfileEnabled', 'supportResistanceEnabled', 'buyZoneEnabled', 'rsiEnabled', 'rsiDivergenceEnabled',
      'volumeMultipleEnabled', 'wave'].forEach(function (key) {
       prefAccessors[key] = { get: function () { return state[key]; }, set: function (value) {
         // 객체는 이미 다른 곳이 쥐고 있을 수 있어 내용만 덮어쓴다.
@@ -739,6 +740,7 @@
       + '<label title="전환선(9)·기준선(26)·선행스팬(52, 26봉 앞)으로 그린 구름대입니다. 구름 위는 상승 우위, 아래는 하락 우위로 읽습니다. 참고용이며 매수·매도 신호가 아닙니다."><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
+      + '<label title="최근 1년 최저가 근처에 다시 닿은 바닥(몸통 하단)과, 그 위에서 종가가 가장 오래 머문 가격대(급락 직전 받침·되돌림 저항)를 붉은 두 가로선 박스로 자동으로 긋습니다. 현재가가 박스 안, 특히 하단 1/3이면 매수 관찰 구간으로 표시하고 꼬리 최저가를 손절 기준 점선으로 보여 줍니다. 상승 추세로 멀리 벗어난 종목은 표시하지 않습니다. 주문과 연결되지 않는 참고선입니다."><input type="checkbox" id="ssBuyZoneToggle" data-chart-buyzone-toggle /> 매수 관찰 박스</label>'
       + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
       + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle /> RSI</label>'
       + '<label title="자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간에 선을 긋습니다. 과거 구조를 보여 줄 뿐 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-rsidiv-toggle /> RSI 다이버전스</label>'
@@ -2219,6 +2221,15 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var buyZoneToggle = container.querySelector('[data-chart-buyzone-toggle]');
+    if (buyZoneToggle) {
+      buyZoneToggle.checked = state.buyZoneEnabled;
+      buyZoneToggle.onchange = function () {
+        state.buyZoneEnabled = buyZoneToggle.checked;
+        rememberStudyToggle('buyzone', state.buyZoneEnabled);
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
     var volMultToggle = container.querySelector('[data-chart-volmult-toggle]');
     if (volMultToggle) {
       volMultToggle.checked = state.volumeMultipleEnabled;
@@ -2621,6 +2632,7 @@
       + '<label title="전환선(9)·기준선(26)·선행스팬(52, 26봉 앞)으로 그린 구름대입니다. 구름 위는 상승 우위, 아래는 하락 우위로 읽습니다. 참고용이며 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
       + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
+      + '<label title="최근 1년 최저가 근처에 다시 닿은 바닥(몸통 하단)과, 그 위에서 종가가 가장 오래 머문 가격대(급락 직전 받침·되돌림 저항)를 붉은 두 가로선 박스로 자동으로 긋습니다. 현재가가 박스 안, 특히 하단 1/3이면 매수 관찰 구간으로 표시하고 꼬리 최저가를 손절 기준 점선으로 보여 줍니다. 상승 추세로 멀리 벗어난 종목은 표시하지 않습니다. 주문과 연결되지 않는 참고선입니다."><input type="checkbox" data-chart-buyzone-toggle /> 매수 관찰 박스</label>'
       + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
       + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle /> RSI</label>'
       + '<label title="자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간에 선을 긋습니다. 과거 구조를 보여 줄 뿐 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-rsidiv-toggle /> RSI 다이버전스</label>'
@@ -2754,10 +2766,27 @@
       : '지지·저항 <b>데이터 부족</b>';
   }
 
+  // 지지·저항과 매수 관찰 박스는 같은 캔버스(NineChartSR.install)를 쓰고, 켜진 것만 결과에 담는다.
+  function stockSrResult(bars, referencePrice, timeframe) {
+    var api = global.NineChartSR;
+    if (!api) return null;
+    var out = state.supportResistanceEnabled ? api.levels(bars, referencePrice, { timeframe: timeframe }) : { support: [], resistance: [], price: null };
+    out.buyZone = state.buyZoneEnabled && timeframe !== 'minute' && api.buyZone ? api.buyZone(bars, referencePrice) : null;
+    return out;
+  }
+  function stockBuyZoneLegendHtml(result, isUsChart) {
+    var z = result && result.buyZone;
+    if (!z) return '매수 박스 <b>현재가 근처 바닥 박스 없음</b>';
+    return '매수 박스 <b class="ss-sr-support">' + chartPriceText(z.floor, isUsChart) + '~' + chartPriceText(z.ceiling, isUsChart) + '</b> '
+      + global.NineUI.escapeHtml(global.NineChartSR.buyZoneText(z));
+  }
   function updateStockSrReference(referencePrice) {
-    if (!state.supportResistanceEnabled || !global.NineChartSR || !lwcLiveBars.length || !lwcSrCleanup || typeof lwcSrCleanup.update !== 'function') return;
-    var result = global.NineChartSR.levels(lwcLiveBars, referencePrice, { timeframe: lwcLiveTimeframe });
+    if (!(state.supportResistanceEnabled || state.buyZoneEnabled) || !global.NineChartSR || !lwcLiveBars.length || !lwcSrCleanup || typeof lwcSrCleanup.update !== 'function') return;
+    var result = stockSrResult(lwcLiveBars, referencePrice, lwcLiveTimeframe);
     lwcSrCleanup.update(result);
+    var zoneLabel = lwcChartContainer && lwcChartContainer.querySelector('.ss-buyzone-label');
+    if (zoneLabel) zoneLabel.innerHTML = stockBuyZoneLegendHtml(result, /^US:/i.test(String(state.selectedCode || '')));
+    if (!state.supportResistanceEnabled) return;
     var label = lwcChartContainer && lwcChartContainer.querySelector('.ss-sr-label');
     if (label) label.innerHTML = stockSrLegendHtml(result, /^US:/i.test(String(state.selectedCode || '')));
   }
@@ -3199,7 +3228,7 @@
     chartReady().then(function (LWC) {
       // 지지·저항은 체크했을 때만 모듈이 필요하다
       var studyLoads = [];
-      if (state.supportResistanceEnabled) studyLoads.push(global.NineChartCore.loadModule('sr').catch(function () { return null; }));
+      if (state.supportResistanceEnabled || state.buyZoneEnabled) studyLoads.push(global.NineChartCore.loadModule('sr').catch(function () { return null; }));
       if (state.rsiDivergenceEnabled) studyLoads.push(global.NineChartCore.loadModule('divergence').catch(function () { return null; }));
       return Promise.all(studyLoads).then(function () { return LWC; });
     }).then(function (LWC) {
@@ -3316,9 +3345,12 @@
 
       var liveQuote = state.liveQuotes[state.selectedCode];
       var srReferencePrice = liveQuote && Number.isFinite(Number(liveQuote.price)) ? Number(liveQuote.price) : null;
-      var srResult = state.supportResistanceEnabled && global.NineChartSR ? global.NineChartSR.levels(bars, srReferencePrice, { timeframe: timeframe }) : null;
+      var srResult = (state.supportResistanceEnabled || state.buyZoneEnabled) ? stockSrResult(bars, srReferencePrice, timeframe) : null;
       if (state.supportResistanceEnabled) {
         priceLegendHtml.push('<span data-study="sr" class="ss-sr-label">' + stockSrLegendHtml(srResult, isUsChart) + '</span>');
+      }
+      if (state.buyZoneEnabled && timeframe !== 'minute') {
+        priceLegendHtml.push('<span data-study="buyzone" class="ss-buyzone-label">' + (global.NineChartSR ? stockBuyZoneLegendHtml(srResult, isUsChart) : '매수 박스 <b>모듈 로드 실패</b>') + '</span>');
       }
 
       if (priceLegendHtml.length || (state.accumulationEnabled && timeframe === 'day' && !isUsChart)) {

@@ -19,6 +19,7 @@
   var SR_MAX_PER_SIDE = 3;
   var SR_SUPPORT_COLOR = '210,79,69';
   var SR_RESISTANCE_COLOR = '18,97,196';
+  var BUY_ZONE_COLOR = '220,38,74';   // 사용자가 그은 박스선과 같은 붉은 계열
 
   // 2026-10-18 사용자 요청("지지·저항이 너무 촘촘하다. 단타 관점엔 좋지만 추세 관점엔 너무 짧다"): 일봉·주봉·월봉은 추세 설정을 쓴다.
   // 스윙 판정 폭을 넓히고(일봉 좌우 10봉), 묶는 폭·선 사이 최소 간격을 키우고(일봉 3%·6%), 더 긴 기간(일봉 500봉)을 보며,
@@ -194,6 +195,80 @@
     }
   }
 
+  // ---- 매수 관찰 박스(2026-11-13 사용자 요청: 직접 그은 두 가로선 "이 안으로 들어오면 매수할 수 있게 자동으로") ----
+  // 사람이 바닥 박스를 긋는 순서를 그대로 따른다(고정 봉 수가 아니라 모양 우선, 폭은 ATR·가격에 맞춘다).
+  //  1) 하단: 최근 약 1년 최저가 근처(ATR 0.8배·2.5% 중 큰 폭)에 닿은 구간을 10봉 이상 떨어진 '방문'으로 묶는다.
+  //     2회 이상이면 이중 바닥(확인), 1회면 후보. 선은 그 방문들의 가장 낮은 종가(몸통 하단), 꼬리 최저가는 손절 기준선.
+  //  2) 상단: 하단 위(ATR 2배·8% 이상 ~ 45% 이내)에서 종가가 가장 오래 머문 가격대(최근일수록 가중) = 급락 직전 받침이자
+  //     되돌림 저항. 이 범위에 머문 자리가 없으면 박스를 만들지 않는다.
+  //  3) 현재가가 상단 25% 위로 멀리 있으면 지금 자리와 무관하므로 그리지 않는다.
+  // 과거 가격으로 그린 관찰 구간일 뿐이며 주문·자동매매와 연결하지 않는다.
+  function buyZone(bars, referencePrice) {
+    if (!bars || bars.length < 40) return null;
+    var arr = bars.slice(-250).filter(function (b) {
+      return [b.open, b.high, b.low, b.close].every(function (v) { return Number.isFinite(Number(v)) && Number(v) > 0; });
+    });
+    var len = arr.length;
+    if (len < 40) return null;
+    var last = Number(arr[len - 1].close);
+    var price = Number(referencePrice);
+    if (!Number.isFinite(price) || price <= 0) price = last;
+    var trSum = 0, trN = 0;
+    for (var t = Math.max(1, len - 20); t < len; t++) {
+      var pc = Number(arr[t - 1].close);
+      trSum += Math.max(Number(arr[t].high), pc) - Math.min(Number(arr[t].low), pc); trN++;
+    }
+    var atr = trN ? trSum / trN : last * 0.03;
+    var minLow = Infinity;
+    arr.forEach(function (b) { minLow = Math.min(minLow, Number(b.low)); });
+    var tol = Math.max(atr * 0.8, minLow * 0.025);
+    var visits = [], cur = null;
+    for (var i = 0; i < len; i++) {
+      if (Number(arr[i].low) > minLow + tol) continue;
+      if (!cur || i - cur.end >= 10) { cur = { start: i, end: i, minClose: Infinity, minLow: Infinity }; visits.push(cur); }
+      cur.end = i;
+      cur.minClose = Math.min(cur.minClose, Number(arr[i].close));
+      cur.minLow = Math.min(cur.minLow, Number(arr[i].low));
+    }
+    if (!visits.length) return null;
+    var floor = Infinity;
+    visits.forEach(function (v) { floor = Math.min(floor, v.minClose); });
+    var lo = floor * (1 + Math.max(2 * atr / floor, 0.08)), hi = floor * 1.45;
+    var bw = Math.max(atr * 0.6, floor * 0.015), step = floor * 0.005;
+    var dens = [];
+    for (var lv = lo; lv <= hi; lv += step) {
+      var sum = 0;
+      for (var j = 0; j < len; j++) {
+        var z = (Number(arr[j].close) - lv) / bw;
+        sum += Math.exp(-z * z / 2) * (0.5 + j / len);
+      }
+      dens.push({ price: lv, d: sum });
+    }
+    var peak = null, maxD = 0;
+    dens.forEach(function (p) { maxD = Math.max(maxD, p.d); });
+    for (var k = 0; k < dens.length; k++) {   // 아래에서부터 처음 만나는 뚜렷한 봉우리(가장 높은 봉우리의 60% 이상)
+      var prev = k > 0 ? dens[k - 1].d : -1, next = k < dens.length - 1 ? dens[k + 1].d : -1;
+      if (dens[k].d >= prev && dens[k].d >= next && dens[k].d >= maxD * 0.6) { peak = dens[k]; break; }
+    }
+    if (!peak || peak.d < 3) return null;   // 하단 위에서 머문 자리가 거의 없으면 박스로 보지 않는다
+    var ceiling = peak.price;
+    if (price > ceiling * 1.25) return null;
+    var stop = Infinity;
+    visits.forEach(function (v) { stop = Math.min(stop, v.minLow); });
+    var pos = (price - floor) / (ceiling - floor);
+    var status = price < stop * 0.99 ? 'below' : (price > ceiling ? 'above' : (pos <= 0.34 ? 'lower' : 'inside'));
+    return {
+      floor: floor, ceiling: ceiling, stop: stop, price: price, position: pos, status: status,
+      visits: visits.length, confirmed: visits.length >= 2,
+      lastVisit: arr[visits[visits.length - 1].end].date, firstVisit: arr[visits[0].start].date
+    };
+  }
+  var BUY_ZONE_STATUS = { lower: '박스 하단 1/3 · 매수 관찰', inside: '박스 안', above: '박스 상단 위', below: '하단 이탈 · 관망' };
+  function buyZoneText(zone) {
+    if (!zone) return '';
+    return (BUY_ZONE_STATUS[zone.status] || '') + ' · ' + (zone.confirmed ? '이중 바닥 ' + zone.visits + '회' : '바닥 후보 1회');
+  }
+
   function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice, options) {
     options = options || {};
     // 색·투명도는 모든 지지에 기존 지지 3, 모든 저항에 기존 저항 2 기준을 적용한다.
@@ -227,7 +302,7 @@
       return parts.join(' · ');
     }
     var all = itemsFor(result);
-    if (!all.length) return function () {};
+    if (!all.length && !(result && result.buyZone)) return function () {};
     var chartRoot = container.firstElementChild;
     if (chartRoot) chartRoot.classList.add('ss-lw-chart-root');
     var canvas = document.createElement('canvas');
@@ -285,6 +360,7 @@
         var shift = lastY - (height - 10);
         placed.forEach(function (p) { labelY.set(p.item, labelY.get(p.item) - shift); });
       }
+      drawBuyZone(ctx, right, height);
       all.forEach(function (item) {
         var y = candleSeries.priceToCoordinate(item.l.price);
         var yTop = candleSeries.priceToCoordinate(item.l.high);
@@ -340,6 +416,47 @@
         ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.colorRank] + ')';
         ctx.fillText(priceText, priceLeft + 7, ly + 0.5, Math.max(0, right - priceLeft - 11));
       });
+    }
+    // 매수 관찰 박스: 상·하단 실선(사용자가 그은 붉은 가로선과 같은 모양) + 옅은 면, 꼬리 최저가는 점선(손절 기준).
+    // 라벨은 지지·저항 라벨(오른쪽)과 겹치지 않게 왼쪽에 둔다. 현재가가 하단 1/3이면 면을 조금 진하게 칠한다.
+    function drawBuyZone(ctx, right, height) {
+      var zone = result && result.buyZone;
+      if (!zone) return;
+      var yTop = candleSeries.priceToCoordinate(zone.ceiling), yBot = candleSeries.priceToCoordinate(zone.floor);
+      var yStop = candleSeries.priceToCoordinate(zone.stop);
+      if (!Number.isFinite(yTop) || !Number.isFinite(yBot)) return;
+      var c = BUY_ZONE_COLOR, dark = global.document.documentElement.classList.contains('dark');
+      var top = Math.max(0, Math.min(yTop, yBot)), bottom = Math.min(height, Math.max(yTop, yBot));
+      if (bottom > top) {
+        ctx.fillStyle = 'rgba(' + c + ',' + (zone.status === 'lower' ? 0.13 : 0.06) + ')';
+        ctx.fillRect(0, top, right, bottom - top);
+      }
+      ctx.strokeStyle = 'rgba(' + c + ',.9)';
+      ctx.lineWidth = 1.6;
+      [yTop, yBot].forEach(function (y) {
+        if (y < 0 || y > height) return;
+        ctx.beginPath(); ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(right, Math.round(y) + 0.5); ctx.stroke();
+      });
+      if (Number.isFinite(yStop) && yStop >= 0 && yStop <= height && Math.abs(yStop - yBot) > 3) {
+        ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(' + c + ',.55)';
+        ctx.beginPath(); ctx.moveTo(0, Math.round(yStop) + 0.5); ctx.lineTo(right, Math.round(yStop) + 0.5); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (right < 160) return;
+      ctx.font = '600 11px Pretendard Variable, Pretendard, "Malgun Gothic", sans-serif';
+      function badge(text, y, solid) {
+        if (!Number.isFinite(y) || y < 10 || y > height - 10) return;
+        var w = ctx.measureText(text).width + 14;
+        roundedBox(ctx, 8, y - 10, Math.min(w, right - 16), 20, 10);
+        ctx.fillStyle = solid ? 'rgba(' + c + ',.92)' : (dark ? 'rgba(32,39,49,.94)' : 'rgba(255,254,252,.94)');
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(' + c + ',.8)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = solid ? '#fff' : 'rgba(' + c + ',1)';
+        ctx.fillText(text, 15, y + 0.5, right - 30);
+      }
+      badge('매수 박스 상단 ' + displayPrice(zone.ceiling), yTop - 13, false);
+      badge('매수 박스 하단 ' + displayPrice(zone.floor) + ' · ' + buyZoneText(zone), yBot + 13, true);
+      if (Number.isFinite(yStop) && Math.abs(yStop - yBot) > 30) badge('손절 기준 ' + displayPrice(zone.stop), yStop + 13, false);
     }
     function krxTickSize(value) {
       if (value < 2000) return 1;
@@ -397,6 +514,8 @@
 
   global.NineChartSR = {
     levels: supportResistanceLevels,
+    buyZone: buyZone,
+    buyZoneText: buyZoneText,
     install: function (container, chart, series, result, formatPrice, options) {
       ensureStyles();
       try { if (global.getComputedStyle(container).position === 'static') container.style.position = 'relative'; } catch (e) { /* 무시 */ }

@@ -323,7 +323,7 @@
     wrap.innerHTML = '<button type="button" class="nine-chart-options-trigger" aria-haspopup="dialog" aria-expanded="false"><span class="nine-chart-options-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 6-8"/><path d="M19 15v6M16 18h6"/></svg></span>보조지표</button>'
       + '<div class="nine-studies-backdrop" aria-hidden="true"></div>'
       + '<div class="nine-studies-pop" role="dialog" aria-label="보조지표 설정" hidden>'
-      + '<div class="nine-studies-list"><div class="nine-studies-head"><strong>보조지표</strong><button type="button" class="nine-studies-close" aria-label="닫기">×</button></div></div>'
+      + '<div class="nine-studies-list"><div class="nine-studies-head" title="끌어서 이동 · 두 번 눌러 원래 자리"><strong>보조지표</strong><button type="button" class="nine-studies-close" aria-label="닫기">×</button></div></div>'
       + '<div class="nine-studies-resize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="보조지표 목록 너비" aria-valuemin="200" aria-valuemax="380" aria-valuenow="246" title="드래그하여 목록 너비 조절"></div>'
       + '<div class="nine-studies-detail" aria-live="polite"></div></div>';
     row.parentNode.insertBefore(wrap, row);
@@ -383,9 +383,18 @@
     }
     wrap.__refresh = render;
     // 차트 패널의 overflow 에 잘리지 않도록 PC 에서는 버튼 위치 기준 fixed 로 띄운다(720px 이하는 CSS 하단 시트).
+    // 2026-11-13 사용자 지시: 차트를 눌러도 닫히지 않고(× · 보조지표 버튼 · Esc 로만 닫음) PC 에서는 머리줄을 끌어 옮긴다.
+    // 한 번 옮긴 위치는 스크롤·창 크기 변경에도 화면 안에서 유지한다(같은 페이지에서 다시 열어도 그 자리).
+    var moved = null;
+    function clampPos(left, top) {
+      var vw = doc.documentElement.clientWidth, vh = doc.documentElement.clientHeight;
+      var w = pop.offsetWidth || 320, h = pop.offsetHeight || 200;
+      return { left: Math.round(Math.max(8, Math.min(left, vw - w - 8))), top: Math.round(Math.max(8, Math.min(top, vh - Math.min(h, 48) - 8))) };
+    }
     wrap.__place = function () {
       var narrow = global.matchMedia && global.matchMedia('(max-width: 720px)').matches;
       if (narrow) { pop.style.top = pop.style.left = ''; return; }
+      if (moved) { var m = clampPos(moved.left, moved.top); pop.style.left = m.left + 'px'; pop.style.top = m.top + 'px'; return; }
       var r = trigger.getBoundingClientRect(), vw = doc.documentElement.clientWidth;
       var width = Math.min(660, vw - 32);
       pop.style.top = Math.round(r.bottom + 4) + 'px';
@@ -409,13 +418,28 @@
       wrap.__place();
     });
     wrap.querySelector('.nine-studies-close').addEventListener('click', function () { closeStudyPopover(true); });
-    wrap.querySelector('.nine-studies-backdrop').addEventListener('click', function () { closeStudyPopover(false); });
+    var head = wrap.querySelector('.nine-studies-head'), dragFrom = null;
+    head.addEventListener('pointerdown', function (event) {
+      if (event.button !== 0 || !event.isPrimary || event.target.closest('button')) return;
+      if (global.matchMedia && global.matchMedia('(max-width: 720px)').matches) return;   // 모바일은 하단 시트 고정
+      var r = pop.getBoundingClientRect();
+      dragFrom = { x: event.clientX, y: event.clientY, left: r.left, top: r.top };
+      head.setPointerCapture(event.pointerId);
+      wrap.classList.add('is-dragging');
+      event.preventDefault();
+    });
+    head.addEventListener('pointermove', function (event) {
+      if (!dragFrom || !head.hasPointerCapture(event.pointerId)) return;
+      moved = { left: dragFrom.left + event.clientX - dragFrom.x, top: dragFrom.top + event.clientY - dragFrom.y };
+      wrap.__place();
+    });
+    function endDrag() { dragFrom = null; wrap.classList.remove('is-dragging'); }
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
+    head.addEventListener('dblclick', function () { moved = null; wrap.__place(); });   // 두 번 누르면 원래 자리
     return wrap;
   }
   if (global.document && global.document.addEventListener) {
-    global.document.addEventListener('mousedown', function (event) {
-      if (openStudyPopover && !openStudyPopover.contains(event.target)) closeStudyPopover(false);
-    }, true);
     global.document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && openStudyPopover) closeStudyPopover(true);
     });

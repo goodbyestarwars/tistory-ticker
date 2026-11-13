@@ -60,9 +60,10 @@
 }
 .nine-studies-resize:hover, .nine-studies-resize:focus-visible { background: var(--ui-accent-soft); }
 .nine-studies-items [data-chart-wave-level] { flex-wrap: wrap; grid-column: 1 / -1; }
-.nine-studies-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px; }
+.nine-studies-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px; cursor: move; touch-action: none; user-select: none; }
+.nine-chart-options.is-dragging .nine-studies-pop { box-shadow: 0 18px 40px rgba(15, 23, 42, .22); }
 .nine-studies-head strong { font-size: 13px; font-weight: 600; color: var(--ui-muted); }
-.nine-studies-close { display: none; width: 30px; height: 30px; border: 0; background: transparent; color: var(--ui-muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.nine-studies-close { display: inline-block; width: 30px; height: 30px; border: 0; background: transparent; color: var(--ui-muted); font-size: 20px; line-height: 1; cursor: pointer; }
 .nine-studies-items { display: flex; flex-direction: column; align-items: stretch; gap: 2px; margin: 0; padding: 0; border: 0; }
 .nine-studies-items label {
   display: flex; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
@@ -105,15 +106,14 @@
 .nine-ma-reset { color: var(--ui-muted); font-weight: 500; }
 .nine-ma-add:hover, .nine-ma-reset:hover { background: var(--ui-accent-soft); }
 @media (max-width: 720px) {
-  .nine-chart-options.is-open .nine-studies-backdrop { display: block; position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .14); }
   .nine-studies-pop {
     position: fixed; z-index: 1001; top: auto; right: 0; bottom: 0; left: 0;
     grid-template-columns: 1fr; grid-template-rows: auto auto;
-    width: 100%; max-height: 82vh; border-radius: 16px 16px 0 0; overflow-y: auto;
+    width: 100%; max-height: 62vh; border-radius: 16px 16px 0 0; overflow-y: auto;
   }
   .nine-studies-list { border-right: 0; border-bottom: 1px solid var(--ui-rule); padding: 12px 12px 10px; overflow: visible; }
   .nine-studies-resize { display: none; }
-  .nine-studies-close { display: inline-block; }
+  .nine-studies-head { cursor: default; }
   .nine-studies-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 6px; }
   .nine-studies-detail { padding: 14px 16px 20px; overflow: visible; }
   .nine-ma-line { grid-template-columns: 36px 36px 66px 60px minmax(44px, 1fr) 24px; gap: 5px; }
