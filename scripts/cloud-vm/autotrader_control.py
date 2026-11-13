@@ -293,6 +293,42 @@ def _candidate_rows(rows):
     return out
 
 
+_DECISION_SCANNERS = {'pullback', 'doubleBottom', 'invHeadShoulders', 'maCloudBreakout', '9Pay intraday'}
+_DECISION_INTS = ('rank', 'ranked_total', 'slots_used', 'candidates', 'confirm_hits')
+_DECISION_NUMBERS = ('base', 'entry_vs_base_pct', 'avg', 'gain_pct', 'net_gain_pct',
+                     'peak_gain_pct', 'signal_price', 'checked_price')
+_DECISION_SCORE = ('traded_value_eok', 'avg_value_eok', 'volatility_penalty', 'trend_vs_20d')
+
+
+def _safe_decision(raw):
+    """주문 note 원문 대신 화면 복기에 필요한 비식별 수치만 허용한다."""
+    if not isinstance(raw, dict):
+        return {}
+    out = {}
+    if raw.get('scanner') in _DECISION_SCANNERS:
+        out['scanner'] = raw['scanner']
+    scan_day = str(raw.get('scan_date') or '')
+    if re.fullmatch(r'\d{4}-\d{2}-\d{2}', scan_day):
+        out['scan_date'] = scan_day
+    for key in _DECISION_INTS:
+        val = _int(raw.get(key))
+        if val is not None and 0 <= val <= 1000000:
+            out[key] = val
+    for key in _DECISION_NUMBERS:
+        val = _float(raw.get(key))
+        if val is not None and abs(val) < 1e10:
+            out[key] = val
+    if isinstance(raw.get('score'), dict):
+        score = {}
+        for key in _DECISION_SCORE:
+            val = _float(raw['score'].get(key))
+            if val is not None and abs(val) < 1e10:
+                score[key] = val
+        if score:
+            out['score'] = score
+    return out
+
+
 def sanitize_activity(raw):
     """에이전트가 올린 주문·보유·후보 목록을 화면용 필드만 남기고 걸러 저장한다.
 
@@ -308,7 +344,8 @@ def sanitize_activity(raw):
             continue
         orders.append({'no': _int(row.get('no')), 'ts': _text(row.get('ts'), 32), 'code': row['code'], 'name': _text(row.get('name'), 24), 'side': side,
                        'qty': _int(row.get('qty')), 'price': _int(row.get('price')),
-                       'state': _text(row.get('state'), 12), 'reason': _text(row.get('reason'), 16)})
+                       'state': _text(row.get('state'), 12), 'reason': _text(row.get('reason'), 24),
+                       'decision': _safe_decision(row.get('decision'))})
     for row in (raw.get('positions') or [])[:100]:
         if isinstance(row, dict) and _CODE_RE.match(str(row.get('code') or '')):
             positions.append({'code': row['code'], 'name': _text(row.get('name'), 24), 'qty': _int(row.get('qty')),
@@ -316,7 +353,24 @@ def sanitize_activity(raw):
                               'avg': _int(row.get('avg'))})
     block = raw.get('candidates') if isinstance(raw.get('candidates'), dict) else {}
     cands = _candidate_rows(block.get('rows'))
-    result = {'orders': orders, 'positions': positions, 'candidates': {'scanDate': _text(block.get('scanDate'), 10), 'rows': cands}}
+    skips = []
+    for row in (raw.get('skips') or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        day, code = str(row.get('day') or ''), str(row.get('code') or '')
+        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', day) or (code != '*' and not _CODE_RE.fullmatch(code)):
+            continue
+        skips.append({'day': day, 'code': code, 'reason': _text(row.get('reason'), 48),
+                      'count': _int(row.get('count'))})
+    bot_orders = []
+    for row in (raw.get('botOrders') or [])[:200]:
+        if not isinstance(row, dict) or not _CODE_RE.fullmatch(str(row.get('code') or '')):
+            continue
+        bot_orders.append({'ts': _text(row.get('ts'), 32), 'code': row['code'], 'name': _text(row.get('name'), 24),
+                           'qty': _int(row.get('qty')), 'reason': _text(row.get('reason'), 48),
+                           'status': _text(row.get('status'), 16)})
+    result = {'orders': orders, 'positions': positions, 'skips': skips, 'botOrders': bot_orders,
+              'candidates': {'scanDate': _text(block.get('scanDate'), 10), 'rows': cands}}
     if isinstance(block.get('history'), list):
         result['candidates']['history'] = [{'scanDate': _text(day.get('scanDate'), 10), 'rows': _candidate_rows(day.get('rows'))}
                                            for day in block['history'][:ACTIVITY_MAX_HISTORY_DATES] if isinstance(day, dict)]
