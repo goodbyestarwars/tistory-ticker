@@ -197,8 +197,8 @@
 
   // ---- 매수 관찰 박스(2026-11-13 사용자 요청: 직접 그은 두 가로선 "이 안으로 들어오면 매수할 수 있게 자동으로") ----
   // 사람이 바닥 박스를 긋는 순서를 그대로 따른다(고정 봉 수가 아니라 모양 우선, 폭은 ATR·가격에 맞춘다).
-  //  1) 하단: 최근 약 1년 최저가 근처(ATR 0.8배·2.5% 중 큰 폭)에 닿은 구간을 10봉 이상 떨어진 '방문'으로 묶는다.
-  //     2회 이상이면 이중 바닥(확인), 1회면 후보. 선은 그 방문들의 가장 낮은 종가(몸통 하단), 꼬리 최저가는 손절 기준선.
+  //  1) 하단: 최근 1년 고점 이후 조정 최저가(앵커) 근처(ATR 0.8배·2.5% 중 큰 폭)에 닿은 구간을 10봉 이상 떨어진 '방문'으로
+  //     묶는다(고점 이전 옛 바닥 재시험 포함). 2회 이상이면 이중 바닥, 1회면 후보. 선은 몸통 하단, 앵커 꼬리는 손절 기준선.
   //  2) 상단: 하단 위(ATR 2배·8% 이상 ~ 45% 이내)에서 종가가 가장 오래 머문 가격대(최근일수록 가중) = 급락 직전 받침이자
   //     되돌림 저항. 이 범위에 머문 자리가 없으면 박스를 만들지 않는다.
   //  3) 현재가가 상단 25% 위로 멀리 있으면 지금 자리와 무관하므로 그리지 않는다.
@@ -219,20 +219,29 @@
       trSum += Math.max(Number(arr[t].high), pc) - Math.min(Number(arr[t].low), pc); trN++;
     }
     var atr = trN ? trSum / trN : last * 0.03;
-    var minLow = Infinity;
-    arr.forEach(function (b) { minLow = Math.min(minLow, Number(b.low)); });
-    var tol = Math.max(atr * 0.8, minLow * 0.025);
+    // 하단 기준(앵커): 최근 1년 최고가 이후 조정의 최저가. 1년 최저가로 잡으면 상승 뒤 눌림 종목(삼성전자 등)은
+    // 현재가와 동떨어진 바닥만 남는다(2026-11-13 사용자 지적). 조정 폭이 ATR 4배·고점의 15%보다 작으면 박스로 보지 않는다.
+    var peakIdx = 0;
+    for (var h = 1; h < len; h++) if (Number(arr[h].high) >= Number(arr[peakIdx].high)) peakIdx = h;
+    var anchor = Infinity;
+    for (var a = peakIdx; a < len; a++) anchor = Math.min(anchor, Number(arr[a].low));
+    var peakHigh = Number(arr[peakIdx].high);
+    if (!(anchor < price) || peakHigh - anchor < Math.max(atr * 4, peakHigh * 0.15)) return null;
+    // 방문: 앵커 위아래 허용폭 안에 저가가 닿은 구간(10봉 이상 떨어지면 별도 방문). 고점 이전의 옛 바닥 재시험도 센다.
+    var tol = Math.max(atr * 0.8, anchor * 0.025);
     var visits = [], cur = null;
     for (var i = 0; i < len; i++) {
-      if (Number(arr[i].low) > minLow + tol) continue;
+      if (Math.abs(Number(arr[i].low) - anchor) > tol) continue;
       if (!cur || i - cur.end >= 10) { cur = { start: i, end: i, minClose: Infinity, minLow: Infinity }; visits.push(cur); }
       cur.end = i;
       cur.minClose = Math.min(cur.minClose, Number(arr[i].close));
       cur.minLow = Math.min(cur.minLow, Number(arr[i].low));
     }
     if (!visits.length) return null;
+    // 하단선: 방문들의 가장 낮은 종가(몸통 하단)를 쓰되 앵커 아래로는 내리지 않고, 앵커 위 허용폭 절반을 넘지 않는다.
     var floor = Infinity;
     visits.forEach(function (v) { floor = Math.min(floor, v.minClose); });
+    floor = Math.min(Math.max(floor, anchor), anchor + tol / 2);
     var lo = floor * (1 + Math.max(2 * atr / floor, 0.08)), hi = floor * 1.45;
     var bw = Math.max(atr * 0.6, floor * 0.015), step = floor * 0.005;
     var dens = [];
@@ -251,10 +260,10 @@
       if (dens[k].d >= prev && dens[k].d >= next && dens[k].d >= maxD * 0.6) { peak = dens[k]; break; }
     }
     if (!peak || peak.d < 3) return null;   // 하단 위에서 머문 자리가 거의 없으면 박스로 보지 않는다
-    var ceiling = peak.price;
+    // 체류 봉우리는 가격대의 중심이므로, 사람이 긋는 위쪽 경계(받침이 깨진 자리)에 맞춰 폭의 절반만큼 올린다.
+    var ceiling = peak.price + bw * 0.5;
     if (price > ceiling * 1.25) return null;
-    var stop = Infinity;
-    visits.forEach(function (v) { stop = Math.min(stop, v.minLow); });
+    var stop = anchor;
     var pos = (price - floor) / (ceiling - floor);
     var status = price < stop * 0.99 ? 'below' : (price > ceiling ? 'above' : (pos <= 0.34 ? 'lower' : 'inside'));
     return {
@@ -266,7 +275,7 @@
   var BUY_ZONE_STATUS = { lower: '박스 하단 1/3 · 매수 관찰', inside: '박스 안', above: '박스 상단 위', below: '하단 이탈 · 관망' };
   function buyZoneText(zone) {
     if (!zone) return '';
-    return (BUY_ZONE_STATUS[zone.status] || '') + ' · ' + (zone.confirmed ? '이중 바닥 ' + zone.visits + '회' : '바닥 후보 1회');
+    return (BUY_ZONE_STATUS[zone.status] || '') + ' · ' + (zone.confirmed ? '바닥 ' + zone.visits + '회 확인' : '바닥 후보 1회');
   }
 
   function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice, options) {
