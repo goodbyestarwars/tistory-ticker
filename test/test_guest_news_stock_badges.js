@@ -15,9 +15,12 @@ const context = {
     ] }
   }
 };
+vm.runInNewContext(fs.readFileSync('js/news-stock-matcher.js', 'utf8'), context);
 vm.runInNewContext(fs.readFileSync('js/guest-home.js', 'utf8'), context);
 const related = (title, title_ko) => Array.from(context.window.NineGuestHome.relatedStocks({title, title_ko}), row => row.name);
 assert.deepEqual(related('삼성전자·SK하이닉스, 반도체 설비 투자 확대'), ['삼성전자', 'SK하이닉스']);
+assert.deepEqual(related('엔비디아 충격에 삼성전자·SK하이닉스 강세'), ['엔비디아', '삼성전자', 'SK하이닉스']);
+assert.deepEqual(related('젠슨 황 CEO 사임 소식'), ['엔비디아']);
 assert.deepEqual(related('카카오뱅크 실적 호조'), ['카카오뱅크']);
 assert.deepEqual(related('TIGER 미국나스닥100 ETF 인기'), []);
 assert.deepEqual(related('한국은행 기준금리 동결…환율 안정'), []);
