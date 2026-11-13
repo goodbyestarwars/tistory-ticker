@@ -704,11 +704,12 @@
   }
 
   // 에이전트가 올린 주문·보유·연구 후보(서버가 허용 필드만 남김). 주문번호·계좌·잔고는 받지 않는다.
-  var ACT_REASON = { ENTRY: '신규 진입', STOP_3: '손절(-3%)', TRAIL_2_5: '추적 청산(고점 -2.5%)', STOP_EMERGENCY: '긴급 손절' };
+  var ACT_REASON = { ENTRY: '연구 후보 신규 진입', NINEPAY_ENTRY: '9Pay 장중 단타 진입', TARGET_ENTRY: '목표가 진입', STOP_3: '손절(-3%)', TRAIL_2_5: '추적 청산(고점 -2.5%)', STOP_EMERGENCY: '긴급 손절' };
   var ACT_STATE = { ACK: '접수됨 · 체결 확인 전', FILLED: '체결', UNKNOWN: '확인 필요', SENT: '전송됨' };
   var SCANNER_LABEL = { pullback: '눌림목', maCloudBreakout: '구름대 돌파', doubleBottom: '쌍바닥', invHeadShoulders: '역헤드앤숄더' };
   var ORDERS_FIRST = 30;
   var activityRange = { from: '', to: '' };
+  var reviewDay = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
   var lastActivity = null;
 
   function actName(row) {
@@ -780,13 +781,105 @@
       + '<th class="n">평가금액</th><th class="n">평가손익</th><th class="n">수익률</th><th>상태</th><th>매수일</th></tr></thead><tbody>' + body + '</tbody></table></div>'
       + '<p class="at-note">' + note + '</p>';
   }
+
+  // 매수·매도 근거는 주문 당시 장부 note의 비식별 허용 필드만 사용한다.
+  // 검색기 후보 설명은 동일 스캔일/종목/검색기일 때만 함께 보여 주며 사후 판단을 섞지 않는다.
+  function reviewCandidate(a, o) {
+    var d = o.decision || {}, block = a.candidates || {};
+    if (!d.scan_date || !d.scanner) return null;
+    var days = [{ scanDate: block.scanDate, rows: block.rows || [] }].concat(block.history || []);
+    for (var i = 0; i < days.length; i++) {
+      if (days[i].scanDate !== d.scan_date) continue;
+      var found = (days[i].rows || []).find(function (c) {
+        return c.code === o.code && c.scanner === d.scanner;
+      });
+      if (found) return found;
+    }
+    return null;
+  }
+  function reviewDecisionHtml(o, a) {
+    var d = o.decision || {}, out = [], buy = o.side === 'BUY';
+    function add(text) { if (text) out.push('<li>' + esc(text) + '</li>'); }
+    if (buy) {
+      var scanner = SCANNER_LABEL[d.scanner] || d.scanner;
+      if (scanner) add('선정 검색기: ' + scanner + (d.scan_date ? ' · 기준일 ' + d.scan_date : ''));
+      else if (o.reason === 'NINEPAY_ENTRY') add('전략: 9Pay 장중 단타');
+      else if (o.reason === 'TARGET_ENTRY') add('전략: 등록된 목표가 조건');
+      else add('검색기 상세 근거는 아직 수신되지 않았습니다.');
+      if (d.rank != null && d.ranked_total != null) add('적격 후보 순위 ' + d.rank + '/' + d.ranked_total + ' · 당시 스캔 후보 ' + (d.candidates == null ? '미기록' : d.candidates) + '개');
+      if (d.base != null && d.entry_vs_base_pct != null) add('전일 기준가 ' + fmtPrice(d.base) + '원 대비 주문 시점 ' + pct(d.entry_vs_base_pct));
+      if (d.signal_price != null) add('9Pay 신호가 ' + fmtPrice(d.signal_price) + '원 · 주문 기준가 ' + fmtPrice(o.price) + '원');
+      if (d.score) {
+        var score = d.score;
+        if (score.traded_value_eok != null && score.avg_value_eok != null) {
+          add('직전 거래대금 ' + score.traded_value_eok + '억 · 최근 20일 평균 ' + score.avg_value_eok + '억 (단순 감소만으로 부정적 판단하지 않음)');
+        }
+        if (score.trend_vs_20d != null) add('20일선 대비 ' + pct(score.trend_vs_20d * 100) + ' · 순위 계산 기준');
+      }
+      var cand = reviewCandidate(a, o);
+      if (cand && Array.isArray(cand.reasons) && cand.reasons.length) {
+        cand.reasons.forEach(function (reason) { add('검색 당시 패턴 근거: ' + reason); });
+      } else if (d.scanner) {
+        add('검색기의 어깨·넥라인 등 세부 원본 근거는 해당 스캔 이력에서 확인 필요');
+      }
+    } else {
+      if (o.reason === 'STOP_3') add('매입가 대비 -3% 이하 연속 확인에 따른 손절 판단');
+      else if (o.reason === 'STOP_EMERGENCY') add('매입가 대비 -5% 이하 비상 손절 판단');
+      else if (o.reason === 'TRAIL_2_5') add('수익률 +3% 도달 후 관측 고점 대비 -2.5% 연속 이탈에 따른 추적 청산');
+      else add('매도 사유: ' + (ACT_REASON[o.reason] || o.reason || '미기록'));
+      if (d.avg != null) add('판단 당시 매입 평단 ' + fmtPrice(d.avg) + '원 · 판단 기준가 ' + fmtPrice(o.price) + '원');
+      if (d.gain_pct != null) add('판단 당시 평단 대비 ' + pct(d.gain_pct) + ' (실현손익 아님)');
+      if (d.peak_gain_pct != null) add('관측 최고 수익률 ' + pct(d.peak_gain_pct));
+      if (d.confirm_hits != null) add('연속 조건 확인 ' + d.confirm_hits + '회');
+      if (d.gain_pct == null) add('매도 당시 수익률·연속 확인 횟수는 미수신');
+    }
+    return '<ul class="at-review-why">' + out.join('') + '</ul>';
+  }
+  function decisionLogHtml(a) {
+    var all = a.orders || [], bot = a.botOrders || [], skips = a.skips || [];
+    var selected = all.filter(function (o) { return !reviewDay || String(o.ts || '').slice(0, 10) === reviewDay; }).slice(0, 50);
+    var botSelected = bot.filter(function (o) { return !reviewDay || String(o.ts || '').slice(0, 10) === reviewDay; }).slice(0, 30);
+    var skipped = skips.filter(function (o) { return !reviewDay || o.day === reviewDay; }).slice(0, 20);
+    var html = '<div class="at-hd"><h3>매매 판단 로그</h3><span class="at-sub">Google VM 장부 · 읽기 전용 · KST</span></div>';
+    html += '<div class="at-review-tools"><label>거래일 <input type="date" data-trade-day value="' + esc(reviewDay) + '"></label>'
+      + '<button class="at-mini" type="button" data-trade-all>전체 최근 기록</button><span class="at-mute">선택 날짜의 주문 판단을 보여줍니다.</span></div>';
+    if (!selected.length && !botSelected.length) html += '<p class="at-empty">해당 기간의 주문 기록이 없거나 에이전트에서 아직 전송하지 않았습니다.</p>';
+    else {
+      html += '<div class="at-review-list">';
+      selected.forEach(function (o) {
+        var buy = o.side === 'BUY';
+        html += '<article class="at-review-item ' + (buy ? 'is-buy' : 'is-sell') + '"><div class="at-review-top"><span class="at-review-side">' + (buy ? '매수 주문' : '매도 주문') + '</span>'
+          + '<time>' + esc(String(o.ts || '').slice(0, 19).replace('T', ' ')) + '</time><span class="at-review-state">' + esc(ACT_STATE[o.state] || o.state || '미확인') + '</span></div>'
+          + '<div class="at-review-name">' + actName(o) + ' · ' + (o.qty == null ? '-' : esc(o.qty)) + '주 · 주문 기준가 ' + fmtPrice(o.price) + '원</div>'
+          + '<div class="at-review-key">' + esc(ACT_REASON[o.reason] || o.reason || '판단 사유 없음') + '</div>'
+          + reviewDecisionHtml(o, a) + '</article>';
+      });
+      botSelected.forEach(function (o) {
+        html += '<article class="at-review-item is-sell"><div class="at-review-top"><span class="at-review-side">별도 매도봇</span><time>' + esc(String(o.ts || '').slice(0, 19).replace('T', ' ')) + '</time>'
+          + '<span class="at-review-state">' + esc(o.status || '미확인') + '</span></div>'
+          + '<div class="at-review-name">' + actName(o) + ' · ' + (o.qty == null ? '-' : esc(o.qty)) + '주</div>'
+          + '<div class="at-review-key">' + esc(o.reason || '매도 사유 미기록') + '</div>'
+          + '<p class="at-note">엔진이 아닌 감시 봇의 별도 기록이며 실제 체결가·손익은 미확인입니다.</p></article>';
+      });
+      html += '</div>';
+    }
+    if (skipped.length) {
+      html += '<details class="at-more" data-act-more="skips"' + (activityOpen.skips ? ' open' : '') + '><summary>매수하지 않은 이유 (' + skipped.length + '개 사유 · 표시 최대 20건)</summary>'
+        + '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th>차단·탈락 사유</th><th class="n">기록 횟수</th></tr></thead><tbody>'
+        + skipped.map(function (row) { return '<tr><td>' + esc(row.code) + '</td><td>' + esc(row.reason) + '</td><td class="n">' + esc(row.count == null ? '-' : row.count) + '</td></tr>'; }).join('')
+        + '</tbody></table></div><p class="at-note">횟수는 같은 종목·사유의 반복 기록이며 서로 다른 종목 수가 아닙니다.</p></details>';
+    }
+    html += '<p class="at-note">이 로그는 주문 판단·접수 기록입니다. ACK·SENT는 체결 확정이 아니며 주문 기준가도 실제 체결가와 다를 수 있습니다. 과거 장부에 근거가 없으면 복원한 것처럼 표시하지 않습니다.</p>';
+    return html;
+  }
+
   function activityHtml(a) {
     if (!a) return '<section class="at-card at-act"><h3>주문 내역</h3><p class="at-empty">에이전트가 아직 내역을 올리지 않았습니다. 설치 직후에는 최대 1분 걸립니다.</p></section>';
     var orders = a.orders || [], positions = a.positions || [], cand = a.candidates || {}, rows = cand.rows || [];
     // The private VM name cache is not exhaustive; resolve missing names from the
     // shared site dictionary for orders, open positions and research candidates.
     if (!global.KRX_MAP && orders.concat(positions, rows).some(function (r) { return r && r.code && !r.name; })) loadKrxMap();
-    var html = '<section class="at-card at-act"><div class="at-hd"><h3>보유 종목</h3><span class="at-sub">장부의 열린 포지션 · 현재가는 사이트 시세</span></div>';
+    var html = '<section class="at-card at-act">' + decisionLogHtml(a) + '<div class="at-hd at-subhead"><h3>보유 종목</h3><span class="at-sub">장부의 열린 포지션 · 현재가는 사이트 시세</span></div>';
     if (positions.length) loadPositionQuotes(positions);
     html += positions.length ? positionsHtml(positions, posQuotes.map) : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
     html += '<div class="at-hd at-subhead"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
@@ -829,8 +922,11 @@
     var span = (activityRange.from || 'all') + '_' + (activityRange.to || 'all');
     if (kind === 'orders') {
       var list = (a.orders || []).filter(function (o) { return inRange(String(o.ts || '').slice(0, 10)); }).reverse();
-      saveCsv('autotrader-orders_' + span + '.csv', '번호,시각,종목코드,종목명,구분,수량,주문가,사유,상태', list.map(function (o) {
-        return [o.no, o.ts, o.code, o.name || krxName(o.code), o.side === 'BUY' ? '매수' : '매도', o.qty, o.price, ACT_REASON[o.reason] || o.reason, ACT_STATE[o.state] || o.state].map(csvCell).join(',');
+      saveCsv('autotrader-orders_' + span + '.csv', '번호,시각,종목코드,종목명,구분,수량,주문가,사유,상태,검색기,스캔일,후보순위,전체적격,기준가,진입대비%,손절당시%,최고수익%,연속확인', list.map(function (o) {
+        var d = o.decision || {};
+        return [o.no, o.ts, o.code, o.name || krxName(o.code), o.side === 'BUY' ? '매수' : '매도', o.qty, o.price,
+          ACT_REASON[o.reason] || o.reason, ACT_STATE[o.state] || o.state, SCANNER_LABEL[d.scanner] || d.scanner, d.scan_date,
+          d.rank, d.ranked_total, d.base, d.entry_vs_base_pct, d.gain_pct, d.peak_gain_pct, d.confirm_hits].map(csvCell).join(',');
       }));
       return;
     }
@@ -1022,7 +1118,7 @@
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
-    root.innerHTML = controlHtml(c) + targetBuyHtml(c) + allocPreviewHtml() + activityHtml(c.activity) + scheduleHtml(scheduleCache);
+    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c) + allocPreviewHtml() + scheduleHtml(scheduleCache);
     var allocForm = root.querySelector('[data-alloc-form]');
     if (allocForm) {
       var onAllocInput = function (event) {
@@ -1086,6 +1182,10 @@
     });
     var details = root.querySelector('[data-schedule-details]');
     if (details) details.addEventListener('toggle', function () { scheduleExpanded = details.open; });
+    var day = root.querySelector('[data-trade-day]');
+    if (day) day.addEventListener('change', function () { reviewDay = day.value; renderControl(lastControl); });
+    var allBtn = root.querySelector('[data-trade-all]');
+    if (allBtn) allBtn.addEventListener('click', function () { reviewDay = ''; renderControl(lastControl); });
     var from = root.querySelector('[data-act-from]'), to = root.querySelector('[data-act-to]');
     if (from) from.addEventListener('change', function () { activityRange.from = from.value; });
     if (to) to.addEventListener('change', function () { activityRange.to = to.value; });
