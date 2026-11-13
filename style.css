@@ -8080,11 +8080,12 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
 
 /* 우측 관심종목 서랍 손잡이 : 검은 면 + 흰 글씨, 모서리 0 */
 html body .global-watchlist-toggle {
-  border: 1px solid rgba(var(--np-ink), .12) !important;
+  --wl-toggle-bg: #ff3b30;
+  border: 1px solid var(--wl-toggle-bg) !important;
   border-right: 0 !important;
   border-radius: 12px 0 0 12px !important;
-  background: var(--np-paper) !important;
-  color: rgb(var(--np-ink)) !important;
+  background: var(--wl-toggle-bg) !important;
+  color: #fff !important;
   box-shadow: none !important;
 }
 
@@ -9170,7 +9171,7 @@ html.dark .briefing-search small { color: var(--dk-mute); }
 
 /* ===== 다크 보정 2 (2026-10-24): 라이트 전용 호버·서랍 흰/검은 면 ===== */
 @layer np {
-html.dark body .global-watchlist-toggle { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark body .global-watchlist-toggle { background: var(--wl-toggle-bg) !important; border-color: var(--wl-toggle-bg) !important; color: #fff !important; }
 html.dark body .global-watchlist-panel .wl-input { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
 html.dark body .global-watchlist-panel .wl-input:focus { border-color: var(--dk-mute) !important; background: var(--dk-inner) !important; }
 html.dark .home-settings-button:hover, html.dark .home-reset-button:hover, html.dark .home-widget-drag:hover, html.dark .home-widget-menu-button:hover, html.dark .home-briefing-more:hover { background: var(--dk-hover) !important; }
