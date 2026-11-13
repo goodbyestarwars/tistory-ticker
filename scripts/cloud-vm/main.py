@@ -1106,10 +1106,11 @@ def _access_denied(request_like):
 
 @app.get('/access-policy')
 def access_policy_get(request: Request):
+    from fastapi.responses import JSONResponse
     session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
-    data = access_policy.view(bool(session), _site_admin(session))
+    data = access_policy.view(bool(session), _site_admin(session), access_policy.is_member(session))
     data['naverConfigured'] = bool(NAVER_AUTH.configured and GOOGLE_AUTH.session_secret)  # 로그인 랜딩의 네이버 버튼 표시용
-    return envelope(data)
+    return JSONResponse(envelope(data), headers={'Cache-Control': 'no-store', 'Vary': 'Cookie'})
 
 
 @app.put('/access-policy')
@@ -1128,6 +1129,35 @@ async def access_policy_put(request: Request):
     except OSError:
         raise HTTPException(status_code=500, detail='저장에 실패해 이전 설정을 유지합니다.') from None
     return envelope(access_policy.view(True, True))
+
+
+@app.get('/access-policy/members')
+def access_members_get(request: Request):
+    from fastapi.responses import JSONResponse
+    _autotrader_admin(request)
+    _check_rate_limit('access_members_get', request, max_per_window=30)
+    try:
+        return JSONResponse(envelope(access_policy.members_view()), headers={'Cache-Control': 'no-store', 'Vary': 'Cookie'})
+    except (OSError, ValueError, TypeError):
+        raise HTTPException(status_code=503, detail='회원 목록을 읽을 수 없습니다.') from None
+
+
+@app.put('/access-policy/members')
+async def access_members_put(request: Request):
+    session = _autotrader_admin(request, write=True)
+    _check_rate_limit('access_members_put', request, max_per_window=20)
+    raw = await request.body()
+    if len(raw) > 2048:
+        raise HTTPException(status_code=413, detail='요청이 너무 큽니다.')
+    try:
+        body = json.loads(raw)
+        if not isinstance(body, dict):
+            raise ValueError('요청 형식 오류')
+        return envelope(access_policy.update_member(body.get('email'), body.get('action'), session.get('email')))
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail='회원 이메일 또는 저장 형식을 확인해 주세요.') from None
+    except OSError:
+        raise HTTPException(status_code=500, detail='저장에 실패했습니다. 목록을 다시 확인해 주세요.') from None
 
 
 @app.get('/auth/google/logout')

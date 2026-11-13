@@ -587,3 +587,10 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 ### 선물 수급 관측 이력 (2026-11-13)
 
 `/futures/investor-flow`에 `historyDate`(KST 서버 관측일 또는null), `observations[{ts,foreign,institution,individual}]`(UTC epoch초·누적정수계약), `observationBasis:server-retrieval-time`, `observationIntervalMinutes:5` 추가. 기존 관리자권한/5분캐시/실패처리·현재 스냅샷 계약 유지. 기존 investor_trend 폴러가 한국거래일08:45~15:45 KST 중 새로 받은60초 이내 유효스냅샷만 기존DB에저장한다. 장외/휴일/실패/오래된캐시는 저장하지 않는다. 첫관측 전·누락 구간을 소급 생성하지 않는다. 공급자 집계시각/정확한 체결/특정월물 포지션이 아니다. 프론트는30분 슬롯의 마지막관측과 바로직전슬롯(공백40분 이하)만 차분, 같은날 가격과만 연동한다.
+
+
+### 화면 정책·일반회원 허용목록 (2026-11-14)
+
+`GET /access-policy`는 기존 envelope와 `screens[].allowed`를 유지하고 `isMember`(검증된 Google 이메일 허용목록 여부)를 추가한다. 개인 응답은 no-store. 화면 키 `scanner`/`strategy`는 관리자 전용이며 확대된 일반 화면과 분리한다. 기존 roles/screens PUT 호환. 일반회원 화면 허용은 제한 시세 REST/WS 또는 주문 권한을 부여하지 않는다.
+
+`GET /access-policy/members`: Google 관리자 세션만 `{emails, revision, audit}`(최근20건) 반환. `PUT /access-policy/members`: Google 관리자+허용 Origin+빈도 제한, JSON `{email, action: "add" | "remove"}`. 정규화/중복 멱등/최대1000명/입력254자/본문2048바이트 제한. 오류 400(입력)/403(권한·Origin)/413(크기)/429(빈도)/500(저장)/503(목록 읽기). 비공개 파일·감사·서명 세션·재로그인·해제 동작은 [접근 정책](docs/ACCESS_POLICY_2026-11-11.md) 참조. 공개/일반회원 응답에 이메일 목록·감사를 포함하지 않는다.

@@ -25,20 +25,33 @@ function boot(path, search, policyFn, session, local) {
 }
 const policy = (admin, off = [], authed = admin) => () => Promise.resolve({ ok: true, json: () => Promise.resolve({ data: {
   isAdmin: admin, authenticated: authed,
-  screens: Object.fromEntries(['guestbook','calendar','briefing','news','indicators','home','stocks','tools','my','market-temp','autotrader','kis'].map(k => {
+  screens: Object.fromEntries(['guestbook','calendar','briefing','news','indicators','home','stocks','scanner','strategy','tools','my','market-temp','autotrader','kis'].map(k => {
     const pub = ['guestbook','calendar','briefing','news'].includes(k); const en = !off.includes(k);
     return [k, { public: pub, enabled: en, allowed: en && (pub || (k === 'indicators' && authed) || admin) }]; })) } }) });
 const fail = () => Promise.reject(new TypeError('network'));
 const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {
+  const memberPolicy = async () => {
+    const r = await policy(true)(); const body = await r.json(); body.data.isAdmin = false;
+    ['scanner','strategy','autotrader','kis'].forEach(k => body.data.screens[k].allowed = false);
+    return {ok:true,json:async()=>body};
+  };
+  for (const path of ['/page/pattern-scan','/pages/strategy-search/','/page/auto-trader']) {
+    const m = boot(path,'',memberPolicy); await wait();
+    assert.deepStrictEqual(m.calls.replace,['/guestbook'],path);
+  }
+  const m=boot('/page/stock-search','',memberPolicy); await wait();
+  assert.deepStrictEqual(m.calls.replace,[]); assert(!m.win.NineAccess.isAdmin());
+  assert(m.win.NineAccess.allowsHref('/page/watchlist'));
+  assert(!m.win.NineAccess.allowsHref('/page/pattern-scan'));
   // 경로 → 화면
   const { win } = boot('/guestbook', '', policy(false));
   const s = win.NineAccess.screenOf;
   const table = [['/', '', 'home'], ['/guestbook', '', 'guestbook'], ['/page/stock-calendar', '', 'calendar'], ['/pages/stock-calendar', '', 'calendar'],
     ['/category/' + encodeURIComponent('마켓 브리핑'), '', 'briefing'], ['/category/마켓 브리핑/', '', 'briefing'], ['/pages/kospi-futures', '?x=1', 'indicators'],
     ['/pages/overnight-market', '', 'indicators'], ['/page/market-temp', '?view=stocks', 'stocks'], ['/page/market-temp', '', 'market-temp'],
-    ['/page/foreign-flow', '?code=005930', 'stocks'], ['/page/pattern-scan', '', 'stocks'], ['/page/stock-search', '?tool=independent-chart', 'tools'],
+    ['/page/foreign-flow', '?code=005930', 'stocks'], ['/page/pattern-scan', '', 'scanner'], ['/page/stock-search', '?tool=independent-chart', 'tools'],
     ['/page/watchlist', '', 'my'], ['/page/auto-trader', '', 'autotrader'], ['/123', '', ''], ['/page/learn-x', '', '']];
   table.forEach(([p, q, k]) => assert.strictEqual(s(p, q), k, p + q));
   assert.strictEqual(win.NineAccess.screenOfHref('https://goodbyestar.cloud/kis-tool/'), 'kis');
@@ -79,7 +92,7 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   assert(ran); assert.deepStrictEqual(b.calls.replace, []); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
   b = boot('/', '?view=market', policy(true)); ran = false; b.win.NineAccess.run(() => { ran = true; }); await wait();
   assert(ran); assert.deepStrictEqual(b.calls.replace, []); assert(!b.calls.scripts.some((u) => /guest-home/.test(u)));
-  assert.strictEqual(b.win.NineAccess.screenOfHref('/?view=market'), '@admin');
+  assert.strictEqual(b.win.NineAccess.screenOfHref('/?view=market'), 'home');
   // 입장 전 비로그인의 '/'도 대화방으로 보내지 않고 비회원 홈 위에 로그인 창(랜딩)을 덮는다
   b = boot('/', '', policy(false)); await wait();
   assert.deepStrictEqual(b.calls.replace, []); assert(b.calls.scripts.some((u) => /guest-home/.test(u))); assert(b.calls.scripts.some((u) => /access-landing\.js/.test(u)));
@@ -126,3 +139,4 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   assert(!adminRan);
   console.log('access-gate: all passed');
 })().catch((e) => { console.error(e); process.exit(1); });
+

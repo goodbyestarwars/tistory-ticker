@@ -136,6 +136,7 @@ class GoogleAuthService:
             'email': user['email'],
             'name': user.get('name', ''),
             'provider': user.get('provider', 'google'),
+            'email_verified': user.get('email_verified') is True,
             'iat': now,
             'exp': now + 7 * 24 * 60 * 60,
         }
@@ -205,6 +206,7 @@ class GoogleAuthService:
             'sub': str(payload['sub']),
             'email': str(payload['email']).strip().lower(),
             'name': str(payload.get('name') or ''),
+            'email_verified': True,
         }
 
     def _get_jwks(self):

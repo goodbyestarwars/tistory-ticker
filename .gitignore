@@ -95,3 +95,7 @@ scanner_observation.json*
 quant-autotrade/**/order_names.json
 quant-autotrade/**/order_fills.json
 scripts/cloud-vm/us_options_volume_history.json
+
+# Private member allowlist and administrator audit (VM only)
+**/access_members_state.json
+**/access_members_state.json.lock

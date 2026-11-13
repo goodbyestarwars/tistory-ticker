@@ -403,7 +403,7 @@
     var searchMount = document.getElementById('navSearchMount');
     var mount = document.getElementById('nav-menu-mount');
     // 종목 검색창은 관리자 세션 확인 뒤에만 만든다(비로그인·일반 회원에게는 검색 UI와 제한 API 호출 없음).
-    var adminSearch = !!(window.NineAccess && window.NineAccess.isAdmin());
+    var adminSearch = !!(window.NineAccess && window.NineAccess.allowsScreen('stocks'));
     if (searchMount) searchMount.innerHTML = adminSearch ? SEARCH_HTML : '';
 
     // 2026-09-11: 운영 스킨을 저장소의 skin.html로 갱신해서(사용자 반영), 여기 있던
