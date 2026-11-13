@@ -648,7 +648,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261113-contract-bars';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261113-linked-time';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
@@ -827,9 +827,6 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
             + '<small class="ui-kpi-source" data-global-field="time">확인 중</small></article>';
         }).join('')
         + '</div></div></section>'
-        + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 선물 투자자 동향</strong><span>당일 순매수 · 계약</span></div>'
-        + '<div data-futures-flow-bars><div class="hmb-investor-spark-empty">자료 확인 중</div></div>'
-        + '<small class="ui-kpi-source" data-futures-flow-meta>선물 전체 · 자료 확인 중</small></section>'
         // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
         // 공통 머리말 아래 ETF 8개를 1일·1개월·YTD 비교 표로 표시한다. 값은 기존 /us-etf-returns.
         + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 3개월 · 6개월 · 연초 이후</span></div>'
@@ -850,13 +847,6 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</section>'
-        // 주간/야간 선물은 같은 카드 레이아웃과 30분 세션 차트를 재사용한다.
-        + '<section class="home-market-aux home-night-content ui-content-block" id="homeMarketAux" data-home-market-aux data-home-day-futures aria-label="KOSPI200 주간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 주간선물</strong><span data-home-day-field="status">확인 중</span></div>'
-        + '<div class="ui-kpi-value-row"><strong data-home-day-field="price">확인 중</strong></div>'
-        + '<div class="ui-kpi-value-row hnc-change"><em data-home-day-field="change">-</em></div>'
-        + '<dl class="hnc-range"><div><dt>고가</dt><dd data-home-day-field="high">-</dd></div><div><dt>저가</dt><dd data-home-day-field="low">-</dd></div></dl>'
-        + '<div class="home-index-chart home-night-futures-chart" data-home-day-chart></div>'
-        + '<small class="ui-kpi-source" data-home-day-field="time">기준시각 확인 중</small></section>'
         // 2026-11-04 코스피200 야간선물 독립 카드: 경제 종합뉴스 바로 아래(같은 열, 미국 모드에서만). 기존 data-market-field·차트 계약을 그대로 옮겼다.
         + '<section class="home-night-content ui-content-block" data-home-night-futures hidden aria-label="KOSPI200 야간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 야간선물</strong><span data-night-field="status">확인 중</span></div>'
         + '<div class="ui-kpi-value-row"><strong data-market-field="nightFutures">데이터 확인 중</strong></div>'
@@ -864,6 +854,24 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '<dl class="hnc-range"><div><dt>고가</dt><dd data-night-field="high">-</dd></div><div><dt>저가</dt><dd data-night-field="low">-</dd></div></dl>'
         + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div>'
         + '<small class="ui-kpi-source" data-night-field="time">수신 시각 확인 중</small></section></section></div>'
+        + '<section class="home-futures-pair" data-home-futures-pair aria-label="주간선물 가격과 시간별 투자자 수급">'
+        + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 선물 투자자 동향</strong><span data-futures-flow-total>순매수 · 계약</span></div>'
+        + '<div class="hff-controls" data-no-swipe><div class="hmb-mode-segment" role="group" aria-label="선물 투자자 선택">'
+        + [['foreign','외국인'],['institution','기관'],['individual','개인']].map(function (p) { return '<button type="button" data-futures-actor="'+p[0]+'" aria-pressed="'+(p[0]==='foreign')+'">'+p[1]+'</button>'; }).join('')
+        + '</div><div class="hmb-mode-segment" role="group" aria-label="선물 수급 표시"><button type="button" data-futures-display="interval" aria-pressed="true">구간</button><button type="button" data-futures-display="cumulative" aria-pressed="false">누적</button></div></div>'
+        + '<div data-futures-flow-bars><div class="hmb-investor-spark-empty">자료 확인 중</div></div>'
+        + '<input class="hff-time" type="range" min="0" max="14" step="1" value="14" data-futures-time data-no-swipe aria-label="가격과 수급을 비교할 30분 구간" disabled>'
+        + '<div class="hff-linked-readout" data-futures-flow-readout aria-live="polite">관측 이력 대기</div>'
+        + '<small class="ui-kpi-source" data-futures-flow-meta>선물 전체 · 자료 확인 중</small></section>'
+        // 주간/야간 선물은 같은 카드 레이아웃과 30분 세션 차트를 재사용한다.
+        + '<section class="home-market-aux home-night-content ui-content-block" id="homeMarketAux" data-home-market-aux data-home-day-futures aria-label="KOSPI200 주간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 주간선물</strong><span data-home-day-field="status">확인 중</span></div>'
+        + '<div class="ui-kpi-value-row"><strong data-home-day-field="price">확인 중</strong></div>'
+        + '<div class="ui-kpi-value-row hnc-change"><em data-home-day-field="change">-</em></div>'
+        + '<dl class="hnc-range"><div><dt>고가</dt><dd data-home-day-field="high">-</dd></div><div><dt>저가</dt><dd data-home-day-field="low">-</dd></div></dl>'
+        + '<div class="home-index-chart home-night-futures-chart" data-home-day-chart></div>'
+        + '<div class="hff-linked-readout" data-futures-price-readout aria-live="polite">같은 날짜의 수급 관측 시 연동</div>'
+        + '<small class="ui-kpi-source" data-home-day-field="time">기준시각 확인 중</small></section>'
+        + '</section>'
         + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
         + '</section>';
     }
@@ -953,6 +961,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (globalBlock) globalBlock.hidden = !isUs;
       var futuresFlow = dashboardSection.querySelector('[data-home-futures-flow]');
       if (futuresFlow) futuresFlow.hidden = isUs;
+      var pair = dashboardSection.querySelector('[data-home-futures-pair]');
+      if (pair) pair.hidden = isUs || !!session.closed;
       // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(투자자 동향 목록은 국내 모드 전용).
       var coreList = dashboardSection.querySelector('#homeMarketBoard .hmb2-core');
       if (coreList) coreList.hidden = isUs;
@@ -2196,7 +2206,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var homeDayFutureLoading = false;
     function renderHomeDayFutures(item, failed) {
       var card = dashboardSection.querySelector('[data-home-day-futures]');
-      if (!card) return;
+      if (!card || card.closest('[data-mtab-idle]')) return;
       var price = item ? homeNum(item.price) : null;
       if (price != null && price <= 0) price = null;
       var change = price != null ? homeNum(item.change) : null;
@@ -2221,6 +2231,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       homeFill(card, 'data-home-day-field', 'time',
         (stamp ? '데이터 기준 ' + stamp : '데이터 기준 시각 없음') + ' · 저장 시세', 'home-neutral');
       renderHomeSessionChart(card.querySelector('[data-home-day-chart]'), 'KOSPI200_DAY', price != null && change != null ? price - change : null);
+      renderHomeFuturesHistory();
     }
     function renderHomeMetricCharts(bySymbol) {
       ['KOSPI200_DAY'].forEach(function (symbol) {
@@ -2236,23 +2247,64 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         renderHomeIndexChart(chart, item && item.chart, symbol, p != null && c != null ? p - c : null);
       });
     }
-    var futuresFlowRequestedAt = 0;
+    var futuresFlowRequestedAt = 0, homeFuturesPayload = null, homeFuturesActor = 'foreign', homeFuturesDisplay = 'interval', homeFuturesSelectedSlot = null, homeFuturesLinkedDate = null;
+    function futuresObservationTime(ts) {
+      return new Date(ts*1000).toLocaleTimeString('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'});
+    }
+    function renderHomeFuturesHistory() {
+      var card=dashboardSection.querySelector('[data-home-futures-flow]'), shared=window.InvestorFlow, data=homeFuturesPayload||{};
+      if(!card||card.closest('[data-mtab-idle]')||!shared||!shared.futuresChart)return;
+      if(homeFuturesLinkedDate!==data.historyDate){homeFuturesSelectedSlot=null;homeFuturesLinkedDate=data.historyDate;}
+      var rows=shared.futuresRows(data.observations,data.historyDate);
+      if(homeFuturesSelectedSlot==null&&rows.length)homeFuturesSelectedSlot=rows[rows.length-1].slot;
+      card.querySelector('[data-futures-flow-bars]').innerHTML=shared.futuresChart(data.observations,{date:data.historyDate,actor:homeFuturesActor,mode:homeFuturesDisplay});
+      card.querySelectorAll('[data-futures-actor]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-actor')===homeFuturesActor));});
+      card.querySelectorAll('[data-futures-display]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-display')===homeFuturesDisplay));});
+      var n=data.available&&data.participants&&data.participants[homeFuturesActor]?homeNum(data.participants[homeFuturesActor].net):null;
+      card.querySelector('[data-futures-flow-total]').textContent='현재 누적 '+(n==null?'미집계':(n>0?'+':n<0?'−':'')+homeFmt(Math.abs(n),0)+'계약');
+      var slider=card.querySelector('[data-futures-time]');slider.disabled=!rows.length;slider.value=homeFuturesSelectedSlot==null?14:homeFuturesSelectedSlot;
+      syncHomeFuturesSelection();
+    }
+    function syncHomeFuturesSelection() {
+      var shared=window.InvestorFlow,data=homeFuturesPayload||{},slot=homeFuturesSelectedSlot;
+      if(!shared||!shared.futuresRows)return;
+      var rows=shared.futuresRows(data.observations,data.historyDate),row=rows.filter(function(r){return r.slot===slot;})[0];
+      var price=homeSessionCharts.KOSPI200_DAY||{},same=!!data.historyDate&&price.session&&data.historyDate===price.session.date;
+      var point=same&&(price.rows||[]).filter(function(r){return r.slot===slot;})[0];
+      var flowText=dashboardSection.querySelector('[data-futures-flow-readout]'),priceText=dashboardSection.querySelector('[data-futures-price-readout]');
+      var value=row?row[homeFuturesActor+(homeFuturesDisplay==='interval'?'Delta':'')]:null;
+      if(flowText)flowText.textContent=!rows.length?'관측 이력 대기 · 첫 관측 이전 구간은 비워 둠':!row?data.historyDate+' · 이 구간 수급 관측 없음':data.historyDate+' · '+(row.previousTs&&homeFuturesDisplay==='interval'?futuresObservationTime(row.previousTs)+'→':'')+futuresObservationTime(row.ts)+' 관측 · '+(value==null?'이전 관측 없음':(value>0?'+':value<0?'−':'')+homeFmt(Math.abs(value),0)+'계약');
+      if(priceText)priceText.textContent=!rows.length?'수급 관측 이력 대기 · 가격과 다른 날짜를 연결하지 않음':!same?'가격·수급 날짜 불일치 · 연동 보류':point?data.historyDate+' · '+futuresObservationTime(point.ts)+' 가격 관측 · '+homeFmt(point.close,2):'같은 구간의 가격 관측 없음';
+      dashboardSection.querySelectorAll('[data-home-futures-pair] [data-linked-cursor]').forEach(function(n){n.remove();});
+      if(slot==null||!same||!row)return;
+      dashboardSection.querySelectorAll('[data-home-futures-pair] .hmb-investor-spark').forEach(function(svg){
+        var line=document.createElementNS('http://www.w3.org/2000/svg','line'),x=4+slot/14*92;
+        line.setAttribute('x1',x);line.setAttribute('x2',x);line.setAttribute('y1','4');line.setAttribute('y2','85');line.setAttribute('data-linked-cursor','');line.setAttribute('class','hff-cursor');line.setAttribute('vector-effect','non-scaling-stroke');svg.appendChild(line);
+      });
+    }
+    dashboardSection.addEventListener('click',function(e){
+      var actor=e.target.closest('[data-futures-actor]'),mode=e.target.closest('[data-futures-display]');
+      if(actor){homeFuturesActor=actor.getAttribute('data-futures-actor');renderHomeFuturesHistory();}
+      if(mode){homeFuturesDisplay=mode.getAttribute('data-futures-display');renderHomeFuturesHistory();}
+    });
+    dashboardSection.addEventListener('input',function(e){if(e.target.matches('[data-futures-time]')){homeFuturesSelectedSlot=Number(e.target.value);syncHomeFuturesSelection();}});
+    dashboardSection.addEventListener('pointermove',function(e){
+      if(e.pointerType==='touch')return;
+      var plot=e.target.closest('[data-home-futures-pair] .hmb-investor-spark');if(!plot)return;
+      var box=plot.getBoundingClientRect(),slot=Math.max(0,Math.min(14,Math.round(((e.clientX-box.left)/box.width*100-4)/92*14)));
+      if(slot!==homeFuturesSelectedSlot){homeFuturesSelectedSlot=slot;var slider=dashboardSection.querySelector('[data-futures-time]');if(slider)slider.value=slot;syncHomeFuturesSelection();}
+    });
     function loadHomeFuturesFlow() {
       if (Date.now() - futuresFlowRequestedAt < 300000) return;
-      futuresFlowRequestedAt = Date.now();
       var card = dashboardSection.querySelector('[data-home-futures-flow]');
-      if (!card) return;
+      if (!card || card.closest('[data-mtab-idle]')) return;
+      futuresFlowRequestedAt = Date.now();
       Promise.all([fetchHomeJson('https://goodbyestar.cloud/futures/investor-flow', 15000),
         loadHomeScript(HOME_INVESTOR_FLOW_SCRIPT_URL, 'InvestorFlow')]).then(function (results) {
         var env = results[0];
         var data = env && env.data || env || {}, rows = data.participants || {};
-        var snapshot = {};
-        [['foreign','frgn'],['institution','orgn'],['individual','ind']].forEach(function (pair) {
-          snapshot[pair[1]] = data.available && rows[pair[0]] ? homeNum(rows[pair[0]].net) : null;
-        });
-        card.querySelector('[data-futures-flow-bars]').innerHTML = window.InvestorFlow.miniBars([], {
-          snapshot: snapshot, unit: 'contracts', market: 'KOSPI200 선물 전체'
-        });
+        homeFuturesPayload = data;
+        renderHomeFuturesHistory();
         card.querySelector('[data-futures-flow-meta]').textContent = 'KOSPI200 선물 전체 · 수집 시점 잠정·잔고 아님'
           + (data.retrievedAt ? ' · 조회 ' + homeKstTime(data.retrievedAt) : '')
           + ' · 원본 기준일/시각 미제공' + (data.stale ? ' · 지연/조회 실패' : '');
@@ -2261,6 +2313,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         card.querySelector('[data-futures-flow-meta]').textContent = '조회 실패 · 이전 표시 유지 · 다음 갱신 시 재시도';
       });
     }
+    window.addEventListener('home-mtab-activate',function(e){if(e.detail&&e.detail.group==='market'){renderHomeDayFutures(homeDayFutureQuote,false);loadHomeDayFutures();}});
     function loadHomeDayFutures() {
       if (homeMarketSession().market !== 'domestic' || document.hidden) return;
       loadHomeFuturesFlow();

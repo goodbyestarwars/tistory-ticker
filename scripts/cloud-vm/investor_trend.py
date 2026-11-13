@@ -581,6 +581,10 @@ def _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appke
 def _poll_loop(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, kiwoom_secretkey=None):
     market_state = {key: {} for key in MARKETS}
     while True:
+        try:
+            poll_futures_observation(kis_appkey, kis_appsecret)
+        except Exception:
+            logger.exception('futures investor observation failed')
         for market_key, market_cfg in MARKETS.items():
             try:
                 _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appkey, kiwoom_secretkey,
@@ -654,3 +658,54 @@ def get_futures_result(appkey=None, appsecret=None):
                 _futures_flow_cache = dict(_futures_flow_cache, stale=True)
         return dict(_futures_flow_cache) if _futures_flow_cache else dict(
             available=False, stale=True, unit='contracts', market='K2I', category='F001')
+
+
+def capture_futures_observation(snapshot, now=None):
+    """Persist only fresh in-session server observations, never historical reconstruction."""
+    import market_clock
+    now = (now or datetime.now(KST)).astimezone(KST)
+    minute = now.hour * 60 + now.minute
+    if not 525 <= minute <= 945 or not market_clock.is_kr_trading_day(now):
+        return False
+    if not snapshot.get('available') or snapshot.get('stale'):
+        return False
+    try:
+        stamp = datetime.fromisoformat(snapshot['retrievedAt'])
+        if stamp.tzinfo is None or stamp.astimezone(KST).date() != now.date() or not 0 <= (now-stamp).total_seconds() <= 60:
+            return False
+        values = [snapshot['participants'][key]['net'] for key in ('foreign','institution','individual')]
+        if any(isinstance(v,bool) or not isinstance(v,int) for v in values):
+            return False
+    except (KeyError,TypeError,ValueError):
+        return False
+    conn = db_schema.get_conn()
+    try:
+        conn.execute('INSERT OR IGNORE INTO futures_flow_observations VALUES (?,?,?,?,?)',
+            (now.strftime('%Y-%m-%d'),int(stamp.timestamp()),*values))
+        conn.execute('DELETE FROM futures_flow_observations WHERE session < ?',((now-timedelta(days=14)).strftime('%Y-%m-%d'),))
+        conn.commit()
+    finally:
+        conn.close()
+    return True
+
+
+def poll_futures_observation(appkey=None, appsecret=None, now=None):
+    import market_clock
+    observed_now = now
+    now = (now or datetime.now(KST)).astimezone(KST)
+    if not 525 <= now.hour*60+now.minute <= 945 or not market_clock.is_kr_trading_day(now):
+        return False
+    return capture_futures_observation(get_futures_result(appkey,appsecret),observed_now)
+
+
+def get_futures_history():
+    conn = db_schema.get_conn()
+    try:
+        rows = conn.execute('SELECT session,observed_ts,foreign_net,institution_net,individual_net '
+            'FROM futures_flow_observations WHERE session=(SELECT MAX(session) FROM futures_flow_observations) '
+            'ORDER BY observed_ts LIMIT 200').fetchall()
+        return dict(historyDate=rows[0][0] if rows else None,
+            observations=[dict(ts=r[1],foreign=r[2],institution=r[3],individual=r[4]) for r in rows],
+            observationBasis='server-retrieval-time',observationIntervalMinutes=5)
+    finally:
+        conn.close()

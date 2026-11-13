@@ -685,9 +685,17 @@
     };
   }
 
+  function placeFuturesPair(inMarket) {
+    var pair=doc.querySelector('[data-home-futures-pair]'),market=doc.getElementById('homeMarketBoard'),grid=doc.querySelector('.home-dashboard > .home-widget-grid');
+    if(!pair||!market||!grid)return;
+    if(inMarket){if(pair.parentNode!==market)market.appendChild(pair);}
+    else if(pair.parentNode===market){grid.insertBefore(pair,doc.getElementById('homeRealtimeBoard'));}
+  }
+
   function waitForGrid() {
     if (!doc.querySelector('.home-dashboard')) return;
     function tryMount() {
+      placeFuturesPair(true);
       mountSwipe(doc.querySelector('.home-dashboard > .home-widget-grid'), 'open');
       mountSwipe(doc.getElementById('homeWeeklyReport'), 'closed');
       return !!(swipes.open && swipes.closed);
@@ -706,6 +714,7 @@
   function enable() {
     if (!eligible()) return false;
     doc.body.classList.add(CLS);
+    placeFuturesPair(true);
     if (!enabledOnce) {
       enabledOnce = true;
       buildBar();
@@ -719,6 +728,7 @@
     return true;
   }
   function disable() {
+    placeFuturesPair(false);
     Object.keys(swipes).forEach(function (k) { if (swipes[k].release) swipes[k].release(); }); // 푸터의 이야기 시리즈를 제자리로
     closeDrawer();
     doc.body.classList.remove(CLS, 'mtab-hide');

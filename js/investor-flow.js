@@ -546,10 +546,51 @@
       }).join('') + '</div>';
   }
 
+  // Futures observations use server retrieval timestamps, never fabricated exchange ticks.
+  function futuresRows(rows, date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) return [];
+    var start = Date.parse(date + 'T08:45:00+09:00'), slots = {};
+    (Array.isArray(rows) ? rows : []).forEach(function (r) {
+      var ts = Number(r && r.ts), elapsed = (ts * 1000 - start) / 60000;
+      if (!isFinite(ts) || ts <= 0 || elapsed < 0 || elapsed > 420) return;
+      var slot = Math.floor(elapsed / 30);
+      if (!slots[slot] || ts > slots[slot].ts) slots[slot] = Object.assign({}, r, {ts:ts,slot:slot});
+    });
+    var out = Object.keys(slots).map(function (k) { return slots[k]; }).sort(function (a,b) { return a.slot-b.slot; });
+    out.forEach(function (r,i) {
+      var before = out[i-1], continuous = before && r.slot === before.slot+1 && r.ts-before.ts <= 2400;
+      r.previousTs = continuous ? before.ts : null;
+      ['foreign','institution','individual'].forEach(function (key) {
+        r[key] = validAmount(r[key]) ? Number(r[key]) : null;
+        r[key+'Delta'] = continuous && r[key]!=null && validAmount(before[key]) ? r[key]-Number(before[key]) : null;
+      });
+    });
+    return out;
+  }
+
+  function futuresChart(rows, options) {
+    var opts=options||{}, actor=['foreign','institution','individual'].indexOf(opts.actor)>=0?opts.actor:'foreign';
+    var data=futuresRows(rows,opts.date), interval=opts.mode!=='cumulative';
+    var field=actor+(interval?'Delta':''), values=data.map(function(r){return r[field];});
+    var max=Math.max.apply(null,[1].concat(values.filter(validAmount).map(Math.abs)));
+    var marks='<line x1="4" x2="96" y1="45" y2="45" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>';
+    data.forEach(function(r){
+      var value=r[field], x=4+r.slot/14*92;
+      if(value==null)return;
+      var h=Math.abs(value)/max*34;
+      marks+='<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+'" x="'+(x-2)+'" y="'+(value>=0?45-h:45)+'" width="4" height="'+Math.max(.5,h)+'"><title>'+esc((new Date(r.ts*1000)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' 서버 관측 · '+(value>0?'+':'')+value.toLocaleString('ko-KR')+'계약')+'</title></rect>';
+    });
+    return '<div class="hmb-investor-spark-wrap hff-timeline"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="'+esc((opts.date||'관측 대기')+' '+(interval?'구간':'누적')+' 순매수 계약. 첫 관측 이전과 누락 구간은 비워 둠')+'">'+marks+'</svg>'
+      +(!data.length?'<span class="hff-empty">장중 관측 이력 대기 · 과거 구간 복원 안 함</span>':!values.some(validAmount)?'<span class="hff-empty">첫 관측 · 다음 구간부터 변화 표시</span>':'')+'</div>'
+      +'<div class="hmb-investor-axis"><span>08:45</span><span>15:45 KST</span></div>';
+  }
+
   global.InvestorFlow = {
     mount: mount,
     miniChart: miniChart,
     miniBars: miniBars,
+    futuresChart: futuresChart,
+    futuresRows: futuresRows,
     intradayRows: intradayRows,
     mountBalance: mountBalance,
     _calc: { cumulative: cumulative, streak: streak, balanceStats: balanceStats, balanceSeries: balanceSeries, summarize: summarize, summarizeInvestors: summarizeInvestors, summarizeBalances: summarizeBalances, lastRows: lastRows, sumOf: sumOf, PERIODS: PERIODS, TREND_PCT: TREND_PCT, INVESTORS: INVESTORS,

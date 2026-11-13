@@ -19,6 +19,11 @@ SIGNAL_REVIEW_SCHEMA = '''CREATE TABLE IF NOT EXISTS signal_reviews (
     evaluated_at TEXT NOT NULL, payload TEXT NOT NULL)'''
 
 SCHEMA = SIGNAL_REVIEW_SCHEMA + ';\n' + '''
+CREATE TABLE IF NOT EXISTS futures_flow_observations (
+    session TEXT NOT NULL, observed_ts INTEGER NOT NULL,
+    foreign_net INTEGER NOT NULL, institution_net INTEGER NOT NULL, individual_net INTEGER NOT NULL,
+    PRIMARY KEY(session, observed_ts)
+);
 CREATE TABLE IF NOT EXISTS home_session_reference (
     symbol TEXT NOT NULL, session TEXT NOT NULL, reference REAL NOT NULL,
     ts INTEGER NOT NULL, PRIMARY KEY(symbol,session)

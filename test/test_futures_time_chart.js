@@ -1,0 +1,16 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const window={NineUI:{escapeHtml:v=>String(v)}};
+vm.runInNewContext(fs.readFileSync(process.argv[2]||path.join(__dirname,'../js/investor-flow.js'),'utf8'),{window});
+const shared=window.InvestorFlow;
+const ts=t=>Date.parse('2026-11-13T'+t+':00+09:00')/1000;
+const rows=[{ts:ts('09:00'),foreign:1000,institution:-900,individual:0},{ts:ts('09:10'),foreign:1200,institution:-1100,individual:0},{ts:ts('09:40'),foreign:800,institution:null,individual:10},{ts:ts('10:40'),foreign:1600,institution:-1000,individual:20}];
+const result=shared.futuresRows(rows,'2026-11-13');
+assert.equal(result.length,3);assert.equal(result[0].foreignDelta,null);assert.equal(result[0].foreign,1200);
+assert.equal(result[1].foreignDelta,-400);assert.equal(result[1].institutionDelta,null);assert.equal(result[1].individualDelta,10);
+assert.equal(result[2].foreignDelta,null);assert.equal(shared.futuresRows(rows,'2026-11-14').length,0);
+const interval=shared.futuresChart(rows,{date:'2026-11-13',actor:'foreign',mode:'interval'});
+assert.equal((interval.match(/data-futures-slot=/g)||[]).length,1);assert(interval.includes('hmb-investor-sell'));
+const cumulative=shared.futuresChart(rows,{date:'2026-11-13',actor:'foreign',mode:'cumulative'});
+assert.equal((cumulative.match(/data-futures-slot=/g)||[]).length,3);
+assert(shared.futuresChart([],{date:null}).includes('관측 이력 대기'));
+console.log('PASS last observation per slot; missing first/gap/date; contract interval and cumulative');

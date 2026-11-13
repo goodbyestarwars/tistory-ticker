@@ -705,3 +705,8 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 
 2026-10-22 추가: `symbol='KOSPI200_NIGHT'`도 저장한다. 야간선물 실시간 틱(`night_futures_ws._upsert_tick` → `home_session_chart.record_night_tick`)을 같은 30분 구간 관측값으로 모아(구간별 10초마다 저장) 두고, 홈 야간선물 차트(`get_results`)가 **KIS 분봉(`future_chart_minute`)이 없는 구간만** 이 관측값으로 채운다(분봉 우선, 틈은 틈으로 유지). 분봉 수집이 자정 이후 멈춰 차트가 23:58에서 끊긴 사고 대응이며, 새 외부 공급자를 쓰지 않고 이미 수신 중인 같은 KIS 틱만 쓴다.
 
+
+
+## futures_flow_observations (2026-11-13)
+
+기존 ohlc_snapshot.db의 전용 경량 관측표. `session TEXT`, `observed_ts INTEGER`, `foreign_net/institution_net/individual_net INTEGER NOT NULL`; PK(session,observed_ts). 단위는 누적 순매수 **계약**, 현물 investor_trend의 억원과 혼합하지 않는다. 실제 새 조회시각을 INSERT OR IGNORE·14일 보존, 기존 폴러/SQLite트랜잭션 사용. 한국거래일08:45~15:45 KST·동일날조회·60초이내·stale=false만저장. 역사적 체결이 아닌 서버관측이며 과거구간을 복원/제로기준 초기화하지 않는다. 재시작 시 유지한다.

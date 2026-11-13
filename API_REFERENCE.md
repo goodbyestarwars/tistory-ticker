@@ -575,3 +575,8 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 ### `GET /futures/investor-flow` (2026-11-13)
 
 기존 `/futures` 접두사의 관리자 인증·CORS 및 분당20회 제한. KIS FHPTJ04030000 K2I/F001 전체 KOSPI200 선물 조회만 수행한다. 5분 메모리 캐시·동시조회 잠금, 실패 시 이전값 `stale:true` 유지/30초 뒤 재시도. 응답 `available,stale,unit:contracts,market:K2I,category:F001,participants{foreign,institution,individual}{buy,sell,net},retrievedAt,sourceDate:null,sourceTime:null,provisional:true`. 매수−매도=순매수 정수 계약 검증, 빈값/실패를0으로 대체하지 않는다. 원본 기준일/시각 미제공, 조회시각은 집계시각이 아니다. 특정 월물 잔고·신규 롱/숏을 뜻하지 않는다. 새 워커/DB/주문 호출 없음.
+
+
+### 선물 수급 관측 이력 (2026-11-13)
+
+`/futures/investor-flow`에 `historyDate`(KST 서버 관측일 또는null), `observations[{ts,foreign,institution,individual}]`(UTC epoch초·누적정수계약), `observationBasis:server-retrieval-time`, `observationIntervalMinutes:5` 추가. 기존 관리자권한/5분캐시/실패처리·현재 스냅샷 계약 유지. 기존 investor_trend 폴러가 한국거래일08:45~15:45 KST 중 새로 받은60초 이내 유효스냅샷만 기존DB에저장한다. 장외/휴일/실패/오래된캐시는 저장하지 않는다. 첫관측 전·누락 구간을 소급 생성하지 않는다. 공급자 집계시각/정확한 체결/특정월물 포지션이 아니다. 프론트는30분 슬롯의 마지막관측과 바로직전슬롯(공백40분 이하)만 차분, 같은날 가격과만 연동한다.

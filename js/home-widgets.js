@@ -141,6 +141,7 @@
     var market = overview && overview.querySelector('.home-market-board');
     var economic = overview && overview.querySelector('.home-economic-news');
     var realtime = dashboard.querySelector('.home-realtime-board');
+    var futuresPair = dashboard.querySelector('[data-home-futures-pair]');
     var marketToolbar = dashboard.querySelector('.home-market-toolbar');
     var marketSwitch = dashboard.querySelector('.home-market-switch');
     var closedPage = dashboard.querySelector('.home-closed-page');
@@ -148,7 +149,7 @@
 
     grid = document.createElement('div');
     grid.className = 'home-widget-grid';
-    [market, economic, realtime, options.briefing].forEach(function (node) {
+    [market, economic, futuresPair, realtime, options.briefing].forEach(function (node) {
       if (node) grid.appendChild(node);
     });
 
@@ -192,6 +193,8 @@
     DEFAULT_ORDER.forEach(function (id) {
       if (registry[id]) registry[id].hidden = state.hidden.indexOf(id) !== -1;
     });
+    var linked = grid.querySelector(':scope > [data-home-futures-pair]');
+    if (linked && registry['realtime-board']) grid.insertBefore(linked, registry['realtime-board']);
     refreshSettings();
   }
 

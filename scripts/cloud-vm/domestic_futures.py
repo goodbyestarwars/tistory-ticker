@@ -141,8 +141,9 @@ def fetch_domestic_index_chart(category, code, days=250):
 # days=2면 최근 이틀치를 요청하는데, 정규장 하루 분량(약 390개)이 하루치가 아니라 오늘+어제
 # 걸쳐 나오는 경우가 있어 여유를 둔다 - 어차피 upsert라 중복은 문제없다.
 def fetch_domestic_index_chart_minute(category, code, days=3):
-    date2 = datetime.now().strftime('%Y%m%d')
-    date1 = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
+    now = datetime.now(KST)
+    date2 = now.strftime('%Y%m%d%H%M%S')
+    date1 = (now - timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y%m%d%H%M%S')
     url = ('https://api.stock.naver.com/chart/domestic/%s/%s/minute?startDateTime=%s&endDateTime=%s'
            % (category, code, date1, date2))
     data = _get_json(url)

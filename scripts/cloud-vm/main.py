@@ -3334,8 +3334,8 @@ _CALENDAR_MACRO_SYMBOLS = ('US_INITIAL_CLAIMS', 'US_DURABLE_GOODS', 'US_FACTORY_
 def futures_investor_flow_endpoint(request: Request):
     """Admin-only via existing /futures prefix; KOSPI200 whole-market net contracts."""
     _check_rate_limit('futures_investor_flow', request, max_per_window=20)
-    return envelope(investor_trend.get_futures_result(
-        os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET')))
+    result = investor_trend.get_futures_result(os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET'))
+    return envelope(dict(result, **investor_trend.get_futures_history()))
 
 
 @app.get('/futures')
