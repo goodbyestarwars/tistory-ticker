@@ -648,7 +648,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261106-home-investor-bars';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261113-contract-bars';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
@@ -828,9 +828,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         }).join('')
         + '</div></div></section>'
         + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 선물 투자자 동향</strong><span>당일 순매수 · 계약</span></div>'
-        + '<dl class="hff-list">' + [['foreign','외국인'],['institution','기관'],['individual','개인']].map(function (p) {
-          return '<div><dt>' + p[1] + '</dt><dd data-futures-flow="' + p[0] + '">확인 중</dd></div>';
-        }).join('') + '</dl><small class="ui-kpi-source" data-futures-flow-meta>선물 전체 · 자료 확인 중</small></section>'
+        + '<div data-futures-flow-bars><div class="hmb-investor-spark-empty">자료 확인 중</div></div>'
+        + '<small class="ui-kpi-source" data-futures-flow-meta>선물 전체 · 자료 확인 중</small></section>'
         // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
         // 공통 머리말 아래 ETF 8개를 1일·1개월·YTD 비교 표로 표시한다. 값은 기존 /us-etf-returns.
         + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 3개월 · 6개월 · 연초 이후</span></div>'
@@ -2243,11 +2242,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       futuresFlowRequestedAt = Date.now();
       var card = dashboardSection.querySelector('[data-home-futures-flow]');
       if (!card) return;
-      fetchHomeJson('https://goodbyestar.cloud/futures/investor-flow', 15000).then(function (env) {
+      Promise.all([fetchHomeJson('https://goodbyestar.cloud/futures/investor-flow', 15000),
+        loadHomeScript(HOME_INVESTOR_FLOW_SCRIPT_URL, 'InvestorFlow')]).then(function (results) {
+        var env = results[0];
         var data = env && env.data || env || {}, rows = data.participants || {};
-        ['foreign', 'institution', 'individual'].forEach(function (key) {
-          var n = data.available && rows[key] ? homeNum(rows[key].net) : null;
-          homeFill(card, 'data-futures-flow', key, n == null ? '미집계' : (n > 0 ? '+' : n < 0 ? '−' : '') + homeFmt(Math.abs(n), 0) + '계약 ' + (n > 0 ? '순매수' : n < 0 ? '순매도' : '보합'), homeTone(n));
+        var snapshot = {};
+        [['foreign','frgn'],['institution','orgn'],['individual','ind']].forEach(function (pair) {
+          snapshot[pair[1]] = data.available && rows[pair[0]] ? homeNum(rows[pair[0]].net) : null;
+        });
+        card.querySelector('[data-futures-flow-bars]').innerHTML = window.InvestorFlow.miniBars([], {
+          snapshot: snapshot, unit: 'contracts', market: 'KOSPI200 선물 전체'
         });
         card.querySelector('[data-futures-flow-meta]').textContent = 'KOSPI200 선물 전체 · 수집 시점 잠정·잔고 아님'
           + (data.retrievedAt ? ' · 조회 ' + homeKstTime(data.retrievedAt) : '')

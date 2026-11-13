@@ -670,8 +670,4 @@ body#tt-body-index .home-editorial-page #homeEconomicNews .home-night-content .h
 
 /* KOSPI200 whole-market futures flow: left column, same common card typography. */
 body#tt-body-index .home-editorial-page .home-futures-flow[hidden] { display: none; }
-body#tt-body-index .home-editorial-page .home-futures-flow .hff-list { margin: 12px 0; padding: 0; }
-body#tt-body-index .home-editorial-page .home-futures-flow .hff-list > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; }
-body#tt-body-index .home-editorial-page .home-futures-flow .hff-list dt { font: 400 12px/1.5 var(--font-ui); color: var(--hmb-faint); }
-body#tt-body-index .home-editorial-page .home-futures-flow .hff-list dd { margin: 0; font: 600 13px/1.5 var(--font-ui); font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page .home-futures-flow .ui-kpi-source { display: block; line-height: 1.7; }
