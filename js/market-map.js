@@ -23,6 +23,48 @@
     return v>=1e12?(v/1e12).toFixed(1)+'조 원':(v/1e8).toFixed(0)+'억 원';
   }
   function klass(v) {return v===null?'flat':v>0?'up':v<0?'down':'flat';}
+  // 기업 사업 소개는 기존 종목분석의 정적 COMPANY_PROFILES 단일 데이터를 재사용한다.
+  // 추가 API/수집 없이 이 화면에서 한 번만 지연 로드하고, 실패해도 지도·시세를 막지 않는다.
+  var companyProfilesPromise=null;
+  function ensureCompanyProfiles(){
+    if(global.COMPANY_PROFILES&&global.COMPANY_PROFILES.companies)return Promise.resolve(global.COMPANY_PROFILES);
+    if(companyProfilesPromise)return companyProfilesPromise;
+    companyProfilesPromise=new Promise(function(resolve,reject){
+      var tag=document.createElement('script');
+      tag.src='https://goodbyestarwars.github.io/tistory-ticker/data/company-profiles.js';
+      tag.async=true;
+      tag.onload=function(){
+        if(global.COMPANY_PROFILES&&global.COMPANY_PROFILES.companies)resolve(global.COMPANY_PROFILES);
+        else reject(new Error('company profiles unavailable'));
+      };
+      tag.onerror=function(){reject(new Error('company profiles failed to load'));};
+      document.head.appendChild(tag);
+    }).catch(function(err){companyProfilesPromise=null;throw err;});
+    return companyProfilesPromise;
+  }
+  function businessSummary(state,stock){
+    var company=stock&&state.profiles&&state.profiles.companies&&state.profiles.companies[stock.code];
+    return company&&typeof company.summary==='string'&&company.summary.trim()||null;
+  }
+  function businessLine(state,stock){
+    var summary=businessSummary(state,stock);
+    if(summary)return summary;
+    if(state.profileStatus==='loading')return '회사 소개를 불러오는 중입니다.';
+    var industry=(stock&&stock.industry)||'업종 미확인';
+    return (state.profileStatus==='error'?'회사 소개를 불러오지 못했습니다. ':'사업 소개가 없습니다. ')
+      +'확인된 업종: '+industry;
+  }
+  function loadCompanyDescriptions(state){
+    state.profileStatus='loading';
+    ensureCompanyProfiles().then(function(data){
+      state.profiles=data;
+      state.profileStatus='ready';
+      draw(state);
+    }).catch(function(){
+      state.profileStatus='error';
+      draw(state);
+    });
+  }
   function chooseCandidates(wics) {
     var groups=Object.create(null),seen=Object.create(null),picked=[];
     Object.keys(wics||{}).forEach(function(code) {
@@ -153,7 +195,7 @@
     return {points:points,missing:nodes.filter(function(n){return n.rs1m===null||n.rs1y===null;}),
       maxX:maxX,maxY:maxY};
   }
-  function svgMarkup(state,lay) {
+  function svgMarkup(state,lay,ranked) {
     var mx=(plot.l+plot.r)/2,my=(plot.t+plot.b)/2;
     function xLabel(v){return (v>0?'+':'')+v.toFixed(0);}
     var shape='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="가로축은 최근 1년 시장보다 강한 정도, 세로축은 최근 한 달 시장보다 강한 정도. 오른쪽과 위쪽일수록 시장 대비 성적이 좋습니다.">';
@@ -176,13 +218,17 @@
     shape+='<text x="28" y="'+plot.t+'" transform="rotate(-90 28 '+plot.t+')" text-anchor="end" class="mtm-axis">최근 한 달 시장보다 강함 ↑</text>';
     shape+='<text x="'+mx+'" y="'+(plot.b+20)+'" text-anchor="middle" class="mtm-zero">0</text>';
     lay.points.forEach(function(p,i){
-      var n=p.node,active=state.selectedCode===n.code,label=lay.points.length<=12||i<9||active;
+      var n=p.node,active=state.selectedCode===n.code;
+      var stockRank=n.kind==='stock'?ranked.findIndex(function(r){return r.code===n.code;})+1:0;
+      var label=n.kind==='stock'?(lay.points.length<=8||stockRank<=5||active):(lay.points.length<=12||i<9||active);
       var tooltip=n.name+' · 지난 1년 시장 대비 '+pp(n.rs1y)+' · 최근 한 달 시장 대비 '+pp(n.rs1m)+' · 오늘 '+pct(n.rate);
+      if(n.kind==='stock')tooltip+=' · 하는 일: '+businessLine(state,n);
       var displacement=Math.hypot(p.x-p.ax,p.y-p.ay);
       if(displacement>4)shape+='<path d="M'+p.ax.toFixed(1)+' '+p.ay.toFixed(1)+'L'+p.x.toFixed(1)+' '+p.y.toFixed(1)+'" class="mtm-tether"/>';
       shape+='<g class="mtm-point mtm-'+klass(n.rate)+(active?' is-active':'')+'" role="button" tabindex="0" data-mtm-node="'+esc(n.key)+'" aria-label="'+esc(tooltip)+'" transform="translate('+p.x.toFixed(1)+' '+p.y.toFixed(1)+')">'
         + '<circle r="'+p.r.toFixed(1)+'" class="mtm-bubble"/><title>'+esc(tooltip)+'</title>'
-        + (n.kind==='group'?'<text y="4" text-anchor="middle" class="mtm-bubble-count">'+n.coverage+'</text>':'')
+        + (n.kind==='group'?'<text y="4" text-anchor="middle" class="mtm-bubble-count">'+n.coverage+'</text>'
+          :'<text y="3.5" text-anchor="middle" class="mtm-bubble-number">'+(stockRank<10?'0':'')+stockRank+'</text>')
         + (label?'<text y="'+(-p.r-8)+'" text-anchor="middle" class="mtm-bubble-label">'+esc(n.name)+'</text>':'')
         + '</g>';
     });
@@ -201,10 +247,16 @@
     else if(!state.industry){state.industry=node.key;state.selectedCode='';}
     state.zoom=1;draw(state);
   }
-  function stockDetail(stock) {
-    if(!stock)return '<div class="mtm-detail-empty">종목 버블 또는 오른쪽 목록을 선택하면 상세 정보가 나타납니다.</div>';
+  function stockDetail(state,stock) {
+    if(!stock)return '<div class="mtm-detail-empty">오른쪽 목록에 회사명과 사업 내용을 표시했습니다. 회사 이름을 누르면 자세한 정보를 확인할 수 있습니다.</div>';
+    var summary=businessLine(state,stock);
+    var source=state.profiles&&businessSummary(state,stock)
+      ? (state.profiles.source||'기업개요')+' · '+(state.profiles.asOf||'기준일 미확인')+' 수집'
+      : '기존 업종 분류 기반 · 사업 내용은 확인된 자료만 표시';
     var detail='<div class="mtm-detail-heading"><div><small>'+esc(stock.code)+' · '+esc(stock.market)+'</small><h3>'+esc(stock.name)+'</h3></div>'
       +'<strong class="mtm-'+klass(stock.rate)+'">'+pct(stock.rate)+'</strong></div>'
+      +'<section class="mtm-business-panel" aria-label="회사 사업 소개"><strong>무슨 회사인가요?</strong>'
+      +'<p>'+esc(summary)+'</p><small>'+esc(source)+'</small></section>'
       +'<div class="mtm-big-price">'+money(stock.price)+'<small> 원</small></div>';
     [
       ['지난 1년 시장 대비',pp(stock.rs1y)],['최근 한 달 시장 대비',pp(stock.rs1m)],
@@ -215,6 +267,20 @@
     ].forEach(function(d){detail+='<div class="mtm-detail-row"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>';});
     detail+='<a class="mtm-detail-open" href="/page/stock-search?code='+encodeURIComponent(stock.code)+'">종목정보 자세히 보기</a>';
     return detail;
+  }
+  function nodeBusinessRow(state,node,index) {
+    var isCompany=node.kind==='stock',selected=isCompany&&state.selectedCode===node.code;
+    var members=!isCompany&&node.rows?node.rows.slice().sort(function(a,b){return (b.cap||0)-(a.cap||0);})
+      .slice(0,3).map(function(r){return r.name;}).join(' · '):'';
+    var business=isCompany?businessLine(state,node):(members?'포함 종목: '+members:'포함 종목 정보 없음');
+    return '<button type="button" data-mtm-list-node="'+esc(node.key)+'"'
+      +' class="mtm-list-row'+(selected?' is-active':'')+'">'
+      +'<span class="mtm-list-number '+(isCompany?'mtm-number-stock':'mtm-number-group')+'">'+(isCompany?String(index+1).padStart(2,'0'):'·')+'</span>'
+      +'<span class="mtm-list-name"><strong>'+esc(node.name)+'</strong>'
+      +'<small>'+((isCompany?esc(node.code)+' · '+money(node.price)+'원':node.total+'개 종목 표본'))+'</small>'
+      +'<span class="mtm-list-business" title="'+esc(business)+'">'+esc(business)+'</span></span>'
+      +'<span class="mtm-list-value mtm-'+klass(node.rate)+'">'+pct(node.rate)
+      +'<small>최근 한 달 시장 대비 '+pp(node.rs1m)+'</small></span></button>';
   }
   function draw(state) {
     var root=state.root,view=summary(state),lay=layout(view.nodes),visible=new Set(lay.points.map(function(p){return p.node.key;}));
@@ -229,22 +295,23 @@
       '<button type="button" data-mtm-nav="root">산업 전체</button>'
       +(state.sector?'<span>›</span><button type="button" data-mtm-nav="sector">'+esc(state.sector)+'</button>':'')
       +(state.industry?'<span>›</span><span>'+esc(state.industry)+'</span>':'');
-    root.querySelector('[data-mtm-chart]').innerHTML=svgMarkup(state,lay);
+    var list=view.nodes.slice().sort(function(a,b){return (b.cap||0)-(a.cap||0);});
+    root.querySelector('[data-mtm-chart]').innerHTML=svgMarkup(state,lay,list);
     var missing=lay.missing.length;
     root.querySelector('[data-mtm-quality]').textContent=missing?
       missing+'개 항목은 과거 자료가 부족해 지도에 표시하지 않았습니다. 오른쪽 목록에서 확인할 수 있습니다.':
       '지도 위치는 실제 과거 주가와 시장지수 자료를 비교한 결과입니다.';
-    var list=view.nodes.slice().sort(function(a,b){return (b.cap||0)-(a.cap||0);});
-    root.querySelector('[data-mtm-node-list]').innerHTML=list.length?list.map(function(n){
-      var selected=n.kind==='stock'&&state.selectedCode===n.code;
-      return '<button type="button" data-mtm-list-node="'+esc(n.key)+'" class="mtm-list-row'+(selected?' is-active':'')+'">'
-        +'<span class="mtm-list-dot mtm-'+klass(n.rate)+'"></span><span class="mtm-list-name">'+esc(n.name)
-        +'<small>'+((n.kind==='group')?n.total+'종목 표본':money(n.price)+'원')+'</small></span>'
-        +'<span class="mtm-list-value mtm-'+klass(n.rate)+'">'+pct(n.rate)
-        +'<small>최근 한 달 시장 대비 '+pp(n.rs1m)+'</small></span></button>';
-    }).join(''):'<p class="mtm-empty">선택한 조건에 해당하는 종목이 없습니다.</p>';
-    var selected=view.rows.find(function(s){return s.code===state.selectedCode;});
-    root.querySelector('[data-mtm-detail]').innerHTML=stockDetail(selected);
+    root.querySelector('[data-mtm-node-list]').innerHTML=list.length
+      ?list.map(function(n,i){return nodeBusinessRow(state,n,i);}).join('')
+      :'<p class="mtm-empty">선택한 조건에 해당하는 종목이 없습니다.</p>';
+    var selected=view.rows.find(function(row){return row.code===state.selectedCode;});
+    root.querySelector('[data-mtm-detail]').innerHTML=stockDetail(state,selected);
+    root.querySelector('[data-mtm-list-title]').textContent=state.industry
+      ? '회사 한눈에 보기 · 지도 번호 순서'
+      : state.sector ? '하위 업종 · 포함 회사' : '산업별 포함 회사';
+    root.querySelector('[data-mtm-identify]').textContent=state.industry
+      ? '원 안 번호 = 오른쪽 회사 목록 · 목록에 회사가 하는 일 표시'
+      : '산업과 하위 업종을 선택하면 포함된 회사와 사업을 볼 수 있습니다.';
     root.querySelectorAll('[data-mtm-market]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-mtm-market')===state.market));});
     root.querySelectorAll('[data-mtm-size]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-mtm-size')===state.size));});
     root.querySelector('[data-mtm-zoom-label]').textContent=Math.round(state.zoom*100)+'%';
@@ -274,7 +341,7 @@
     if(!container||container.__mtm)return;
     var state={root:container,candidates:chooseCandidates(wics),quotes:[],rs:null,
       market:'ALL',sector:'',industry:'',search:'',size:'cap',zoom:1,
-      selectedCode:'',loading:false,error:'',checkedAt:''};
+      selectedCode:'',loading:false,error:'',checkedAt:'',profiles:null,profileStatus:'loading'};
     container.__mtm=state;
     container.innerHTML='<main class="mtm" aria-label="시장 흐름 지도">'
       +'<header class="mtm-header"><div><span class="mtm-eyebrow">9PAY MARKET ATLAS</span>'
@@ -295,14 +362,17 @@
       +'<output data-mtm-zoom-label>100%</output><button type="button" data-mtm-zoom="in" aria-label="확대">+</button></div></div>'
       +'<div class="mtm-chart" data-mtm-chart></div><p class="mtm-quality" data-mtm-quality></p>'
       +'<div class="mtm-guide"><strong>이렇게 보세요</strong><span>오른쪽 = 지난 1년간 시장보다 강함</span>'
-      +'<span>위쪽 = 최근 한 달간 시장보다 강함</span><span>원이 클수록 시가총액이 큽니다.</span></div>'
+      +'<span>위쪽 = 최근 한 달간 시장보다 강함</span><span>원이 클수록 시가총액이 큽니다.</span>'
+      +'<span data-mtm-identify>회사를 선택하면 이름과 사업 내용을 볼 수 있습니다.</span></div>'
       +'<details class="mtm-method"><summary>계산 기준과 데이터 안내 <span aria-hidden="true">＋</span></summary>'
       +'<div class="mtm-method-body">가로축은 최근 250거래일, 세로축은 최근 20거래일의 시장 대비 초과수익률(RS)입니다.'
       +' 종목 수익률에서 해당 시장(KOSPI 또는 KOSDAQ) 지수 수익률을 뺀 값(%p)이므로, 시장보다 강하다고 반드시 주가가 오른 것은 아닙니다.'
       +' 산업·하위 업종 원은 자료를 확보한 종목의 단순 평균이며 공식 업종지수가 아닙니다.'
       +' 원 크기는 확인된 시가총액을 기준으로 합니다. 겹친 원은 보기 좋게 이동하고 실제 좌표에 선으로 연결합니다.'
       +' 과거 자료가 부족한 종목은 임의 값으로 채우지 않습니다.</div></details></div>'
-      +'<aside class="mtm-side"><div class="mtm-side-card"><h2>분류·종목 탐색</h2><div class="mtm-node-list" data-mtm-node-list></div></div>'
+      +'<aside class="mtm-side"><div class="mtm-side-card"><h2 data-mtm-list-title>산업별 포함 회사</h2>'
+      +'<p class="mtm-side-intro">회사명 아래에 실제 사업 소개를 표시합니다. 검색하지 않고 목록에서 바로 확인하세요.</p>'
+      +'<div class="mtm-node-list" data-mtm-node-list></div></div>'
       +'<div class="mtm-side-card mtm-detail" data-mtm-detail></div></aside></div>'
       +'<footer class="mtm-footer">공식 산업분류 기준 · 업종별 일부 종목만 표시(전체 상장종목 아님).'
       +' 지도 위치는 저장된 과거 자료를 기준으로 하며 오늘 주가 등락과 갱신 시각이 다를 수 있습니다.'
@@ -327,7 +397,8 @@
     container.querySelector('[data-mtm-search]').addEventListener('input',function(e){
       state.search=e.target.value;state.selectedCode='';draw(state);
     });
-    draw(state);load(state);
+    draw(state);load(state);loadCompanyDescriptions(state);
   }
-  global.MarketMap={init:init,chooseCandidates:chooseCandidates,grouped:grouped,getRS:getRS,layout:layout,nodesOf:nodesOf};
+  global.MarketMap={init:init,chooseCandidates:chooseCandidates,grouped:grouped,getRS:getRS,layout:layout,nodesOf:nodesOf,
+    businessSummary:businessSummary,businessLine:businessLine,nodeBusinessRow:nodeBusinessRow};
 })(window);

@@ -32,7 +32,7 @@
 #market-temp .mtm-path button {border:0;background:none;padding:2px;color:inherit;cursor:pointer;font-size:12px;}
 #market-temp .mtm-path button:hover {color:var(--mtm-ink);text-decoration:underline;}
 #market-temp .mtm-path strong {font-size:16px;font-weight:750;}
-#market-temp .mtm-layout {display:grid;grid-template-columns:minmax(0,1fr) 282px;gap:15px;align-items:start;}
+#market-temp .mtm-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(292px,330px);gap:15px;align-items:start;}
 #market-temp .mtm-chart-card,#market-temp .mtm-side-card {min-width:0;border:1px solid var(--mtm-line);border-radius:13px;background:var(--mtm-paper);}
 #market-temp .mtm-chart-card {padding:14px 16px;}
 #market-temp .mtm-chart-top {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;font-size:11px;color:var(--mtm-muted);}
@@ -56,6 +56,7 @@
 #market-temp .mtm-point.mtm-down .mtm-bubble {fill:var(--mtm-down);}
 #market-temp .mtm-point:hover .mtm-bubble,#market-temp .mtm-point:focus-visible .mtm-bubble,#market-temp .mtm-point.is-active .mtm-bubble {stroke:var(--mtm-ink);stroke-width:3.5;fill-opacity:1;}
 #market-temp .mtm-bubble-count {fill:#fff;font-size:12px;font-weight:760;pointer-events:none;}
+#market-temp .mtm-bubble-number {fill:#fff;font-size:11px;font-weight:790;pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.14);stroke-width:.5;}
 #market-temp .mtm-bubble-label {fill:var(--mtm-ink);font-size:12px;font-weight:700;paint-order:stroke;stroke:var(--mtm-paper);stroke-width:3;stroke-linejoin:round;pointer-events:none;}
 #market-temp .mtm-quality {margin:4px 0 12px;color:var(--mtm-muted);font-size:11px;line-height:1.6;}
 #market-temp .mtm-guide {display:flex;align-items:center;flex-wrap:wrap;column-gap:16px;row-gap:5px;padding:9px 4px 11px;color:var(--mtm-muted);font-size:11px;line-height:1.55;}
@@ -70,15 +71,17 @@
 #market-temp .mtm-method-body {padding:10px 0 5px;max-width:850px;line-height:1.8;}
 #market-temp .mtm-side {display:grid;gap:12px;min-width:0;}
 #market-temp .mtm-side-card {padding:14px;}
-#market-temp .mtm-side-card h2 {margin:0 0 12px;font-size:14px;font-weight:700;}
-#market-temp .mtm-node-list {display:flex;flex-direction:column;max-height:392px;overflow-y:auto;overscroll-behavior:contain;}
-#market-temp .mtm-list-row {display:flex;align-items:center;gap:8px;padding:9px 5px;width:100%;border:0;border-bottom:1px solid var(--mtm-line);background:transparent;color:var(--mtm-ink);text-align:left;cursor:pointer;}
+#market-temp .mtm-side-card h2 {margin:0 0 8px;font-size:14px;font-weight:700;}
+#market-temp .mtm-side-intro {margin:0 0 12px;color:var(--mtm-muted);font-size:11px;line-height:1.55;}
+#market-temp .mtm-node-list {display:flex;flex-direction:column;max-height:510px;overflow-y:auto;overscroll-behavior:contain;}
+#market-temp .mtm-list-row {display:flex;align-items:flex-start;gap:8px;padding:11px 5px;width:100%;border:0;border-bottom:1px solid var(--mtm-line);background:transparent;color:var(--mtm-ink);text-align:left;cursor:pointer;}
 #market-temp .mtm-list-row:hover,#market-temp .mtm-list-row.is-active {background:rgba(105,123,151,.07);}
-#market-temp .mtm-list-dot {flex:0 0 7px;width:7px;height:7px;border-radius:50%;background:#84919d;}
-#market-temp .mtm-list-dot.mtm-up {background:var(--mtm-up);}
-#market-temp .mtm-list-dot.mtm-down {background:var(--mtm-down);}
-#market-temp .mtm-list-name {display:flex;flex:1 1 0;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:700;}
+#market-temp .mtm-list-number {flex:0 0 25px;display:flex;align-items:center;justify-content:center;min-width:25px;min-height:24px;border:1px solid var(--mtm-line);border-radius:6px;font-size:11px;font-variant-numeric:tabular-nums;font-weight:760;color:var(--mtm-ink);background:rgba(110,125,145,.07);}
+#market-temp .mtm-list-number.mtm-number-group {border-color:transparent;background:transparent;color:var(--mtm-muted);font-size:15px;}
+#market-temp .mtm-list-name {display:flex;flex:1 1 0;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:600;}
+#market-temp .mtm-list-name strong {font-size:12px;font-weight:750;line-height:1.3;}
 #market-temp .mtm-list-name small {font-size:10px;color:var(--mtm-muted);font-weight:400;}
+#market-temp .mtm-list-business {display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:11px;font-weight:430;line-height:1.52;color:var(--mtm-muted);}
 #market-temp .mtm-list-value {display:flex;flex:none;flex-direction:column;gap:2px;align-items:end;font-size:11px;font-weight:760;}
 #market-temp .mtm-list-value.mtm-up,#market-temp .mtm-detail-heading .mtm-up {color:var(--mtm-up);}
 #market-temp .mtm-list-value.mtm-down,#market-temp .mtm-detail-heading .mtm-down {color:var(--mtm-down);}
@@ -88,6 +91,10 @@
 #market-temp .mtm-detail-heading small {font-size:10px;color:var(--mtm-muted);}
 #market-temp .mtm-detail-heading h3 {font-size:18px;margin:4px 0 10px;line-height:1.3;}
 #market-temp .mtm-detail-heading strong {font-size:14px;white-space:nowrap;}
+#market-temp .mtm-business-panel {padding:11px 12px;margin:2px 0 13px;border:1px solid var(--mtm-line);border-radius:9px;background:rgba(105,123,151,.045);}
+#market-temp .mtm-business-panel strong {display:block;font-size:12px;line-height:1.45;color:var(--mtm-ink);}
+#market-temp .mtm-business-panel p {font-size:12px;line-height:1.72;margin:6px 0 8px;color:var(--mtm-ink);overflow-wrap:anywhere;}
+#market-temp .mtm-business-panel small {display:block;font-size:10px;line-height:1.5;color:var(--mtm-muted);}
 #market-temp .mtm-big-price {font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;margin:5px 0 14px;}
 #market-temp .mtm-big-price small {font-size:12px;font-weight:400;}
 #market-temp .mtm-detail-row {display:flex;align-items:start;justify-content:space-between;gap:10px;border-top:1px solid var(--mtm-line);padding:9px 0;font-size:11px;}
@@ -101,7 +108,7 @@ html.dark #market-temp .mtm {--mtm-line:var(--dk-line);--mtm-paper:var(--dk-card
 html.dark #market-temp .mtm .mtm-segments {background:var(--dk-inner);}
 html.dark #market-temp .mtm .mtm-detail-open {background:var(--dk-text);color:var(--dk-card);}
 @media (max-width:1050px) {
-  #market-temp .mtm-layout {grid-template-columns:minmax(0,1fr) 244px;gap:10px;}
+  #market-temp .mtm-layout {grid-template-columns:minmax(0,1fr) 270px;gap:10px;}
   #market-temp .mtm-chart-card {padding:10px;}
 }
 @media (max-width:760px) {

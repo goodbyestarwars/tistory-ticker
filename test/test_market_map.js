@@ -78,6 +78,33 @@ assert.ok(src.includes('종목 수익률에서 해당 시장(KOSPI 또는 KOSDAQ
 assert.ok(src.includes('시장보다 강하다고 반드시 주가가 오른 것은 아닙니다'));
 assert.ok(css.includes('.mtm-guide') && css.includes('.mtm-method[open]'));
 
+assert.ok(src.includes('data/company-profiles.js')); // existing static business descriptions
+assert.ok(src.includes('loadCompanyDescriptions(state)')); // async; does not block quotes or RS
+assert.ok(src.includes('data-mtm-list-title') && src.includes('data-mtm-identify'));
+assert.ok(src.includes('mtm-bubble-number')); // stock bubble ↔ list number
+assert.ok(src.includes('mtm-business-panel')); // selected company's business
+assert.ok(css.includes('.mtm-list-business') && css.includes('.mtm-business-panel'));
+assert.ok(css.includes('.mtm-bubble-number') && css.includes('.mtm-list-number'));
+const stock = {key:'000660',kind:'stock',code:'000660',name:'SK하이닉스',price:95000,
+  rate:1.2,cap:100e12,industry:'반도체와반도체장비',rs1m:2.3};
+const profileState={profiles:{asOf:'2026-10-07',source:'네이버 증권 · WISEreport',
+  companies:{'000660':{summary:'DRAM과 NAND Flash 메모리 반도체를 생산함.'}}},
+  profileStatus:'ready',selectedCode:''};
+assert.equal(map.businessSummary(profileState,stock),'DRAM과 NAND Flash 메모리 반도체를 생산함.');
+const businessHtml=map.nodeBusinessRow(profileState,stock,3);
+assert.ok(businessHtml.includes('mtm-number-stock">04')); // same number as SVG bubble
+assert.ok(businessHtml.includes('SK하이닉스'));
+assert.ok(businessHtml.includes('메모리 반도체를 생산함'));
+const missingBusiness=map.businessLine(profileState,{code:'999999',industry:'의료장비'});
+assert.ok(missingBusiness.includes('사업 소개가 없습니다.'));
+assert.ok(missingBusiness.includes('의료장비'));
+assert.equal(map.businessLine({profiles:null,profileStatus:'loading'},stock),'회사 소개를 불러오는 중입니다.');
+const maliciousState={profiles:{companies:{'000660':{summary:'<img src=x onerror="alert(1)">'}}},
+  profileStatus:'ready',selectedCode:''};
+const safeRow=map.nodeBusinessRow(maliciousState,stock,0);
+assert.ok(!safeRow.includes('<img') && safeRow.includes('&lt;img')); // static data escaped
+
+
 
 // Regression: market-temp.js may start before skin-shell's async access-gate.js is ready.
 const start = marketTemp.indexOf('  function waitMarketMapAccess_() {');
@@ -121,7 +148,7 @@ async function verifyGateLoading() {
     await assert.rejects(result, /접근 제어/); }
 }
 verifyGateLoading().then(function () {
-  console.log('market-map: RS source, axis math, 3-level drilldown, missing data, duplicate-free WICS, secure API, gate race PASS');
+  console.log('market-map: RS, WICS, company descriptions, numbered bubbles, safe fallback, admin gate PASS');
 }).catch(function (error) {
   console.error(error);
   process.exitCode = 1;
