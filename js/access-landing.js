@@ -16,7 +16,7 @@
 
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
-    '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,Pretendard,system-ui,sans-serif);background:#0f2a4a;overflow:hidden}' +
+    '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);background:#0f2a4a;overflow:hidden}' +
     '.nl-photo{position:absolute;inset:0;background:url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-murren.jpg) center/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,20,38,.62) 0%,rgba(7,20,38,.18) 52%,rgba(7,20,38,0) 78%),linear-gradient(0deg,rgba(7,20,38,.5) 0%,rgba(7,20,38,0) 40%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
@@ -39,7 +39,7 @@
     '.nl-btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:2px solid rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}' +
     '.nl-btn.ghost:hover{background:rgba(255,255,255,.26)}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}' +
-    '.nl-credit{position:absolute;right:clamp(12px,3vw,40px);bottom:10px;font-size:11px;color:rgba(255,255,255,.7);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
+    '.nl-credit{font-family:system-ui,"Malgun Gothic",sans-serif;position:absolute;right:clamp(12px,3vw,40px);bottom:10px;font-size:11px;color:rgba(255,255,255,.7);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
     '.nl-credit:hover{color:#fff;text-decoration:underline}' +
     '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
     '.nl-modal[hidden]{display:none}' +
