@@ -19,17 +19,18 @@
 }
 .global-watchlist-drawer.is-open { transform: translateX(0); }
 .global-watchlist-toggle {
+  --wl-toggle-bg: #ff3b30;
   position: absolute;
   top: 50%;
   right: 100%;
   width: 48px;
   min-height: 76px;
   padding: 9px 5px;
-  border: 1px solid #e3e6eb;
+  border: 1px solid var(--wl-toggle-bg);
   border-right: 0;
   border-radius: 14px 0 0 14px;
-  background: rgb(255, 254, 252);
-  color: #555d69;
+  background: var(--wl-toggle-bg);
+  color: #fff;
   box-shadow: -4px 4px 14px rgba(19, 28, 45, .10);
   font: inherit;
   font-size: 11px;
@@ -41,7 +42,7 @@
 .global-watchlist-toggle-icon {
   display: block;
   margin-bottom: 4px;
-  color: #6b7684;
+  color: inherit;
   font-family: Arial, sans-serif;
   font-size: 17px;
   font-weight: 400;
@@ -420,8 +421,8 @@ html.dark #watchlist .wl-card.is-touch-dragging { background: var(--dk-inner) !i
    배경 + #F5EFE0 글자로 교체. 등락색(wl-up/down)·즐겨찾기 별(gold) 등은 의미가 있는
    색이라 유지. */
 html.dark #watchlist { color: var(--dk-text) !important; }
-html.dark .global-watchlist-panel,
-html.dark .global-watchlist-toggle { background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark .global-watchlist-panel { background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark .global-watchlist-toggle { background: var(--wl-toggle-bg) !important; border-color: var(--wl-toggle-bg) !important; color: #fff !important; }
 html.dark #watchlist .wl-group-items.is-drag-over { background: var(--dk-inner) !important; box-shadow: inset 0 0 0 1px var(--dk-line) !important; }
 html.dark #watchlist .wl-count { color: var(--dk-mute) !important; }
 html.dark #watchlist .wl-auth,
