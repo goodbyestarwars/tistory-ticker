@@ -71,7 +71,7 @@ function loadMobileTabs() {
   if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
   if (document.querySelector('script[data-mobile-tabs]')) return;
   var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-  var version = '20261108-mobile-tabs2';
+  var version = '20261113-linked-futures';
   var link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = ASSET_BASE + 'css/home-mobile-tabs.css?v=' + version;
@@ -645,8 +645,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20261004-econ-sp100-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261113-linked-futures')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261113-linked-futures';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261113-linked-time';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
