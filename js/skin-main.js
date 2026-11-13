@@ -2248,25 +2248,42 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       });
     }
     var futuresFlowRequestedAt = 0, homeFuturesPayload = null, homeFuturesActor = 'foreign', homeFuturesDisplay = 'interval', homeFuturesSelectedSlot = null, homeFuturesLinkedDate = null;
+    var homeFuturesSampleEnabled = true;
+    function homeFuturesDisplayData(now) {
+      var data = homeFuturesPayload || {};
+      var today = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now || new Date());
+      if (!homeFuturesSampleEnabled || today !== '2026-11-13' || (data.observations || []).length) return data;
+      // Explicit one-day visual fixture: never sent to the API or persisted.
+      var foreign = [120,340,260,610,950,820,1240,1100,1580,1960,1720,2210,2050,2470,2730];
+      var institution = [-90,-280,-210,-540,-790,-720,-1090,-990,-1360,-1740,-1500,-1960,-1830,-2210,-2480];
+      return Object.assign({},data,{sample:true,historyDate:'2026-11-13',observations:foreign.map(function(v,i){
+        return {ts:Date.parse('2026-11-13T08:45:00+09:00')/1000+i*1800,foreign:v,institution:institution[i],individual:-v-institution[i]};
+      })});
+    }
     function futuresObservationTime(ts) {
       return new Date(ts*1000).toLocaleTimeString('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'});
     }
     function renderHomeFuturesHistory() {
-      var card=dashboardSection.querySelector('[data-home-futures-flow]'), shared=window.InvestorFlow, data=homeFuturesPayload||{};
+      var card=dashboardSection.querySelector('[data-home-futures-flow]'), shared=window.InvestorFlow, data=homeFuturesDisplayData();
       if(!card||card.closest('[data-mtab-idle]')||!shared||!shared.futuresChart)return;
       if(homeFuturesLinkedDate!==data.historyDate){homeFuturesSelectedSlot=null;homeFuturesLinkedDate=data.historyDate;}
+      var sampleButton=card.querySelector('[data-futures-sample]');
+      if(!sampleButton){sampleButton=document.createElement('button');sampleButton.type='button';sampleButton.setAttribute('data-futures-sample','');var sampleGroup=document.createElement('div');sampleGroup.className='hmb-mode-segment';sampleGroup.appendChild(sampleButton);card.querySelector('.hff-controls').appendChild(sampleGroup);}
+      var today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      sampleButton.hidden=today!=='2026-11-13'||!!(homeFuturesPayload&&homeFuturesPayload.observations&&homeFuturesPayload.observations.length);
+      sampleButton.textContent=data.sample?'샘플 끄기':'샘플 보기';sampleButton.setAttribute('aria-pressed',String(!!data.sample));
       var rows=shared.futuresRows(data.observations,data.historyDate);
       if(homeFuturesSelectedSlot==null&&rows.length)homeFuturesSelectedSlot=rows[rows.length-1].slot;
       card.querySelector('[data-futures-flow-bars]').innerHTML=shared.futuresChart(data.observations,{date:data.historyDate,actor:homeFuturesActor,mode:homeFuturesDisplay});
       card.querySelectorAll('[data-futures-actor]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-actor')===homeFuturesActor));});
       card.querySelectorAll('[data-futures-display]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-display')===homeFuturesDisplay));});
       var n=data.available&&data.participants&&data.participants[homeFuturesActor]?homeNum(data.participants[homeFuturesActor].net):null;
-      card.querySelector('[data-futures-flow-total]').textContent='현재 누적 '+(n==null?'미집계':(n>0?'+':n<0?'−':'')+homeFmt(Math.abs(n),0)+'계약');
+      card.querySelector('[data-futures-flow-total]').textContent=(data.sample?'샘플 표시 중 · 실제 현재 누적 ':'현재 누적 ')+(n==null?'미집계':(n>0?'+':n<0?'−':'')+homeFmt(Math.abs(n),0)+'계약');
       var slider=card.querySelector('[data-futures-time]');slider.disabled=!rows.length;slider.value=homeFuturesSelectedSlot==null?14:homeFuturesSelectedSlot;
       syncHomeFuturesSelection();
     }
     function syncHomeFuturesSelection() {
-      var shared=window.InvestorFlow,data=homeFuturesPayload||{},slot=homeFuturesSelectedSlot;
+      var shared=window.InvestorFlow,data=homeFuturesDisplayData(),slot=homeFuturesSelectedSlot;
       if(!shared||!shared.futuresRows)return;
       var rows=shared.futuresRows(data.observations,data.historyDate),row=rows.filter(function(r){return r.slot===slot;})[0];
       var price=homeSessionCharts.KOSPI200_DAY||{},same=!!data.historyDate&&price.session&&data.historyDate===price.session.date;
@@ -2274,7 +2291,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var flowText=dashboardSection.querySelector('[data-futures-flow-readout]'),priceText=dashboardSection.querySelector('[data-futures-price-readout]');
       var value=row?row[homeFuturesActor+(homeFuturesDisplay==='interval'?'Delta':'')]:null;
       if(flowText)flowText.textContent=!rows.length?'관측 이력 대기 · 첫 관측 이전 구간은 비워 둠':!row?data.historyDate+' · 이 구간 수급 관측 없음':data.historyDate+' · '+(row.previousTs&&homeFuturesDisplay==='interval'?futuresObservationTime(row.previousTs)+'→':'')+futuresObservationTime(row.ts)+' 관측 · '+(value==null?'이전 관측 없음':(value>0?'+':value<0?'−':'')+homeFmt(Math.abs(value),0)+'계약');
+      if(data.sample&&flowText)flowText.textContent='[샘플 데이터 · 실제 매매 아님] '+flowText.textContent.replace(' 관측',' 예시');
       if(priceText)priceText.textContent=!rows.length?'수급 관측 이력 대기 · 가격과 다른 날짜를 연결하지 않음':!same?'가격·수급 날짜 불일치 · 연동 보류':point?data.historyDate+' · '+futuresObservationTime(point.ts)+' 가격 관측 · '+homeFmt(point.close,2):'같은 구간의 가격 관측 없음';
+      if(data.sample&&priceText)priceText.textContent='실제 가격 / 수급은 샘플 · '+priceText.textContent;
       dashboardSection.querySelectorAll('[data-home-futures-pair] [data-linked-cursor]').forEach(function(n){n.remove();});
       if(slot==null||!same||!row)return;
       dashboardSection.querySelectorAll('[data-home-futures-pair] .hmb-investor-spark').forEach(function(svg){
