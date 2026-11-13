@@ -3,7 +3,7 @@
 - 변경: access_policy 공통 3열에서 홈/종목/도구/MY/증시온도 일반회원 허용, 검색기·전략검색 별도 관리자 키. NineAccess URL/메뉴/모바일/전역 관심·메모 판정 재사용. Google 검증 서명 세션+관리자 등록 이메일만 확대 권한, 기존 세션 재로그인. 화면 설정에 목록·등록·해제·서버 검증·대소문자/중복·감사·원자 저장/잠금·해제 재판정 추가. 기존 비회원·관리자 설정 보존·구형 행렬 이관.
 - 보호: 제한 REST/WS·시세 재배포·시장맵 원천데이터·계좌·주문·자동매매·API/관리 설정 경계 불변. 일반회원 화면의 일부 시세/차트는 제한됨을 UI 명시. Google 실거래 VM 변경/재시작 없음.
 - 검증: Python 권한13+허용목록6+실제 접근 라우트2 통과, JS 게이트 기존+회원 URL 회귀, Edge1280/390/320 이메일 추가·해제·검색기 권한 상한·넘침0, 변경 JS/Python 구문 확인. 운영 실제 Google 로그인/관리자 쓰기는 미실시.
-- 배포: master→Pages/Oracle 기존 사이트 API 배포 대상. 배포 SHA/운영 결과는 후속 확인 기록.
+- 배포/운영: 73247786 master 직접 반영, Pages 성공·access-settings 자산 원본 일치. Oracle 기존 kiwoom-deploy로 02:35 KST 적용(post_check=ok, API active, 재시작 의존성에 거래 서비스 없음). 운영 health200, access-policy200/no-store·신규 scanner/strategy·비회원 허용4개 유지, 익명 회원목록403·제한 시세/검색기/전략검색401. 운영 익명 WS quotes/market-indicators는 accept 전 HTTP403 거절. 기존 메뉴/모바일 14개 추가 통과. Google 실거래 VM·봇/runner 미조작. 실제 OAuth·관리자 운영 등록은 사용자 인증 세션 없이 미실시.
 
 **2026-11-14 Market Atlas 기업 소개·번호 매칭**
 

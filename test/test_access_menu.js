@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
-const KEYS = ['guestbook','calendar','briefing','news','indicators','home','stocks','tools','my','market-temp','autotrader','kis'];
+const KEYS = ['guestbook','calendar','briefing','news','indicators','home','stocks','scanner','strategy','tools','my','market-temp','autotrader','kis'];
 const PUB = ['guestbook','calendar','briefing','news'];
 function policy(admin, authenticated = admin, off = []) {
   return {data: {isAdmin: admin, authenticated, screens: Object.fromEntries(KEYS.map(k => {
