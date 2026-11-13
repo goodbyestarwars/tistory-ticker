@@ -11,9 +11,10 @@
 운영 HTML의 기존 `maru-buri.css` 링크도 편집기에서 삭제해야 불필요한 구형 다운로드가 완전히 사라진다.
 전체 스킨 덮어쓰기 없이 해당 link 한 줄만 제거한다. 운영 저장·원문 확인 전까지 이 항목은 대기다.
 
-## 정적 Pretendard 링크 삭제 — 2026-11-13 (속도, 반영 대기)
+## 정적 Pretendard 링크 삭제 — 2026-11-13 (속도, 사용자 반영본 확인)
 
 `<head>`의 `<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />` 한 줄을 삭제한다(리포 `skin.html`은 삭제 완료). 본문 글꼴은 `style.css`가 불러오는 Pretendard Variable 서브셋이며, 이 정적 CSS는 가변 서브셋에 없는 글자 하나(예: 랜딩 사진 출처 `Räsänen`의 ä)만으로 `Pretendard-Regular.woff2` 748KB 전체를 받게 만들었다. 공통 토큰과 랜딩은 이미 정적 Pretendard를 대체 글꼴에서 뺐지만, 화면별 CSS 46곳에 남은 `"Pretendard"` 대체 글꼴은 이 링크가 있는 한 같은 문제가 날 수 있다. 우회 추가 없음.
+사용자가 보낸 반영본(2026-11-13)에서 정적 링크·maru-buri.css 링크 삭제를 확인했다. 남은 선택 정리: 쓰지 않는 `hangeul.pstatic.net` preconnect 한 줄(리포 삭제 완료).
 
 ## 화면 접근 게이트 스크립트 — 2026-11-11 (선택, 반영 대기)
 
