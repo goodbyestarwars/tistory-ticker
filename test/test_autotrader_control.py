@@ -187,6 +187,7 @@ class ControlTest(unittest.TestCase):
         self.assertEqual(len(out['skips']), 1)
         self.assertEqual(set(out['skips'][0]), {'day', 'code', 'reason', 'count'})
         self.assertEqual(set(out['botOrders'][0]), {'ts', 'code', 'name', 'qty', 'reason', 'status'})
+        self.assertEqual(ac._safe_decision({'scanner': [], 'rank': 1}), {'rank': 1})
 
     def test_activity_is_stored_and_only_exposed_when_received(self):
         now = MON
