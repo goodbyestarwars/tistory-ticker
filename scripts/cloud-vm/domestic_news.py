@@ -892,13 +892,13 @@ def _disclosure_items(code='', name='', fresh=False):
     return _dedupe_disclosures(dart_items + kind_items)
 
 
-def get_news(code='', name='', query='', limit=10, item_kind='all'):
+def get_news(code='', name='', query='', limit=10, item_kind='all', window_hours=24):
     code = _strip(code)
     name = _strip(name)
     query = _strip(query)
     cache_key = code or name or 'market'
     cached = _load_cached(cache_key)
-    stale = _load_cached(cache_key, ttl_sec=24 * 60 * 60)
+    stale = _load_cached(cache_key, ttl_sec=max(24, min(168, int(window_hours))) * 60 * 60)
     client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID', '').strip()
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET', '').strip()
     if (cached or stale) and (len(cached) >= min(int(limit or 10), 10) or not (client_id and client_secret)):

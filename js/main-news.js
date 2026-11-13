@@ -19,11 +19,11 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#main-news';
-  // 시장별로 FETCH_LIMIT만큼 받아 24시간 컷·시장별 상한을 적용한 뒤 섞는다.
+  // 주요 뉴스는 최근 7일·시장별 최대 50건. 홈 공용 조회 기본값은 25건·24시간을 유지한다.
   //
   // 2026-09-08: 받는 수를 50 -> 25로 내렸다. 시장별 상한(MARKET_LIMIT)이 25인데 50을
   // 받고 있었다 - API가 최신순으로 주므로 뒤 25건은 어떤 경우에도 버려지는 몫이었고,
-  // 24시간 컷도 "오래된 것"만 걷어내니 더 받아봐야 최신 기사가 늘지 않는다. 서버를
+  // 시간 창도 "오래된 것"만 걷어내니 더 받아봐야 최신 기사가 늘지 않는다. 서버를
   // 두 배로 굴리기만 했다(2026-09-06 시장별 상한을 넣으면서 받는 수를 같이 안 내린 실수).
   var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=25';
   var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=25';
@@ -44,11 +44,11 @@
   // 2026-09-06 실측: 국내 50건이 12:00~14:16(2시간 16분)에 몰려 있었고, 미국 최신
   // 기사(11:30)는 시간순으로 51번째 뒤로 밀려 화면에서 통째로 사라졌다. 시장마다
   // 따로 자른 뒤 섞어야 양쪽이 함께 보인다.
-  var MARKET_LIMIT = 25;
+  var MARKET_LIMIT = 50;
   // 섞은 뒤 화면에 그리는 최종 상한(= MARKET_LIMIT x 시장 수).
-  var RENDER_LIMIT = 50;
-  // 실제 경과 24시간만 표시한다. 주말에도 오래된 기사로 채우지 않는다.
-  var RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+  var RENDER_LIMIT = 100;
+  // 실제 경과 7일만 표시한다. 주말에도 오래된 기사로 채우지 않는다.
+  var RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
   // 2026-09-05: 국기 이모지에서 글자 배지로 바꿨다(국기는 지역 표시 문자라 윈도우
   // 크롬에서 두 글자로 그려져 플랫폼마다 모양이 달랐다).
   // 2026-09-06: 홈·휴장 지면의 경제 종합뉴스가 쓰는 표기(.app-news-market)에 맞춰
@@ -61,7 +61,7 @@
   // 2026-10-10 요청: 가상자산 뉴스 탭 추가. 가상자산은 24시간 거래라 시간대 구분이 필요 없고(KST 표기), 배지는 칸 폭을 지키려고 2글자 "코인"을 쓴다.
   // 기존 두 시장(전체 탭)에는 섞지 않는다 - 이 탭을 열 때만 기존 /crypto-news(가상자산 시장지표 화면이 쓰는 같은 엔드포인트·서버 캐시)를 부른다.
   var CRYPTO_MARKET = { key: 'crypto', code: '코인', label: '가상자산' };
-  var CRYPTO_API_URL = 'https://goodbyestar.cloud/crypto-news?limit=25';
+  var CRYPTO_API_URL = 'https://goodbyestar.cloud/crypto-news?limit=50&hours=168';
   var VIEWS = [
     { key: 'all', label: '전체' },
     { key: 'domestic', label: '한국' },
@@ -152,14 +152,14 @@
     return korean || String((item && item.title) || '').trim();
   }
 
-  function fetchJson(url) {
+  function fetchJson(url, maxItems) {
     return global.NineHttp.json(url, { timeoutMs: FETCH_TIMEOUT_MS })
       .then(function (payload) {
         var data = (payload && payload.data) || payload || {};
         var items = (data.items || []).filter(function (item) { return item && item.title; });
         // 서버가 시간순을 보장하지 않는 경로가 섞여 있어(RSS 합본) 여기서 한 번 더 정렬한다.
         items.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
-        return items.slice(0, FETCH_LIMIT);
+        return items.slice(0, maxItems || FETCH_LIMIT);
       });
   }
 
@@ -192,7 +192,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>최근 24시간 뉴스를 최신순으로 봅니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + (sourceNoteText() ? ' 국내 뉴스 출처는 ' + escapeHtml(sourceNoteText()) + '입니다.' : '') + '</p>'
+      + '<p>최근 7일 내 수집된 뉴스를 최신순으로 봅니다. 시장별 최대 50건이며 수집 범위에 따라 일부 날짜의 기사가 없을 수 있습니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + (sourceNoteText() ? ' 국내 뉴스 출처는 ' + escapeHtml(sourceNoteText()) + '입니다.' : '') + '</p>'
       + '<div class="mn-tabbar"><div class="mn-tabs" role="tablist" aria-label="주요 뉴스 구분">'
       + VIEWS.map(function (view) {
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key
@@ -204,7 +204,7 @@
       + '<small class="nt-stamp" data-mn-updated>자동 갱신 대기 중</small></div></div>'
       + '</div>'
       + '<section class="mn-keywords" aria-label="뉴스 핵심 키워드"><h3>뉴스에서 반복된 키워드</h3>'
-      + '<p data-mn-cloud-meta>현재 탭의 최근 24시간 기사 제목을 집계합니다.</p>'
+      + '<p data-mn-cloud-meta>현재 탭의 최근 7일 기사 제목을 집계합니다.</p>'
       + '<div class="news-keyword-cloud" data-mn-cloud role="group" aria-label="반복 키워드"></div>'
       + '<details class="mn-keywords-all"><summary>전체 키워드·기사 수</summary><div data-mn-cloud-all></div></details>'
       + '<section class="mn-keywords-evidence" data-mn-cloud-evidence hidden aria-live="polite"></section>'
@@ -243,7 +243,7 @@
       evidence.replaceChildren(); evidence.hidden = true; all.replaceChildren();
       container.querySelector('[data-mn-cloud-meta]').textContent =
         (VIEWS.filter(function (v) { return v.key === state.view; })[0] || VIEWS[0]).label
-        + ' · 최근 24시간 수집 기사 ' + model.articleCount + '건 · 제목에서 2건 이상 반복된 상위 ' + model.keywords.length
+        + ' · 최근 7일 수집 기사 ' + model.articleCount + '건 · 제목에서 2건 이상 반복된 상위 ' + model.keywords.length
         + '개 · 글자 크기=기사 수 (긍부정·시장 전체 언급량 아님)' + (failed.length ? ' · 일부 시장 수집 실패' : '');
       function button(word) {
         var b = document.createElement('button'); b.type = 'button'; b.textContent = word.text;
@@ -293,7 +293,7 @@
     if (!items.length) {
       list.innerHTML = failed.length
         ? '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>'
-        : '<p class="mn-state">최근 24시간 뉴스가 없습니다.</p>';
+        : '<p class="mn-state">최근 7일 뉴스가 없습니다.</p>';
       if (updated) updated.textContent = failed.length ? '갱신 실패 · 자동 재시도 예정' : '표시할 뉴스 없음';
       return;
     }
@@ -317,7 +317,7 @@
     setRefreshState_(container, true);
     var updated = container.querySelector('[data-mn-updated]');
     if (updated && !state.cryptoLoadedAt) updated.textContent = '뉴스를 불러오는 중';
-    MainNews.fetchJson(CRYPTO_API_URL)
+    MainNews.fetchJson(CRYPTO_API_URL, MARKET_LIMIT)
       .then(function (items) {
         var rows = items.filter(function (item) { return item.market === 'crypto' && /^https:\/\//.test(item.link || ''); });
         rows.forEach(function (item) { item._market = 'crypto'; });
@@ -342,7 +342,7 @@
     var pending = MARKETS.length;
     MARKETS.forEach(function (market) {
       var url = market.key === 'us' ? US_API_URL : DOMESTIC_API_URL;
-      MainNews.fetchJson(url)
+      MainNews.fetchJson(url.replace('limit=25', 'limit=50') + '&hours=168', MARKET_LIMIT)
         .then(function (items) {
           items.forEach(function (item) { item._market = market.key; });
           // 합치기 전에 시장별로 자른다 - 합친 뒤 한 번만 자르면 발행이 잦은 쪽이 다 먹는다.

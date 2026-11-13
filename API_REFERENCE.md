@@ -555,3 +555,8 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 ### 검색기 관찰 목록 분리 (2026-11-13)
 
 `shapeSelection`의 기존 `version:'shape-selection-v1'` 계약은 유지한다. `strategyVersion:'chart-first-v2'`, `extended:{<5개 그룹>:[]}`, `research:{<5개 그룹>:[]}`를 추가한다. `groups`는 준비/첫 변화 기본 후보이며 연구 태그로 생성·승격하지 않는다. 별도 두 버킷도 동일 시각/재무 만료 검사를 거친다. `relativeStrength.role:'advisory'`는 새 후보에 기존 myWay 탈락 필터를 적용하지 않았다는 뜻이다. 행의 `patternDetail.listKind`는 `primary|extended|research`, `stage`는 `prepare|trigger|extended`이며 연구는 기존 `EDGE_OBSERVE` 상태를 유지한다. `setup`, `position`, `volumeContext`, `relativeContext`는 확보된 모양/지수 자료에 따라 제공되는 보조 근거다. 기존 patterns·확정/실시간/주문 응답과 과거 통계는 변경하지 않는다.
+
+
+### 주요 뉴스 7일 조회 (2026-11-13)
+
+`/domestic-news`, `/foreign-news`, `/crypto-news`의 `hours`는 기본24·최대168이다. 주요 뉴스 페이지는 `hours=168&limit=50`, 홈 등 기존 호출은 24시간 기본값을 유지한다. 국내는 기존 저장 캐시를 7일까지 읽고 미국은 기존 일반뉴스 DB 이력을 병합한다(별도 과거 수집 없음). 가상자산은 기존 RSS 캐시 범위만 제공한다. 모든 시장의 `newsWindowHours`는 요청 창이며 7일 전체 수집 보장을 의미하지 않는다. 발행시각 미상·미래·창 밖은 기존 news_window로 제외한다. 장중 서버 재시작 없이 장외 자동 배포 대상이다.

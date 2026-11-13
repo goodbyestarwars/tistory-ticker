@@ -19,7 +19,7 @@
 }
 .global-watchlist-drawer.is-open { transform: translateX(0); }
 .global-watchlist-toggle {
-  --wl-toggle-bg: #ff3b30;
+  --wl-toggle-bg: #d98580;
   position: absolute;
   top: 50%;
   right: 100%;

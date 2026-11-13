@@ -8080,7 +8080,7 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
 
 /* 우측 관심종목 서랍 손잡이 : 검은 면 + 흰 글씨, 모서리 0 */
 html body .global-watchlist-toggle {
-  --wl-toggle-bg: #ff3b30;
+  --wl-toggle-bg: #d98580;
   border: 1px solid var(--wl-toggle-bg) !important;
   border-right: 0 !important;
   border-radius: 12px 0 0 12px !important;

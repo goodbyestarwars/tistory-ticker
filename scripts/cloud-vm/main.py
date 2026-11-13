@@ -3850,7 +3850,7 @@ def domestic_news_endpoint(
     if normalized_code and (len(normalized_code) != 6 or not normalized_code.isdigit()):
         raise HTTPException(status_code=400, detail='domestic stock code must be 6 digits')
     item_kind = 'news' if kind.strip().lower() == 'news' else 'all'
-    result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind)
+    result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind, window_hours=hours)
     result = dict(result or {})
     result['items'] = news_window.recent_items(result.get('items', []), 'domestic', keep_disclosures=True,
                                                window_seconds=hours * 60 * 60)
@@ -3892,12 +3892,13 @@ def domestic_disclosures_endpoint(request: Request, limit: int = Query(30, ge=1,
 
 
 @app.get('/crypto-news')
-def crypto_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50)):
+def crypto_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50),
+                         hours: int = Query(24, ge=1, le=168)):
     """가상자산 전문 매체 뉴스만 전달한다. 10분 메모리 캐시, 온디맨드 조회."""
     _check_rate_limit('crypto_news', request, max_per_window=20)
     result = dict(news_aggregator.get_crypto_news(limit=limit))
-    result['items'] = news_window.recent_items(result.get('items', []), 'crypto')
-    return envelope(dict(result, market='crypto', newsWindowHours=24, newsTimeZone='UTC',
+    result['items'] = news_window.recent_items(result.get('items', []), 'crypto', window_seconds=hours * 3600)
+    return envelope(dict(result, market='crypto', newsWindowHours=hours, newsTimeZone='UTC',
                          source='CoinDesk RSS + Cointelegraph RSS'))
 
 
@@ -3918,7 +3919,8 @@ def fx_rates_history_endpoint(request: Request,
 
 
 @app.get('/foreign-news')
-def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70)):
+def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70),
+                          hours: int = Query(24, ge=1, le=168)):
     """미국 세션용 일반 시장·거시경제 뉴스를 Finnhub와 Alpha Vantage에서 합친다."""
     _check_rate_limit('foreign_news', request, max_per_window=20)
     items = news_aggregator.get_general_news(
@@ -3926,11 +3928,22 @@ def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70))
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
         limit=limit,
     )
-    items = news_window.recent_items(items, 'us')
+    if hours > 24:
+        # Reuse persisted headlines only; no historical provider/backfill requests.
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        archive = news_aggregator.get_general_news_history(
+            (now - timedelta(hours=hours, days=1)).date().isoformat(),
+            (now + timedelta(days=1)).date().isoformat(), limit=200)
+        seen = {row.get('link') for row in items}
+        items = items + [row for row in archive if row.get('link') not in seen]
+    items = news_window.recent_items(items, 'us', window_seconds=hours * 3600)
+    items.sort(key=news_aggregator._published_timestamp, reverse=True)
+    items = items[:limit]
     filings = news_aggregator.get_sec_filings(limit=_DOMESTIC_DART_LIMIT)
     return envelope({
         'market': 'us',
-        'newsWindowHours': 24,
+        'newsWindowHours': hours,
         'newsTimeZone': 'America/New_York',
         'items': items,
         'flash': _build_flash_items(items, filings, 'us'),
