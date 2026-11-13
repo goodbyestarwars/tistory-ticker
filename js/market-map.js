@@ -156,13 +156,13 @@
   function svgMarkup(state,lay) {
     var mx=(plot.l+plot.r)/2,my=(plot.t+plot.b)/2;
     function xLabel(v){return (v>0?'+':'')+v.toFixed(0);}
-    var shape='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="1년 RS 가로축, 1개월 RS 세로축 상대강도 지도">';
+    var shape='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="가로축은 최근 1년 시장보다 강한 정도, 세로축은 최근 한 달 시장보다 강한 정도. 오른쪽과 위쪽일수록 시장 대비 성적이 좋습니다.">';
     shape+='<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="16" class="mtm-canvas-bg"/>';
-    if(!lay.points.length)return shape+'<text x="500" y="248" text-anchor="middle" class="mtm-axis">검증된 1개월·1년 상대강도 데이터 없음</text>'
-      + '<text x="500" y="280" text-anchor="middle" class="mtm-axis">이력 부족 또는 서버 자료 미수신 · 임의 좌표 표시 안 함</text></svg>';
+    if(!lay.points.length)return shape+'<text x="500" y="248" text-anchor="middle" class="mtm-axis">지도에 표시할 비교 자료가 없습니다</text>'
+      + '<text x="500" y="280" text-anchor="middle" class="mtm-axis">과거 자료가 부족한 항목은 임의로 표시하지 않습니다</text></svg>';
     shape+='<path d="M'+mx+' '+plot.t+'V'+plot.b+'M'+plot.l+' '+my+'H'+plot.r+'" class="mtm-axis-line"/>';
-    var labels=[['반등 시도',plot.l+18,plot.t+20,'start'],['주도 강세',plot.r-18,plot.t+20,'end'],
-      ['약세',plot.l+18,plot.b-10,'start'],['상승 둔화',plot.r-18,plot.b-10,'end']];
+    var labels=[['최근 강해짐',plot.l+18,plot.t+20,'start'],['꾸준히 강함',plot.r-18,plot.t+20,'end'],
+      ['시장보다 약함',plot.l+18,plot.b-10,'start'],['최근 주춤',plot.r-18,plot.b-10,'end']];
     labels.forEach(function(v){shape+='<text x="'+v[1]+'" y="'+v[2]+'" text-anchor="'+v[3]+'" class="mtm-quadrant">'+v[0]+'</text>';});
     [-.5,.5].forEach(function(k){
       var xx=mx+k*(plot.r-plot.l)/2,yy=my+k*(plot.b-plot.t)/2;
@@ -170,14 +170,14 @@
       shape+='<line x1="'+plot.l+'" y1="'+yy+'" x2="'+plot.r+'" y2="'+yy+'" class="mtm-gridline"/>';
     });
     shape+='<text x="'+(plot.l+5)+'" y="'+(H-11)+'" text-anchor="start" class="mtm-axis">'+xLabel(-lay.maxX)+'%p</text>';
-    shape+='<text x="'+(plot.r-8)+'" y="'+(H-11)+'" text-anchor="end" class="mtm-axis">1년 RS  '+xLabel(lay.maxX)+'%p →</text>';
+    shape+='<text x="'+(plot.r-8)+'" y="'+(H-11)+'" text-anchor="end" class="mtm-axis">지난 1년 시장보다 강함  '+xLabel(lay.maxX)+'%p →</text>';
     shape+='<text x="'+(plot.l-9)+'" y="'+(plot.t+10)+'" text-anchor="end" class="mtm-axis">+'+lay.maxY.toFixed(0)+'</text>';
     shape+='<text x="'+(plot.l-9)+'" y="'+(plot.b-5)+'" text-anchor="end" class="mtm-axis">'+(-lay.maxY).toFixed(0)+'</text>';
-    shape+='<text x="28" y="'+plot.t+'" transform="rotate(-90 28 '+plot.t+')" text-anchor="end" class="mtm-axis">1개월 RS (%p) ↑</text>';
+    shape+='<text x="28" y="'+plot.t+'" transform="rotate(-90 28 '+plot.t+')" text-anchor="end" class="mtm-axis">최근 한 달 시장보다 강함 ↑</text>';
     shape+='<text x="'+mx+'" y="'+(plot.b+20)+'" text-anchor="middle" class="mtm-zero">0</text>';
     lay.points.forEach(function(p,i){
       var n=p.node,active=state.selectedCode===n.code,label=lay.points.length<=12||i<9||active;
-      var tooltip=n.name+' · 1년 RS '+pp(n.rs1y)+' · 1개월 RS '+pp(n.rs1m)+' · 당일 '+pct(n.rate);
+      var tooltip=n.name+' · 지난 1년 시장 대비 '+pp(n.rs1y)+' · 최근 한 달 시장 대비 '+pp(n.rs1m)+' · 오늘 '+pct(n.rate);
       var displacement=Math.hypot(p.x-p.ax,p.y-p.ay);
       if(displacement>4)shape+='<path d="M'+p.ax.toFixed(1)+' '+p.ay.toFixed(1)+'L'+p.x.toFixed(1)+' '+p.y.toFixed(1)+'" class="mtm-tether"/>';
       shape+='<g class="mtm-point mtm-'+klass(n.rate)+(active?' is-active':'')+'" role="button" tabindex="0" data-mtm-node="'+esc(n.key)+'" aria-label="'+esc(tooltip)+'" transform="translate('+p.x.toFixed(1)+' '+p.y.toFixed(1)+')">'
@@ -207,11 +207,11 @@
       +'<strong class="mtm-'+klass(stock.rate)+'">'+pct(stock.rate)+'</strong></div>'
       +'<div class="mtm-big-price">'+money(stock.price)+'<small> 원</small></div>';
     [
-      ['1년 시장대비 RS',pp(stock.rs1y)],['1개월 시장대비 RS',pp(stock.rs1m)],
+      ['지난 1년 시장 대비',pp(stock.rs1y)],['최근 한 달 시장 대비',pp(stock.rs1m)],
       ['시가총액',capText(stock.cap)],['거래대금',stock.amount===null?'미제공':capText(stock.amount)],
       ['거래량',stock.volume===null?'미제공':money(stock.volume)+'주'],
       ['시세 조회시각',stock.time?esc(stock.time)+' (공급자 수신)': '미제공'],
-      ['RS 일봉 기준일',esc(stock.rsDate||'미확인')]
+      ['비교 기준 날짜',esc(stock.rsDate||'미확인')]
     ].forEach(function(d){detail+='<div class="mtm-detail-row"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>';});
     detail+='<a class="mtm-detail-open" href="/page/stock-search?code='+encodeURIComponent(stock.code)+'">종목정보 자세히 보기</a>';
     return detail;
@@ -219,12 +219,12 @@
   function draw(state) {
     var root=state.root,view=summary(state),lay=layout(view.nodes),visible=new Set(lay.points.map(function(p){return p.node.key;}));
     root.querySelector('[data-mtm-headline]').textContent=state.industry?state.industry:state.sector||'전체 산업';
-    root.querySelector('[data-mtm-scope]').textContent=view.level+' '+view.nodes.length+'개 · RS 유효 '+view.valid.length+'개 · 시세 '+view.rows.length+'/'+state.candidates.length+'종목(표본)';
+    root.querySelector('[data-mtm-scope]').textContent=view.level+' '+view.nodes.length+'개 · 지도에 표시 '+view.valid.length+'개 · 조회한 종목 '+view.rows.length+'/'+state.candidates.length+'개(표본)';
     root.querySelector('[data-mtm-status]').textContent=state.loading?'시세·일봉 확인 중…':
-      state.error||('시세 조회 '+(state.checkedAt||'미확인')+' KST · RS 확정 일봉 기준: KOSPI '
+      state.error||('시세 조회 '+(state.checkedAt||'미확인')+' KST · 과거 비교 기준일: 코스피 '
       + (state.rs&&state.rs.benchmarks&&state.rs.benchmarks.KOSPI&&state.rs.benchmarks.KOSPI.asOf||'미확인')
-      + ', KOSDAQ '+(state.rs&&state.rs.benchmarks&&state.rs.benchmarks.KOSDAQ&&state.rs.benchmarks.KOSDAQ.asOf||'미확인')
-      + ' · 실시간 좌표 아님');
+      + ', 코스닥 '+(state.rs&&state.rs.benchmarks&&state.rs.benchmarks.KOSDAQ&&state.rs.benchmarks.KOSDAQ.asOf||'미확인')
+      + ' · 지도 위치는 장중 실시간 변화가 아닙니다');
     root.querySelector('[data-mtm-breadcrumb]').innerHTML=
       '<button type="button" data-mtm-nav="root">산업 전체</button>'
       +(state.sector?'<span>›</span><button type="button" data-mtm-nav="sector">'+esc(state.sector)+'</button>':'')
@@ -232,8 +232,8 @@
     root.querySelector('[data-mtm-chart]').innerHTML=svgMarkup(state,lay);
     var missing=lay.missing.length;
     root.querySelector('[data-mtm-quality]').textContent=missing?
-      missing+'개 분류/종목은 상대강도 자료가 없어 지도에서 제외 (아래 목록에서 확인 가능)':
-      '표시된 좌표는 실제 일봉으로 계산한 상대강도입니다.';
+      missing+'개 항목은 과거 자료가 부족해 지도에 표시하지 않았습니다. 오른쪽 목록에서 확인할 수 있습니다.':
+      '지도 위치는 실제 과거 주가와 시장지수 자료를 비교한 결과입니다.';
     var list=view.nodes.slice().sort(function(a,b){return (b.cap||0)-(a.cap||0);});
     root.querySelector('[data-mtm-node-list]').innerHTML=list.length?list.map(function(n){
       var selected=n.kind==='stock'&&state.selectedCode===n.code;
@@ -241,7 +241,7 @@
         +'<span class="mtm-list-dot mtm-'+klass(n.rate)+'"></span><span class="mtm-list-name">'+esc(n.name)
         +'<small>'+((n.kind==='group')?n.total+'종목 표본':money(n.price)+'원')+'</small></span>'
         +'<span class="mtm-list-value mtm-'+klass(n.rate)+'">'+pct(n.rate)
-        +'<small>RS '+pp(n.rs1m)+'</small></span></button>';
+        +'<small>최근 한 달 시장 대비 '+pp(n.rs1m)+'</small></span></button>';
     }).join(''):'<p class="mtm-empty">선택한 조건에 해당하는 종목이 없습니다.</p>';
     var selected=view.rows.find(function(s){return s.code===state.selectedCode;});
     root.querySelector('[data-mtm-detail]').innerHTML=stockDetail(selected);
@@ -276,9 +276,9 @@
       market:'ALL',sector:'',industry:'',search:'',size:'cap',zoom:1,
       selectedCode:'',loading:false,error:'',checkedAt:''};
     container.__mtm=state;
-    container.innerHTML='<main class="mtm" aria-label="9Pay 상대강도 시장지도">'
+    container.innerHTML='<main class="mtm" aria-label="시장 흐름 지도">'
       +'<header class="mtm-header"><div><span class="mtm-eyebrow">9PAY MARKET ATLAS</span>'
-      +'<h1>시장 구조 지도</h1><p>산업 → 하위 업종 → 종목 · 좌표는 시장 대비 상대강도, 색은 당일 등락</p></div>'
+      +'<h1>시장 흐름 지도</h1><p>어떤 산업과 종목이 강한지 한눈에 살펴보세요. 산업 → 하위 업종 → 종목</p></div>'
       +'<span class="mtm-admin-note">관리자 전용 · 종목 시세</span></header>'
       +'<div class="mtm-toolbar"><div class="mtm-segments" role="group" aria-label="시장 구분">'
       +'<button type="button" data-mtm-market="ALL" aria-pressed="true">전체</button>'
@@ -289,19 +289,24 @@
       +'<div class="mtm-info"><span data-mtm-scope>표본 데이터 확인 중</span><span data-mtm-status>권한 확인 중</span></div>'
       +'<div class="mtm-path"><div data-mtm-breadcrumb></div><strong data-mtm-headline>전체 산업</strong></div>'
       +'<div class="mtm-layout"><div class="mtm-chart-card">'
-      +'<div class="mtm-chart-top"><span>X축 1년 RS · Y축 1개월 RS (시장 대비 초과수익률)</span>'
-      +'<div class="mtm-chart-actions"><span class="mtm-legend-up">● 상승</span><span class="mtm-legend-down">● 하락</span>'
+      +'<div class="mtm-chart-top"><span>오른쪽 = 지난 1년 시장보다 강함 · 위쪽 = 최근 한 달 시장보다 강함</span>'
+      +'<div class="mtm-chart-actions"><span class="mtm-legend-up">● 오늘 상승</span><span class="mtm-legend-down">● 오늘 하락</span>'
       +'<button type="button" data-mtm-zoom="out" aria-label="축소">−</button>'
       +'<output data-mtm-zoom-label>100%</output><button type="button" data-mtm-zoom="in" aria-label="확대">+</button></div></div>'
       +'<div class="mtm-chart" data-mtm-chart></div><p class="mtm-quality" data-mtm-quality></p>'
-      +'<div class="mtm-method">X축: 250거래일, Y축: 20거래일 · RS=종목 수익률−해당 시장(KOSPI/KOSDAQ) 지수 수익률(%p).'
-      +' 산업/하위 업종 원은 조회 가능한 종목의 단순 평균이며 공식 업종지수가 아닙니다. 원 크기는 확인된 시총의 상대 크기입니다.'
-      +' 겹친 원은 위치를 소폭 분리하고 실제 좌표에 연결선을 표시합니다.</div></div>'
+      +'<div class="mtm-guide"><strong>이렇게 보세요</strong><span>오른쪽 = 지난 1년간 시장보다 강함</span>'
+      +'<span>위쪽 = 최근 한 달간 시장보다 강함</span><span>원이 클수록 시가총액이 큽니다.</span></div>'
+      +'<details class="mtm-method"><summary>계산 기준과 데이터 안내 <span aria-hidden="true">＋</span></summary>'
+      +'<div class="mtm-method-body">가로축은 최근 250거래일, 세로축은 최근 20거래일의 시장 대비 초과수익률(RS)입니다.'
+      +' 종목 수익률에서 해당 시장(KOSPI 또는 KOSDAQ) 지수 수익률을 뺀 값(%p)이므로, 시장보다 강하다고 반드시 주가가 오른 것은 아닙니다.'
+      +' 산업·하위 업종 원은 자료를 확보한 종목의 단순 평균이며 공식 업종지수가 아닙니다.'
+      +' 원 크기는 확인된 시가총액을 기준으로 합니다. 겹친 원은 보기 좋게 이동하고 실제 좌표에 선으로 연결합니다.'
+      +' 과거 자료가 부족한 종목은 임의 값으로 채우지 않습니다.</div></details></div>'
       +'<aside class="mtm-side"><div class="mtm-side-card"><h2>분류·종목 탐색</h2><div class="mtm-node-list" data-mtm-node-list></div></div>'
       +'<div class="mtm-side-card mtm-detail" data-mtm-detail></div></aside></div>'
-      +'<footer class="mtm-footer">WICS 공식 업종 소속만 사용 · 내 카테고리 제외 · 업종별 최대 24종목 표본, 전 종목 아님.'
-      +' RS는 서버에 이미 저장된 확정 일봉과 지수 이력으로만 계산(실제 시세 수신시각과 다름).'
-      +' 거래대금이 공급되지 않으면 미제공으로 표시합니다. 자동매매·주문과 무관합니다.</footer></main>';
+      +'<footer class="mtm-footer">공식 산업분류 기준 · 업종별 일부 종목만 표시(전체 상장종목 아님).'
+      +' 지도 위치는 저장된 과거 자료를 기준으로 하며 오늘 주가 등락과 갱신 시각이 다를 수 있습니다.'
+      +' 제공되지 않은 가격·거래대금은 추정하지 않습니다. 주문·자동매매와 연결되지 않습니다.</footer></main>';
     container.addEventListener('click',function(event){
       var b=event.target.closest&&event.target.closest('button,[data-mtm-node]');if(!b)return;
       if(b.hasAttribute('data-mtm-market')){state.market=b.getAttribute('data-mtm-market');state.selectedCode='';draw(state);}

@@ -69,6 +69,15 @@ assert.ok(src.includes('{fallback:false}'));
 assert.ok(src.includes("credentials:'include'"));
 assert.ok(!src.includes('Math.random'));
 assert.ok(!src.includes('curated'));
+assert.ok(!src.includes('X축: 250거래일, Y축: 20거래일')); // default view is jargon-free
+assert.ok(src.includes('오른쪽 = 지난 1년 시장보다 강함'));
+assert.ok(src.includes('위쪽 = 최근 한 달 시장보다 강함'));
+assert.ok(src.includes('최근 강해짐') && src.includes('꾸준히 강함') && src.includes('최근 주춤'));
+assert.ok(src.includes('<details class="mtm-method">')); // raw methodology opt-in
+assert.ok(src.includes('종목 수익률에서 해당 시장(KOSPI 또는 KOSDAQ) 지수 수익률을 뺀 값'));
+assert.ok(src.includes('시장보다 강하다고 반드시 주가가 오른 것은 아닙니다'));
+assert.ok(css.includes('.mtm-guide') && css.includes('.mtm-method[open]'));
+
 
 // Regression: market-temp.js may start before skin-shell's async access-gate.js is ready.
 const start = marketTemp.indexOf('  function waitMarketMapAccess_() {');

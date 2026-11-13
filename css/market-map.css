@@ -58,7 +58,16 @@
 #market-temp .mtm-bubble-count {fill:#fff;font-size:12px;font-weight:760;pointer-events:none;}
 #market-temp .mtm-bubble-label {fill:var(--mtm-ink);font-size:12px;font-weight:700;paint-order:stroke;stroke:var(--mtm-paper);stroke-width:3;stroke-linejoin:round;pointer-events:none;}
 #market-temp .mtm-quality {margin:4px 0 12px;color:var(--mtm-muted);font-size:11px;line-height:1.6;}
-#market-temp .mtm-method {border-top:1px solid var(--mtm-line);padding:12px 3px 2px;font-size:11px;line-height:1.6;color:var(--mtm-muted);}
+#market-temp .mtm-guide {display:flex;align-items:center;flex-wrap:wrap;column-gap:16px;row-gap:5px;padding:9px 4px 11px;color:var(--mtm-muted);font-size:11px;line-height:1.55;}
+#market-temp .mtm-guide strong {color:var(--mtm-ink);font-weight:750;}
+#market-temp .mtm-guide span {position:relative;padding-left:11px;}
+#market-temp .mtm-guide span::before {content:"·";position:absolute;left:0;font-weight:700;color:var(--mtm-muted);}
+#market-temp .mtm-method {border-top:1px solid var(--mtm-line);padding:10px 3px 2px;font-size:11px;line-height:1.6;color:var(--mtm-muted);}
+#market-temp .mtm-method summary {display:flex;justify-content:space-between;align-items:center;gap:10px;list-style:none;cursor:pointer;user-select:none;padding:3px 0;color:var(--mtm-muted);}
+#market-temp .mtm-method summary::-webkit-details-marker {display:none;}
+#market-temp .mtm-method summary span {font-size:16px;font-weight:400;line-height:1;}
+#market-temp .mtm-method[open] summary span {transform:rotate(45deg);}
+#market-temp .mtm-method-body {padding:10px 0 5px;max-width:850px;line-height:1.8;}
 #market-temp .mtm-side {display:grid;gap:12px;min-width:0;}
 #market-temp .mtm-side-card {padding:14px;}
 #market-temp .mtm-side-card h2 {margin:0 0 12px;font-size:14px;font-weight:700;}
