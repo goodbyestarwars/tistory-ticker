@@ -2670,9 +2670,19 @@ def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, 
         if not daily:
             raise _upstream_http_exception('외국인·기관 수급 데이터를 불러오지 못했습니다.', e) from e
         logging.getLogger('main').warning('foreign-flow DB 확정 데이터 폴백(%s): %s', code, type(e).__name__)
+    # This endpoint is a display snapshot; before the daily confirmation window,
+    # a same-day personal zero from old/fallback caches is not confirmed evidence.
+    kst = time.gmtime(time.time() + 9 * 3600)
+    today = time.strftime('%Y-%m-%d', kst)
+    provisional = bool(daily and daily[0].get('date') == today and time.strftime('%H%M', kst) < '1540')
+    if provisional:
+        daily = [dict(row) for row in daily]
+        daily[0]['ind_net'] = None
     result = foreign_flow_compute.build_result(code, daily)
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
+    result['retrieved_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    result['data_status'] = 'provisional' if provisional else 'daily'
     _live_cache_put(_foreign_flow_cache_mem, cache_key, result)
     return envelope(result)
 

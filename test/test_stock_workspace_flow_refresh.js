@@ -1,0 +1,25 @@
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
+const source = fs.readFileSync(process.argv[2] || path.join(__dirname, '../js/stock-workspace.js'), 'utf8');
+const start = source.indexOf('  function loadFlow()');
+const fn = source.slice(start, source.indexOf('  /* ───── 기업정보', start));
+(async function () {
+  let now=1000000;
+  const Date={now:()=>now}, FLOW_TTL_MS=300000, API='api';
+  const attrs={}, pane={innerHTML:'',getAttribute:k=>attrs[k],setAttribute:(k,v)=>attrs[k]=v,removeAttribute:k=>delete attrs[k],querySelector:()=>({textContent:''})};
+  const state={code:'006280',flowToken:0,flowLoadedAt:0,flowRequestedAt:0,flowData:null};
+  const el={info:{querySelector:()=>pane}}, calls=[], isDomestic=c=>c.length===6, renderFlow=()=>{};
+  const global={NineHttp:{json:()=>new Promise((resolve,reject)=>calls.push({resolve,reject}))}};
+  const load = new Function('state','el','Date','FLOW_TTL_MS','API','isDomestic','renderFlow','global',fn+';return loadFlow;')(state,el,Date,FLOW_TTL_MS,API,isDomestic,renderFlow,global);
+  const settle=()=>new Promise(resolve=>setImmediate(resolve));
+  load();load();assert.equal(calls.length,1);
+  calls[0].resolve({data:{daily:[{date:'first'}]}});await settle();
+  load();assert.equal(calls.length,1);
+  now+=300001;load();assert.equal(calls.length,2);
+  calls[1].reject(Error('offline'));await settle();assert.ok(state.flowData);assert.equal(state.flowLoadingCode,'');
+  now+=31000;load();state.code='005930';load();assert.equal(calls.length,4);
+  calls[2].resolve({data:{daily:[{date:'old'}]}});await settle();assert.equal(state.flowData,null);
+  calls[3].resolve({data:{daily:[{date:'new'}]}});await settle();assert.equal(state.flowData.daily[0].date,'new');
+  console.log('PASS pending dedupe, TTL, retry retention, stale response');
+})().catch(e=>{console.error(e);process.exit(1);});

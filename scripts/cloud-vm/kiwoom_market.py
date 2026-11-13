@@ -328,6 +328,12 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_p
     out = []
     def quantity(row, key):
         value = row.get(key)
+        if key in ('orgn_ntby_qty', 'frgn_reg_ntby_qty', 'prsn_ntby_qty'):
+            try:
+                number = float(str(value).replace(',', '').replace('+', '').strip())
+                return number if math.isfinite(number) else None
+            except (ValueError, TypeError):
+                return None
         # A missing scanner quantity must not become a confirmed zero.
         if strict:
             try:
@@ -441,7 +447,7 @@ def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, tar
             'volume': abs(to_num(r.get('trde_qty'))),
             'inst_net': to_num(r.get('orgn_daly_nettrde_qty')),
             'foreign_net': frgn_by_date_k59.get(dt, to_num(r.get('for_daly_nettrde_qty'))),
-            'ind_net': ind_by_date.get(dt, 0.0),
+            'ind_net': ind_by_date.get(dt),
             'foreign_shares': abs(to_num(frgn_row.get('poss_stkcnt'))) if frgn_row else None,
             'foreign_ratio': to_num(frgn_row.get('wght')) if frgn_row else None,
         })
@@ -467,8 +473,10 @@ def _merge_live_row(out, live_row, today_str):
         return
     if out and out[0]['date'] == today_str:
         confirmed_ind_net = out[0].get('ind_net')
+        if datetime.now(timezone(timedelta(hours=9))).strftime('%H%M') < '1540':
+            confirmed_ind_net = None
         out[0].update(live_row)
-        if live_row.get('ind_net') is None and confirmed_ind_net is not None:
+        if live_row.get('ind_net') is None:
             out[0]['ind_net'] = confirmed_ind_net
     else:
         out.insert(0, dict(live_row, date=today_str, foreign_shares=None, foreign_ratio=None))

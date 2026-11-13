@@ -32,7 +32,7 @@
   var TABS = [['flow', '수급'], ['news', '공시·뉴스'], ['company', '기업정보']];
   var PANELS = [['chart', '차트'], ['book', '호가'], ['info', '종목정보']];
 
-  var state = { code: '', name: '', tab: 'flow', panel: 'chart', session: null, quote: null, flowToken: 0, flowData: null, flowPeriod: 'today', profiles: null };
+  var state = { code: '', name: '', tab: 'flow', panel: 'chart', session: null, quote: null, flowToken: 0, flowData: null, flowPeriod: 'today', flowLoadedAt: 0, flowRequestedAt: 0, flowLoadingCode: '', profiles: null };
   var el = {};
 
   function esc(value) { return global.NineUI.escapeHtml(value); }
@@ -255,28 +255,50 @@
               return '<td class="ssw-heat-cell ' + tone(amount).trim() + '" style="--heat:' + level + '%" title="' + signed(v) + '주">' + eok(amount, 0).replace(/[억조]$/, '') + '</td>';
             }).join('') + '</tr>';
         }).join('') + '</tbody></table>' : '')
-      + '<p class="ssw-note">기준일 ' + esc(data.as_of || (data.daily[0] && data.daily[0].date) || '') + ' · 금액은 순매수 수량×당일 종가 추정 · 막대는 세 주체 같은 눈금</p>';
+      + '<p class="ssw-note">기준일 ' + esc(data.as_of || (data.daily[0] && data.daily[0].date) || '') + ' · ' + esc(data.data_status === 'provisional' ? '장중 잠정·개인 미집계' : '일별 저장 자료')
+        + (data.retrieved_at ? ' · 서버 조회 ' + esc(new Date(data.retrieved_at).toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul', hour12:false})) + ' KST' : '')
+        + ' · 원본 집계시각 미제공 · 금액은 순매수 수량×당일 종가 추정 · 막대는 세 주체 같은 눈금</p>';
   }
+  function refreshVisibleFlow() {
+    if (doc.hidden || state.tab !== 'flow' || !el.info) return;
+    var mobile = global.matchMedia && global.matchMedia('(max-width: 860px)').matches;
+    if (mobile ? state.panel !== 'info' : !root.classList.contains('ssw-info-open')) return;
+    loadFlow();
+  }
+  doc.addEventListener('visibilitychange', function () { if (!doc.hidden) refreshVisibleFlow(); });
   function loadFlow() {
     var pane = el.info.querySelector('#sswPane-flow');
     var code = state.code;
     if (!isDomestic(code)) { pane.innerHTML = '<p class="ssw-state">종목을 선택하면 수급이 표시됩니다.</p>'; return; }
-    if (pane.getAttribute('data-code') === code) return; // 같은 종목은 다시 요청하지 않는다
+    var same = pane.getAttribute('data-code') === code;
+    if (state.flowLoadingCode === code) return;
+    if (same && state.flowData && Date.now() - state.flowLoadedAt < FLOW_TTL_MS) return;
+    if (same && Date.now() - state.flowRequestedAt < 30000) return;
+    state.flowRequestedAt = Date.now();
+    state.flowLoadingCode = code;
     var token = ++state.flowToken;
     pane.setAttribute('data-code', code);
-    state.flowData = null;
-    pane.innerHTML = '<p class="ssw-state" role="status">수급 자료를 불러오는 중입니다.</p>';
+    if (!same) {
+      state.flowData = null;
+      pane.innerHTML = '<p class="ssw-state" role="status">수급 자료를 불러오는 중입니다.</p>';
+    }
     global.NineHttp.json(API + '/foreign-flow/' + encodeURIComponent(code), { timeoutMs: 15000, ttlMs: FLOW_TTL_MS }).then(function (body) {
       if (token !== state.flowToken || state.code !== code) return; // 빠른 종목 전환: 이전 응답은 버린다
       var data = (body && body.data) || body || {};
       if (!data.daily || !data.daily.length) throw new Error('empty');
+      state.flowLoadedAt = Date.now();
       state.flowData = data;
       renderFlow(pane, data);
     }).catch(function () {
       if (token !== state.flowToken || state.code !== code) return;
+      if (same && state.flowData) {
+        var note = pane.querySelector('.ssw-note');
+        if (note) note.textContent = '갱신 실패 · 이전 조회 자료 유지 · 탭을 다시 열면 재시도합니다.';
+        return;
+      }
       pane.removeAttribute('data-code'); // 다시 열면 재시도
       pane.innerHTML = '<p class="ssw-state ssw-error" role="status">수급 자료를 받지 못했습니다. 탭을 다시 열면 재시도합니다.</p>';
-    });
+    }).then(function () { if (token === state.flowToken) state.flowLoadingCode = ''; });
   }
 
   /* ───── 기업정보 탭 ─────
@@ -565,6 +587,7 @@
       var q = e.detail || {};
       if (q.code !== state.code) return;
       state.quote = q;
+      refreshVisibleFlow();
       decorateHead();
       renderSessionExtra();
     });
