@@ -51,13 +51,15 @@ const functions = [
   '  function orderTable(',
   '  function activityHtml(',
   '  function csvCell(',
-  '  function inRange(',
+  '  function reviewCandidate(',
+  '  function reviewDecisionHtml(',
+  '  function decisionLogHtml(',
   '  function downloadActivity('
 ];
 const setup = [
   'var krxByCode=null, krxLoading=false, krxRetryAt=0, busy=false, root={};',
   'var ORDERS_FIRST=30, activityOpen={orders:false,candidates:false};',
-  'var activityRange={from:"",to:""}, lastActivity=null, lastControl=null;',
+  'var reviewDay="2026-11-06", orderDay="2026-11-06", lastActivity=null, lastControl=null;',
   'var ACT_REASON={ENTRY:"신규 진입"}, ACT_STATE={ACK:"접수됨 · 체결 확인 전"};',
   'var SCANNER_LABEL={doubleBottom:"쌍바닥"};',
   'var POS_QUOTE_TTL_MS=30000, posQuotes={key:"",at:0,map:{},loading:false};',
