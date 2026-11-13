@@ -60,6 +60,16 @@ class UsMarketEtfTests(unittest.TestCase):
         self.assertAlmostEqual(spy['return1d'], (129 / 128 - 1) * 100, places=2)
         self.assertAlmostEqual(spy['return1w'], (129 / 124 - 1) * 100, places=2)
 
+    def test_three_and_six_month_returns_require_full_history(self):
+        points = [{'time': (date(2025, 1, 1) + timedelta(days=i)).isoformat(),
+                   'close': 100 + i, 'volume': 1} for i in range(200)]
+        row = m.etf_returns({'SPY': points}, now=self.now)['items'][0]
+        self.assertEqual(row['return3m'], round((299 / 236 - 1) * 100, 2))
+        self.assertEqual(row['return6m'], round((299 / 173 - 1) * 100, 2))
+        row = m.etf_returns({'SPY': points[-40:]}, now=self.now)['items'][0]
+        self.assertIsNone(row['return3m'])
+        self.assertIsNone(row['return6m'])
+
 
 if __name__ == '__main__':
     unittest.main()

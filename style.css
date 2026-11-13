@@ -8715,7 +8715,7 @@ body#tt-body-index .home-editorial-page .hmb-etf[hidden] { display: none; }
 body#tt-body-index .home-editorial-page .hmb-etf-table-wrap { width: 100%; min-width: 0; overflow-x: auto; }
 body#tt-body-index .home-editorial-page .hmb-etf-table {
   width: 100%; margin: 10px 0 0; border-collapse: collapse; border-spacing: 0;
-  table-layout: fixed; font-family: var(--font-ui, "Pretendard Variable", Pretendard, sans-serif);
+  table-layout: fixed; min-width: 480px; font-family: var(--font-ui, "Pretendard Variable", Pretendard, sans-serif);
   font-variant-numeric: tabular-nums;
 }
 body#tt-body-index .home-editorial-page .hmb-etf-table :is(th, td) {
@@ -8725,7 +8725,7 @@ body#tt-body-index .home-editorial-page .hmb-etf-table :is(th, td) {
 body#tt-body-index .home-editorial-page .hmb-etf-table thead th {
   text-align: right; font-size: 11px; font-weight: 600; color: #7b8593;
 }
-body#tt-body-index .home-editorial-page .hmb-etf-table :is(th, td):first-child { width: 36%; text-align: left; }
+body#tt-body-index .home-editorial-page .hmb-etf-table :is(th, td):first-child { width: 28%; text-align: left; }
 body#tt-body-index .home-editorial-page .hmb-etf-table tbody td:not(:first-child) {
   text-align: right; white-space: nowrap; font-size: 12px; font-weight: 650;
 }
@@ -8748,7 +8748,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-table .home-positive 
 html.dark body#tt-body-index .home-editorial-page .hmb-etf-table .home-negative { color: var(--num-down); }
 @media (max-width: 720px) {
   body#tt-body-index .home-editorial-page .hmb-etf-table :is(th, td) { padding: 8px 3px; }
-  body#tt-body-index .home-editorial-page .hmb-etf-table :is(th, td):first-child { width: 33%; }
+  body#tt-body-index .home-editorial-page .hmb-etf-table :is(th, td):first-child { width: 28%; }
   body#tt-body-index .home-editorial-page .hmb-etf-table tbody td:not(:first-child) { font-size: 11px; }
   body#tt-body-index .home-editorial-page .hmb-etf-table .hmb-etf-name { flex-direction: column; align-items: flex-start; gap: 1px; font-size: 11px; }
   body#tt-body-index .home-editorial-page .hmb-etf-table .hmb-etf-name span { max-width: 100%; }
@@ -8872,21 +8872,17 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-table .home-negative 
    원본 nav 한 벌(푸터·모바일 홈·휴장·비회원 홈 공용)에만 적용하고 카드·캐러셀 계약은 그대로다. */
 @layer np.np {
   html body .site-footer-learn {
-    --learn-book-gap: 28px; --learn-ribbon: #b45309;
+    --learn-book-gap: 28px;
     --learn-book-edges:
       3px 3px 0 -1px var(--ui-card-surface), 3px 3px 0 0 var(--ui-border),
       6px 6px 0 -1px var(--ui-card-surface), 6px 6px 0 0 var(--ui-border),
       9px 9px 0 -1px var(--ui-card-surface), 9px 9px 0 0 var(--ui-border);
   }
-  html.dark body .site-footer-learn { --learn-ribbon: #fbbf24; }
   html body#tt-body-index #homeWeeklyReport .site-footer-learn { --learn-book-gap: var(--ui-section-gap); }
   /* 책등 */
   html body nav.site-footer-learn::before { content:""; position:absolute; left:0; top:0; bottom:0; width:10px; border-radius:6px 0 0 6px; pointer-events:none;
     background:linear-gradient(90deg, rgba(var(--np-ink),.1), rgba(var(--np-ink),.02) 70%, transparent); }
   html body .site-footer-learn .learn-intro { position:relative!important; align-self:stretch!important; display:flex!important; flex-direction:column; align-items:flex-start; }
-  /* 가름끈 */
-  html body .site-footer-learn .learn-intro::after { content:""; position:absolute; top:calc(-1 * var(--ui-card-padding) - 1px); right:calc(var(--learn-book-gap) / -2 + 3px);
-    width:16px; height:74px; background:var(--learn-ribbon); opacity:.85; clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%); pointer-events:none; }
   /* 제본선 */
   html body .site-footer-learn .learn-card-area::before { content:""; position:absolute; left:calc(var(--learn-book-gap) / -2 - 18px); top:calc(-1 * var(--ui-card-padding)); bottom:calc(-1 * var(--ui-card-padding)); width:36px; pointer-events:none;
     background:linear-gradient(90deg, transparent, rgba(var(--np-ink),.045) 42%, rgba(var(--np-ink),.11) 50%, rgba(var(--np-ink),.045) 58%, transparent); }
@@ -8902,7 +8898,6 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-table .home-negative 
   html body .site-footer-learn .learn-toc-head i { flex:1; border-top:1px solid rgba(var(--np-ink),.14); }
   @media(max-width:1100px) {
     html body .site-footer-learn .learn-card-area::before, html body .site-footer-learn .learn-folio { display:none!important; }
-    html body .site-footer-learn .learn-intro::after { right:10px; height:56px; width:14px; }
     html body .site-footer-learn .learn-volume { margin-bottom:12px!important; }
   }
   @media(max-width:720px) {

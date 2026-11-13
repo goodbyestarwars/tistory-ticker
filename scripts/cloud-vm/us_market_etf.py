@@ -197,7 +197,7 @@ def compute_rotation(series_by_symbol, now=None):
 
 
 def etf_returns(series_by_symbol, now=None):
-    """주요 ETF 1일·1주(5거래일)·1개월(21거래일)·연초 이후 수익률."""
+    """주요 ETF 1일·1주(5거래일)·1개월(21거래일)·3개월(63거래일)·6개월(126거래일)·연초 이후 수익률."""
     rows = []
     last_date = None
     for sym, name in MAJOR_ETFS:
@@ -219,10 +219,12 @@ def etf_returns(series_by_symbol, now=None):
         rows.append({
             'symbol': sym, 'name': name, 'close': round(closes[idx], 2), 'date': last_day,
             'return1d': r(sr.pct_return(closes, idx, 1)), 'return1w': r(sr.pct_return(closes, idx, 5)),
-            'return1m': r(sr.pct_return(closes, idx, 21)), 'returnYtd': r(ytd),
+            'return1m': r(sr.pct_return(closes, idx, 21)),
+            'return3m': r(sr.pct_return(closes, idx, 63)),
+            'return6m': r(sr.pct_return(closes, idx, 126)), 'returnYtd': r(ytd),
         })
     return {
         'available': bool(rows), 'date': last_date, 'final': is_final(last_date, now) if last_date else None,
         'items': rows,
-        'basis': '일봉 종가 기준 · 1주 5거래일 · 1개월 21거래일 · 연초 이후는 직전 연도 마지막 종가 대비',
+        'basis': '일봉 종가 기준 · 1주 5거래일 · 1개월 21거래일 · 3개월 63거래일 · 6개월 126거래일 · 연초 이후는 직전 연도 마지막 종가 대비',
     }

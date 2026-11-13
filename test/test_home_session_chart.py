@@ -32,6 +32,15 @@ class SessionCharts(unittest.TestCase):
     def get(self, symbol='NASDAQ_INDEX'):
         return next(r for r in charts.get_results() if r['symbol'] == symbol)
 
+    def test_day_futures_session_is_separate_from_night(self):
+        for stamp in ('2026-11-13T08:44:00+09:00', '2026-11-13T15:46:00+09:00',
+                      '2026-11-14T09:00:00+09:00'):
+            self.assertIsNone(charts.session('KOSPI200_DAY', datetime.fromisoformat(stamp)))
+        opening = charts.session('KOSPI200_DAY', datetime.fromisoformat('2026-11-13T08:45:00+09:00'))
+        closing = charts.session('KOSPI200_DAY', datetime.fromisoformat('2026-11-13T15:45:00+09:00'))
+        self.assertEqual((opening['slot'], closing['slot'], closing['slotCount']), (0, 14, 15))
+        self.assertIsNone(charts.session('KOSPI200_NIGHT', datetime.fromisoformat('2026-11-13T09:00:00+09:00')))
+
     def test_observations_keep_high_low_and_latest_not_older_quote(self):
         self.put(100)
         self.put(110, '2026-10-15T10:05:00-04:00')
