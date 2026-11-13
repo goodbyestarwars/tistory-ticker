@@ -2303,6 +2303,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     dashboardSection.addEventListener('click',function(e){
       var actor=e.target.closest('[data-futures-actor]'),mode=e.target.closest('[data-futures-display]');
+      if(e.target.closest('[data-futures-sample]')){homeFuturesSampleEnabled=!homeFuturesSampleEnabled;homeFuturesSelectedSlot=null;renderHomeFuturesHistory();}
       if(actor){homeFuturesActor=actor.getAttribute('data-futures-actor');renderHomeFuturesHistory();}
       if(mode){homeFuturesDisplay=mode.getAttribute('data-futures-display');renderHomeFuturesHistory();}
     });
