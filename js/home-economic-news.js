@@ -90,8 +90,9 @@
     Object.keys((data && data.sections) || {}).forEach(function (key) {
       (data.sections[key] || []).forEach(function (row) {
         if (!row) return;
-        var rate = Number(row.change_rate);
-        var entry = { rate: isFinite(rate) ? rate : 0, name: String(row.name || '').trim() };
+        var rawRate = row.change_rate;
+        var validRate = rawRate !== null && rawRate !== undefined && String(rawRate).trim() !== '' && isFinite(Number(rawRate));
+        var entry = { rate: validRate ? Number(rawRate) : null, name: String(row.name || '').trim() };
         if (row.code) map[String(row.code).toUpperCase()] = entry;
         if (entry.name) map['name:' + entry.name.toLowerCase()] = entry;
       });
@@ -113,6 +114,32 @@
       return false;
     });
     return found;
+  }
+
+  // The full existing listing dictionary determines article subjects. The limited market board
+  // supplies optional rates only; a missing quote never becomes an invented 0.00%.
+  function articleStocks(item) {
+    var matched = global.NineNewsStocks ? global.NineNewsStocks.relatedStocks(item) : [];
+    if (!matched.length) {
+      var fallback = quoteFor(item);
+      return fallback && fallback.name ? [{ name: fallback.name, quote: fallback }] : [];
+    }
+    return matched.map(function (stock) {
+      return { name: stock.name, quote: state.quoteMap[String(stock.code).toUpperCase()]
+        || state.quoteMap['name:' + String(stock.name).toLowerCase()] || null };
+    });
+  }
+
+  function stockFooter(stocks) {
+    if (!stocks.length) return '';
+    return '<div class="app-news-footer">' + stocks.map(function (stock) {
+      var rate = stock.quote && stock.quote.rate;
+      var valid = rate !== null && rate !== undefined && isFinite(Number(rate));
+      var tone = valid && rate > 0 ? ' is-up' : valid && rate < 0 ? ' is-down' : '';
+      return '<span class="app-news-quote' + tone + '">' + escapeHtml(stock.name)
+        + (valid ? ' <b>' + (rate > 0 ? '+' : '') + Number(rate).toFixed(2) + '%</b>' : '')
+        + '</span>';
+    }).join('') + '</div>';
   }
 
   function watchlistItems() {
@@ -242,7 +269,8 @@
     list.innerHTML = '<div class="app-news-timeline hen-timeline">' + ['am', 'pm'].map(function (period) {
       if (!groups[period].length) return '';
       return '<div class="hen-period"><h4>' + groupLabels[period] + '</h4>' + groups[period].map(function (item) {
-        var quote = quoteFor(item);
+        var stocks = articleStocks(item);
+        var quote = stocks.length === 1 ? stocks[0].quote : null;
         var tone = quote && quote.rate > 0 ? 'is-up' : quote && quote.rate < 0 ? 'is-down' : '';
         var type = kindLabel(item);
         return '<a class="app-news-event hen-row hen-regular ' + tone + '" href="' + escapeHtml(safeHref(item.link) || '#') + '" target="_blank" rel="noopener">'
@@ -250,7 +278,7 @@
           + '<div class="app-news-rail"><i></i></div>'
           + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--' + (market === 'us' ? '미국' : '한국') + '">' + (market === 'us' ? '미국' : '한국') + '</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
           + '<strong>' + escapeHtml(item.title_ko || item.title || '') + '</strong>'
-          + (quote ? '<div class="app-news-footer"><span class="app-news-quote ' + tone + '">' + escapeHtml(quote.name || '') + ' <b>' + (quote.rate > 0 ? '+' : '') + Number(quote.rate || 0).toFixed(2) + '%</b></span></div>' : '')
+          + stockFooter(stocks)
           + '</div></a>';
       }).join('') + '</div>';
     }).join('') + '</div>'
@@ -563,6 +591,12 @@
       connectNewsSocket();
       fetchNews();
     });
+    // Catalog is a one-time static script, independent of news and quote polling.
+    if (global.NineUI && typeof global.NineUI.loadNewsStocks === 'function') {
+      global.NineUI.loadNewsStocks().then(function () {
+        if (state.mount && state.items.length) render(state.items, state.market, state.flash);
+      }).catch(function () { /* Keep existing small-board matches as fallback. */ });
+    }
     loadMarketBoard(state.market);
     connectNewsSocket();
     state.timer = setInterval(function () {
