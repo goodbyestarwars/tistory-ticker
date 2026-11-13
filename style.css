@@ -2332,6 +2332,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-family: var(--font-serif) !important;
     font-weight: 700 !important;
   }
+  html body #market-temp .mtm h1,
   html body .post-single:has(.mi-wrap #kospi-futures) .post-single-title,
   html body .post-single:has(:is(#market-temp, #foreign-flow, #pattern-scan, #strategy-search, #stock-search, #stock-calendar, #auto-trader)) .post-single-header .post-single-title,
   html body .it-modal :is(#itTitle, #itFxTitle) {

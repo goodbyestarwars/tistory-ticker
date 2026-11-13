@@ -5,7 +5,8 @@ const root=path.resolve(__dirname,'..');
  const b=await chromium.launch({channel:'msedge',headless:true});
  for(const width of [1280,390,320]){
   const p=await b.newPage({viewport:{width,height:900}});
-  await p.setContent('<style>*{box-sizing:border-box}:root{--font-title:"Noto Serif KR Site",serif}</style><div id="market-temp"></div>');
+  await p.setContent('<style>*{box-sizing:border-box}:root{--font-title:"Noto Serif KR Site",serif;--font-serif:"Noto Serif KR Site",serif;--font-ui:Arial}</style><div id="market-temp"></div>');
+  await p.addStyleTag({content:fs.readFileSync(path.join(root,'style.css'),'utf8')});
   await p.addStyleTag({content:fs.readFileSync(path.join(root,'css/market-map.css'),'utf8')});
   await p.evaluate(()=>{
    window.NineUI={escapeHtml:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))};
@@ -47,6 +48,8 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await p.locator('svg .mtm-axis, svg .mtm-zero').count(),0);
   assert(!(await p.locator('main').innerText()).includes('지난 1년 시장보다 강함'));
   assert(!(await p.locator('[data-mtm-node-list]').innerText()).includes('%p'));
+  assert((await p.locator('.mtm h1').evaluate(e=>getComputedStyle(e).fontFamily)).includes('Noto Serif KR Site'));
+  assert.equal(await p.locator('.mtm h1').evaluate(e=>getComputedStyle(e).fontSize),width>760?'24px':'22px');
   assert((await p.evaluate(()=>requests)).every(r=>r.codes.length<=300));
   assert((await p.evaluate(()=>requests)).filter(r=>r.kind==='quotes').every(r=>r.options.fallback===false));
   if(process.env.MAP_SCREENSHOT_DIR)await p.screenshot({path:path.join(process.env.MAP_SCREENSHOT_DIR,'market-flow-'+width+'.png'),fullPage:true});
