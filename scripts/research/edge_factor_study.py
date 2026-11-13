@@ -9,7 +9,7 @@
   - 피처는 t일 종가·t일 확정 수급까지. 진입 t+1 시가, 청산 t+h 종가 (h=5, 20).
   - 목표 = 같은 날짜 유니버스 평균을 뺀 초과수익(시장 국면 제거) + 비용 0.7% 차감 절대수익(승률).
   - 유니버스: 20일 평균 거래대금 30억원 이상, 종가 1,000원 이상, 250봉 이력.
-  - 날짜별 백분위로 바꾼 뒤 5분위/10분위 비교와 순위 IC(Spearman). 겹침 제거: h일마다 한 날짜만 써서 t값 계산.
+  - 날짜별 백분위로 바꾼 뒤 5분위/10분위 비교와 순위 IC(Spearman). 보유기간 겹침은 Newey-West(lag=h) t값으로 보정.
   - 기간: 학습 2021-10~2023-12 / 검증 2024-01~2025-06 / 시험 2025-07~ (시험은 마지막에 한 번만 본다).
   - 다중비교: 단일 피처 + 2개 조합 격자 전부를 본 뒤 학습 t값에 Benjamini-Hochberg(FDR 10%) 보정, 검증·시험 같은 방향만 인정.
   - 비선형: LightGBM(학습 적합·검증 조기종료) → 시험 기간 상위 10%/1% 성과.
@@ -18,6 +18,7 @@
 """
 import json
 import os
+import warnings
 import sys
 
 import numpy as np
@@ -155,17 +156,20 @@ def prep(df):
     return df
 
 
-def nonoverlap_dates(dates, h):
-    u = np.sort(dates.unique())
-    return set(u[::h])
-
-
-def tstat(x):
+def tstat(x, lags=0):
+    """날짜순 시계열 평균의 t값. lags>0이면 Newey-West(Bartlett) HAC 표준오차로 보유기간 겹침을 보정한다."""
     x = np.asarray(x, dtype=float)
     x = x[np.isfinite(x)]
-    if len(x) < 5:
-        return np.nan, len(x)
-    return x.mean() / (x.std(ddof=1) / np.sqrt(len(x))), len(x)
+    n = len(x)
+    if n < 5:
+        return np.nan, n
+    e = x - x.mean()
+    var = (e @ e) / n
+    for k in range(1, min(lags, n - 1) + 1):
+        var += 2 * (1 - k / (lags + 1)) * (e[k:] @ e[:-k]) / n
+    if var <= 0:
+        return np.nan, n
+    return x.mean() / np.sqrt(var / n), n
 
 
 def cell_stats(sub, h):
@@ -184,13 +188,12 @@ def univariate(df):
             r = {}
             for h in H:
                 s2 = s[s['ex%d' % h].notna()]
-                keep = nonoverlap_dates(s2.date, h)
-                s3 = s2[s2.date.isin(keep)]
+                s3 = s2
                 ic = s3.groupby('date').apply(lambda g: g['p_' + k].corr(g['ex%d' % h].rank(pct=True)), include_groups=False)
                 q = pd.cut(s3['p_' + k], [0, .2, .4, .6, .8, 1.0001], labels=False)
                 spread = s3[q == 4].groupby('date')['ex%d' % h].mean() - s3[q == 0].groupby('date')['ex%d' % h].mean()
-                t_ic, nd = tstat(ic)
-                t_sp, _ = tstat(spread)
+                t_ic, nd = tstat(ic, h)
+                t_sp, _ = tstat(spread, h)
                 r['h%d' % h] = {'ic': round(float(ic.mean()), 4), 't_ic': round(float(t_ic), 2), 'dates': nd,
                                 'q_ex': [round(float(s2[pd.cut(s2['p_' + k], [0, .2, .4, .6, .8, 1.0001], labels=False) == i]['ex%d' % h].mean()) * 100, 3) for i in range(5)],
                                 'spread': round(float(spread.mean()) * 100, 3), 't_spread': round(float(t_sp), 2)}
@@ -219,9 +222,7 @@ def pair_grid(df, h=20, top=25):
     """두 피처 5x5 격자 전체를 학습 기간에서 보고 BH 보정 → 상위 칸의 검증·시험 성과."""
     cells = []
     q = {k: pd.cut(df['p_' + k], [0, .2, .4, .6, .8, 1.0001], labels=False) for k in FEATS}
-    tr_mask = (df.period == 'train') & df['ex%d' % h].notna()
-    keep = nonoverlap_dates(df[tr_mask].date, h)
-    trn = tr_mask & df.date.isin(keep)
+    trn = (df.period == 'train') & df['ex%d' % h].notna()
     for i, a in enumerate(FEATS):
         for b in FEATS[i + 1:]:
             key = q[a] * 5 + q[b]
@@ -229,8 +230,8 @@ def pair_grid(df, h=20, top=25):
             for cell in g.columns:
                 if not np.isfinite(cell):
                     continue
-                t, nd = tstat(g[cell])
-                if nd < 30:
+                t, nd = tstat(g[cell], h)
+                if nd < 100:
                     continue
                 cells.append((a, b, int(cell) // 5, int(cell) % 5, float(g[cell].mean()), t, nd))
     p = [norm_p(c[5]) for c in cells]
@@ -270,21 +271,22 @@ def gbm(df, h=20, feats=None, tag='all'):
         s = s.copy()
         s['score'] = m.predict(s[cols], num_iteration=m.best_iteration)
         s['sp'] = s.groupby('date').score.rank(pct=True)
-        keep = nonoverlap_dates(s.date, h)
-        s3 = s[s.date.isin(keep)]
+        s3 = s
         ic = s3.groupby('date').apply(lambda g: g.score.corr(g[y].rank(pct=True)), include_groups=False)
-        t_ic, nd = tstat(ic)
+        t_ic, nd = tstat(ic, h)
         r = {'ic': round(float(ic.mean()), 4), 't_ic': round(float(t_ic), 2), 'dates': nd, 'all': cell_stats(s, h)}
         for name, lo in (('top10', 0.9), ('top1', 0.99), ('bottom10', None)):
             sub = s[s.sp <= 0.1] if lo is None else s[s.sp > lo]
             r[name] = cell_stats(sub, h)
             td = s3[(s3.sp <= 0.1) if lo is None else (s3.sp > lo)].groupby('date')[y].mean()
-            r[name]['t'] = round(float(tstat(td)[0]), 2)
+            r[name]['t'] = round(float(tstat(td, h)[0]), 2)
         out[per] = r
     return out
 
 
 def main(lab, out_path):
+    warnings.filterwarnings('ignore')
+    np.seterr(all='ignore')
     df = prep(load(lab))
     info = {'rows': int(len(df)), 'stocks': int(df.code.nunique()), 'dates': [str(df.date.min().date()), str(df.date.max().date())],
             'flow_coverage': round(float(df.f20.notna().mean()), 3),
