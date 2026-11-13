@@ -14,6 +14,7 @@
 - 측정(운영 https://ghlee.tistory.com/ 비로그인, PC 1440, Playwright): 111요청·3,854KB·load 6.2~6.8s. 큰 항목: 정적 `Pretendard-Regular.woff2` 748KB(원인: 랜딩 사진 출처 `Räsänen`의 ä 2글자가 가변 서브셋에 없어 스킨의 정적 pretendard.css로 대체), `landing-murren.jpg` 675KB, 로고 `falcon-logo-source.webp` 276KB(1536×1024를 34~80px로 표시), 명조 서브셋 16개 약 600KB, 티스토리 코드 하이라이트 언어팩 12개.
 - 변경: `style.css` 공통 `--font-title/ui/data` 대체 글꼴에서 정적 "Pretendard" 제거(→ Apple SD Gothic Neo/맑은 고딕). `js/access-landing.js` 출처 문구 시스템 글꼴. `img/landing-murren.jpg` 1680px·q70 프로그레시브(675→344KB), `img/falcon-logo-source.webp` 768×512(276→67KB, 배경 % 크롭 비율 동일). `skin.html` 정적 pretendard.css 링크 삭제(운영 수동 반영 대기, SKIN_HTML_PENDING 기록).
 - 검증: 같은 운영 페이지에 변경 파일만 바꿔 끼운 비교 — 3,854→2,916KB(−24%), 정적 Pretendard 다운로드 1→0, load 6.2→4.9s(1회 측정, 네트워크 변동 있음). 랜딩 화면 스크린샷 동일(로고 글자 ‘ㄱㅖ조 ㅏ’는 원래 의도된 표기).
+- 운영 확인(스킨 반영 후, 2회): 108요청·2,561KB(최초 3,854KB 대비 −34%), 정적 Pretendard·maru-buri 다운로드 0, 글꼴 1,080KB(가변 서브셋+명조), DCL 약 4.9s, load 5.3~7.5s(변동). 남은 선택 정리: hangeul preconnect 한 줄.
 - 배포: master→Pages. 미완료: 스킨 링크 수동 삭제, 로그인 후 관리자 화면(API 지연)은 인증 없이 측정 불가, 티스토리 코드 하이라이트 플러그인·광고 스크립트는 사이트 코드 밖.
 
 **2026-11-13 내 카테고리 시총비례 히트맵 카테고리별 구역·활성 종목 묶음 편입**
