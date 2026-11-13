@@ -1540,10 +1540,68 @@
       + '</div>';
   }
 
+  // 기존 티스토리 /page/market-temp?view=map 에 새 화면을 부착한다.
+  // WICS·NineAPI.domesticQuotes를 재사용하고 조회는 관리자만, GAS 폴백은 금지한다.
+  function isMapView_() {
+    return new URLSearchParams(String(global.location && global.location.search || '')).get('view') === 'map';
+  }
+  function bootMapView_(container) {
+    if (container.__mtMapStarted) return;
+    container.__mtMapStarted = true;
+    container.innerHTML = '<p class="mt-hint">시장맵 접근 권한을 확인하고 있습니다.</p>';
+    var access = global.NineAccess;
+    if (!access || !access.ready) {
+      container.innerHTML = '<p class="mt-error">화면 접근 정책을 확인할 수 없습니다.</p>';
+      return;
+    }
+    access.ready.then(function () {
+      if (!access.isAdmin()) {
+        container.innerHTML = '<p class="mt-error">시장맵은 시세 재배포 권한 보호를 위해 관리자 전용입니다.</p>';
+        return;
+      }
+      if (!document.querySelector('link[data-market-map-css]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/market-map.css';
+        link.setAttribute('data-market-map-css', '1');
+        document.head.appendChild(link);
+      }
+      function loadCurated_() {
+        if (global.SECTOR_MAP) return Promise.resolve();
+        return new Promise(function (resolve) {
+          var script = document.createElement('script');
+          script.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = resolve; // 우선순위 보조자료, WICS 원본 업종은 유지한다.
+          document.head.appendChild(script);
+        });
+      }
+      function finish() {
+        return Promise.all([ensureWicsMap_(), loadCurated_()]).then(function (results) {
+          if (!global.MarketMap) throw new Error('시장맵 스크립트를 불러오지 못했습니다.');
+          global.MarketMap.init(container, results[0], global.SECTOR_MAP || {});
+        });
+      }
+      if (global.MarketMap) return finish();
+      return new Promise(function (resolve, reject) {
+        var script = document.createElement('script');
+        script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/market-map.js';
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = function () { reject(new Error('시장맵 화면을 불러오지 못했습니다.')); };
+        document.body.appendChild(script);
+      }).then(finish);
+    }).catch(function () {
+      container.innerHTML = '<p class="mt-error">시장맵을 불러오지 못했습니다. 페이지를 새로고침해 주세요.</p>';
+    });
+  }
+
   function init(opts) {
     var stocksOnly = isStocksView();
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    if (isMapView_()) { bootMapView_(container); return; }
     if (stocksOnly) {
       // 본문 스크립트·스킨 로더·DOMContentLoaded가 같은 화면을 다시 초기화하지 않는다.
       if (container.__mtStocksInitialized) return;

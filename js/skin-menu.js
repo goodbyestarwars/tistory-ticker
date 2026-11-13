@@ -34,6 +34,7 @@
       label: '종목',
       children: [
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
+        { href: '/page/market-temp?view=map', label: '시장맵' },
         { href: '/page/foreign-flow', label: '종목분석' },
         { href: '/page/pattern-scan', label: '검색기' },
         { href: '/page/strategy-search', label: '전략검색' }
@@ -125,6 +126,7 @@
     var href = String(item.href || '');
     if (href.indexOf('main-news') !== -1) return 'news';
     if (href.indexOf('view=stocks') !== -1) return 'stocks';
+    if (href.indexOf('view=map') !== -1) return 'stocks';
     if (href.indexOf('market-temp') !== -1) return 'temp';
     if (href.indexOf('kospi-futures') !== -1) return 'indicators';
     if (href.indexOf('foreign-flow') !== -1) return 'analysis';
@@ -212,8 +214,9 @@
     var parts = item.href.split('?');
     if (currentPath() !== parts[0]) return false;
     var query = new URLSearchParams(location.search);
-    if (!parts[1]) return query.get('view') !== 'stocks';
+    if (!parts[1]) return query.get('view') !== 'stocks' && query.get('view') !== 'map';
     if (parts[1].indexOf('tool=independent-chart') === 0) return query.get('tool') === 'independent-chart';
+    if (parts[1].indexOf('view=map') === 0) return query.get('view') === 'map';
     if (parts[1].indexOf('view=stocks') === 0) {
       return query.get('view') === 'stocks' && (parts[1].indexOf('panel=heatmap') === -1 || query.get('panel') === 'heatmap');
     }
