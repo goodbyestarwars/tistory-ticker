@@ -80,6 +80,8 @@ import kiwoom_ws_hub
 import kiwoom_9pay_live
 import load_probe
 import market_clock
+import market_atlas_rs
+import index_daily_history
 import realtime_quotes
 import toss_ws_hub
 import theme_flow
@@ -2046,6 +2048,29 @@ def sector_quotes_endpoint(request: Request, codes: str = Query(..., min_length=
         return envelope(domestic_quotes.fetch_quotes(normalized))
     except Exception as exc:
         raise _upstream_http_exception('카테고리 시세를 불러오지 못했습니다.', exc) from exc
+
+
+@app.get('/market-atlas-rs')
+def market_atlas_rs_endpoint(request: Request, codes: str = Query(..., min_length=6, max_length=2099)):
+    """WICS Market Atlas axis inputs: confirmed DB daily closes, not live quotes.
+
+    One bounded read on the same daily_prices snapshot, no outside I/O, no timer.
+    The access_policy REST middleware requires a verified admin session.
+    """
+    require_google_admin(request)
+    _check_rate_limit('market_atlas_rs', request, max_per_window=12)
+    try:
+        normalized = domestic_quotes.normalize_codes(codes, max_codes=300)
+        if any(not code.isdigit() for code in normalized):
+            raise ValueError('domestic numeric stock codes only')
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    conn = db_schema.get_conn(read_only=True)
+    try:
+        snapshots = {market: index_daily_history.peek(market) for market in ('KOSPI', 'KOSDAQ')}
+        return envelope(market_atlas_rs.read_snapshot(conn, normalized, snapshots))
+    finally:
+        conn.close()
 
 
 @app.get('/domestic-quotes')

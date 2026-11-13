@@ -45,7 +45,7 @@ ROLE_PERMISSIONS = {
 # 데이터 재제공 권한은 별개이므로 로그인만으로 원천 시세 조회를 허용하지 않는다.
 # 뉴스·캘린더·브리핑 및 다른 미확인 경로는 기존 정책을 유지한다.
 RESTRICTED_PREFIXES = (
-    '/sector-quotes', '/domestic-quotes', '/quote', '/us-search', '/us-quote', '/us-quotes',
+    '/market-atlas-rs', '/sector-quotes', '/domestic-quotes', '/quote', '/us-search', '/us-quote', '/us-quotes',
     '/us-orderbook', '/us-options', '/us-chart', '/us-news', '/us-analysis', '/us-sector-rotation',
     '/us-etf-returns', '/us-market-breadth', '/ohlc', '/flow-chart', '/ohlc-minute', '/pbar-tratio',
     '/etf-components', '/investor-flow', '/foreign-flow', '/invest-opinion', '/research-reports',

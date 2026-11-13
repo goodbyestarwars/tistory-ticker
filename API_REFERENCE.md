@@ -325,6 +325,12 @@ KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·�
 | 호출 예시 | `curl "https://goodbyestar.cloud/market-rank?limit=10"` |
 | 오류 응답 예시 | 키움 호출 실패 → 502 |
 
+### `GET /market-atlas-rs?codes=005930,000660` (관리자 전용)
+
+산업/하위 업종/종목 좌표형 Market Atlas의 **확정 일봉 RS 자료**. 기존 `daily_prices`(최대260거래일)와 `index_daily_history` KOSPI/KOSDAQ 저장 JSON의 확정 행만 읽는다. 외부 호출·추가 수집·DB 쓰기·새 타이머 없음. 서버 관리자 세션 필수(`access_policy.RESTRICTED_PREFIXES` 및 라우트 확인), 비회원 401/일반회원 403. 국내 6자리 숫자코드 최대300개, 분당 최대12회.
+
+반환 `data={basis:'confirmed_daily_close',method:'stock_return_minus_benchmark_return_pp',windows:{'1m':20,'1y':250},benchmarks:{KOSPI:{status,asOf,base1m,base1y,index1m,index1y},KOSDAQ:{...}},prices:{'005930':{'YYYY-MM-DD':close,...}}}`. `benchmarks`는 시장의 날짜와 기간 수익률(%), `prices`는 해당 시장들이 쓰는 기준 거래일의 실제 종가다. 브라우저는 시세 API가 확인한 `market`으로 시장 지수를 선택해 `(종목 해당기간 수익률−지수 해당기간 수익률)`(%p)을 계산한다. 종목의 asOf·기준일 종가, 지수 확정치 중 하나라도 없으면 RS는 null이고, 해당 점은 배치하지 않는다. **현재가/장중 등락과 확정 일봉 기준의 RS 기준일은 다를 수 있다.** 데이터 누락·지연은 추정으로 채우지 않는다.
+
 ### `GET /sector-quotes?codes=005930,000660`
 
 카테고리 모니터링 공개 시세. 최대 300개 6자리 코드·중복 제거·IP 분당20회.

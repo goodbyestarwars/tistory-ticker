@@ -98,6 +98,11 @@ def _refresh(market, fetch_range):
     _save(market, data)
 
 
+def peek(market):
+    """Disk-only index snapshot for historical comparisons. Never schedules KIS work."""
+    return _load(market)
+
+
 def get(market, fetch_range):
     """Return disk data immediately; share one background request per market.
 

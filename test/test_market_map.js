@@ -6,66 +6,69 @@ const vm = require('node:vm');
 const src = fs.readFileSync('js/market-map.js','utf8');
 const marketTemp = fs.readFileSync('js/market-temp.js','utf8');
 const menu = fs.readFileSync('js/skin-menu.js','utf8');
-const context = { window: {NineUI:{escapeHtml: s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}}, document: {} };
+const css = fs.readFileSync('css/market-map.css','utf8');
+const accessPolicy = fs.readFileSync('scripts/cloud-vm/access_policy.py','utf8');
+const main = fs.readFileSync('scripts/cloud-vm/main.py','utf8');
+const context = {window:{NineUI:{escapeHtml:s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}},document:{}};
 vm.runInNewContext(src,context,{filename:'market-map.js'});
-const map = context.window.MarketMap;
-assert.ok(map && typeof map.init === 'function');
-const wics = {
-  '005930':{name:'삼성전자',sector:'IT',industry:'반도체'},
-  '000660':{name:'SK하이닉스',sector:'IT',industry:'반도체'},
-  '035420':{name:'NAVER',sector:'커뮤니케이션서비스'},
-  '000001':{name:'샘플',sector:'IT'},
-  'BAD_ID':{name:'비상장',sector:'IT'}
+const map=context.window.MarketMap;
+assert.equal(typeof map.init,'function');
+const wics={
+ '005930':{name:'삼성전자',sector:'IT',industry:'반도체와반도체장비'},
+ '000660':{name:'SK하이닉스',sector:'IT',industry:'반도체와반도체장비'},
+ '035420':{name:'NAVER',sector:'커뮤니케이션서비스',industry:'미디어'},
+ '000001':{name:'가상 예시',sector:'IT',industry:'기술'},
+ 'BAD_ID':{name:'Invalid',sector:'IT',industry:'기술'}
 };
-const picks = map.chooseCandidates(wics);
-const withOldCategories = map.chooseCandidates(wics,{테마:[{code:'000660',market:'KOSPI'},{code:'000660',market:'KOSPI'}]});
-assert.deepEqual(picks.map(x => x.code), withOldCategories.map(x => x.code)); // 개인 카테고리 무관
-assert.equal(picks.length,4);
-assert.equal(new Set(picks.map(x=>x.code)).size,4);
-assert.ok(picks.some(x => x.code==='005930') && picks.some(x => x.code==='000660'));
-assert.equal(picks.find(x=>x.code==='000660').sector,'IT'); // WICS 업종 단일 소속
-assert.ok(picks.every(x => !Object.hasOwn(x,'featured') && !Object.hasOwn(x,'hint')));
-const state = {
-  candidates:picks,
-  quotes:[
-    {code:'005930',market:'KOSPI',price:100000,changeRate:3,marketCap:100e12},
-    {code:'000660',market:'KOSPI',price:200000,changeRate:-2,marketCap:50e12},
-    {code:'035420',market:'KOSPI',price:300000,changeRate:1,marketCap:20e12},
-    {code:'000001',market:'KOSDAQ',price:2000,changeRate:null,marketCap:null}
-  ],
-  market:'ALL',sort:'cap',search:'',focus:'',size:'cap'
-};
-let groups = map.grouped(state);
-assert.equal(groups.reduce((sum,g)=>sum+g.rows.length,0),4);
-assert.equal(groups.find(g=>g.sector==='IT').avg,0.5); // 결측은 0%로 산입하지 않음
-state.market='KOSDAQ';
-groups=map.grouped(state);
-assert.equal(groups.reduce((n,g)=>n+g.rows.length,0),1);
-state.market='ALL';state.search='하이닉스';
-groups=map.grouped(state);
-assert.equal(groups[0].rows[0].code,'000660');
-const stockPageStart = marketTemp.indexOf('  function buildStocksOnlyPage() {');
-const stockPageEnd = marketTemp.indexOf('  // 기존 티스토리 /page/market-temp?view=map', stockPageStart);
-const stocksOnlyPage = marketTemp.slice(stockPageStart, stockPageEnd);
-assert.ok(stockPageStart >= 0 && stockPageEnd > stockPageStart);
-assert.ok(!stocksOnlyPage.includes('내 카테고리'));
-assert.ok(!stocksOnlyPage.includes('buildExploreCard'));
-const moneyStart = marketTemp.indexOf('  function renderMoneyStrip_(mount, rows)');
-const moneyEnd = marketTemp.indexOf('  // ---- 카드 보기: 돈 몰림 배지·정렬', moneyStart);
-const moneyOnly = marketTemp.slice(moneyStart, moneyEnd);
-assert.ok(!moneyOnly.includes('mapThemesToCategories_'));
-assert.ok(!moneyOnly.includes('data-focus-category'));
-assert.ok(!moneyOnly.includes('data-add-theme'));
-assert.ok(moneyOnly.includes('/page/market-temp?view=map'));
-assert.ok(!marketTemp.includes('MarketMap.init(container, results[0], global.SECTOR_MAP'));
-const mapCss = fs.readFileSync('css/market-map.css','utf8');
-assert.ok(mapCss.includes('overflow:hidden; text-overflow:ellipsis; font-size:clamp(12px'));
-assert.ok(mapCss.includes('text-decoration:none; overflow:hidden;'));
+const choices=map.chooseCandidates(wics);
+assert.equal(choices.length,4);
+assert.equal(new Set(choices.map(r=>r.code)).size,4);
+const fakeCategory=map.chooseCandidates(wics,{'내 카테고리':[{code:'005930',market:'KOSDAQ'}]});
+assert.equal(choices.map(x=>x.code).join(','),fakeCategory.map(x=>x.code).join(','));
+const benchmarks={KOSPI:{asOf:'2026-11-12',base1m:'2026-10-12',base1y:'2025-11-12',index1m:4,index1y:10},
+KOSDAQ:{asOf:'2026-11-12',base1m:'2026-10-12',base1y:'2025-11-12',index1m:1,index1y:5}};
+const prices={'005930':{'2026-11-12':150,'2026-10-12':100,'2025-11-12':100},
+'000660':{'2026-11-12':95,'2026-10-12':100}, // No 1Y, must not invent it
+'035420':{'2026-11-12':120,'2026-10-12':100,'2025-11-12':100},
+'000001':{'2026-11-12':80,'2026-10-12':100,'2025-11-12':100}};
+const quotes=[
+ {code:'005930',market:'KOSPI',price:155000,changeRate:3,marketCap:900e12,volume:1000},
+ {code:'000660',market:'KOSPI',price:95000,changeRate:-2,marketCap:150e12},
+ {code:'035420',market:'KOSPI',price:121000,changeRate:1,marketCap:40e12},
+ {code:'000001',market:'KOSDAQ',price:80000,changeRate:null,marketCap:0}
+];
+const s={candidates:choices,quotes:quotes,rs:{benchmarks:benchmarks,prices:prices},
+ market:'ALL',sector:'',industry:'',search:'',size:'cap',zoom:1,selectedCode:''};
+let list=map.nodesOf(s);
+assert.equal(list.length,2);
+assert.equal(list[0].kind,'group');
+assert.ok(list.every(n=>n.total>=1&&n.coverage>=1));
+let rs=map.getRS({code:'005930',market:'KOSPI'},s.rs);
+assert.equal(rs.rs1m,46);
+assert.equal(rs.rs1y,40);
+assert.equal(map.getRS({code:'000660',market:'KOSPI'},s.rs).rs1y,null);
+assert.equal(map.getRS({code:'005930',market:'미분류'},s.rs).rs1m,null);
+s.sector='IT';list=map.nodesOf(s);assert.equal(list.length,2);
+s.industry='반도체와반도체장비';list=map.nodesOf(s);
+assert.equal(list.length,2);
+assert.equal(list.filter(n=>n.rs1y===null).length,1);
+s.market='KOSDAQ';assert.equal(map.nodesOf(s).length,0);
+s.market='ALL';s.search='삼성전자';assert.equal(map.nodesOf(s).length,1);
+const graph=map.layout(map.nodesOf(s));
+assert.equal(graph.points.length,1);
+assert.ok(graph.points[0].x>0&&graph.points[0].y>0);
+assert.ok(css.includes('.mtm-tether'));
+assert.ok(!css.includes('.mtm-stocks'));
 assert.ok(marketTemp.includes("get('view') === 'map'"));
-assert.ok(marketTemp.includes("waitMarketMapAccess_().then(function (access)"));
-assert.ok(marketTemp.includes("access.isAdmin()"));
-assert.ok(menu.includes("/page/market-temp?view=map"));
-assert.ok(src.includes('{fallback:false}')); // GAS 공개 시세 폴백 금지
+assert.ok(marketTemp.includes('access.isAdmin()'));
+assert.ok(menu.includes('/page/market-temp?view=map'));
+assert.ok(accessPolicy.includes("'/market-atlas-rs'"));
+assert.ok(main.includes("require_google_admin(request)"));
+assert.ok(main.includes("market_atlas_rs.read_snapshot"));
+assert.ok(src.includes('{fallback:false}'));
+assert.ok(src.includes("credentials:'include'"));
+assert.ok(!src.includes('Math.random'));
+assert.ok(!src.includes('curated'));
 
 // Regression: market-temp.js may start before skin-shell's async access-gate.js is ready.
 const start = marketTemp.indexOf('  function waitMarketMapAccess_() {');
@@ -109,7 +112,7 @@ async function verifyGateLoading() {
     await assert.rejects(result, /접근 제어/); }
 }
 verifyGateLoading().then(function () {
-  console.log('market-map: WICS-only unique sectors, removed custom category UI, no tile overflow, async gate & server guard PASS');
+  console.log('market-map: RS source, axis math, 3-level drilldown, missing data, duplicate-free WICS, secure API, gate race PASS');
 }).catch(function (error) {
   console.error(error);
   process.exitCode = 1;

@@ -47,6 +47,7 @@
 | 시장 > **증시온도** `/page/market-temp` | 맨 위 시장 브리핑(07:00 서버 확정 스냅샷) + 수급 방향·가격 방향의 심리점수(0~100), 별도 위험도, 상승/하락 폭, 업종 자금 흐름, 단기 이력, 개인용 체크리스트. **카드 옆 한 줄 해설은 서버가 생성·검증한 AI 코멘트(`/ai-comments`)** | `js/market-temp.js` → VM `/market-temp`, KOFIA 위험자료; **신용잔고/예탁금은 종합 방향점수가 아닌 위험 축**. `docs/MARKET_TEMP_METHOD.md` |
 | 시장 > **시장지표** `/pages/kospi-futures` | 국내 주요 지수·투자자 수급·**증시자금(고객예탁금, 신용잔고, 대주/담보융자)**·프로그램매매, 글로벌 지표·환율·선물·가상자산·미국 주요 발표 및 차트 | `js/kospi-futures.js`, `js/domestic-market-indicators.js` → VM `/domestic-market-indicators`, `/futures`, `/fx-rates` 등. 신용·예탁금은 `funds` 응답의 날짜/단위를 반드시 함께 확인 |
 | 종목 > **국내 주요종목** `/page/market-temp?view=stocks` | 국내 실시간 종목판(거래량·거래대금·회전율·체결강도·상승/하락 등)과 ETF 표시 | 해당 종목판 JS, VM `/market-board` 계열; `docs/DOMESTIC_VOLUME_POWER.md` |
+| 종목 > **시장 구조 지도** `/page/market-temp?view=map` | WICS 산업→하위 업종→종목 RS 사분면; 시총 버블·당일 등락색·종목 상세. 20/250거래일 KOSPI/KOSDAQ 초과수익률(%p), 유효 일봉 표본만. 관리자 전용 | `js/market-map.js`, `css/market-map.css`, `market_atlas_rs.py`, 기존 `daily_prices`·`index_daily_history`, `/market-atlas-rs`, `/sector-quotes` |
 | 종목 > **종목분석** `/page/foreign-flow` | 국내 수급·재무·공시·뉴스·차트/매물대/파동, 미국 주식 실적·내부자 거래·애널리스트 의견 | `js/foreign-flow.js`, 공통 차트 엔진, VM 분석/재무·DART/미국 공급자 |
 | 종목 > **검색기** `/page/pattern-scan` | **단타 2(거래량·수급 / 추세돌파), 스윙 2(바닥형성 / 눌림·재돌파), 중장기 1(224일선·구름대+재무)**; 태그/단계/원래 검색기별 이력·성과 | `/pattern-scan`, `pattern_detect.py`, `daily_scan.py`, `docs/SCANNER_FIVE_GROUPS_2026-10-19.md` |
 | 종목 > **전략검색** `/page/strategy-search` | ETF·각도·공파산 등 별도 전략 후보 및 결과 | VM 전략·ETF·각도·공파산 스캔/캐시 |
