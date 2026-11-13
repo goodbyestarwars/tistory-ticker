@@ -302,8 +302,7 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 #auto-trader .at-review-tools input { height: 34px; box-sizing: border-box; border: 1px solid var(--at-line); border-radius: 8px; background: transparent; color: var(--at-ink); padding: 4px 8px; }
 #auto-trader .at-review-tools .at-mute { font-size: 12px; }
 #auto-trader .at-review-list { display: grid; gap: 10px; margin-top: 10px; }
-#auto-trader .at-review-item { min-width: 0; padding: 14px 16px; border: 1px solid var(--at-line); border-left: 3px solid var(--at-down); border-radius: 8px; background: var(--at-panel); }
-#auto-trader .at-review-item.is-buy { border-left-color: var(--at-up); }
+#auto-trader .at-review-item { min-width: 0; padding: 14px 16px; border: 1px solid var(--at-line); border-radius: 8px; background: var(--at-panel); }
 #auto-trader .at-review-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px 12px; font-size: 12px; }
 #auto-trader .at-review-top time { color: var(--at-mute); }
 #auto-trader .at-review-side { font-weight: 700; color: var(--at-down); }

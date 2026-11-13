@@ -499,7 +499,7 @@
 
   function ordersHtml(rows, today, d) {
     rows = rows.filter(function (o) { return o.status !== 'DRY'; });
-    if (!rows.length) return '<p class="at-empty">아직 주문 기록이 없습니다.</p>';
+    if (!rows.length) return '<p class="at-empty">선택한 날짜의 주문 기록이 없거나 아직 수신되지 않았습니다.</p>';
     var names = orderNames(d || {});
     var list = selDay ? rows.filter(function (o) { return String(o.ts || '').slice(0, 10) === selDay; }) : rows;
     var shown = selDay ? list : list.slice(0, 30);
@@ -708,8 +708,8 @@
   var ACT_STATE = { ACK: '접수됨 · 체결 확인 전', FILLED: '체결', UNKNOWN: '확인 필요', SENT: '전송됨' };
   var SCANNER_LABEL = { pullback: '눌림목', maCloudBreakout: '구름대 돌파', doubleBottom: '쌍바닥', invHeadShoulders: '역헤드앤숄더' };
   var ORDERS_FIRST = 30;
-  var activityRange = { from: '', to: '' };
   var reviewDay = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  var orderDay = reviewDay;
   var lastActivity = null;
 
   function actName(row) {
@@ -837,12 +837,12 @@
   }
   function decisionLogHtml(a) {
     var all = a.orders || [], bot = a.botOrders || [], skips = a.skips || [];
-    var selected = all.filter(function (o) { return !reviewDay || String(o.ts || '').slice(0, 10) === reviewDay; }).slice(0, 50);
-    var botSelected = bot.filter(function (o) { return !reviewDay || String(o.ts || '').slice(0, 10) === reviewDay; }).slice(0, 30);
-    var skipped = skips.filter(function (o) { return !reviewDay || o.day === reviewDay; }).slice(0, 20);
+    var selected = all.filter(function (o) { return String(o.ts || '').slice(0, 10) === reviewDay; });
+    var botSelected = bot.filter(function (o) { return String(o.ts || '').slice(0, 10) === reviewDay; });
+    var skipped = skips.filter(function (o) { return o.day === reviewDay; }).slice(0, 20);
     var html = '<div class="at-hd"><h3>매매 판단 로그</h3><span class="at-sub">Google VM 장부 · 읽기 전용 · KST</span></div>';
-    html += '<div class="at-review-tools"><label>거래일 <input type="date" data-trade-day value="' + esc(reviewDay) + '"></label>'
-      + '<button class="at-mini" type="button" data-trade-all>전체 최근 기록</button><span class="at-mute">선택 날짜의 주문 판단을 보여줍니다.</span></div>';
+    html += '<div class="at-review-tools"><label>거래일 <input type="date" required aria-label="판단 로그 거래일" data-trade-day value="' + esc(reviewDay) + '"></label>'
+      + '<button class="at-mini" type="button" data-act-dl="decisions">판단 로그 CSV</button><span class="at-mute">선택한 하루의 기록 · 서버에서 수신한 범위만 조회할 수 있습니다.</span></div>';
     if (!selected.length && !botSelected.length) html += '<p class="at-empty">해당 기간의 주문 기록이 없거나 에이전트에서 아직 전송하지 않았습니다.</p>';
     else {
       html += '<div class="at-review-list">';
@@ -882,11 +882,12 @@
     var html = '<section class="at-card at-act">' + decisionLogHtml(a) + '<div class="at-hd at-subhead"><h3>보유 종목</h3><span class="at-sub">장부의 열린 포지션 · 현재가는 사이트 시세</span></div>';
     if (positions.length) loadPositionQuotes(positions);
     html += positions.length ? positionsHtml(positions, posQuotes.map) : '<p class="at-empty">열린 보유 종목이 없습니다.</p>';
-    html += '<div class="at-hd at-subhead"><h3>주문 내역</h3><span class="at-sub">최근 ' + orders.length + '건 · 장부(live_orders.db) 기준</span></div>';
-    html += '<div class="at-dl"><label>기간 <input type="date" data-act-from value="' + esc(activityRange.from) + '"> ~ <input type="date" data-act-to value="' + esc(activityRange.to) + '"></label>'
-      + '<button type="button" class="at-mini" data-act-dl="orders">주문 내역 CSV</button><button type="button" class="at-mini" data-act-dl="cands">추천 종목 CSV</button>'
-      + '<span class="at-sub">비워 두면 전체 기간</span></div>';
-    html += orders.length ? orderTable(orders.slice(0, ORDERS_FIRST)) : '<p class="at-empty">아직 주문 기록이 없습니다.</p>';
+    orders = orders.filter(function (o) { return String(o.ts || '').slice(0, 10) === orderDay; });
+    html += '<div class="at-hd at-subhead"><h3>주문 내역</h3><span class="at-sub">선택일 ' + orders.length + '건 · 장부 기준</span></div>';
+    html += '<div class="at-review-tools"><label>거래일 <input type="date" required aria-label="주문 내역 거래일" data-order-day value="' + esc(orderDay) + '"></label>'
+      + '<button type="button" class="at-mini" data-act-dl="orders">주문 내역 CSV</button>'
+      + '<span class="at-mute">선택한 하루의 기록 · 서버에서 수신한 범위만 조회할 수 있습니다.</span></div>';
+    html += orders.length ? orderTable(orders.slice(0, ORDERS_FIRST)) : '<p class="at-empty">선택한 날짜의 주문 기록이 없거나 아직 수신되지 않았습니다.</p>';
     if (orders.length > ORDERS_FIRST) {
       html += '<details class="at-more" data-act-more="orders"' + (activityOpen.orders ? ' open' : '') + '><summary>더 보기 (' + (orders.length - ORDERS_FIRST) + '건)</summary>'
         + orderTable(orders.slice(ORDERS_FIRST)) + '</details>';
@@ -896,6 +897,7 @@
     rows.forEach(function (r) { if (!groups[r.scanner]) { groups[r.scanner] = []; order.push(r.scanner); } groups[r.scanner].push(r); });
     html += '<details class="at-more at-ribbon" data-act-more="candidates"' + (activityOpen.candidates ? ' open' : '') + '><summary>텔레그램 추천 종목 (' + rows.length + '종목'
       + (cand.scanDate ? ' · ' + esc(cand.scanDate) + ' 스캔' : '') + ')</summary>'
+      + '<div class="at-review-tools"><button type="button" class="at-mini" data-act-dl="cands">추천 종목 CSV</button></div>'
       + (rows.length ? order.map(function (key) {
         return '<h4 class="at-grp">검색기: ' + esc(SCANNER_LABEL[key] || key) + ' <small>' + groups[key].length + '종목</small></h4><div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">점수</th><th class="n">추천 단가</th><th>왜 추천했나</th></tr></thead><tbody>'
           + groups[key].map(function (r) {
@@ -904,12 +906,11 @@
           }).join('')
           + '</tbody></table></div>';
       }).join('') : '<p class="at-empty">후보가 없습니다.</p>')
-      + '<p class="at-note">장 마감 스캔(평일 20:15)으로 선정되어 텔레그램으로도 오는 연구 후보입니다. 연구용이며 추천 단가는 스캔 기준가이고 자동 매수와 연결되어 있지 않습니다.</p></details></section>';
+      + '<p class="at-note">장 마감 스캔(평일 20:15)으로 선정되어 텔레그램으로도 오는 연구 후보입니다. 추천 단가는 스캔 기준가입니다. 자동매매는 후보 중 순위·예산·보유 한도·진입 조건 등을 확인하므로 후보 선정만으로 주문이 보장되지 않습니다. 위 매매 판단 로그는 실제 주문 당시의 근거이며, 이 목록은 표시된 스캔일의 후보 전체입니다.</p></details></section>';
     return html;
   }
 
   function csvCell(v) { var t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
-  function inRange(day) { return (!activityRange.from || day >= activityRange.from) && (!activityRange.to || day <= activityRange.to); }
   function saveCsv(name, header, lines) {
     var blob = new Blob(['\ufeff' + [header].concat(lines).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     var url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -919,25 +920,34 @@
   function downloadActivity(kind) {
     var a = lastActivity;
     if (!a) return;
-    var span = (activityRange.from || 'all') + '_' + (activityRange.to || 'all');
-    if (kind === 'orders') {
-      var list = (a.orders || []).filter(function (o) { return inRange(String(o.ts || '').slice(0, 10)); }).reverse();
-      saveCsv('autotrader-orders_' + span + '.csv', '번호,시각,종목코드,종목명,구분,수량,주문가,사유,상태,검색기,스캔일,후보순위,전체적격,기준가,진입대비%,손절당시%,최고수익%,연속확인', list.map(function (o) {
+    var span = kind === 'decisions' ? reviewDay : orderDay;
+    if (kind === 'orders' || kind === 'decisions') {
+      var list = (a.orders || []).filter(function (o) { return String(o.ts || '').slice(0, 10) === span; }).reverse();
+      var lines = list.map(function (o) {
         var d = o.decision || {};
         return [o.no, o.ts, o.code, o.name || krxName(o.code), o.side === 'BUY' ? '매수' : '매도', o.qty, o.price,
           ACT_REASON[o.reason] || o.reason, ACT_STATE[o.state] || o.state, SCANNER_LABEL[d.scanner] || d.scanner, d.scan_date,
-          d.rank, d.ranked_total, d.base, d.entry_vs_base_pct, d.gain_pct, d.peak_gain_pct, d.confirm_hits].map(csvCell).join(',');
-      }));
+          d.rank, d.ranked_total, d.base, d.entry_vs_base_pct, d.gain_pct, d.peak_gain_pct, d.confirm_hits, '엔진 주문', ''].map(csvCell).join(',');
+      });
+      if (kind === 'decisions') {
+        (a.botOrders || []).filter(function (o) { return String(o.ts || '').slice(0, 10) === span; }).forEach(function (o) {
+          lines.push(['', o.ts, o.code, o.name || krxName(o.code), '매도', o.qty, '', o.reason, o.status, '', '', '', '', '', '', '', '', '', '별도 매도봇', ''].map(csvCell).join(','));
+        });
+        (a.skips || []).filter(function (o) { return o.day === span; }).forEach(function (o) {
+          lines.push(['', o.day, o.code, '', '미진입', '', '', o.reason, '', '', '', '', '', '', '', '', '', '', '미진입 사유', o.count].map(csvCell).join(','));
+        });
+      }
+      saveCsv('autotrader-' + (kind === 'decisions' ? 'decisions' : 'orders') + '_' + span + '.csv', '번호,시각,종목코드,종목명,구분,수량,주문가,사유,상태,검색기,스캔일,후보순위,전체적격,기준가,진입대비%,손절당시%,최고수익%,연속확인,기록종류,횟수', lines);
       return;
     }
     var cand = a.candidates || {}, days = [{ scanDate: cand.scanDate, rows: cand.rows || [] }].concat(cand.history || []), lines = [];
     days.forEach(function (d) {
-      if (!d.scanDate || !inRange(d.scanDate)) return;
+      if (!d.scanDate || d.scanDate !== cand.scanDate) return;
       (d.rows || []).forEach(function (r) {
         lines.push([d.scanDate, SCANNER_LABEL[r.scanner] || r.scanner, r.code, r.name || krxName(r.code), r.score == null ? '' : Math.round(r.score), r.basePrice, (r.reasons || []).join(' | ')].map(csvCell).join(','));
       });
     });
-    saveCsv('autotrader-candidates_' + span + '.csv', '스캔일,검색기,종목코드,종목명,점수,추천단가,선정이유', lines);
+    saveCsv('autotrader-candidates_' + (cand.scanDate || 'unreceived') + '.csv', '스캔일,검색기,종목코드,종목명,점수,추천단가,선정이유', lines);
   }
 
   var CONFIRM = {
@@ -1183,12 +1193,9 @@
     var details = root.querySelector('[data-schedule-details]');
     if (details) details.addEventListener('toggle', function () { scheduleExpanded = details.open; });
     var day = root.querySelector('[data-trade-day]');
-    if (day) day.addEventListener('change', function () { reviewDay = day.value; renderControl(lastControl); });
-    var allBtn = root.querySelector('[data-trade-all]');
-    if (allBtn) allBtn.addEventListener('click', function () { reviewDay = ''; renderControl(lastControl); });
-    var from = root.querySelector('[data-act-from]'), to = root.querySelector('[data-act-to]');
-    if (from) from.addEventListener('change', function () { activityRange.from = from.value; });
-    if (to) to.addEventListener('change', function () { activityRange.to = to.value; });
+    if (day) day.addEventListener('change', function () { if (day.value) reviewDay = day.value; renderControl(lastControl); });
+    var orderDate = root.querySelector('[data-order-day]');
+    if (orderDate) orderDate.addEventListener('change', function () { if (orderDate.value) orderDay = orderDate.value; renderControl(lastControl); });
     root.querySelectorAll('[data-act-dl]').forEach(function (button) {
       button.addEventListener('click', function () { downloadActivity(button.getAttribute('data-act-dl')); });
     });
