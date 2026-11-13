@@ -1545,16 +1545,63 @@
   function isMapView_() {
     return new URLSearchParams(String(global.location && global.location.search || '')).get('view') === 'map';
   }
+  // skin-shell.js는 접근 게이트를 비동기 <script>로 주입한다.
+  // 페이지 자체의 market-temp.js가 먼저 시작해도 동일한 단일 게이트를 기다린다.
+  // 게이트가 아직 없으면 skin-shell.js와 같은 id/URL로 한 번만 로드한다(인증 우회 금지).
+  function waitMarketMapAccess_() {
+    var access = global.NineAccess;
+    if (access && access.ready && typeof access.isAdmin === 'function') {
+      return access.ready.then(function () { return access; });
+    }
+    return new Promise(function (resolve, reject) {
+      var tag = document.getElementById('nine-access-gate-js');
+      var settled = false;
+      function finish(error) {
+        if (settled) return;
+        if (!error) {
+          var loaded = global.NineAccess;
+          if (!loaded || !loaded.ready || typeof loaded.isAdmin !== 'function') {
+            // 로드가 실패한 빈 태그는 제거해 사용자가 재시도를 누르면 다시 요청할 수 있게 한다.
+            if (tag.parentNode && tag.parentNode.removeChild) tag.parentNode.removeChild(tag);
+            error = new Error('접근 제어 모듈이 초기화되지 않았습니다.');
+          } else {
+            settled = true;
+            loaded.ready.then(function () { resolve(loaded); }, reject);
+            return;
+          }
+        }
+        settled = true;
+        reject(error);
+      }
+      if (!tag) {
+        tag = document.createElement('script');
+        tag.id = 'nine-access-gate-js';
+        tag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-gate.js';
+        tag.async = true;
+      }
+      tag.addEventListener('load', function () { finish(); }, { once: true });
+      tag.addEventListener('error', function () {
+        if (tag.parentNode && tag.parentNode.removeChild) tag.parentNode.removeChild(tag);
+        finish(new Error('접근 제어 스크립트를 불러오지 못했습니다.'));
+      }, { once: true });
+      // 다른 초기화 경로가 이벤트 사이에 NineAccess를 생성한 경우도 허용한다.
+      if (global.NineAccess && global.NineAccess.ready) finish();
+      if (!tag.parentNode) document.head.appendChild(tag);
+      global.setTimeout(function () {
+        if (settled) return;
+        if (global.NineAccess && global.NineAccess.ready) finish();
+        else {
+          if (tag.parentNode && tag.parentNode.removeChild) tag.parentNode.removeChild(tag);
+          finish(new Error('접근 제어 스크립트 로딩 시간이 초과되었습니다.'));
+        }
+      }, 12000);
+    });
+  }
   function bootMapView_(container) {
     if (container.__mtMapStarted) return;
     container.__mtMapStarted = true;
     container.innerHTML = '<p class="mt-hint">시장맵 접근 권한을 확인하고 있습니다.</p>';
-    var access = global.NineAccess;
-    if (!access || !access.ready) {
-      container.innerHTML = '<p class="mt-error">화면 접근 정책을 확인할 수 없습니다.</p>';
-      return;
-    }
-    access.ready.then(function () {
+    waitMarketMapAccess_().then(function (access) {
       if (!access.isAdmin()) {
         container.innerHTML = '<p class="mt-error">시장맵은 시세 재배포 권한 보호를 위해 관리자 전용입니다.</p>';
         return;
@@ -1593,7 +1640,12 @@
         document.body.appendChild(script);
       }).then(finish);
     }).catch(function () {
-      container.innerHTML = '<p class="mt-error">시장맵을 불러오지 못했습니다. 페이지를 새로고침해 주세요.</p>';
+      // 실패 시에도 보호 데이터는 불러오지 않는다. 동일 페이지에서 재시도 가능.
+      container.__mtMapStarted = false;
+      container.innerHTML = '<p class="mt-error">접근 정책 또는 시장맵을 불러오지 못했습니다. '
+        + '<button type="button" data-mtm-boot-retry>다시 시도</button></p>';
+      var retry = container.querySelector('[data-mtm-boot-retry]');
+      if (retry) retry.addEventListener('click', function () { bootMapView_(container); }, { once: true });
     });
   }
 

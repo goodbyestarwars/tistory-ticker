@@ -12,3 +12,6 @@
 
 증상: 재시작 후에도 비회원 마켓브리핑 카드 배경·테두리가 사라지고 오른쪽 여백이 커 보임. 원인: `style.css` 전역 `.post-card` 배경 투명 강제(`!important`)와 홈에서 비어 있는 `.sidebar-right` 292px 공간. 수정: `js/guest-home.js`에서 마켓브리핑 원본 카드의 범용 `.post-card`/피드 전용 배치 클래스를 비회원 홈에서만 해제하고 전용 클래스 유지, `css/guest-home.css`에 카드 스타일 보존·비회원 우측 사이드바 숨김. `js/access-gate.js`·`guest-home.js`의 비회원 자산 URL에 동일 수정 버전을 붙여 캐시 불일치 최소화. 원본 글·링크·관리자 홈·로그인·API·주문은 그대로. 검증: GitHub 파일 재조회, JS 구문, 핵심 클래스·버전 일치 정적 확인. 실사이트 렌더링은 미검증. 배포: master → Pages(반영 여부 확인 필요).
 
+**2026-11-11 비회원 홈 모바일 하단 탭바 로드**
+
+증상(운영 실측 390px): 비회원 홈 `/`에서 `home-mobile-tabs` 자산 요청이 없고 탭바가 없음(대화방 등 다른 공개 화면은 정상). 원인: 로더가 `skin-main.js`의 `start()` 안에 있어 `NineAccess.run`이 비회원 홈의 대시보드 초기화를 막을 때 함께 막힘. 수정: 로더를 파일 상단 `loadMobileTabs()`로 올려 `start()`와 공유하고, `guest-home.js`가 마운트 시 보내는 `nine:guest-home`(또는 `html.guest-home-mode`)에서 같은 로더만 실행. 대시보드·시세 초기화는 계속 차단. 자산 URL `guest-tabs-v1`. 검증: 운영 페이지 덮어쓰기로 390/320px 탭바(홈 활성)·푸터 하단 732px < 탭바 상단 744px, 1280px 미로드, 대화방 기존 동작, `test_access_gate`/`menu`/`landing`.
