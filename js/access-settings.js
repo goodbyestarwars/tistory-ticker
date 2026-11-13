@@ -56,7 +56,8 @@
     'border:1px solid var(--ui-border,#e5e7eb);border-radius:14px;padding:20px}' +
     'html.dark .acs-dialog{background:var(--dk-surface,#242424);color:var(--dk-text,#eee);border-color:var(--dk-border,#3a3a3a)}' +
     '.acs-dialog h2{margin:0 0 4px;font-size:18px;font-weight:700}' +
-    '.acs-note{margin:0 0 14px;font-size:12.5px;line-height:1.5;color:var(--ui-muted,#6b7280)}' +
+    '.acs-note,.acs-member-status,.acs-members-list p{font-size:12.5px;line-height:1.5}' +
+    '.acs-note{margin:0 0 14px;color:var(--ui-muted,#6b7280)}' +
     '.acs-head,.acs-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,62px);gap:4px;align-items:center}' +
     '.acs-head{font-size:12px;font-weight:700;color:var(--ui-muted,#6b7280);padding:8px 0}' +
     '.acs-head span:not(:first-child){text-align:center}' +
