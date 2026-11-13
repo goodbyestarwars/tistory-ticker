@@ -60,6 +60,12 @@ def parse(body, now):
             row.update(price=price,
                        change=abs(_number(over.get('compareToPreviousClosePrice')) or 0) * sign,
                        changeRate=abs(_number(over.get('fluctuationsRatio')) or 0) * sign)
+        # 2026-11-13 카테고리 시총비례 히트맵: 같은 응답의 상장주식수로 시총(원)을 덧붙인다(GAS ?bubble=1과 같은 산식).
+        # 값이 없으면 필드를 넣지 않아 0 시총으로 오인하지 않게 한다.
+        shares = _number(item.get('countOfListedStock'))
+        if shares and shares > 0 and row.get('price'):
+            row['listedShares'] = int(shares)
+            row['marketCap'] = row['price'] * shares
     return [r for r in rows if r['price'] > 0 and math.isfinite(r['price'])]
 
 

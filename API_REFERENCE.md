@@ -331,6 +331,7 @@ KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·�
 `data` 배열의 `code,name,price,change,changeRate,volume,market,time`은 `/domestic-quotes`와 동일하다.
 기존 5초/300종목 캐시·전체 다운로드 잠금을 공유하고 누락 종목만 60개씩 최대4배치 병렬 조회한다.
 새 폴러·DB 없음. 기존 `/domestic-quotes`는 30코드·분당60회 제한을 유지한다.
+2026-11-13: 공급자가 상장주식수(`countOfListedStock`)를 준 행에는 `listedShares`(주)·`marketCap`(원 = 현재 표시가 × 상장주식수, GAS `?bubble=1`과 같은 산식)를 덧붙인다(`/domestic-quotes` 공통). 값이 없으면 필드를 생략하며 0으로 채우지 않는다. GAS 폴백 응답에는 없다.
 
 ### `GET /option-flow`
 

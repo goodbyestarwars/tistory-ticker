@@ -253,7 +253,26 @@
       return {key:key,label:label,items:items,cap:items.reduce(function (n,it) { return n+it.cap; },0)};
     }
     var zones=[],matched=0,items,groups;
-    if (codeFilter && codeFilter.codes) {
+    if (codeFilter && Array.isArray(codeFilter.groups)) {
+      // 2026-11-13 국내 주요종목 내 카테고리: 카테고리마다 한 구역. 시총 풀(sectors-v3)에 없는 종목은 호출부가 넘긴
+      // codeFilter.extra[code] = {name, cap, changeRate}(VM 시세의 상장주식수 × 현재가)로 채운다. 시총을 모르는 종목은 뺀다.
+      var pool={};
+      select(['KOSPI','KOSDAQ']).forEach(function (it) { pool[it.code]=it; });
+      var extra=codeFilter.extra || {}, seenCodes={};
+      codeFilter.groups.forEach(function (g, gi) {
+        var list=(g.codes || []).map(function (code) {
+          var it=pool[code], ex=extra[code];
+          if (it) return it;   // 풀 종목은 45초 갱신 값을 그대로 쓴다
+          if (!ex || !isFinite(Number(ex.cap)) || Number(ex.cap) <= 0) return null;
+          var rate=ex.changeRate == null ? null : Number(ex.changeRate);
+          return {code:code,name:ex.name || code,cap:Number(ex.cap),
+            changeRate:rate != null && isFinite(rate) ? rate : null,category:'KOSPI',sectors:[]};
+        }).filter(Boolean);
+        list.forEach(function (it) { seenCodes[it.code]=true; });
+        if (list.length) zones.push(zone('G'+gi,g.label,list));
+      });
+      matched=Object.keys(seenCodes).length;
+    } else if (codeFilter && codeFilter.codes) {
       items=select(['KOSPI','KOSDAQ']).filter(function (it) { return codeFilter.codes[it.code]; });
       matched=items.length;
       if (items.length) zones=[zone('SELECTED',codeFilter.label || '선택 종목',items)];
@@ -283,7 +302,11 @@
     var totalCap=zones.reduce(function(n,z){return n+z.cap;},0);
     var totalItems=zones.reduce(function(n,z){return n+z.items.length;},0);
     if(!zones.length) return {nodes:[],viewH:VIEW_H,clusterLabels:[],matched:matched,totalCap:0,totalItems:0,marketView:view};
-    var zoneRects=squarify(zones.map(function(z){return {value:z.cap/totalCap*VIEW_W*VIEW_H,zone:z};}),0,0,VIEW_W,VIEW_H);
+    // 카테고리 구역 보기: 구역 면적은 시총의 제곱근(대형주 한 카테고리가 화면을 다 차지하지 않게), 구역 안 종목은 시총 비례.
+    var grouped=!!(codeFilter && Array.isArray(codeFilter.groups)) && zones.length>1;
+    var weightOf=function(z){return grouped?Math.sqrt(z.cap):z.cap;};
+    var totalWeight=zones.reduce(function(n,z){return n+weightOf(z);},0);
+    var zoneRects=squarify(zones.map(function(z){return {value:weightOf(z)/totalWeight*VIEW_W*VIEW_H,zone:z};}),0,0,VIEW_W,VIEW_H);
     var nodes=[],clusterLabels=[];
     zoneRects.forEach(function(zr){
       var z=zr.item.zone,x=zr.x+ZONE_GAP/2,y=zr.y+ZONE_GAP/2;
@@ -291,7 +314,7 @@
       var show=w>=75 && h>=ZONE_LABEL_H+24,lh=show?ZONE_LABEL_H:0;
       clusterLabels.push({key:z.key,label:z.label,x:x,y:y,w:w,h:lh,totalCap:z.cap,showText:show});
       layoutZoneItems(z.items,x+1,y+lh+1,Math.max(w-2,1),Math.max(h-lh-2,1),z.key).forEach(function(rect){
-        nodes.push({code:rect.item.code,name:rect.item.name,cap:rect.item.cap,
+        nodes.push({code:rect.item.code,name:rect.item.name,cap:rect.item.cap,nodeKey:z.key.charAt(0)==='G' && codeFilter && codeFilter.groups ? z.key+':'+rect.item.code : undefined,
           changeRate:rect.item.changeRate,breakdown:rect.item.breakdown,category:rect.item.category,
           x:rect.x+CELL_GAP/2,y:rect.y+CELL_GAP/2,
           w:Math.max(rect.w-CELL_GAP,0.5),h:Math.max(rect.h-CELL_GAP,0.5)});
@@ -456,11 +479,12 @@
 
     var seen = {};
     nodes.forEach(function (item) {
-      seen[item.code || item.name] = true;
+      var nodeKey = item.nodeKey || item.code || item.name;   // 카테고리 구역 보기는 같은 종목이 여러 구역에 나온다
+      seen[nodeKey] = true;
 
-      var node = existing[item.code || item.name];
+      var node = existing[nodeKey];
       if (!node) {
-        node = svgEl('g', { class: 'mcb-node', 'data-name': item.code || item.name });
+        node = svgEl('g', { class: 'mcb-node', 'data-name': nodeKey });
         node.appendChild(svgEl('rect', { class: 'mcb-cell' }));
         node.appendChild(svgEl('text', { class: 'mcb-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-cap-label' }));

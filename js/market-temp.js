@@ -1044,11 +1044,15 @@
       var names = Object.keys(config.sectors || {});
       var box = document.createElement('div');
       box.className = 'mt-adopt-pop';
+      // 2026-11-13: 업종 묶음 전체를 한 번에 편입한다(stock.stocks). 같은 이름 카테고리가 없으면 업종명으로 새 카테고리를 기본 선택.
+      var many = Array.isArray(stock.stocks) && stock.stocks.length > 0;
+      var suggested = many ? String(stock.group || '').slice(0, 40) : '';
+      var preferNew = many && names.indexOf(suggested) === -1;
       box.innerHTML = '<strong>' + escapeHtml(stock.name) + '</strong> 을(를) 어느 카테고리에 편입할까요?'
         + '<div class="mt-adopt-controls"><select data-adopt-select>'
-        + names.map(function (name) { return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>'; }).join('')
-        + '<option value="__new__">＋ 새 카테고리</option></select>'
-        + '<input type="text" data-adopt-new placeholder="새 카테고리 이름" maxlength="40" hidden>'
+        + names.map(function (name) { return '<option value="' + escapeHtml(name) + '"' + (many && name === suggested ? ' selected' : '') + '>' + escapeHtml(name) + '</option>'; }).join('')
+        + '<option value="__new__"' + (preferNew ? ' selected' : '') + '>＋ 새 카테고리</option></select>'
+        + '<input type="text" data-adopt-new placeholder="새 카테고리 이름" maxlength="40" value="' + escapeHtml(preferNew ? suggested : '') + '"' + (preferNew ? '' : ' hidden') + '>'
         + '<button type="button" data-adopt-ok>편입</button><button type="button" data-adopt-cancel>취소</button></div>'
         + '<small data-adopt-msg></small>';
       panel.insertBefore(box, panel.firstChild);
@@ -1062,7 +1066,7 @@
         var target = select.value === '__new__' ? fresh.value.trim() : select.value;
         if (!target) { msg.textContent = '카테고리 이름을 입력하세요.'; return; }
         msg.textContent = '저장 중...';
-        addStocksToCategory_(target, [{ name: stock.name, code: stock.code, market: stock.market }])
+        addStocksToCategory_(target, many ? stock.stocks : [{ name: stock.name, code: stock.code, market: stock.market }])
           .then(function () { refreshAfterCategoryChange_(); })
           .catch(function () { msg.textContent = '저장하지 못했습니다. 다시 시도해 주세요.'; });
       });
@@ -1103,20 +1107,29 @@
   }
 
   // ---- 시총비례 히트맵: 칩으로 내 카테고리를 고른다 ----
-  // 시총은 시총 풀에 있는 종목만 알 수 있어 일부가 빠질 수 있다 - 표시 개수를 아래에 밝힌다.
+  // 2026-11-13 사용자 지적("내 카테고리만 보여 주는 줄 알았는데 주성엔지니어링만 있다"): 전체는 카테고리마다 한 구역으로
+  // 나눠 그리고, 시총 풀(sectors-v3)에 없는 종목은 같은 화면이 쓰는 VM 카테고리 시세(/sector-quotes)의
+  // 상장주식수 × 현재가(marketCap)로 채운다. 시총을 모르는 종목(GAS 폴백 등)은 빼고 개수를 밝힌다.
   function renderCategoryMarketcap_(panel, config, themeRows) {
     var sectors = config.sectors;
     var MB = global.MarketcapBubble;
     if (!MB) { panel.innerHTML = '<div class="mt-error">시총비례 히트맵을 불러오지 못했습니다.</div>'; return; }
     var mapping = mapThemesToCategories_(themeRows, sectors);
-    var names = orderedCategoryNames_(sectors, mapping.byCategory);
+    var names = orderedCategoryNames_(sectors, mapping.byCategory).filter(function (name) { return (sectors[name] || []).length; });
+    var extra = {};
     function filterFor(selected, label) {
       var codes = {};
       var total = 0;
-      selected.forEach(function (name) {
-        (sectors[name] || []).forEach(function (stock) { if (!codes[stock.code]) { codes[stock.code] = true; total += 1; } });
+      var groups = selected.map(function (name) {
+        var list = [];
+        (sectors[name] || []).forEach(function (stock) {
+          if (!stock || !stock.code || list.indexOf(stock.code) !== -1) return;
+          list.push(stock.code);
+          if (!codes[stock.code]) { codes[stock.code] = true; total += 1; }
+        });
+        return { label: name, codes: list };
       });
-      return { label: label, codes: codes, total: total };
+      return { label: label, codes: codes, total: total, groups: groups, extra: extra };
     }
     var chips = ['<button type="button" class="mt-top-chip is-active" data-mc-category="">내 카테고리 전체</button>'].concat(names.map(function (name, i) {
       return '<button type="button" class="mt-top-chip" data-mc-category="' + i + '">' + escapeHtml(name) + '</button>';
@@ -1129,11 +1142,30 @@
     var current = filterFor(names, '내 카테고리 전체');
     box.addEventListener('mcb:rendered', function (event) {
       var matched = event.detail && event.detail.matched;
-      note.textContent = current.label + ' 구성 ' + current.total + '종목 중 시총 집계 대상 ' + matched + '종목을 표시합니다.'
-        + (matched ? '' : ' 이 카테고리는 시총 집계 풀에 없어 비어 있습니다.');
+      note.textContent = current.label + ' 구성 ' + current.total + '종목 중 시총 확인 ' + matched + '종목을 카테고리별 구역으로 표시합니다.'
+        + (matched < current.total ? ' 시총(상장주식수)을 받지 못한 종목은 빠집니다.' : '')
+        + (current.groups.length > 1 ? ' 구역 크기는 카테고리 시총의 제곱근(작은 카테고리도 보이게), 구역 안 종목 크기는 시총 비례입니다. 여러 카테고리에 속한 종목은 각 구역에 나옵니다.' : '');
     });
     box.__mcbCodeFilter = current;
     try { MB.init(); } catch (error) { panel.innerHTML = '<div class="mt-error">시총비례 히트맵을 불러오지 못했습니다.</div>'; return; }
+    var SD = global.SectorDashboard;
+    var allCodes = Object.keys(filterFor(names, '').codes);
+    // 풀 밖 종목 시세·시총은 2분마다 다시 받는다(화면이 숨었거나 탭에서 빠지면 중단).
+    function loadExtra() {
+      if (!SD || !SD.fetchTickerData || !allCodes.length) return;
+      SD.fetchTickerData(allCodes).then(function (list) {
+        (list || []).forEach(function (q) {
+          var cap = Number(q && q.marketCap);
+          if (q && q.code && isFinite(cap) && cap > 0) extra[q.code] = { name: q.name, cap: cap, changeRate: q.changeRate };
+        });
+        MB.setCodeFilter(box, current);
+      }).catch(function () { /* 시총 풀 종목만으로 그린다 */ });
+    }
+    loadExtra();
+    var extraTimer = global.setInterval(function () {
+      if (!box.isConnected) { global.clearInterval(extraTimer); return; }
+      if (!document.hidden && box.offsetParent) loadExtra();
+    }, 120000);
     panel.querySelector('.mt-top-chips').onclick = function (event) {
       var chip = event.target.closest && event.target.closest('[data-mc-category]');
       if (!chip) return;
@@ -3964,7 +3996,8 @@
           + '</button>';
       }).join('');
       var summary = (summaries || {})[key];
-      return '<section class="sector-card' + (kind ? ' is-' + kind : '') + '"><div class="sector-card-title">' + escapeHtml(sector) + ' <small>' + groups[key].length + '종목</small>'
+      var groupAdopt = kind === 'cand' ? '<span class="mt-group-adopt" role="button" tabindex="0" data-adopt-group="' + escapeHtml(key) + '" title="이 업종 종목을 한 번에 내 카테고리로">＋ ' + groups[key].length + '종목 한 번에 편입</span>' : '';
+      return '<section class="sector-card' + (kind ? ' is-' + kind : '') + '"><div class="sector-card-title">' + escapeHtml(sector) + ' <small>' + groups[key].length + '종목</small>' + groupAdopt
         + (summary ? '<span class="mt-all-stock-sector-total" title="' + (summary.scanTotal ? '스캔 선별 종목의 거래대금 합계(장중 추가 종목 제외)' : '조회 종목의 거래대금 합계') + '">' + formatFlowAmount_(summary.total) + '</span>' : '') + '</div><div class="mt-all-stock-rows">' + rows + '</div></section>';
     }
     function byTotal(a, b) {
@@ -3976,7 +4009,7 @@
     var cand = keys.filter(function (key) { return key.indexOf('cand|') === 0; }).sort(byTotal);
     var rest = keys.filter(function (key) { return key.indexOf('mine|') !== 0 && key.indexOf('cand|') !== 0; }).sort(byTotal);
     return mine.map(cardHtml).join('')
-      + (cand.length ? '<div class="mt-all-stock-divider"><b>편입 후보</b> 내 카테고리에 없는 활성 종목입니다. ＋를 눌러 카테고리에 넣으면 모니터링됩니다.</div>' : '')
+      + (cand.length ? '<div class="mt-all-stock-divider"><b>편입 후보</b> 내 카테고리에 없는 활성 종목입니다. 업종 제목의 ‘한 번에 편입’으로 묶음째 넣거나, 종목 ＋로 하나씩 넣습니다.</div>' : '')
       + cand.map(cardHtml).join('')
       + rest.map(cardHtml).join('');
   }
@@ -4163,6 +4196,23 @@
           loadAllStocksPanel(panel);
         });
         function wireCards() {
+          if (!grid.__groupAdoptBound) {
+            grid.__groupAdoptBound = true;
+            var adoptGroup = function (event) {
+              var btn = event.target.closest && event.target.closest('[data-adopt-group]');
+              if (!btn || (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ')) return;
+              event.preventDefault();
+              var card = btn.closest('.sector-card');
+              var key = btn.getAttribute('data-adopt-group');
+              var group = key.slice(key.indexOf('|') + 1);
+              var stocks = Array.prototype.map.call(card.querySelectorAll('.mt-pick-add'), function (el) {
+                return { code: el.getAttribute('data-adopt-code'), name: el.getAttribute('data-adopt-name'), market: el.getAttribute('data-adopt-market') };
+              });
+              if (stocks.length) openAdoptChooser_(panel, { name: group + ' ' + stocks.length + '종목', group: group, stocks: stocks });
+            };
+            grid.addEventListener('click', adoptGroup);
+            grid.addEventListener('keydown', adoptGroup);
+          }
           grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
             card.addEventListener('click', function (event) {
               var add = event.target.closest && event.target.closest('.mt-pick-add');
