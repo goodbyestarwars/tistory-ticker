@@ -933,40 +933,32 @@
   // ---- 위: 오늘 거래대금 상위 섹터 → 내 카테고리 매핑 ----
   // 거래대금 막대 표는 증시온도가 기준이라 여기서는 링크로 보내고(2026-10-02 사용자 요청), 같은 TOP10을 칩으로만
   // 보여 준다. 연결된 내 카테고리가 있으면 눌러서 이동하고, 없으면 ＋로 한 번에 카테고리를 만든다.
-  function renderMoneyStrip_(mount, rows, sectors) {
-    var mapping = mapThemesToCategories_(rows, sectors);
+  // 국내 주요종목에서는 내 카테고리 매핑을 표시하지 않는다.
+  // 돈이 몰린 섹터 순위만 원본 순서대로 읽기 전용으로 보여준다.
+  function renderMoneyStrip_(mount, rows) {
     var chips = (rows || []).map(function (row, index) {
-      var rate = Number(row.avg_change_rate);
-      var cats = mapping.byTheme[index];
-      var label = '<i>' + (index + 1) + '</i><span class="mt-money-name">' + escapeHtml(row.industry) + '</span><em class="' + dirClass_(rate) + '">' + rateText_(rate) + '</em>';
-      return cats.length
-        ? '<button type="button" class="mt-money-chip is-mapped" data-focus-category="' + escapeHtml(cats[0]) + '" title="내 카테고리: ' + escapeHtml(cats.join(', ')) + '">' + label + '<small>' + escapeHtml(cats[0]) + (cats.length > 1 ? ' 외 ' + (cats.length - 1) : '') + '</small></button>'
-        : '<button type="button" class="mt-money-chip is-add" data-add-theme="' + escapeHtml(row.theme_code || '') + '" data-theme-name="' + escapeHtml(row.industry) + '" title="내 카테고리에 없는 테마 - 눌러서 카테고리로 추가">' + label + '<small>＋ 추가</small></button>';
+      var raw = row.avg_change_rate;
+      var rate = raw === null || raw === undefined || raw === '' ? null : Number(raw);
+      if (rate !== null && !isFinite(rate)) rate = null;
+      var label = '<i>' + (index + 1) + '</i><span class="mt-money-name">'
+        + escapeHtml(row.industry) + '</span><em class="' + (rate === null ? 'sector-flat' : dirClass_(rate)) + '">'
+        + (rate === null ? '—' : rateText_(rate)) + '</em>';
+      return '<span class="mt-money-chip">' + label + '</span>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-money-card">'
-      + '<div class="mt-money-head"><strong>오늘 거래대금 상위 섹터 TOP10</strong><a href="/page/market-temp#mt-money-flow">거래대금 막대로 보기 →</a></div>'
-      + (chips ? '<div class="mt-money-chips">' + chips + '</div>' : '<div class="mt-hint">거래대금 상위 섹터를 불러오지 못했습니다.</div>')
-      + '<p class="mt-top-note"><span class="mt-money-key is-mapped"></span>내 카테고리와 연결(누르면 카드로 이동) <span class="mt-money-key is-add"></span>내 카테고리에 없음(누르면 추가) · 거래대금 순</p>'
+      + '<div class="mt-money-head"><strong>오늘 거래대금 상위 섹터 TOP10</strong>'
+      + '<a href="/page/market-temp?view=map">섹터·종목 시장맵 보기 →</a></div>'
+      + (chips ? '<div class="mt-money-chips">' + chips + '</div>'
+        : '<div class="mt-hint">거래대금 상위 섹터를 불러오지 못했습니다.</div>')
+      + '<p class="mt-top-note">거래대금 순위에 따른 테마 흐름입니다. 시장맵은 WICS 업종분류를 사용하므로 두 분류는 일치하지 않을 수 있습니다.</p>'
       + '</div>';
-    mount.onclick = function (event) {
-      var focus = event.target.closest && event.target.closest('[data-focus-category]');
-      if (focus) { focusCategory_(focus.getAttribute('data-focus-category')); return; }
-      var add = event.target.closest && event.target.closest('[data-add-theme]');
-      if (!add || !add.getAttribute('data-add-theme')) return;
-      add.disabled = true;
-      add.querySelector('small').textContent = '추가 중...';
-      addCategoryFromTheme_(add.getAttribute('data-add-theme'), add.getAttribute('data-theme-name'))
-        .then(function () { refreshAfterCategoryChange_(); })
-        .catch(function () { add.disabled = false; add.querySelector('small').textContent = '실패 · 다시'; });
-    };
   }
 
   function loadMoneyStrip_(container) {
     var mount = container.querySelector('[data-money-strip]');
     if (!mount) return;
-    Promise.all([loadThemeRows_(), fetchSectorConfig_().catch(function () { return { sectors: {} }; })])
-      .then(function (values) { renderMoneyStrip_(mount, values[0], values[1].sectors || {}); })
-      .catch(function () { mount.innerHTML = ''; });
+    loadThemeRows_().then(function (rows) { renderMoneyStrip_(mount, rows); })
+      .catch(function () { mount.innerHTML = '<div class="mt-hint">섹터 순위를 불러오지 못했습니다.</div>'; });
   }
 
   // ---- 카드 보기: 돈 몰림 배지·정렬 ----
@@ -1523,21 +1515,14 @@
   }
 
   function buildStocksOnlyPage() {
-    var params = new URLSearchParams(String(global.location && global.location.search || ''));
-    var requestedPanel = params.get('panel');
-    var initialView = requestedPanel === 'all' ? 'active'
-      : ['cards', 'active', 'heatmap', 'marketcap'].indexOf(requestedPanel) !== -1 ? requestedPanel : 'cards';
     return '<div class="mt-stocks-only">'
-      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>내 카테고리를 기준으로 종목을 모니터링하고, 오늘 거래대금 상위 섹터와 연결해서 봅니다.</p></div>'
+      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1>'
+      + '<p>오늘 거래대금 상위 섹터를 확인하고, 업종별 종목·주가·등락은 시장맵에서 비교합니다.</p></div>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2><p>거래대금 막대 표는 증시온도에서 봅니다. 여기서는 같은 순위를 내 카테고리와 연결해서 모니터링합니다.</p></div>'
+      + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2>'
+      + '<p>거래대금 순위를 간단히 확인하고 시장맵에서 종목을 살펴보세요.</p></div>'
       + '<div data-money-strip><div class="mt-hint">거래대금 상위 섹터를 불러오는 중입니다.</div></div>'
-      + '</section>'
-      + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>내 카테고리 모니터링</h2><p>거래대금 상위 카테고리가 앞에 옵니다. 활성 종목 탭에서 카테고리에 없는 종목을 편입하고, 새 카테고리는 테마에서 추가합니다.</p></div>'
-      + buildExploreCard(initialView)
-      + '</section>'
-      + '</div>';
+      + '</section></div>';
   }
 
   // 기존 티스토리 /page/market-temp?view=map 에 새 화면을 부착한다.
@@ -1613,21 +1598,10 @@
         link.setAttribute('data-market-map-css', '1');
         document.head.appendChild(link);
       }
-      function loadCurated_() {
-        if (global.SECTOR_MAP) return Promise.resolve();
-        return new Promise(function (resolve) {
-          var script = document.createElement('script');
-          script.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
-          script.async = true;
-          script.onload = resolve;
-          script.onerror = resolve; // 우선순위 보조자료, WICS 원본 업종은 유지한다.
-          document.head.appendChild(script);
-        });
-      }
       function finish() {
-        return Promise.all([ensureWicsMap_(), loadCurated_()]).then(function (results) {
+        return ensureWicsMap_().then(function (wics) {
           if (!global.MarketMap) throw new Error('시장맵 스크립트를 불러오지 못했습니다.');
-          global.MarketMap.init(container, results[0], global.SECTOR_MAP || {});
+          global.MarketMap.init(container, wics);
         });
       }
       if (global.MarketMap) return finish();
@@ -1659,7 +1633,6 @@
       if (container.__mtStocksInitialized) return;
       container.__mtStocksInitialized = true;
       container.innerHTML = buildStocksOnlyPage();
-      wireViewTabs(container);
       loadMoneyStrip_(container);
       return;
     }

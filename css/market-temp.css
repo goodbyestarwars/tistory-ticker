@@ -1884,7 +1884,7 @@ html.dark #market-temp .mt-theme-picker-item { background: var(--dk-card) !impor
 #market-temp .mt-money-head strong { color: #111827; font-size: 14px; }
 #market-temp .mt-money-head a { color: #2563eb;   text-decoration: none; }
 #market-temp .mt-money-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-#market-temp .mt-money-chip { display: inline-flex;  gap: 5px; padding: 5px 9px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #334155; font: inherit; font-size: 12px; cursor: pointer; }
+#market-temp .mt-money-chip { display: inline-flex;  gap: 5px; padding: 5px 9px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #334155; font: inherit; font-size: 12px; cursor: default; }
 #market-temp .mt-money-chip i { color: #94a3b8; font-size: 10.5px; font-style: normal; font-weight: 700; }
 #market-temp .mt-money-chip em { font-style: normal; font-weight: 700; }
 #market-temp .mt-money-chip em.sector-up { color: var(--num-up); }
@@ -2597,9 +2597,9 @@ html.dark #market-temp .mt-kpi-gauge .mt-gauge-seg:not(.is-lit) { stroke: var(--
 #market-temp .mt-money-head a { padding: 5px 12px; border: 1px solid var(--mt2-line, #e5e7eb); border-radius: 999px; color: var(--mt2-sub, #64748b); font-size: 12px; font-weight: 600; }
 #market-temp .mt-money-head a:hover { color: var(--mt2-text, #111827); border-color: currentColor; }
 #market-temp .mt-money-chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-#market-temp .mt-money-chip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; column-gap: 7px; row-gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--mt2-line, #e5e7eb); border-radius: 10px; background: var(--mt2-bg, #fff); text-align: left; transition: border-color .15s, background .15s; }
-#market-temp .mt-money-chip:hover { border-color: #94a3b8; }
-#market-temp .mt-money-chip i { grid-row: 1 / 3; align-self: start; width: 20px; height: 20px; border-radius: 6px; background: var(--mt2-soft, #f8fafc); color: #64748b; font-size: 11px; line-height: 20px; text-align: center; }
+#market-temp .mt-money-chip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto; align-items: center; column-gap: 7px; row-gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--mt2-line, #e5e7eb); border-radius: 10px; background: var(--mt2-bg, #fff); text-align: left; transition: border-color .15s, background .15s; }
+/* 순위 칩은 읽기 전용이며 hover/클릭 상태가 없다. */
+#market-temp .mt-money-chip i { grid-row: 1; align-self: start; width: 20px; height: 20px; border-radius: 6px; background: var(--mt2-soft, #f8fafc); color: #64748b; font-size: 11px; line-height: 20px; text-align: center; }
 #market-temp .mt-money-chip .mt-money-name { overflow: hidden; color: var(--mt2-text, #111827); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 #market-temp .mt-money-chip em { font-size: 12.5px; white-space: nowrap; }
 #market-temp .mt-money-chip small { grid-column: 2 / 4; overflow: hidden; font-size: 11px; color: #94a3b8; text-overflow: ellipsis; white-space: nowrap; }

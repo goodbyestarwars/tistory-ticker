@@ -3,6 +3,13 @@
   'use strict';
   var PER_SECTOR = 24;
   var FIRST_VISIBLE = 6;
+  // WICS 원본은 시가총액순이 아니다. 개인 카테고리와 무관한 고정 대표 종목 코드만
+  // 화면 표본의 가독성 보완에 사용하며, 실제 업종 소속은 오직 WICS가 결정한다.
+  var REFERENCE_CODES = [
+    '005930','000660','035420','005380','000270','068270','207940','373220',
+    '105560','055550','051910','012330','009540','010140','086790','000810',
+    '066570','035720','096770','259960'
+  ];
   function number(v) {
     if (v === null || v === undefined || v === '') return null;
     var n = Number(v);
@@ -14,45 +21,44 @@
   function tone(v) { return v == null ? 'na' : v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; }
   function cap(v) { return v == null ? '미확인' : v >= 1e12 ? (v / 1e12).toFixed(1) + '조' : (v / 1e8).toFixed(0) + '억'; }
 
-  /* WICS는 업종 분류의 단일 기준; 사용자 정의 테마는 선별 우선순위와 시장 힌트에만 사용한다.
-     24개/업종의 명시적 표본이며 시총 순위·시장 전체 커버리지라고 주장하지 않는다. */
-  function chooseCandidates(wics, curated) {
-    var featured = Object.create(null), groups = Object.create(null);
-    Object.keys(curated || {}).forEach(function (sector) {
-      (curated[sector] || []).forEach(function (r) {
-        if (r && /^[0-9]{6}$/.test(String(r.code || '')) && !featured[r.code]) {
-          featured[r.code] = {market: r.market, favorite: true};
-        }
-      });
-    });
+  /* 공식 WICS 대분류만 사용. 사용자 정의 '내 카테고리'·중복 소속·우선순위는 적용하지 않는다.
+     업종별 대표기업 코드 + 목록 선두12종목 + 잔여 분산 표본을 선별한다(총24종목 상한).
+     이 목록은 시총 상위나 전종목 전체가 아닌 조회용 표본이며 API는 관리자 인증을 유지한다. */
+  function chooseCandidates(wics) {
+    var groups = Object.create(null), used = Object.create(null);
     Object.keys(wics || {}).forEach(function (code) {
       var rec = wics[code];
-      if (!/^[0-9]{6}$/.test(code) || !rec || !rec.sector || !rec.name) return;
-      var g = groups[rec.sector] || (groups[rec.sector] = []);
-      g.push({code: code, name: rec.name, sector: rec.sector, industry: rec.industry || '',
-        hint: featured[code] && featured[code].market || '', featured: !!featured[code]});
+      if (!/^[0-9]{6}$/.test(code) || !rec || !rec.sector || !rec.name || used[code]) return;
+      used[code] = true;
+      (groups[rec.sector] || (groups[rec.sector] = [])).push({
+        code:code, name:rec.name, sector:rec.sector, industry:rec.industry || ''
+      });
     });
     var picked = [];
     Object.keys(groups).forEach(function (sector) {
-      var rows = groups[sector], out = [], used = Object.create(null);
-      function take(list, limit) {
-        var found = 0;
-        list.forEach(function (r) {
-          if (found >= limit || out.length >= PER_SECTOR || used[r.code]) return;
-          out.push(r); used[r.code] = true; found++;
-        });
+      var rows = groups[sector], chosen = [], included = Object.create(null);
+      function include(row) {
+        if (!row || chosen.length >= PER_SECTOR || included[row.code]) return;
+        included[row.code] = true;
+        chosen.push(row);
       }
-      take(rows.filter(function (r) { return r.featured && r.hint === 'KOSPI'; }), 9);
-      take(rows.filter(function (r) { return r.featured && r.hint === 'KOSDAQ'; }), 9);
-      take(rows.filter(function (r) { return r.featured; }), PER_SECTOR);
-      take(rows, PER_SECTOR);
-      picked = picked.concat(out);
+      // 대표 회사가 WICS 원본 배열 뒤쪽에 있어 화면에서 사라지는 현상을 방지.
+      REFERENCE_CODES.forEach(function (code) {
+        include(rows.find(function (r) { return r.code === code; }));
+      });
+      rows.slice(0, 12).forEach(include);
+      var remaining = rows.filter(function (r) { return !included[r.code]; });
+      var slots = Math.min(PER_SECTOR - chosen.length, remaining.length);
+      for (var i = 0; i < slots; i += 1) {
+        include(remaining[Math.floor((i + 0.5) * remaining.length / slots)]);
+      }
+      picked = picked.concat(chosen);
     });
     return picked;
   }
 
-  function createState(container, wics, curated) {
-    return {root: container, candidates: chooseCandidates(wics, curated), quotes: [],
+  function createState(container, wics) {
+    return {root: container, candidates: chooseCandidates(wics), quotes: [],
       loading: false, ready: false, error: '', market: 'ALL', search: '', size: 'cap',
       sort: 'cap', focus: '', expanded: Object.create(null), checkedAt: ''};
   }
@@ -156,9 +162,9 @@
         state.error = '시세 갱신 실패 · 권한 또는 네트워크를 확인하세요. 이전 수신값은 유지합니다.';
       }).then(function () { state.loading = false; draw(state); });
   }
-  function init(container, wics, curated) {
+  function init(container, wics) {
     if (!container || container.__mtm) return;
-    var state = createState(container,wics,curated);
+    var state = createState(container,wics);
     container.__mtm = state;
     container.innerHTML = '<main class="mtm" aria-label="섹터·종목 시장맵">'
       + '<header class="mtm-header"><div><span class="mtm-eyebrow">9PAY MARKET ATLAS</span><h1>섹터·종목 시장맵</h1><p>업종 안에서 개별 종목의 주가와 등락을 한눈에 비교합니다.</p></div>'

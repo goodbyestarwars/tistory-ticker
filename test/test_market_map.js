@@ -17,10 +17,14 @@ const wics = {
   '000001':{name:'샘플',sector:'IT'},
   'BAD_ID':{name:'비상장',sector:'IT'}
 };
-const picks = map.chooseCandidates(wics,{테마:[{code:'000660',market:'KOSPI'},{code:'000660',market:'KOSPI'}]});
+const picks = map.chooseCandidates(wics);
+const withOldCategories = map.chooseCandidates(wics,{테마:[{code:'000660',market:'KOSPI'},{code:'000660',market:'KOSPI'}]});
+assert.deepEqual(picks.map(x => x.code), withOldCategories.map(x => x.code)); // 개인 카테고리 무관
 assert.equal(picks.length,4);
 assert.equal(new Set(picks.map(x=>x.code)).size,4);
-assert.equal(picks.find(x=>x.code==='000660').sector,'IT'); // 테마가 공식 업종을 바꾸면 안 됨
+assert.ok(picks.some(x => x.code==='005930') && picks.some(x => x.code==='000660'));
+assert.equal(picks.find(x=>x.code==='000660').sector,'IT'); // WICS 업종 단일 소속
+assert.ok(picks.every(x => !Object.hasOwn(x,'featured') && !Object.hasOwn(x,'hint')));
 const state = {
   candidates:picks,
   quotes:[
@@ -40,6 +44,23 @@ assert.equal(groups.reduce((n,g)=>n+g.rows.length,0),1);
 state.market='ALL';state.search='하이닉스';
 groups=map.grouped(state);
 assert.equal(groups[0].rows[0].code,'000660');
+const stockPageStart = marketTemp.indexOf('  function buildStocksOnlyPage() {');
+const stockPageEnd = marketTemp.indexOf('  // 기존 티스토리 /page/market-temp?view=map', stockPageStart);
+const stocksOnlyPage = marketTemp.slice(stockPageStart, stockPageEnd);
+assert.ok(stockPageStart >= 0 && stockPageEnd > stockPageStart);
+assert.ok(!stocksOnlyPage.includes('내 카테고리'));
+assert.ok(!stocksOnlyPage.includes('buildExploreCard'));
+const moneyStart = marketTemp.indexOf('  function renderMoneyStrip_(mount, rows)');
+const moneyEnd = marketTemp.indexOf('  // ---- 카드 보기: 돈 몰림 배지·정렬', moneyStart);
+const moneyOnly = marketTemp.slice(moneyStart, moneyEnd);
+assert.ok(!moneyOnly.includes('mapThemesToCategories_'));
+assert.ok(!moneyOnly.includes('data-focus-category'));
+assert.ok(!moneyOnly.includes('data-add-theme'));
+assert.ok(moneyOnly.includes('/page/market-temp?view=map'));
+assert.ok(!marketTemp.includes('MarketMap.init(container, results[0], global.SECTOR_MAP'));
+const mapCss = fs.readFileSync('css/market-map.css','utf8');
+assert.ok(mapCss.includes('overflow:hidden; text-overflow:ellipsis; font-size:clamp(12px'));
+assert.ok(mapCss.includes('text-decoration:none; overflow:hidden;'));
 assert.ok(marketTemp.includes("get('view') === 'map'"));
 assert.ok(marketTemp.includes("waitMarketMapAccess_().then(function (access)"));
 assert.ok(marketTemp.includes("access.isAdmin()"));
@@ -88,7 +109,7 @@ async function verifyGateLoading() {
     await assert.rejects(result, /접근 제어/); }
 }
 verifyGateLoading().then(function () {
-  console.log('market-map: grouping, selection, admin gate, async gate load, missing/error fail-closed PASS');
+  console.log('market-map: WICS-only unique sectors, removed custom category UI, no tile overflow, async gate & server guard PASS');
 }).catch(function (error) {
   console.error(error);
   process.exitCode = 1;
