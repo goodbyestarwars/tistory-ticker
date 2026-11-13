@@ -254,6 +254,24 @@
     return keywordCloudLoad;
   }
 
+  // One shared on-demand company matcher for the public home and economic-news timeline.
+  var newsStockLoad = null;
+  function loadNewsStocks() {
+    if (newsStockLoad) return newsStockLoad;
+    var scriptJob = global.NineNewsStocks ? Promise.resolve(global.NineNewsStocks) : new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/news-stock-matcher.js';
+      script.onload = function () { global.NineNewsStocks ? resolve(global.NineNewsStocks) : reject(new Error('News stock matcher unavailable')); };
+      script.onerror = function () { script.remove(); reject(new Error('News stock matcher load failed')); };
+      document.head.appendChild(script);
+    });
+    newsStockLoad = scriptJob.then(function (matcher) {
+      return matcher.loadStockCatalog().then(function () { return matcher; });
+    });
+    newsStockLoad.catch(function () { newsStockLoad = null; });
+    return newsStockLoad;
+  }
+
   /* 화면 설정(차트 지표 켬/끔 등)을 브라우저에 기억한다. accessors: { 이름: { get: fn, set: fn } }.
      불러올 때는 저장된 값의 종류(불리언·문자열·객체·배열)가 현재 기본값과 같을 때만 쓴다. 체크 상자·버튼을 누른 뒤
      값이 바뀌었으면 한 틱 뒤에 저장한다(핸들러가 먼저 값을 바꾼 다음 저장되도록). 저장소를 못 쓰면 기억만 하지 않는다. */
@@ -443,7 +461,7 @@
   }
   // 외부 피드의 링크가 javascript: 등 비-http(s) 스킴이면 빈 문자열(2026-11-07 모의진단).
   function safeUrl(url) { var v = String(url == null ? '' : url).trim(); return /^https?:\/\//i.test(v) ? v : ''; }
-  global.NineUI = { safeUrl: safeUrl, chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, loadKeywordCloud: loadKeywordCloud, persistPrefs: persistPrefs, loadChartLibrary: loadChartLibrary };
+  global.NineUI = { safeUrl: safeUrl, chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, loadKeywordCloud: loadKeywordCloud, loadNewsStocks: loadNewsStocks, persistPrefs: persistPrefs, loadChartLibrary: loadChartLibrary };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 
