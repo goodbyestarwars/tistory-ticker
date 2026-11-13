@@ -1,3 +1,9 @@
+**2026-11-13 미국 홈 글로벌 지표·주요 ETF 표시 개선**
+
+- 목적: 글로벌 지표 2×2 카드·ETF 4×2 카드의 반복 테두리로 수치 비교가 어려운 문제 개선.
+- 변경: `css/home-market-board.css` 글로벌 지표는 PC 4열/620px 이하 2열 구분선형 스트립(종목별 시각·지연 보존), `js/skin-main.js`·`style.css` ETF 8종은 종목/1일/1개월/YTD 우측 정렬 표로 교체(모바일 종목명 2줄·다크 지원). 기존 API·캐시·모드 전환·기준일/잠정 정보·부호색 유지, 시세·주문 동작 변경 없음. `CLAUDE.md`·`docs/UI_GUIDE.md` 동기화.
+- 검증: JS 구문·반응형 선택자·기존 데이터 필드 정적 검증. 실기기 운영 브라우저 육안 확인은 미실시. 배포: master → GitHub Pages 자동, 스킨/VM 변경 없음.
+
 **2026-11-13 보조지표 팝업 고정·이동·스크롤 및 매수 관찰 박스**
 
 - 사용자 지시: 보조지표 팝업이 차트를 누르면 닫힘 → 직접 닫기 전까지 유지·이동. 목록이 파동 분석 아래로 안 내려가고 페이지가 스크롤됨. 사용자가 그은 두 가로선(바닥~상단 박스)을 보조지표로 자동 작도.
@@ -275,29 +281,3 @@
 **2026-11-11 화면 접근 정책(비로그인 4개 화면·관리자 ON/OFF)**
 
 요청: 증권사 시세 제3자 제공 불허를 전제로 비로그인은 대화방·캘린더·마켓브리핑·시장지표만, 첫 화면 `/guestbook`, 관리자가 화면별 ON/OFF. 일반 회원에게 인증만으로 제한 시세를 열지 않음(첫 문장 "구현한다"는 본문과 충돌하는 오타로 보고 미구현 해석). 변경: `access_policy.py`·`/access-policy`(GET/PUT)·제한 REST 미들웨어(401/403)·`/ws/quotes` 인증 거절, `js/access-gate.js`(NineAccess)·`access-settings.js`, 메뉴·모바일 탭바·검색·관심종목·메모 게이팅, `skin-main.js` 보호 화면 판정 후 초기화. 시장지표 공급자 공개 가능 여부는 미확정(상세 `ACCESS_POLICY_2026-11-11.md`). 검증: `test_access_policy.py` 8·`test_access_gate.js`·`test_access_menu.js`(PC 1280/모바일 390·320, 비로그인·일반·장애·관리자)·FastAPI TestClient 통합(401/403/200·WS 거절·설정 저장). 배포: PR(초안) - 미병합, VM→Pages 순서·장중 재시작 금지·skin.html 수동 반영 대기. 실서버·실제 로그인 세션 검증 미실시.
-
-**2026-11-10 시장지표 요약 박스 제거**
-
-시장지표 전 탭의 요약 박스와 요약 갱신 로직 제거. 표·차트와 국내/글로벌 연결 상태 유지. master → Pages.
-
-**2026-11-10 보조지표 목록 너비 조절**
-
-## 2026-11-11 접근 정책 VM 수동 배포·내부 호출 허용·로그인 유도
-
-- 사용자 지시로 VM(Oracle)에 수동 배포(19:3x KST, 장 마감 후·자동매매 14:00 종료 후). 배포 후 점검이 제한 경로의 X-API-Key 내부 호출을 401로 막는 것을 발견해 main.py에서 비밀 X-API-Key 호출은 통과시킴(PR #1200). 비로그인이 홈·로고·배너를 누르면 로그인 창(NineLanding.showLogin).
-- 검증: /access-policy 200, 비로그인 /quote 401, /futures 200, post_deploy_check PASS(/health,/ohlc). 관리자 로그인 화면은 사용자 확인 필요.
-
-## 2026-11-11 시장지표 로그인 후 전환·랜딩 문구/폰트
-
-- 목적: 시장지표는 로그인 후, 비로그인에는 이야기 시리즈. 랜딩 브랜드 문구·폰트 변경, 네이버 버튼 표시 보완.
-- 변경: access_policy.py(level public/member/admin), access-gate/skin-menu/home-mobile-tabs/access-landing, 테스트·문서.
-- 검증: test_access_policy.py, test_access_gate/menu/landing/kis_menu/early_bootstrap 통과. 배포·운영 확인은 병합 후.
-
-## 2026-11-10 시장지표 Groq 요약 제거
-
-증시자금 참고의견 마크업·렌더링·GAS 호출 제거. Node 구문 검사. master → Pages.
-
-**2026-11-10 저장 시세 캐시 만료 동시 조회 제어**
-
-변경: /futures의 저장 조회에서 동일 키의 캐시 미스를 한 번의 조회·직렬화로 합친다. 공개 요청 제한·응답 계약 유지. 검증: 컴파일, 50개 호출 경로 점검. 배포: master → VM.
-

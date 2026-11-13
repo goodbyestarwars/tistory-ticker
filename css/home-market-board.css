@@ -508,10 +508,21 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar::before {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-up { left: 50%; border-radius: 0 4px 4px 0; background: var(--chart-fill-up); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-down { right: 50%; border-radius: 4px 0 0 4px; background: var(--chart-fill-down); }
-/* 글로벌 지수: 지표 4종(WTI·원/달러·미 10년물·VIX) */
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl { display: grid; gap: 12px; margin-top: 12px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-value-row strong { font-size: 17px; }
+/* 글로벌 지수: 기존 4종을 반복 카드가 아닌 시세 스트립으로 비교, 항목별 갱신시각 유지 */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl { display: block; margin-top: 12px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-tile { min-width: 0; padding: 2px 12px; border: 0; border-left: 1px solid var(--hmb-line); border-radius: 0; background: transparent; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-tile:first-child { padding-left: 0; border-left: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-top strong { font-size: 11px; white-space: nowrap; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-value-row { display: flex; flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 3px; margin-top: 6px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-value-row strong { font-size: clamp(15px, 1.25vw, 19px); overflow-wrap: normal; white-space: nowrap; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-value-row em { font-size: 11px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-source { margin-top: 5px; font-size: 10px; line-height: 1.4; overflow-wrap: break-word; }
+@media (max-width: 620px) {
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-tile:nth-child(odd) { padding-left: 0; border-left: 0; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-tile:nth-child(n+3) { padding-top: 12px; border-top: 1px solid var(--hmb-line); }
+}
 body#tt-body-index .home-editorial-page .home-night-content .hnc-change { margin-top: 2px; }
 body#tt-body-index .home-editorial-page .home-night-content .ui-kpi-value-row > strong { font-size: 27px; }
 body#tt-body-index .home-editorial-page .hnc-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 0; }
@@ -520,7 +531,6 @@ body#tt-body-index .home-editorial-page .hnc-range dd { margin: 0; font: 700 14p
 body#tt-body-index .home-editorial-page .home-night-content .home-index-chart { margin-top: 10px; }
 @media (max-width: 560px) {
   body#tt-body-index .home-editorial-page.is-us-market #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: minmax(0, 1fr); }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-rotation { grid-template-columns: minmax(0, 1fr); }
 }
 

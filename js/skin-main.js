@@ -820,7 +820,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '</dl>'
         // 2026-11-04 글로벌 지수(미국 모드): 지표 4종 + 현물 지수 3종. 값은 renderHomeGlobalBlock이 /futures 응답으로 채운다.
         + '<div class="hgl" data-home-global hidden><div class="ui-kpi-grid hgl-metrics">'
-        + ['WTI|WTI 원유 선물', 'USDKRW|원/달러', 'US10Y|미국 국채 10년물', 'VIX|VIX 변동성지수'].map(function (def) {
+        + ['WTI|WTI 원유', 'USDKRW|원/달러', 'US10Y|미국 10년물', 'VIX|VIX 변동성'].map(function (def) {
           var p = def.split('|');
           return '<article class="ui-kpi-tile" data-global-tile="' + p[0] + '"><div class="ui-kpi-top"><strong>' + p[1] + '</strong></div>'
             + '<div class="ui-kpi-value-row"><strong data-global-field="price">-</strong><em data-global-field="change">-</em></div>'
@@ -828,9 +828,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         }).join('')
         + '</div></div></section>'
         // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
-        // 시장 요약과 같은 머리말·칸(.hmb-summary-head/.hmb-list)을 그대로 써서 칸 모양을 맞춘다. 값은 /us-etf-returns.
+        // 공통 머리말 아래 ETF 8개를 1일·1개월·YTD 비교 표로 표시한다. 값은 기존 /us-etf-returns.
         + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 연초 이후</span></div>'
-        + '<div class="hmb-etf-cards" data-home-us-etfs-list></div></div>'
+        + '<div class="hmb-etf-table-wrap"><table class="hmb-etf-table" aria-label="주요 미국 ETF 수익률 비교">'
+        + '<thead><tr><th scope="col">ETF</th><th scope="col">1일</th><th scope="col">1개월</th><th scope="col">YTD</th></tr></thead>'
+        + '<tbody data-home-us-etfs-list></tbody></table></div></div>'
         + '<section class="home-top-disclosures ui-content-block" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
         + '<div class="home-top-disclosures-head"><strong class="ui-section-title" data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
@@ -981,13 +983,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         function pct(v) { return window.NineUI.signedPercent(v); }
         function tone(v) { return v > 0 ? 'home-positive' : v < 0 ? 'home-negative' : 'home-neutral'; }
         list.innerHTML = items.map(function (it) {
-          var title = it.symbol + ' ' + it.name + ' · 1주 ' + pct(it.return1w) + ' · 1개월 ' + pct(it.return1m) + ' · 연초 이후 ' + pct(it.returnYtd);
-          // 2026-10-05 사용자 요청("미니멀한 카드형으로"): 칸 목록 대신 작은 카드. 티커·이름 / 1일 / 1M·YTD 세 줄.
-          return '<article class="hmb-etf-card" title="' + title.replace(/"/g, '&quot;') + '">'
-            + '<div class="hmb-etf-name"><b>' + it.symbol + '</b><span>' + it.name + '</span></div>'
-            + '<strong class="' + tone(it.return1d) + '">' + pct(it.return1d) + '</strong>'
-            + '<p><span>1M <em class="' + tone(it.return1m) + '">' + pct(it.return1m) + '</em></span>'
-            + '<span>YTD <em class="' + tone(it.returnYtd) + '">' + pct(it.returnYtd) + '</em></span></p></article>';
+          var title = (it.symbol || '') + ' ' + (it.name || '') + ' · 1주 ' + pct(it.return1w)
+            + ' · 1개월 ' + pct(it.return1m) + ' · 연초 이후 ' + pct(it.returnYtd);
+          return '<tr title="' + escapeHomeHtml(title) + '">'
+            + '<td><span class="hmb-etf-name"><b>' + escapeHomeHtml(it.symbol || '') + '</b><span>' + escapeHomeHtml(it.name || '') + '</span></span></td>'
+            + '<td class="' + tone(it.return1d) + '">' + pct(it.return1d) + '</td>'
+            + '<td class="' + tone(it.return1m) + '">' + pct(it.return1m) + '</td>'
+            + '<td class="' + tone(it.returnYtd) + '">' + pct(it.returnYtd) + '</td></tr>';
         }).join('');
         var meta = box.querySelector('[data-home-us-etfs-meta]');
         if (meta && d.date) meta.textContent = d.date.slice(5).replace('-', '.') + ' 미국 종가' + (d.final === false ? '(잠정)' : '') + ' · 1일 · 1개월 · 연초 이후';
