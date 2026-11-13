@@ -5681,6 +5681,11 @@ html.dark .app-news-market--미국 { color: #93c5fd; background: rgba(29, 78, 21
 .app-news-quote { display: inline-flex; align-items: baseline; gap: 6px; color: #334155; font-size: 10px; font-variant-numeric: tabular-nums; }
 .app-news-quote .is-up { color: var(--num-up); }
 .app-news-quote .is-down { color: var(--num-down); }
+/* Show up to three listed companies under one headline, including names without a rate. */
+.home-economic-news .app-news-footer { flex-wrap: wrap; gap: 3px 12px; }
+.home-economic-news .app-news-quote.is-up b { color: var(--num-up); }
+.home-economic-news .app-news-quote.is-down b { color: var(--num-down); }
+html.dark .home-economic-news .app-news-quote { color: var(--dk-text); }
 .app-news-event:hover { background: #fafbff; }
 /* 2026-09-24 사용자 스크린샷: 다크모드에서 뉴스 행 하나가 밝은 흰 배경으로 남아 있었다
    - 모바일은 탭한 요소의 :hover가 다음 탭 전까지 그대로 유지되는 경우가 많아, 이 hover
