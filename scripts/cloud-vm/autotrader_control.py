@@ -305,7 +305,7 @@ def _safe_decision(raw):
     if not isinstance(raw, dict):
         return {}
     out = {}
-    if raw.get('scanner') in _DECISION_SCANNERS:
+    if isinstance(raw.get('scanner'), str) and raw['scanner'] in _DECISION_SCANNERS:
         out['scanner'] = raw['scanner']
     scan_day = str(raw.get('scan_date') or '')
     if re.fullmatch(r'\d{4}-\d{2}-\d{2}', scan_day):
