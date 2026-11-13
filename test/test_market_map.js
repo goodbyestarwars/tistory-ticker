@@ -89,6 +89,10 @@ assert.ok(css.includes('.mtm-list-business') && css.includes('.mtm-business-pane
 assert.ok(css.includes('.mtm-bubble-number') && css.includes('.mtm-list-number'));
 const large=Object.fromEntries(Array.from({length:350},(_,i)=>[String(100000+i),{name:'회사'+i,sector:'IT',industry:'반도체'}]));
 assert.equal(map.chooseCandidates(large).length,350,'entire classified universe is searchable, not 24 per sector');
+const manyGroups={candidates:map.chooseCandidates(Object.fromEntries(Array.from({length:26},(_,i)=>[String(200000+i),{name:'회사'+i,sector:'산업'+i,industry:'업종'+i}]))),quotes:[],rs:null,market:'ALL',search:'',sector:'',industry:'',groupPage:0};
+assert.equal(map.nodesOf(manyGroups,true).length,26);assert.equal(map.nodesOf(manyGroups).length,12);
+const firstGroups=map.nodesOf(manyGroups).map(n=>n.key);manyGroups.groupPage=1;
+assert.equal(map.nodesOf(manyGroups).length,12);assert(map.nodesOf(manyGroups).every(n=>!firstGroups.includes(n.key)));
 const catalog=map.chooseCandidates({},null,null,{'새회사':'0012A0','상장ETF':'001234','예시ETN':'001235','예시스팩':'001236'},['상장ETF']);
 assert.equal(catalog.length,1);assert.equal(catalog[0].code,'0012A0');assert.equal(catalog[0].sector,'업종 미등록');
 assert.equal(map.chooseCandidates({'001236':{name:'예시스팩',sector:'금융',industry:'금융'}}).length,0);

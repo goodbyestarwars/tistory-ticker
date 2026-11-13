@@ -4,7 +4,7 @@
 (function (global) {
   'use strict';
 
-  var PER_SECTOR=24, PAGE_SIZE=300, W=1000, H=560, plot={l:78,t:55,r:950,b:495};
+  var PER_SECTOR=24, PAGE_SIZE=300, GROUP_PAGE_SIZE=12, W=1000, H=560, plot={l:78,t:55,r:950,b:495};
   var REFERENCE_CODES=[
     '005930','000660','035420','005380','000270','068270','207940','373220',
     '105560','055550','051910','012330','009540','010140','086790','000810',
@@ -232,7 +232,7 @@
       cap:caps.length?caps.reduce(function(n,r){return n+r.cap;},0):null,coverage:good.length,
       total:rows.length,kind:'group'};
   }
-  function nodesOf(state) {
+  function nodesOf(state,allGroups) {
     var stocks=stocksOf(state),groups=Object.create(null);
     if(state.industry||state.category||state.search.trim()){
       return stocks.slice((state.page||0)*PAGE_SIZE,((state.page||0)+1)*PAGE_SIZE)
@@ -247,7 +247,9 @@
       var key=state.sector?stock.industry:stock.sector;
       (groups[key]||(groups[key]=[])).push(stock);
     });
-    return Object.keys(groups).map(function(key){return aggregate(key,groups[key]);});
+    var nodes=Object.keys(groups).map(function(key){return aggregate(key,groups[key]);})
+      .sort(function(a,b){return (b.cap||0)-(a.cap||0)||a.name.localeCompare(b.name,'ko-KR');});
+    return allGroups?nodes:nodes.slice((state.groupPage||0)*GROUP_PAGE_SIZE,((state.groupPage||0)+1)*GROUP_PAGE_SIZE);
   }
   function layout(nodes) {
     var valid=nodes.filter(function(n){return n.rs1m!==null&&n.rs1y!==null;});
@@ -289,6 +291,32 @@
   }
   function svgMarkup(state,lay,ranked) {
     var mx=(plot.l+plot.r)/2,my=(plot.t+plot.b)/2;
+    var placed=[
+      {l:plot.l+15,r:plot.l+220,t:plot.t,b:plot.t+28},
+      {l:plot.r-220,r:plot.r-15,t:plot.t,b:plot.t+28},
+      {l:plot.l+15,r:plot.l+220,t:plot.b-30,b:plot.b},
+      {l:plot.r-220,r:plot.r-15,t:plot.b-30,b:plot.b}
+    ],labelsByKey={};
+    lay.points.filter(function(p){return p.node.kind==='group';}).forEach(function(p){
+      var full=p.node.name.replace(/^사업분류 미등록 · /,'');
+      var name=full.length>14?full.slice(0,13)+'…':full;
+      var width=Array.from(name).reduce(function(n,c){return n+(c.charCodeAt(0)>255?16:8.6);},0)+8;
+      var candidates=[];
+      [-70,-35,0,35,70].forEach(function(shift){
+        [[p.x,p.y-p.r-12+shift],[p.x,p.y+p.r+25+shift],
+          [p.x+p.r+width/2+12,p.y+6+shift],[p.x-p.r-width/2-12,p.y+6+shift]].forEach(function(v){
+          var x=Math.max(plot.l+width/2,Math.min(plot.r-width/2,v[0])),y=Math.max(plot.t+24,Math.min(plot.b-12,v[1]));
+          var box={l:x-width/2,r:x+width/2,t:y-17,b:y+3};
+          function area(b){return Math.max(0,Math.min(box.r,b.r)-Math.max(box.l,b.l))*Math.max(0,Math.min(box.b,b.b)-Math.max(box.t,b.t));}
+          var score=placed.reduce(function(n,b){return n+area(b)*5;},0);
+          lay.points.forEach(function(other){score+=area({l:other.x-other.r-3,r:other.x+other.r+3,t:other.y-other.r-3,b:other.y+other.r+3});});
+          score+=Math.hypot(x-p.x,y-p.y)*.04;
+          candidates.push({x:x,y:y,box:box,score:score,name:name});
+        });
+      });
+      candidates.sort(function(a,b){return a.score-b.score;});
+      labelsByKey[p.node.key]=candidates[0];placed.push(candidates[0].box);
+    });
     var shape='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="가로축은 최근 1년 시장보다 강한 정도, 세로축은 최근 한 달 시장보다 강한 정도. 오른쪽과 위쪽일수록 시장 대비 성적이 좋습니다.">';
     shape+='<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="16" class="mtm-canvas-bg"/>';
     if(!lay.points.length)return shape+'<text x="500" y="248" text-anchor="middle" class="mtm-axis">지도에 표시할 비교 자료가 없습니다</text>'
@@ -305,16 +333,18 @@
     lay.points.forEach(function(p,i){
       var n=p.node,active=state.selectedCode===n.code;
       var stockRank=n.kind==='stock'?ranked.findIndex(function(r){return r.code===n.code;})+1:0;
-      var label=n.kind==='stock'?(lay.points.length<=8||stockRank<=5||active):(lay.points.length<=12||i<9||active);
+      var label=n.kind==='stock'?(lay.points.length<=8||stockRank<=5||active):true;
+      var labelPosition=labelsByKey[n.key];
       var tooltip=n.name+' · 오늘 '+pct(n.rate);
       if(n.kind==='stock')tooltip+=' · 하는 일: '+businessLine(state,n);
       var displacement=Math.hypot(p.x-p.ax,p.y-p.ay);
       if(displacement>4)shape+='<path d="M'+p.ax.toFixed(1)+' '+p.ay.toFixed(1)+'L'+p.x.toFixed(1)+' '+p.y.toFixed(1)+'" class="mtm-tether"/>';
       shape+='<g class="mtm-point mtm-'+klass(n.rate)+(active?' is-active':'')+'" role="button" tabindex="0" data-mtm-node="'+esc(n.key)+'" aria-label="'+esc(tooltip)+'" transform="translate('+p.x.toFixed(1)+' '+p.y.toFixed(1)+')">'
+        + (labelPosition?'<path d="M0 0L'+(labelPosition.x-p.x).toFixed(1)+' '+(labelPosition.y-p.y-7).toFixed(1)+'" class="mtm-label-link"/>':'')
         + '<circle r="'+p.r.toFixed(1)+'" class="mtm-bubble"/><title>'+esc(tooltip)+'</title>'
         + (n.kind==='group'?'<text y="4" text-anchor="middle" class="mtm-bubble-count">'+n.coverage+'개</text>'
           :'<text y="3.5" text-anchor="middle" class="mtm-bubble-number">'+(stockRank<10?'0':'')+stockRank+'</text>')
-        + (label?'<text y="'+(-p.r-8)+'" text-anchor="middle" class="mtm-bubble-label">'+esc(n.name)+'</text>':'')
+        + (label?'<text x="'+(labelPosition?(labelPosition.x-p.x).toFixed(1):0)+'" y="'+(labelPosition?(labelPosition.y-p.y).toFixed(1):-p.r-8)+'" text-anchor="middle" class="mtm-bubble-label">'+esc(labelPosition?labelPosition.name:n.name)+'</text>':'')
         + '</g>';
     });
     return shape+'</svg>';
@@ -322,7 +352,7 @@
   function summary(state) {
     var rows=stocksOf(state),nodes=nodesOf(state),valid=nodes.filter(function(n){return n.rs1m!==null&&n.rs1y!==null;});
     var level=state.industry||state.category||state.search.trim()?'종목':state.mode==='business'?'사업분야':state.sector?'하위 업종':'산업';
-    return {rows:rows,nodes:nodes,valid:valid,level:level};
+    return {rows:rows,nodes:nodes,valid:valid,level:level,groupCount:level==='종목'?0:nodesOf(state,true).length};
   }
   function selectNode(state,key) {
     var node=nodesOf(state).find(function(n){return n.key===key;});
@@ -335,7 +365,7 @@
     else if(state.mode==='business'){state.category=node.key;state.selectedCode='';}
     else if(!state.sector){state.sector=node.key;state.selectedCode='';}
     else if(!state.industry){state.industry=node.key;state.selectedCode='';}
-    state.zoom=1;state.page=0;draw(state);load(state);
+    state.zoom=1;state.page=0;state.groupPage=0;draw(state);load(state);
   }
   function stockDetail(state,stock) {
     if(!stock)return '<div class="mtm-detail-empty">오른쪽 목록에 회사명과 사업 내용을 표시했습니다. 회사 이름을 누르면 자세한 정보를 확인할 수 있습니다.</div>';
@@ -382,11 +412,12 @@
     root.querySelector('[data-mtm-category-note]').textContent=state.mode==='business'
       ? '사업분야는 기존 섹터 목록과 기업개요의 명시적 핵심어에 따른 참고 분류입니다. 여러 분야에 속할 수 있으며, 미분류는 공식 업종으로 남깁니다. 전체 개요는 표본이며 분야 선택·검색은 전체 분류 종목을 대상으로 조회합니다.'
       : '공식 WICS 산업·업종입니다. 전체 개요는 업종별 표본이며 업종을 선택하거나 종목을 검색하면 해당 종목을 조회합니다.';
-    var pages=Math.max(1,Math.ceil(view.rows.length/PAGE_SIZE)),pager=root.querySelector('[data-mtm-page-nav]');
-    pager.hidden=overview||pages===1;
-    root.querySelector('[data-mtm-page-label]').textContent=((state.page||0)+1)+' / '+pages+'쪽 · 쪽당 최대 '+PAGE_SIZE+'종목';
-    root.querySelector('[data-mtm-page="prev"]').disabled=!state.page;
-    root.querySelector('[data-mtm-page="next"]').disabled=(state.page||0)+1>=pages;
+    var companies=view.level==='종목',page=companies?(state.page||0):(state.groupPage||0);
+    var pages=Math.max(1,Math.ceil(companies?view.rows.length/PAGE_SIZE:view.groupCount/GROUP_PAGE_SIZE)),pager=root.querySelector('[data-mtm-page-nav]');
+    pager.hidden=pages===1;
+    root.querySelector('[data-mtm-page-label]').textContent=(page+1)+' / '+pages+'쪽 · '+(companies?'쪽당 최대 '+PAGE_SIZE+'종목':view.groupCount+'개 분야를 '+GROUP_PAGE_SIZE+'개씩 표시');
+    root.querySelector('[data-mtm-page="prev"]').disabled=!page;
+    root.querySelector('[data-mtm-page="next"]').disabled=page+1>=pages;
     root.querySelector('[data-mtm-status]').textContent=state.taxonomyLoading?'사업분류·상장 사전 준비 중…':state.loading?'시세·일봉 확인 중…':
       state.error||('시세 조회 '+(state.checkedAt||'미확인')+' KST · 과거 비교 기준일: 코스피 '
       + (state.rs&&state.rs.benchmarks&&state.rs.benchmarks.KOSPI&&state.rs.benchmarks.KOSPI.asOf||'미확인')
@@ -438,6 +469,7 @@
     }).join('');
   }
   function load(state,force) {
+    if(!state.root.isConnected)return;
     if(state.taxonomyLoading)return;
     if(state.loading){state.reload=true;return;}
     var api=global.NineAPI;
@@ -474,12 +506,12 @@
   function init(container,wics) {
     if(!container||container.__mtm)return;
     var state={root:container,candidates:chooseCandidates(wics),quotes:[],rs:null,taxonomyLoading:true,
-      mode:'business',category:'',page:0,market:'ALL',sector:'',industry:'',search:'',size:'cap',zoom:1,
+      mode:'business',category:'',page:0,groupPage:0,market:'ALL',sector:'',industry:'',search:'',size:'cap',zoom:1,
       selectedCode:'',loading:false,error:'',checkedAt:'',profiles:null,profileStatus:'loading'};
     container.__mtm=state;
-    container.innerHTML='<main class="mtm" aria-label="시장 흐름 지도">'
+    container.innerHTML='<main class="mtm" aria-label="시장 지도">'
       +'<header class="mtm-header"><div><span class="mtm-eyebrow">9PAY MARKET ATLAS</span>'
-      +'<h1>시장 흐름 지도</h1><p>사업분야별로 회사를 찾고 시장 흐름을 비교하세요.</p></div>'
+      +'<h1>시장 지도</h1><p>사업분야별로 회사를 찾고 시장 흐름을 비교하세요.</p></div>'
       +'<span class="mtm-admin-note">관리자 전용 · 종목 시세</span></header>'
       +'<div class="mtm-toolbar"><div class="mtm-segments" role="group" aria-label="시장 구분">'
       +'<button type="button" data-mtm-market="ALL" aria-pressed="true">전체</button>'
@@ -516,15 +548,15 @@
     container.addEventListener('click',function(event){
       var b=event.target.closest&&event.target.closest('button,[data-mtm-node]');if(!b)return;
       if(b.hasAttribute('data-mtm-close')){container.querySelector('[data-mtm-dialog]').close();}
-      else if(b.hasAttribute('data-mtm-market')){state.market=b.getAttribute('data-mtm-market');state.selectedCode='';draw(state);}
+      else if(b.hasAttribute('data-mtm-market')){state.market=b.getAttribute('data-mtm-market');state.selectedCode='';state.groupPage=0;draw(state);}
       else if(b.hasAttribute('data-mtm-nav')){
         if(b.getAttribute('data-mtm-nav')==='root'){state.sector='';state.industry='';state.category='';}
         else state.industry='';
-        state.selectedCode='';state.zoom=1;state.page=0;draw(state);load(state);
+        state.selectedCode='';state.zoom=1;state.page=0;state.groupPage=0;draw(state);load(state);
       }else if(b.hasAttribute('data-mtm-node'))selectNode(state,b.getAttribute('data-mtm-node'));
       else if(b.hasAttribute('data-mtm-list-node'))selectNode(state,b.getAttribute('data-mtm-list-node'));
       else if(b.hasAttribute('data-mtm-zoom')){state.zoom=Math.max(1,Math.min(2.4,state.zoom*(b.getAttribute('data-mtm-zoom')==='in'?1.2:1/1.2)));draw(state);}
-      else if(b.hasAttribute('data-mtm-page')){state.page+=b.getAttribute('data-mtm-page')==='next'?1:-1;state.selectedCode='';draw(state);load(state);}
+      else if(b.hasAttribute('data-mtm-page')){var field=summary(state).level==='종목'?'page':'groupPage';state[field]+=b.getAttribute('data-mtm-page')==='next'?1:-1;state.selectedCode='';draw(state);load(state);}
       else if(b.hasAttribute('data-mtm-refresh'))load(state,true);
     });
     container.addEventListener('keydown',function(e){
@@ -534,14 +566,14 @@
     });
     var searchTimer;
     container.querySelector('[data-mtm-search]').addEventListener('input',function(e){
-      state.search=e.target.value;state.sector='';state.industry='';state.category='';state.selectedCode='';state.page=0;draw(state);
+      state.search=e.target.value;state.sector='';state.industry='';state.category='';state.selectedCode='';state.page=0;state.groupPage=0;draw(state);
       global.clearTimeout(searchTimer);searchTimer=global.setTimeout(function(){load(state);},400);
     });
     container.querySelector('[data-mtm-mode]').addEventListener('change',function(e){
-      state.mode=e.target.value;state.sector='';state.industry='';state.category='';state.page=0;state.selectedCode='';draw(state);load(state);
+      state.mode=e.target.value;state.sector='';state.industry='';state.category='';state.page=0;state.groupPage=0;state.selectedCode='';draw(state);load(state);
     });
     container.querySelector('[data-mtm-category]').addEventListener('change',function(e){
-      state.category='';state.sector='';state.industry='';state.page=0;state.selectedCode='';
+      state.category='';state.sector='';state.industry='';state.page=0;state.groupPage=0;state.selectedCode='';
       if(state.mode==='business')state.category=e.target.value;
       else if(e.target.value){var key=JSON.parse(e.target.value);state.sector=key[0];state.industry=key[1];}
       draw(state);load(state);

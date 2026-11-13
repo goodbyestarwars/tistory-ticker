@@ -37,6 +37,7 @@ const root=path.resolve(__dirname,'..');
   assert(await p.locator('dialog').evaluate(e=>e.open));assert((await p.locator('dialog').innerText()).includes('회사349'));
   assert(await p.locator('[data-mtm-page-nav]').isHidden());
   assert(await p.locator('dialog').evaluate(e=>{const r=e.getBoundingClientRect();return r.width<=innerWidth&&r.left>=0&&r.right<=innerWidth;}));
+  assert(await p.locator('dialog').evaluate(e=>{const r=e.getBoundingClientRect();return Math.abs(r.x+r.width/2-innerWidth/2)<1&&Math.abs(r.y+r.height/2-innerHeight/2)<1;}),'company modal must be centered in viewport after scrolling');
   if(process.env.MAP_SCREENSHOT_DIR)await p.screenshot({path:path.join(process.env.MAP_SCREENSHOT_DIR,'market-company-modal-'+width+'.png'),fullPage:true});
   await p.keyboard.press('Escape');await p.waitForFunction(()=>!document.querySelector('dialog').open);
   await p.waitForFunction(()=>document.activeElement.getAttribute('data-mtm-list-node')==='100349');
@@ -52,6 +53,19 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await p.locator('.mtm h1').evaluate(e=>getComputedStyle(e).fontSize),width>760?'24px':'22px');
   assert((await p.evaluate(()=>requests)).every(r=>r.codes.length<=300));
   assert((await p.evaluate(()=>requests)).filter(r=>r.kind==='quotes').every(r=>r.options.fallback===false));
+  await p.evaluate(()=>{
+    document.querySelector('#market-temp').remove();const mount=document.createElement('div');mount.id='market-temp';document.body.appendChild(mount);
+    const groups=Object.fromEntries(Array.from({length:25},(_,i)=>[String(200000+i),{name:'분야회사'+i,sector:'산업'+i,industry:'세부분야'+i}]));
+    MarketMap.init(mount,groups);
+  });
+  await p.waitForFunction(()=>!document.querySelector('#market-temp').__mtm.loading&&!document.querySelector('#market-temp').__mtm.taxonomyLoading);
+  assert.equal(await p.locator('.mtm-point').count(),12);assert.equal(await p.locator('.mtm-bubble-label').count(),12);
+  const groupKeys=await p.locator('[data-mtm-list-node]').evaluateAll(es=>es.map(e=>e.getAttribute('data-mtm-list-node')));
+  const callsBeforeGroupPage=await p.evaluate(()=>requests.length);
+  await p.locator('[data-mtm-page="next"]').click();
+  assert.equal(await p.locator('.mtm-bubble-label').count(),12);
+  assert((await p.locator('[data-mtm-list-node]').evaluateAll(es=>es.map(e=>e.getAttribute('data-mtm-list-node')))).every(k=>!groupKeys.includes(k)));
+  assert.equal(await p.evaluate(()=>requests.length),callsBeforeGroupPage,'overview paging reuses the same snapshot');
   if(process.env.MAP_SCREENSHOT_DIR)await p.screenshot({path:path.join(process.env.MAP_SCREENSHOT_DIR,'market-flow-'+width+'.png'),fullPage:true});
   await p.close();
  }

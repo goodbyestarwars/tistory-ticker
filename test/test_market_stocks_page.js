@@ -53,7 +53,7 @@ const source=p=>fs.readFileSync(path.join(root,p),'utf8');
   assert(m.labelHeight<24);assert(m.inputWidth<250);assert.equal(m.titleSize,width>760?'24px':'22px');assert(m.titleFont.includes('Noto Serif KR Site'));
   await p.addScriptTag({content:source('js/skin-menu.js')});
   const menu=await p.locator('a[href="/page/market-temp?view=map"]').first().evaluate(e=>({label:e.textContent,group:e.closest('.nav-group').querySelector('.nav-group-trigger').textContent}));
-  assert(menu.label.includes('시장 흐름'));assert.equal(menu.group.trim(),'시장');
+  assert(menu.label.includes('시장 지도'));assert.equal(menu.group.trim(),'시장');
   await p.close();
  }
  await b.close();console.log('stocks page + market flow title/search/menu: 1280/390/320 passed');
