@@ -190,6 +190,57 @@
   var guestFieldsSelector = '.discussion-guest-fields input[name=name], .discussion-guest-fields input[type=password]';
   var showAll = false;
   var renderClassic = function () {};
+  // The stock quote feed is manager-only. Never open /ws/quotes for public visitors.
+  var roomQuoteSocket = null, roomQuoteRetry = null, roomQuotePing = null;
+  function stopRoomQuote() {
+    clearTimeout(roomQuoteRetry); clearInterval(roomQuotePing);
+    roomQuoteRetry = null; roomQuotePing = null;
+    if (roomQuoteSocket) { var old = roomQuoteSocket; roomQuoteSocket = null; old.onclose = null; old.close(); }
+  }
+  function startRoomQuote(code) {
+    stopRoomQuote();
+    if (!/^\\d{6}$/.test(code) || document.hidden ||
+        !window.NineAccess || !window.NineAccess.isAdmin() || !('WebSocket' in window)) return;
+    var badge = document.createElement('span');
+    badge.className = 'discussion-current-quote';
+    badge.setAttribute('role', 'status');
+    badge.textContent = '실시간 시세 연결 중';
+    current.appendChild(badge);
+    function connect() {
+      if (code !== activeCode || document.hidden || !window.NineAccess || !window.NineAccess.isAdmin()) return;
+      var socket = new WebSocket('wss://goodbyestar.cloud/ws/quotes?codes=' + encodeURIComponent(code));
+      roomQuoteSocket = socket;
+      socket.onopen = function () {
+        clearInterval(roomQuotePing);
+        roomQuotePing = setInterval(function () {
+          if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+        }, 20000);
+      };
+      socket.onmessage = function (event) {
+        if (socket !== roomQuoteSocket || code !== activeCode) return;
+        try {
+          var item = JSON.parse(event.data);
+          if (item.type === 'quote' && item.code === code && Number(item.price) > 0) {
+            var rate = Number(item.changeRate);
+            var price = Number(item.price).toLocaleString('ko-KR') + '원';
+            badge.textContent = price + (isFinite(rate) ? ' · ' + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '') + (item.delayed ? ' · 지연' : '');
+            badge.classList.toggle('is-up', isFinite(rate) && rate > 0);
+            badge.classList.toggle('is-down', isFinite(rate) && rate < 0);
+          } else if (item.type === 'coverage' && Array.isArray(item.delayed) && item.delayed.indexOf(code) !== -1) {
+            badge.textContent = '실시간 등록 대기 · 지연 시세';
+          }
+        } catch (error) { /* malformed feed ignored */ }
+      };
+      socket.onerror = function () { socket.close(); };
+      socket.onclose = function () {
+        clearInterval(roomQuotePing); roomQuotePing = null;
+        if (socket !== roomQuoteSocket) return;
+        roomQuoteSocket = null; badge.textContent = '시세 연결 지연';
+        if (code === activeCode && !document.hidden) roomQuoteRetry = setTimeout(connect, 7000);
+      };
+    }
+    connect();
+  }
 
   function addText(parent, tag, className, text) {
     var element = document.createElement(tag);
@@ -483,6 +534,7 @@
     activeCode = code;
     var label = code ? (names[code] ? names[code] + ' · ' + code : code) : '일반방';
     current.textContent = label;
+    startRoomQuote(code);
     input.value = code && names[code] ? names[code] : code;
     buttons.forEach(function (button) {
       var selected = button.getAttribute('data-discussion-stock') === (code || 'all');
@@ -505,7 +557,13 @@
   }
   buttons.forEach(function (button) { button.addEventListener('click', function () { applyFilter(button.getAttribute('data-discussion-stock'), true); }); });
   var generalButton = root.querySelector('[data-discussion-stock="all"]');
-  if (generalButton) generalButton.textContent = '일반방';
+  if (generalButton) {
+    generalButton.textContent = '일반방';
+    var recentHeading = document.createElement('span');
+    recentHeading.className = 'discussion-recent-heading';
+    recentHeading.textContent = '최근 이야기한 토론방';
+    generalButton.insertAdjacentElement('afterend', recentHeading);
+  }
   var clear = root.querySelector('[data-discussion-clear]');
   clear.textContent = '일반방으로';
   clear.addEventListener('click', function () { applyFilter('', true); });
@@ -570,4 +628,9 @@
   }
   setupClassic();
   applyFilter(initial || returnRoom, !initial && !!returnRoom);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stopRoomQuote(); else startRoomQuote(activeCode);
+  });
+  window.addEventListener('nineaccess:ready', function () { startRoomQuote(activeCode); });
+  window.addEventListener('nineaccess:change', function () { startRoomQuote(activeCode); });
 }());

@@ -3121,8 +3121,8 @@ html.dark #foreign-flow .ff-company-profile-head a:focus-visible { background: v
 }
 
 /* 미니 매물대(2026-10-04): 가격대별 거래량 목록 옆에 전체 가격대를 한 장으로 */
-:is(#foreign-flow, .ff-vp-host) .ff-apt-split { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 18px; align-items: start; }
-:is(#foreign-flow, .ff-vp-host) .ff-apt-mini { position: sticky; top: 90px; padding: 12px 10px; border-radius: 16px; background: rgba(17, 17, 17, .04); }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(128px,150px); gap: 12px; align-items: start; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-mini { position: sticky; top: 90px; padding: 12px 8px; border-radius: 12px; background: transparent; border: 1px solid rgba(100,116,139,.12); }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-mini-title { margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #475569; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-mini-svg { display: block; width: 100%; height: auto; }
 :is(#foreign-flow, .ff-vp-host) .ff-mini-bar.above { fill: rgba(18, 97, 196, .55); }
@@ -3518,3 +3518,8 @@ html.dark #foreign-flow .ff-story-row, html.dark #foreign-flow .ff-story-row spa
 #foreign-flow .ff-wide :is(p, em, td, b) { font-weight: 700; }
 #foreign-flow .ff-wide :is(small, th) { font-weight: 600; }
 
+
+/* Pull the volume-by-price ladder a little left; keep the full-range miniature readable on the right. */
+:is(#foreign-flow, .ff-vp-host) .ff-apt-split > :first-child { min-width:0; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row { padding-left:4px !important; padding-right:6px !important; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-mini { border-color:var(--dk-line); }

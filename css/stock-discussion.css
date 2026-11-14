@@ -429,3 +429,11 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 .discussion-terminal-welcome .discussion-terminal-rose { min-width:0; max-width:100%; overflow:auto; }
 
 .discussion-terminal-bar[hidden] { display:none !important; }
+
+/* Recently discussed rooms and authenticated live quote are part of the existing terminal. */
+.market-discussion .discussion-recent-heading { display:inline-flex; align-items:center; align-self:center; font:600 12px/1.4 var(--font-ui, Pretendard, sans-serif); color:#73869b; padding:0 4px; white-space:nowrap; }
+.market-discussion .discussion-current-quote { display:inline-flex; align-items:center; padding:5px 10px; border-radius:8px; background:rgba(100,116,139,.1); color:inherit; font:600 12px/1.4 var(--font-ui, Pretendard, sans-serif); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.market-discussion .discussion-current-quote.is-up { color:var(--num-up, #c53030); }
+.market-discussion .discussion-current-quote.is-down { color:var(--num-down, #2563eb); }
+html.dark .market-discussion .discussion-recent-heading { color:var(--dk-sub); }
+@media(max-width:720px){ .market-discussion .discussion-recent-heading { flex-basis:100%; padding-top:5px; } .market-discussion .discussion-current-quote { white-space:normal; } }

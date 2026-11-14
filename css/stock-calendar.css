@@ -339,14 +339,14 @@ html.dark #stock-calendar .sc-error { color: var(--dk-mute) !important; backgrou
 /* 2026-10-24: 캘린더 전체보기/국내/미국 공통 시장 필터.
    다른 페이지의 토글과 독립적이며 일정 수집 경로에는 영향이 없다. */
 #stock-calendar .sc-market-switch {
-  display: flex; align-items: center; gap: 3px; padding: 3px; width: 220px; flex-shrink: 0;
-  margin: 0 0 0 auto; border-radius: 0; background: #eef1f5;
+  display: flex; align-items: center; gap: 4px; padding: 4px; width: max-content; flex-shrink: 0;
+  margin: 0 0 0 auto; border-radius: 12px; background: #eef1f5;
   border: 1px solid #dce2e8; max-width: 100%; box-sizing: border-box;
 }
 #stock-calendar .sc-market-btn {
-  appearance: none; border: 0; background: transparent; border-radius: 0;
-  flex: 1 1 0; min-width: 0; text-align: center;
-  color: #64748b; padding: 8px 6px; min-height: 36px; white-space: nowrap;
+  appearance: none; border: 0; background: transparent; border-radius: 8px;
+  flex: 1 1 auto; min-width: 0; text-align: center;
+  color: #64748b; padding: 8px 11px; min-height: 36px; white-space: nowrap;
   font: 600 13px/1.3 "Pretendard Variable", Pretendard, sans-serif; cursor: pointer;
   transition: background-color .15s ease, color .15s ease;
 }
@@ -355,7 +355,7 @@ html.dark #stock-calendar .sc-error { color: var(--dk-mute) !important; backgrou
 #stock-calendar .sc-market-btn.is-active,
 #stock-calendar .sc-market-btn[aria-pressed="true"] {
   background: #fff; color: #182a3e;
-  box-shadow: 0 1px 3px rgba(15,23,42,.12);
+  box-shadow: 0 1px 4px rgba(15,23,42,.1), inset 0 0 0 1px rgba(15,23,42,.05);
 }
 #stock-calendar .sc-completed-badge--domestic { color: #27567c; background: #e9f2fa; }
 #stock-calendar .sc-completed-badge--us { color: #48539b; background: #edf0fa; }
@@ -383,6 +383,6 @@ html.dark #stock-calendar .sc-completed-badge--us {
   #stock-calendar .sc-completed-card .sc-ev-item { grid-template-columns: 24px minmax(0, 1fr); }
   #stock-calendar .sc-completed-card .sc-ev-body, #stock-calendar .sc-completed-card .sc-ev-time { grid-column: 2; }
   #stock-calendar .sc-market-switch { width: 100%; }
-  #stock-calendar .sc-market-btn { flex: 1 1 0; padding: 9px 6px; min-width: 0; }
+  #stock-calendar .sc-market-btn { flex: 1 1 0; padding: 9px 5px; min-width: 0; }
 }
 
