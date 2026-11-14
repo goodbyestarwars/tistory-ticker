@@ -26,7 +26,7 @@
     '.nl-nav a,.nl-nav button{color:#fff;font:inherit;font-size:15px;font-weight:600;text-decoration:none;background:none;border:0;padding:6px 2px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.4);opacity:.92}' +
     '.nl-nav a:hover,.nl-nav button:hover{opacity:1;text-decoration:underline;text-underline-offset:6px}' +
     '.nl-nav .nl-login{padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}' +
-    '.nl-hero{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(80px,16vh,160px);max-width:min(760px,calc(100% - 40px))}' +
+    '.nl-hero{position:absolute;left:clamp(20px,6vw,96px);bottom:clamp(80px,16vh,160px);max-width:min(760px,calc(100% - 240px))}' +
     '.nl-badge{display:inline-block;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-bottom:18px}' +
     '.nl-title{margin:0;font-size:clamp(30px,5vw,64px);line-height:1.2;letter-spacing:-.01em;text-shadow:0 4px 30px rgba(0,0,0,.35)}' +
     '.nl-sub{margin:18px 0 28px;font-size:clamp(15px,1.6vw,18px);line-height:1.6;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 2px 14px rgba(0,0,0,.4);max-width:520px}' +
@@ -39,6 +39,7 @@
     '.nl-btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:2px solid rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}' +
     '.nl-btn.ghost:hover{background:rgba(255,255,255,.26)}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}' +
+    '.nl-qr{position:absolute;right:clamp(16px,3vw,40px);bottom:44px;width:144px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;text-decoration:none;font-size:12px;text-shadow:0 1px 5px #000}.nl-qr img{display:block;width:144px;height:144px;background:#fff;border-radius:8px}.nl-qr:focus-visible{outline:3px solid #ffd27a;outline-offset:4px}' +
     '.nl-credit{font-family:system-ui,"Malgun Gothic",sans-serif;position:absolute;right:clamp(12px,3vw,40px);bottom:10px;font-size:11px;color:rgba(255,255,255,.7);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
     '.nl-credit:hover{color:#fff;text-decoration:underline}' +
     '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
@@ -55,8 +56,9 @@
     '.nl-kakao{background:#fee500;color:#191600}.nl-kakao i{background:rgba(0,0,0,.1)}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-note{margin-top:12px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72)}' +
+    '@media (min-width:721px) and (max-height:500px){.nl-hero{bottom:130px}}' +
     '@media (max-width:720px){.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
-    '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(190px,24vh)}.nl-actions{left:20px;right:20px;flex-direction:column;gap:12px}.nl-btn{max-width:none;flex:none;width:100%;height:56px}}';
+    '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(190px,24vh);max-width:calc(100% - 40px)}.nl-actions{left:20px;right:148px;bottom:40px;flex-direction:column;gap:12px}.nl-btn{min-width:0;max-width:none;flex:none;width:100%;height:56px;padding:0 8px;font-size:15px}.nl-qr{right:16px;bottom:40px;width:112px;font-size:11px}.nl-qr img{width:112px;height:112px}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function markSeen() { try { global.sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* 저장소 차단 */ } }
@@ -123,10 +125,11 @@
   function build(naverConfigured) {
     root.innerHTML = '<div class="nl-photo"></div><div class="nl-shade"></div>' +
       '<div class="nl-top"><span class="nl-logo" style="font-family:Noto Serif KR Site,var(--font-serif,serif)!important;font-weight:700!important">ㄱㅖ조 ㅏ심폐소생술</span></div>' +
-      '<div class="nl-hero"><span class="nl-badge">시장을 차분하게 읽는 곳</span>' +
-      '<p class="nl-sub">로그인하면 전체 서비스를, 비회원으로 입장하면 마켓브리핑·이야기 시리즈·캘린더·대화방을 둘러볼 수 있어요.</p></div>' +
+      '<div class="nl-hero"><span class="nl-badge">시장을 보는 나만의 시선</span>' +
+      '<p class="nl-sub">오늘의 흐름을 읽고, 나만의 판단을 쌓아보세요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
+      '<a class="nl-qr" href="https://goodbyestarwars.github.io/tistory-ticker/img/site-qr.svg" target="_blank" rel="noopener" aria-label="사이트 QR코드 크게 보기"><img src="https://goodbyestarwars.github.io/tistory-ticker/img/site-qr.svg" width="144" height="144" alt="https://ghlee.tistory.com/ 접속 QR코드"><span>사이트 접속 QR</span></a>' +
       '<a class="nl-credit" href="https://commons.wikimedia.org/wiki/File:View_to_Lauterbrunnen_valley_at_M%C3%BCrren,_Bern,_Switzerland,_2012_August.jpg" target="_blank" rel="noopener">사진: Ximonic (Simo Räsänen) · CC BY-SA 4.0 · Wikimedia Commons</a>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
