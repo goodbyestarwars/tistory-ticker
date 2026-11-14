@@ -114,6 +114,8 @@
 
 - 가상자산 공개 시세(2026-11-15): `js/crypto-live.js`가 한 브라우저 페이지에서 업비트 `KRW-BTC`·`KRW-ETH`·`KRW-USDT` Public WebSocket을 구독·공유한다(체결가와 UTC 0시 전일 종가 기준 등락률). `crypto-market.js`의 원화 시세표와 `market-temp.js`의 원자재·가상자산 카드에 실시간 갱신값을 겹쳐 쓰고, `/futures` 기존 일별 이력은 그대로 둔다. `stock-search.js`의 `CRYPTO:BTC/ETH/USDT` 검색은 `js/crypto-chart.js`·`css/crypto-chart.css`를 지연 로드하여 공용 NineChartCore 캔들 차트를 만든다. 캔들 과거 200개는 업비트 REST, 당일 현재 봉 종가만 WS로 근사 갱신하되 거래량은 REST 기준임을 표시한다. Public API 호출 가능 여부와 공개 재배포 라이선스는 별개이며 기존 국내 원천 주식 시세의 관리자 경계는 절대 열지 않는다. 업비트 Origin 포함 브라우저 REST/WS 요청 제한(10초당 1회)에 맞춰 단일 브라우저 차트 REST를 11초 간격으로 직렬화하고, WebSocket 신규 연결·재연결도 11초 이상 간격을 유지한다. 차트 첫 REST 직후에는 초기 WS 연결도 대기한다.
 
+- 국내 주요종목 KODEX ETF 히트맵(2026-11-15): `market-temp.js` 종목 화면에 `etf` 탭 추가. KODEX 200(069500) / KODEX 코스닥150(229200) 실제 구성종목은 기존 `/etf-components/{code}` KIS 기반 수신(누락이면 오류를 표시), 시장 구성비중은 `weightPct` 기준. 각 종목 시총은 `SectorDashboard.fetchTickerData(codes)`가 응답한 확정 `marketCap`만 표시한다. `MarketcapBubble.fetchBubbleData` + `setCodeFilter`로 고유 ID `#mt-etf-marketcap`에 직접 그려서 기존 전역 `#marketcap-bubble`의 init/타이머와 충돌하지 않는다. 미국 ETF 구성종목은 라이선스/확정 명세 미연결(`docs/US_ETF_DATA.md`)이므로 미국 히트맵 탭은 생성하지 않는다. 원천 시세 서버의 관리자 권한이나 주문 API 경계 변경 금지.
+
 ## 운영·주문 경계
 
 - 구성(2026-10-30 인계 기준): 사이트 백엔드 `goodbyestar.cloud`는 Oracle A1, 자동매매 runner·봇·연구는 별도 Google VM(`instance-20260712-153038`, 자동매매 전용, PC 작업은 삭제됨)이다. 아래 VM 제한은 사이트 백엔드 기준이며, 구성이 다르게 적힌 문서는 `docs/HANDOFF_2026-10-30.md`가 우선한다.

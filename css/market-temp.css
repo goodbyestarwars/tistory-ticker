@@ -3542,3 +3542,26 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
   html body #market-temp .mt-index-flow .mt-section-head::before { content: none !important; }
   html body #market-temp .mt-page-disclaimer.mt-page-disclaimer { text-align: right; }
 }
+
+/* 2026-11-15: ETF composition heatmap tab — reuse site typography and marketcap bubble palette. */
+#market-temp .mt-etf-chips { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 10px; }
+#market-temp .mt-etf-description { line-height:1.6; }
+#market-temp .mt-etf-metadata { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; margin:10px 0; color:#62758a; font:500 12px/1.6 var(--font-ui,Pretendard,sans-serif); }
+#market-temp .mt-etf-metadata b { font-size:15px; font-weight:700; color:inherit; }
+#market-temp #mt-etf-marketcap { min-width:0; margin:14px 0 18px; }
+#market-temp #mt-etf-marketcap .mcb-filter-bar { display:none; }
+#market-temp .mt-etf-table-wrap { width:100%; overflow:auto; max-height:520px; border:1px solid rgba(100,116,139,.15); border-radius:10px; }
+#market-temp .mt-etf-table { border-collapse:collapse; min-width:600px; width:100%; font:500 12px/1.5 var(--font-ui,Pretendard,sans-serif); font-variant-numeric:tabular-nums; }
+#market-temp .mt-etf-table th { position:sticky; top:0; z-index:1; background:#f5f7fa; color:#52657a; padding:10px 12px; text-align:right; border-bottom:1px solid #dfe5ec; white-space:nowrap; }
+#market-temp .mt-etf-table th:first-child,#market-temp .mt-etf-table td:first-child { text-align:left; }
+#market-temp .mt-etf-table td { border-bottom:1px solid rgba(100,116,139,.12); padding:10px 12px; text-align:right; white-space:nowrap; }
+#market-temp .mt-etf-table tbody tr:last-child td { border-bottom:0; }
+#market-temp .mt-etf-table td a { color:inherit; text-decoration:none; }
+#market-temp .mt-etf-table td a:hover { text-decoration:underline; }
+#market-temp .mt-etf-table td.is-up { color:var(--num-up,#d24f45); }
+#market-temp .mt-etf-table td.is-down { color:var(--num-down,#1261c4); }
+html.dark #market-temp .mt-etf-metadata { color:var(--dk-sub); }
+html.dark #market-temp .mt-etf-table-wrap { border-color:var(--dk-line); }
+html.dark #market-temp .mt-etf-table th { background:var(--dk-card); border-bottom-color:var(--dk-line);color:var(--dk-sub); }
+html.dark #market-temp .mt-etf-table td { border-bottom-color:var(--dk-line); }
+@media(max-width:720px){ #market-temp .mt-etf-metadata{gap:5px 10px;} #market-temp .mt-etf-table{font-size:11px;} }

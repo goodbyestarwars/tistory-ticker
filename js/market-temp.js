@@ -4508,6 +4508,7 @@
     { key: 'cards', label: '카드 보기' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' },
+    { key: 'etf', label: '국내 주요 히트맵' },
     { key: 'active', label: '활성 종목' }
   ];
 
@@ -4523,6 +4524,7 @@
       + '<div class="mt-view-panel" data-view-panel="cards"' + (initialView === 'cards' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="heatmap"' + (initialView === 'heatmap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="marketcap"' + (initialView === 'marketcap' ? '' : ' hidden') + '></div>'
+      + '<div class="mt-view-panel" data-view-panel="etf"' + (initialView === 'etf' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="active"' + (initialView === 'active' ? '' : ' hidden') + '></div>'
       + '</div>'
       + '</div>';
@@ -5087,6 +5089,107 @@
     }
   }
 
+  // Live ETF holdings are fetched from the same verified KIS-backed endpoint as
+  // strategy-search ETF constituents. Market cap is accepted only if a quote provider
+  // supplies a positive marketCap; nothing is inferred from ETF unit weight.
+  function loadEtfHeatmapPanel_(panel) {
+    if(panel.__mtLoaded)return;
+    panel.__mtLoaded=true;
+    var MB=global.MarketcapBubble, SD=global.SectorDashboard;
+    var etfs=[{code:'069500',name:'KODEX 200'},{code:'229200',name:'KODEX 코스닥150'}];
+    panel.innerHTML='<div class="mt-top-chips mt-etf-chips">'
+      +etfs.map(function(e,i){return '<button type="button" class="mt-top-chip'+(i===0?' is-active':'')+'" data-mt-etf="'+e.code+'">'+escapeHtml(e.name)+'</button>';}).join('')
+      +'</div><p class="mt-top-note mt-etf-description">ETF 실제 구성종목 · 면적은 확인된 종목 시가총액 기준 · ETF 구성비중은 별도 표기</p>'
+      +'<div data-mt-etf-content role="status">ETF 구성종목을 불러오는 중…</div>';
+    var content=panel.querySelector('[data-mt-etf-content]'), seq=0;
+    function fmtCap(cap) {
+      if(!(Number(cap)>0))return '시총 미확인';
+      var eok=Number(cap)/100000000;
+      return eok>=10000?(eok/10000).toLocaleString('ko-KR',{maximumFractionDigits:2})+'조원':
+        eok.toLocaleString('ko-KR',{maximumFractionDigits:0})+'억원';
+    }
+    function draw(etf) {
+      var id=++seq;
+      content.innerHTML='<p class="mt-hint">구성종목·시총 조회 중…</p>';
+      global.NineHttp.json('https://goodbyestar.cloud/etf-components/'+etf.code,{timeoutMs:15000}).then(function(payload) {
+        if(!content.isConnected||seq!==id)return;
+        var data=payload && (payload.data||payload)||{};
+        var input=Array.isArray(data.components)?data.components:[];
+        var seen={};
+        var holdings=input.filter(function(x) {
+          var code=String(x.code||'').trim();
+          if(!/^[0-9A-Za-z]{6}$/.test(code)||seen[code])return false;
+          seen[code]=1;return true;
+        });
+        if(!holdings.length){content.innerHTML='<p class="mt-error">현재 구성종목 응답이 없습니다. 데이터 기준일·상품을 확인해 주세요.</p>';return;}
+        var codes=holdings.map(function(x){return String(x.code).trim();});
+        var quoteJob=SD && SD.fetchTickerData?SD.fetchTickerData(codes).catch(function(){return [];}):Promise.resolve([]);
+        return quoteJob.then(function(quotes) {
+          if(!content.isConnected||seq!==id)return;
+          var byCode={},extra={};
+          (quotes||[]).forEach(function(q) {
+            var cap=Number(q&&q.marketCap);
+            if(q&&q.code){byCode[q.code]=q;if(isFinite(cap)&&cap>0)extra[q.code]={name:q.name||q.code,cap:cap,changeRate:q.changeRate};}
+          });
+          var date=String(data.asOf||data.baseDate||data.dataDate||data.updatedAt||'기준일 확인 중');
+          var weight=holdings.reduce(function(sum,x){return sum+(Number(x.weightPct)||0);},0);
+          var caps=codes.filter(function(code){return !!extra[code];}).length;
+          content.innerHTML='<div class="mt-etf-metadata"><b>'+escapeHtml(etf.name)+'</b>'
+            +'<span>ETF 편입 확인 '+holdings.length+'종목 / 제공 '+(Number(data.componentCount)||holdings.length)+'종목</span>'
+            +'<span>ETF 편입비중 합계 '+weight.toFixed(2)+'%</span><span>시총 직접 확인 '+caps+'종목</span>'
+            +'<span>편입 기준일 '+escapeHtml(date)+'</span></div>'
+            +'<p class="mt-top-note" data-mt-etf-note>종목별 시가총액이 확인되는 대로 히트맵을 구성합니다.</p>'
+            +'<div id="mt-etf-marketcap" data-theme-filter="1"></div>'
+            +'<div class="mt-etf-table-wrap"><table class="mt-etf-table"><thead><tr><th>종목</th><th>ETF 비중</th><th>시가총액</th><th>현재가</th><th>등락률</th></tr></thead><tbody>'
+            +holdings.map(function(x) {
+              var q=byCode[x.code]||{},cap=extra[x.code]&&extra[x.code].cap;
+              var price=Number(q.price!=null?q.price:x.price);
+              var rateSource=q.changeRate!=null?q.changeRate:x.changeRatePct;
+              var rate=rateSource==null||rateSource===''?NaN:Number(rateSource);
+              return '<tr><td><a href="'+stockLinkHref_({name:x.name||q.name||x.code,code:x.code})+'">'+escapeHtml(x.name||q.name||x.code)+'</a></td>'
+                +'<td>'+(x.weightPct!=null&&x.weightPct!==''&&isFinite(Number(x.weightPct))?Number(x.weightPct).toFixed(2)+'%':'-')+'</td>'
+                +'<td>'+fmtCap(cap)+'</td><td>'+(price>0?price.toLocaleString('ko-KR')+'원':'-')+'</td>'
+                +'<td class="'+(rate>0?'is-up':rate<0?'is-down':'')+'">'+(isFinite(rate)?(rate>0?'+':'')+rate.toFixed(2)+'%':'-')+'</td></tr>';
+            }).join('')
+            +'</tbody></table></div>';
+          var box=content.querySelector('#mt-etf-marketcap'),note=content.querySelector('[data-mt-etf-note]');
+          var codeMap={};codes.forEach(function(code){codeMap[code]=true;});
+          var filter={label:etf.name,codes:codeMap,total:codes.length,
+            groups:[{label:etf.name,codes:codes}],extra:extra};
+          box.__mcbCodeFilter=filter;
+          box.addEventListener('mcb:rendered',function(ev) {
+            var count=Number(ev.detail&&ev.detail.matched);
+            note.textContent=etf.name+' 구성 '+codes.length+'종목 / 시총 확인 '+(isFinite(count)?count:caps)+'종목. '
+              +'면적은 개별 종목 시가총액 비례이며 미확인 종목은 히트맵에서 제외합니다. ETF 비중은 아래 표 참고.';
+          });
+          if(MB){try{
+            // init() targets the original global #marketcap-bubble and installs
+            // a perpetual timer. Fetch and render directly into this unique tab.
+            MB.fetchBubbleData().then(function(json){
+              if(!box.isConnected||seq!==id)return;
+              if(!json||!json.data)throw new Error('empty market-cap pool');
+              box.__mcbLastData=json.data;
+              box.__mcbLastUpdatedAt=json.updatedAt;
+              MB.setCodeFilter(box,filter);
+            }).catch(function(){
+              if(note.isConnected&&seq===id)note.textContent='시총 그래픽 데이터 조회 실패 · 아래 구성종목·시총 표는 확인 가능합니다.';
+            });
+          }catch(error){note.textContent='시총 히트맵 그래픽 로드 실패 · 아래 표를 확인하세요.';}}
+          else note.textContent='시총 히트맵 엔진이 없습니다. 아래 구성종목·시총 표만 표시합니다.';
+        });
+      }).catch(function() {
+        if(seq===id&&content.isConnected)content.innerHTML='<p class="mt-error">ETF 구성종목을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>';
+      });
+    }
+    panel.querySelector('.mt-etf-chips').addEventListener('click',function(event) {
+      var btn=event.target.closest('[data-mt-etf]');if(!btn)return;
+      panel.querySelectorAll('[data-mt-etf]').forEach(function(b){b.classList.toggle('is-active',b===btn);});
+      var etf=etfs.filter(function(e){return e.code===btn.getAttribute('data-mt-etf');})[0];
+      if(etf)draw(etf);
+    });
+    draw(etfs[0]);
+  }
+
   function loadPanel(view, panel) {
     // 카드·히트맵·시총비례는 내 카테고리 기준이고, 활성 종목은 내 카테고리별로 묶은 뒤 편입 후보를 따로 보여 준다.
     if (view === 'cards') loadSectorCardsPanel_(panel);
@@ -5096,6 +5199,7 @@
       return renderCategoryHeatmap_(p, SD, config, rows);
     }, '히트맵');
     else if (view === 'marketcap') loadCategoryPanel_(panel, function (p, config, rows) { return renderCategoryMarketcap_(p, config, rows); }, '시총비례 히트맵');
+    else if (view === 'etf') loadEtfHeatmapPanel_(panel);
     else if (view === 'active') loadCardsPanel(panel);
   }
 
