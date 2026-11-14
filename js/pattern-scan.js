@@ -1641,7 +1641,7 @@
     quietLeaderPullback:['거래가 많은 대형 주도주가 크게 오른 뒤 조용히 쉬고 있습니다.','손절 -10%, +10% 오른 뒤 20일선 아래로 내려오면 매도하는 기준으로 봅니다.']};
   function plainLines(item) {
     var edge=(detailFor(item).edgeSignals || []).filter(function(t){return t && PLAIN_EDGES[t.key];})[0];
-    if(detailFor(item).edgeOnly && edge)return PLAIN_EDGES[edge.key].slice();
+    if((detailFor(item).edgeOnly || detailFor(item).promotedEdge) && edge)return PLAIN_EDGES[edge.key].slice();
     var d=detailFor(item),label=String(d.shapeLabel || ''),base=label.split(' · ')[0],stage=label.split(' · ')[1] || '';
     var pos=d.position || {},sup=Number(d.support),res=Number(d.resistance);
     var won=function(v){return Number.isFinite(v) && v>0?' '+fmt(Math.round(v))+'원':'';};
@@ -1665,8 +1665,11 @@
   }
   function renderSimpleList(container,list,model,selection,known) {
     var current=function(r){var it=r.classified[0].member.item;return !it.track && !it._history;};
-    var yes=model.rows.filter(function(r){return ['confirmed','observation'].indexOf(r.publicStatus.key)>=0;});
-    var manual=model.rows.filter(function(r){return r.publicStatus.key==='research' && current(r);});
+    // 승격된 주도주 조용한 눌림(promotedEdge)을 맨 위에, 쉬기 구간에 숨긴 연구(restHidden)는 표시하지 않는다.
+    var promoted=function(r){return r.members.some(function(m){return detailFor(m.item).promotedEdge;});};
+    var yes=model.rows.filter(function(r){return ['confirmed','observation'].indexOf(r.publicStatus.key)>=0;})
+      .sort(function(a,b){return (promoted(b)?1:0)-(promoted(a)?1:0);});
+    var manual=model.rows.filter(function(r){return r.publicStatus.key==='research' && current(r) && !detailFor(r.classified[0].member.item).restHidden;});
     var q=selection && selection.quiet || {},market=q.marketRest===true?'<p class="ps-state-meaning"><b>관찰 구간</b> · 시장이 약해 새로 사지 않고 지켜보는 중 (KOSPI 60일선 아래)</p>'
       :q.marketRest===false?'<p class="ps-state-meaning"><b>매수 검토 구간</b> · KOSPI 60일선 위</p>':'';
     detailNavItems=yes.concat(manual);

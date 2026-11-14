@@ -86,7 +86,7 @@ const RESMOM_TOP=.4;
    quietPool.push(Object.assign({code:stock.code},quiet));
    const shape120=daily.length>=120?AW.shapeOf(daily.slice(-120)):null;
    if(shape120 && (shape120.type==='pullback' || shape120.type==='rebound'))
-     pullbackPool.push({stock:{code:stock.code,name:stock.name},daily:daily.slice(-40),shape120:shape120.type,rs:getRs()});
+     pullbackPool.push({stock:{code:stock.code,name:stock.name},daily:daily.slice(-40),shape120:shape120.type,rs:getRs(),industry:stock.industry || null});
    for(const key of keys){
      for(const detail of selected[key] || []){
        if(key==='longTermQuality' && !(stock.financialScreen && stock.financialScreen.passed===true))continue;
@@ -127,12 +127,25 @@ const RESMOM_TOP=.4;
  const pScore=pctRank(raw),quietBy={};
  quietPool.forEach((q,i)=>{const sp=pScore[i];quietBy[q.code]={version:'quiet-v1',ivol60:q.ivol60,upvol20:q.upvol20,scorePct:sp,amtPct:pAmt[i],
    band:sp==null?'unknown':sp>QUIET.top?'quiet':sp<=QUIET.noisy?'noisy':'neutral',excludeAdvice:sp!=null && sp<=QUIET.noisy,observationOnly:true};});
- for(const p of pullbackPool){
-   const q=quietBy[p.stock.code];
-   if(!q || !(q.amtPct>QUIET.leader) || !(q.scorePct>QUIET.top))continue;
+ // 2026-11-14 사용자 승인: 주도주 조용한 눌림을 정식 매수후보(groups)로 승격. 같은 업종(WICS industry)은 가장 조용한 1종목,
+ // KOSPI 60일선 아래(marketRest)면 정식 후보로 올리지 않고 연구 목록에 restHidden으로만 남겨 추적한다.
+ const leaders=pullbackPool.map(p=>({p,q:quietBy[p.stock.code]})).filter(x=>x.q && x.q.amtPct>QUIET.leader && x.q.scorePct>QUIET.top)
+   .sort((a,b)=>b.q.scorePct-a.q.scorePct || a.p.stock.code.localeCompare(b.p.stock.code));
+ const seenIndustry=new Set();
+ for(const {p} of leaders){
+   const ind=p.industry && p.industry!=='미분류'?p.industry:null;
+   const dup=ind && seenIndustry.has(ind);if(ind)seenIndustry.add(ind);
    const row=edgeRow(p.stock,p.daily,'quietLeaderPullback',p.rs);
-   Object.assign(row.patternDetail,{shape120:p.shape120,exitPlan:Object.assign({},EXIT_PLAN,{marketRestActive:marketRest})});
-   edgeCounts.quietLeaderPullback++;keep(research[EDGE.quietLeaderPullback.group],row);
+   Object.assign(row.patternDetail,{shape120:p.shape120,industry:ind,exitPlan:Object.assign({},EXIT_PLAN,{marketRestActive:marketRest})});
+   edgeCounts.quietLeaderPullback++;
+   if(marketRest===false && !dup){
+     Object.assign(row.patternDetail,{edgeOnly:false,promotedEdge:true,listKind:'primary',stage:'prepare',status:'SHAPE_PROMOTED',
+       interpretation:'주도주 조용한 눌림 · 정식 매수후보(관찰 전용, 주문 신호 아님)'});
+     row.edgeRank=0;row.score=Math.max(row.score,90);keep(groups[EDGE.quietLeaderPullback.group],row);
+   }else{
+     Object.assign(row.patternDetail,{restHidden:marketRest!==false,industryDuplicate:!!dup});
+     keep(research[EDGE.quietLeaderPullback.group],row);
+   }
  }
  // 시간차 매집: 전 종목 백분위 후 E 조건. 중장기 메뉴의 공개 재무 관문을 그대로 거치도록 재무 증빙을 붙인다.
  const aVol=pctRank(accumPool.map(p=>p.accum.volUp)),aBox=pctRank(accumPool.map(p=>p.accum.box60)),
