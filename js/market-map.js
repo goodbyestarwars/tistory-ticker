@@ -509,9 +509,9 @@
       mode:'business',category:'',page:0,groupPage:0,market:'ALL',sector:'',industry:'',search:'',size:'cap',zoom:1,
       selectedCode:'',loading:false,error:'',checkedAt:'',profiles:null,profileStatus:'loading'};
     container.__mtm=state;
-    container.innerHTML='<main class="mtm" aria-label="마켓 아틀라스">'
+    container.innerHTML='<main class="mtm" aria-label="마켓 대동여지도">'
       +'<header class="mtm-header"><div><span class="mtm-eyebrow">9PAY MARKET ATLAS</span>'
-      +'<h1>마켓 아틀라스</h1><p>사업분야별로 회사를 찾고 시장 흐름을 비교하세요.</p></div>'
+      +'<h1>길 위에는 신분도 없고 귀천도 없다</h1><p>사업분야별로 회사를 찾고 시장 흐름을 비교하세요.</p></div>'
       +'<span class="mtm-admin-note">관리자 전용 · 종목 시세</span></header>'
       +'<div class="mtm-toolbar"><div class="mtm-segments" role="group" aria-label="시장 구분">'
       +'<button type="button" data-mtm-market="ALL" aria-pressed="true">전체</button>'

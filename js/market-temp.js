@@ -1517,7 +1517,7 @@
   function buildStocksOnlyPage() {
     return '<div class="mt-stocks-only">'
       + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1>'
-      + '<p>거래가 활발한 국내 종목을 업종별로 확인하고, 마켓 아틀라스에서 강약을 비교합니다.</p></div>'
+      + '<p>거래가 활발한 국내 종목을 업종별로 확인하고, 마켓 대동여지도에서 강약을 비교합니다.</p></div>'
       + '<section class="mt-section-block">'
       + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2>'
       + '<p>거래대금 순위와 아래 업종별 종목 목록을 함께 살펴보세요.</p></div>'
@@ -1630,7 +1630,7 @@
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
     var pageTitle = container.closest('.post-single') && container.closest('.post-single').querySelector('.post-single-title');
-    if (pageTitle) pageTitle.textContent = isMapView_() ? '마켓 아틀라스' : stocksOnly ? '국내 주요종목 · 업종별 종목 탐색' : '증시온도 · 시장 투자심리';
+    if (pageTitle) pageTitle.textContent = isMapView_() ? '길 위에는 신분도 없고 귀천도 없다' : stocksOnly ? '국내 주요종목 · 업종별 종목 탐색' : '증시온도 · 시장 투자심리';
     if (pageTitle && isMapView_()) (pageTitle.closest('.post-single-header') || pageTitle).style.setProperty('display', 'none', 'important');
     if (isMapView_()) { bootMapView_(container); return; }
     if (stocksOnly) {
