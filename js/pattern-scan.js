@@ -308,7 +308,7 @@
       + '<nav class="ps-subnav" aria-label="선택 분류의 검색기">' + tabsHtml + '</nav>'
       + '</div>'
       // 2026-11-14 사용자 지시("노이즈를 줄여, YES만"): 기본은 기간 → 검색기 → 종목 리스트. 설명·상태·이력은 '자세히 보기'에 접는다(삭제 없음).
-      + '<details class="ps-research-tools ps-advanced"><summary>자세히 보기 (기존 상태·이력·조건)</summary>'
+      + '<details class="ps-research-tools ps-advanced" style="display:none"><summary>자세히 보기 (기존 상태·이력·조건)</summary>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
       + '<div class="ps-status-filters" aria-label="현재 신호 상태">' + Object.keys(PUBLIC_LABELS).map(function(k){return '<button type="button" data-status="'+k+'" aria-pressed="'+(k==='all')+'">'+PUBLIC_LABELS[k]+' <span data-status-count="'+k+'" title="집계 확인 중 · 수신된 자료 기준">(0)</span></button>';}).join('') + '</div>'
       + '<details class="ps-research-tools"><summary>개별 검색기 이력·성과 및 데이터 기준</summary>'
@@ -1626,24 +1626,52 @@
       openDetail(container,Object.assign({},m.item,{_sourceKey:m.key,_publicMembers:r.classified,_publicMemberIndex:0}));
     });});
   }
-  // 2026-11-14 간단 화면: 후보(YES)만 이름·가격·한 줄 모양으로, 연구는 아래 접힌 칸에 따로.
-  function simpleRowHtml(r,extra) {
-    var it=r.classified[0].member.item,s=r.chartShape || scannerShape(r);
+  // 2026-11-14 사용자 지시: 화면은 '매수후보' 하나. 연구 태그 종목도 같은 목록에 '수동 점검 필요'로 넣고,
+  // 종목마다 모양을 쉬운 말 2~3줄(무슨 모양 / 지금 위치 / 틀렸다고 볼 가격)로 풀어 쓴다. 추격·확장·제외·만료·과거 추적은 표시하지 않는다.
+  var PLAIN_SHAPES={'반복 고점 저항의 첫 회복':'여러 번 막혔던 고점 가격대{res}를 다시 넘으려는 모양입니다.',
+    '반복 저점 지지와 가까운 고점 회복':'같은 바닥{sup}을 여러 번 지킨 뒤 위로 올라서려는 모양입니다.',
+    '선행 상승 뒤 조정·지지·재상승':'한 번 크게 오른 뒤 쉬면서 바닥{sup}을 지키고 있는 모양입니다.',
+    '지지·응축 뒤 가격 회복':'바닥{sup}을 지키며 흔들림이 줄어든 뒤 가격이 회복되는 모양입니다.',
+    '장기 저점 지지·응축 또는 저항 회복':'오랫동안 바닥을 지키며 힘을 모으고 있는 모양입니다.'};
+  var PLAIN_EDGES={surgeNextDay:['오늘 +20% 넘게 급등해 마감했습니다.','다음 날 시가 근처에서 1~5일 짧게 보는 단타 후보입니다. 흔들림이 커서 직접 확인이 필요합니다.'],
+    gapVolumeClose:['전날 고가 위로 갭 상승해 거래량이 전날의 5배 이상 붙으며 강하게 마감했습니다.','1~5일 짧게 보는 단타 후보입니다. 다음 날 시가가 너무 높으면 추격하지 않습니다.'],
+    rsHighResidual:['KOSPI·KOSDAQ보다 강한 흐름이 최근 60일 중 가장 높은 수준입니다.','2~3주 정도 보는 후보입니다.'],
+    quietLeaderPullback:['거래가 많은 대형 주도주가 크게 오른 뒤 조용히 쉬고 있습니다.','손절 -10%, +10% 오른 뒤 20일선 아래로 내려오면 매도하는 기준으로 봅니다.']};
+  function plainLines(item) {
+    var edge=(detailFor(item).edgeSignals || []).filter(function(t){return t && PLAIN_EDGES[t.key];})[0];
+    if(detailFor(item).edgeOnly && edge)return PLAIN_EDGES[edge.key].slice();
+    var d=detailFor(item),label=String(d.shapeLabel || ''),base=label.split(' · ')[0],stage=label.split(' · ')[1] || '';
+    var pos=d.position || {},sup=Number(d.support),res=Number(d.resistance);
+    var won=function(v){return Number.isFinite(v) && v>0?' '+fmt(Math.round(v))+'원':'';};
+    var tpl=PLAIN_SHAPES[base];
+    var lines=[tpl?tpl.replace('{res}',won(res)?'('+won(res).trim()+')':'').replace('{sup}',won(sup)?'('+won(sup).trim()+')':''):(base || '차트 모양 후보입니다.')];
+    if(stage==='첫 구조 변화')lines.push('막 저항을 넘어선 시점입니다. 넘어선 가격을 며칠 지키는지가 중요합니다.');
+    else if(stage==='준비 구간')lines.push('아직 저항'+won(res)+' 아래'+(Number.isFinite(pos.resistancePct)?'('+pos.resistancePct.toFixed(1)+'%)':'')+'라 돌파 전입니다. 넘어서는지 지켜볼 자리입니다.');
+    if(won(sup))lines.push('바닥'+won(sup)+'을 깨면 판단이 틀린 것으로 봅니다'+(Number.isFinite(pos.supportRiskPct)?'(현재가 대비 '+pos.supportRiskPct.toFixed(1)+'%)':'')+'.');
+    return lines.slice(0,3);
+  }
+  function simpleRowHtml(r,manual) {
+    var it=r.classified[0].member.item,d=detailFor(it);
+    var tags=(d.edgeSignals || []).filter(function(t){return t && EDGE_LABELS[t.key];}).map(function(t){return EDGE_LABELS[t.key];});
     return '<article class="ps-state-row" data-code="'+escapeHtml(r.code)+'">'
-      +'<div class="ps-state-identity"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small></div>'
-      +'<p>'+escapeHtml(s.label || detailFor(it).shapeLabel || '')+'</p>'+(extra || '')+'</div>'
+      +'<div class="ps-state-identity"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small>'
+      +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.map(function(k){return k;}).join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'
+      +plainLines(it).map(function(t){return '<p>'+escapeHtml(t)+'</p>';}).join('')
+      +'</div>'
       +'<div class="ps-state-quotes">'+(r.price==null?'가격 미수신':'종가 '+fmt(r.price))+'</div>'
       +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기</button></div></article>';
   }
   function renderSimpleList(container,list,model,selection,known) {
+    var current=function(r){var it=r.classified[0].member.item;return !it.track && !it._history;};
     var yes=model.rows.filter(function(r){return ['confirmed','observation'].indexOf(r.publicStatus.key)>=0;});
-    var research=model.rows.filter(function(r){return r.publicStatus.key==='research' && !r.classified[0].member.item.track && !r.classified[0].member.item._history;});
+    var manual=model.rows.filter(function(r){return r.publicStatus.key==='research' && current(r);});
     var q=selection && selection.quiet || {},market=q.marketRest===true?'<p class="ps-state-meaning"><b>관찰 구간</b> · 시장이 약해 새로 사지 않고 지켜보는 중 (KOSPI 60일선 아래)</p>'
       :q.marketRest===false?'<p class="ps-state-meaning"><b>매수 검토 구간</b> · KOSPI 60일선 위</p>':'';
-    detailNavItems=yes.concat(research);
-    list.innerHTML=market+'<p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' · ':'')+yes.length+'종목</p>'
-      +(yes.length?yes.map(function(r){return simpleRowHtml(r);}).join(''):'<p class="ps-state-empty">'+(known?'오늘은 후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>')
-      +(research.length?'<details class="ps-research-tools"><summary>연구 '+research.length+'</summary>'+research.map(function(r){return simpleRowHtml(r,edgeTagsHtml(r.classified[0].member.item));}).join('')+'</details>':'');
+    detailNavItems=yes.concat(manual);
+    var total=yes.length+manual.length;
+    list.innerHTML=market+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
+      +(total?yes.map(function(r){return simpleRowHtml(r,false);}).join('')+manual.map(function(r){return simpleRowHtml(r,true);}).join('')
+        :'<p class="ps-state-empty">'+(known?'오늘은 매수후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>');
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){
       var r=detailNavItems.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
       var m=r.classified[0].member,detail=document.getElementById('psDetail');
