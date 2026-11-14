@@ -314,3 +314,11 @@
   body.m-tabs [data-no-swipe] { overscroll-behavior-x: contain; }
   body.m-tabs [data-no-swipe="drag"] { touch-action: pan-y; }
 }
+
+/* 종목 검색을 표시하지 않는 비회원 헤더에서는 송골매 옆 사이트명을 보여준다. */
+@media(max-width:720px) {
+  html.access-hide-stock-search body.m-tabs .navbar .nav-logo { flex:1 1 0; min-width:0; }
+  html.access-hide-stock-search body.m-tabs .navbar .nav-logo-text { display:block; min-width:0; }
+  html.access-hide-stock-search body.m-tabs .navbar .nav-logo-icon { flex:none; }
+  html.access-hide-stock-search body.m-tabs .navbar .nav-logo-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
