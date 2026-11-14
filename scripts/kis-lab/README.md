@@ -6,7 +6,7 @@
 
 - 사용자가 카카오·티스토리 이메일 대신 **기존 사이트 관리자 Google 계정**으로 보호하도록 승인했다.
 - 기존 `/auth/google/me`가 서명·만료를 확인한 응답의 `authenticated=true`, `isAdmin=true`, `provider=google`을 모두 요구한다. 브라우저 ROLE/이메일 문자열은 인증 수단이 아니다.
-- 메뉴는 기존 자동매매와 같은 티스토리 관리자 표시 조건으로 바로 옆에 함께 둔다. Google 로그인만으로 메뉴를 단독 표시하지 않는다. 페이지·정적 자산·분석 API는 별도로 Google 관리자 권한을 확인하고 인증 실패/로그아웃 시 서버가 차단한다. CORS는 운영 블로그만 허용하고 응답은 `private, no-store`다.
+- 메뉴는 NineAccess 서버 화면 정책의 관리자 체크값으로 자동매매 옆에 표시한다. Tistory ROLE은 서버 관리자 권한의 근거로 사용하지 않는다. 페이지·정적 자산·분석 API는 별도로 Google 관리자 권한을 확인하고 인증 실패/로그아웃 시 서버가 차단한다. CORS는 운영 블로그만 허용하고 응답은 `private, no-store`다.
 - 쿠키는 기존 인증 API에만 전달한다. KIS UI/API에 쿠키·Authorization·사용자 Host를 전달하지 않는다. 게이트웨이에 로그인 비밀키나 증권 자격증명을 저장하지 않는다.
 - 주문·계좌·브로커 로그인/모드 전환은 게이트웨이와 기존 Lab에서 차단. Lab의 증권사 네트워크 차단, Lean `--network=none` 유지.
 - 쓰기 요청은 도구의 동일 출처만 허용. 외부 호스트 선택/임의 프록시 경로 없음. HTTP만 지원하며 실시간 주문용 WebSocket은 연결하지 않는다.
@@ -29,3 +29,7 @@
 - `node test/test_kis_menu.js`: Playwright 설치 환경에서 1280/900/390px 관리자 메뉴 인접 배치와 Google 로그인만 한 방문자의 숨김, Google 상태와 메뉴 표시 조건의 분리 검증. `PLAYWRIGHT_MODULE`로 설치 위치 지정 가능.
 - 실제 서버 UI/정적 자산/전략 목록, 캐시 전략 실행 및 Lean 백테스트를 별도 프로세스의 테스트 인증 fixture로 검증한다. 실제 사용자의 Google 브라우저 로그인 확인과 구분한다.
 - 제거 시 메뉴/NineAPI 연결 제거 → nginx의 `/kis-tool` 두 location 제거 및 검사/reload → 독립 gateway 중지. Lab 데이터·분석 결과는 보존한다. 필요 시 UI 서비스 파일을 `backups/web-*`에서 복원하고 Lab UI만 재시작한다.
+
+- 2026-11-14: 포털의 ‘1. 전략’ 묶음 제목만 제거, 전략 빌더/분석/주문 차단은 유지한다. portal.html은 게이트웨이가 요청마다 읽으므로 파일 반영만으로 적용하며 독립 Lab/운영 API/실거래 서비스를 재시작하지 않는다.
+
+- 메뉴별 체크와 직접URL을 일치시키기 위해 기존 Google 관리자 검증 뒤 공통 `/access-policy`의 kis.allowed도 확인한다. 실패/OFF는 자산·분석 API를 함께 차단한다. 이 게이트웨이 변경만 독립 사용자 서비스 ninepay-kis-web 재시작이 필요하며, 거래·빌더 엔진은 재시작하지 않는다.

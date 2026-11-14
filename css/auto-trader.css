@@ -320,3 +320,6 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
   #auto-trader .at-review-item { padding: 12px; }
   #auto-trader .at-review-state { margin-left: 0; }
 }
+
+#auto-trader .at-ctl-log, #auto-trader .at-ctl-log :is(li,span,strong,small,time,b) { font-size:13px!important; line-height:1.7!important; }
+#auto-trader [data-decision-body][hidden] { display:none!important; }

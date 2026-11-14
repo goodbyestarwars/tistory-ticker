@@ -18,7 +18,7 @@
         // 모두 잡지만 메뉴 링크는 하나뿐이라 실제 주소를 써야 404가 안 난다.
         { href: '/pages/main-news', label: '주요 뉴스' },
         { href: '/page/market-temp', label: '증시온도' },
-        { href: '/page/market-temp?view=map', label: '시장 지도' },
+        { href: '/page/market-temp?view=map', label: '마켓 아틀라스' },
         // 2026-09-06: '글로벌 시장지표'·'국내시장지표' 두 칸을 한 칸으로 합쳤다. 두 지면이
         // 코스피·코스닥을 각각 들고 있어 중복이었고, 이제 한 지면에서 버튼으로 오간다
         // (js/skin-main.js loadMarketIndicatorTabs). 옛 주소도 그대로 열린다.
@@ -36,6 +36,7 @@
       children: [
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/page/foreign-flow', label: '종목분석' },
+        { href: '/page/stock-search', label: '종목검색' },
         { href: '/page/pattern-scan', label: '검색기' },
         { href: '/page/strategy-search', label: '전략검색' }
       ]
@@ -63,7 +64,7 @@
   }
   window.__isBlogAdmin = isBlogAdmin;
   // end:true = PC(721px 이상)에서 메뉴바 오른쪽 끝에 붙인다(2026-10-11 요청: MY 옆이 아니라 오른쪽 끝). 모바일은 가로 스크롤 줄의 맨 끝 그대로.
-  if (isBlogAdmin()) {
+  { // 표시도 NineAccess의 서버 역할별 체크값만 사용한다.
     NAV_ALL.push({ href: '/page/auto-trader', label: '자동매매', end: true });
     // Same display gate and group as auto-trader. Actual KIS access still requires
     // the verified Google administrator session at the server gateway.
@@ -404,7 +405,7 @@
     var searchMount = document.getElementById('navSearchMount');
     var mount = document.getElementById('nav-menu-mount');
     // 종목 검색창은 관리자 세션 확인 뒤에만 만든다(비로그인·일반 회원에게는 검색 UI와 제한 API 호출 없음).
-    var adminSearch = !!(window.NineAccess && window.NineAccess.allowsScreen('stocks'));
+    var adminSearch = !!(window.NineAccess && window.NineAccess.allowsScreen('stock-search'));
     if (searchMount) searchMount.innerHTML = adminSearch ? SEARCH_HTML : '';
 
     // 2026-09-11: 운영 스킨을 저장소의 skin.html로 갱신해서(사용자 반영), 여기 있던

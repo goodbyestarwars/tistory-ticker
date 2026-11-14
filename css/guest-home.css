@@ -238,7 +238,7 @@ html.dark .gnt-controls button:hover:not(:disabled) { border-color: var(--dk-mut
 @layer np.np {
   html body#tt-body-index .home-editorial-page .guest-news.home-widget { border-radius:18px!important; box-shadow:none!important; }
   html body#tt-body-index .guest-news .wd-news-track { gap:var(--ui-section-gap); }
-  html body#tt-body-index .guest-news .wd-news-card { flex:0 0 calc((100% - 3 * var(--ui-section-gap)) / 4); min-width:240px; min-height:420px; }
+  html body#tt-body-index .guest-news .wd-news-card { flex:0 0 320px; min-width:0; min-height:420px; }
   html body#tt-body-index .guest-news .wd-news-topics:has(.wd-tags:empty) { display:none; }
   @media(max-width:767px) { html body#tt-body-index .guest-news .wd-news-card { flex-basis:min(320px,calc(100vw - 76px)); min-width:0; } }
 }

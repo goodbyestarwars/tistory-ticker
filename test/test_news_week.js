@@ -1,0 +1,7 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const now=Date.parse('2026-11-14T12:00:00+09:00'),calls=[];
+const rows=[{title:'MS 서비스 장애',pubDate:'2026-11-13T12:00:00+09:00',link:'https://example.com/ms'},{title:'월요일 시작',pubDate:'2026-11-09T00:00:00+09:00',link:'https://example.com/mon'},{title:'지난 일요일',pubDate:'2026-11-08T23:59:59+09:00',link:'https://example.com/old'},{title:'미래',pubDate:'2026-11-15T12:00:00+09:00',link:'https://example.com/future'}];
+const w={NineUI:{escapeHtml:String,safeUrl:u=>u},NineHttp:{json:async u=>{calls.push(u);return {data:{items:rows}};}}};
+class Clock extends Date{static now(){return now;}}
+vm.runInNewContext(fs.readFileSync('js/main-news.js','utf8'),{window:w,document:{readyState:'loading',addEventListener(){}},Date:Clock,URL,Intl,Promise,setTimeout,clearTimeout});
+(async()=>{const M=w.MainNews,W=M.weekWindow(now);assert.equal(new Date(W.start).toISOString(),'2026-11-08T15:00:00.000Z');assert.equal(W.end-W.start,7*86400000);const [a,b]=await Promise.all([M.loadWeek(),M.loadWeek()]);assert.strictEqual(a,b);assert.deepEqual(Array.from(a.items,i=>i.title),['MS 서비스 장애','월요일 시작']);assert.equal(calls.length,2);assert(calls.every(u=>u.includes('hours=168')&&u.includes('limit=50')));console.log('weekly news: KST Monday boundary, future/old exclusion, MS preserved, dedup and shared request PASS');})().catch(e=>{console.error(e);process.exit(1)});

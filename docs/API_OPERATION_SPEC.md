@@ -326,3 +326,8 @@ VM이 정량 분석한 사실 객체를 **GAS `doPost`(`?action=marketComments`,
 - 토스 공식 체결 `trade:kr`은 유실 가능하고 누적거래량/매수매도 방향/등락률 미제공. 시세 표시용 가격/개별체결만 반영; 주문/신호용 틱, 거래량 누적 등에 합산하지 않는다.
 - KIS 옵션 전광판은 WebSocket 대신 **30분 REST**, 코스피200 주간선물 현재가도 **30분 REST**로 조정. KOSPI/KOSDAQ·환율/분봉 기존 스케줄 유지. 야간선물 분봉과 시장정지·VI는 실시간 입력 의존성을 보존한다(해당 KIS WS 계속 사용).
 - 등록 가능 400건은 지연 보장이나 live 400 종목을 의미하지 않는다. 토스 자격증명·현장 구독거부·CPU/메모리/큐 및 장초반 부하 실측 필요.
+
+
+## API 루트 브라우저 진입(2026-11-14)
+
+`scripts/nginx-api-root.conf`를 기존 HTTPS server에 include하면 정확히 `/`만 nginx404로 처리해 기존 `9pay-unified-error-page.conf`의 공통 HTML 오류 페이지를 표시한다. 다른 API location의 proxy_intercept_errors는 끈 상태로 유지하며 JSON 오류/상태코드·인증·WS는 변경하지 않는다. nginx -t 후 graceful reload만 사용한다(kiwoom-api·거래 프로세스 재시작 없음).

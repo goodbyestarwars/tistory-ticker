@@ -24,26 +24,41 @@ SCREENS = {
     'calendar': ('캘린더', 'public'),
     'briefing': ('마켓브리핑', 'public'),
     'news': ('주요 뉴스', 'public'),
+    'stories': ('이야기 시리즈', 'public'),
     'indicators': ('시장지표', 'member'),
     'home': ('홈 대시보드', 'member'),
-    'stocks': ('종목·분석·종목검색', 'member'),
+    'stocks': ('국내 주요종목', 'member'),
+    'analysis': ('종목분석', 'member'),
+    'stock-search': ('종목검색', 'member'),
     'scanner': ('검색기', 'admin'),
     'strategy': ('전략검색', 'admin'),
-    'tools': ('투자도구·독립 차트', 'member'),
-    'my': ('MY·관심종목·메모', 'member'),
-    'market-temp': ('증시온도·시장맵', 'member'),
+    'tools': ('투자도구', 'member'),
+    'chart': ('독립 차트', 'member'),
+    'my': ('MY', 'member'),
+    'watchlist': ('관심종목', 'member'),
+    'memo': ('메모', 'member'),
+    'market-temp': ('증시온도', 'member'),
+    'market-map': ('마켓 아틀라스', 'member'),
     'autotrader': ('자동매매', 'admin'),
     'kis': ('KIS Trading Tool', 'admin'),
 }
 PUBLIC_SCREENS = frozenset(k for k, (_, lv) in SCREENS.items() if lv == 'public')
 # 로그인 이동 목적지(/guestbook)와 비로그인 허용 화면이 꺼져 리다이렉트가 반복되지 않도록 고정한다.
-LOCKED_ON = frozenset({'guestbook'})
+LOCKED_ON = frozenset()
 # 기존 public/member/admin 최대 등급은 관리자가 설정해도 넘길 수 없다.
 ROLE_PERMISSIONS = {
     'public': ('guest', 'member', 'admin'),
     'member': ('member', 'admin'),
     'admin': ('admin',),
 }
+
+# 화면 설정과 원천 데이터/명령 권한은 독립. 운영 화면은 관리자 상한 유지.
+SENSITIVE_SCREENS = frozenset({'autotrader', 'kis'})
+SPLIT_FROM = {'analysis':'stocks', 'stock-search':'stocks', 'chart':'tools',
+              'watchlist':'my', 'memo':'my', 'market-map':'market-temp'}
+
+def editable_roles(key):
+    return ('admin',) if key in SENSITIVE_SCREENS else ('guest', 'member', 'admin')
 
 # 관리자 전용 REST 경로 접두사. 종목 단위 시세·분석·수급·검색기와 원천 시세가 섞인
 # /futures(하위 /futures/avg 등 포함)를 보호한다. 회원 시장지표 메뉴가 열려 있어도
@@ -171,13 +186,13 @@ def load_state():
         # 구형 화면 ON/OFF 값을 허용되는 모든 역할에 그대로 이관한다.
         for key, value in (saved.get('screens') or {}).items():
             if key in SCREENS and isinstance(value, bool):
-                for role in ROLE_PERMISSIONS[SCREENS[key][1]]:
+                for role in editable_roles(key):
                     state['roles'][key][role] = value
         # 신규 역할별 값이 있으면 우선하며, 최대 허용 등급 밖은 무시한다.
         for key, settings in (saved.get('roles') or {}).items():
             if key not in SCREENS or not isinstance(settings, dict):
                 continue
-            for role in ROLE_PERMISSIONS[SCREENS[key][1]]:
+            for role in editable_roles(key):
                 if isinstance(settings.get(role), bool):
                     state['roles'][key][role] = settings[role]
         if saved.get('schemaVersion', 1) < 2:
@@ -185,13 +200,16 @@ def load_state():
                 state['roles'][key]['member'] = True
             for key in ('scanner', 'strategy'):
                 state['roles'][key]['admin'] = state['roles']['stocks']['admin']
+        if saved.get('schemaVersion', 1) < 3:
+            for key, old in SPLIT_FROM.items():
+                state['roles'][key] = dict(state['roles'][old])
         state['revision'] = int(saved.get('revision') or 0)
         state['updatedAt'] = saved.get('updatedAt')
         state['updatedBy'] = saved.get('updatedBy')
     except (OSError, ValueError, TypeError, AttributeError):
         pass
     for key in LOCKED_ON:
-        for role in ROLE_PERMISSIONS[SCREENS[key][1]]:
+        for role in editable_roles(key):
             state['roles'][key][role] = True
     state['screens'] = {key: settings['admin'] for key, settings in state['roles'].items()}
     return state
@@ -205,8 +223,8 @@ def view(authenticated, is_admin, approved_member=False):
     for key, (label, level) in SCREENS.items():
         item = {'label': label, 'public': level == 'public', 'level': level,
                 'enabled': state['screens'][key],
-                'allowed': bool(state['roles'][key][viewer]) and
-                    (is_admin or approved_member or key in PUBLIC_SCREENS or key == 'indicators'),
+                'allowed': bool(state['roles'][key][viewer if (is_admin or approved_member or (authenticated and (key in PUBLIC_SCREENS or key == 'indicators'))) else 'guest']),
+                'editableRoles': list(editable_roles(key)),
                 'locked': key in LOCKED_ON}
         if is_admin:
             item['roles'] = dict(state['roles'][key])
@@ -239,7 +257,7 @@ def update(changes, email, roles=None):
         if not isinstance(settings, dict) or not settings:
             raise ValueError('역할별 ON/OFF 형식이 올바르지 않습니다.')
         for role, enabled in settings.items():
-            if role not in ROLE_PERMISSIONS[SCREENS[key][1]]:
+            if role not in editable_roles(key):
                 raise ValueError('%s 화면은 %s에게 공개할 수 없습니다.' % (SCREENS[key][0], role))
             if not isinstance(enabled, bool):
                 raise ValueError('ON/OFF 값이 올바르지 않습니다.')
@@ -256,6 +274,6 @@ def update(changes, email, roles=None):
         state['revision'] += 1
         state['updatedAt'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
         state['updatedBy'] = str(email or '')
-        state['schemaVersion'] = 2
+        state['schemaVersion'] = 3
         snapshot_io.atomic_json(STATE_PATH, state)
     return state

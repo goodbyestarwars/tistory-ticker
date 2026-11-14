@@ -68,3 +68,12 @@
 - **화면 허용과 데이터 권한은 별개:** RESTRICTED_PREFIXES와 REST 401/403, WS accept 전 관리자 검사, 서버 내부 키/HMAC 예외, 계좌/주문/자동매매/API 운영은 변경 없음. 종목 시세·차트·시장맵은 일반회원에게 데이터를 제공하지 않으며 기존 제한 안내/빈 상태가 남을 수 있음. GAS/정적 공개 자료는 기존 범위 유지.
 - 배포: master→Pages 및 Oracle 기존 사이트 API 배포만. Google 실거래 VM·봇·runner 재시작/명령 없음. Tistory 스킨 수동 반영 불필요.
 - 검증: test_access_policy.py, test_access_members.py, test_access_members_api.py(수집기와 브로커 없는 실제 접근 라우트), test_access_gate.js, test_access_members_ui.js(Edge PC1280/390/320). 실제 계정 OAuth 로그인·관리자 운영 쓰기는 사용자 세션 없이 검증했다고 주장하지 않음.
+
+
+## 2026-11-14 메뉴별 기본값·독립 체크(이전 묶음/상한 설명보다 우선)
+
+- 공개 기본: guestbook/calendar/briefing/stories/news. 일반회원 기본: indicators/home/stocks/analysis/stock-search/tools/chart/my/watchlist/memo/market-temp/market-map. scanner/strategy 및 운영은 관리자 기본.
+- 관리자가 editableRoles에 있는 역할별 체크를 저장한다. 원천 시세/계좌/주문/API는 별도 보호하며 autotrader/kis는 관리자 상한, 화면 설정은 관리자만. 홈 체크는 시장 대시보드만이며 뉴스/브리핑/이야기와 독립이다. 기본값 복원은 화면 체크만 바꾸고 저장 전 적용하지 않는다.
+- schemaVersion3: analysis/stock-search는 stocks, chart는 tools, watchlist/memo는 my, market-map은 market-temp의 이전 역할별 체크를 이어받는다. 기존 묶음 키와 API 계약은 보존한다. 대화방 OFF도 가능하며 거부된 대화방은 홈 입장 화면으로 돌아가 반복 이동을 피한다.
+- 모바일 탭·PC 메뉴·직접 URL·전역 검색/관심/메모는 독립 키를 사용한다. Google 서버 관리자 판정으로 운영 메뉴를 표시하며 Tistory ROLE을 운영 권한의 대용으로 사용하지 않는다. 실제 위험 명령/데이터 서버 검증은 변경하지 않는다.
+- GET/PUT 관리자 검증/Origin·쓰기 제한·이메일 허용목록은 유지. 새로운 공개 시세 API/WS·GAS 폴백은 추가하지 않는다.

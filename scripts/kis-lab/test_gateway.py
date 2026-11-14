@@ -16,8 +16,11 @@ class GatewayTests(unittest.TestCase):
         self.calls = []
         self.auth = {'authenticated': True, 'isAdmin': True, 'provider': 'google'}
         self.fail_auth = False
+        self.kis_allowed = True
         def handle(request):
             self.calls.append(request)
+            if str(request.url) == gateway.POLICY_URL:
+                return httpx.Response(200, json={'data': {'screens': {'kis': {'allowed': self.kis_allowed}}}})
             if str(request.url) == gateway.AUTH_URL:
                 if self.fail_auth:
                     raise httpx.ConnectError('offline')
@@ -89,7 +92,13 @@ class GatewayTests(unittest.TestCase):
             with self.subTest(path=path):
                 r = self.client.post('/kis-tool/'+path, headers={**self.headers,'Origin':gateway.SITE_ORIGIN},json={})
                 self.assertEqual(r.status_code,403)
-        self.assertTrue(all(str(r.url)==gateway.AUTH_URL for r in self.calls))
+        self.assertTrue(all(str(r.url) in (gateway.AUTH_URL, gateway.POLICY_URL) for r in self.calls))
+
+    def test_screen_switch_denies_direct_ui_and_api(self):
+        self.kis_allowed = False
+        for path in ('builder/builder', 'builder/api/strategies'):
+            self.assertEqual(self.client.get('/kis-tool/' + path, headers=self.headers).status_code, 403)
+        self.assertFalse(any('18300' in str(r.url) or '18800' in str(r.url) for r in self.calls))
 
     def test_mutation_csrf(self):
         for origin in ('https://attacker.example',None):

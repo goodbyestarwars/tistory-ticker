@@ -76,6 +76,7 @@
   function msg(text) { var m = modal && modal.querySelector('.acs-msg'); if (m) m.textContent = text; }
 
   var roleReady = false;
+  var defaultLevels = {};
   var ROLES = [{key: 'guest', label: '비회원'}, {key: 'member', label: '일반회원'}, {key: 'admin', label: '관리자'}];
 
   function render(data) {
@@ -85,9 +86,9 @@
       ROLES.map(function (role) { return '<span>' + role.label + '</span>'; }).join('') + '</div>';
     var rows = keys.map(function (key) {
       var s = data.screens[key], level = s.level || (s.public ? 'public' : 'admin');
+      defaultLevels[key] = level;
       var cells = ROLES.map(function (role) {
-        var permitted = role.key === 'admin' || (role.key === 'member' && level !== 'admin') ||
-          (role.key === 'guest' && level === 'public');
+        var permitted = s.editableRoles ? s.editableRoles.indexOf(role.key) >= 0 : role.key === 'admin' || (role.key === 'member' && level !== 'admin') || (role.key === 'guest' && level === 'public');
         if (!permitted) return '<span class="acs-cell acs-na" title="서버 정책상 공개 불가">—</span>';
         var checked = s.roles ? !!s.roles[role.key] : !!s.enabled;
         var disabled = !!s.locked || !roleReady;
@@ -95,7 +96,7 @@
           '" aria-label="' + esc(s.label + ' ' + role.label) + '"' + (checked ? ' checked' : '') +
           (disabled ? ' disabled' : '') + '></span>';
       }).join('');
-      var desc = level === 'public' ? '공개 가능' : level === 'member' ? '로그인 회원 이상' : '관리자 전용';
+      var desc = '기본값: ' + (level === 'public' ? '전체 공개' : level === 'member' ? '일반회원' : '관리자') + (key === 'home' ? ' · 대시보드만 제어' : '') + ((key === 'autotrader' || key === 'kis') ? ' · 운영 권한 보호' : '');
       return '<div class="acs-row"><span class="acs-label">' + esc(s.label) +
         '<span class="acs-tag">' + desc + (s.locked ? ' · 필수 화면' : '') + '</span></span>' + cells + '</div>';
     }).join('');
@@ -149,16 +150,17 @@
     modal = doc.createElement('div');
     modal.className = 'acs-backdrop';
     modal.innerHTML = '<section class="acs-dialog" role="dialog" aria-modal="true" aria-label="화면 설정">' +
-      '<h2>화면 설정</h2><p class="acs-note">일반회원 확대 권한은 아래에 등록한 Google 인증 계정에만 적용됩니다. 검색기·전략검색, 자동매매·KIS·관리 설정은 관리자 전용입니다. 제한 시세 REST·실시간 연결은 계속 관리자 전용이므로 일부 시세·차트는 표시되지 않습니다. — 표시는 공개 불가, 회색 체크는 필수 화면입니다.</p>' +
+      '<h2>화면 설정</h2><p class="acs-note">각 메뉴와 화면을 비회원·일반회원·관리자별로 체크해 관리합니다. 홈 항목은 대시보드만 제어하며 공개 뉴스·브리핑·이야기는 별도입니다. 일반회원은 아래 등록한 Google 인증 계정입니다. 자동매매·KIS·관리 설정과 제한 시세·계좌·주문 권한은 보호되므로 화면을 허용해도 일부 데이터는 표시되지 않습니다.</p>' +
       '<div class="acs-body"></div><section style="margin-top:24px;border-top:1px solid var(--ui-border);padding-top:16px"><h2>일반회원 이메일 관리</h2><p class="acs-note">Google 로그인으로 소유를 검증한 이메일만 권한을 받습니다. 기존 로그인은 재로그인이 필요할 수 있습니다. 대소문자·앞뒤 공백은 통합하며, 해제는 다음 서버 권한 조회부터 적용됩니다. 화면 설정 저장과 별도로 즉시 저장됩니다.</p>' +
       '<form class="acs-member-form" style="display:flex;flex-wrap:wrap;gap:8px"><input type="email" required maxlength="254" aria-label="일반회원 이메일" placeholder="name@example.com" style="flex:1;min-width:160px;padding:8px;font:inherit;background:var(--ui-inner-surface);color:inherit;border:1px solid var(--ui-border)"><button class="acs-btn" type="submit">등록</button></form><p class="acs-member-status" aria-live="polite"></p><div class="acs-members-list"></div></section>' +
-      '<div class="acs-foot"><span class="acs-msg" aria-live="polite"></span>' +
+      '<div class="acs-foot"><button type="button" class="acs-btn" data-acs="defaults">기본값 복원</button><span class="acs-msg" aria-live="polite"></span>' +
       '<span><button type="button" class="acs-btn" data-acs="close">닫기</button> <button type="button" class="acs-btn primary" data-acs="save">저장</button></span></div></section>';
     doc.body.appendChild(modal);
     modal.addEventListener('click', function (e) {
       var a = e.target.getAttribute && e.target.getAttribute('data-acs');
       if (a === 'close' || e.target === modal) close();
       else if (a === 'save') save();
+      else if (a === 'defaults' && roleReady) { modal.querySelectorAll('input[data-role]:not(:disabled)').forEach(function(input){var level=defaultLevels[input.dataset.key];input.checked=input.dataset.role==='admin'||level==='public'||(input.dataset.role==='member'&&level==='member');});msg('기본값을 표시했습니다. 저장을 눌러 적용하세요.'); }
       var email = e.target.getAttribute && e.target.getAttribute('data-member-remove');
       if (email) changeMember('remove', email);
     });

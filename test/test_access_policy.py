@@ -37,9 +37,9 @@ class PolicyTests(unittest.TestCase):
     def test_anonymous_three_member_four_screens(self):
         for admin in (False,):
             allowed = {k for k, v in ap.view(False, admin)['screens'].items() if v['allowed']}
-            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing', 'news'})  # 비로그인: 시장지표 없음
+            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing', 'news', 'stories'})  # 비로그인: 시장지표 없음
             member = {k for k, v in ap.view(True, admin)['screens'].items() if v['allowed']}
-            self.assertEqual(member, {'guestbook', 'calendar', 'briefing', 'news', 'indicators'})  # 로그인 회원: 시장지표 추가
+            self.assertEqual(member, {'guestbook', 'calendar', 'briefing', 'news', 'stories', 'indicators'})  # 로그인 회원: 시장지표 추가
         allowed = {k for k, v in ap.view(True, True)['screens'].items() if v['allowed']}
         self.assertEqual(allowed, set(ap.SCREENS))
 
@@ -85,21 +85,32 @@ class PolicyTests(unittest.TestCase):
 
     def test_role_ceiling_and_lock(self):
         for invalid in (
-            {'home': {'guest': True}}, {'scanner': {'member': True}},
-            {'indicators': {'guest': True}}, {'strategy': {'member': True}},
+            {'autotrader': {'guest': True}}, {'kis': {'member': True}},
+            {'kis': {'guest': True}}, {'autotrader': {'member': True}},
             {'calendar': {'stranger': True}}, {'calendar': {'guest': 'yes'}},
-            {'calendar': {}}, {'guestbook': {'guest': False}},
-            {'guestbook': {'admin': False}},
+            {'calendar': {}}, {'calendar': {'unknown': True}},
         ):
             with self.assertRaises(ValueError, msg=str(invalid)):
                 ap.update(None, 'a@x', roles=invalid)
         self.assertFalse(os.path.exists(ap.STATE_PATH))
 
     def test_validation_and_lock(self):
-        for bad in ({}, {'nope': True}, {'calendar': 'x'}, {'guestbook': False}, None):
+        for bad in ({}, {'nope': True}, {'calendar': 'x'}, None):
             with self.assertRaises(ValueError):
                 ap.update(bad, 'a@x')
         self.assertFalse(os.path.exists(ap.STATE_PATH))
+
+    def test_granular_roles_and_split_migration(self):
+        ap.update(None, 'admin', roles={'analysis': {'member': False}, 'market-map': {'member': True}, 'guestbook': {'guest': False}, 'stocks': {'guest': True}})
+        self.assertFalse(ap.view(True, False, True)['screens']['analysis']['allowed'])
+        self.assertTrue(ap.view(True, False, True)['screens']['market-map']['allowed'])
+        self.assertFalse(ap.view(False, False)['screens']['guestbook']['allowed'])
+        self.assertTrue(ap.view(False, False)['screens']['stocks']['allowed'])
+        self.assertTrue(ap.is_restricted_path('/market-atlas-rs'))
+        with open(ap.STATE_PATH, 'w', encoding='utf-8') as f:
+            json.dump({'schemaVersion': 2, 'roles': {'stocks': {'guest': False, 'member': False, 'admin': True}}}, f)
+        self.assertFalse(ap.load_state()['roles']['analysis']['member'])
+        self.assertFalse(ap.load_state()['roles']['stock-search']['member'])
 
     def test_corrupt_file_falls_back_to_default(self):
         with open(ap.STATE_PATH, 'w') as f:

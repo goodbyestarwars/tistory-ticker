@@ -756,7 +756,7 @@
 
   // 2026-11-11: 종목 검색·관심종목 서랍은 서버가 확인한 관리자 세션에서만 시작한다.
   function init() {
-    if (global.NineAccess) { (global.NineAccess.whenMember || global.NineAccess.whenAdmin)(initNow); return; }
+    if (global.NineAccess) { (global.NineAccess.whenMember || global.NineAccess.whenAdmin)(initNow, ['stock-search','watchlist']); return; }
     global.addEventListener('nineaccess:ready', function (e) { if (e.detail && e.detail.admin) initNow(); }, { once: true });
   }
 

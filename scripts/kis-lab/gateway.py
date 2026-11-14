@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 PREFIX = '/kis-tool'
 SITE_ORIGIN = 'https://goodbyestar.cloud'
 AUTH_URL = 'http://127.0.0.1:8080/auth/google/me'
+POLICY_URL = 'http://127.0.0.1:8080/access-policy'
 # 2026-11-07 웹 백테스터 제거(백테스트는 Lab 명령 실행). 전략 빌더만 중계한다.
 UPSTREAMS = {'builder': 'http://127.0.0.1:18300'}
 API_PORTS = {'builder': '18800'}
@@ -25,6 +26,12 @@ async def authorized(cookie):
             result = await client.get(AUTH_URL, headers={'Cookie': cookie})
             result.raise_for_status()
             data = result.json()['data']
+            if not (data.get('authenticated') is True and data.get('isAdmin') is True and data.get('provider') == 'google'):
+                return False
+            policy = await client.get(POLICY_URL, headers={'Cookie': cookie})
+            policy.raise_for_status()
+            if policy.json()['data']['screens']['kis']['allowed'] is not True:
+                return False
         return (data.get('authenticated') is True and data.get('isAdmin') is True
                 and data.get('provider') == 'google')
     except (httpx.HTTPError, ValueError, KeyError, TypeError):

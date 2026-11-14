@@ -14,7 +14,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       window.kisAllowed=false;
       window.NineAPI={kisToolAccess:async()=>({allowed:window.kisAllowed})};
       // 2026-11-11: 메뉴는 서버 확인 관리자(NineAccess)일 때만 전체 표시 - 관리자 세션 스텁
-      window.NineAccess={allowsHref:()=>true,menuAllowsHref:()=>true,isAdmin:()=>true,ready:Promise.resolve()};
+      window.NineAccess={allowsScreen:()=>true,allowsHref:()=>true,menuAllowsHref:()=>true,isAdmin:()=>true,ready:Promise.resolve()};
     });
     await page.addScriptTag({content:fs.readFileSync('js/skin-menu.js','utf8')});
     await page.waitForTimeout(50);
@@ -45,11 +45,12 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       await guest.evaluate(allowed=>{
         window.T={config:{IS_LOGIN:false,ROLE:'guest'}};
         window.NineAPI={kisToolAccess:async()=>({allowed})};
+        window.NineAccess={allowsScreen:()=>allowed,allowsHref:()=>allowed,menuAllowsHref:()=>allowed,isAdmin:()=>allowed,ready:Promise.resolve()};
       },googleAdmin);
       await guest.addScriptTag({content:fs.readFileSync('js/skin-menu.js','utf8')});
       await guest.waitForTimeout(50);
-      assert.equal(await guest.getByRole('link',{name:'자동매매',exact:true}).count(),0);
-      assert.equal(await guest.getByRole('link',{name:'트레이딩 도구',exact:true}).count(),0,'Google admin alone must not reveal KIS');
+      assert.equal(await guest.getByRole('link',{name:'자동매매',exact:true}).count(),googleAdmin?1:0);
+      assert.equal(await guest.getByRole('link',{name:'트레이딩 도구',exact:true}).count(),googleAdmin?1:0,'verified screen policy controls operational menu display');
       await guest.close();
     }
   }

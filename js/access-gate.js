@@ -18,7 +18,7 @@
   var FALLBACK = '/guestbook';
   var FROM_KEY = 'nine_access_from';
   var doc = global.document;
-  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
+  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news', 'stories']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
   var GUEST_KEY = 'nine_guest'; // 비회원 입장 표시(탭 단위 sessionStorage). 인증 상태가 아니다.
   var GUEST_HOME_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/guest-home.js?v=20261112-paper-v1';
 
@@ -38,11 +38,11 @@
     if (/^\/category\/마켓 ?브리핑(?:\/|$)/.test(p)) return 'briefing';
     if (/^\/pages?\/(?:kospi-futures|overnight-market)$/.test(p)) return 'indicators';
     if (/^\/pages?\/main-news$/.test(p)) return 'news';
-    if (/^\/pages?\/market-temp$/.test(p)) return q.get('view') === 'stocks' ? 'stocks' : 'market-temp';
-    if (/^\/pages?\/stock-search$/.test(p)) return q.get('tool') === 'independent-chart' ? 'tools' : 'stocks';
+    if (/^\/pages?\/market-temp$/.test(p)) return q.get('view') === 'stocks' ? 'stocks' : q.get('view') === 'map' ? 'market-map' : 'market-temp';
+    if (/^\/pages?\/stock-search$/.test(p)) return q.get('tool') === 'independent-chart' ? 'chart' : 'stock-search';
     if (/^\/pages?\/pattern-scan(?:\/|$)/.test(p)) return 'scanner';
     if (/^\/pages?\/strategy-search(?:\/|$)/.test(p)) return 'strategy';
-    if (/^\/pages?\/(?:foreign-flow|dcf)(?:\/|$)/.test(p)) return 'stocks';
+    if (/^\/pages?\/(?:foreign-flow|dcf)(?:\/|$)/.test(p)) return 'analysis';
     if (/^\/pages?\/watchlist$/.test(p)) return 'my';
     if (/^\/pages?\/auto-trader$/.test(p)) return 'autotrader';
     return '';
@@ -53,7 +53,7 @@
       return href === '#access-settings' ? '@admin' : 'tools';
     }
     if (/^https?:\/\/goodbyestar\.cloud\/kis-tool/.test(href)) return 'kis';
-    if (href === '#story-series') return ''; // 이야기 시리즈(푸터 카드 영역): 공개
+    if (href === '#story-series') return 'stories'; // 이야기 시리즈(푸터 카드 영역): 공개
     if (/^\/\?(?:.*&)?view=market(?:&|$)/.test(href)) return 'home'; // 시장 대시보드(기존 관리자 홈): 관리자 메뉴에만 보인다
     // 같은 사이트의 상대 경로는 직접 분해한다(origin이 'null'인 문서·파싱 실패에도 같은 판정).
     if (href.charAt(0) === '/') {
@@ -104,7 +104,7 @@
   var readyResolve;
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
 
-  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'news', 'indicators', 'home', 'stocks', 'scanner', 'strategy', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
+  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'news', 'stories', 'analysis', 'stock-search', 'chart', 'watchlist', 'memo', 'market-map', 'indicators', 'home', 'stocks', 'scanner', 'strategy', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
   function legacyPolicy() {
     return global.fetch(API + '/auth/google/me', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('me ' + r.status); return r.json(); })
@@ -151,7 +151,7 @@
 
   function redirectFallback() {
     var here = norm(global.location.pathname);
-    if (/^\/guestbook(?:\/|$)/.test(here)) return; // 반복 이동 방지
+    if (/^\/guestbook(?:\/|$)/.test(here)) { global.location.replace('/'); return; } // 반복 이동 방지
     remember(global.location.pathname + global.location.search);
     global.location.replace(FALLBACK);
   }
@@ -163,15 +163,16 @@
     // 관심종목 서랍은 관리자 전용이다. 저장된 '열림' 상태가 본문 오른쪽 378px 여백만 남기지 않게 비관리자는 해제한다.
     if (!allowsScreen('my')) root.classList.remove('wl-open');
     root.classList.toggle('access-admin', isAdmin());
+    ['stock-search','watchlist','memo','stories','news','briefing'].forEach(function (key) { root.classList.toggle('access-hide-' + key, !allowsScreen(key)); });
   }
 
   var STYLE =
     // 판정 전 보호 화면 깜빡임 방지(본문 숨김). 6초 안에 판정이 끝나지 않으면 fail-closed 이동한다.
     'html.access-pending body{visibility:hidden}' +
     // 비로그인·일반 회원: 종목 검색·관심종목 서랍·메모 진입점 숨김(기능 자체도 초기화하지 않는다).
-    'html.access-limited .nav-search-wrap,html.access-limited #navSearchMount,html.access-limited .nav-search-backdrop,' +
-    'html.access-limited .global-watchlist-drawer,html.access-limited .wl-toggle,html.access-limited .memo-fab,' +
-    'html.access-limited [data-memo-widget-root],html.access-limited .mobile-search-overlay,' +
+    'html.access-hide-stock-search .nav-search-wrap,html.access-hide-stock-search #navSearchMount,html.access-hide-stock-search .nav-search-backdrop,html.access-hide-stock-search .mobile-search-overlay,' +
+    'html.access-hide-watchlist .global-watchlist-drawer,html.access-hide-watchlist .wl-toggle,html.access-hide-memo .memo-fab,html.access-hide-memo [data-memo-widget-root],' +
+    'html.access-hide-stories .site-footer-learn,html.access-hide-stories #homeStorySeries,html.access-hide-stories [data-wd-stories],html.access-hide-news .guest-news,html.access-hide-news .wd-news-section,html.access-hide-briefing .home-briefing-section,' +
     'html:not(.access-admin) .nav-write-btn{display:none!important}';
   function injectStyle() {
     if (doc.getElementById('nine-access-style')) return;
@@ -342,7 +343,7 @@
     /* 비회원 입장: 인증 없이 공개 화면만. 인증된 사용자로 취급하지 않는다. */
     enterGuest: function () { setGuest(true); },
     isLimited: function () { return !allowsScreen('home'); },
-    whenMember: function (fn) { ready.then(function () { if (allowsScreen('my')) fn(); }); },
+    whenMember: function (fn, key) { ready.then(function () { if ((Array.isArray(key) ? key : [key || 'my']).some(allowsScreen)) fn(); }); },
     failed: function () { return failed; },
     policy: function () { return current; },
     refresh: function () {
@@ -359,7 +360,7 @@
     },
     /* 현재 화면이 보호 대상이면 판정 뒤에 fn, 공개 화면·일반 글은 기다리지 않고 바로 fn. 거부되면 fn을 실행하지 않는다. */
     run: function (fn) {
-      if (!startRestricted) { fn(); return; }
+      if (!startScreen) { fn(); return; }
       ready.then(function () { if (allowsScreen(startScreen)) fn(); });
     },
     /* 관리자 전용 전역 도구(검색·관심종목·메모). 판정 전에는 시작하지 않는다. */

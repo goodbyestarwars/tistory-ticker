@@ -117,7 +117,7 @@
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[name] + '</svg>';
   }
   // 2026-11-11 접근 정책: 서버가 확인한 관리자만 기존 홈/시장/종목 탭, 그 외(판정 전·장애 포함)는 공개 4개 화면 탭.
-  function limitedViewer() { return !(global.NineAccess && global.NineAccess.allowsScreen('home')); }
+  function limitedViewer() { return !(global.NineAccess && ['home','stocks','analysis','stock-search','market-temp','market-map'].some(function(key){return global.NineAccess.allowsScreen(key);})); }
   function limitedTab() {
     var key = global.NineAccess ? global.NineAccess.screenOf(location.pathname, location.search) : '';
     if (key === 'briefing' || key === 'news' || key === 'indicators') return 'market';
@@ -125,17 +125,23 @@
   }
   function barHtml() {
     var more = '<button type="button" class="mtab-bar-item" data-mtab="more" aria-haspopup="dialog" aria-expanded="false">' + svg('more') + '<span>더보기</span></button>';
-    if (limitedViewer()) {
-      // 비회원(및 관리자가 아닌 입장): 홈 / 시장(마켓브리핑·주요뉴스) / 캘린더 / 대화방. 상단 메뉴·서랍과 같은 정책.
-      return '<a class="mtab-bar-item" data-mtab="home" href="/">' + svg('home') + '<span>홈</span></a>' +
-        '<a class="mtab-bar-item" data-mtab="market" href="/category/마켓 브리핑">' + svg('market') + '<span>시장</span></a>' +
-        '<a class="mtab-bar-item" data-mtab="calendar" href="/page/stock-calendar">' + svg('calendar') + '<span>캘린더</span></a>' +
-        '<a class="mtab-bar-item" data-mtab="guestbook" href="/guestbook">' + svg('chat') + '<span>대화방</span></a>' + more;
+    var access=global.NineAccess;
+    function allowed(key){return access?access.allowsScreen(key):['briefing','news','calendar','guestbook'].indexOf(key)>=0;}
+    function first(rows){return rows.filter(function(row){return allowed(row[0]);})[0];}
+    function item(key,label,href,icon){return '<a class="mtab-bar-item" data-mtab="'+key+'" href="'+href+'">'+svg(icon)+'<span>'+label+'</span></a>';}
+    var html=item('home','홈','/','home');
+    var market=first([['market-temp','/page/market-temp'],['market-map','/page/market-temp?view=map'],['indicators','/pages/kospi-futures'],['briefing','/category/마켓 브리핑'],['news','/pages/main-news']]);
+    if(market)html+=item('market','시장',market[1],'market');
+    if(limitedViewer()){
+      if(allowed('calendar'))html+=item('calendar','캘린더','/page/stock-calendar','calendar');
+      if(allowed('guestbook'))html+=item('guestbook','대화방','/guestbook','chat');
+    }else{
+      var stock=first([['stocks','/page/market-temp?view=stocks'],['analysis','/page/foreign-flow'],['stock-search','/page/stock-search']]);
+      if(stock)html+=item('stocks','종목',stock[1],'stocks');
     }
-    return '<a class="mtab-bar-item" data-mtab="home" href="/">' + svg('home') + '<span>홈</span></a>' +
-      '<a class="mtab-bar-item" data-mtab="market" href="/page/market-temp">' + svg('market') + '<span>시장</span></a>' +
-      '<a class="mtab-bar-item" data-mtab="stocks" href="/page/market-temp?view=stocks">' + svg('stocks') + '<span>종목</span></a>' + more;
+    return html+more;
   }
+
   function buildBar() {
     if (bar) return;
     bar = doc.createElement('nav');

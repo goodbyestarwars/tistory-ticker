@@ -840,9 +840,10 @@
     var selected = all.filter(function (o) { return String(o.ts || '').slice(0, 10) === reviewDay; });
     var botSelected = bot.filter(function (o) { return String(o.ts || '').slice(0, 10) === reviewDay; });
     var skipped = skips.filter(function (o) { return o.day === reviewDay; }).slice(0, 20);
-    var html = '<div class="at-hd"><h3>매매 판단 로그</h3><span class="at-sub">Google VM 장부 · 읽기 전용 · KST</span></div>';
+    var html = '<div class="at-hd"><h3>매매 판단 로그</h3><button type="button" class="at-mini" data-decision-toggle aria-expanded="' + (activityOpen.decisions !== false) + '">' + (activityOpen.decisions === false ? '펼치기' : '접기') + '</button><span class="at-sub">Google VM 장부 · 읽기 전용 · KST</span></div>';
     html += '<div class="at-review-tools"><label>거래일 <input type="date" required aria-label="판단 로그 거래일" data-trade-day value="' + esc(reviewDay) + '"></label>'
       + '<button class="at-mini" type="button" data-act-dl="decisions">판단 로그 CSV</button><span class="at-mute">선택한 하루의 기록 · 서버에서 수신한 범위만 조회할 수 있습니다.</span></div>';
+    html += '<div data-decision-body' + (activityOpen.decisions === false ? ' hidden' : '') + '>';
     if (!selected.length && !botSelected.length) html += '<p class="at-empty">해당 기간의 주문 기록이 없거나 에이전트에서 아직 전송하지 않았습니다.</p>';
     else {
       html += '<div class="at-review-list">';
@@ -870,7 +871,7 @@
         + '</tbody></table></div><p class="at-note">횟수는 같은 종목·사유의 반복 기록이며 서로 다른 종목 수가 아닙니다.</p></details>';
     }
     html += '<p class="at-note">이 로그는 주문 판단·접수 기록입니다. ACK·SENT는 체결 확정이 아니며 주문 기준가도 실제 체결가와 다를 수 있습니다. 과거 장부에 근거가 없으면 복원한 것처럼 표시하지 않습니다.</p>';
-    return html;
+    return html + '</div>';
   }
 
   function activityHtml(a) {
@@ -1197,8 +1198,10 @@
     var orderDate = root.querySelector('[data-order-day]');
     if (orderDate) orderDate.addEventListener('change', function () { if (orderDate.value) orderDay = orderDate.value; renderControl(lastControl); });
     root.querySelectorAll('[data-act-dl]').forEach(function (button) {
-      button.addEventListener('click', function () { downloadActivity(button.getAttribute('data-act-dl')); });
+      button.addEventListener('click', function (event) { event.stopPropagation(); downloadActivity(button.getAttribute('data-act-dl')); });
     });
+    var decisionToggle=root.querySelector('[data-decision-toggle]');
+    if(decisionToggle)decisionToggle.addEventListener('click',function(){activityOpen.decisions=activityOpen.decisions === false;root.querySelector('[data-decision-body]').hidden=!activityOpen.decisions;decisionToggle.textContent=activityOpen.decisions?'접기':'펼치기';decisionToggle.setAttribute('aria-expanded',String(activityOpen.decisions));});
     root.querySelectorAll('[data-act-more]').forEach(function (more) {
       more.addEventListener('toggle', function () { activityOpen[more.getAttribute('data-act-more')] = more.open; });
     });
@@ -1233,7 +1236,7 @@
     if (!root) return;
     // 표시 조건일 뿐이다. 실제 권한은 서버가 관리자 Google 세션으로 판정한다.
     var c = global.T && global.T.config;
-    if (!(c && c.IS_LOGIN && c.ROLE && c.ROLE !== 'guest')) { root.innerHTML = '<p class="at-empty">블로그 관리자 로그인 후 이용할 수 있습니다.</p>'; return; }
+    if (!(global.NineAccess && global.NineAccess.isAdmin())) { root.innerHTML = '<p class="at-empty">Google 관리자 로그인 후 이용할 수 있습니다.</p>'; return; }
     if (!global.NineAPI || !global.NineAPI.data) { root.innerHTML = '<p class="at-error">공통 API 모듈을 불러오지 못했습니다.</p>'; return; }
     widen();
     refresh();

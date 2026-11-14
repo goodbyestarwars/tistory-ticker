@@ -311,7 +311,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
      dashboard-enhancements와 달리 경로 제한 없이 항상 로드한다(어느 페이지에서든
      메모를 남길 수 있어야 하는 기능이라). */
   (function loadMemoWidget() {
-    if (window.NineAccess) { (window.NineAccess.whenMember || window.NineAccess.whenAdmin)(loadMemoWidgetNow); return; }
+    if (window.NineAccess) { (window.NineAccess.whenMember || window.NineAccess.whenAdmin)(loadMemoWidgetNow, 'memo'); return; }
     loadMemoWidgetNow();
   })();
   function loadMemoWidgetNow() {

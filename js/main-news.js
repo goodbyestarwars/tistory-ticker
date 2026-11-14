@@ -19,7 +19,7 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#main-news';
-  // 주요 뉴스는 최근 7일·시장별 최대 50건. 홈 공용 조회 기본값은 25건·24시간을 유지한다.
+  // 주요 뉴스는 이번 주 월~일·시장별 최대 50건. 홈 공용 조회 기본값은 25건·24시간을 유지한다.
   //
   // 2026-09-08: 받는 수를 50 -> 25로 내렸다. 시장별 상한(MARKET_LIMIT)이 25인데 50을
   // 받고 있었다 - API가 최신순으로 주므로 뒤 25건은 어떤 경우에도 버려지는 몫이었고,
@@ -192,7 +192,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>최근 7일 내 수집된 뉴스를 최신순으로 봅니다. 시장별 최대 50건이며 수집 범위에 따라 일부 날짜의 기사가 없을 수 있습니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + (sourceNoteText() ? ' 국내 뉴스 출처는 ' + escapeHtml(sourceNoteText()) + '입니다.' : '') + '</p>'
+      + '<p>이번 주 월~일 내 수집된 뉴스를 최신순으로 봅니다. 시장별 최대 50건이며 수집 범위에 따라 일부 날짜의 기사가 없을 수 있습니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + (sourceNoteText() ? ' 국내 뉴스 출처는 ' + escapeHtml(sourceNoteText()) + '입니다.' : '') + '</p>'
       + '<div class="mn-tabbar"><div class="mn-tabs" role="tablist" aria-label="주요 뉴스 구분">'
       + VIEWS.map(function (view) {
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key
@@ -204,7 +204,7 @@
       + '<small class="nt-stamp" data-mn-updated>자동 갱신 대기 중</small></div></div>'
       + '</div>'
       + '<section class="mn-keywords" aria-label="뉴스 핵심 키워드"><h3>뉴스에서 반복된 키워드</h3>'
-      + '<p data-mn-cloud-meta>현재 탭의 최근 7일 기사 제목을 집계합니다.</p>'
+      + '<p data-mn-cloud-meta>현재 탭의 이번 주 월~일 기사 제목을 집계합니다.</p>'
       + '<div class="news-keyword-cloud" data-mn-cloud role="group" aria-label="반복 키워드"></div>'
       + '<details class="mn-keywords-all"><summary>전체 키워드·기사 수</summary><div data-mn-cloud-all></div></details>'
       + '<section class="mn-keywords-evidence" data-mn-cloud-evidence hidden aria-live="polite"></section>'
@@ -212,9 +212,38 @@
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
   }
 
+  // 한국시간 월요일 00:00부터 일요일 24:00까지. 미래 기사는 제외한다.
+  function weekWindow(now) {
+    now = now == null ? Date.now() : now;
+    var day = new Date(now + 9 * 3600000), weekday = (day.getUTCDay() + 6) % 7;
+    var start = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() - weekday) - 9 * 3600000;
+    return {start:start,end:start + 7 * 86400000,now:now};
+  }
+  var weeklyMemo = null;
+  function loadWeek() {
+    var window_ = weekWindow();
+    if (weeklyMemo && weeklyMemo.start === window_.start && Date.now() - weeklyMemo.at < STALE_MS) return weeklyMemo.promise;
+    var failed = [], lists = [];
+    var promise = Promise.all([{key:'domestic',url:DOMESTIC_API_URL},{key:'us',url:US_API_URL}].map(function (m) {
+      return fetchJson(m.url.replace('limit=25','limit=50') + '&hours=168',50).then(function (rows) {
+        rows.forEach(function (row) { lists.push(Object.assign({},row,{_market:m.key})); });
+      }).catch(function () { failed.push(m.key); });
+    })).then(function () {
+      var seen = {};
+      lists.sort(function (a,b) { return dateValue(b.pubDate)-dateValue(a.pubDate); });
+      var items = lists.filter(function (item) {
+        var at=dateValue(item.pubDate), url=safeHref(item.link), title=displayTitle(item).replace(/\s+/g,'').toLowerCase();
+        if (!at || at < window_.start || at >= window_.end || at > window_.now || !url || !title || seen[url] || seen[title]) return false;
+        seen[url]=seen[title]=true; return true;
+      });
+      return {items:items,failed:failed,window:window_};
+    });
+    weeklyMemo={start:window_.start,at:Date.now(),promise:promise};return promise;
+  }
+
   function limitMarketRows(items) {
     var now = Date.now();
-    var cutoff = now - RECENT_WINDOW_MS;
+    var cutoff = weekWindow(now).start;
     return items.filter(function (item) {
       var stamp = dateValue(item && item.pubDate);
       return stamp > 0 && stamp >= cutoff && stamp <= now;
@@ -243,7 +272,7 @@
       evidence.replaceChildren(); evidence.hidden = true; all.replaceChildren();
       container.querySelector('[data-mn-cloud-meta]').textContent =
         (VIEWS.filter(function (v) { return v.key === state.view; })[0] || VIEWS[0]).label
-        + ' · 최근 7일 수집 기사 ' + model.articleCount + '건 · 제목에서 2건 이상 반복된 상위 ' + model.keywords.length
+        + ' · 이번 주 월~일 수집 기사 ' + model.articleCount + '건 · 제목에서 2건 이상 반복된 상위 ' + model.keywords.length
         + '개 · 글자 크기=기사 수 (긍부정·시장 전체 언급량 아님)' + (failed.length ? ' · 일부 시장 수집 실패' : '');
       function button(word) {
         var b = document.createElement('button'); b.type = 'button'; b.textContent = word.text;
@@ -293,7 +322,7 @@
     if (!items.length) {
       list.innerHTML = failed.length
         ? '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>'
-        : '<p class="mn-state">최근 7일 뉴스가 없습니다.</p>';
+        : '<p class="mn-state">이번 주 월~일 뉴스가 없습니다.</p>';
       if (updated) updated.textContent = failed.length ? '갱신 실패 · 자동 재시도 예정' : '표시할 뉴스 없음';
       return;
     }
@@ -405,7 +434,7 @@
 
   // 비회원 홈 타임라인(js/guest-home.js)이 같은 조회·정렬·언론사명·제목·시각 규칙을 재사용한다(복제 금지).
   var MainNews = {
-    init: init, fetchJson: fetchJson,
+    init: init, fetchJson: fetchJson, weekWindow:weekWindow, loadWeek:loadWeek,
     urls: { kr: DOMESTIC_API_URL, us: US_API_URL },
     dateValue: dateValue, timeLabel: timeLabel, sourceLabel: sourceLabel, displayTitle: displayTitle, safeHref: safeHref
   };

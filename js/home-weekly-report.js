@@ -521,33 +521,34 @@
           + (options.domestic ? '' : koTitle ? '<small class="wd-news-original" lang="en">원문 · ' + escapeHtml(headline.title) + '</small>' : '<small class="wd-news-original">한국어 번역 준비 중 · 원문 제목</small>')
           + '<hr class="wd-news-rule" aria-hidden="true">'
           + (koreanLine ? '<p class="wd-news-korean">' + escapeHtml(koreanLine) + '</p><hr class="wd-news-rule" aria-hidden="true">' : '')
-          + '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags">' + (theme.name ? '<span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' : '') + '' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>'
+          + ((theme.name || sectors.length || theme.risk) ? '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags">' + (theme.name ? '<span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' : '') + '' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>' : '')
           + '<div class="wd-news-stocks"><span class="wd-news-label">' + (options.mentionedOnly ? '기사에 언급된 종목' : '관심종목') + '</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { if (options.mentionedOnly) return '<span class="wd-stock-chip">' + escapeHtml(stock.name) + '</span>'; return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>확인된 종목 없음</span>') + '</div></div></article>';
 
   }
 
+  var mainNewsReady = null;
+  function mainNewsModule() {
+    if(global.MainNews)return Promise.resolve(global.MainNews);
+    if(mainNewsReady)return mainNewsReady;
+    mainNewsReady=new Promise(function(resolve,reject){var tag=document.createElement('script');tag.src='https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js';tag.onload=function(){global.MainNews?resolve(global.MainNews):reject(new Error('news'));};tag.onerror=reject;document.head.appendChild(tag);});
+    return mainNewsReady;
+  }
+  function renderWeeklyNews(mount) {
+    ensureStyle();
+    mount.innerHTML='<p class="wd-empty">이번 주 뉴스를 확인하는 중입니다.</p>';
+    return Promise.all([mainNewsModule(),global.NineUI.loadNewsStocks().catch(function(){})]).then(function(modules){
+      var M=modules[0];return M.loadWeek().then(function(data){
+        var dates=function(ms){return new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric'}).format(new Date(ms));};
+        var cards=data.items.map(function(item){return newsCardHtml({name:'',krSectors:Array.isArray(item.krSectors)?item.krSectors:[],krStocks:global.NineNewsStocks?global.NineNewsStocks.relatedStocks(item):[],headlines:[Object.assign({},item,{source:M.sourceLabel(item)})]},{mentionedOnly:true,domestic:item._market==='domestic'});}).join('');
+        mount.innerHTML='<p class="wd-note" data-week-news-count="'+data.items.length+'">'+dates(data.window.start)+' 월 ~ '+dates(data.window.end-1)+' 일 · 한국시간 · 수집 '+data.items.length+'건'+(data.failed.length?' · 일부 시장 조회 실패':'')+'</p>'+(cards?'<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="이번 주 주요뉴스 카드">'+cards+'</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">‹</button><button type="button" data-wd-news-next aria-label="다음 뉴스">›</button></div></div>':'<p class="wd-empty">이번 주 수집된 뉴스가 없습니다.</p>');
+        return (global.SiteInteractionsReady||Promise.resolve(global.SiteInteractions)).then(function(module){if(module)module.carousel(mount,{track:'.wd-news-track',card:'.wd-news-card',previous:'[data-wd-news-prev]',next:'[data-wd-news-next]'});return data;});
+      });
+    }).catch(function(){mount.innerHTML='<p class="wd-empty">뉴스를 불러오지 못했습니다. 잠시 뒤 다시 확인해 주세요.</p>';});
+  }
   function loadWeekendThemes(root) {
-    var mount = root.querySelector('[data-hwr-themes]');
-    if (!mount) return;
-    if (!themesMemo || Date.now() - themesMemo.t > 60000) themesMemo = {t: Date.now(), promise: fetchJsonTimeout(THEMES_URL, 8000)};
-    themesMemo.promise.then(function (payload) {
-      var data = payload && payload.data || {}, seen = {};
-      var themes = (data.themes || []).map(function (theme) {
-        var headlines = (theme.headlines || []).filter(function (item) {
-          if (!item || !item.title || !item.source || !item.pubDate || !/^https?:\/\//.test(item.link || '') || seen[item.link]) return false;
-          seen[item.link] = true; return true;
-        });
-        return Object.assign({}, theme, {headlines: headlines});
-      }).filter(function (theme) { return theme.headlines.length; });
-      mount.innerHTML = newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목 · ' + (data.window ? data.window.start + ' (토) 06:00 ~ ' + data.window.end + ' (월) 06:00 KST' : '기사 발행일 기준'), '<a class="wd-more wd-news-more" href="/pages/main-news">주요 뉴스 전체 →</a>') + (themes.length ? '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="주말 주요뉴스 카드">' + themes.map(function (theme) { return newsCardHtml(theme);      }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>');
-      (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
-        if (!root.contains(mount) || !document.body.contains(root)) return;
-        if (module && typeof module.carousel === 'function') {
-          newsCarousel = module.carousel(mount, {track: '.wd-news-track', card: '.wd-news-card', previous: '[data-wd-news-prev]', next: '[data-wd-news-next]'});
-        }
-        if (!newsCarousel) bindNewsArrowFallback(mount);
-      }).catch(function () { if (root.contains(mount)) bindNewsArrowFallback(mount); });
-    }).catch(function () { mount.innerHTML = newsPanelHeading('기존 뉴스 캐시') + '<p class="wd-empty">뉴스를 불러오지 못했습니다.</p>'; });
+    var mount=root.querySelector('[data-hwr-themes]');if(!mount)return;
+    mount.innerHTML=newsPanelHeading('이번 주 월요일~일요일 · 국내·미국 동일 기사 목록')+'<div data-weekly-news-shared></div>';
+    renderWeeklyNews(mount.querySelector('[data-weekly-news-shared]'));
   }
   function isBullishWeek(indices) {
     var values = (indices || []).filter(function (item) { return !item.group || item.group === 'index'; }).map(function (item) { return num(item && item.changeRate); }).filter(function (value) { return value != null; });
@@ -938,7 +939,7 @@
   function panelHeading(title, sub, tail) { return '<header class="wd-panel-head"><h3' + (['원유·금','이번 주 주요 일정','다음 주 주요 일정','24시간 가상자산','바이낸스 주식·ETF 선물'].indexOf(title) !== -1 ? ' class="ui-section-title"' : '') + '>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small>' + (tail || '') + '</header>'; }
   function newsPanelHeading(sub, tail) {
     var icon = '<svg class="wd-news-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>';
-    return panelHeading(icon + ' 주말 주요뉴스', sub, tail);
+    return panelHeading(icon + ' 이번 주 주요뉴스', sub, tail);
   }
   function bindNewsArrowFallback(mount) {
     var track = mount.querySelector('.wd-news-track');
@@ -1233,5 +1234,5 @@
     });
     return root;
   }
-  global.HomeWeeklyReport = { init: init, syncContent: syncContent, newsCardHtml: newsCardHtml, ensureStyle: ensureStyle };
+  global.HomeWeeklyReport = { init: init, syncContent: syncContent, newsCardHtml: newsCardHtml, ensureStyle: ensureStyle, renderWeeklyNews:renderWeeklyNews };
 })(window);
