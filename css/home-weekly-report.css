@@ -318,8 +318,7 @@ body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-c
    05. 공통 패널 · 목록
    ========================================================================== */
 
-.weekend-dashboard .wd-panel,
-.weekend-dashboard .wd-index-section {
+.weekend-dashboard .wd-panel {
   min-width: 0;
   padding: var(--closed-card-pad);
   border: 1px solid var(--wd-line);
@@ -843,8 +842,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
     grid-auto-columns: 156px;
   }
 
-  .weekend-dashboard .wd-panel,
-.weekend-dashboard .wd-index-section {
+  .weekend-dashboard .wd-panel {
     padding: var(--ui-card-padding);
   }
 
@@ -1096,7 +1094,14 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 @media(max-width:1000px) { .weekend-dashboard .wd-indices-values { grid-template-columns:repeat(3,minmax(0,1fr)); } .weekend-dashboard .wd-indices-values > div:nth-child(4) { border-left:0; padding-left:0; } }
 @media(max-width:767px) { .weekend-dashboard .wd-indices-values { grid-template-columns:repeat(2,minmax(0,1fr)); } .weekend-dashboard .wd-indices-values > div:nth-child(odd) { border-left:0; padding-left:0; } .weekend-dashboard .wd-indices-values > div:nth-child(even) { border-left:1px solid var(--wd-line); padding-left:14px; } }
 
-/* 주요지수는 라이트 화면에서 흰색 바탕을 사용한다. */
+/* 제목은 카드 밖에 두고 지수별로 같은 공통 면·테두리의 카드를 표시한다. */
 @layer np.np {
-  html:not(.dark) body #homeWeeklyReport .wd-index-section { background:#fff!important; }
+  html body #homeWeeklyReport .wd-indices-values > .wd-index-value {
+    min-width:0; box-sizing:border-box; min-height:150px;
+    padding:var(--ui-card-padding)!important;
+    border:1px solid var(--wd-line)!important;
+    border-radius:var(--ui-radius-card)!important;
+    background:var(--wd-surface)!important;
+  }
+  html:not(.dark) body #homeWeeklyReport .wd-indices-values > .wd-index-value { background:#fff!important; }
 }
