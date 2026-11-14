@@ -50,7 +50,7 @@ const source=p=>fs.readFileSync(path.join(root,p),'utf8');
   await p.addScriptTag({content:source('js/market-map.js')});
   await p.evaluate(()=>MarketMap.init(document.querySelector('#market-temp')));
   const m=await p.evaluate(()=>{const l=document.querySelector('.mtm-search-label span'),i=document.querySelector('[data-mtm-search]'),h=document.querySelector('.mtm h1');return {labelHeight:l.getBoundingClientRect().height,inputWidth:i.getBoundingClientRect().width,titleSize:getComputedStyle(h).fontSize,titleFont:getComputedStyle(h).fontFamily};});
-  assert(m.labelHeight<24);assert(m.inputWidth<250);assert.equal(m.titleSize,width>760?'24px':'22px');assert(m.titleFont.includes('Noto Serif KR Site'));
+  assert(m.labelHeight<24);assert(m.inputWidth <= Math.min(560,width));if(width>760)assert(m.inputWidth>400);assert.equal(m.titleSize,width>760?'24px':'22px');assert(m.titleFont.includes('Noto Serif KR Site'));
   await p.addScriptTag({content:source('js/skin-menu.js')});
   const menu=await p.locator('a[href="/page/market-temp?view=map"]').first().evaluate(e=>({label:e.textContent,group:e.closest('.nav-group').querySelector('.nav-group-trigger').textContent}));
   assert(menu.label.includes('시장 지도'));assert.equal(menu.group.trim(),'시장');

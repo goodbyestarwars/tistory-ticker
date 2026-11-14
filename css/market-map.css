@@ -23,7 +23,7 @@
 #market-temp .mtm-segments {display:flex;gap:3px;border-radius:8px;padding:3px;background:rgba(70,86,106,.07);}
 #market-temp .mtm-segments button {padding:7px 13px;border:0;border-radius:6px;background:transparent;color:var(--mtm-muted);font-size:12px;cursor:pointer;}
 #market-temp .mtm-segments button[aria-pressed="true"] {background:var(--mtm-paper);color:var(--mtm-ink);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.11);}
-#market-temp .mtm-search-label {display:flex;align-items:center;gap:8px;min-width:0;width:100%;max-width:320px;flex:0 1 320px;color:var(--mtm-muted);font-size:11px;white-space:nowrap;}
+#market-temp .mtm-search-label {display:flex;align-items:center;gap:8px;min-width:0;width:100%;max-width:560px;flex:0 1 560px;color:var(--mtm-muted);font-size:11px;white-space:nowrap;}
 #market-temp .mtm-search-label span {flex:none;}
 #market-temp .mtm-search-label input {flex:1;width:0;min-width:0;height:35px;border:1px solid var(--mtm-line);border-radius:8px;background:var(--mtm-paper);color:var(--mtm-ink);padding:7px 10px;font-size:12px;}
 #market-temp .mtm-refresh {padding:9px 12px;border:1px solid var(--mtm-line);border-radius:8px;background:transparent;color:var(--mtm-ink);font-size:12px;cursor:pointer;}

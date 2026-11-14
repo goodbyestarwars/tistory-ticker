@@ -507,6 +507,25 @@
   // 서버가 금~일 미국 뉴스 제목에서 테마 키워드 언급 수를 세고, 국내 관련 종목은 운영 섹터 분류에서 꺼낸다.
   var THEMES_URL = 'https://goodbyestar.cloud/weekend-us-themes';
   var newsCarousel = null;
+  function newsCardHtml(theme, options) {
+
+        options = options || {};
+        var headline = theme.headlines[0];
+        var sectors = (theme.krSectors || []).filter(function (sector, i, rows) { return typeof sector === 'string' && rows.indexOf(sector) === i; });
+        var stocks = (theme.krStocks || []).filter(function (stock) { return stock.code && stock.name; });
+        // 2026-11-09 요청: 제목은 한글 번역 전체를 그대로 표시(말줄임 없음). 번역이 없으면 원문 제목.
+        var koTitle = String(headline.title_ko || '').trim();
+        var koreanLine = headline.summary_ko || headline.description_ko || '';
+        return '<article class="wd-news-card"><small class="wd-news-source">' + escapeHtml(headline.source || '출처 미상') + ' · ' + escapeHtml(dateLabel(headline.pubDate)) + '</small>'
+          + '<a class="wd-news-title" href="' + escapeHtml(headline.link) + '" target="_blank" rel="noopener"' + (koTitle ? ' lang="ko"' : '') + '>' + escapeHtml(koTitle || headline.title) + '</a>'
+          + (options.domestic ? '' : koTitle ? '<small class="wd-news-original" lang="en">원문 · ' + escapeHtml(headline.title) + '</small>' : '<small class="wd-news-original">한국어 번역 준비 중 · 원문 제목</small>')
+          + '<hr class="wd-news-rule" aria-hidden="true">'
+          + (koreanLine ? '<p class="wd-news-korean">' + escapeHtml(koreanLine) + '</p><hr class="wd-news-rule" aria-hidden="true">' : '')
+          + '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags">' + (theme.name ? '<span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' : '') + '' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>'
+          + '<div class="wd-news-stocks"><span class="wd-news-label">' + (options.mentionedOnly ? '기사에 언급된 종목' : '관심종목') + '</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { if (options.mentionedOnly) return '<span class="wd-stock-chip">' + escapeHtml(stock.name) + '</span>'; return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>확인된 종목 없음</span>') + '</div></div></article>';
+
+  }
+
   function loadWeekendThemes(root) {
     var mount = root.querySelector('[data-hwr-themes]');
     if (!mount) return;
@@ -520,21 +539,7 @@
         });
         return Object.assign({}, theme, {headlines: headlines});
       }).filter(function (theme) { return theme.headlines.length; });
-      mount.innerHTML = newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목 · ' + (data.window ? data.window.start + ' (토) 06:00 ~ ' + data.window.end + ' (월) 06:00 KST' : '기사 발행일 기준'), '<a class="wd-more wd-news-more" href="/pages/main-news">주요 뉴스 전체 →</a>') + (themes.length ? '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="주말 주요뉴스 카드">' + themes.map(function (theme) {
-        var headline = theme.headlines[0];
-        var sectors = (theme.krSectors || []).filter(function (sector, i, rows) { return typeof sector === 'string' && rows.indexOf(sector) === i; });
-        var stocks = (theme.krStocks || []).filter(function (stock) { return stock.code && stock.name; });
-        // 2026-11-09 요청: 제목은 한글 번역 전체를 그대로 표시(말줄임 없음). 번역이 없으면 원문 제목.
-        var koTitle = String(headline.title_ko || '').trim();
-        var koreanLine = headline.summary_ko || headline.description_ko || '';
-        return '<article class="wd-news-card"><small class="wd-news-source">' + escapeHtml(headline.source || '출처 미상') + ' · ' + escapeHtml(dateLabel(headline.pubDate)) + '</small>'
-          + '<a class="wd-news-title" href="' + escapeHtml(headline.link) + '" target="_blank" rel="noopener"' + (koTitle ? ' lang="ko"' : '') + '>' + escapeHtml(koTitle || headline.title) + '</a>'
-          + (koTitle ? '<small class="wd-news-original" lang="en">원문 · ' + escapeHtml(headline.title) + '</small>' : '<small class="wd-news-original">한국어 번역 준비 중 · 원문 제목</small>')
-          + '<hr class="wd-news-rule" aria-hidden="true">'
-          + (koreanLine ? '<p class="wd-news-korean">' + escapeHtml(koreanLine) + '</p><hr class="wd-news-rule" aria-hidden="true">' : '')
-          + '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags"><span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>'
-          + '<div class="wd-news-stocks"><span class="wd-news-label">관심종목</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>연결된 종목 없음</span>') + '</div></div></article>';
-      }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>');
+      mount.innerHTML = newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목 · ' + (data.window ? data.window.start + ' (토) 06:00 ~ ' + data.window.end + ' (월) 06:00 KST' : '기사 발행일 기준'), '<a class="wd-more wd-news-more" href="/pages/main-news">주요 뉴스 전체 →</a>') + (themes.length ? '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="주말 주요뉴스 카드">' + themes.map(function (theme) { return newsCardHtml(theme);      }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>');
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!root.contains(mount) || !document.body.contains(root)) return;
         if (module && typeof module.carousel === 'function') {
@@ -1019,9 +1024,7 @@
   function indexCard(item) {
     var series = (item.series || []).filter(function (p) { return p.close != null && isFinite(Number(p.close)); });
     var date = series.length ? series[series.length - 1].date : '';
-    return '<a class="wd-index ' + signClass(item.changeRate) + '" data-index-symbol="' + escapeHtml(item.symbol) + '" href="/pages/kospi-futures"><strong>' + escapeHtml(item.name) + '</strong><b>' + (item.end == null ? '미수신' : formatMarketValue(item)) + '</b><span class="wd-index-change">' + directionIcon(item.changeRate) + '<span>' + (item.changeRate == null ? '등락 미제공' : signed(item.changeRate)) + '</span><small>' + (item.changeAbs == null ? '포인트 미제공' : (item.changeAbs > 0 ? '+' : '') + Number(item.changeAbs).toFixed(2) + 'pt') + '</small></span>'
-      + (series.length > 1 ? '<div class="wd-index-spark">' + sparkline(series, signClass(item.changeRate)) + '</div>' : '<div class="wd-index-spark wd-no-series">추이 미제공</div>')
-      + '<small class="wd-index-date">' + escapeHtml(date ? dateLabel(series[0].date) + '–' + dateLabel(date) : '기준일 미제공') + ' · 주간</small></a>';
+    return '<div class="wd-index-value" data-index-symbol="' + escapeHtml(item.symbol) + '"><dt><a href="/pages/kospi-futures">' + escapeHtml(item.name) + '</a></dt><dd>' + (item.end == null ? '미수신' : formatMarketValue(item)) + '</dd><b class="' + signClass(item.changeRate) + '">' + (item.changeRate == null ? '등락 미제공' : directionIcon(item.changeRate) + ' ' + signed(item.changeRate)) + '<small> ' + (item.changeAbs == null ? '포인트 미제공' : (item.changeAbs > 0 ? '+' : '') + Number(item.changeAbs).toFixed(2) + 'pt') + '</small></b><small>' + escapeHtml(date ? dateLabel(series[0].date) + '–' + dateLabel(date) : '기준일 미제공') + ' · 주간</small></div>';
   }
   var extraIndicesMemo;
   function storedWeeklyIndex(row, week) {
@@ -1120,7 +1123,7 @@
     }).join('');
     var indexTitleIcon = '<svg class="wd-index-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-7"/></svg>';
     root.innerHTML = '<header class="wd-header" hidden><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>시장도 잠시 쉬어가요</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 거래 시작일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
-      + '<section class="wd-index-section"><div class="wd-section-head"><h3>' + indexTitleIcon + ' 주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><div class="wd-indices" tabindex="0" role="region" aria-label="주요 지수 · 직전 주 종가 대비 · 가로 스크롤">' + indexCards + '</div></section>'
+      + '<section class="wd-index-section"><div class="wd-section-head"><h3>' + indexTitleIcon + ' 주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><dl class="wd-rate-grid wd-indices-values" aria-label="주요 지수 · 직전 주 종가 대비">' + indexCards + '</dl></section>'
       + '<div class="wd-grid wd-market-overview"><section class="wd-panel wd-commodities" data-hwr-commodities>' + panelHeading('원유·금', '주말에 확인할 주요 원자재 · USD') + '<p class="wd-empty">시세 확인 중</p></section>'
       + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading(scheduleWindow(new Date()).title, '월~토 · 날짜·시각 KST · 미국 실적은 현지 발표일 병기') + '<span>캘린더 연결 중</span></div>' + scheduleList(data.schedule) + '<p class="wd-note">국내 공시·미국 S&amp;P 100 실적·미국 주요 경제지표·등록 캘린더의 확인된 일정입니다. 미발표·미수집 일정은 포함되지 않습니다.</p><a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section>'
       + '<div class="wd-live-panel" data-hwr-live><p class="wd-empty">가상자산·바이낸스 선물 시세 확인 중</p></div></div>'
@@ -1230,5 +1233,5 @@
     });
     return root;
   }
-  global.HomeWeeklyReport = { init: init, syncContent: syncContent };
+  global.HomeWeeklyReport = { init: init, syncContent: syncContent, newsCardHtml: newsCardHtml, ensureStyle: ensureStyle };
 })(window);

@@ -1629,6 +1629,8 @@
     var stocksOnly = isStocksView();
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    var pageTitle = container.closest('.post-single') && container.closest('.post-single').querySelector('.post-single-title');
+    if (pageTitle) pageTitle.textContent = isMapView_() ? '시장 지도' : stocksOnly ? '국내 주요종목 · 업종별 종목 탐색' : '증시온도 · 시장 투자심리';
     if (isMapView_()) { bootMapView_(container); return; }
     if (stocksOnly) {
       // 본문 스크립트·스킨 로더·DOMContentLoaded가 같은 화면을 다시 초기화하지 않는다.

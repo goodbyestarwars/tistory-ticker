@@ -10,8 +10,8 @@
  *    (.home-dashboard.home-editorial-page > .home-widget-grid)를 그대로 써서 style.css 규칙이 동일하게 적용된다.
  *    카드는 티스토리 피드의 .post-card(data-cat='마켓 브리핑'). 홈 피드에 부족하면 /category/마켓 브리핑 을 읽어온다.
  *  - 이야기 시리즈·법적 링크·회사 정보: skin-shell 이 그린 원본 푸터(.site-footer)를 손대지 않는다.
- *  - 지금 주목할 뉴스(타임라인): js/main-news.js 의 MainNews(조회·정렬·언론사명·제목·시각)를 재사용한다. 이미지·시세 요청 없음.
- *  - 이 파일과 css/guest-home.css 는 비회원 전용 차이(빈 사이드바 숨김·뉴스 타임라인 배치)만 가진다.
+ *  - 지금 주목할 뉴스(공통 뉴스 카드): js/main-news.js 의 MainNews(조회·정렬·언론사명·제목·시각)를 재사용한다. 이미지·시세 요청 없음.
+ *  - 이 파일과 css/guest-home.css 는 비회원 전용 차이(빈 사이드바 숨김·뉴스 카드 배치)만 가진다.
  */
 (function (global) {
   'use strict';
@@ -64,11 +64,11 @@
     shared.initCarousel(section);
   }
 
-  /* ───── 지금 주목할 뉴스(텍스트 타임라인) ─────
+  /* ───── 지금 주목할 뉴스(공통 뉴스 카드) ─────
      최근 24시간·발행시각이 확인된 기사 전부(기존 API 시장별 최대 25건)를 중복 없이 최신순으로 정렬한다.
-     첫 화면은 6건이지만 페이지 버튼으로 나머지도 열람한다. 중요도·시장별 인위적인 쿼터는 만들지 않는다. */
+     첫 화면은 4건이지만 페이지 버튼으로 나머지도 열람한다. 중요도·시장별 인위적인 쿼터는 만들지 않는다. */
   var NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261112-guest-timeline';
-  var NEWS_PAGE_SIZE = 6;
+  var NEWS_PAGE_SIZE = 4;
   var DAY_MS = 24 * 60 * 60 * 1000;
   var MARKET_LABEL = { kr: '국내', us: '미국' };
 
@@ -127,24 +127,22 @@
     } catch (e) { return ''; }
   }
 
-  function newsItemHtml(M, item, now, latest) {
-    var at = M.dateValue(item.pubDate);
-    var press = M.sourceLabel(item);
-    var related = relatedStocks(item);
-    var stockFooter = related.length ? '<span class="gnt-related"><span class="gnt-related-label">관련 종목</span>' +
-      related.map(function (stock) { return '<span class="gnt-stock-name">' + esc(stock.name) + '</span>'; }).join('') + '</span>' : '';
-    return '<li class="gnt-item' + (latest ? ' is-latest' : '') + '">' +
-      '<a class="gnt-card" href="' + esc(M.safeHref(item.link)) + '" target="_blank" rel="noopener noreferrer">' +
-      // 신문 기사 머리줄: 시각 · 언론사 · 시장을 제목 위 한 줄에 둔다.
-      '<span class="gnt-head"><time class="gnt-time" datetime="' + esc(new Date(at).toISOString()) + '" title="' + esc(M.timeLabel(item.pubDate, item._market)) + '">' + esc(relativeLabel(at, now)) + '</time>' +
-      '<span class="gnt-meta">' + (press ? '<span class="gnt-press">' + esc(press) + '</span>' : '') +
-      '<span class="gnt-market">' + MARKET_LABEL[item._market] + '</span></span></span>' +
-      '<h3 class="gnt-title ui-section-title">' + esc(M.displayTitle(item)) + '</h3>' + stockFooter + '</a>' +
-      '<span class="gnt-marker" aria-hidden="true"></span></li>';
+  function newsItemHtml(M, item) {
+    var sectors = Array.isArray(item.krSectors) ? item.krSectors : [];
+    return global.HomeWeeklyReport.newsCardHtml({name:'',krSectors:sectors,krStocks:relatedStocks(item),headlines:[Object.assign({}, item, {source:M.sourceLabel(item)})]}, {mentionedOnly:true,domestic:item._market === 'kr'});
+  }
+  function loadNewsCards() {
+    if (global.HomeWeeklyReport) { global.HomeWeeklyReport.ensureStyle(); return Promise.resolve(); }
+    return new Promise(function (resolve,reject) {
+      var tag=doc.createElement('script');
+      tag.src='https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js';
+      tag.onload=function () { if (!global.HomeWeeklyReport) { reject(new Error('news-cards')); return; } global.HomeWeeklyReport.ensureStyle(); resolve(); };
+      tag.onerror=reject; doc.head.appendChild(tag);
+    });
   }
 
   function newsShellHtml() {
-    return '<section class="guest-news home-widget home-widget--full" aria-label="지금 주목할 뉴스">' +
+    return '<section class="guest-news home-weekly-report weekend-dashboard home-widget home-widget--full" aria-label="지금 주목할 뉴스">' +
       // 머리말은 공통 briefing-intro, 뉴스 CTA는 브리핑 아카이브 카드와 구분되는 텍스트 링크다.
       '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시간 순으로 읽는 시장</span>' +
       '<strong>지금 주목할 뉴스</strong></div>' +
@@ -167,9 +165,9 @@
       // 신문 머리줄(날짜선): 오늘 날짜(KST)·수집 범위·건수·면수. 새 조회 없이 이미 받은 목록만 센다.
       body.innerHTML = '<div class="gnt-dateline"><span>' + esc(datelineLabel(now)) + ' · 최근 24시간 · 국내·미국</span>' +
         '<span>수집 ' + items.length + '건 · ' + (page + 1) + ' / ' + pageCount + '면</span></div>' +
-        '<ol class="gnt-list" data-count="' + visible.length + '">' + visible.map(function (item, index) {
+        '<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="지금 주목할 뉴스 카드">' + visible.map(function (item, index) {
         return newsItemHtml(M, item, now, page === 0 && index === 0);
-      }).join('') + '</ol>' +
+      }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">‹</button><button type="button" data-wd-news-next aria-label="다음 뉴스">›</button></div></div>' +
         '<div class="gnt-pager"><span class="gnt-count">최신 → 과거 순 · ' + (start + 1) + '–' + (start + visible.length) + '건 표시</span>' +
         (pageCount > 1 ? '<div class="gnt-controls" aria-label="뉴스 페이지 이동">' +
           '<button type="button" data-gnt-page="newer"' + (page === 0 ? ' disabled' : '') + '>← 최신 뉴스</button>' +
@@ -177,6 +175,7 @@
           '<button type="button" data-gnt-page="older"' + (page + 1 >= pageCount ? ' disabled' : '') + '>지난 뉴스 →</button>' +
           '</div>' : '') + '</div>' +
         (failed ? '<p class="gnt-note">일부 시장 뉴스 응답에 실패하여 수집된 기사만 표시합니다.</p>' : '');
+      (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) { if (module) module.carousel(body,{track:'.wd-news-track',card:'.wd-news-card',previous:'[data-wd-news-prev]',next:'[data-wd-news-next]'}); }).catch(function () {});
     }
     body.addEventListener('click', function (event) {
       var button = event.target.closest('button[data-gnt-page]');
@@ -188,7 +187,8 @@
     });
     // 뉴스 조회와 병렬로 공개 종목 사전만 로드한다. 시세·새 API 요청은 없다.
     global.NineUI.loadNewsStocks().then(function () { if (items.length && M) render(); }).catch(function () { /* Keep news visible on map failure. */ });
-    loadMainNews().then(function (loaded) {
+    Promise.all([loadMainNews(), loadNewsCards()]).then(function (modules) {
+      var loaded = modules[0];
       M = loaded;
       var lists = {};
       var jobs = ['kr', 'us'].map(function (market) {

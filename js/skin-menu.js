@@ -108,6 +108,7 @@
   var NAV_ICON_PATHS = {
     briefing: '<path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9.5 8h5"/><path d="M9.5 12H16"/><path d="M9.5 16H14"/>',
     news: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>',
+    map: '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/>',
     temp: '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
     indicators: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
     stocks: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 11h8"/><path d="M7 16h3"/><path d="M7 6h12"/>',
@@ -126,7 +127,7 @@
     var href = String(item.href || '');
     if (href.indexOf('main-news') !== -1) return 'news';
     if (href.indexOf('view=stocks') !== -1) return 'stocks';
-    if (href.indexOf('view=map') !== -1) return 'stocks';
+    if (href.indexOf('view=map') !== -1) return 'map';
     if (href.indexOf('market-temp') !== -1) return 'temp';
     if (href.indexOf('kospi-futures') !== -1) return 'indicators';
     if (href.indexOf('foreign-flow') !== -1) return 'analysis';

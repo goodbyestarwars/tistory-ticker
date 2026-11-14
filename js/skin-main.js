@@ -88,6 +88,99 @@ function loadMobileTabs() {
 if (document.documentElement.classList.contains('guest-home-mode')) loadMobileTabs();
 else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true });
 
+/* 공개 글 열기·공유는 회원 대시보드 권한과 독립된 공통 동작이다. */
+(function () {
+  /* ── 아티클 모달 ── */
+  function openArticleModal(url, title, wide, zoom) {
+    var old = document.getElementById('bolt-modal');
+    if (old) old.remove();
+    var m = document.createElement('div');
+    m.id = 'bolt-modal';
+    var iframeHTML = wide
+      ? '<div class="nm-scale-wrap"><div class="nm-scale-inner"><iframe src="' + url + '" class="nm-iframe nm-iframe-fixed"></iframe></div></div>'
+      : '<iframe src="' + url + '" class="nm-iframe"></iframe>';
+    m.innerHTML =
+      '<div class="nm-overlay"></div>' +
+      '<div class="nm-card' + (wide ? ' nm-wide' : '') + '">' +
+        '<div class="nm-header">' +
+          '<span class="nm-title">' + (title || '') + '</span>' +
+          '<div class="nm-actions">' +
+            '<a href="' + url + '" target="_blank" class="nm-ext">새창 열기 ↗</a>' +
+            '<button class="nm-close" id="nmClose">✕</button>' +
+          '</div>' +
+        '</div>' +
+        iframeHTML +
+      '</div>';
+    document.body.appendChild(m);
+    document.body.style.overflow = 'hidden';
+    document.getElementById('nmClose').onclick = closeArticleModal;
+    m.querySelector('.nm-overlay').onclick = closeArticleModal;
+
+    if (wide) {
+      var wrap = m.querySelector('.nm-scale-wrap');
+      var inner = m.querySelector('.nm-scale-inner');
+      var ifr = m.querySelector('.nm-iframe-fixed');
+      if (wrap && inner && ifr) {
+        var rescale = function() {
+          var w = wrap.clientWidth;
+          if (!w) return;
+          var virtualWidth = zoom ? (w / zoom) : 1200;
+          var scale = w / virtualWidth;
+          ifr.style.width = virtualWidth + 'px';
+          ifr.style.transform = 'scale(' + scale + ')';
+          inner.style.width = w + 'px';
+          inner.style.height = (1300 * scale) + 'px';
+        };
+        rescale();
+        window.addEventListener('resize', rescale);
+        m._rescale = rescale;
+      }
+    }
+  }
+  function closeArticleModal() {
+    var m = document.getElementById('bolt-modal');
+    if (m) {
+      if (m._rescale) window.removeEventListener('resize', m._rescale);
+      m.classList.add('nm-closing'); setTimeout(function(){ m.remove(); }, 200);
+    }
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeArticleModal();
+  });
+
+  /* ── 전역 노출 ── */
+  window.readPost = function(btn) {
+    var card = btn.closest('.post-card');
+    if (!card) return;
+    var postUrl = card.dataset.url;
+    var titleEl = card.querySelector('.post-title');
+    var title = titleEl ? titleEl.textContent.trim() : '';
+    openArticleModal(postUrl, title, true, 1.0);
+  };
+
+  window.sharePost = function(btn) {
+    var card = btn.closest('.post-card');
+    if (!card) return;
+    var url = card.dataset.url || location.href;
+    var titleEl = card.querySelector('.post-title');
+    var title = titleEl ? titleEl.textContent.trim() : '';
+    if (navigator.share) {
+      navigator.share({ title: title, url: url }).catch(function(){});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function() {
+        var orig = btn.textContent;
+        btn.textContent = '✓ 복사됨';
+        btn.style.background = '#dcfce7'; btn.style.borderColor = '#86efac'; btn.style.color = '#15803d';
+        setTimeout(function() {
+          btn.textContent = orig; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
+        }, 2000);
+      });
+    } else { window.open(url, '_blank'); }
+  };
+
+})();
+
 /* 2026-11-11 화면 접근 정책: 보호 화면(홈·종목·MY 등)은 서버 판정(NineAccess) 뒤에만 아래 초기화를 시작한다.
    공개 4개 화면·일반 글은 기다리지 않고 바로 시작한다. 게이트 로드 실패 시에도 데이터는 서버 API가 막는다. */
 (function nineAccessBoot() {
@@ -3495,95 +3588,6 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
   });
 
-
-  /* ── 아티클 모달 ── */
-  function openArticleModal(url, title, wide, zoom) {
-    var old = document.getElementById('bolt-modal');
-    if (old) old.remove();
-    var m = document.createElement('div');
-    m.id = 'bolt-modal';
-    var iframeHTML = wide
-      ? '<div class="nm-scale-wrap"><div class="nm-scale-inner"><iframe src="' + url + '" class="nm-iframe nm-iframe-fixed"></iframe></div></div>'
-      : '<iframe src="' + url + '" class="nm-iframe"></iframe>';
-    m.innerHTML =
-      '<div class="nm-overlay"></div>' +
-      '<div class="nm-card' + (wide ? ' nm-wide' : '') + '">' +
-        '<div class="nm-header">' +
-          '<span class="nm-title">' + (title || '') + '</span>' +
-          '<div class="nm-actions">' +
-            '<a href="' + url + '" target="_blank" class="nm-ext">새창 열기 ↗</a>' +
-            '<button class="nm-close" id="nmClose">✕</button>' +
-          '</div>' +
-        '</div>' +
-        iframeHTML +
-      '</div>';
-    document.body.appendChild(m);
-    document.body.style.overflow = 'hidden';
-    document.getElementById('nmClose').onclick = closeArticleModal;
-    m.querySelector('.nm-overlay').onclick = closeArticleModal;
-
-    if (wide) {
-      var wrap = m.querySelector('.nm-scale-wrap');
-      var inner = m.querySelector('.nm-scale-inner');
-      var ifr = m.querySelector('.nm-iframe-fixed');
-      if (wrap && inner && ifr) {
-        var rescale = function() {
-          var w = wrap.clientWidth;
-          if (!w) return;
-          var virtualWidth = zoom ? (w / zoom) : 1200;
-          var scale = w / virtualWidth;
-          ifr.style.width = virtualWidth + 'px';
-          ifr.style.transform = 'scale(' + scale + ')';
-          inner.style.width = w + 'px';
-          inner.style.height = (1300 * scale) + 'px';
-        };
-        rescale();
-        window.addEventListener('resize', rescale);
-        m._rescale = rescale;
-      }
-    }
-  }
-  function closeArticleModal() {
-    var m = document.getElementById('bolt-modal');
-    if (m) {
-      if (m._rescale) window.removeEventListener('resize', m._rescale);
-      m.classList.add('nm-closing'); setTimeout(function(){ m.remove(); }, 200);
-    }
-    document.body.style.overflow = '';
-  }
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeArticleModal();
-  });
-
-  /* ── 전역 노출 ── */
-  window.readPost = function(btn) {
-    var card = btn.closest('.post-card');
-    if (!card) return;
-    var postUrl = card.dataset.url;
-    var titleEl = card.querySelector('.post-title');
-    var title = titleEl ? titleEl.textContent.trim() : '';
-    openArticleModal(postUrl, title, true, 1.0);
-  };
-
-  window.sharePost = function(btn) {
-    var card = btn.closest('.post-card');
-    if (!card) return;
-    var url = card.dataset.url || location.href;
-    var titleEl = card.querySelector('.post-title');
-    var title = titleEl ? titleEl.textContent.trim() : '';
-    if (navigator.share) {
-      navigator.share({ title: title, url: url }).catch(function(){});
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(function() {
-        var orig = btn.textContent;
-        btn.textContent = '✓ 복사됨';
-        btn.style.background = '#dcfce7'; btn.style.borderColor = '#86efac'; btn.style.color = '#15803d';
-        setTimeout(function() {
-          btn.textContent = orig; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
-        }, 2000);
-      });
-    } else { window.open(url, '_blank'); }
-  };
 
   /* ── 카테고리 없는 글/페이지(예: /page/market-temp 등 개별 Page)의
      "카테고리 없음" 뱃지 숨김 ── */

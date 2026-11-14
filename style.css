@@ -9254,3 +9254,26 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
     justify-self: stretch !important;
   }
 }
+
+/* 공개 홈 편집 카드: 공통 컴포넌트의 표시만 조정한다. */
+@layer np.np {
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::after { content:none!important; display:none!important; }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track :is(.btn-share,.btn-read) { padding:8px 12px!important; border:0!important; border-bottom:0!important; border-radius:10px!important; text-decoration:none!important; background:transparent!important; transition:background .18s ease!important; }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track :is(.btn-share,.btn-read):is(:hover,:focus-visible) { background:rgba(var(--np-ink),.07)!important; }
+  html body#tt-body-index .home-briefing-section .briefing-intro .home-briefing-more { min-width:0!important; border-radius:999px!important; padding:13px 20px!important; background:var(--ui-glass-sheen),linear-gradient(var(--ui-glass-panel),var(--ui-glass-panel))!important; box-shadow:var(--ui-glass-shadow)!important; }
+  html body .site-footer-learn .learn-intro h2 { white-space:nowrap!important; font-size:clamp(18px,2.1vw,24px)!important; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns:minmax(285px,.8fr) minmax(0,2.5fr)!important; }
+  html body .site-footer-learn .learn-intro { border-right:0!important; }
+  html body .site-footer-learn .learn-intro-note { display:block!important; margin-top:12px!important; }
+  html body .site-footer-learn .learn-card-grid { --learn-columns:4; }
+  html body .site-footer-learn .learn-card-grid a.learn-card { height:310px!important; padding-bottom:76px!important; }
+  html body .site-footer-learn a.learn-card::before { content:counter(story,decimal-leading-zero)!important; top:auto!important; right:22px!important; bottom:12px!important; font:700 64px/1 var(--font-serif)!important; color:rgba(var(--np-ink),.13)!important; text-shadow:0 1px 0 rgba(255,255,255,.8),0 -1px 1px rgba(var(--np-ink),.12)!important; pointer-events:none; }
+  html body .site-footer-learn a.learn-card[href$="/glossary.html"]::before { content:'부록'!important; font-size:36px!important; }
+  html body#tt-body-index .guest-news .wd-news-title { font-family:var(--font-serif)!important; font-size:var(--home-editorial-card-title-size)!important; }
+  @media(max-width:1100px) { html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns:minmax(0,1fr)!important; } html body .site-footer-learn .learn-card-grid { --learn-columns:3; } }
+  @media(max-width:720px) {
+    html body .site-footer-learn .learn-card-grid { --learn-columns:2; }
+    html body .site-footer-learn .learn-card-grid a.learn-card { height:290px!important; }
+    html body .site-footer-learn a.learn-card::before { font-size:54px!important; right:14px!important; }
+  }
+}
