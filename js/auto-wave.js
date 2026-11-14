@@ -1128,7 +1128,37 @@ function setupShapesOf(bars){
     return groups;
   }
 
-  var api = { selectShapesOf: selectShapesOf, relativeContextOf: relativeContextOf, relativeStrengthOf: relativeStrengthOf, edgeSignalsOf: edgeSignalsOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+  // Quietness inputs (2026-11-13 study docs/EDGE_FACTOR_STUDY_2026-11-13.md): low idiosyncratic
+  // volatility and no up-day volume crowding were the only price traits that held every year.
+  //  ivol60 : sample std of (stock daily return - same-day universe mean return), last 60 sessions
+  //           (|daily return| >= 31% skipped as a corporate-action outlier; needs 55 sessions).
+  //  upvol20: up-day volume / total volume over the last 20 sessions.
+  //  amt20  : mean close*volume over the last 20 sessions (trading-value proxy).
+  // marketReturns maps date -> universe mean return for that date; the caller ranks the
+  // values across the whole universe (lower ivol60/upvol20 = quieter). Observation only.
+  function quietnessOf(bars, marketReturns) {
+    var out={version:'quiet-v1',ivol60:null,upvol20:null,amt20:null};
+    if(!Array.isArray(bars) || bars.length<22)return out;
+    var n=bars.length, up=0, tot=0, amt=0;
+    for(var i=n-20;i<n;i++){
+      var b=bars[i],p=bars[i-1];
+      if(!(b.close>0 && p.close>0 && b.volume>=0))return out;
+      tot+=b.volume; amt+=b.close*b.volume; if(b.close>p.close)up+=b.volume;
+    }
+    out.upvol20=tot>0?up/tot:null; out.amt20=amt/20;
+    var ex=[];
+    for(var j=Math.max(1,n-60);j<n;j++){
+      var r=bars[j].close/bars[j-1].close-1, m=marketReturns ? marketReturns[bars[j].date] : undefined;
+      if(Number.isFinite(r) && Math.abs(r)<.31 && Number.isFinite(m))ex.push(r-m);
+    }
+    if(ex.length>=55){
+      var mean=ex.reduce(function(s,x){return s+x;},0)/ex.length;
+      out.ivol60=Math.sqrt(ex.reduce(function(s,x){return s+(x-mean)*(x-mean);},0)/(ex.length-1));
+    }
+    return out;
+  }
+
+  var api = { quietnessOf: quietnessOf, selectShapesOf: selectShapesOf, relativeContextOf: relativeContextOf, relativeStrengthOf: relativeStrengthOf, edgeSignalsOf: edgeSignalsOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;
