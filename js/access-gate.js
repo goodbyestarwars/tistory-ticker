@@ -250,12 +250,6 @@
   }
 
   /* 네이버 버튼 표시 여부: 정책 응답에 없으면(서버 배포 전) 기존 /auth/google/me 로 확인한다. */
-  function probeNaver(L) {
-    global.fetch(API + '/auth/google/me', { credentials: 'include', cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (b) { var d = (b && b.data) || b || {}; if (d.naverConfigured) L.settle({ authenticated: false, naverConfigured: true }); })
-      .catch(function () { /* 버튼 없이 유지 */ });
-  }
 
   /* 로그인도 비회원 입장도 하지 않은 상태에서 홈·로고(송골매)·배너를 누르면 시작 화면(랜딩)을 다시 연다.
      비회원 입장 상태에서는 기본 동작(/ = 비회원 홈)을 그대로 둔다. */
@@ -302,7 +296,7 @@
       setHint(!!(current && current.authenticated));
       if (landingApplies) {
         if ((current && current.authenticated) || isGuest()) { if (global.NineLanding) global.NineLanding.close(); }
-        else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured)); if (!(current && current.naverConfigured)) probeNaver(L); });
+        else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured));  });
       }
       if (startScreen === 'home' && !allowsScreen('home')) {
         // 관리자가 아니면 홈은 항상 비회원 전용 홈(공개 콘텐츠)이다. 입장 전 비로그인은 그 위에 로그인 창(랜딩)이 덮이고,

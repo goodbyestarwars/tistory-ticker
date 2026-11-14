@@ -29,13 +29,13 @@ class NaverAuthTests(unittest.TestCase):
         with self.assertRaises(NaverAuthError):
             NaverAuthService.user_from_profile({'resultcode': '024', 'message': 'Authentication failed'})
 
-    def test_naver_session_without_email_is_valid_user(self):
+    def test_legacy_naver_session_is_no_longer_a_site_user(self):
         with mock.patch.dict(os.environ, ENV, clear=False):
             auth = GoogleAuthService()
             cookie = auth.make_session({'sub': 'naver:abc', 'email': '', 'name': '별', 'provider': 'naver'})
             status = auth.status(cookie)
-        self.assertTrue(status['authenticated'])
-        self.assertEqual(status['provider'], 'naver')
+        self.assertFalse(status['authenticated'])
+        self.assertIsNone(status['provider'])
 
     def test_naver_email_matching_admin_is_not_admin(self):
         # 네이버 email은 소유 검증이 보장되지 않는다 - 관리자 이메일과 같아도 관리자가 아니다.

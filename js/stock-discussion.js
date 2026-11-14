@@ -370,19 +370,32 @@
     var log = addText(panel, 'ol', 'discussion-terminal-log', '');
     log.setAttribute('aria-label', '공개 채팅 목록, 오래된 글부터');
     log.tabIndex = 0;
-    if (window.T?.config?.ROLE === 'owner') {
-      var adminBar = addText(panel, 'div', 'discussion-terminal-bar', '');
-      log.before(adminBar);
-      var all = addText(adminBar, 'button', '', '모든 방 글 보기');
-      all.type = 'button';
-      all.setAttribute('aria-pressed', 'false');
-      all.addEventListener('click', function () {
-        showAll = !showAll;
-        all.setAttribute('aria-pressed', String(showAll));
-        all.textContent = showAll ? '현재 방 글 보기' : '모든 방 글 보기';
+    var adminBar = addText(panel, 'div', 'discussion-terminal-bar', '');
+    adminBar.hidden = true;
+    log.before(adminBar);
+    var all = addText(adminBar, 'button', '', '모든 방 글 보기');
+    all.type = 'button';
+    all.setAttribute('aria-pressed', 'false');
+    function syncDiscussionAdmin() {
+      var admin = !!(window.NineAccess && window.NineAccess.isAdmin());
+      adminBar.hidden = !admin;
+      if (!admin) {
+        showAll = false;
+        all.setAttribute('aria-pressed', 'false');
+        all.textContent = '모든 방 글 보기';
         renderClassic();
-      });
+      }
     }
+    all.addEventListener('click', function () {
+      if (!window.NineAccess || !window.NineAccess.isAdmin()) return;
+      showAll = !showAll;
+      all.setAttribute('aria-pressed', String(showAll));
+      all.textContent = showAll ? '현재 방 글 보기' : '모든 방 글 보기';
+      renderClassic();
+    });
+    if (window.NineAccess) window.NineAccess.ready.then(syncDiscussionAdmin);
+    window.addEventListener('nineaccess:ready', syncDiscussionAdmin);
+    window.addEventListener('nineaccess:change', syncDiscussionAdmin);
     form.querySelector('.discussion-write-note')?.remove();
     var textarea = form.querySelector('textarea');
     if (textarea) {

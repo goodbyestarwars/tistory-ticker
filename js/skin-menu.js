@@ -52,9 +52,7 @@
     { href: '/guestbook', label: '대화방' },
     { href: '/page/watchlist', label: 'MY' },
   ];
-  // 자동매매 메뉴: 티스토리 관리자(블로그 소유자) 로그인 상태에서만 보인다(2026-10-11 요청 - 카카오 로그인으로 들어온 관리자 기준).
-  // 티스토리가 모든 페이지에 주는 T.config.ROLE이 방문자는 'guest', 로그인한 블로그 운영자는 그 외 값이다. 브라우저에서 보이는 값이라
-  // 보안 장치는 아니고(화면 껍데기만 가린다), 계좌·주문은 이 PC의 로컬 봇과 토큰이 지킨다.
+  // Tistory-native 글쓰기/블로그 관리 표시 전용. 사이트 권한은 NineAccess의 Google 서버 판정을 쓴다.
   function isBlogAdmin() {
     try {
       var c = window.T && window.T.config;

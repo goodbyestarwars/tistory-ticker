@@ -348,7 +348,7 @@
         '</p><button type="button" class="wl-login-btn">로그인</button></div>';
       var button = grid.querySelector('.wl-login-btn');
       if (button) button.addEventListener('click', function () {
-        // 2026-10-04: Google·네이버 선택창(js/skin-shell.js)이 있으면 그것을 연다.
+        // 2026-10-04: Google 로그인창(js/skin-shell.js)이 있으면 그것을 연다.
         if (global.NinePayAccountLogin) return global.NinePayAccountLogin.open();
         var returnTo = encodeURIComponent(global.location.href);
         global.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + returnTo;
@@ -375,7 +375,7 @@
       header.insertBefore(status, header.firstChild);
     }
     status.innerHTML = authenticated
-      ? '<span>' + (authState.provider === 'naver' ? '네이버' : 'Google') + ': ' + escapeHtml(authState.email || authState.name || '로그인된 계정') + '</span><button type="button" class="wl-logout-btn">로그아웃</button>'
+      ? '<span>' + 'Google' + ': ' + escapeHtml(authState.email || authState.name || '로그인된 계정') + '</span><button type="button" class="wl-logout-btn">로그아웃</button>'
       : '<span>로그인 필요</span>';
     var logout = status.querySelector('.wl-logout-btn');
     if (logout) logout.addEventListener('click', function () {

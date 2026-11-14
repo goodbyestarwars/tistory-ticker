@@ -1328,8 +1328,6 @@
     var managerUrl = manageLink.href;
     var googleStartUrl = 'https://goodbyestar.cloud/auth/google/start';
     var googleMeUrl = 'https://goodbyestar.cloud/auth/google/me';
-    // 2026-10-04: 일반 사용자용 네이버 로그인. 세션은 구글과 같은 쿠키라 로그아웃·관심종목 경로가 같다.
-    var naverStartUrl = 'https://goodbyestar.cloud/auth/naver/start';
     var modal = document.createElement('div');
     modal.className = 'account-login-modal';
     modal.hidden = true;
@@ -1353,11 +1351,6 @@
               '<span class="account-login-option-copy"><strong>서비스 이용</strong><small>Google · 관심종목과 분석</small></span>' +
               '<span class="account-login-option-arrow" aria-hidden="true">→</span>' +
             '</button>' +
-            '<button type="button" class="account-login-option account-login-naver" data-account-action="naver" hidden>' +
-              '<span class="account-login-option-icon account-login-naver-icon" aria-hidden="true">N</span>' +
-              '<span class="account-login-option-copy"><strong>네이버로 로그인</strong><small>Naver · 관심종목과 분석</small></span>' +
-              '<span class="account-login-option-arrow" aria-hidden="true">→</span>' +
-            '</button>' +
           '</div>' +
           '<div class="account-login-google-status" aria-live="polite">Google 계정 상태를 확인하고 있습니다.</div>' +
           '<div class="account-login-footer"><span>두 로그인은 동시에 유지되며 서로의 권한에 영향을 주지 않습니다.</span></div>' +
@@ -1367,7 +1360,6 @@
 
     var googleStatus = modal.querySelector('.account-login-google-status');
     var googleOption = modal.querySelector('.account-login-google');
-    var naverOption = modal.querySelector('.account-login-naver');
     var tistoryOption = modal.querySelector('.account-login-tistory');
 
     tistoryOption.href = managerUrl;
@@ -1380,18 +1372,12 @@
         })
         .then(function (body) {
           var data = body && body.data ? body.data : {};
-          naverOption.hidden = !data.naverConfigured;
-          if (data.authenticated) {
-            var isNaver = data.provider === 'naver';
-            googleStatus.textContent = '현재 ' + (isNaver ? '네이버' : 'Google') + ' 로그인: ' +
-              (data.email || data.name || '로그인된 계정');
-            googleOption.querySelector('strong').textContent = isNaver ? 'Google로 로그인' : 'Google 계정으로 계속하기';
-            naverOption.querySelector('strong').textContent = isNaver ? '네이버 계정으로 계속하기' : '네이버로 로그인';
+          if (data.authenticated && (!data.provider || data.provider === 'google')) {
+            googleStatus.textContent = '현재 Google 로그인: ' + (data.email || data.name || '로그인된 계정');
+            googleOption.querySelector('strong').textContent = 'Google 계정으로 계속하기';
           } else {
-            googleStatus.textContent = (data.naverConfigured ? 'Google 또는 네이버' : 'Google') +
-              '로 로그인하면 관심종목과 서비스 설정이 계정별로 저장됩니다.';
+            googleStatus.textContent = 'Google로 로그인하면 관심종목과 서비스 설정이 계정별로 저장됩니다.';
             googleOption.querySelector('strong').textContent = 'Google로 로그인';
-            naverOption.querySelector('strong').textContent = '네이버로 로그인';
           }
           return data;
         })
@@ -1433,9 +1419,7 @@
       } else if (action === 'google') {
         event.preventDefault();
         window.location.href = googleStartUrl + '?return_to=' + encodeURIComponent(window.location.href);
-      } else if (action === 'naver') {
-        event.preventDefault();
-        window.location.href = naverStartUrl + '?return_to=' + encodeURIComponent(window.location.href);
+
       }
     });
 

@@ -83,3 +83,13 @@
 
 - 서비스의 nav-logout-btn/모바일 이용 종료는 기존 Google/네이버 공용 서버 세션을 최상위 로그아웃 주소에서 지운 뒤 홈의 로그인 랜딩으로 돌아간다. 별도 인증 영역인 Tistory/Kakao의 외부 로그아웃 페이지로 강제 이동하지 않는다. Tistory 자체 세션 종료를 보장한다고 표시하지 않는다.
 - 구형 nine_logout_step=tistory도 외부 이동 없이 소비한다. 입장·인증힌트·메뉴 캐시·관심 미리보기를 지우며 저장소 쓰기 불가여도 서버 세션 종료는 실행한다. 권한 판단은 여전히 서버 /access-policy·서명 쿠키에만 의존한다.
+
+
+## 2026-11-15 사이트 계정 Google 통일 (이전 공급자 설명보다 우선)
+
+- 로그인 랜딩/공통 계정창의 사이트 로그인은 Google만 제공. 티스토리 관리·글쓰기·댓글 원본 인증만 Tistory/Kakao 유지.
+- GoogleAuthService.read_session은 서명된 기존 네이버/타 공급자 쿠키도 거부하며, Google/구형 Google 세션은 기존 검증을 유지. `_site_admin`은 Google 관리자만; ADMIN_NAVER_REFS 예외를 더 이상 사용하지 않음.
+- `/auth/naver/start`와 `/auth/naver/callback`은 기존 주소 호환용으로 Google OAuth를 시작하고 네이버 토큰교환/사이트 세션발급을 하지 않음. `/auth/google/me` 및 `/access-policy`의 naverConfigured는 false.
+- 대화방 ‘모든 방 글 보기’와 인트로 편집은 같은 NineAccess 서버 Google 관리자 판정, 판정 전/실패/권한회수 시 숨김. 공개 원글/티스토리 쓰기·수정·삭제는 변경하지 않음.
+- 네이버에 저장된 관심/메모 등 기존 데이터는 삭제·Google 계정으로 자동 병합하지 않음. 기존 네이버 사용자는 Google 재로그인 필요. 거래 명령/실계좌·원천시세 제한은 그대로.
+- 검증: test_google_only.py, test_naver_auth.py, test_access_members.py 및 test_google_only_ui.cjs. Google 세션보존/비Google 거부/구형주소/Origin·관리자 기존 경계와 PC·모바일 진입점 확인.

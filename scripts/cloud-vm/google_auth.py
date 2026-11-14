@@ -165,8 +165,10 @@ class GoogleAuthService:
                 return None
             if not payload.get('sub'):
                 return None
-            # 네이버는 이메일 동의를 끌 수 있어 email 없이도 세션이 성립한다.
-            if not payload.get('email') and session_provider(payload) != 'naver':
+            # Site accounts are Google-only; reject old signed Naver/unknown-provider cookies.
+            if payload.get('provider', 'google') != 'google' or session_provider(payload) != 'google':
+                return None
+            if not payload.get('email'):
                 return None
             return payload
         except (ValueError, TypeError, KeyError, json.JSONDecodeError, UnicodeError):

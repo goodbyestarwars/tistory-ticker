@@ -742,7 +742,7 @@ def require_google_user(request: Request):
     if not GOOGLE_AUTH.configured:
         raise HTTPException(status_code=503, detail='Google login is not configured on the server')
     session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
-    # 2026-10-04: 네이버 세션도 같은 쿠키를 쓴다(sub='naver:...', email은 없을 수 있음).
+    # 사이트 개인 기능은 Google 세션만 사용한다(read_session에서 구형 외부 공급자 거부).
     if not session or not session.get('sub'):
         raise HTTPException(status_code=401, detail='Google login is required')
     return session
@@ -944,45 +944,14 @@ def google_auth_callback(request: Request, code: str = None, state: str = None, 
 
 @app.get('/auth/naver/start')
 def naver_auth_start(return_to: str = None):
-    if not NAVER_AUTH.configured or not GOOGLE_AUTH.session_secret:
-        raise HTTPException(status_code=503, detail='Naver login is not configured on the server')
-    state = secrets.token_urlsafe(32)
-    response = RedirectResponse(NAVER_AUTH.authorization_url(state), status_code=302)
-    response.set_cookie(
-        NAVER_AUTH.STATE_COOKIE, state, max_age=600, httponly=True,
-        secure=True, samesite='lax', path='/',
-    )
-    response.set_cookie(
-        NAVER_AUTH.RETURN_COOKIE, _safe_google_return_url(return_to), max_age=600,
-        httponly=True, secure=True, samesite='lax', path='/',
-    )
-    return response
+    # Preserve old bookmarks but start Google OAuth; never initiate Naver OAuth.
+    return google_auth_start(return_to)
 
 
 @app.get('/auth/naver/callback')
 def naver_auth_callback(request: Request, code: str = None, state: str = None, error: str = None):
-    # 네이버는 사용자가 동의를 취소하면 error=access_denied로 돌아온다.
-    if error:
-        return _google_auth_error_redirect('naver_' + error)
-    saved_state = request.cookies.get(NAVER_AUTH.STATE_COOKIE)
-    if not state or not saved_state or not hmac.compare_digest(state, saved_state):
-        return _google_auth_error_redirect('naver_invalid_state')
-    if not code:
-        return _google_auth_error_redirect('naver_missing_code')
-    try:
-        user = NAVER_AUTH.authenticate_code(code, state)
-    except NaverAuthError:
-        logging.getLogger('main').warning('Naver OAuth callback verification failed')
-        log_setup.event('login_fail', '-', p='naver')
-        return _google_auth_error_redirect('naver_login_failed')
-    log_setup.event('login', log_setup.user_ref(user.get('sub'), GOOGLE_AUTH.session_secret), p='naver')
-    return_to = _safe_google_return_url(request.cookies.get(NAVER_AUTH.RETURN_COOKIE))
-    response = RedirectResponse(return_to, status_code=303)
-    response.set_cookie(
-        GOOGLE_AUTH.SESSION_COOKIE, GOOGLE_AUTH.make_session(user),
-        max_age=7 * 24 * 60 * 60, httponly=True, secure=True,
-        samesite='none', path='/',
-    )
+    # Old in-flight Naver callbacks must not issue a site session or exchange a token.
+    response = google_auth_start(_safe_google_return_url(request.cookies.get(NAVER_AUTH.RETURN_COOKIE)))
     response.delete_cookie(NAVER_AUTH.STATE_COOKIE, path='/')
     response.delete_cookie(NAVER_AUTH.RETURN_COOKIE, path='/')
     return response
@@ -992,7 +961,7 @@ def naver_auth_callback(request: Request, code: str = None, state: str = None, e
 def google_auth_me(request: Request):
     data = GOOGLE_AUTH.status(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
     # 로그인 선택창이 네이버 버튼을 보일지 정한다(키 미설정이면 숨김).
-    data['naverConfigured'] = bool(NAVER_AUTH.configured and GOOGLE_AUTH.session_secret)
+    data['naverConfigured'] = False
     return envelope(data)
 
 
@@ -1046,18 +1015,8 @@ async def autotrader_agent_sync(request: Request):
 
 
 def _site_admin(session):
-    """화면·시세 조회용 사이트 관리자: Google 관리자 또는 등록된 네이버 계정.
-    네이버 email은 소유 검증이 안 되므로 쓰지 않고, 네이버 고유 ID의 비가역 참조값(log_setup.user_ref)만
-    환경변수 ADMIN_NAVER_REFS(쉼표 구분)와 대조한다. 자동매매 제어·화면 설정 변경은 여전히 Google 관리자만 한다."""
-    if not session:
-        return False
-    if GOOGLE_AUTH.is_admin(session):
-        return True
-    if session_provider(session) != 'naver':
-        return False
-    refs = {r.strip() for r in (os.environ.get('ADMIN_NAVER_REFS') or '').split(',') if r.strip()}
-    ref = log_setup.user_ref(session.get('sub'), GOOGLE_AUTH.session_secret)
-    return bool(refs) and ref in refs
+    """Site administration uses only the existing Google administrator account."""
+    return bool(session and GOOGLE_AUTH.is_admin(session))
 
 
 def _has_server_api_key(request):
@@ -1139,7 +1098,7 @@ def access_policy_get(request: Request):
     from fastapi.responses import JSONResponse
     session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
     data = access_policy.view(bool(session), _site_admin(session), access_policy.is_member(session))
-    data['naverConfigured'] = bool(NAVER_AUTH.configured and GOOGLE_AUTH.session_secret)  # 로그인 랜딩의 네이버 버튼 표시용
+    data['naverConfigured'] = False  # 로그인 랜딩의 네이버 버튼 표시용
     return JSONResponse(envelope(data), headers={'Cache-Control': 'no-store', 'Vary': 'Cookie'})
 
 

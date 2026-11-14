@@ -51,8 +51,6 @@
     '.nl-pv i{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-style:normal;font-weight:800;font-size:14px;flex:none}' +
     '.nl-pv small{display:block;font-size:11.5px;font-weight:500;opacity:.7}' +
     '.nl-google{background:#fff;color:#1f2937}.nl-google i{background:#f1f3f4;color:#4285f4}' +
-    '.nl-naver{background:#03c75a;color:#fff}.nl-naver i{background:rgba(255,255,255,.22)}' +
-    '.nl-kakao{background:#fee500;color:#191600}.nl-kakao i{background:rgba(0,0,0,.1)}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-note{margin-top:12px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72)}' +
     '@media (min-width:721px) and (max-height:500px){.nl-hero{bottom:130px}}' +
@@ -63,10 +61,6 @@
   function markSeen() { try { global.sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* 저장소 차단 */ } }
   function seen() { try { return global.sessionStorage.getItem(SEEN_KEY) === '1'; } catch (e) { return false; } }
 
-  function kakaoUrl() {
-    var a = doc.querySelector('.nav-manage-btn');
-    return (a && a.href) || 'https://www.tistory.com/auth/login';
-  }
   function ret() { return encodeURIComponent(global.location.href); }
 
   function close() {
@@ -131,11 +125,9 @@
       '<a class="nl-credit" href="https://commons.wikimedia.org/wiki/File:View_to_Lauterbrunnen_valley_at_M%C3%BCrren,_Bern,_Switzerland,_2012_August.jpg" target="_blank" rel="noopener">사진: Ximonic (Simo Räsänen) · CC BY-SA 4.0 · Wikimedia Commons</a>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
-      '<h2 id="nlLoginTitle">로그인</h2><p>사용할 계정을 선택하세요. 승인된 계정으로 로그인하면 기존 대시보드가 열리고, 그 외 계정은 공개 화면을 이용합니다.</p>' +
+      '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
       '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
-      (naverConfigured ? '<a class="nl-pv nl-naver" href="' + API + '/auth/naver/start?return_to=' + ret() + '"><i>N</i><span>네이버로 계속하기<small>네이버 계정으로 로그인</small></span></a>' : '') +
-      '<a class="nl-pv nl-kakao" href="' + esc(kakaoUrl()) + '"><i>K</i><span>카카오로 계속하기<small>블로그 관리자(Tistory) 로그인</small></span></a>' +
-      '<p class="nl-note">카카오는 블로그 관리자 로그인입니다. 서비스 기능은 관리자 승인 계정에 한해 제공됩니다.</p>' +
+      '<p class="nl-note">티스토리 글·댓글 관리는 별도 블로그 관리에서 이용합니다.</p>' +
       '</section></div>';
     root.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null;
@@ -175,8 +167,7 @@
     settle: function (data) {
       if (data && data.authenticated) { close(); return; }
       if (!root) return;
-      var has = !!root.querySelector('.nl-naver');
-      if (!!(data && data.naverConfigured) !== has) { close(); show(data && data.naverConfigured); }
+
     }
   };
 })(window);
