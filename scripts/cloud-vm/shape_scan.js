@@ -128,12 +128,20 @@ const RESMOM_TOP=.4;
  }
  for(const key of keys)for(const list of [groups[key],observed[key],extended[key],research[key]])
    for(const row of list)row.patternDetail.quiet=quietBy[row.code] || {version:'quiet-v1',band:'unknown',observationOnly:true};
+ // 2026-11-14 사용자 지시: 하위 30%(noisy)는 기본·확장 후보에서 실제로 뺀다. observed(추적)·research는 그대로 둬 필터 효과를 나중에 비교한다.
+ const quietExcluded={};
+ for(const key of keys){
+   const before=groups[key].length+extended[key].length;
+   groups[key]=groups[key].filter(r=>r.patternDetail.quiet.band!=='noisy');
+   extended[key]=extended[key].filter(r=>r.patternDetail.quiet.band!=='noisy');
+   quietExcluded[key]=before-groups[key].length-extended[key].length;
+ }
  for(const key of keys)for(const list of [groups[key],observed[key],extended[key],research[key]])list.sort((a,b)=>b.score-a.score || a.code.localeCompare(b.code));
  const status=!benchmarks?'missing':rsMissing&&rsMissing===rsChecked?'missing':rsMissing?'partial':'ok';
  process.stdout.write(JSON.stringify({strategyVersion:'chart-first-v2',groups,observed,extended,research,relativeStrength:{version:'my-way-v1',role:'advisory',status,basis:'KOSPI+KOSDAQ',
    checked:rsChecked,missing:rsMissing,filteredOut},
    edgeSignals:{version:'edge-v1',counts:edgeCounts,resmomCut:cut,resmomChecked:resmoms.length,
      benchmarks:benchmarks?'ok':'missing'},
-   quiet:{version:'quiet-v1',role:'advisory',checked:quietPool.length,ranked:raw.filter(v=>v!=null).length,
+   quiet:{version:'quiet-v1',role:'filter',excluded:quietExcluded,checked:quietPool.length,ranked:raw.filter(v=>v!=null).length,
      noisyCut:QUIET.noisy,quietCut:QUIET.top,marketRest,kospiMa60}}));
 })().catch(()=>{process.stderr.write('shape worker failed\n');process.exitCode=1;});
