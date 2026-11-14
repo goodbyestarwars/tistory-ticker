@@ -39,8 +39,9 @@ try{
   assert.strictEqual(out.quiet.version,'quiet-v1');assert.strictEqual(out.quiet.checked,20);
   const all=Object.values(out.groups).flat().concat(Object.values(out.research).flat());
   assert.ok(all.length && all.every(r=>r.patternDetail.quiet && r.patternDetail.quiet.observationOnly===true),'모든 후보에 조용함 표시');
-  const noisyRow=all.find(r=>r.patternDetail.quiet.band==='noisy');
-  assert.ok(!noisyRow || noisyRow.patternDetail.quiet.excludeAdvice===true,'하위 30%는 제외 권고 표시만');
+  const shown=Object.values(out.groups).flat().concat(Object.values(out.extended).flat());
+  assert.ok(shown.every(r=>r.patternDetail.quiet.band!=='noisy'),'하위 30%(noisy)는 기본·확장 후보에서 제외');
+  assert.strictEqual(out.quiet.role,'filter');assert.ok(out.quiet.excluded && typeof out.quiet.excluded.pullbackRebreak==='number');
   // 지수 자료가 없으면 쉬기 판정은 null(미확인)
   const out2=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file],{encoding:'utf8'}));
   assert.strictEqual(out2.quiet.marketRest,null);
@@ -50,5 +51,7 @@ try{
 const src=fs.readFileSync('js/pattern-scan.js','utf8');
 assert.ok(/quietLeaderPullback:'주도주 조용한 눌림'/.test(src));
 assert.ok(/pullbackRebreak:\['rsHighResidual','quietLeaderPullback'\]/.test(src));
-assert.ok(/자동으로 빼지는 않습니다/.test(src),'조용함은 표시만');
+assert.ok(/기본 후보에서 제외합니다/.test(src),'조용함 하위 30% 제외 안내');
+assert.ok(!/quietHtml/.test(src),'조용함 배지는 화면에 표시하지 않음');
+assert.ok(/function renderSimpleList/.test(src) && /자세히 보기/.test(src),'간단 화면 + 자세히 보기 접기');
 console.log('test_quiet_leader ok');

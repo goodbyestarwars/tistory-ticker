@@ -216,16 +216,13 @@
     surgeNextDay:'당일 +20% 이상 마감. 다음 거래일 시가 기준으로 1~5거래일 고점 관찰.',
     rsHighResidual:'KOSPI·KOSDAQ 두 지수 대비 비율선이 60일 신고가이고, 지수 영향을 뺀 20일 잔차 모멘텀이 그날 전 종목 상위 40%. 10~15거래일 고점 관찰.',
     quietLeaderPullback:'거래대금 상위 15% 대형 주도주가 120봉 상승 뒤 저점을 높이며 쉬는 중(눌림/반등)이고, 조용함(낮은 고유 변동성·상승일 거래량 쏠림 없음)이 그날 상위 30%. 과거 검증(2024~2025): 손절 -10%·+10% 뒤 20일선 이탈 익절로 10번 중 5~6번 이익, 이익 평균 +17%·손실 평균 -9%. 하락장(2022~2023)은 손실.'};
-  // 조용함 점수(quiet-v1): 기존 후보를 지우지 않고 표시만 한다. 하위 30%는 급락이 잦아 제외 권고.
-  function quietHtml(item){var q=detailFor(item).quiet;if(!q || q.band==='unknown' || !Number.isFinite(q.scorePct))return '';
-    var pct=Math.round(q.scorePct*100),label=q.band==='quiet'?'조용함 상위 '+(100-pct)+'%':q.band==='noisy'?'시끄러움 · 제외 권고':'조용함 보통';
-    return '<span class="ps-edge-tag" title="낮은 고유 변동성(60일)·상승일 거래량 쏠림 없음(20일)을 전 종목과 비교한 순위. 하위 30%는 과거 20일 내 -15% 급락이 36~61%로 잦았습니다. 관찰 표시이며 후보에서 자동 제외하지 않습니다.">'+escapeHtml(label)+'</span>';}
   function exitPlanHtml(item){var x=detailFor(item).exitPlan;if(!x)return '';
     return '<small>손절 '+escapeHtml(String(x.stopLossPct))+'% · 익절 '+escapeHtml(x.takeProfit)+' · 최대 '+escapeHtml(String(x.maxHoldDays))+'거래일 · '+escapeHtml(x.marketRest)+(x.marketRestActive===true?' (현재 쉬기 구간)':x.marketRestActive===false?' (현재 아님)':'')+'</small>';}
-  function edgeTagsHtml(item){var tags=(detailFor(item).edgeSignals || []).filter(function(t){return t && EDGE_LABELS[t.key];}),quiet=quietHtml(item);
-    if(!tags.length && !quiet)return '';
-    return '<div class="ps-edge-tags">'+tags.map(function(t){return '<span class="ps-edge-tag" title="'+escapeHtml(EDGE_DESC[t.key])+'">'+escapeHtml(EDGE_LABELS[t.key])+' · '+escapeHtml(t.horizon || '')+'</span>';}).join('')+quiet
-      +(tags.length?'<small>'+(tags.some(function(t){return t.key==='quietLeaderPullback';})?'연구 관찰 · 주문 신호 아님':'고점 기준 연구 관찰 · 주문 신호 아님')+'</small>'+exitPlanHtml(item):'')+'</div>';}
+  // 조용함(quiet-v1)은 서버에서 하위 30%를 후보에서 빼는 데만 쓰고 화면에는 표시하지 않는다(2026-11-14 사용자 지시).
+  function edgeTagsHtml(item){var tags=(detailFor(item).edgeSignals || []).filter(function(t){return t && EDGE_LABELS[t.key];});
+    if(!tags.length)return '';
+    return '<div class="ps-edge-tags">'+tags.map(function(t){return '<span class="ps-edge-tag" title="'+escapeHtml(EDGE_DESC[t.key])+'">'+escapeHtml(EDGE_LABELS[t.key])+' · '+escapeHtml(t.horizon || '')+'</span>';}).join('')
+      +'<small>'+(tags.some(function(t){return t.key==='quietLeaderPullback';})?'연구 관찰 · 주문 신호 아님':'고점 기준 연구 관찰 · 주문 신호 아님')+'</small>'+exitPlanHtml(item)+'</div>';}
   function sourceLabel(key) { if(key.indexOf('edge:')===0)return (EDGE_LABELS[key.slice(5)] || key)+' · 연구 태그'; if(key.indexOf('shape:')===0)return ((groupFor(key.slice(6)) || {}).label || '모양')+' · 모양 선정'; return key === 'longTermQuality' ? '재무 통과 장기 응축/돌파' : ((TABS.filter(function(t){return t.key === key;})[0] || {}).label || key); }
 
   var ninepayData = null, ninepayError = '', ninepayBusy = false, ninepayTimer = null;
@@ -304,12 +301,14 @@
 
     return ''
       + '<div class="ps-control-card ui-content-block">'
-      + '<div class="ps-confirmation-status" id="psConfirmationStatus" role="status" aria-live="polite">확정 신호 확인 중</div>'
+      + '<div class="ps-confirmation-status" id="psConfirmationStatus" role="status" aria-live="polite" style="display:none">확정 신호 확인 중</div>'
       + '<div class="ps-head">'
       + '<div class="ps-horizon" role="tablist" aria-label="검색 기간">'
       + [['short','단타'],['swing','스윙'],['long','중장기']].map(function (g) { return '<button class="ps-horizon-tab' + (g[0] === activeGroup ? ' active' : '') + '" role="tab" aria-selected="' + (g[0] === activeGroup) + '" data-horizon="' + g[0] + '">' + g[1] + '</button>'; }).join('') + '</div>'
       + '<nav class="ps-subnav" aria-label="선택 분류의 검색기">' + tabsHtml + '</nav>'
       + '</div>'
+      // 2026-11-14 사용자 지시("노이즈를 줄여, YES만"): 기본은 기간 → 검색기 → 종목 리스트. 설명·상태·이력은 '자세히 보기'에 접는다(삭제 없음).
+      + '<details class="ps-research-tools ps-advanced"><summary>자세히 보기 (기존 상태·이력·조건)</summary>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
       + '<div class="ps-status-filters" aria-label="현재 신호 상태">' + Object.keys(PUBLIC_LABELS).map(function(k){return '<button type="button" data-status="'+k+'" aria-pressed="'+(k==='all')+'">'+PUBLIC_LABELS[k]+' <span data-status-count="'+k+'" title="집계 확인 중 · 수신된 자료 기준">(0)</span></button>';}).join('') + '</div>'
       + '<details class="ps-research-tools"><summary>개별 검색기 이력·성과 및 데이터 기준</summary>'
@@ -319,7 +318,7 @@
       + STAGE_VIEWS.map(function (v, i) {
         return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" role="tab" aria-selected="' + (i === 0) + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
       }).join('')
-      + '</div></details>'
+      + '</div></details></details>'
       + '</div>'
       + '<div class="ps-list ui-content-block" id="psList" role="region" aria-label="검색 결과">' + global.NineUI.state('loading', '검색 결과를 불러오는 중...', 'ps-hint', {spinner:false}) + '</div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
@@ -1454,7 +1453,7 @@
       +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 준비된 구조의 모양·현재 위치를 우선 정렬합니다. 기본 후보는 전체 저장 일봉에서 모양으로 새로 선정합니다. 기존 수치 검색 이력과 실시간 A/B·주문 경로는 개별 검색기 기록에서 별도로 유지합니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
       +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
       +(EDGE_TAGS[activeTab] || []).map(function(tag){return '<p><b>연구 태그: '+escapeHtml(EDGE_LABELS[tag])+'</b> '+escapeHtml(EDGE_DESC[tag])+' 기본 후보와 분리된 연구 목록에서 확인하며 관찰 전용입니다.</p>';}).join('')
-      +'<p><b>조용함 표시</b> 모든 후보에 낮은 고유 변동성·상승일 거래량 쏠림 없음 순위를 표시합니다. 하위 30%(시끄러움)는 과거 급락이 잦아 제외를 권고하지만 목록에서 자동으로 빼지는 않습니다.</p>'
+      +'<p><b>조용함 필터</b> 고유 변동성이 크고 상승일에 거래가 쏠린 하위 30%(과거 20일 내 -15% 급락 36~61%)는 기본 후보에서 제외합니다. 연구 목록은 그대로 둡니다.</p>'
       +'<p><b>이전 수치 검색 조건 (이력 확인용)</b></p>'+group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
     var history=container.querySelector('#psSourceHistory');
     var keys=group.sources.filter(function(k){return k!=='ninepayLive';});
@@ -1598,6 +1597,7 @@
     global.PatternScan.publicSummary={counts:model.counts,known:known};
     if(typeof global.CustomEvent==='function')document.dispatchEvent(new global.CustomEvent('scanner-public-state',{detail:global.PatternScan.publicSummary}));
     var list=container.querySelector('#psList');
+    if(publicView==='all'){renderSimpleList(container,list,model,selection,known);return;}
     detailNavItems=visible;
     var selectionCopy=selection?'모양 기준으로 전체 일봉 '+selection.coverage.universe+'종목 중 '+selection.coverage.eligible+'종목을 검사했습니다. 기준일 '+selection.dataDate+' · 기존 수치 검색과 독립 선정 · 일봉 관찰 후보입니다.'+myWayCopy(selection,activeTab):'모양 기준 전종목 스캔을 기다리고 있습니다. 기존 수치 검색 결과로 대신 표시하지 않습니다.';
     list.innerHTML='<p class="ps-state-meaning">'+escapeHtml(selectionCopy)+'</p><p class="ps-state-meaning">확정은 검색기 검증 충족이며 수익 보장이 아닙니다. 관찰·연구는 매수 지시가 아니며, 과거 돌파 성공은 체결·수익과 별개입니다.<br>집계: 선택한 검색기의 수신 결과·조회된 추적 기록. 전체 과거 이력은 개별 검색기 이력에서 확인합니다.'+(!global.SCANNER_SECURITY_TYPES?' 종목 유형 자료 미수신 · 확인 가능한 유형·이름 기준으로 스팩 제외 중.':'')+'</p>'
@@ -1622,6 +1622,31 @@
       var r=visible.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
       var m=r.classified[0].member;
       var detail=document.getElementById('psDetail');
+      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){closeDetail(container);return;}
+      openDetail(container,Object.assign({},m.item,{_sourceKey:m.key,_publicMembers:r.classified,_publicMemberIndex:0}));
+    });});
+  }
+  // 2026-11-14 간단 화면: 후보(YES)만 이름·가격·한 줄 모양으로, 연구는 아래 접힌 칸에 따로.
+  function simpleRowHtml(r,extra) {
+    var it=r.classified[0].member.item,s=r.chartShape || scannerShape(r);
+    return '<article class="ps-state-row" data-code="'+escapeHtml(r.code)+'">'
+      +'<div class="ps-state-identity"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small></div>'
+      +'<p>'+escapeHtml(s.label || detailFor(it).shapeLabel || '')+'</p>'+(extra || '')+'</div>'
+      +'<div class="ps-state-quotes">'+(r.price==null?'가격 미수신':'종가 '+fmt(r.price))+'</div>'
+      +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기</button></div></article>';
+  }
+  function renderSimpleList(container,list,model,selection,known) {
+    var yes=model.rows.filter(function(r){return ['confirmed','observation'].indexOf(r.publicStatus.key)>=0;});
+    var research=model.rows.filter(function(r){return r.publicStatus.key==='research' && !r.classified[0].member.item.track && !r.classified[0].member.item._history;});
+    var q=selection && selection.quiet || {},market=q.marketRest===true?'<p class="ps-state-meaning"><b>관찰 구간</b> · 시장이 약해 새로 사지 않고 지켜보는 중 (KOSPI 60일선 아래)</p>'
+      :q.marketRest===false?'<p class="ps-state-meaning"><b>매수 검토 구간</b> · KOSPI 60일선 위</p>':'';
+    detailNavItems=yes.concat(research);
+    list.innerHTML=market+'<p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' · ':'')+yes.length+'종목</p>'
+      +(yes.length?yes.map(function(r){return simpleRowHtml(r);}).join(''):'<p class="ps-state-empty">'+(known?'오늘은 후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>')
+      +(research.length?'<details class="ps-research-tools"><summary>연구 '+research.length+'</summary>'+research.map(function(r){return simpleRowHtml(r,edgeTagsHtml(r.classified[0].member.item));}).join('')+'</details>':'');
+    list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){
+      var r=detailNavItems.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
+      var m=r.classified[0].member,detail=document.getElementById('psDetail');
       if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){closeDetail(container);return;}
       openDetail(container,Object.assign({},m.item,{_sourceKey:m.key,_publicMembers:r.classified,_publicMemberIndex:0}));
     });});
