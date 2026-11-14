@@ -1631,6 +1631,7 @@
     if (!container) return;
     var pageTitle = container.closest('.post-single') && container.closest('.post-single').querySelector('.post-single-title');
     if (pageTitle) pageTitle.textContent = isMapView_() ? '마켓 아틀라스' : stocksOnly ? '국내 주요종목 · 업종별 종목 탐색' : '증시온도 · 시장 투자심리';
+    if (pageTitle && isMapView_()) (pageTitle.closest('.post-single-header') || pageTitle).style.setProperty('display', 'none', 'important');
     if (isMapView_()) { bootMapView_(container); return; }
     if (stocksOnly) {
       // 본문 스크립트·스킨 로더·DOMContentLoaded가 같은 화면을 다시 초기화하지 않는다.

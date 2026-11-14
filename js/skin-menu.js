@@ -36,7 +36,6 @@
       children: [
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/page/foreign-flow', label: '종목분석' },
-        { href: '/page/stock-search', label: '종목검색' },
         { href: '/page/pattern-scan', label: '검색기' },
         { href: '/page/strategy-search', label: '전략검색' }
       ]
