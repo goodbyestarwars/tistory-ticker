@@ -85,8 +85,8 @@ class PolicyTests(unittest.TestCase):
 
     def test_role_ceiling_and_lock(self):
         for invalid in (
-            {'home': {'guest': True}}, {'home': {'member': False}},
-            {'indicators': {'guest': True}}, {'stocks': {'member': True}},
+            {'home': {'guest': True}}, {'scanner': {'member': True}},
+            {'indicators': {'guest': True}}, {'strategy': {'member': True}},
             {'calendar': {'stranger': True}}, {'calendar': {'guest': 'yes'}},
             {'calendar': {}}, {'guestbook': {'guest': False}},
             {'guestbook': {'admin': False}},

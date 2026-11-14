@@ -40,7 +40,9 @@
     if (/^\/pages?\/main-news$/.test(p)) return 'news';
     if (/^\/pages?\/market-temp$/.test(p)) return q.get('view') === 'stocks' ? 'stocks' : 'market-temp';
     if (/^\/pages?\/stock-search$/.test(p)) return q.get('tool') === 'independent-chart' ? 'tools' : 'stocks';
-    if (/^\/pages?\/(?:foreign-flow|pattern-scan|strategy-search|dcf)(?:\/|$)/.test(p)) return 'stocks';
+    if (/^\/pages?\/pattern-scan(?:\/|$)/.test(p)) return 'scanner';
+    if (/^\/pages?\/strategy-search(?:\/|$)/.test(p)) return 'strategy';
+    if (/^\/pages?\/(?:foreign-flow|dcf)(?:\/|$)/.test(p)) return 'stocks';
     if (/^\/pages?\/watchlist$/.test(p)) return 'my';
     if (/^\/pages?\/auto-trader$/.test(p)) return 'autotrader';
     return '';
@@ -52,7 +54,7 @@
     }
     if (/^https?:\/\/goodbyestar\.cloud\/kis-tool/.test(href)) return 'kis';
     if (href === '#story-series') return ''; // 이야기 시리즈(푸터 카드 영역): 공개
-    if (/^\/\?(?:.*&)?view=market(?:&|$)/.test(href)) return '@admin'; // 시장 대시보드(기존 관리자 홈): 관리자 메뉴에만 보인다
+    if (/^\/\?(?:.*&)?view=market(?:&|$)/.test(href)) return 'home'; // 시장 대시보드(기존 관리자 홈): 관리자 메뉴에만 보인다
     // 같은 사이트의 상대 경로는 직접 분해한다(origin이 'null'인 문서·파싱 실패에도 같은 판정).
     if (href.charAt(0) === '/') {
       var hashAt = href.indexOf('#');
@@ -102,7 +104,7 @@
   var readyResolve;
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
 
-  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'news', 'indicators', 'home', 'stocks', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
+  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'news', 'indicators', 'home', 'stocks', 'scanner', 'strategy', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
   function legacyPolicy() {
     return global.fetch(API + '/auth/google/me', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('me ' + r.status); return r.json(); })
@@ -157,9 +159,9 @@
   function applyClasses() {
     var root = doc.documentElement;
     root.classList.remove('access-pending');
-    root.classList.toggle('access-limited', !isAdmin());
+    root.classList.toggle('access-limited', !allowsScreen('my'));
     // 관심종목 서랍은 관리자 전용이다. 저장된 '열림' 상태가 본문 오른쪽 378px 여백만 남기지 않게 비관리자는 해제한다.
-    if (!isAdmin()) root.classList.remove('wl-open');
+    if (!allowsScreen('my')) root.classList.remove('wl-open');
     root.classList.toggle('access-admin', isAdmin());
   }
 
@@ -170,7 +172,7 @@
     'html.access-limited .nav-search-wrap,html.access-limited #navSearchMount,html.access-limited .nav-search-backdrop,' +
     'html.access-limited .global-watchlist-drawer,html.access-limited .wl-toggle,html.access-limited .memo-fab,' +
     'html.access-limited [data-memo-widget-root],html.access-limited .mobile-search-overlay,' +
-    'html.access-limited .nav-write-btn{display:none!important}';
+    'html:not(.access-admin) .nav-write-btn{display:none!important}';
   function injectStyle() {
     if (doc.getElementById('nine-access-style')) return;
     var s = doc.createElement('style');
@@ -339,7 +341,8 @@
     isGuest: isGuest,
     /* 비회원 입장: 인증 없이 공개 화면만. 인증된 사용자로 취급하지 않는다. */
     enterGuest: function () { setGuest(true); },
-    isLimited: function () { return !isAdmin(); },
+    isLimited: function () { return !allowsScreen('home'); },
+    whenMember: function (fn) { ready.then(function () { if (allowsScreen('my')) fn(); }); },
     failed: function () { return failed; },
     policy: function () { return current; },
     refresh: function () {

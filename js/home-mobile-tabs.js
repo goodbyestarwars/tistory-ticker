@@ -117,7 +117,7 @@
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[name] + '</svg>';
   }
   // 2026-11-11 접근 정책: 서버가 확인한 관리자만 기존 홈/시장/종목 탭, 그 외(판정 전·장애 포함)는 공개 4개 화면 탭.
-  function limitedViewer() { return !(global.NineAccess && global.NineAccess.isAdmin()); }
+  function limitedViewer() { return !(global.NineAccess && global.NineAccess.allowsScreen('home')); }
   function limitedTab() {
     var key = global.NineAccess ? global.NineAccess.screenOf(location.pathname, location.search) : '';
     if (key === 'briefing' || key === 'news' || key === 'indicators') return 'market';

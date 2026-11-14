@@ -57,3 +57,14 @@
 - 대화방(`guestbook`)은 세 역할 모두 필수 ON이다. 홈(`/`)의 비회원·일반회원용 브리핑은 기존 예외 동작이고 설정의 `home`은 관리자 대시보드만 뜻한다.
 - UI는 서버에서 역할별 상태를 응답하기 전까지 저장을 비활성화한다(평일 VM 배포 보호시간 동안 구 서버에 신규 요청 전송 금지). `NineAccess`·PC/모바일 메뉴·직접 URL의 기존 `allowed` 판정을 재사용하며 원천 시세 REST/WS 접근 제한과 거래/주문 경계는 변경하지 않는다.
 - 검증 기준: `test/test_access_policy.py`(역할 독립·구형 이관·허용 등급·필수 항목)·`test/test_access_gate.js`·`test/test_access_menu.js`. 티스토리의 정적 페이지를 메뉴에서 숨기는 것은 서버 콘텐츠 보안과 다르므로 제한 데이터는 별도 API에서 계속 보호해야 한다.
+
+
+## 2026-11-14 관리자 관리형 일반회원 확대 (이전 화면 등급 설명보다 우선)
+
+- 공개/미등록 로그인 계정의 기존 권한은 보존. Google 이메일 검증+관리자 허용목록 계정만 `home/stocks/tools/my/market-temp` 일반회원 열 적용. `scanner/strategy`를 종목에서 분리하여 메뉴·직접URL 모두 관리자만. 자동매매·KIS·화면설정은 계속 관리자 전용.
+- `/access-policy`는 `isMember`를 추가하고 개인화 응답 no-store. `GET /access-policy/members`는 Google 관리자만 목록·revision·최근20건 감사 반환, `PUT`은 같은 관리자+허용Origin+분당 제한으로 `{email,action:add|remove}`만 처리. 이메일 trim/lowercase/형식/254자/최대1000명 검증, 중복·없는 이메일 해제는 멱등. 비공개 VM `access_members_state.json`에 revision·최근200건 감사(actor/action/email/at)를 원자 저장, 프로세스/스레드 잠금. 저장 실패는 이전 상태 보존, 손상 시 확대 권한 차단·수정 거절.
+- 새 Google OAuth의 검증 결과만 서명 세션 `email_verified:true`로 전달. 기존 세션·네이버 이메일·이메일 입력만으로 승격 불가. 기존 사용자는 Google 재로그인 필요. 해제는 다음 정책 조회 즉시 반영하며 이미 열린 화면은 새로고침 시 재판정(민감 API 권한은 원래 관리자만).
+- schemaVersion2 이전 화면 저장은 확대된 5개 일반회원 열을 ON으로 이관, 비회원/관리자 열은 그대로. 이후 설정 OFF는 보존. 기존 screens/roles PUT 계약 유지.
+- **화면 허용과 데이터 권한은 별개:** RESTRICTED_PREFIXES와 REST 401/403, WS accept 전 관리자 검사, 서버 내부 키/HMAC 예외, 계좌/주문/자동매매/API 운영은 변경 없음. 종목 시세·차트·시장맵은 일반회원에게 데이터를 제공하지 않으며 기존 제한 안내/빈 상태가 남을 수 있음. GAS/정적 공개 자료는 기존 범위 유지.
+- 배포: master→Pages 및 Oracle 기존 사이트 API 배포만. Google 실거래 VM·봇·runner 재시작/명령 없음. Tistory 스킨 수동 반영 불필요.
+- 검증: test_access_policy.py, test_access_members.py, test_access_members_api.py(수집기와 브로커 없는 실제 접근 라우트), test_access_gate.js, test_access_members_ui.js(Edge PC1280/390/320). 실제 계정 OAuth 로그인·관리자 운영 쓰기는 사용자 세션 없이 검증했다고 주장하지 않음.
