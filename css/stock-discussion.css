@@ -409,7 +409,7 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 
 /* Admin-only editor uses the shared site surface and typography. */
 .discussion-terminal-welcome { position:relative; }
-.discussion-intro-edit { display:block; margin:12px 12px 0 auto; background:transparent; color:inherit; border:1px solid currentColor; padding:6px 12px; font:inherit; cursor:pointer; }
+.discussion-terminal .discussion-intro-edit { display:block; margin:12px 12px 0 auto; background:var(--discussion-terminal-accent,#fff47f); color:var(--discussion-terminal-bg,#000080); border:1px solid var(--discussion-terminal-accent,#fff47f); padding:6px 12px; font:inherit; cursor:pointer; }
 .discussion-intro-edit[hidden] { display:none !important; }
 .discussion-intro-dialog { position:fixed; inset:auto; left:50%; top:50%; transform:translate(-50%,-50%); box-sizing:border-box; margin:0; width:min(620px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; padding:24px; background:var(--ui-surface,#fff); color:var(--ui-text,#223047); border:1px solid var(--ui-border,#dce2e9); border-radius:var(--ui-card-radius,16px); font-family:var(--font-ui,sans-serif); }
 .discussion-intro-dialog::backdrop { background:rgba(0,0,0,.45); }

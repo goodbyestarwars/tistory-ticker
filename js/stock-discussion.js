@@ -251,6 +251,7 @@
       etiquette: etiquette.textContent
     } };
     var edit = addText(welcome, 'button', 'discussion-intro-edit', '문구 편집');
+    welcome.insertBefore(edit, etiquette);
     edit.type = 'button'; edit.hidden = true;
     var dialog = null, busy = false;
     function admin() { return !!(window.NineAccess && window.NineAccess.isAdmin()); }
