@@ -26,10 +26,10 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
    assert.equal(await p.evaluate(()=>sessionStorage.getItem('nine_guest')),null);
   }
   await p.locator('#mtabDrawer [data-mtab-proxy=".nav-logout-btn"]').click();await p.locator('#landing').waitFor({timeout:15000}).catch(async e=>{console.log({url:p.url(),logout,body:await p.locator('body').innerText()});throw e;});
-  assert.deepEqual(logout,['server','tistory']);
+  assert.deepEqual(logout,['server']);
   assert.equal(await p.evaluate(()=>sessionStorage.getItem('nine_guest')),null);
   assert.equal(await p.evaluate(()=>localStorage.getItem('nine_authed')),null);
-  console.log('PASS mobile account',account,width,'status, exit, server→Tistory→landing');await p.close();
+  console.log('PASS mobile account',account,width,'status, exit, server→home landing (no external logout)');await p.close();
  }
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

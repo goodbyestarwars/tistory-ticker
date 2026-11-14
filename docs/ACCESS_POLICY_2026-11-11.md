@@ -77,3 +77,9 @@
 - schemaVersion3: analysis/stock-search는 stocks, chart는 tools, watchlist/memo는 my, market-map은 market-temp의 이전 역할별 체크를 이어받는다. 기존 묶음 키와 API 계약은 보존한다. 대화방 OFF도 가능하며 거부된 대화방은 홈 입장 화면으로 돌아가 반복 이동을 피한다.
 - 모바일 탭·PC 메뉴·직접 URL·전역 검색/관심/메모는 독립 키를 사용한다. Google 서버 관리자 판정으로 운영 메뉴를 표시하며 Tistory ROLE을 운영 권한의 대용으로 사용하지 않는다. 실제 위험 명령/데이터 서버 검증은 변경하지 않는다.
 - GET/PUT 관리자 검증/Origin·쓰기 제한·이메일 허용목록은 유지. 새로운 공개 시세 API/WS·GAS 폴백은 추가하지 않는다.
+
+
+## 2026-11-14 사이트 로그아웃 복귀 수정
+
+- 서비스의 nav-logout-btn/모바일 이용 종료는 기존 Google/네이버 공용 서버 세션을 최상위 로그아웃 주소에서 지운 뒤 홈의 로그인 랜딩으로 돌아간다. 별도 인증 영역인 Tistory/Kakao의 외부 로그아웃 페이지로 강제 이동하지 않는다. Tistory 자체 세션 종료를 보장한다고 표시하지 않는다.
+- 구형 nine_logout_step=tistory도 외부 이동 없이 소비한다. 입장·인증힌트·메뉴 캐시·관심 미리보기를 지우며 저장소 쓰기 불가여도 서버 세션 종료는 실행한다. 권한 판단은 여전히 서버 /access-policy·서명 쿠키에만 의존한다.

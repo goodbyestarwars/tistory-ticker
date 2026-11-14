@@ -8,10 +8,10 @@
   var stockCatalog = null, stockCatalogMap = null, stockCatalogPanel = null;
   var STOCK_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
 
-  function loadStockCatalog() {
-    if (global.KRX_MAP) return Promise.resolve();
+  function loadCatalog(url, name, attribute, timeout) {
+    if (global[name]) return Promise.resolve();
     return new Promise(function (resolve) {
-      var tag = doc.querySelector('script[src*="/data/krx_map.js"]');
+      var tag = doc.querySelector('script[src*="' + url.slice(url.lastIndexOf('/')) + '"]');
       var timer, finished = false;
       function finish() {
         if (finished) return;
@@ -21,15 +21,32 @@
       }
       if (!tag) {
         tag = doc.createElement('script');
-        tag.src = STOCK_MAP_URL;
-        tag.setAttribute('data-guest-news-stock-map', '1');
+        tag.src = url;
+        tag.setAttribute(attribute, '1');
       }
       tag.addEventListener('load', finish, { once: true });
       tag.addEventListener('error', finish, { once: true });
       // 종목 사전 실패·지연도 뉴스 자체를 막지 않는다.
-      timer = global.setTimeout(finish, 5000);
+      timer = global.setTimeout(finish, timeout);
       if (!tag.parentNode) (doc.head || doc.documentElement).appendChild(tag);
     });
+  }
+
+  function loadStockCatalog() { return loadCatalog(STOCK_MAP_URL, 'KRX_MAP', 'data-guest-news-stock-map', 5000); }
+  var sectorReady = null;
+  function loadSectorCatalog() {
+    if (!sectorReady) sectorReady = loadCatalog('https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js', 'SECTOR_MAP', 'data-news-sector-map', 2500);
+    return sectorReady;
+  }
+  function relatedSectors(item) {
+    var provided = Array.isArray(item && item.krSectors) ? item.krSectors.filter(function(s){return typeof s === 'string' && s.trim();}) : [];
+    var codes = relatedStocks(item).filter(function(stock){return stock.market === 'kr';}).map(function(stock){return stock.code;});
+    var map = global.SECTOR_MAP || {};
+    Object.keys(map).forEach(function(name){
+      if (name.replace(/\s/g,'') === '코스피3대장' || !Array.isArray(map[name])) return;
+      if(map[name].some(function(stock){return stock && codes.indexOf(String(stock.code)) >= 0;}))provided.push(name);
+    });
+    return provided.filter(function(name,i,rows){return rows.indexOf(name) === i;}).slice(0,4);
   }
 
   function stockCandidates() {
@@ -112,5 +129,5 @@
   }
 
 
-  global.NineNewsStocks = { relatedStocks: relatedStocks, loadStockCatalog: loadStockCatalog };
+  global.NineNewsStocks = { relatedStocks: relatedStocks, loadStockCatalog: loadStockCatalog, loadSectorCatalog:loadSectorCatalog, relatedSectors:relatedSectors };
 })(window);

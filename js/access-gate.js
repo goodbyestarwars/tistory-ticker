@@ -227,10 +227,9 @@
   }
   var logoutStep = null;
   try { logoutStep = global.sessionStorage.getItem('nine_logout_step'); if (logoutStep) global.sessionStorage.removeItem('nine_logout_step'); } catch (err) { /* 차단 */ }
-  if (logoutStep === 'tistory' && global.self === global.top) {
+  if ((logoutStep === 'site' || logoutStep === 'tistory') && global.self === global.top) {
     clearEntry();
-    global.location.replace('https://www.tistory.com/auth/logout?redirectUrl=' + encodeURIComponent(global.location.origin + '/'));
-    return;
+    // 구형 티스토리 중간 표식도 여기서 소비하고 사이트 로그인 화면으로 마무리한다.
   }
 
   if (landingApplies && !hint() && !isGuest()) {
@@ -266,21 +265,18 @@
       var t = e.target && e.target.closest ? e.target.closest('.nav-logo, [data-mtab="home"], a[href="/"], a[href="https://ghlee.tistory.com/"]') : null;
       if (!t || (t.closest && t.closest('#nineLanding'))) return;
       e.preventDefault();
-      try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (err) { /* 차단 */ }
+      try { global.sessionStorage.removeItem('nine_landing_seen'); global.sessionStorage.removeItem('wl_preview_v1'); global.localStorage.removeItem(CACHE_KEY); } catch (err) { /* 차단 */ }
       withLanding(function (L) { if (!L.isOpen()) L.show(!!(current && current.naverConfigured)); });
     }, true);
   }
 
-  /* 헤더 [로그아웃]: 전부 로그아웃한 뒤 로그인 창(랜딩)으로 돌아간다. 비회원 화면으로 남지 않는다.
-     1) 사이트 회원 세션(Google/네이버 공용 쿠키): 서버 로그아웃 주소로 최상위 이동한다. 다른 사이트 fetch 응답의
-        쿠키 삭제는 브라우저가 받아들이지 않아(SameSite 미지정 Set-Cookie) 세션이 남는다.
-     2) 돌아오면(LOGOUT_KEY) 기존 버튼과 같은 티스토리 로그아웃 주소로 이어 간다. 3) 홈에서 랜딩이 열린다. */
+  /* 사이트 세션은 서버에서 종료하고 홈 로그인 화면으로 복귀한다.
+     별도 인증 영역인 티스토리의 외부 로그아웃 페이지로 강제 이동하지 않는다. */
   var LOGOUT_KEY = 'nine_logout_step';
-  var TISTORY_LOGOUT = 'https://www.tistory.com/auth/logout?redirectUrl=' + encodeURIComponent(global.location.origin + '/');
   function clearEntry() {
     setGuest(false);
     setHint(false);
-    try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (err) { /* 차단 */ }
+    try { global.sessionStorage.removeItem('nine_landing_seen'); global.sessionStorage.removeItem('wl_preview_v1'); global.localStorage.removeItem(CACHE_KEY); } catch (err) { /* 차단 */ }
   }
   if (global.self === global.top) {
     doc.addEventListener('click', function (e) {
@@ -289,12 +285,8 @@
       e.preventDefault();
       e.stopImmediatePropagation();
       clearEntry();
-      var next = TISTORY_LOGOUT;
-      try {
-        global.sessionStorage.setItem(LOGOUT_KEY, 'tistory');
-        next = API + '/auth/google/logout?return_to=' + encodeURIComponent(global.location.origin + '/');
-      } catch (err) { /* 저장소 차단: 티스토리 로그아웃만 */ }
-      global.location.href = next;
+      try { global.sessionStorage.setItem(LOGOUT_KEY, 'site'); } catch (err) { /* 서버 로그아웃은 저장소 없이도 실행 */ }
+      global.location.href = API + '/auth/google/logout?return_to=' + encodeURIComponent(global.location.origin + '/');
     }, true);
   }
 

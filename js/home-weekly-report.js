@@ -521,7 +521,7 @@
           + (options.domestic ? '' : koTitle ? '<small class="wd-news-original" lang="en">원문 · ' + escapeHtml(headline.title) + '</small>' : '<small class="wd-news-original">한국어 번역 준비 중 · 원문 제목</small>')
           + '<hr class="wd-news-rule" aria-hidden="true">'
           + (koreanLine ? '<p class="wd-news-korean">' + escapeHtml(koreanLine) + '</p><hr class="wd-news-rule" aria-hidden="true">' : '')
-          + ((theme.name || sectors.length || theme.risk) ? '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags">' + (theme.name ? '<span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' : '') + '' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>' : '')
+          + ((theme.name || sectors.length || theme.risk || options.mentionedOnly) ? '<div class="wd-news-topics"><span class="wd-news-label" title="기사에 언급된 기업의 기존 등록 분류입니다. 수혜주 추천이 아닙니다.">관련 분야</span><div class="wd-tags">' + (theme.name ? '<span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' : '') + '' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (!theme.name && !sectors.length && !theme.risk ? '<span class="wd-topic-empty">확인된 분야 없음</span>' : '') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>' : '')
           + '<div class="wd-news-stocks"><span class="wd-news-label">' + (options.mentionedOnly ? '기사에 언급된 종목' : '관심종목') + '</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { if (options.mentionedOnly) return '<span class="wd-stock-chip">' + escapeHtml(stock.name) + '</span>'; return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>확인된 종목 없음</span>') + '</div></div></article>';
 
   }
@@ -536,10 +536,20 @@
   function renderWeeklyNews(mount) {
     ensureStyle();
     mount.innerHTML='<p class="wd-empty">이번 주 뉴스를 확인하는 중입니다.</p>';
-    return Promise.all([mainNewsModule(),global.NineUI.loadNewsStocks().catch(function(){})]).then(function(modules){
+    return Promise.all([mainNewsModule(),global.NineUI.loadNewsStocks().then(function(module){
+      if(module.loadSectorCatalog)module.loadSectorCatalog().then(function(){
+        var items=mount.__weekNewsItems;if(!items)return;
+        mount.querySelectorAll('.wd-news-topics .wd-tags').forEach(function(tags,index){
+          var sectors=module.relatedSectors(items[index]);
+          tags.innerHTML=sectors.length?sectors.map(function(sector){return '<span class="wd-theme-badge">'+escapeHtml(sector)+'</span>';}).join(''):'<span class="wd-topic-empty">확인된 분야 없음</span>';
+        });
+      });
+      return module;
+    }).catch(function(){})]).then(function(modules){
       var M=modules[0];return M.loadWeek().then(function(data){
         var dates=function(ms){return new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric'}).format(new Date(ms));};
-        var cards=data.items.map(function(item){return newsCardHtml({name:'',krSectors:Array.isArray(item.krSectors)?item.krSectors:[],krStocks:global.NineNewsStocks?global.NineNewsStocks.relatedStocks(item):[],headlines:[Object.assign({},item,{source:M.sourceLabel(item)})]},{mentionedOnly:true,domestic:item._market==='domestic'});}).join('');
+        mount.__weekNewsItems=data.items;
+        var cards=data.items.map(function(item){return newsCardHtml({name:'',krSectors:global.NineNewsStocks&&global.NineNewsStocks.relatedSectors?global.NineNewsStocks.relatedSectors(item):(Array.isArray(item.krSectors)?item.krSectors:[]),krStocks:global.NineNewsStocks?global.NineNewsStocks.relatedStocks(item):[],headlines:[Object.assign({},item,{source:M.sourceLabel(item)})]},{mentionedOnly:true,domestic:item._market==='domestic'});}).join('');
         mount.innerHTML='<p class="wd-note" data-week-news-count="'+data.items.length+'">'+dates(data.window.start)+' 월 ~ '+dates(data.window.end-1)+' 일 · 한국시간 · 수집 '+data.items.length+'건'+(data.failed.length?' · 일부 시장 조회 실패':'')+'</p>'+(cards?'<div class="wd-news-shelf"><div class="wd-news-track" tabindex="0" role="region" aria-label="이번 주 주요뉴스 카드">'+cards+'</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">‹</button><button type="button" data-wd-news-next aria-label="다음 뉴스">›</button></div></div>':'<p class="wd-empty">이번 주 수집된 뉴스가 없습니다.</p>');
         return (global.SiteInteractionsReady||Promise.resolve(global.SiteInteractions)).then(function(module){if(module)module.carousel(mount,{track:'.wd-news-track',card:'.wd-news-card',previous:'[data-wd-news-prev]',next:'[data-wd-news-next]'});return data;});
       });
