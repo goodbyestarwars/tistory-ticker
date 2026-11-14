@@ -42,6 +42,21 @@ try{
   const shown=Object.values(out.groups).flat().concat(Object.values(out.extended).flat());
   assert.ok(shown.every(r=>r.patternDetail.quiet.band!=='noisy'),'하위 30%(noisy)는 기본·확장 후보에서 제외');
   assert.strictEqual(out.quiet.role,'filter');assert.ok(out.quiet.excluded && typeof out.quiet.excluded.pullbackRebreak==='number');
+  assert.strictEqual(d.restHidden,true,'쉬기 구간에는 정식 후보로 올리지 않고 연구에 숨김 표시');
+  assert.ok(!Object.values(out.groups).flat().some(r=>r.patternDetail.promotedEdge),'쉬기 구간 승격 없음');
+  // KOSPI가 60일선 위면 정식 매수후보(groups)로 승격, 같은 업종은 1종목
+  const rising=base.map((_,i)=>({date:day(i),close:2000+i}));
+  const loud=[];for(let k=0;k<18;k++)loud.push({code:String(200+k).padStart(6,'0'),name:'소형큰흔들림'+k,daily:make(1,.08+.01*k,40+k)});
+  const rows2=[rows[0],rows[1],{code:'000030',name:'대형조용2',daily:make(49,0,5)}].concat(loud).map(r=>Object.assign({industry:r.code==='000010'||r.code==='000030'?'은행':null},r));
+  fs.writeFileSync(file,rows2.map(r=>JSON.stringify(Object.assign({financialScreen:{passed:false}},r))).join('\n')+'\n');
+  fs.writeFileSync(bench,JSON.stringify({KOSPI:rising,KOSDAQ:kosdaq}));
+  const up=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file,bench],{encoding:'utf8'}));
+  const prom=up.groups.pullbackRebreak.filter(r=>r.patternDetail.promotedEdge);
+  const bank=prom.filter(r=>r.patternDetail.industry==='은행');
+  assert.strictEqual(bank.length,1,'같은 업종(은행)은 1종목만 승격');
+  assert.strictEqual(bank[0].patternDetail.listKind,'primary');assert.strictEqual(bank[0].patternDetail.orderAuthorized,false);
+  assert.ok(up.research.pullbackRebreak.some(r=>r.patternDetail.industryDuplicate===true),'업종 중복은 연구에만');
+  fs.writeFileSync(file,rows.map(r=>JSON.stringify(Object.assign({financialScreen:{passed:false}},r))).join('\n')+'\n');
   // 지수 자료가 없으면 쉬기 판정은 null(미확인)
   const out2=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file],{encoding:'utf8'}));
   assert.strictEqual(out2.quiet.marketRest,null);

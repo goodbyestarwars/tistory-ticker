@@ -37,13 +37,15 @@ def record_tracks(snapshot, conn=None):
         groups = snapshot.get('observed') or snapshot.get('groups') or {}
         prefix = 'pattern:shape-v2:' if snapshot.get('strategyVersion') == 'chart-first-v2' else TRACK_PREFIX
         out = {key: pattern_tracker.record_new(conn, snapshot['dataDate'], prefix + key,
-                                               [r for r in groups.get(key) or [] if not (r.get('patternDetail') or {}).get('edgeOnly')])
+                                               [r for r in groups.get(key) or [] if not (r.get('patternDetail') or {}).get('edgeOnly')
+                                                and not (r.get('patternDetail') or {}).get('promotedEdge')])
                for key in GROUPS}
         # Research tags (edge-v1) get their own scanner keys so menu statistics stay unchanged.
         for edge in EDGE_KEYS:
             rows, seen = [], set()
             for key in GROUPS:
-                for r in (groups.get(key) or []) + (snapshot.get('research', {}).get(key) or []):
+                # 승격된 연구 태그(promotedEdge)는 공개 groups에 있으므로 함께 읽어 같은 연구 키로 추적한다.
+                for r in (groups.get(key) or []) + (snapshot.get('groups', {}).get(key) or []) + (snapshot.get('research', {}).get(key) or []):
                     tags = (r.get('patternDetail') or {}).get('edgeSignals') or []
                     if r.get('code') not in seen and any(t.get('key') == edge for t in tags):
                         seen.add(r.get('code')); rows.append(r)
@@ -111,6 +113,12 @@ def refresh():
     names, etfs = rescan_patterns.load_universe_metadata()
     caps = rescan_patterns.load_market_cap_cache()
     funds = rescan_patterns.load_fundamentals_cache()
+    try:
+        # 2026-11-14 주도주 조용한 눌림 업종 중복 제한용 WICS 업종(기존 공용 정적 자산). 실패하면 업종 미확인으로 진행한다.
+        import market_board
+        wics = market_board.load_wics_map() or {}
+    except Exception:
+        wics = {}
     conn = db_schema.get_conn()
     coverage = dict(universe=0, eligible=0, skipped=0)
     here = Path(__file__).resolve().parent
@@ -139,7 +147,7 @@ def refresh():
                                 if isinstance(r.get('foreign_net'), (int, float)) and isinstance(r.get('inst_net'), (int, float))]
                     except Exception:
                         flow = []
-                    stream.write(json.dumps(dict(code=code, name=name, daily=daily, flow=flow, financialScreen=financial, longTermLiquidity=probe['longTermLiquidity']), ensure_ascii=False) + '\n')
+                    stream.write(json.dumps(dict(code=code, name=name, daily=daily, flow=flow, industry=(wics.get(code) or {}).get('industry'), financialScreen=financial, longTermLiquidity=probe['longTermLiquidity']), ensure_ascii=False) + '\n')
             if not coverage['eligible']:
                 raise ValueError('No eligible current daily data; preserve prior snapshot')
             try:
