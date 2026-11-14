@@ -318,7 +318,8 @@ body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-c
    05. 공통 패널 · 목록
    ========================================================================== */
 
-.weekend-dashboard .wd-panel {
+.weekend-dashboard .wd-panel,
+.weekend-dashboard .wd-index-section {
   min-width: 0;
   padding: var(--closed-card-pad);
   border: 1px solid var(--wd-line);
@@ -842,7 +843,8 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
     grid-auto-columns: 156px;
   }
 
-  .weekend-dashboard .wd-panel {
+  .weekend-dashboard .wd-panel,
+.weekend-dashboard .wd-index-section {
     padding: var(--ui-card-padding);
   }
 
