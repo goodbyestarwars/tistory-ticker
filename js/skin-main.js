@@ -181,6 +181,31 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
 })();
 
+/* 메모 권한은 홈 대시보드 체크와 독립이다. */
+(function () {
+  /* 2026-09-23 사용자 요청("메모 기능") - 전체 페이지에서 뜨는 플로팅 메모 버튼.
+     dashboard-enhancements와 달리 경로 제한 없이 항상 로드한다(어느 페이지에서든
+     메모를 남길 수 있어야 하는 기능이라). */
+  (function loadMemoWidget() {
+    if (window.NineAccess) { (window.NineAccess.whenMember || window.NineAccess.whenAdmin)(loadMemoWidgetNow, 'memo'); return; }
+    window.addEventListener('nineaccess:ready', function () { if (window.NineAccess) window.NineAccess.whenMember(loadMemoWidgetNow, 'memo'); }, {once:true});
+  })();
+  function loadMemoWidgetNow() {
+    if (document.querySelector('link[data-memo-widget-css]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/memo-widget.css?v=20260923-memo-widget-v3';
+    link.setAttribute('data-memo-widget-css', '1');
+    document.head.appendChild(link);
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/memo-widget.js?v=20260923-memo-widget-v3';
+    script.defer = true;
+    script.setAttribute('data-memo-widget', '1');
+    document.body.appendChild(script);
+  }
+
+})();
+
 /* 2026-11-11 화면 접근 정책: 보호 화면(홈·종목·MY 등)은 서버 판정(NineAccess) 뒤에만 아래 초기화를 시작한다.
    공개 4개 화면·일반 글은 기다리지 않고 바로 시작한다. 게이트 로드 실패 시에도 데이터는 서버 API가 막는다. */
 (function nineAccessBoot() {
@@ -306,27 +331,6 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     script.setAttribute('data-dashboard-enhancements', '1');
     document.body.appendChild(script);
   })();
-
-  /* 2026-09-23 사용자 요청("메모 기능") - 전체 페이지에서 뜨는 플로팅 메모 버튼.
-     dashboard-enhancements와 달리 경로 제한 없이 항상 로드한다(어느 페이지에서든
-     메모를 남길 수 있어야 하는 기능이라). */
-  (function loadMemoWidget() {
-    if (window.NineAccess) { (window.NineAccess.whenMember || window.NineAccess.whenAdmin)(loadMemoWidgetNow, 'memo'); return; }
-    loadMemoWidgetNow();
-  })();
-  function loadMemoWidgetNow() {
-    if (document.querySelector('link[data-memo-widget-css]')) return;
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/memo-widget.css?v=20260923-memo-widget-v3';
-    link.setAttribute('data-memo-widget-css', '1');
-    document.head.appendChild(link);
-    var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/memo-widget.js?v=20260923-memo-widget-v3';
-    script.defer = true;
-    script.setAttribute('data-memo-widget', '1');
-    document.body.appendChild(script);
-  }
 
   /* Dedicated MY screen: reuse the existing /page/watchlist Tistory page and
      append portfolio/holding analysis without changing other pages. */
