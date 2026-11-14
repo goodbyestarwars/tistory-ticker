@@ -11,8 +11,17 @@ const EDGE={
  gapVolumeClose:{group:'liveFlow',label:'갭·거래량 5배·강마감',horizon:'1~5거래일',
    note:'전일 고가 위 갭(+2%+) · 우상향 · 거래량 전일 5배 이상 · +10~29% 마감'},
  rsHighResidual:{group:'pullbackRebreak',label:'2~3주 내 갈 길',horizon:'10~15거래일',
-   note:'두 지수 대비 비율선 60일 신고가 · 지수 영향 뺀 20일 잔차 모멘텀 상위 40%'}
+   note:'두 지수 대비 비율선 60일 신고가 · 지수 영향 뺀 20일 잔차 모멘텀 상위 40%'},
+ // 2026-11-14 docs/EDGE_FACTOR_STUDY_2026-11-13.md: 대형 주도 + 120봉 상승 뒤 눌림 + 조용함.
+ quietLeaderPullback:{group:'pullbackRebreak',label:'주도주 조용한 눌림',horizon:'최대 60거래일',
+   note:'거래대금 상위 15% · 120봉 상승 뒤 눌림/반등 · 조용함 상위 30%(낮은 고유 변동성·상승일 거래량 쏠림 없음)'}
 };
+// Exit plan shown with the research tag (backtest 2024~2025: 10번 중 5~6번 이익, 이익 평균 +17%, 손실 평균 -9%).
+const EXIT_PLAN={version:'exit-v1',stopLossPct:-10,takeProfit:'+10% 도달 뒤 종가가 20일선 아래면 다음 거래일 시가 매도',
+  maxHoldDays:60,marketRest:'KOSPI 종가가 60일선 아래면 신규 매수 쉬기',observationOnly:true};
+const QUIET={top:.7,noisy:.3,leader:.85};
+const pctRank=values=>{const idx=values.map((v,i)=>[v,i]).filter(x=>Number.isFinite(x[0])).sort((a,b)=>a[0]-b[0]);
+  const out=new Array(values.length).fill(null);idx.forEach((x,k)=>{out[x[1]]=(k+1)/idx.length;});return out;};
 const RESMOM_TOP=.4;
 (async()=>{
  const keys=['liveFlow','trendBreakout','bottomFormation','pullbackRebreak','longTermQuality'];
@@ -22,7 +31,23 @@ const RESMOM_TOP=.4;
  try{benchmarks=process.argv[3]?JSON.parse(fs.readFileSync(process.argv[3],'utf8')):null;}catch(_){benchmarks=null;}
  if(benchmarks && !Object.keys(benchmarks).length)benchmarks=null;
  let rsMissing=0,rsChecked=0;
- const edgeCounts={surgeNextDay:0,gapVolumeClose:0,rsHighResidual:0},resmoms=[],swing=[];
+ const edgeCounts={surgeNextDay:0,gapVolumeClose:0,rsHighResidual:0,quietLeaderPullback:0},resmoms=[],swing=[];
+ // Pass 1: same-day universe mean return for the idiosyncratic-volatility input (last 61 sessions).
+ const mSum={},mCnt={};
+ const pass1=readline.createInterface({input:fs.createReadStream(process.argv[2]),crlfDelay:Infinity});
+ for await(const line of pass1){
+   if(!line.trim())continue;
+   const d=JSON.parse(line).daily || [];
+   for(let i=Math.max(1,d.length-61);i<d.length;i++){
+     const r=d[i].close/d[i-1].close-1;
+     if(Number.isFinite(r) && Math.abs(r)<.31){mSum[d[i].date]=(mSum[d[i].date]||0)+r;mCnt[d[i].date]=(mCnt[d[i].date]||0)+1;}
+   }
+ }
+ const marketReturns={};for(const k of Object.keys(mSum))if(mCnt[k]>=20)marketReturns[k]=mSum[k]/mCnt[k];
+ const quietPool=[],pullbackPool=[];
+ const kospi=(benchmarks && benchmarks.KOSPI) || [];
+ const kospiMa60=kospi.length>=60?kospi.slice(-60).reduce((a,r)=>a+r.close,0)/60:null;
+ const marketRest=kospiMa60?kospi[kospi.length-1].close<kospiMa60:null;
  // Bound each display bucket independently. Geometry ranks first; research never promotes it.
  const keep=(list,row)=>{list.push(row);list.sort((a,b)=>b.score-a.score || a.code.localeCompare(b.code));if(list.length>LIMIT)list.length=LIMIT;};
  const tag=key=>Object.assign({key},EDGE[key]);
@@ -48,6 +73,11 @@ const RESMOM_TOP=.4;
    if(Number.isFinite(edge.resmom20))resmoms.push(edge.resmom20);
    let rs=null;
    const getRs=()=>{if(!rs){rs=benchmarks?AW.relativeStrengthOf(daily,benchmarks):{status:'missing',vs:{}};rsChecked++;if(rs.status!=='ok')rsMissing++;}return rs;};
+   const quiet=AW.quietnessOf(daily,marketReturns);
+   quietPool.push(Object.assign({code:stock.code},quiet));
+   const shape120=daily.length>=120?AW.shapeOf(daily.slice(-120)):null;
+   if(shape120 && (shape120.type==='pullback' || shape120.type==='rebound'))
+     pullbackPool.push({stock:{code:stock.code,name:stock.name},daily:daily.slice(-40),shape120:shape120.type,rs:getRs()});
    for(const key of keys){
      for(const detail of selected[key] || []){
        if(key==='longTermQuality' && !(stock.financialScreen && stock.financialScreen.passed===true))continue;
@@ -82,10 +112,27 @@ const RESMOM_TOP=.4;
    row.patternDetail.residualMomentum20=s.value;
    keep(research[key],row);
  }
+ // Cross-sectional quietness: score = (1 - ivol60 rank) + (1 - upvol20 rank), re-ranked. Display only.
+ const pIvol=pctRank(quietPool.map(q=>q.ivol60)),pUp=pctRank(quietPool.map(q=>q.upvol20)),pAmt=pctRank(quietPool.map(q=>q.amt20));
+ const raw=quietPool.map((q,i)=>pIvol[i]==null || pUp[i]==null?null:(1-pIvol[i])+(1-pUp[i]));
+ const pScore=pctRank(raw),quietBy={};
+ quietPool.forEach((q,i)=>{const sp=pScore[i];quietBy[q.code]={version:'quiet-v1',ivol60:q.ivol60,upvol20:q.upvol20,scorePct:sp,amtPct:pAmt[i],
+   band:sp==null?'unknown':sp>QUIET.top?'quiet':sp<=QUIET.noisy?'noisy':'neutral',excludeAdvice:sp!=null && sp<=QUIET.noisy,observationOnly:true};});
+ for(const p of pullbackPool){
+   const q=quietBy[p.stock.code];
+   if(!q || !(q.amtPct>QUIET.leader) || !(q.scorePct>QUIET.top))continue;
+   const row=edgeRow(p.stock,p.daily,'quietLeaderPullback',p.rs);
+   Object.assign(row.patternDetail,{shape120:p.shape120,exitPlan:Object.assign({},EXIT_PLAN,{marketRestActive:marketRest})});
+   edgeCounts.quietLeaderPullback++;keep(research[EDGE.quietLeaderPullback.group],row);
+ }
+ for(const key of keys)for(const list of [groups[key],observed[key],extended[key],research[key]])
+   for(const row of list)row.patternDetail.quiet=quietBy[row.code] || {version:'quiet-v1',band:'unknown',observationOnly:true};
  for(const key of keys)for(const list of [groups[key],observed[key],extended[key],research[key]])list.sort((a,b)=>b.score-a.score || a.code.localeCompare(b.code));
  const status=!benchmarks?'missing':rsMissing&&rsMissing===rsChecked?'missing':rsMissing?'partial':'ok';
  process.stdout.write(JSON.stringify({strategyVersion:'chart-first-v2',groups,observed,extended,research,relativeStrength:{version:'my-way-v1',role:'advisory',status,basis:'KOSPI+KOSDAQ',
    checked:rsChecked,missing:rsMissing,filteredOut},
    edgeSignals:{version:'edge-v1',counts:edgeCounts,resmomCut:cut,resmomChecked:resmoms.length,
-     benchmarks:benchmarks?'ok':'missing'}}));
+     benchmarks:benchmarks?'ok':'missing'},
+   quiet:{version:'quiet-v1',role:'advisory',checked:quietPool.length,ranked:raw.filter(v=>v!=null).length,
+     noisyCut:QUIET.noisy,quietCut:QUIET.top,marketRest,kospiMa60}}));
 })().catch(()=>{process.stderr.write('shape worker failed\n');process.exitCode=1;});

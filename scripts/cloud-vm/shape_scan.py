@@ -19,7 +19,7 @@ GROUPS = ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'lo
 TRACK_PREFIX = 'pattern:shape:'
 BENCHMARKS = ('KOSPI', 'KOSDAQ')
 EDGE_PREFIX = 'pattern:edge:'
-EDGE_KEYS = ('surgeNextDay', 'gapVolumeClose', 'rsHighResidual')
+EDGE_KEYS = ('surgeNextDay', 'gapVolumeClose', 'rsHighResidual', 'quietLeaderPullback')
 
 
 def record_tracks(snapshot, conn=None):
@@ -149,6 +149,7 @@ def refresh():
             edge_signals = worker.get('edgeSignals') or dict(version='edge-v1', status='missing')
             extended = worker.get('extended') or {key: [] for key in GROUPS}
             research = worker.get('research') or {key: [] for key in GROUPS}
+            quiet = worker.get('quiet') or dict(version='quiet-v1', role='advisory', status='missing')
     finally:
         conn.close()
     at = datetime.now(timezone.utc).isoformat()
@@ -160,7 +161,7 @@ def refresh():
     snapshot = dict(version=VERSION, mode='observation', orderAuthorized=False, status='ok',
                     scannedAt=at, dataDate=basis, coverage=coverage, groups=groups,
                     relativeStrength=relative_strength, edgeSignals=edge_signals,
-                    strategyVersion=worker.get('strategyVersion'), extended=extended, research=research)
+                    strategyVersion=worker.get('strategyVersion'), extended=extended, research=research, quiet=quiet)
     def apply(cache):
         if cache.get('dataDate') != original.get('dataDate') or cache.get('generatedAt') != original.get('generatedAt'):
             raise ValueError('Daily snapshot changed during shape scan')

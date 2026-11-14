@@ -710,3 +710,7 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 ## futures_flow_observations (2026-11-13)
 
 기존 ohlc_snapshot.db의 전용 경량 관측표. `session TEXT`, `observed_ts INTEGER`, `foreign_net/institution_net/individual_net INTEGER NOT NULL`; PK(session,observed_ts). 단위는 누적 순매수 **계약**, 현물 investor_trend의 억원과 혼합하지 않는다. 실제 새 조회시각을 INSERT OR IGNORE·14일 보존, 기존 폴러/SQLite트랜잭션 사용. 한국거래일08:45~15:45 KST·동일날조회·60초이내·stale=false만저장. 역사적 체결이 아닌 서버관측이며 과거구간을 복원/제로기준 초기화하지 않는다. 재시작 시 유지한다.
+
+## volume_power_observations (2026-11-14)
+
+기존 ohlc_snapshot.db의 체결강도 순위 연구 기록. `session TEXT`, `slot INTEGER`(장중 분÷5×5), `observed_ts INTEGER`(종목판 `updated_at`), `rank INTEGER`, `code TEXT`, `name`, `price`, `change_rate`, `strength REAL NOT NULL`(KIS FHPST01680000 `tday_rltv`), `trade_amount`; PK(session,slot,code). 원천은 기존 `/market-board` 국내 KIS 응답의 `volumePowerStocks`(ETF·ETN·스팩 제외) 상위 30행이며 새 외부 호출·폴러는 없다. 한국 거래일 09:00~15:30 KST·조회 120초 이내만 저장, 같은 슬롯은 처음 값 유지(INSERT OR IGNORE), 결측·비정상 강도는 행 제외, 400일 보존. 종목판이 갱신될 때(방문 또는 기존 트래픽 연동 워머)만 기록하므로 빈 슬롯은 미관측이며 0이나 직전 값으로 채우지 않는다. KRX 순위값이며 NXT 통합·체결 스트리밍이 아니다. 주문·검색기 판정에 쓰지 않는 연구 자료다(`scripts/cloud-vm/volume_power_log.py`).

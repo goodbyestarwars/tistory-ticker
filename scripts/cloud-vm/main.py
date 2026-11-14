@@ -4840,6 +4840,13 @@ def market_board_endpoint(request: Request,
             else:
                 raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', exc) from exc
         _market_board_cache[key] = {'t': now, 'data': data}
+        if market == 'domestic':
+            try:
+                # 2026-11-14 체결강도 순위 연구 기록: 이미 받은 응답을 5분 슬롯마다 한 번 저장(새 호출 없음).
+                import volume_power_log
+                threading.Thread(target=volume_power_log.capture, args=(data,), name='volume-power-log', daemon=True).start()
+            except Exception as exc:
+                logging.getLogger('main').warning('volume power log failed: %s', type(exc).__name__)
         return envelope(data)
     finally:
         with _market_board_inflight_lock:
