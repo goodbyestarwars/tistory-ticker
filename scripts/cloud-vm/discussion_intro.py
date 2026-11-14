@@ -41,15 +41,58 @@ def _load():
     except FileNotFoundError:
         return {'content': None, 'revision': 0, 'updatedAt': None, 'audit': []}
     if (not isinstance(state, dict) or type(state.get('revision')) is not int
-            or state['revision'] < 1 or not isinstance(state.get('audit'), list)):
+            or state['revision'] < 0 or not isinstance(state.get('audit'), list)):
         raise ValueError('저장된 인트로를 읽을 수 없습니다.')
     state['content'] = normalize(state.get('content'))
+    if 'history' in state:
+        history = state['history']
+        if not isinstance(history, list) or not history:
+            raise ValueError('인트로 이력 형식 오류')
+        previous = None
+        for entry in history:
+            if (not isinstance(entry, dict) or type(entry.get('revision')) is not int
+                    or entry['revision'] < 0 or (previous is not None and entry['revision'] != previous + 1)):
+                raise ValueError('인트로 이력 순서 오류')
+            normalize(entry.get('content'))
+            previous = entry['revision']
+        if history[-1]['revision'] != state['revision'] or history[-1]['content'] != state['content']:
+            raise ValueError('인트로 현재 문구와 이력이 일치하지 않습니다.')
     return state
 
 
 def view():
     state = _load()
     return {key: state[key] for key in ('content', 'revision', 'updatedAt')}
+
+
+def _history(state):
+    if 'history' in state:
+        return list(state['history'])
+    if state['content'] is None:
+        return []
+    actor = next((item.get('actor') for item in reversed(state['audit'])
+                  if item.get('revision') == state['revision']), None)
+    # A legacy snapshot is known; older overwritten contents must not be invented.
+    return [{'content': state['content'], 'revision': state['revision'],
+             'at': state['updatedAt'], 'actor': actor, 'source': 'existing-snapshot'}]
+
+
+def preserve_current(default_content=None):
+    """Run at deployment to retain the existing snapshot without editing it."""
+    with _writing():
+        state = _load()
+        if state['content'] is None and default_content is not None:
+            content = normalize(default_content)
+            now = datetime.now(timezone.utc).isoformat()
+            state = {'content': content, 'revision': 0, 'updatedAt': now, 'audit': [],
+                     'history': [{'content': content, 'revision': 0, 'at': now,
+                                  'actor': None, 'source': 'code-default-baseline'}]}
+            snapshot_io.atomic_json(STATE_PATH, state)
+        if state['content'] is None or 'history' in state:
+            return {'revision': state['revision'], 'versions': len(state.get('history', []))}
+        state['history'] = _history(state)
+        snapshot_io.atomic_json(STATE_PATH, state)
+        return {'revision': state['revision'], 'versions': len(state['history'])}
 
 
 @contextmanager
@@ -77,6 +120,22 @@ def update(body, actor):
         now = datetime.now(timezone.utc).isoformat()
         saved = {'content': content, 'revision': state['revision'] + 1, 'updatedAt': now,
                  'audit': (state['audit'] + [{'actor': actor, 'at': now, 'revision': state['revision'] + 1}])[-100:]}
+        # Current text and complete version history commit together in the same atomic snapshot.
+        # Only the compact audit is capped; full content history is never truncated.
+        saved['history'] = _history(state) + [{'content': content, 'revision': saved['revision'],
+            'at': now, 'actor': actor, 'source': 'admin-save'}]
         snapshot_io.atomic_json(STATE_PATH, saved)
         return {key: saved[key] for key in ('content', 'revision', 'updatedAt')}
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Preserve the current intro as a server-only baseline.')
+    parser.add_argument('--baseline', help='Public code-default content JSON, used only when no saved intro exists.')
+    args = parser.parse_args()
+    baseline = None
+    if args.baseline:
+        with open(args.baseline, encoding='utf-8') as stream:
+            baseline = json.load(stream)
+    print(json.dumps(preserve_current(baseline)))
 

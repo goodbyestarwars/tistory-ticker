@@ -46,6 +46,53 @@ class IntroTests(unittest.TestCase):
         with self.assertRaises(ValueError): mod.update(dict(content=CONTENT,revision=1),'admin')
         self.assertEqual(Path(mod.STATE_PATH).read_text(),'{broken')
 
+    def state(self):
+        return json.loads(Path(mod.STATE_PATH).read_text(encoding='utf-8'))
+
+    def test_full_history_retains_all_versions_beyond_audit_limit(self):
+        for revision in range(105):
+            mod.update(dict(content=dict(CONTENT, body='버전 '+str(revision+1)),revision=revision),'admin')
+        state=self.state()
+        self.assertEqual(len(state['audit']),100)
+        self.assertEqual(len(state['history']),105)
+        self.assertEqual(state['history'][0]['content']['body'],'버전 1')
+        self.assertEqual(state['history'][-1]['content']['body'],'버전 105')
+        self.assertNotIn('history',mod.view())
+        self.assertNotIn('actor',mod.view())
+
+    def test_legacy_migration_preserves_known_snapshot_without_fabricating_old_versions(self):
+        legacy=dict(content=CONTENT,revision=7,updatedAt='2026-11-14T12:00:00Z',
+                    audit=[dict(actor='owner',revision=7,at='2026-11-14T12:00:00Z')])
+        Path(mod.STATE_PATH).write_text(json.dumps(legacy),encoding='utf-8')
+        self.assertEqual(mod.preserve_current()['versions'],1)
+        self.assertEqual(self.state()['history'][0]['revision'],7)
+        self.assertEqual(self.state()['history'][0]['source'],'existing-snapshot')
+        mod.update(dict(content=dict(CONTENT,title='새 제목'),revision=7),'owner')
+        self.assertEqual([x['revision'] for x in self.state()['history']],[7,8])
+        self.assertEqual(self.state()['history'][0]['content'],CONTENT)
+
+    def test_initial_default_baseline_and_restart_survive(self):
+        mod.preserve_current(CONTENT)
+        self.assertEqual(mod.view()['revision'],0)
+        self.assertEqual(self.state()['history'][0]['source'],'code-default-baseline')
+        mod.update(dict(content=dict(CONTENT,title='변경'),revision=0),'owner')
+        self.assertEqual(mod.preserve_current(dict(CONTENT,title='다른 기본값'))['versions'],2)
+        self.assertEqual(mod.view()['content']['title'],'변경')
+        self.assertEqual(self.state()['history'][0]['content'],CONTENT)
+
+    def test_history_and_current_fail_atomically(self):
+        mod.preserve_current(CONTENT)
+        before=Path(mod.STATE_PATH).read_bytes()
+        with patch.object(mod.snapshot_io,'atomic_json',side_effect=OSError('disk')):
+            with self.assertRaises(OSError):mod.update(dict(content=CONTENT,revision=0),'owner')
+        self.assertEqual(Path(mod.STATE_PATH).read_bytes(),before)
+        state=self.state()
+        state['history'][-1]['content']['title']='손상'
+        Path(mod.STATE_PATH).write_text(json.dumps(state),encoding='utf-8')
+        before=Path(mod.STATE_PATH).read_bytes()
+        with self.assertRaises(ValueError):mod.update(dict(content=CONTENT,revision=0),'owner')
+        self.assertEqual(Path(mod.STATE_PATH).read_bytes(),before)
+
 
 if __name__ == '__main__': unittest.main()
 
