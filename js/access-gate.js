@@ -346,7 +346,16 @@
     failed: function () { return failed; },
     policy: function () { return current; },
     refresh: function () {
-      return fetchPolicy().then(function (d) { current = d; failed = false; applyClasses(); return d; });
+      return fetchPolicy().then(function (d) {
+        if (current && current.authenticated && !d.authenticated) clearEntry();
+        current = d; failed = false; setHint(!!d.authenticated); cacheWrite(d); applyClasses();
+        try { global.dispatchEvent(new CustomEvent('nineaccess:change')); } catch (e) { /* 구형 */ }
+        return d;
+      }, function (error) {
+        current = null; failed = true; setHint(false); applyClasses();
+        try { global.localStorage.removeItem(CACHE_KEY); global.dispatchEvent(new CustomEvent('nineaccess:change')); } catch (e) { /* 차단 */ }
+        throw error;
+      });
     },
     /* 현재 화면이 보호 대상이면 판정 뒤에 fn, 공개 화면·일반 글은 기다리지 않고 바로 fn. 거부되면 fn을 실행하지 않는다. */
     run: function (fn) {
@@ -358,4 +367,10 @@
       ready.then(function () { if (isAdmin()) fn(); });
     }
   };
+  // 뒤로가기 캐시에서 복원된 이전 로그인 UI는 서버 정책으로 다시 확인한다.
+  if (global.addEventListener) global.addEventListener('pageshow', function (event) {
+    if (event.persisted) global.NineAccess.refresh().then(function () {
+      if (!allowsScreen(startScreen)) global.location.reload();
+    }).catch(function () { if (startRestricted) global.location.reload(); });
+  });
 })(window);

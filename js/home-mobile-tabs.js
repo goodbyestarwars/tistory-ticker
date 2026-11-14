@@ -145,7 +145,7 @@
     bar.innerHTML = barHtml();
     doc.body.appendChild(bar);
     // 정책 판정이 끝나면 탭 구성을 다시 맞춘다(관리자 ↔ 공개 4개).
-    var refreshBar = function () { bar.innerHTML = barHtml(); syncBar(); };
+    var refreshBar = function () { bar.innerHTML = barHtml(); syncBar(); syncAccount(); };
     if (global.NineAccess) global.NineAccess.ready.then(refreshBar);
     else global.addEventListener('nineaccess:ready', refreshBar, { once: true });
     global.addEventListener('nineaccess:change', refreshBar);
@@ -163,6 +163,7 @@
       }
     });
     syncBar();
+    syncAccount();
   }
   function syncBar() {
     if (!bar) return;
@@ -226,19 +227,35 @@
   }
   function accountSection() {
     var items = [];
+    var access = global.NineAccess;
+    var policy = access && access.policy && access.policy();
+    var authenticated = !!(policy && policy.authenticated);
+    var status = authenticated ? (policy.isAdmin ? '관리자로 로그인됨' : '로그인됨') : policy ? '비회원으로 이용 중' : access && access.failed && access.failed() ? '로그인 상태 확인 실패' : '로그인 상태 확인 중';
     var admin = typeof global.__isBlogAdmin === 'function' && global.__isBlogAdmin();
     var defs = [
-      ['.nav-manage-btn', '관리자 · 로그인', true],
+      ['.nav-manage-btn', authenticated ? '계정 · 블로그 관리' : '로그인', true],
       ['.nav-write-btn', '글쓰기', admin],
-      ['.nav-logout-btn', '로그아웃', admin]
+      ['.nav-logout-btn', authenticated ? '로그아웃' : '비회원 이용 종료', true]
     ];
     defs.forEach(function (d) {
       if (!d[2] || !doc.querySelector(d[0])) return;
       items.push('<button type="button" class="mtab-link" data-mtab-proxy="' + esc(d[0]) + '">' + esc(d[1]) + '</button>');
     });
     return items.length
-      ? '<section class="mtab-sec"><h3 class="mtab-sec-title">계정</h3><div class="mtab-sec-list">' + items.join('') + '</div></section>'
+      ? '<section class="mtab-sec"><h3 class="mtab-sec-title">계정</h3><p class="mtab-account-status" role="status">' + esc(status) + '</p><div class="mtab-sec-list">' + items.join('') + '</div></section>'
       : '';
+  }
+  function syncAccount() {
+    var access = global.NineAccess;
+    var policy = access && access.policy && access.policy();
+    var button = doc.querySelector('.nav-logout-btn');
+    if (button) {
+      var label = policy && policy.authenticated ? '로그아웃' : '이용 종료';
+      button.setAttribute('data-account-label', label);
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+    }
+    if (drawer && !drawer.hidden) drawer.querySelector('.mtab-drawer-body').innerHTML = menuSections() + accountSection();
   }
   function buildDrawer() {
     if (drawer) return;
