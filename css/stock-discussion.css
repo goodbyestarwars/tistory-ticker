@@ -406,3 +406,24 @@ html.dark .discussion-empty { color: var(--dk-mute); }
     min-height: 44px;
   }
 }
+
+/* Admin-only editor uses the shared site surface and typography. */
+.discussion-terminal-welcome { position:relative; }
+.discussion-intro-edit { display:block; margin:12px 12px 0 auto; background:transparent; color:inherit; border:1px solid currentColor; padding:6px 12px; font:inherit; cursor:pointer; }
+.discussion-intro-edit[hidden] { display:none !important; }
+.discussion-intro-dialog { position:fixed; inset:auto; left:50%; top:50%; transform:translate(-50%,-50%); box-sizing:border-box; margin:0; width:min(620px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; padding:24px; background:var(--ui-surface,#fff); color:var(--ui-text,#223047); border:1px solid var(--ui-border,#dce2e9); border-radius:var(--ui-card-radius,16px); font-family:var(--font-ui,sans-serif); }
+.discussion-intro-dialog::backdrop { background:rgba(0,0,0,.45); }
+.discussion-intro-dialog h2 { margin:0 0 12px; font-size:20px; }
+.discussion-intro-dialog p { font-size:13px; line-height:1.6; }
+.discussion-intro-dialog label { display:block; margin:14px 0; font-size:13px; }
+.discussion-intro-dialog input,.discussion-intro-dialog textarea { display:block; box-sizing:border-box; width:100%; margin-top:6px; padding:9px; background:var(--ui-inner-surface,#f7f8fa); color:inherit; border:1px solid var(--ui-border,#dce2e9); border-radius:6px; font:inherit; font-size:16px; }
+.discussion-intro-dialog textarea { resize:vertical; white-space:pre-wrap; }
+.discussion-intro-dialog textarea[name=art] { font-family:Consolas,monospace; }
+.discussion-intro-actions { display:flex; justify-content:flex-end; gap:10px; }
+.discussion-intro-actions button { min-height:40px; padding:8px 18px; border:1px solid var(--ui-border,#dce2e9); border-radius:6px; background:var(--ui-inner-surface,#f7f8fa); color:inherit; font:inherit; cursor:pointer; }
+.discussion-intro-actions button:disabled { opacity:.5; cursor:wait; }
+
+
+.discussion-terminal-screen { grid-template-columns:minmax(0,max-content) minmax(0,max-content); }
+.discussion-terminal-poem { min-width:0; overflow-wrap:anywhere; }
+.discussion-terminal-welcome .discussion-terminal-rose { min-width:0; max-width:100%; overflow:auto; }

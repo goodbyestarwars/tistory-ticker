@@ -243,6 +243,95 @@
     ]
   };
 
+  // Public text is rendered with textContent; writes always require server Google-admin verification.
+  function setupIntroEditor(welcome, poem, rose, etiquette) {
+    var endpoint = 'https://goodbyestar.cloud/discussion-intro';
+    var data = { revision: 0, content: {
+      title: intro.title, body: intro.lines.join('\n'), art: intro.art.join('\n'),
+      etiquette: etiquette.textContent
+    } };
+    var edit = addText(welcome, 'button', 'discussion-intro-edit', '문구 편집');
+    edit.type = 'button'; edit.hidden = true;
+    var dialog = null, busy = false;
+    function admin() { return !!(window.NineAccess && window.NineAccess.isAdmin()); }
+    function syncAdmin() {
+      edit.hidden = !admin();
+      if (!admin() && dialog && !busy) dialog.close();
+    }
+    function request(body) {
+      return window.NineHttp.json(endpoint, { private: !!body, retries: 0, fetchOptions: {
+        method: body ? 'PUT' : 'GET', credentials: 'include', cache: 'no-store',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined
+      } }).then(function (result) {
+        if (!result.data || !Number.isInteger(result.data.revision)) throw new Error('response');
+        return result.data;
+      });
+    }
+    function apply(saved) {
+      if (saved.revision < data.revision) return;
+      data.revision = saved.revision;
+      if (saved.content) data.content = saved.content;
+      poem.querySelector('h2').textContent = data.content.title;
+      poem.querySelector('p').textContent = data.content.body;
+      rose.textContent = data.content.art;
+      etiquette.textContent = data.content.etiquette;
+    }
+    request().then(apply).catch(function () { /* Preserve the existing intro on read failure. */ });
+    if (window.NineAccess) window.NineAccess.ready.then(syncAdmin);
+    window.addEventListener('nineaccess:change', syncAdmin);
+    window.addEventListener('nineaccess:ready', syncAdmin);
+    edit.addEventListener('click', function () {
+      if (!admin() || dialog) return;
+      dialog = document.createElement('dialog');
+      dialog.className = 'discussion-intro-dialog';
+      dialog.setAttribute('aria-labelledby', 'discussionIntroTitle');
+      dialog.innerHTML = '<form><h2 id="discussionIntroTitle">인트로 문구 편집</h2>' +
+        '<p>저장하면 모든 방문자에게 적용됩니다. 줄바꿈은 그대로 표시하며 HTML은 실행되지 않습니다.</p>' +
+        '<label>제목 · 최대 100자<input name="title" required maxlength="100"></label>' +
+        '<label>본문 · 최대 4,000자<textarea name="body" required maxlength="4000" rows="9"></textarea></label>' +
+        '<label>문자 그림 · 최대 2,000자<textarea name="art" maxlength="2000" rows="5" spellcheck="false"></textarea></label>' +
+        '<label>하단 안내 · 최대 200자<input name="etiquette" required maxlength="200"></label>' +
+        '<p class="discussion-intro-status" role="status" aria-live="polite">불러오는 중…</p>' +
+        '<div class="discussion-intro-actions"><button type="button" data-intro-close>닫기</button><button type="submit" disabled>저장</button></div></form>';
+      document.body.appendChild(dialog);
+      var form = dialog.querySelector('form'), status = dialog.querySelector('[role="status"]');
+      var save = form.querySelector('[type="submit"]');
+      function close() { if (!busy) dialog.close(); }
+      dialog.addEventListener('close', function () { dialog.remove(); dialog = null; edit.focus(); });
+      dialog.addEventListener('cancel', function (event) { if (busy) event.preventDefault(); });
+      dialog.addEventListener('click', function (event) {
+        if (event.target.closest('[data-intro-close]')) close();
+        if (event.target === dialog) {
+          var r = dialog.getBoundingClientRect();
+          if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) close();
+        }
+      });
+      dialog.showModal();
+      request().then(function (saved) {
+        if (!dialog || !admin()) return;
+        apply(saved);
+        Object.keys(data.content).forEach(function (key) { form.elements[key].value = data.content[key]; });
+        status.textContent = ''; save.disabled = false; form.elements.title.focus();
+      }).catch(function () { if (dialog) status.textContent = '읽기에 실패했습니다. 닫고 다시 열어 주세요.'; });
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (busy || !admin() || !form.reportValidity()) return;
+        var content = {};
+        Object.keys(data.content).forEach(function (key) { content[key] = form.elements[key].value; });
+        busy = true; save.disabled = true; status.textContent = '저장 중…';
+        request({ content: content, revision: data.revision }).then(function (saved) {
+          apply(saved); busy = false; dialog.close();
+        }).catch(function () {
+          busy = false; save.disabled = false;
+          status.textContent = '저장하지 못했습니다. 로그인·글자 수를 확인해 주세요. 다른 곳에서 수정했다면 닫고 다시 열어 주세요.';
+        });
+      });
+    });
+  }
+
+
+
   function setupClassic() {
     var form = root.querySelector('.discussion-native-guestbook');
     var stockbar = root.querySelector('.discussion-stockbar');
@@ -262,7 +351,8 @@
     var poem = addText(screen, 'div', 'discussion-terminal-poem', '');
     addText(poem, 'h2', '', intro.title);
     addText(poem, 'p', '', intro.lines.join('\n'));
-    addText(welcome, 'p', 'discussion-terminal-etiquette', '대화실 이용시 건전한 언어를 사용합시다.');
+    var etiquette = addText(welcome, 'p', 'discussion-terminal-etiquette', '대화실 이용시 건전한 언어를 사용합시다.');
+    setupIntroEditor(welcome, poem, rose, etiquette);
     var toolbar = addText(panel, 'div', 'discussion-terminal-bar', '');
     var banner = addText(toolbar, 'div', 'discussion-terminal-banner', '');
     addText(banner, 'strong', '', '9PAY PC통신  ▸  종목 채팅');

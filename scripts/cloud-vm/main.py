@@ -29,6 +29,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse, Response
 
 import access_policy
+import discussion_intro
 import autotrader_control
 import bond_yield
 import commodity_kis
@@ -1102,6 +1103,35 @@ def _access_denied(request_like):
     if not _site_admin(session):
         return JSONResponse({'detail': 'admin only'}, status_code=403)
     return None
+
+
+@app.get('/discussion-intro')
+def discussion_intro_get(request: Request):
+    from fastapi.responses import JSONResponse
+    _check_rate_limit('discussion_intro_get', request, max_per_window=120)
+    try:
+        return JSONResponse(envelope(discussion_intro.view()), headers={'Cache-Control': 'no-store'})
+    except (OSError, ValueError, TypeError, KeyError):
+        raise HTTPException(status_code=503, detail='인트로를 읽을 수 없습니다.') from None
+
+
+@app.put('/discussion-intro')
+async def discussion_intro_put(request: Request):
+    session = _autotrader_admin(request, write=True)
+    _check_rate_limit('discussion_intro_put', request, max_per_window=20)
+    raw = await request.body()
+    if len(raw) > 32768:
+        raise HTTPException(status_code=413, detail='요청이 너무 큽니다.')
+    try:
+        return envelope(discussion_intro.update(json.loads(raw), session.get('email')))
+    except discussion_intro.Conflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(status_code=400, detail='문구 형식과 글자 수를 확인해 주세요.') from None
+    except OSError:
+        raise HTTPException(status_code=500, detail='저장하지 못했습니다. 이전 문구를 유지합니다.') from None
+
+
 
 
 @app.get('/access-policy')
