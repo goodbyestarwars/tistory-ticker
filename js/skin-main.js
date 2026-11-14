@@ -336,7 +336,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
      append portfolio/holding analysis without changing other pages. */
   (function loadMyDashboard() {
     if (!/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) return;
-    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20260829-my-quotes-layout-v1';
+    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20261115-my-analysis';
     if (!document.querySelector('link[data-my-dashboard-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -349,13 +349,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!document.querySelector('link[data-foreign-flow-css]')) {
       var ffLink = document.createElement('link');
       ffLink.rel = 'stylesheet';
-      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20261101-ff-wide-stage';
+      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20261115-vp-align';
       ffLink.setAttribute('data-foreign-flow-css', '1');
       document.head.appendChild(ffLink);
     }
     if (document.querySelector('script[data-my-dashboard]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20261026-watchlist-state-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20261115-my-analysis';
     script.defer = true;
     script.setAttribute('data-my-dashboard', '1');
     document.body.appendChild(script);
@@ -432,7 +432,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20261005-kpi-gauge-v3';
+    var version = '20261115-etf-crypto-live';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -526,7 +526,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       {
         key: 'crypto', badge: '가상자산 시세', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
-        script: ASSET_BASE + 'js/crypto-market.js?v=20261025-tab-explainers',
+        script: ASSET_BASE + 'js/crypto-market.js?v=20261115-crypto-live',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges',
           ASSET_BASE + 'css/crypto-market.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },

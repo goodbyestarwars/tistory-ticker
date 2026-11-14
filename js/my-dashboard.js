@@ -168,9 +168,7 @@
   function renderShell() {
     mount.innerHTML = '<header class="my-dashboard-head">'
       + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>종목을 입력하면 시세·차트·수급·매물대를 바로 분석합니다.</p></div></header>'
-      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><div class="my-input-wrap"><span class="my-input-logo" data-my-input-logo aria-hidden="true"><span data-my-input-initials>종목</span><img data-my-input-image alt="" hidden></span><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist></div><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g></svg><span>불러오기</span></button></div><p>불러오기는 분석만 진행합니다. MY에 계속 보관하려면 아래 <b>+ 관심종목 추가</b>를 이용하세요.</p></div>'
-      + '<div class="my-watchlist-wrap"><section class="my-watchlist-panel"><div class="my-watchlist-panel-head"><div><strong>MY 관심종목</strong><span>그룹을 접어 필요한 종목만 보고, 행을 누르면 아래에서 분석할 수 있습니다.</span></div><div class="my-watchlist-head-actions"><small data-my-watchlist-count>0종목</small><button type="button" class="my-watchlist-add" data-my-watchlist-add>+ 관심종목 추가</button></div></div><div class="my-watchlist-groups" data-my-watchlist-table></div></section><button type="button" class="my-watchlist-show" data-my-watchlist-show hidden>관심종목 보기</button></div>'
-      + '<div class="my-watchlist-modal" data-my-watchlist-modal hidden><div class="my-watchlist-modal-backdrop" data-my-watchlist-close></div><section class="my-watchlist-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="myWatchlistModalTitle"><div class="my-watchlist-modal-head"><strong id="myWatchlistModalTitle">관심종목 추가</strong><button type="button" class="my-watchlist-modal-close" data-my-watchlist-close aria-label="관심종목 추가 창 닫기">×</button></div><p>국내 종목명·6자리 코드 또는 미국 티커를 입력하세요.</p><div class="my-watchlist-modal-row"><input id="myWatchlistAddInput" list="myWatchlistAddOptions" type="search" placeholder="예: 삼성전자, 005930, AAPL" autocomplete="off"><datalist id="myWatchlistAddOptions"></datalist><button type="button" data-my-watchlist-add-confirm>추가</button></div><p class="my-watchlist-modal-message" data-my-watchlist-modal-message hidden></p></section></div>'
+      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><div class="my-input-wrap"><span class="my-input-logo" data-my-input-logo aria-hidden="true"><span data-my-input-initials>종목</span><img data-my-input-image alt="" hidden></span><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist></div><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g></svg><span>불러오기</span></button></div><p>검색·조회는 분석 전용이며 보유정보를 저장할 때만 계정 데이터가 변경됩니다.</p></div>'
       + '<div id="myDashboardStatus" class="my-dashboard-status">분석할 종목을 입력하세요.</div>'
       + '<main class="my-dashboard-detail" id="myDashboardDetail"></main>';
   }
@@ -714,7 +712,7 @@
     function axis(label, score, state, note) {
       return '<div class="my-opinion-axis"><div class="my-opinion-axis-head"><strong>' + label + '</strong><span class="' + (score >= 65 ? 'is-up' : score != null && score < 45 ? 'is-down' : 'is-flat') + '">' + (score == null ? '데이터 부족' : Math.round(score) + '점 · ' + state) + '</span></div><p>' + escapeHtml(note) + '</p></div>';
     }
-    return '<section class="my-analysis-card my-composite-card my-ai-card my-position-advice"><div class="my-card-title"><strong>종합의견</strong><span>수급 · 차트 · 물타기</span></div>'
+    return '<section class="my-analysis-card my-composite-card my-ai-card my-position-advice"><div class="my-card-title"><strong>종합의견</strong><span>수급 · 차트 · 보유정보</span></div>'
       + '<div class="my-opinion-grid">'
       + axis('수급', model.flowScore, model.flowLabel, model.flowNote)
       + axis('차트', model.chartScore, model.chartLabel, model.chartNote)
@@ -752,7 +750,7 @@
   function arrangeAnalysisSections(root) {
     var holding = root.querySelector('.my-holding-card');
     if (!holding) return;
-    var nodes = ['.my-composite-card', '.my-analysis-grid', '.my-chart-shape', '.my-calculator'].map(function (selector) { return root.querySelector(selector); }).filter(Boolean);
+    var nodes = ['.my-composite-card', '.my-analysis-grid', '.my-chart-shape'].map(function (selector) { return root.querySelector(selector); }).filter(Boolean);
     var cursor = holding;
     nodes.forEach(function (node) { cursor.insertAdjacentElement('afterend', node); cursor = node; });
   }
@@ -834,10 +832,8 @@
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code, metrics.price, metrics.holding.averagePrice) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
       + buildCompositeOpinionCard(metrics, analysis && analysis.chart, analysis && analysis.summary, analysis && analysis.volume, analysis && analysis.ai || '')
-      + buildAveragingCalculatorWithRecovery(metrics, item.code, analysis && analysis.chart)
       + '<details class="my-detail-frame"><summary>기존 차트·매물대 도구를 이 화면에서 펼치기</summary><iframe title="' + escapeAttr(name) + ' 종목분석" loading="lazy" src="' + frameUrl + '"></iframe></details>';
     arrangeAnalysisSections(detail);
-    updateCalculatorWithRecovery(detail, metrics, analysis && analysis.chart);
   }
   function updateCalculator(root, metrics) {
     var budgetInput = root.querySelector('[data-my-calc="budget"]');
@@ -899,7 +895,6 @@
     if (values[0]) values[0].textContent = metrics.value == null ? '-' : formatPrice(metrics.value, item.code);
     if (pnl) { pnl.textContent = metrics.pnl == null ? '평단 입력 필요' : formatPrice(metrics.pnl, item.code); pnl.className = signClass(metrics.pnl); }
     if (rate) { rate.textContent = metrics.rate == null ? '-' : formatSigned(metrics.rate, 2) + '%'; rate.className = signClass(metrics.rate); }
-    updateCalculatorWithRecovery(root, metrics, state.analyses[item.code] && state.analyses[item.code].chart);
   }
   function render() {
     if (!mount || !global.Watchlist) return;
@@ -990,10 +985,6 @@
           if (event.target.matches('[data-my-field="averagePrice"]')) refreshPersonalVolumeProfile(mount, selected);
           buildWatchlistTable(global.Watchlist.getList());
         }
-      }
-      if (event.target.matches('[data-my-calc]')) {
-        var item = itemByCode(state.selectedCode);
-        if (item) updateCalculatorWithRecovery(mount, itemMetrics(item, state.quotes[item.code] || {}), state.analyses[item.code] && state.analyses[item.code].chart);
       }
     });
     mount.addEventListener('keydown', function (event) {

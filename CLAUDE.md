@@ -116,6 +116,8 @@
 
 - 국내 주요종목 KODEX ETF 히트맵(2026-11-15): `market-temp.js` 종목 화면에 `etf` 탭 추가. KODEX 200(069500) / KODEX 코스닥150(229200) 실제 구성종목은 기존 `/etf-components/{code}` KIS 기반 수신(누락이면 오류를 표시), 시장 구성비중은 `weightPct` 기준. 각 종목 시총은 `SectorDashboard.fetchTickerData(codes)`가 응답한 확정 `marketCap`만 표시한다. `MarketcapBubble.fetchBubbleData` + `setCodeFilter`로 고유 ID `#mt-etf-marketcap`에 직접 그려서 기존 전역 `#marketcap-bubble`의 init/타이머와 충돌하지 않는다. 미국 ETF 구성종목은 라이선스/확정 명세 미연결(`docs/US_ETF_DATA.md`)이므로 미국 히트맵 탭은 생성하지 않는다. 원천 시세 서버의 관리자 권한이나 주문 API 경계 변경 금지.
 
+- MY 화면(2026-11-15): `/page/watchlist`의 `my-dashboard.js`는 별도 관심종목 표·추가 모달을 화면에서 제거하고 상단 `내 종목 분석`+검색+보유정보·차트 분석에 집중한다. 서버 `/watchlist`의 계정별 보유 메타데이터·관심종목 데이터는 삭제하거나 자동 이동하지 않고 분석·저장 연동에만 사용한다. MY 내부 물타기 계산기 카드도 표시하지 않으며 종합의견은 수급·차트·보유정보로 설명한다. 제목 Noto Sans KR, 본문 Pretendard. `skin-main.js`의 MY/시장/가상자산 동적 자원 쿼리 버전은 이번 변경으로 올렸다.
+
 ## 운영·주문 경계
 
 - 구성(2026-10-30 인계 기준): 사이트 백엔드 `goodbyestar.cloud`는 Oracle A1, 자동매매 runner·봇·연구는 별도 Google VM(`instance-20260712-153038`, 자동매매 전용, PC 작업은 삭제됨)이다. 아래 VM 제한은 사이트 백엔드 기준이며, 구성이 다르게 적힌 문서는 `docs/HANDOFF_2026-10-30.md`가 우선한다.

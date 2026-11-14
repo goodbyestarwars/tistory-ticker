@@ -500,3 +500,20 @@ html.dark #my-dashboard .my-watchlist-group + .my-watchlist-group { border-color
 @media (min-width: 721px) and (max-width: 1100px) {
   #my-dashboard .my-shape-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* 2026-11-15: MY is a focused stock-analysis page; Noto title, Pretendard body. */
+#my-dashboard .my-dashboard-head h2 {
+  font-family:"Noto Sans KR","Noto Sans CJK KR",sans-serif;
+  font-size:30px;
+  font-weight:800;
+  line-height:1.35;
+  letter-spacing:-.045em;
+  word-break:keep-all;
+}
+#my-dashboard .my-dashboard-head p,#my-dashboard .my-search-panel,
+#my-dashboard .my-dashboard-status,#my-dashboard .my-dashboard-detail {
+  font-family:"Pretendard Variable",Pretendard,"Malgun Gothic",sans-serif;
+}
+@media(max-width:720px) {
+  #my-dashboard .my-dashboard-head h2 { font-size:25px; line-height:1.35; }
+}
