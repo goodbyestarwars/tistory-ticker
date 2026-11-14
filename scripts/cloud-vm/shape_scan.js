@@ -14,6 +14,8 @@ const EDGE={
  rsHighResidual:{group:'pullbackRebreak',label:'2~3주 내 갈 길',horizon:'10~15거래일',
    note:'두 지수 대비 비율선 60일 신고가 · 지수 영향 뺀 20일 잔차 모멘텀 상위 40%'},
  // 2026-11-14 docs/EDGE_FACTOR_STUDY_2026-11-13.md: 대형 주도 + 120봉 상승 뒤 눌림 + 조용함.
+ timeLagAccumulation:{group:'longTermQuality',label:'시간차 매집',horizon:'최대 120거래일',
+   note:'60일 거래량이 늘었는데 주가는 박스에 머묾 · 최근 10일 거래 마름 · 외국인+기관 60일 순매수 상위 30%'},
  quietLeaderPullback:{group:'pullbackRebreak',label:'주도주 조용한 눌림',horizon:'최대 60거래일',
    note:'거래대금 상위 15% · 120봉 상승 뒤 눌림/반등 · 조용함 상위 30%(낮은 고유 변동성·상승일 거래량 쏠림 없음)'}
 };
@@ -21,6 +23,8 @@ const EDGE={
 const EXIT_PLAN={version:'exit-v1',stopLossPct:-10,takeProfit:'+10% 도달 뒤 종가가 20일선 아래면 다음 거래일 시가 매도',
   maxHoldDays:60,marketRest:'KOSPI 종가가 60일선 아래면 신규 매수 쉬기',observationOnly:true};
 const QUIET={top:.7,noisy:.3,leader:.85};
+// 시간차 매집 E 조건(연구와 같은 날짜별 백분위): volUp 상위20%·box60 하위40%·drift60<10%·dry10 하위30%·sm60 상위30%.
+const ACCUM={volUp:.8,box:.4,drift:.10,dry:.3,sm:.7};
 const pctRank=values=>{const idx=values.map((v,i)=>[v,i]).filter(x=>Number.isFinite(x[0])).sort((a,b)=>a[0]-b[0]);
   const out=new Array(values.length).fill(null);idx.forEach((x,k)=>{out[x[1]]=(k+1)/idx.length;});return out;};
 const RESMOM_TOP=.4;
@@ -32,7 +36,7 @@ const RESMOM_TOP=.4;
  try{benchmarks=process.argv[3]?JSON.parse(fs.readFileSync(process.argv[3],'utf8')):null;}catch(_){benchmarks=null;}
  if(benchmarks && !Object.keys(benchmarks).length)benchmarks=null;
  let rsMissing=0,rsChecked=0;
- const edgeCounts={surgeNextDay:0,gapVolumeClose:0,rsHighResidual:0,quietLeaderPullback:0},resmoms=[],swing=[];
+ const edgeCounts={surgeNextDay:0,gapVolumeClose:0,rsHighResidual:0,quietLeaderPullback:0,timeLagAccumulation:0},resmoms=[],swing=[];
  // Pass 1: same-day universe mean return for the idiosyncratic-volatility input (last 61 sessions).
  const mSum={},mCnt={};
  const pass1=readline.createInterface({input:fs.createReadStream(process.argv[2]),crlfDelay:Infinity});
@@ -45,7 +49,7 @@ const RESMOM_TOP=.4;
    }
  }
  const marketReturns={};for(const k of Object.keys(mSum))if(mCnt[k]>=20)marketReturns[k]=mSum[k]/mCnt[k];
- const quietPool=[],pullbackPool=[];
+ const quietPool=[],pullbackPool=[],accumPool=[];
  const kospi=(benchmarks && benchmarks.KOSPI) || [];
  const kospiMa60=kospi.length>=60?kospi.slice(-60).reduce((a,r)=>a+r.close,0)/60:null;
  const marketRest=kospiMa60?kospi[kospi.length-1].close<kospiMa60:null;
@@ -75,6 +79,10 @@ const RESMOM_TOP=.4;
    let rs=null;
    const getRs=()=>{if(!rs){rs=benchmarks?AW.relativeStrengthOf(daily,benchmarks):{status:'missing',vs:{}};rsChecked++;if(rs.status!=='ok')rsMissing++;}return rs;};
    const quiet=AW.quietnessOf(daily,marketReturns);
+   const flowMap=Array.isArray(stock.flow)?Object.fromEntries(stock.flow.filter(r=>Array.isArray(r) && Number.isFinite(r[1])).map(r=>[String(r[0]).replace(/-/g,''),r[1]])):null;
+   const accum=AW.accumulationOf(daily,flowMap);
+   if(accum.sm60!=null && accum.volUp!=null)accumPool.push({stock:{code:stock.code,name:stock.name},daily:daily.slice(-40),accum,
+     financialScreen:stock.financialScreen,longTermLiquidity:stock.longTermLiquidity});
    quietPool.push(Object.assign({code:stock.code},quiet));
    const shape120=daily.length>=120?AW.shapeOf(daily.slice(-120)):null;
    if(shape120 && (shape120.type==='pullback' || shape120.type==='rebound'))
@@ -126,6 +134,16 @@ const RESMOM_TOP=.4;
    Object.assign(row.patternDetail,{shape120:p.shape120,exitPlan:Object.assign({},EXIT_PLAN,{marketRestActive:marketRest})});
    edgeCounts.quietLeaderPullback++;keep(research[EDGE.quietLeaderPullback.group],row);
  }
+ // 시간차 매집: 전 종목 백분위 후 E 조건. 중장기 메뉴의 공개 재무 관문을 그대로 거치도록 재무 증빙을 붙인다.
+ const aVol=pctRank(accumPool.map(p=>p.accum.volUp)),aBox=pctRank(accumPool.map(p=>p.accum.box60)),
+   aDry=pctRank(accumPool.map(p=>p.accum.dry10)),aSm=pctRank(accumPool.map(p=>p.accum.sm60));
+ accumPool.forEach((p,i)=>{
+   if(!(aVol[i]>=ACCUM.volUp && aBox[i]<=ACCUM.box && p.accum.drift60<ACCUM.drift && aDry[i]<=ACCUM.dry && aSm[i]>=ACCUM.sm))return;
+   const row=edgeRow(p.stock,p.daily,'timeLagAccumulation',null);
+   Object.assign(row,{financialScreen:p.financialScreen,longTermLiquidity:p.longTermLiquidity});
+   Object.assign(row.patternDetail,{accumulation:Object.assign({},p.accum,{volUpPct:aVol[i],box60Pct:aBox[i],dry10Pct:aDry[i],sm60Pct:aSm[i]})});
+   edgeCounts.timeLagAccumulation++;keep(research[EDGE.timeLagAccumulation.group],row);
+ });
  for(const key of keys)for(const list of [groups[key],observed[key],extended[key],research[key]])
    for(const row of list)row.patternDetail.quiet=quietBy[row.code] || {version:'quiet-v1',band:'unknown',observationOnly:true};
  // 2026-11-14 사용자 지시: 하위 30%(noisy)는 기본·확장 후보에서 실제로 뺀다. observed(추적)·research는 그대로 둬 필터 효과를 나중에 비교한다.

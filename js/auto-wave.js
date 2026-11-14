@@ -1158,7 +1158,32 @@ function setupShapesOf(bars){
     return out;
   }
 
-  var api = { quietnessOf: quietnessOf, selectShapesOf: selectShapesOf, relativeContextOf: relativeContextOf, relativeStrengthOf: relativeStrengthOf, edgeSignalsOf: edgeSignalsOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
+  // Time-lag accumulation inputs (2026-11-14, docs/EDGE_FACTOR_STUDY_2026-11-13.md 시간차 매집):
+  // volume regime rising while price stays boxed, then trading dries up, with foreign+institution buying.
+  //  volUp : median volume of the last 60 sessions / median of the earlier sessions in the window
+  //  box60 : (max close - min close) / last close over 60 sessions;  drift60: |close / close 60 ago - 1|
+  //  dry10 : median volume of the last 10 sessions / median of the last 60
+  //  sm60  : sum(foreign+institution net shares) / sum(volume) over the last 60 sessions; needs >=55 flow days
+  // flowByDate maps 'YYYYMMDD' -> foreign+institution net shares. The caller ranks across the universe.
+  function accumulationOf(bars, flowByDate) {
+    var out={version:'accum-v1',volUp:null,box60:null,drift60:null,dry10:null,sm60:null};
+    if(!Array.isArray(bars) || bars.length<120)return out;
+    function med(a){a=a.slice().sort(function(x,y){return x-y;});var k=Math.floor(a.length/2);return a.length%2?a[k]:(a[k-1]+a[k])/2;}
+    var n=bars.length,last=bars.slice(-60),early=bars.slice(0,n-60),vol=function(r){return r.map(function(b){return b.volume;});};
+    var m60=med(vol(last)),mE=med(vol(early)),m10=med(vol(bars.slice(-10)));
+    if(!(mE>0) || !(m60>0))return out;
+    var closes=last.map(function(b){return b.close;}),c=bars[n-1].close,c60=bars[n-61].close;
+    out.volUp=m60/mE; out.dry10=m10/m60;
+    out.box60=(Math.max.apply(null,closes)-Math.min.apply(null,closes))/c; out.drift60=Math.abs(c/c60-1);
+    if(flowByDate){
+      var net=0,days=0,tot=0;
+      last.forEach(function(b){var k=String(b.date).replace(/-/g,''),f=flowByDate[k];tot+=b.volume;if(Number.isFinite(f)){net+=f;days++;}});
+      if(days>=55 && tot>0)out.sm60=net/tot;
+    }
+    return out;
+  }
+
+  var api = { quietnessOf: quietnessOf, accumulationOf: accumulationOf, selectShapesOf: selectShapesOf, relativeContextOf: relativeContextOf, relativeStrengthOf: relativeStrengthOf, edgeSignalsOf: edgeSignalsOf, myWayOf: myWayOf, shapeOf: shapeOf, pullbackOf: pullbackOf, analyze: analyze, detectWaves: detectWaves, defaults: DEFAULTS, version: VERSION, levels: LEVELS,
     atrSeries: atrSeries, smaSeries: smaSeries, cloudSeries: cloudSeries, isSideways: isSideways, hashBars: hashBars, makeZigzag: makeZigzag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.AutoWave = api;

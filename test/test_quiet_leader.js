@@ -55,3 +55,17 @@ assert.ok(/기본 후보에서 제외합니다/.test(src),'조용함 하위 30% 
 assert.ok(!/quietHtml/.test(src),'조용함 배지는 화면에 표시하지 않음');
 assert.ok(/function renderSimpleList/.test(src) && /자세히 보기/.test(src),'간단 화면 + 자세히 보기 접기');
 console.log('test_quiet_leader ok');
+
+// 4) 시간차 매집 입력(accum-v1): 수급 없으면 sm60 null, 55일 이상이면 계산, 박스·거래량 비율
+(function(){
+  const bars=[];for(let i=0;i<200;i++){const c=100+(i<140?0:Math.sin(i)*0.5);bars.push({date:day(i),open:c,high:c+.5,low:c-.5,close:c,volume:i<140?1000:(i<190?3000:1500)});}
+  const none=AW.accumulationOf(bars,null);
+  assert.strictEqual(none.sm60,null,'수급 없으면 매수 비중을 만들지 않는다');
+  assert.ok(none.volUp>2.5 && none.dry10<1 && none.box60<0.02 && none.drift60<0.01);
+  const flow={};bars.slice(-60).forEach(b=>{flow[b.date.replace(/-/g,'')]=500;});
+  const a=AW.accumulationOf(bars,flow);assert.ok(Math.abs(a.sm60-500*60/bars.slice(-60).reduce((s,b)=>s+b.volume,0))<1e-12);
+  const sparse={};bars.slice(-50).forEach(b=>{sparse[b.date.replace(/-/g,'')]=500;});
+  assert.strictEqual(AW.accumulationOf(bars,sparse).sm60,null,'수급 55일 미만은 미확인');
+  assert.ok(/longTermQuality:\['timeLagAccumulation'\]/.test(fs.readFileSync('js/pattern-scan.js','utf8')));
+  console.log('accumulation ok');
+})();

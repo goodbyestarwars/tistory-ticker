@@ -19,7 +19,7 @@ GROUPS = ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'lo
 TRACK_PREFIX = 'pattern:shape:'
 BENCHMARKS = ('KOSPI', 'KOSDAQ')
 EDGE_PREFIX = 'pattern:edge:'
-EDGE_KEYS = ('surgeNextDay', 'gapVolumeClose', 'rsHighResidual', 'quietLeaderPullback')
+EDGE_KEYS = ('surgeNextDay', 'gapVolumeClose', 'rsHighResidual', 'quietLeaderPullback', 'timeLagAccumulation')
 
 
 def record_tracks(snapshot, conn=None):
@@ -131,7 +131,15 @@ def refresh():
                     coverage['eligible'] += 1
                     probe = dict(price=daily[-1]['close'], longTermLiquidity=pd.long_term_liquidity(daily, stock['market_cap_eok']))
                     financial = pd.long_term_financial_check(probe, funds.get(code))
-                    stream.write(json.dumps(dict(code=code, name=name, daily=daily, financialScreen=financial, longTermLiquidity=probe['longTermLiquidity']), ensure_ascii=False) + '\n')
+                    # 2026-11-14 시간차 매집: 기존 확정 수급 저장분(investor_flow_daily, 주 단위) 최근 70일만 읽는다. 새 호출 없음.
+                    # 조회 실패·미보유는 빈 목록 → 매집 판정만 '미확인'으로 건너뛰고 모양 선정은 그대로 진행한다.
+                    try:
+                        flow = [[r['date'], r['foreign_net'] + r['inst_net']]
+                                for r in db_schema.load_investor_flow_daily(conn, code, limit=70)
+                                if isinstance(r.get('foreign_net'), (int, float)) and isinstance(r.get('inst_net'), (int, float))]
+                    except Exception:
+                        flow = []
+                    stream.write(json.dumps(dict(code=code, name=name, daily=daily, flow=flow, financialScreen=financial, longTermLiquidity=probe['longTermLiquidity']), ensure_ascii=False) + '\n')
             if not coverage['eligible']:
                 raise ValueError('No eligible current daily data; preserve prior snapshot')
             try:
