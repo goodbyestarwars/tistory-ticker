@@ -3,7 +3,7 @@
 - 요청: 연구 결론 3가지 모두 반영(제외 필터 표시, 연구 관찰 그룹, 체결강도 기록).
 - 변경: `js/auto-wave.js` `quietnessOf` 추가. `scripts/cloud-vm/shape_scan.js` 2회 읽기(시장 평균 수익률)·전 종목 조용함 순위로 모든 후보 `patternDetail.quiet` 표시(하위30% 제외 권고, 삭제 없음), `research.pullbackRebreak`에 `quietLeaderPullback`(거래대금 상위15%·120봉 눌림·조용함 상위30%)·청산 안내(`exitPlan`)·KOSPI 60일선 쉬기 표시. `shape_scan.py` 추적 키·스냅샷 `quiet`. `js/pattern-scan.js` 메뉴별 연구 태그 배열화·조용함/청산 표시. `scripts/cloud-vm/volume_power_log.py`+`main.py`: 기존 `/market-board` 국내 응답의 체결강도 순위 상위30을 5분 슬롯마다 `volume_power_observations`에 저장(별도 스레드·짧은 잠금 대기, 400일 보존, 새 호출 없음).
 - 검증: 신규 `test/test_quiet_leader.js`, `test/test_volume_power_log.py`(3건), 기존 shape JS 5종·`test_shape_selection` 9건·market_board 5종 통과. 11/12 일봉 470종목 재생으로 연구 결과와 5/6 일치.
-- 배포: master → Pages·VM 자동. 미완료: 운영 재계산·체결강도 실제 저장 확인(장중), 체결강도는 종목판 갱신 시점만 기록되어 공백 가능.
+- 배포: master → Pages·VM 자동(VM 배포 커밋 a165063 확인, Pages 새 JS 확인). 사용자 요청으로 `shape_scan.js` 주석 갱신 배포를 한 번 더 내보내 deploy_check의 장외 모양 선정 재계산을 다시 실행(결과 API는 관리자 전용이라 이 세션에서 미확인). 미완료: 체결강도 실제 저장 확인(장중), 체결강도는 종목판 갱신 시점만 기록되어 공백 가능.
 
 **2026-11-13 상승 전 선행 특성 연구(가격 지표·수급)**
 
