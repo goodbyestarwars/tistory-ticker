@@ -2839,6 +2839,13 @@
     if (!Array.isArray(macro) || !macro.length) return '';
     var now = now_ == null ? Date.now() : now_;
     var by = {}; macro.forEach(function (r) { if (r && r.symbol) by[r.symbol] = r; });
+    // Preserve historical daily chart, but use the shared Upbit public WebSocket for visible spot quote cards.
+    var liveCrypto = global.NineCryptoLive;
+    if (liveCrypto) ['BTC','ETH','USDT'].forEach(function (symbol) {
+      var tick = liveCrypto.latest(symbol);
+      if (liveCrypto.isFresh(tick)) by[symbol] = Object.assign({}, by[symbol] || {symbol:symbol}, tick,
+        {updated_at:new Date(tick.at).toISOString(),stale:false,source:'업비트 WebSocket',source_delay:'실시간'});
+    });
     function pad(n) { return String(n).padStart(2, '0'); }
     function fmt(it, price) {
       if (it.krw) { var eok = Math.floor(price / 1e8), man = Math.round((price - eok * 1e8) / 1e4); if (man >= 10000) { eok++; man = 0; } return (eok ? eok + '억 ' : '') + man.toLocaleString('ko-KR') + '만원'; }
@@ -3016,6 +3023,28 @@
       if (hist && hist.getBoundingClientRect().top > window.innerHeight - 120 && hist.scrollIntoView) hist.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
     render();
+    // A single public Upbit socket is shared with the crypto chart/indicator tab; only the
+    // commodity tile is redrawn on its ticks (the rest of the dashboard remains stable).
+    function useCryptoLive() {
+      if(!global.NineCryptoLive||state.__cryptoOff)return;
+      var lastAt=0;
+      state.__cryptoOff=global.NineCryptoLive.subscribe(function(){
+        if(document.hidden||!panel.isConnected||!state.macro.length)return;
+        var now=Date.now();
+        if(now-lastAt<1500)return;
+        lastAt=now;
+        var node=panel.querySelector('[data-market-extras]');
+        if(node)html(node,(state.macroExtra.length?commodityStrip_(state.macro.concat(state.macroExtra),null,state.selected):'')
+          +extrasBlock_(state.domestic,state.macro.concat(state.macroExtra),state.option,null,state.selected));
+      });
+    }
+    if(global.NineCryptoLive)useCryptoLive();
+    else {
+      var script=document.createElement('script');
+      script.src='https://goodbyestarwars.github.io/tistory-ticker/js/crypto-live.js?v=20261115-live-v1';
+      script.onload=useCryptoLive;
+      document.head.appendChild(script);
+    }
     // which: { live: 국내 지표(1분 레인), macro: 해외·원자재·가상자산·금리(5분 레인) }. 생략하면 둘 다(첫 로드).
     // 레인마다 호출 대상이 다르다: live -> /domestic-market-indicators, macro -> /futures(2종) + /option-flow. 같은 응답은 sharedMarketJson_가 공유한다.
     function refresh(which) {

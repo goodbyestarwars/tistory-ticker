@@ -54,6 +54,53 @@
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261020-analysis-review';
   var US_API_BASE = 'https://goodbyestar.cloud';
+  var CRYPTO_NAMES = { BTC:'비트코인', ETH:'이더리움', USDT:'테더' };
+  var cryptoModuleJob = null;
+  function cryptoSymbolOf(query) {
+    var q=String(query||'').trim().toLowerCase().replace(/^crypto:/,'').replace(/^krw-/,'');
+    for(var symbol in CRYPTO_NAMES) {
+      if(symbol.toLowerCase()===q||CRYPTO_NAMES[symbol]===q||(q.length>=2&&CRYPTO_NAMES[symbol].indexOf(q)===0))return symbol;
+    }
+    return '';
+  }
+  function cryptoMatches(query) {
+    var q=String(query||'').trim().toLowerCase();
+    return Object.keys(CRYPTO_NAMES).filter(function(symbol) {
+      return q && (symbol.toLowerCase().indexOf(q)!==-1||CRYPTO_NAMES[symbol].indexOf(q)!==-1||('krw-'+symbol).toLowerCase().indexOf(q)!==-1);
+    }).map(function(symbol){return {name:CRYPTO_NAMES[symbol],code:'CRYPTO:'+symbol,market:'crypto'};});
+  }
+  function hideCrypto(container) {
+    var host=container.querySelector('#ssCryptoModule');
+    if(!host)return;
+    if(global.NineCryptoChart)global.NineCryptoChart.hide(host);
+    else host.hidden=true;
+  }
+  function loadCryptoModule() {
+    if(global.NineCryptoChart)return Promise.resolve(global.NineCryptoChart);
+    if(cryptoModuleJob)return cryptoModuleJob;
+    cryptoModuleJob=new Promise(function(resolve,reject){
+      var css=document.createElement('link');
+      css.rel='stylesheet';css.href=CHART_BASE+'css/crypto-chart.css?v=20261115-crypto';document.head.appendChild(css);
+      var script=document.createElement('script');script.src=CHART_BASE+'js/crypto-chart.js?v=20261115-crypto';
+      script.onload=function(){global.NineCryptoChart?resolve(global.NineCryptoChart):reject(new Error('crypto module missing'));};
+      script.onerror=function(){reject(new Error('crypto module load failed'));};
+      document.head.appendChild(script);
+    }).catch(function(error){cryptoModuleJob=null;throw error;});
+    return cryptoModuleJob;
+  }
+  function openCrypto(container,symbol) {
+    if(!CRYPTO_NAMES[symbol])return;
+    hideIndex(container);setMarketMode(container,false);
+    var detail=container.querySelector('#ssDetail'),results=container.querySelector('#ssResults'),us=container.querySelector('#ssUsModule');
+    if(detail)detail.hidden=true;if(results)results.innerHTML='';if(us)us.hidden=true;
+    var host=container.querySelector('#ssCryptoModule');if(!host)return;
+    host.hidden=false;host.textContent='가상자산 차트를 불러오는 중…';
+    state.selectedCode='CRYPTO:'+symbol;state.selectedName=CRYPTO_NAMES[symbol];
+    var seq=++stockSearchRequestId;
+    try{var url=new URL(location.href);url.searchParams.set('code','CRYPTO:'+symbol);url.searchParams.delete('market');history.replaceState(null,'',url.pathname+url.search+url.hash);}catch(error){}
+    chartReady().then(loadCryptoModule).then(function(adapter){if(seq===stockSearchRequestId)adapter.mount(host,symbol);})
+      .catch(function(){if(seq===stockSearchRequestId)host.textContent='가상자산 차트 모듈을 불러오지 못했습니다.';});
+  }
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
     { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation' },
@@ -635,6 +682,7 @@
     var params = new URLSearchParams(location.search);
     var code = (params.get('code') || '').trim();
     if (!code && isIndependentChartMode()) code = '005930';
+    if (/^CRYPTO:/i.test(code)) { runSearch(container, code); return; }
     if (/^INDEX:/i.test(code)) { runSearch(container, code); return; }
     if (params.get('market') === 'us' || /^US:/i.test(code)) {
       setMarketMode(container, true);
@@ -667,6 +715,7 @@
   }
 
   function openUsSymbol(container, query) {
+    hideCrypto(container);
     var symbol = String(query || '').replace(/^US:/i, '').trim().toUpperCase();
     if (!/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(symbol)) return false;
     setMarketMode(container, true);
@@ -687,7 +736,7 @@
     return ''
       + '<div class="ss-search">'
       + '<div class="ss-input-wrap">'
-      + '<input type="text" id="ssInput" class="ss-input" placeholder="한국·미국 종목명 또는 코드 (예: 삼성전자, AAPL)" autocomplete="off" />'
+      + '<input type="text" id="ssInput" class="ss-input" placeholder="한국·미국·가상자산 검색 (예: 삼성전자, 비트코인)" autocomplete="off" />'
       + '<div id="ssSuggest" class="ss-suggest"></div>'
       + '</div>'
       + '<button type="button" id="ssGoBtn" class="ss-go-btn">검색</button>'
@@ -698,6 +747,7 @@
       + '<div id="ssSummary" class="ss-summary" hidden></div>'
       + '</div>'
       + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
+      + '<section id="ssCryptoModule" class="ss-crypto-module" aria-label="가상자산 캔들 차트" hidden></section>'
       + '<section id="ssIndexPanel" class="ss-index-panel" hidden></section>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
       + '<div class="ss-panels">'
@@ -949,19 +999,21 @@
     if (!query) { hideSuggestions(box); return; }
     applyDomesticListingFallbacks();
     var requestId = ++suggestionRequestId;
+    var cryptoRows = cryptoMatches(query);
     var indexRows = indexMatches(query).map(function (row) { return { name: row.name, code: 'INDEX:' + row.code, market: 'index' }; });
     var domesticRows = matchNames(query, 6).map(function (name) {
       return { name: name, code: global.KRX_MAP[name], market: 'kr' };
     });
     fetchUsSearch(query).then(function (usRows) {
       if (requestId !== suggestionRequestId) return;
-      var rows = indexRows.concat(domesticRows, usRows).slice(0, 8);
+      var rows = cryptoRows.concat(indexRows, domesticRows, usRows).slice(0, 8);
       if (!rows.length) { hideSuggestions(box); return; }
       box.innerHTML = rows.map(function (row) {
         var isUs = row.market === 'us' || /^US:/i.test(row.code);
+        var isCrypto = row.market === 'crypto';
         return '<div class="ss-suggest-item" data-name="' + escapeAttr(row.name) + '" data-code="' + escapeAttr(row.code) + '">'
-          + stockIconHtml(row.code)
-          + escapeHtml(row.name) + (isUs ? '<small class="ss-suggest-code">' + escapeHtml(String(row.code).replace(/^US:/i, '')) + '</small>' : '')
+          + (isCrypto ? '<span aria-hidden="true">₿ </span>' : stockIconHtml(row.code))
+          + escapeHtml(row.name) + (isUs || isCrypto ? '<small class="ss-suggest-code">' + escapeHtml(String(row.code).replace(/^(US|CRYPTO):/i, '')) + '</small>' : '')
           + '</div>';
       }).join('');
       box.classList.add('active');
@@ -1006,7 +1058,10 @@
     var detail = container.querySelector('#ssDetail');
     if (summary) summary.hidden = true;
     if (detail) detail.hidden = true;
-    if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 코드를 입력해주세요.</div>'; return; }
+    hideCrypto(container);
+    if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 가상자산명을 입력해주세요.</div>'; return; }
+    var chosenCrypto = cryptoSymbolOf(query);
+    if (chosenCrypto) { openCrypto(container, chosenCrypto); return; }
     var chosenIndex = exactIndex(query);
     if (chosenIndex) { openIndex(container, chosenIndex); return; }
     var indexCandidates = indexMatches(query);

@@ -7,6 +7,7 @@
   var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
   var api = 'https://goodbyestar.cloud';
   var root, tools, timer, busy, board, boardJob, newsAt = 0, history = {};
+  var cryptoLiveJob = null, liveUnsubscribe = null, cryptoLiveState = 'waiting';
   var COINS = [['BTC', '비트코인'], ['ETH', '이더리움'], ['USDT', '테더']];
   // The indicator page and closed home share the same source, units and request.
   var coinQuoteMemo;
@@ -21,6 +22,40 @@
     return memo.promise;
   }
   var COIN_DIGITS = { BTC: 0, ETH: 0, USDT: 2 };
+  function overlayLiveCoins() {
+    var live = global.NineCryptoLive;
+    if (!live) return;
+    COINS.forEach(function (pair) {
+      var symbol = pair[0], tick = live.latest(symbol);
+      if (!tick || !live.isFresh(tick)) return;
+      coinItems[symbol] = Object.assign({}, coinItems[symbol] || {symbol:symbol,chart:[]}, tick);
+    });
+  }
+  function attachCryptoLive() {
+    if (liveUnsubscribe || !global.NineCryptoLive) return;
+    liveUnsubscribe = global.NineCryptoLive.subscribe(function (quotes, state) {
+      cryptoLiveState = state;
+      if (!active()) return;
+      overlayLiveCoins();
+      renderBoard();
+      var note = root.querySelector('.cm-status');
+      if (note) note.textContent = state === 'live'
+        ? '업비트 WebSocket 실시간 · 전일 등락률 UTC 0시 기준 · 과거 차트 REST 백필'
+        : '업비트 실시간 시세 ' + (state === 'connecting' ? '연결 중' : '연결 지연 · 최근 REST 값 확인') + ' · 토큰은 30초 조회';
+    });
+  }
+  function ensureCryptoLive() {
+    if (global.NineCryptoLive) { attachCryptoLive(); return Promise.resolve(); }
+    if (cryptoLiveJob) return cryptoLiveJob;
+    cryptoLiveJob = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = base + 'js/crypto-live.js?v=20261115-live-v1';
+      script.onload = function () { global.NineCryptoLive ? resolve() : reject(new Error('crypto live missing')); };
+      script.onerror = function () { reject(new Error('crypto live load failed')); };
+      document.head.appendChild(script);
+    }).then(function () { attachCryptoLive(); }, function () { cryptoLiveJob = null; });
+    return cryptoLiveJob;
+  }
   var coinItems = {}, tokenItems = {}, tokenPairs = [], tokenQuoteAt = '', tokenSource = 'direct', tokenFetchFailed = false;
   var COLUMNS = [
     { label: '현재값', short: '현재' }, { label: '전일 대비', short: '전일' }, { label: '등락률', short: '등락' },
@@ -172,13 +207,14 @@
 
   function renderBoard() {
     if (!board || !global.IndicatorBoard) return;
+    overlayLiveCoins();
     var rows = COINS.map(coinRow);
     tokenPairs.forEach(function (pair) { rows.push(tokenRow(pair)); });
     var tokenHint = 'USDT 기준 · 등락률은 24시간 · '
       + (tokenFetchFailed ? '조회 지연 · 마지막 수신 ' : tokenSource === 'server' ? '서버 저장값 · 저장 기준 ' : '바이낸스 응답 수신 ')
       + (tokenQuoteAt || '없음');
     board.setRows(rows, [
-      { key: 'coin', label: '가상자산', hint: '원화 기준 · 전일 대비는 24시간' },
+      { key: 'coin', label: '가상자산', hint: '원화 기준 · 전일 대비는 UTC 0시 종가 기준 · 업비트 WebSocket' },
       { key: 'token', label: '바이낸스 국내주식 토큰', hint: tokenHint }
     ]);
     // IndicatorBoard는 같은 행 구조에서 표의 숫자만 갱신하므로 제목 옆 시각은 별도로 반영한다.
@@ -187,7 +223,7 @@
   }
 
   function shell() {
-    return '<div class="cm-status" role="status">30초마다 조회 · 체결시각은 종목별 표시 · 추이는 완료 일봉 기준</div>'
+    return '<div class="cm-status" role="status">업비트 WebSocket 연결 중 · 토큰은 30초 조회 · 추이는 완료 일봉 기준</div>'
       +'<p class="cm-note mi-tab-explainer">코인은 원화, 토큰은 USDT 기준입니다. 국내주식 토큰은 무기한선물 참고 가격으로 실제 주식 시세와 다릅니다. 차트의 평균은 선택한 기간의 종가 평균입니다.</p>'
       +'<div class="cm-board" data-cm-board></div>'
       +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div class="app-news-timeline" data-news-list></div></section>';
@@ -196,6 +232,7 @@
     return fetchCoinQuotes().then(function (items) {
       coinItems = { __failed: false };
       items.forEach(function(item){coinItems[item.symbol]=item;});
+      overlayLiveCoins();
       renderBoard();
     }).catch(function(error){console.warn('[CryptoMarket] coin quote',error.message);if(!Object.keys(coinItems).length)coinItems.__failed=true;renderBoard();});
   }
@@ -243,7 +280,7 @@
       root.querySelector('[data-news-status]').textContent=data.stale?'최근 저장 뉴스 · 공급자 응답 지연':'가상자산 전문 매체 · 최근 기사';newsAt=Date.now();
     }).catch(function(){root.querySelector('[data-news-status]').textContent='뉴스 조회 지연 · 새로고침으로 다시 확인';});
   }
-  function refresh(){if(!active()||busy)return;busy=true;Promise.allSettled([coins(),tokens(),news(false)]).then(function(){busy=false;root.querySelector('.cm-status').textContent='30초마다 조회 · 마지막 조회 종료 '+new Date().toLocaleTimeString('ko-KR')+' · 거래 시각은 종목별 표시';});}
+  function refresh(){if(!active()||busy)return;busy=true;Promise.allSettled([coins(),tokens(),news(false)]).then(function(){busy=false;root.querySelector('.cm-status').textContent=(cryptoLiveState==='live'?'업비트 WebSocket 실시간':'업비트 WebSocket 연결 지연')+' · 전일 등락률 UTC 0시 기준 · 토큰 30초 조회 · REST 백필 '+new Date().toLocaleTimeString('ko-KR');});}
   function init() {
     root=document.getElementById('crypto-market');if(!active())return;
     if(tools&&board){board.redraw();refresh();return;}
@@ -255,7 +292,7 @@
         columns:COLUMNS,ranges:RANGES,defaultRange:'3m',prevLabel:'전일',countLabel:'일봉',
         caption:'가상자산 시세 표',emptyText:'시세를 불러오는 중입니다.',height:210}):null;
       root.querySelector('[data-news-refresh]').onclick=function(){news(true);};
-      busy=false;renderBoard();refresh();if(!timer)timer=setInterval(refresh,30000);
+      busy=false;renderBoard();refresh();ensureCryptoLive();if(!timer)timer=setInterval(refresh,30000);
     }).catch(function(){busy=false;root.textContent='가상자산 화면을 불러오지 못했습니다.';});
   }
   global.CryptoMarket={quoteContractVersion:1,init:init,dailyStats:dailyStats,fetchCoinQuotes:fetchCoinQuotes,fetchTokenQuotes:fetchTokenQuotes,coins:COINS};

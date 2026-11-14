@@ -1,0 +1,22 @@
+
+/* Dedicated Upbit crypto search chart. Uses existing NineChartCore typography/colors. */
+#stock-search .ss-crypto-module { margin:14px 0 28px; min-width:0; padding:20px; border:1px solid var(--ui-border,#dce4ee); border-radius:18px; background:var(--ui-card,#fff); }
+#stock-search .ss-crypto-module[hidden] { display:none !important; }
+#stock-search .nine-crypto-header { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+#stock-search .nine-crypto-header h3 { font:700 22px/1.3 var(--font-title,"Noto Sans KR",sans-serif); margin:0; }
+#stock-search .nine-crypto-header h3 small { display:inline-block; color:#77869a; font:500 13px/1.5 var(--font-ui,Pretendard,sans-serif); }
+#stock-search .nine-crypto-header p { margin:5px 0 0; font:400 13px/1.5 var(--font-ui,Pretendard,sans-serif); color:#77869a; }
+#stock-search .nine-crypto-quote { display:flex; flex-direction:column; align-items:flex-end; gap:4px; font-variant-numeric:tabular-nums; }
+#stock-search .nine-crypto-quote strong { font:700 24px/1.3 var(--font-ui,Pretendard,sans-serif); }
+#stock-search .nine-crypto-change { font:600 14px/1.5 var(--font-ui,Pretendard,sans-serif); }
+#stock-search .nine-crypto-change.is-up { color:var(--num-up,#d24f45); }
+#stock-search .nine-crypto-change.is-down { color:var(--num-down,#1261c4); }
+#stock-search .nine-crypto-periods { display:flex; flex-wrap:wrap; gap:5px; margin:0 0 14px; }
+#stock-search .nine-crypto-periods button { min-height:34px; min-width:50px; padding:6px 12px; color:#5c7185; background:transparent; border:1px solid #dfe5ec; border-radius:8px; cursor:pointer; font:600 12px/1.5 var(--font-ui,Pretendard,sans-serif); }
+#stock-search .nine-crypto-periods button.is-active { background:#172335; color:#fff; border-color:#172335; }
+#stock-search .nine-crypto-chart { height:390px; width:100%; min-width:0; }
+#stock-search .nine-crypto-status { margin:8px 0 0; min-height:20px; color:#748498; font:400 12px/1.6 var(--font-ui,Pretendard,sans-serif); }
+html.dark #stock-search .ss-crypto-module { background:var(--dk-card,#151b24); border-color:var(--dk-line,#374151); }
+html.dark #stock-search .nine-crypto-periods button { color:var(--dk-sub,#a6b5c5); border-color:var(--dk-line,#374151); }
+html.dark #stock-search .nine-crypto-periods button.is-active { color:var(--dk-bg,#151b24); background:var(--dk-text,#e5e7eb); }
+@media(max-width:720px){#stock-search .ss-crypto-module{padding:14px;}#stock-search .nine-crypto-header{align-items:flex-start;}#stock-search .nine-crypto-quote{align-items:flex-start;}#stock-search .nine-crypto-chart{height:330px;}#stock-search .nine-crypto-periods button{flex:1 1 50px;padding:8px 5px;}}
