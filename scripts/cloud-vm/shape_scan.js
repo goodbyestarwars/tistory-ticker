@@ -1,6 +1,7 @@
 'use strict';
 // One bounded Node worker per existing daily scan; shared browser engine, no provider calls.
 // argv[2]: stock JSONL, argv[3] (optional): {KOSPI:[{date,close}], KOSDAQ:[...]} stored index closes.
+// 2026-11-14: quiet-v1 표시·quietLeaderPullback 연구 태그(docs/EDGE_FACTOR_STUDY_2026-11-13.md). 이 주석 갱신 배포로 장외 모양 선정 재계산을 다시 실행한다(deploy_check.sh).
 const fs=require('node:fs'),readline=require('node:readline');
 const AW=require('../../js/auto-wave.js');
 const LIMIT=60;
