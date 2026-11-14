@@ -139,3 +139,11 @@ html.dark #market-temp .mtm .mtm-detail-open {background:var(--dk-text);color:va
 @media (prefers-reduced-motion:reduce) {
   #market-temp .mtm-bubble {transition:none;}
 }
+
+/* 기업 상세는 모달에서 표시하므로 PC 목록은 지도 카드 높이 전체를 사용한다. */
+@media(min-width:761px) {
+  #market-temp .mtm-side { position:relative; align-self:stretch; min-height:0; }
+  #market-temp .mtm-side-card { position:absolute; inset:0; display:flex; flex-direction:column; min-height:0; }
+  #market-temp .mtm-side-card > h2, #market-temp .mtm-side-intro { flex:none; }
+  #market-temp .mtm-node-list { flex:1; min-height:0; max-height:none; }
+}
