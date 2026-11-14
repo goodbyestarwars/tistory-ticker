@@ -39,7 +39,7 @@
     '.nl-btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:2px solid rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}' +
     '.nl-btn.ghost:hover{background:rgba(255,255,255,.26)}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}' +
-    '.nl-qr{position:absolute;right:clamp(16px,3vw,40px);bottom:44px;width:144px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;text-decoration:none;font-size:12px;text-shadow:0 1px 5px #000}.nl-qr img{display:block;width:144px;height:144px;background:#fff;border-radius:8px}.nl-qr:focus-visible{outline:3px solid #ffd27a;outline-offset:4px}' +
+    '.nl-qr{position:absolute;right:clamp(16px,3vw,40px);bottom:44px;width:144px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;text-decoration:none;font-size:12px;text-shadow:0 1px 5px #000}.nl-qr img{display:block;width:144px;height:144px;background:transparent;border-radius:8px}.nl-qr:focus-visible{outline:3px solid #ffd27a;outline-offset:4px}' +
     '.nl-credit{font-family:system-ui,"Malgun Gothic",sans-serif;position:absolute;right:clamp(12px,3vw,40px);bottom:10px;font-size:11px;color:rgba(255,255,255,.7);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
     '.nl-credit:hover{color:#fff;text-decoration:underline}' +
     '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
@@ -126,7 +126,7 @@
     root.innerHTML = '<div class="nl-photo"></div><div class="nl-shade"></div>' +
       '<div class="nl-top"><span class="nl-logo" style="font-family:Noto Serif KR Site,var(--font-serif,serif)!important;font-weight:700!important">ㄱㅖ조 ㅏ심폐소생술</span></div>' +
       '<div class="nl-hero"><span class="nl-badge">시장을 보는 나만의 시선</span>' +
-      '<p class="nl-sub">오늘의 흐름을 읽고, 나만의 판단을 쌓아보세요.</p></div>' +
+      '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
       '<a class="nl-qr" href="https://goodbyestarwars.github.io/tistory-ticker/img/site-qr.svg" target="_blank" rel="noopener" aria-label="사이트 QR코드 크게 보기"><img src="https://goodbyestarwars.github.io/tistory-ticker/img/site-qr.svg" width="144" height="144" alt="https://ghlee.tistory.com/ 접속 QR코드"><span>사이트 접속 QR</span></a>' +
