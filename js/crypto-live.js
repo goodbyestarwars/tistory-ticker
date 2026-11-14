@@ -6,7 +6,7 @@
   var MARKET = { BTC:'KRW-BTC', ETH:'KRW-ETH', USDT:'KRW-USDT' };
   var lookup = { 'KRW-BTC':'BTC', 'KRW-ETH':'ETH', 'KRW-USDT':'USDT' };
   var subscribers = [], latest = {}, socket = null, retry = null, ticker = null, generation = 0;
-  var state = 'waiting', scheduled = null;
+  var state = 'waiting', scheduled = null, lastConnectAt = 0;
   function status(value) {
     state = value;
     notify();
@@ -55,6 +55,9 @@
   }
   function connect() {
     if (socket || !subscribers.length || document.hidden || !global.WebSocket) return;
+    // Upbit applies 1 Origin request per 10s to browser clients; reconnect must not burst.
+    if (Date.now()-lastConnectAt < 11000) { scheduleRetry(); return; }
+    lastConnectAt = Date.now();
     var id = ++generation;
     status('connecting');
     try { socket = new WebSocket('wss://api.upbit.com/websocket/v1'); }
@@ -85,7 +88,7 @@
   }
   function scheduleRetry() {
     if (retry || !subscribers.length || document.hidden) return;
-    retry = setTimeout(function () { retry = null; connect(); }, 6000);
+    retry = setTimeout(function () { retry = null; connect(); }, Math.max(1500, 11000 - (Date.now()-lastConnectAt)));
   }
   function subscribe(fn) {
     if (typeof fn !== 'function') return function () {};

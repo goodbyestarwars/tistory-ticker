@@ -16,7 +16,7 @@
     {key:'day',title:'일봉',path:'days',ms:86400000}
   ];
   var state = {symbol:'',period:'5',gen:0,chart:null,candles:null,volume:null,bars:[],liveOff:null,watchOff:null};
-  var readyJob = null;
+  var readyJob = null, restQueue = Promise.resolve(), restLastAt = 0;
   function getPeriod(key) { return PERIODS.filter(function (p) { return p.key === key; })[0] || PERIODS[1]; }
   function fmt(num, digits) {
     return Number(num).toLocaleString('ko-KR',{minimumFractionDigits:0,maximumFractionDigits:digits == null ? 2:digits});
@@ -29,20 +29,27 @@
     state.candles=null;state.volume=null;state.bars=[];
   }
   function loadLive() {
-    if (global.NineCryptoLive) return Promise.resolve(global.NineCryptoLive);
+    // A just-completed REST request and a new WebSocket handshake share the Upbit
+    // browser Origin allowance. Reuse an already-open singleton immediately.
+    if (global.NineCryptoLive && global.NineCryptoLive.connection() === 'live') return Promise.resolve(global.NineCryptoLive);
     if(readyJob) return readyJob;
-    readyJob=new Promise(function (resolve,reject) {
+    readyJob=new Promise(function (r) {setTimeout(r,Math.max(0,11000-(Date.now()-restLastAt)));})
+      .then(function () {return global.NineCryptoLive || new Promise(function (resolve,reject) {
       var script=document.createElement('script');
       script.src=ASSETS+'js/crypto-live.js?v=20261115-live-v1';
       script.onload=function () {global.NineCryptoLive?resolve(global.NineCryptoLive):reject(new Error('공통 실시간 모듈 오류'));};
       script.onerror=function(){reject(new Error('공통 실시간 모듈 로드 실패'));};
       document.head.appendChild(script);
-    }).catch(function(e){readyJob=null;throw e;});
+    });}).catch(function(e){readyJob=null;throw e;});
     return readyJob;
   }
   function historical(symbol,period) {
     var url='https://api.upbit.com/v1/candles/'+period.path+'?market=KRW-'+encodeURIComponent(symbol)+'&count=200';
-    return fetch(url,{headers:{Accept:'application/json'},cache:'no-store'})
+    // Queue all candle REST calls on this page, including rapid timeframe switches.
+    restQueue=restQueue.catch(function(){}).then(function(){
+      return new Promise(function(resolve){setTimeout(resolve,Math.max(0,11000-(Date.now()-restLastAt)));});
+    }).then(function(){restLastAt=Date.now();return fetch(url,{headers:{Accept:'application/json'},cache:'no-store'});});
+    return restQueue
       .then(function(response){if(!response.ok)throw new Error('HTTP '+response.status);return response.json();})
       .then(function(rows) {
         if(!Array.isArray(rows))throw new Error('캔들 형식 오류');
