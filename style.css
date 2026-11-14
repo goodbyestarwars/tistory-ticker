@@ -9289,7 +9289,7 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
   }
   html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::before {
     content:""!important; display:block!important; position:absolute!important; inset:0!important; width:auto!important; border:0!important; z-index:-1;
-    background:linear-gradient(90deg,rgba(var(--np-ink),.045),transparent 9%,transparent 46%,rgba(var(--np-ink),.055) 50%,transparent 54%,transparent 92%,rgba(var(--np-ink),.035)),var(--ui-card-surface)!important;
+    background:linear-gradient(90deg,rgba(var(--np-ink),.045),transparent 9%,transparent 46%,rgba(var(--np-ink),.015) 50%,transparent 54%,transparent 92%,rgba(var(--np-ink),.035)),var(--ui-card-surface)!important;
     mask-image:var(--briefing-sheet-mask); mask-size:100% 100%; mask-repeat:no-repeat;
     -webkit-mask-image:var(--briefing-sheet-mask); -webkit-mask-size:100% 100%; -webkit-mask-repeat:no-repeat;
   }
