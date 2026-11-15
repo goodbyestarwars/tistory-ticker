@@ -1,3 +1,7 @@
+**2026-11-15 구형 티스토리 페이지 삽입 스크립트 선실행 대비**
+
+- 실제 티스토리 본문에서 구버전 `market-temp.js`가 먼저 실행돼 `container.__mtStocksInitialized=true`로 표시한 경우에도 탭 DOM이 없으면 최신 `?view=stocks` 화면을 새로 생성하도록 guard 수정. 최신 탭 DOM이 이미 있으면 기존 이중 초기화 방지 유지. `skin-main.js` 동적 JS/CSS 쿼리 버전을 v2로 올려 오래된 정적 캐시를 피한다. JS 파싱·탭 DOM 생성 정적 검사 통과, 실제 운영 브라우저 및 인증 실측은 별도.
+
 **2026-11-15 실제 ?view=stocks 히트맵 탭 누락 수정(스크린샷 확인)**
 
 - 원인: 앞서 `buildExploreCard()`에 국내·미국 히트맵 탭만 추가했지만 `?view=stocks`는 별도 `buildStocksOnlyPage()`를 렌더하고 `init()`에서 즉시 반환했으므로 실제 화면에는 탭이 전혀 표시되지 않았다. GitHub Pages 배포 성공과 운영 UI 표시를 혼동한 문제.

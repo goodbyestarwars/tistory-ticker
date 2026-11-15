@@ -1730,7 +1730,11 @@
     if (isMapView_()) { bootMapView_(container); return; }
     if (stocksOnly) {
       // 본문 스크립트·스킨 로더·DOMContentLoaded가 같은 화면을 다시 초기화하지 않는다.
-      if (container.__mtStocksInitialized) return;
+      // Tistory page content may run an old embedded market-temp.js first. A
+      // boolean alone is not proof that the newer stock tabs were mounted.
+      if (container.__mtStocksInitialized &&
+          container.querySelector('[data-stocks-tab="etf"]') &&
+          container.querySelector('[data-stocks-tab="us"]')) return;
       container.__mtStocksInitialized = true;
       container.innerHTML = buildStocksOnlyPage();
       waitMarketMapAccess_().then(function (access) {
