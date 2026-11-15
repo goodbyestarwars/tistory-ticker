@@ -19,6 +19,7 @@
   --ui-accent-ink: #1f2937;
   --ui-focus: #1f2937;
   --ui-radius-control: 999px;
+  --ui-radius-band: 999px;
   --ui-radius-module: var(--ui-radius-card);
   --ui-control-height: 38px;
   --ui-control-gap: 8px;
@@ -380,3 +381,42 @@ html.dark {
   --ui-focus: var(--dk-text);
 }
 html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-hover); }
+
+/* Shared filled heading bands and native table header ends (2026-11-15).
+   Cell-local clipping preserves collapsed borders, column geometry and sticky
+   header transforms; never clip the table or its scrolling container. */
+@layer np.np {
+  html body :is(.ui-heading-band, .ui-section-heading, .home-card-heading, .hen-head, .hrt-head) {
+    border-radius: var(--ui-radius-band) !important;
+    border-image: none !important;
+  }
+  html body table > thead,
+  html body table > thead > tr { background-color: transparent !important; }
+  html body table > thead > tr > :first-child {
+    border-radius: var(--ui-radius-band) 0 0 var(--ui-radius-band) !important;
+    clip-path: inset(0 round var(--ui-radius-band) 0 0 var(--ui-radius-band)) !important;
+  }
+  html body table > thead > tr > :last-child {
+    border-radius: 0 var(--ui-radius-band) var(--ui-radius-band) 0 !important;
+    clip-path: inset(0 round 0 var(--ui-radius-band) var(--ui-radius-band) 0) !important;
+  }
+  html body table > thead > tr > :only-child {
+    border-radius: var(--ui-radius-band) !important;
+    clip-path: inset(0 round var(--ui-radius-band)) !important;
+  }
+  @media (max-width: 720px) {
+    html body .home-realtime-board[data-hrt-active="tradeAmount"] thead th[data-field="amount"],
+    html body .home-realtime-board[data-hrt-active="tradeVolume"] thead th[data-field="volume"],
+    html body .home-realtime-board[data-hrt-active="volumePower"] thead th[data-field="volumePower"],
+    html body .home-realtime-board[data-hrt-active="volumeGrowth"] thead th[data-field="volumeGrowth"],
+    html body .home-realtime-board[data-hrt-active="turnover"] thead th[data-field="turnover"],
+    html body .home-realtime-board[data-hrt-active="amountTurnover"] thead th[data-field="amountTurnover"],
+    html body .home-realtime-board[data-hrt-active="rising"] thead th[data-field="rising"],
+    html body .home-realtime-board[data-hrt-active="falling"] thead th[data-field="falling"],
+    html body .home-realtime-board[data-hrt-active="marketCap"] thead th[data-field="cap"],
+    html body .home-realtime-board[data-hrt-active="industry"] thead th[data-field="avgChangeRate"] {
+      border-radius: 0 var(--ui-radius-band) var(--ui-radius-band) 0 !important;
+      clip-path: inset(0 round 0 var(--ui-radius-band) var(--ui-radius-band) 0) !important;
+    }
+  }
+}
