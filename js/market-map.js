@@ -300,7 +300,26 @@
     state.zoom=view.zoom;state.viewX=view.x;state.viewY=view.y;
     var output=state.root.querySelector('[data-mtm-zoom-label]');
     if(output)output.textContent=Math.round(view.zoom*100)+'%';
-    if(svg)svg.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));
+    if(svg){
+      svg.setAttribute('viewBox',[view.x,view.y,view.w,view.h].join(' '));
+      svg.querySelectorAll('[data-quadrant]').forEach(function(el){
+        var right=el.getAttribute('data-right')==='true',bottom=el.getAttribute('data-bottom')==='true';
+        el.setAttribute('transform','translate('+(view.x+(right?view.w-22/view.zoom:22/view.zoom))+' '+(view.y+(bottom?view.h-38/view.zoom:30/view.zoom))+') scale('+(1/view.zoom)+')');
+      });
+      var boxes=[];
+      svg.querySelectorAll('.mtm-stock-label').forEach(function(el){
+        var x=Number(el.getAttribute('data-x')),y=Number(el.getAttribute('data-y')),r=Number(el.getAttribute('data-r'));
+        var w=Number(el.getAttribute('data-width'))/view.zoom,h=14/view.zoom;
+        var yy=y-r-7/view.zoom,box={l:x-w/2,r:x+w/2,t:yy-h,b:yy+3/view.zoom};
+        var visible=box.l>=view.x&&box.r<=view.x+view.w&&box.t>=view.y+48/view.zoom&&box.b<=view.y+view.h-48/view.zoom
+          &&!boxes.some(function(b){return box.l<b.r&&box.r>b.l&&box.t<b.b&&box.b>b.t;});
+        el.style.display=visible?'':'none';
+        el.setAttribute('font-size',12/view.zoom);el.setAttribute('y',yy-y);
+        el.style.strokeWidth=3/view.zoom;
+        if(visible)boxes.push(box);
+      });
+      svg.querySelectorAll('.mtm-bubble-number').forEach(function(el){el.style.fontSize=(8/view.zoom)+'px';});
+    }
   }
   function zoomAt(state,factor,anchor) {
     var view=viewport(state),next=Math.max(1,Math.min(2.4,view.zoom*factor));
@@ -347,17 +366,17 @@
       ['단·장기 모두 강함',plot.r-18,plot.t+20,'end','20·250거래일 모두 시장 대비 우위'],
       ['단·장기 모두 약함',plot.l+18,plot.b-30,'start','20·250거래일 모두 시장 대비 열위'],
       ['장기 강세 · 단기 약세',plot.r-18,plot.b-30,'end','250거래일 우위 · 20거래일 열위']];
-    labels.forEach(function(v){shape+='<text x="'+v[1]+'" y="'+v[2]+'" text-anchor="'+v[3]+'" class="mtm-quadrant">'+v[0]+'</text>'
-      +'<text x="'+v[1]+'" y="'+(v[2]+18)+'" text-anchor="'+v[3]+'" class="mtm-quadrant-period">'+v[4]+'</text>';});
+    labels.forEach(function(v,i){shape+='<g data-quadrant data-right="'+(i%2===1)+'" data-bottom="'+(i>1)+'" pointer-events="none"><text text-anchor="'+v[3]+'" class="mtm-quadrant">'+v[0]+'</text>'
+      +'<text y="15" text-anchor="'+v[3]+'" class="mtm-quadrant-period">'+v[4]+'</text></g>';});
     [-.5,.5].forEach(function(k){
       var xx=mx+k*(plot.r-plot.l)/2,yy=my+k*(plot.b-plot.t)/2;
       shape+='<line x1="'+xx+'" y1="'+plot.t+'" x2="'+xx+'" y2="'+plot.b+'" class="mtm-gridline"/>';
       shape+='<line x1="'+plot.l+'" y1="'+yy+'" x2="'+plot.r+'" y2="'+yy+'" class="mtm-gridline"/>';
     });
-    lay.points.forEach(function(p,i){
+    lay.points.slice().sort(function(a,b){return (b.node.cap||0)-(a.node.cap||0);}).forEach(function(p,i){
       var n=p.node,active=state.selectedCode===n.code;
       var stockRank=n.kind==='stock'?ranked.findIndex(function(r){return r.code===n.code;})+1:0;
-      var label=n.kind==='stock'?(lay.points.length<=8||stockRank<=5||active):true;
+      var label=true;
       var labelPosition=labelsByKey[n.key];
       var tooltip=n.name+' · 오늘 '+pct(n.rate);
       if(n.kind==='stock')tooltip+=' · 하는 일: '+businessLine(state,n);
@@ -368,7 +387,7 @@
         + '<circle r="'+p.r.toFixed(1)+'" class="mtm-bubble"/><title>'+esc(tooltip)+'</title>'
         + (n.kind==='group'?'<text y="4" text-anchor="middle" class="mtm-bubble-count">'+n.coverage+'개</text>'
           :'<text y="3.5" text-anchor="middle" class="mtm-bubble-number">'+(stockRank<10?'0':'')+stockRank+'</text>')
-        + (label?'<text x="'+(labelPosition?(labelPosition.x-p.x).toFixed(1):0)+'" y="'+(labelPosition?(labelPosition.y-p.y).toFixed(1):-p.r-8)+'" text-anchor="middle" class="mtm-bubble-label">'+esc(labelPosition?labelPosition.name:n.name)+'</text>':'')
+        + (label?'<text x="'+(labelPosition?(labelPosition.x-p.x).toFixed(1):0)+'" y="'+(labelPosition?(labelPosition.y-p.y).toFixed(1):-p.r-8)+'" text-anchor="middle" class="mtm-bubble-label'+(n.kind==='stock'?' mtm-stock-label':'')+'"'+(n.kind==='stock'?' data-x="'+p.x+'" data-y="'+p.y+'" data-r="'+p.r+'" data-width="'+(Array.from(n.name).length*12+6)+'"':'')+'>'+esc(labelPosition?labelPosition.name:n.name)+'</text>':'')
         + '</g>';
     });
     return shape+'</svg>';

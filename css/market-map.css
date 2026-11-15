@@ -154,3 +154,8 @@ html.dark #market-temp .mtm .mtm-detail-open {background:var(--dk-text);color:va
 #market-temp .mtm-quadrant-period {font-size:12px;fill:var(--mtm-muted);}
 #market-temp .mtm-chart-actions {flex-wrap:wrap;}
 #market-temp .mtm-chart-actions button[data-mtm-zoom="reset"] {width:auto;padding-inline:9px;}
+
+/* Keep viewport guides and company labels readable at every zoom level. */
+#market-temp .mtm-quadrant {font-size:12px;font-weight:600;}
+#market-temp .mtm-quadrant-period {font-size:10px;}
+#market-temp .mtm-stock-label {font-size:inherit;font-weight:600;}
