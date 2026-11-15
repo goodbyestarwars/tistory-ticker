@@ -526,7 +526,7 @@ html.dark #market-temp .mt-heat-note { color:var(--dk-text); }
 
 /* ---- 카드 보기/히트맵 보기/시총비례 히트맵 탭 (js/sector-dashboard-v4.js의
    .sector-view-toggle과 동일한 라벨·톤 - 사용자에게 익숙한 패턴을 재사용) ---- */
-#market-temp .mt-view-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+#market-temp .mt-view-toggle { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 #market-temp .mt-view-btn {
   font-family: inherit;
   font-size: 12.5px;

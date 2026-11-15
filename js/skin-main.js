@@ -432,7 +432,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20261115-etf-crypto-live';
+    var version = '20261115-us-heatmap';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
