@@ -219,11 +219,11 @@
   function init(panel,kind){
     if(!panel)return;
     disconnect();
-    active={panel:panel,kind:kind||'sp500',market:kind==='domestic'?'kospi':'sp500',
+    active={panel:panel,kind:kind||'sp500',market:kind==='domestic'?'kospi':/^(kospi|kosdaq)$/.test(kind)?kind:'sp500',
       seq:0,rows:[],byCode:{},socket:null};
     var domestic=kind==='domestic';
     panel.innerHTML='<section class="uh-panel">'
-      +'<div class="uh-head"><div><h3>'+(domestic?'국내 시가총액 TOP100':'S&P 500 표본 시총 TOP100')+'</h3>'
+      +'<div class="uh-head"><div><h3>'+(domestic?'국내 시가총액 TOP100':/^(kospi|kosdaq)$/.test(kind)?label(kind)+' 시가총액 TOP100':'S&P 500 표본 시총 TOP100')+'</h3>'
       +'<p>섹터별 구역 · 종목 시총에 비례하는 면적 · 전일 대비 상승 빨강 / 하락 파랑</p></div>'
       +'<span class="uh-status" data-uh-status role="status">준비 중</span></div>'
       +(domestic?'<div class="uh-filters" data-uh-select role="group" aria-label="국내 시장">'

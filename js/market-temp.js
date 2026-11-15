@@ -1522,7 +1522,8 @@
       + '<p>거래가 활발한 국내 종목을 업종별로 확인하고, 마켓 대동여지도에서 강약을 비교합니다.</p></div>'
       + '<div class="mt-view-toggle mt-stocks-switcher" role="tablist" aria-label="주요종목 보기 방식">'
       + '<button type="button" class="mt-view-btn active" id="mt-stocks-tab-list" data-stocks-tab="list" aria-controls="mt-stocks-panel-list" aria-selected="true" role="tab">종목 목록</button>'
-      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-etf" data-stocks-tab="etf" aria-controls="mt-stocks-panel-etf" aria-selected="false" role="tab">국내 시총 TOP100</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-etf" data-stocks-tab="etf" aria-controls="mt-stocks-panel-etf" aria-selected="false" role="tab">코스피 TOP100</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-kosdaq" data-stocks-tab="kosdaq" aria-controls="mt-stocks-panel-kosdaq" aria-selected="false" role="tab">코스닥 TOP100</button>'
       + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-us" data-stocks-tab="us" aria-controls="mt-stocks-panel-us" aria-selected="false" role="tab">S&P 500 표본 TOP100</button>'
       + '</div><div class="mt-stocks-view-panels">'
       + '<div data-stocks-panel="list" id="mt-stocks-panel-list" role="tabpanel" aria-labelledby="mt-stocks-tab-list">'
@@ -1534,6 +1535,7 @@
       + '<p>회사명·가격·등락률을 한 줄로 비교합니다. 표시된 자료 기준시각을 확인해 주세요.</p></div>'
       + '<div class="mt-view-panel" data-stocks-list></div></section></div>'
       + '<section class="mt-section-block mt-view-panel" data-stocks-panel="etf" id="mt-stocks-panel-etf" role="tabpanel" aria-labelledby="mt-stocks-tab-etf" hidden></section>'
+      + '<section class="mt-section-block mt-view-panel" data-stocks-panel="kosdaq" id="mt-stocks-panel-kosdaq" role="tabpanel" aria-labelledby="mt-stocks-tab-kosdaq" hidden></section>'
       + '<section class="mt-section-block mt-view-panel" data-stocks-panel="us" id="mt-stocks-panel-us" role="tabpanel" aria-labelledby="mt-stocks-tab-us" hidden></section>'
       + '</div></div>';
   }
@@ -1547,7 +1549,7 @@
     if (stocksTabScripts_[file]) return stocksTabScripts_[file];
     stocksTabScripts_[file] = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/' + file + '?v=20261115-sector-top100-v1';
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/' + file + '?v=20261115-market-split-v1';
       script.onload = function () {
         if (global[globalName]) resolve();
         else reject(new Error(file + ' 전역 모듈이 없습니다.'));
@@ -1565,7 +1567,7 @@
         !document.querySelector('link[href*="/css/marketcap-bubble.css"]')) {
       var css = document.createElement('link');
       css.rel = 'stylesheet';
-      css.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/marketcap-bubble.css?v=20261115-sector-top100-v1';
+      css.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/marketcap-bubble.css?v=20261115-market-split-v1';
       css.setAttribute('data-mt-stocks-bubble-css', '1');
       document.head.appendChild(css);
     }
@@ -1596,7 +1598,7 @@
         tab.classList.toggle('active', selected);
         tab.setAttribute('aria-selected', String(selected));
       });
-      if (key !== 'us' && global.NineUsHeatmap) global.NineUsHeatmap.pause();
+      if (global.NineUsHeatmap) global.NineUsHeatmap.pause();
       Object.keys(panels).forEach(function (name) { panels[name].hidden = name !== key; });
       if (key === 'list') return;
       var panel = panels[key];
@@ -1607,7 +1609,7 @@
       }
       if (key === 'us') { loadUsHeatmapPanel_(panel,'sp500'); return; }
       // Domestic/US maps reuse one renderer, with separate market universes.
-      loadEtfHeatmapPanel_(panel);
+      loadUsHeatmapPanel_(panel,key === 'kosdaq' ? 'kosdaq' : 'kospi');
     }
     tabs.forEach(function (btn) {
       btn.addEventListener('click', function () { openTab(btn.getAttribute('data-stocks-tab')); });
@@ -1726,7 +1728,8 @@
       // boolean alone is not proof that the newer stock tabs were mounted.
       if (container.__mtStocksInitialized &&
           container.querySelector('[data-stocks-tab="etf"]') &&
-          container.querySelector('[data-stocks-tab="us"]')) return;
+          container.querySelector('[data-stocks-tab="us"]') &&
+          container.querySelector('[data-stocks-tab="kosdaq"]')) return;
       container.__mtStocksInitialized = true;
       container.innerHTML = buildStocksOnlyPage();
       waitMarketMapAccess_().then(function (access) {
@@ -4601,7 +4604,8 @@
     { key: 'cards', label: '카드 보기' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' },
-    { key: 'etf', label: '국내 시총 TOP100' },
+    { key: 'etf', label: '코스피 TOP100' },
+    { key: 'kosdaq', label: '코스닥 TOP100' },
     { key: 'us', label: 'S&P 500 표본 TOP100' },
     { key: 'active', label: '활성 종목' }
   ];
@@ -4619,6 +4623,7 @@
       + '<div class="mt-view-panel" data-view-panel="heatmap"' + (initialView === 'heatmap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="marketcap"' + (initialView === 'marketcap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="etf"' + (initialView === 'etf' ? '' : ' hidden') + '></div>'
+      + '<div class="mt-view-panel" data-view-panel="kosdaq"' + (initialView === 'kosdaq' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="us"' + (initialView === 'us' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="active"' + (initialView === 'active' ? '' : ' hidden') + '></div>'
       + '</div>'
@@ -5189,7 +5194,7 @@
   function loadEtfHeatmapPanel_(panel) {
     if (!panel) return;
     panel.__mtLoaded = true;
-    loadUsHeatmapPanel_(panel,'domestic');
+    loadUsHeatmapPanel_(panel,'kospi');
   }
 
   // KIS overseas market-cap ranking establishes the universe and static area.
@@ -5197,20 +5202,20 @@
   // US ETF actual holdings require explicit redistribution rights and are not inferred.
   var sectorHeatmapScriptJob_ = null;
   function loadUsHeatmapPanel_(panel, marketKind) {
-    marketKind = marketKind === 'domestic' ? 'domestic' : 'sp500';
+    marketKind = /^(domestic|kospi|kosdaq)$/.test(marketKind) ? marketKind : 'sp500';
     if (global.NineUsHeatmap) { global.NineUsHeatmap.init(panel,marketKind); return; }
     panel.innerHTML = '<div class="mt-hint">섹터별 시가총액 TOP100 지도를 준비하는 중…</div>';
     var root = 'https://goodbyestarwars.github.io/tistory-ticker/';
     if (!document.querySelector('link[href*="/css/us-market-heatmap.css"]')) {
       var link=document.createElement('link');
       link.rel='stylesheet';
-      link.href=root+'css/us-market-heatmap.css?v=20261115-sector-top100-v1';
+      link.href=root+'css/us-market-heatmap.css?v=20261115-market-split-v1';
       document.head.appendChild(link);
     }
     if(!sectorHeatmapScriptJob_) {
       sectorHeatmapScriptJob_=new Promise(function(resolve,reject){
         var script=document.createElement('script');
-        script.src=root+'js/us-market-heatmap.js?v=20261115-sector-top100-v1';
+        script.src=root+'js/us-market-heatmap.js?v=20261115-market-split-v1';
         script.onload=function() {
           if(global.NineUsHeatmap)resolve();else reject(new Error('sector map module missing'));
         };
@@ -5236,6 +5241,7 @@
     }, '히트맵');
     else if (view === 'marketcap') loadCategoryPanel_(panel, function (p, config, rows) { return renderCategoryMarketcap_(p, config, rows); }, '시총비례 히트맵');
     else if (view === 'etf') loadEtfHeatmapPanel_(panel);
+    else if (view === 'kosdaq') loadUsHeatmapPanel_(panel,'kosdaq');
     else if (view === 'us') loadUsHeatmapPanel_(panel);
     else if (view === 'active') loadCardsPanel(panel);
   }
