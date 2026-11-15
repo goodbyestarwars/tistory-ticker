@@ -159,3 +159,6 @@ html.dark #market-temp .mtm .mtm-detail-open {background:var(--dk-text);color:va
 #market-temp .mtm-quadrant {font-size:12px;font-weight:600;}
 #market-temp .mtm-quadrant-period {font-size:10px;}
 #market-temp .mtm-stock-label {font-size:inherit;font-weight:600;}
+
+#market-temp .mtm-stock-label {font-size:calc(12px / var(--mtm-zoom,1)) !important;}
+#market-temp .mtm-bubble-number {font-size:calc(8px / var(--mtm-zoom,1)) !important;}
