@@ -4509,6 +4509,7 @@
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' },
     { key: 'etf', label: '국내 주요 히트맵' },
+    { key: 'us', label: '미국 주요 히트맵' },
     { key: 'active', label: '활성 종목' }
   ];
 
@@ -4525,6 +4526,7 @@
       + '<div class="mt-view-panel" data-view-panel="heatmap"' + (initialView === 'heatmap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="marketcap"' + (initialView === 'marketcap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="etf"' + (initialView === 'etf' ? '' : ' hidden') + '></div>'
+      + '<div class="mt-view-panel" data-view-panel="us"' + (initialView === 'us' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="active"' + (initialView === 'active' ? '' : ' hidden') + '></div>'
       + '</div>'
       + '</div>';
@@ -5190,6 +5192,35 @@
     draw(etfs[0]);
   }
 
+  // KIS overseas market-cap ranking establishes the universe and static area.
+  // The authenticated shared KIS /ws/quotes relay supplies subsequent tick changes.
+  // US ETF actual holdings require explicit redistribution rights and are not inferred.
+  function loadUsHeatmapPanel_(panel) {
+    if (global.NineUsHeatmap) { global.NineUsHeatmap.init(panel); return; }
+    if (panel.__usLoading) return;
+    panel.__usLoading = true;
+    panel.innerHTML = '<div class="mt-hint">KIS 미국 시총 히트맵을 불러오는 중…</div>';
+    var root = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    if (!document.querySelector('link[href*="/css/us-market-heatmap.css"]')) {
+      var link=document.createElement('link');
+      link.rel='stylesheet';
+      link.href=root+'css/us-market-heatmap.css?v=20261115-usheat-v1';
+      document.head.appendChild(link);
+    }
+    var script=document.createElement('script');
+    script.src=root+'js/us-market-heatmap.js?v=20261115-usheat-v1';
+    script.onload=function () {
+      panel.__usLoading=false;
+      if(global.NineUsHeatmap)global.NineUsHeatmap.init(panel);
+      else panel.innerHTML='<div class="mt-error">미국 히트맵 모듈을 불러오지 못했습니다.</div>';
+    };
+    script.onerror=function () {
+      panel.__usLoading=false;
+      panel.innerHTML='<div class="mt-error">미국 히트맵 모듈 연결 실패 · 화면을 새로고침해 다시 시도하세요.</div>';
+    };
+    document.head.appendChild(script);
+  }
+
   function loadPanel(view, panel) {
     // 카드·히트맵·시총비례는 내 카테고리 기준이고, 활성 종목은 내 카테고리별로 묶은 뒤 편입 후보를 따로 보여 준다.
     if (view === 'cards') loadSectorCardsPanel_(panel);
@@ -5200,6 +5231,7 @@
     }, '히트맵');
     else if (view === 'marketcap') loadCategoryPanel_(panel, function (p, config, rows) { return renderCategoryMarketcap_(p, config, rows); }, '시총비례 히트맵');
     else if (view === 'etf') loadEtfHeatmapPanel_(panel);
+    else if (view === 'us') loadUsHeatmapPanel_(panel);
     else if (view === 'active') loadCardsPanel(panel);
   }
 
@@ -5213,6 +5245,7 @@
       btn.addEventListener('click', function () {
         var view = btn.getAttribute('data-view');
         buttons.forEach(function (b) { b.classList.toggle('active', b === btn); });
+        if (view !== 'us' && global.NineUsHeatmap) global.NineUsHeatmap.pause();
         Object.keys(panels).forEach(function (key) { panels[key].hidden = key !== view; });
         loadPanel(view, panels[view]);
       });
