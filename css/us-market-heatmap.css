@@ -69,3 +69,8 @@ html.dark #market-temp .uh-sector .uh-tile { border-color:var(--dk-card,#151b24)
   #market-temp .uh-sector-title { left:4px; top:0; width:calc(100% - 8px); font-size:10px; }
   #market-temp .uh-sector .uh-tile { padding:2px; border-width:1px; }
 }
+
+/* Rank column precedes code/name/sector. */
+#market-temp .uh-table th:nth-child(2),#market-temp .uh-table td:nth-child(2),
+#market-temp .uh-table th:nth-child(3),#market-temp .uh-table td:nth-child(3),
+#market-temp .uh-table th:nth-child(4),#market-temp .uh-table td:nth-child(4) { text-align:left; }

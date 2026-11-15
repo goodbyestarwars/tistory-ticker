@@ -9280,31 +9280,30 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
 
 /* 공통 브리핑 카드: 텍스트/동작을 보존하는 펼친 노트 종이 레이어. */
 @layer np.np {
-  html body#tt-body-index .home-briefing-section { --note-pad-left:42px; --note-radius:20px; --briefing-sheet-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%201000%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M35%2040C180%205%20420%205%20500%2048C580%205%20820%205%20965%2040L965%20945C800%20925%20595%20925%20500%20977C405%20925%20200%20925%2035%20945Z%22%20fill%3D%22black%22%2F%3E%3C%2Fsvg%3E"); }
-  html body#tt-body-index .home-briefing-section .briefing-carousel-track { padding:16px 14px 30px!important; gap:28px!important; }
+  html body#tt-body-index .home-briefing-section { --note-pad-left:32px; --note-radius:14px; }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track { padding:10px 14px 24px!important; gap:28px!important; }
   html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card {
-    isolation:isolate; overflow:visible!important; border:0!important; border-radius:20px!important;
-    background:transparent!important; box-shadow:none!important; padding:40px 42px 45px!important;
-    filter:drop-shadow(0 8px 9px rgba(20,30,45,.12));
+    isolation:isolate; overflow:visible!important; border:0!important; border-radius:14px!important;
+    background:transparent!important; box-shadow:none!important; padding:26px 32px 32px!important;
+    filter:drop-shadow(0 5px 7px rgba(20,30,45,.08));
   }
   html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::before {
-    content:""!important; display:block!important; position:absolute!important; inset:0!important; width:auto!important; border:0!important; z-index:-1;
-    background:linear-gradient(90deg,rgba(var(--np-ink),.045),transparent 9%,transparent 46%,rgba(var(--np-ink),.015) 50%,transparent 54%,transparent 92%,rgba(var(--np-ink),.035)),var(--ui-card-surface)!important;
-    mask-image:var(--briefing-sheet-mask); mask-size:100% 100%; mask-repeat:no-repeat;
-    -webkit-mask-image:var(--briefing-sheet-mask); -webkit-mask-size:100% 100%; -webkit-mask-repeat:no-repeat;
+    content:""!important; display:block!important; position:absolute!important; inset:0!important; width:auto!important; border:1px solid var(--ui-border)!important; border-radius:14px!important; z-index:-1;
+    background:linear-gradient(90deg,rgba(var(--np-ink),.025),transparent 6%,transparent 47%,rgba(var(--np-ink),.012) 50%,transparent 53%,transparent 95%,rgba(var(--np-ink),.02)),var(--ui-card-surface)!important;
+    pointer-events:none;
   }
   html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::after {
-    content:""!important; display:block!important; position:absolute!important; inset:9px 5px 2px!important; width:auto!important; z-index:-2;
-    border:1px solid var(--ui-border)!important; border-radius:30% 30% 24px 24px / 24px 24px 20px 20px!important;
+    content:""!important; display:block!important; position:absolute!important; inset:5px 3px -4px!important; width:auto!important; z-index:-2;
+    border:1px solid var(--ui-border)!important; border-radius:14px!important;
     background:var(--ui-card-surface)!important;
-    box-shadow:0 3px 0 var(--ui-inner-surface),0 4px 0 var(--ui-border),0 7px 0 var(--ui-card-surface),0 8px 0 var(--ui-border)!important;
+    box-shadow:0 2px 0 var(--ui-card-surface),0 3px 0 var(--ui-border)!important;
     pointer-events:none;
   }
   @media(min-width:721px) {
     html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { flex:0 0 520px!important; width:520px!important; }
   }
   @media(max-width:720px) {
-    html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { padding:30px 28px 38px!important; }
+    html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { padding:24px 26px 30px!important; }
   }
 }
 
