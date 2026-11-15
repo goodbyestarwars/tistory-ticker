@@ -3,7 +3,7 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync(path.join(__dirname,'../js/market-map.js'),'utf8');
 const sandbox={window:{}};vm.runInNewContext(source,sandbox);
-const map=sandbox.window.MarketMap,svg={setAttribute(k,v){this[k]=v;}},label={};
+const map=sandbox.window.MarketMap,svg={setAttribute(k,v){this[k]=v;},style:{setProperty(k,v){this[k]=v;}},querySelectorAll(){return [];}},label={};
 const state={zoom:1,viewX:0,viewY:0,root:{querySelector:s=>s.includes(' svg')?svg:label}};
 map.zoomAt(state,1.2,{x:.7,y:.4});
 let view=map.viewport(state);
