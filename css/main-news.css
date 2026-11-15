@@ -161,3 +161,7 @@ html.dark #main-news .mn-tab.is-active { border-color: var(--dk-down); backgroun
   #main-news .mn-tabbar { align-items:flex-start; flex-wrap:wrap; }
   #main-news .mn-refresh-row { align-items: flex-start; }
 }
+
+#main-news .mn-source-status {margin:16px 0;color:var(--text-secondary,#7a8490);font-size:11px;line-height:1.7;}
+#main-news .mn-source-status summary {cursor:pointer;}
+#main-news .mn-source-status ul {padding-left:18px;}

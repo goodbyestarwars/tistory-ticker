@@ -74,6 +74,92 @@ SEC_FILINGS_LOCK = threading.Lock()
 _sec_filings_cache = (0, [])
 
 
+
+# Keyless official metadata feeds; reused by existing KR/US refresh paths.
+OFFICIAL_NEWS_FEEDS = (
+    ('한국은행 통화정책', 'https://www.bok.or.kr/portal/bbs/P0000559/news.rss?menuNo=200690', 'domestic', '통화정책'),
+    ('한국은행 경제통계', 'https://www.bok.or.kr/portal/bbs/B0000501/news.rss?menuNo=201264', 'domestic', '경제통계'),
+    ('Federal Reserve', 'https://www.federalreserve.gov/feeds/press_monetary.xml', 'us', '통화정책'),
+)
+OFFICIAL_NEWS_TTL_SEC = 15 * 60
+_official_news_cache = {}
+_official_news_lock = threading.Lock()
+_rss_status = {}
+_rss_status_lock = threading.Lock()
+
+
+def _record_rss_status(provider, rows=None, failed=False):
+    now = datetime.now(timezone.utc).isoformat()
+    with _rss_status_lock:
+        old = _rss_status.get(provider, {})
+        _rss_status[provider] = {
+            'provider': provider, 'status': 'error' if failed else 'ok' if rows else 'empty',
+            'checkedAt': now, 'lastSuccessAt': old.get('lastSuccessAt'),
+            'articleCount': len(rows or []),
+            'duplicateCount': max(0, len(rows or []) - len(_dedupe_headlines(rows or []))),
+            'latestPublishedAt': max((row.get('pubDate') or '' for row in rows or []), default=''),
+        }
+        if not failed:
+            _rss_status[provider]['lastSuccessAt'] = now
+
+
+def rss_source_status(market='us'):
+    names = ([name for name, _url in MAJOR_NEWS_FEEDS] if market == 'us' else [])
+    names += [name for name, _url, scope, _category in OFFICIAL_NEWS_FEEDS if scope == market]
+    with _rss_status_lock:
+        return [dict(_rss_status.get(name, {'provider': name, 'status': 'not-checked',
+                     'checkedAt': None, 'lastSuccessAt': None, 'articleCount': 0})) for name in names]
+
+
+def official_item(item):
+    source = item.get('source') or ''
+    return any(source == name for name, _url, _market, _category in OFFICIAL_NEWS_FEEDS)
+
+
+def get_official_news(market):
+    # Per-market memo prevents existing warmers/visitors from multiplying RSS calls.
+    now = time.time()
+    with _official_news_lock:
+        checked, cached = _official_news_cache.get(market, (0, []))
+        if now - checked < OFFICIAL_NEWS_TTL_SEC:
+            return [dict(row) for row in cached]
+        feeds = [f for f in OFFICIAL_NEWS_FEEDS if f[2] == market]
+        rows = []
+        with ThreadPoolExecutor(max_workers=max(1, len(feeds))) as pool:
+            results = list(pool.map(lambda f: _publisher_rss(f[1], f[0]), feeds))
+        for feed, fresh in zip(feeds, results):
+            name, _url, scope, category = feed
+            with _rss_status_lock:
+                failed = _rss_status.get(name, {}).get('status') == 'error'
+            candidates = [r for r in cached if r.get('source') == name] if failed else fresh
+            for item in candidates:
+                row = dict(item, market=scope, category=category, official=True,
+                           sourceStatus='official-release', relevance='market')
+                # Keep original publication dates; never turn old/future/unknown dates into today.
+                stamp = _published_timestamp(row)
+                if stamp and now - 7 * 86400 <= stamp <= now:
+                    rows.append(row)
+        _official_news_cache[market] = (now, rows)
+        return [dict(row) for row in rows]
+
+
+def _dedupe_headlines(items):
+    # Same source + exact normalized headline only; do not collapse different reporting.
+    by_url, seen_titles, result = {}, set(), []
+    for row in sorted(items, key=_published_timestamp, reverse=True):
+        if not row.get('title') or not row.get('link'):
+            continue
+        key = _dedupe_key(row)
+        title_key = (str(row.get('source') or row.get('provider') or '').casefold(),
+                     re.sub(r'[\W_]+', '', _clean_text(row.get('title')).casefold()))
+        if key in by_url or title_key in seen_titles:
+            continue
+        by_url[key] = True
+        seen_titles.add(title_key)
+        result.append(row)
+    return result
+
+
 def _cache_db_path():
     return os.environ.get('US_NEWS_CACHE_DB', '').strip() or NEWS_CACHE_DB_FILE
 
@@ -673,7 +759,7 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         if fetched_at and now - fetched_at < ttl:
             translate_news_titles(cached_items, max_items=min(20, len(cached_items)))
             return list(cached_items[:max(1, int(limit))])
-        items = []
+        items = get_official_news('us')
         providers = []
         for provider, feed_url in MAJOR_NEWS_FEEDS:
             providers.append((provider, lambda provider=provider, feed_url=feed_url: _publisher_rss(feed_url, provider)))
@@ -690,15 +776,7 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
                     except Exception:
                         logger.exception('%s general news failed', name)
 
-        unique = {}
-        for item in items:
-            if not item.get('title') or not item.get('link'):
-                continue
-            key = _dedupe_key(item)
-            current = unique.get(key)
-            if current is None or item.get('_published_ts', 0) > current.get('_published_ts', 0):
-                unique[key] = item
-        selected = sorted(unique.values(), key=lambda item: item.get('_published_ts', 0), reverse=True)
+        selected = _dedupe_headlines(items)
         save_cached_news('__GENERAL__', selected, retain_limit=500)
         for item in selected:
             item.pop('_published_ts', None)
@@ -1267,7 +1345,8 @@ def _publisher_rss(feed_url, provider):
     try:
         payload = _get_xml(feed_url)
     except Exception:
-        logger.exception('%s RSS failed', provider)
+        logger.warning('%s RSS failed', provider)
+        _record_rss_status(provider, failed=True)
         return []
 
     items = []
@@ -1288,6 +1367,7 @@ def _publisher_rss(feed_url, provider):
             'market': 'us',
             '_published_ts': _parse_date(pub_date),
         })
+    _record_rss_status(provider, items)
     return items[:50]
 
 
@@ -1387,7 +1467,10 @@ def _dedupe_key(item):
     link = str(item.get('link') or '').strip()
     parsed = urllib.parse.urlsplit(link)
     if parsed.netloc:
-        return 'url:' + parsed.netloc.lower() + parsed.path.rstrip('/').lower()
+        query = [(k, v) for k, v in urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+                 if not k.lower().startswith('utm_') and k.lower() not in ('gclid', 'fbclid')]
+        return 'url:' + urllib.parse.urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(),
+                                                parsed.path.rstrip('/'), urllib.parse.urlencode(sorted(query)), ''))
     title = re.sub(r'\W+', ' ', str(item.get('title') or '').lower()).strip()
     return 'title:' + title
 

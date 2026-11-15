@@ -3922,6 +3922,12 @@ def domestic_news_endpoint(
                                                window_seconds=hours * 60 * 60)
     result.update(newsWindowHours=hours, newsTimeZone='Asia/Seoul')
     if not normalized_code and not name.strip() and not query.strip():
+        result['officialItems'] = news_window.recent_items(
+            news_aggregator.get_official_news('domestic'), 'domestic', window_seconds=hours * 3600)
+    result['sourceStatus'] = news_aggregator.rss_source_status('domestic')
+    result['providers'] = sorted({row.get('source') or row.get('provider') for row in result['items']
+                                  if row.get('source') or row.get('provider')})
+    if not normalized_code and not name.strip() and not query.strip():
         domestic_items = result.get('items', []) if isinstance(result, dict) else []
         # 2026-08-30: 이 두 호출이 이 엔드포인트에서 실제로 초 단위를 먹는 구간이다
         # (일반뉴스 5분 TTL ~4.6초, 공시 DART 60초/KIND 30초 TTL ~2~3초).
@@ -4013,7 +4019,12 @@ def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70),
         'newsTimeZone': 'America/New_York',
         'items': items,
         'flash': _build_flash_items(items, filings, 'us'),
-        'source': 'CNBC/Bloomberg RSS + Finnhub + Alpha Vantage + SEC EDGAR filings',
+        'source': ' + '.join(sorted({row.get('source') or row.get('provider') for row in items
+                                      if row.get('source') or row.get('provider')})),
+        'providers': sorted({row.get('source') or row.get('provider') for row in items
+                             if row.get('source') or row.get('provider')}),
+        'sourceStatus': news_aggregator.rss_source_status('us'),
+        'officialItems': news_window.recent_items(news_aggregator.get_official_news('us'), 'us', window_seconds=hours * 3600),
     })
 
 

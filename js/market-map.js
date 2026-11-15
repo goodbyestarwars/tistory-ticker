@@ -314,7 +314,7 @@
         var visible=box.l>=view.x&&box.r<=view.x+view.w&&box.t>=view.y+48/view.zoom&&box.b<=view.y+view.h-48/view.zoom
           &&!boxes.some(function(b){return box.l<b.r&&box.r>b.l&&box.t<b.b&&box.b>b.t;});
         el.style.display=visible?'':'none';
-        el.setAttribute('font-size',12/view.zoom);el.setAttribute('y',yy-y);
+        el.style.fontSize=(12/view.zoom)+'px';el.setAttribute('y',yy-y);
         el.style.strokeWidth=3/view.zoom;
         if(visible)boxes.push(box);
       });

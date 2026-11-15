@@ -743,7 +743,7 @@ def get_weekly_news(start, end, limit=120):
         item['pubDate'] = item.pop('pub_date') or ''
         item.pop('item_key', None)
         item.pop('fetched_at', None)
-        item['provider'] = 'Naver'
+        item['provider'] = item.get('source') or 'Naver'
         result.append(item)
     # 수집기가 특정 날만 갱신된 경우를 보완한다. 네이버
     # 검색 API에는 조회수 필드가 없으므로, 조회수순을 가장하지 않고 날짜별
@@ -897,19 +897,25 @@ def get_news(code='', name='', query='', limit=10, item_kind='all', window_hours
     name = _strip(name)
     query = _strip(query)
     cache_key = code or name or 'market'
+    official = []
+    if not code and not name and not query:
+        import news_aggregator
+        official = news_aggregator.get_official_news('domestic')
+        for row in official:
+            row['id'] = _item_key(row)
     cached = _load_cached(cache_key)
     stale = _load_cached(cache_key, ttl_sec=max(24, min(168, int(window_hours))) * 60 * 60)
     client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID', '').strip()
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET', '').strip()
     if (cached or stale) and (len(cached) >= min(int(limit or 10), 10) or not (client_id and client_secret)):
         return {
-            'items': _merge(cached + stale, limit, bool(code), item_kind),
+            'items': _merge(official + cached + stale, limit, bool(code), item_kind),
             'configured': bool(client_id and client_secret),
             'source': 'cache',
             'providers': sorted(set(item.get('provider') for item in cached if item.get('provider'))),
         }
 
-    fresh = []
+    fresh = list(official)
     if client_id and client_secret:
         search_query = query or ((name + ' 주식') if name else '증시')
         raw = naver_news.search_news(search_query, client_id, client_secret,

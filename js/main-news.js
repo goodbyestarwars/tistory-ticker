@@ -66,12 +66,13 @@
     { key: 'all', label: '전체' },
     { key: 'domestic', label: '한국' },
     { key: 'us', label: '미국' },
+    { key: 'official', label: '공식 발표' },
     { key: 'crypto', label: '가상자산' }
   ];
 
   var state = {
     container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null,
-    loading: false, view: 'all', items: [], failed: [], cryptoItems: [], cryptoFailed: false, cryptoLoadedAt: 0
+    loading: false, view: 'all', items: [], failed: [], sourceChecks: {}, officialItems: {}, cryptoItems: [], cryptoFailed: false, cryptoLoadedAt: 0
   };
 
   function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
@@ -139,9 +140,14 @@
     return name;
   }
 
+  function isOfficial(item) {
+    return ['한국은행 통화정책','한국은행 경제통계','Federal Reserve'].indexOf(String(item && item.source || '')) !== -1;
+  }
+
   function sourceLabel(item) {
     var raw = String((item && (item.press || item.source)) || '').trim();
     if (!raw) return '';
+    if (isOfficial(item)) return '공식 발표 · ' + (raw === 'Federal Reserve' ? '미국 연준' : raw);
     if (raw.indexOf('.') === -1) return raw;          // 이미 언론사명(CNBC 등)
     var domain = registrableDomain(raw);
     return PRESS_BY_DOMAIN[domain] || domain;
@@ -156,6 +162,13 @@
     return global.NineHttp.json(url, { timeoutMs: FETCH_TIMEOUT_MS })
       .then(function (payload) {
         var data = (payload && payload.data) || payload || {};
+        if (/\/(?:domestic|foreign)-news/.test(url) && Array.isArray(data.sourceStatus)) {
+          state.sourceChecks[url.indexOf('/foreign-news') !== -1 ? 'us' : 'domestic'] = data.sourceStatus;
+        }
+        if (Array.isArray(data.officialItems)) {
+          var officialMarket = url.indexOf('/foreign-news') !== -1 ? 'us' : 'domestic';
+          state.officialItems[officialMarket] = data.officialItems.map(function (row) { return Object.assign({}, row, {_market:officialMarket}); });
+        }
         var items = (data.items || []).filter(function (item) { return item && item.title; });
         // 서버가 시간순을 보장하지 않는 경로가 섞여 있어(RSS 합본) 여기서 한 번 더 정렬한다.
         items.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
@@ -313,16 +326,31 @@
     var cryptoView = state.view === 'crypto';
     var items = cryptoView
       ? limitMarketRows(state.cryptoItems)
+      : state.view === 'official' ? Object.keys(state.officialItems).reduce(function (all, key) { return all.concat(limitMarketRows(state.officialItems[key])); }, []).sort(function (a,b) { return dateValue(b.pubDate)-dateValue(a.pubDate); })
       : state.view === 'all' ? currentItems : currentItems.filter(function (item) { return item._market === state.view; });
     var failed = cryptoView ? (state.cryptoFailed ? [CRYPTO_MARKET.label] : []) : state.failed;
     if (!list) return;
+    var sourcePanel = container.querySelector('[data-mn-source-status]');
+    if (!sourcePanel) {
+      sourcePanel = document.createElement('details'); sourcePanel.className = 'mn-source-status';
+      sourcePanel.setAttribute('data-mn-source-status', ''); list.insertAdjacentElement('afterend', sourcePanel);
+    }
+    var checks = Object.keys(state.sourceChecks).reduce(function (all, key) { return all.concat(state.sourceChecks[key]); }, []);
+    var statusWords = {ok:'수신 확인', empty:'수신 0건', error:'수신 실패', 'not-checked':'미확인'};
+    sourcePanel.innerHTML = '<summary>뉴스 출처 수신 상태</summary><ul>' + checks.map(function (entry) {
+      return '<li>' + escapeHtml(entry.provider) + ' · ' + escapeHtml(statusWords[entry.status] || '미확인')
+        + ' · ' + Number(entry.articleCount || 0) + '건'
+        + (entry.duplicateCount ? ' · 중복 ' + Number(entry.duplicateCount) + '건 제외' : '')
+        + (entry.checkedAt ? ' · 확인 ' + escapeHtml(timeLabel(entry.checkedAt, 'domestic')) : '')
+        + (entry.status === 'error' && entry.lastSuccessAt ? ' · 마지막 성공 ' + escapeHtml(timeLabel(entry.lastSuccessAt, 'domestic')) : '') + '</li>';
+    }).join('') + '</ul><p>공개 피드의 최근 확인 결과입니다. 수신 성공이 전체 기사 수집을 뜻하지 않으며, 발행시각에 따라 현재 목록에 없을 수 있습니다.</p>';
     renderKeywordCloud_(container, items, failed);
     state.loading = false;
     setRefreshState_(container, false);
     if (!items.length) {
       list.innerHTML = failed.length
         ? '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>'
-        : '<p class="mn-state">이번 주 월~일 뉴스가 없습니다.</p>';
+        : '<p class="mn-state">'+(state.view === 'official' ? '이번 주에 수집된 공식 발표가 없습니다.' : '이번 주 월~일 뉴스가 없습니다.')+'</p>';
       if (updated) updated.textContent = failed.length ? '갱신 실패 · 자동 재시도 예정' : '표시할 뉴스 없음';
       return;
     }

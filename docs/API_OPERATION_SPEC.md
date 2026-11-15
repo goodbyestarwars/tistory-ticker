@@ -331,3 +331,7 @@ VM이 정량 분석한 사실 객체를 **GAS `doPost`(`?action=marketComments`,
 ## API 루트 브라우저 진입(2026-11-14)
 
 `scripts/nginx-api-root.conf`를 기존 HTTPS server에 include하면 정확히 `/`만 nginx404로 처리해 기존 `9pay-unified-error-page.conf`의 공통 HTML 오류 페이지를 표시한다. 다른 API location의 proxy_intercept_errors는 끈 상태로 유지하며 JSON 오류/상태코드·인증·WS는 변경하지 않는다. nginx -t 후 graceful reload만 사용한다(kiwoom-api·거래 프로세스 재시작 없음).
+
+### 무료 공식 발표 및 수신 상태 (2026-11-16)
+
+기존 `/domestic-news`(종목/검색 조건 없는 시장 조회)·`/foreign-news`에 `officialItems`(동일 hours 창의 공식 발표), `sourceStatus` 배열을 추가한다. 한국은행 통화정책·경제통계/연준 통화정책 RSS만15분 memo, 외부 호출은 기존 요청·워머 경로. sourceStatus 항목은 provider/status(ok,empty,error,not-checked)/checkedAt/lastSuccessAt/articleCount/duplicateCount/latestPublishedAt이며 실제 피드 응답 기준이다. 마지막 성공은 프로세스 메모리 범위이며, 빈 피드 정상수신과 오류를 구분한다. source/providers는 반환 기사에 실제 있는 출처만 표시한다. 본문/키/환경설정 노출 없음. 신규 피드 공식 안내: https://www.bok.or.kr/static/view/popup/rss_popup.html · https://www.federalreserve.gov/feeds/feeds.htm . BLS403/인포맥스 범위 미검증으로 미연결. `test/test_free_news.py`는 캐시·실패·발행일·URL 식별·동일제목 회귀만 검증하며 운영 API를 호출하지 않는다.
