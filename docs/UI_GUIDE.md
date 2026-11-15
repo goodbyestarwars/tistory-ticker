@@ -655,3 +655,6 @@ PC는 기존본문폭을 그대로 사용한 동일2열·동일카드높이(수�
 ## 공통 제목 띠·표 머리줄의 양끝 (2026-11-15)
 
 채워진 제목 띠와 표 머리줄은 css/ui-system.css의 --ui-radius-band(999px)를 사용해 양끝을 둥글게 표시한다. .ui-heading-band는 새 제목 띠의 공통 클래스이며 기존 .ui-section-heading/.home-card-heading/.hen-head/.hrt-head도 같은 반경을 쓴다. 표는 thead 행의 첫/끝 셀만 둥글게 clip하여 열 너비·border-collapse·sticky 및 스크롤을 보존한다. 모바일 종목판은 기존 data-hrt-active별로 실제 보이는 마지막 열에 같은 끝 처리를 적용한다. 표 본문·카드 전체의 형태·시세 색·글꼴·패딩은 변경하지 않는다.
+
+
+제목 띠 여백 점검(2026-11-15): 채워진 .ui-heading-band/.hrt-head는 공통 --ui-paragraph-gap의 절반을 위아래, --ui-card-padding을 좌우 여백으로 사용한다. 실시간 종목판은 제목·표 머리·종목 행 아래 구분선과 종목 링크 밑줄(hover/focus 포함)을 표시하지 않는다. 기존 행 높이·열 너비·시세 정렬과 키보드 초점 윤곽은 유지한다.

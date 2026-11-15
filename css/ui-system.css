@@ -420,3 +420,20 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
     }
   }
 }
+
+/* Filled bands need breathing room inside their rounded ends. */
+@layer np.np {
+  html body :is(.ui-heading-band, .hrt-head) {
+    padding: calc(var(--ui-paragraph-gap, 14px) / 2) var(--ui-card-padding, 18px) !important;
+  }
+  /* The stock board is read by alignment and whitespace, without underlines. */
+  html body .home-realtime-board .hrt-table-wrap :is(thead th, tbody td, tbody tr),
+  html body .home-realtime-board .hrt-head {
+    border-bottom: 0 !important;
+    border-image: none !important;
+  }
+  html body .home-realtime-board .hrt-stock a,
+  html body .home-realtime-board .hrt-stock a:is(:hover, :focus-visible) {
+    text-decoration: none !important;
+  }
+}
