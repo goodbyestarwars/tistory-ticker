@@ -114,15 +114,15 @@
 
 - 가상자산 공개 시세(2026-11-15): `js/crypto-live.js`가 한 브라우저 페이지에서 업비트 `KRW-BTC`·`KRW-ETH`·`KRW-USDT` Public WebSocket을 구독·공유한다(체결가와 UTC 0시 전일 종가 기준 등락률). `crypto-market.js`의 원화 시세표와 `market-temp.js`의 원자재·가상자산 카드에 실시간 갱신값을 겹쳐 쓰고, `/futures` 기존 일별 이력은 그대로 둔다. `stock-search.js`의 `CRYPTO:BTC/ETH/USDT` 검색은 `js/crypto-chart.js`·`css/crypto-chart.css`를 지연 로드하여 공용 NineChartCore 캔들 차트를 만든다. 캔들 과거 200개는 업비트 REST, 당일 현재 봉 종가만 WS로 근사 갱신하되 거래량은 REST 기준임을 표시한다. Public API 호출 가능 여부와 공개 재배포 라이선스는 별개이며 기존 국내 원천 주식 시세의 관리자 경계는 절대 열지 않는다. 업비트 Origin 포함 브라우저 REST/WS 요청 제한(10초당 1회)에 맞춰 단일 브라우저 차트 REST를 11초 간격으로 직렬화하고, WebSocket 신규 연결·재연결도 11초 이상 간격을 유지한다. 차트 첫 REST 직후에는 초기 WS 연결도 대기한다.
 
-- 국내 상위20 섹터 지도(2026-11-15): 종목 > 국내 시총 TOP20은 KODEX 200 ETF 편입종목이 아니라 KIS FHPST01740000의 0001(코스피), 1001(코스닥) 보통주 각각 상위20이다. 기존 WICS 공용 섹터를 결합해 섹터 구역·종목의 면적을 시총에 비례하게 만든다. KODEX ETF 구성종목 API는 별개로 유지한다.
+- 국내 시총 TOP100 섹터 지도(2026-11-15): 시장별 보통주 상위100을 NAVER 시장별 시총순 페이지(최대2페이지×100행)에서 ETF·우선주·스팩을 제외한 뒤 검증한다. KIS FHPST01740000 실응답이30행·연속조회 없음이므로 100종목에 쓰지 않는다. NAVER marketValueRaw(원)/1e8와 marketValue(억원)를 대조하고 WICS 공용 섹터를 결합한다. 기존 KIS 상위20 기본 호출·KODEX ETF API는 호환 유지한다.
 
 - MY 화면(2026-11-15): `/page/watchlist`의 `my-dashboard.js`는 별도 관심종목 표·추가 모달을 화면에서 제거하고 상단 `내 종목 분석`+검색+보유정보·차트 분석에 집중한다. 서버 `/watchlist`의 계정별 보유 메타데이터·관심종목 데이터는 삭제하거나 자동 이동하지 않고 분석·저장 연동에만 사용한다. MY 내부 물타기 계산기 카드도 표시하지 않으며 종합의견은 수급·차트·보유정보로 설명한다. 제목 Noto Sans KR, 본문 Pretendard. `skin-main.js`의 MY/시장/가상자산 동적 자원 쿼리 버전은 이번 변경으로 올렸다.
 
 - 상단 전역 종목검색 폭은 PC 중앙 정렬·로고/아이콘 충돌 여백을 지키며 최대760px, 확장 검색 패널 최대1240px(모바일 기존 화면폭)이다(2026-11-15). 종목분석/MY 매물대의 `ff-apt-split`은 작은 전체 가격대 SVG를 큰 매물대 오른쪽에 반투명 겹침으로 놓되, 메인 수치가 가려지지 않도록 오른쪽 읽기 여백과 모바일 축소를 함께 유지하고 SVG/시세 계산은 변경하지 않는다.
 
-- S&P 500 섹터 지도(2026-11-15): 기존 나스닥 40종목 히트맵을 교체한다. 관리자 전용 /market-board/sector-top20?market=sp500은 Wikipedia S&P500 구성종목/GICS 섹터 목록(CC BY-SA 4.0)을 하루 캐시한 후 KIS NYS/NAS/AMS 시총순위 각40 종목과 코드 대조해 최대20종목만 반환한다. 이는 S&P500 전체 시총 전수조회가 아닌 KIS 제한 표본과의 교집합이며 화면에 범위·출처·기준시각을 명시한다. 국내 시장은 market=kospi/kosdaq, 단위는 억원, 미국은 백만 USD. 관리자 /ws/quotes의 실제 체결수신만 실시간 표기한다. 과거 /market-board/nasdaq-cap 경로는 호환 보존한다. 구성명단 미수신 시 추정 종목을 만들지 않는다.
+- S&P 500 섹터 지도(2026-11-15): 관리자 /market-board/sector-top20?market=sp500&limit=100(기존 경로·기본20 호환)은 Wikipedia 편입/GICS 명단(CC BY-SA 4.0)과 KIS NYS/NAS/AMS 각최대100행의 교집합을 시총순 최대100개로 표시한다. 전체 지수 전수조회가 아닌 검증된 표본임을 명시한다. HHDFS76350100은 CURR_GB=1·KEYB 필수, 실응답 tomv는 USD 원금액이다. 같은 행 shar×last_org로 단위를 대조한 뒤 공통 계약인 백만USD로 변환한다. 국내는 억원. 관리자 /ws/quotes는 기존대로 상위최대20개만 구독하며 나머지는 조회값이다. 구성명단·시총 결측은 추정하지 않는다.
 
-- **필수 렌더 경로:** `/page/market-temp?view=stocks`는 `buildStocksOnlyPage()` 별도 UI에서 `init()`의 `stocksOnly` 분기를 탄 뒤 반환하므로 `buildExploreCard()/wireViewTabs()`에만 탭을 추가하면 실제 종목 화면에 보이지 않는다. 실사용 화면에는 `mt-stocks-switcher`(종목 목록·국내 시총 TOP20·S&P 500 TOP20)를 제목 바로 아래에 렌더하고, 관리자 접근 확인 이후 `wireStocksOnlyTabs_`에서 기존 `loadEtfHeatmapPanel_`·`loadUsHeatmapPanel_`을 지연 연결한다. 기존 업종별 목록·거래대금 섹터는 종목 목록 탭에 보존하고 비관리자 원천 시세를 열지 않는다(2026-11-15). `SectorDashboard`·`MarketcapBubble` 및 시총 CSS는 필요한 탭에서만 로드하며 경로별 실제 DOM 테스트를 후속 변경에도 필수로 한다.
+- **필수 렌더 경로:** `/page/market-temp?view=stocks`는 `buildStocksOnlyPage()` 별도 UI에서 `init()`의 `stocksOnly` 분기를 탄 뒤 반환하므로 `buildExploreCard()/wireViewTabs()`에만 탭을 추가하면 실제 종목 화면에 보이지 않는다. 실사용 화면에는 `mt-stocks-switcher`(종목 목록·국내 시총 TOP100·S&P 500 표본 TOP100)를 제목 바로 아래에 렌더하고, 관리자 접근 확인 이후 `wireStocksOnlyTabs_`에서 기존 `loadEtfHeatmapPanel_`·`loadUsHeatmapPanel_`을 지연 연결한다. 기존 업종별 목록·거래대금 섹터는 종목 목록 탭에 보존하고 비관리자 원천 시세를 열지 않는다(2026-11-15). `SectorDashboard`·`MarketcapBubble` 및 시총 CSS는 필요한 탭에서만 로드하며 경로별 실제 DOM 테스트를 후속 변경에도 필수로 한다.
 
 - 히트맵 공통 팔레트(2026-11-15): 미국 히트맵의 사이트 공통 상승 `--num-up`/하락 `--num-down`을 흰색/다크 카드와 혼합한 옅은 단계색(최소25%~최대68%)으로 국내 ETF·개인 카테고리 시총 SVG(`css/market-temp.css`의 scoped `#mt-etf-marketcap`, `#marketcap-bubble`) 및 섹터 일반 히트맵(`sector-dashboard-v4.js`의 direction/strength 메타데이터)에 함께 적용한다. 전역 `.mcb-*`를 무차별 변경하지 않는다. 나스닥 시총 조회는 WebSocket을 대신하지 않으며 관리자 원천시세 보호/주문 경계를 유지한다.
 
@@ -201,4 +201,4 @@
 
 - 사용자 승인 확인용 예외(2026-11-13 하루): 실관측 이력이 없을 때만 브라우저 메모리의 명시적 샘플 수급을 표시한다. 실제 가격과 샘플 수급을 구분하며 끄기 가능, KST 날짜가 바뀌면 자동 제외한다. DB/API 저장·실제 과거 복원·주문 연결은 없다.
 
-- 시총 지도 순위(2026-11-15): 프런트도 유효 시총 내림차순으로 정렬한 뒤 최대20개를 선택하고 섹터 안에서도 같은 순서를 유지한다. 타일·표·접근성 이름에 순위를 표시한다. S&P 500 탭과 제목은 ‘표본 TOP20’, 순위는 검증된 조회 표본 내 순위이며 지수 전체 순위가 아님을 명시한다.
+- 시총 지도 선정(2026-11-15): 유효 시총 내림차순으로 최대100개를 선택하고 섹터 안에서도 같은 순서를 유지한다. 사용자 지시로 타일·표·접근성 이름의 순위 번호는 표시하지 않는다. 실제 확인 N/100·시총 면적·등락 색을 표시하며 실제 자금 유입/유출 내역이라고 부르지 않는다. S&P 500은 ‘표본 TOP100’이다.

@@ -1522,8 +1522,8 @@
       + '<p>거래가 활발한 국내 종목을 업종별로 확인하고, 마켓 대동여지도에서 강약을 비교합니다.</p></div>'
       + '<div class="mt-view-toggle mt-stocks-switcher" role="tablist" aria-label="주요종목 보기 방식">'
       + '<button type="button" class="mt-view-btn active" id="mt-stocks-tab-list" data-stocks-tab="list" aria-controls="mt-stocks-panel-list" aria-selected="true" role="tab">종목 목록</button>'
-      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-etf" data-stocks-tab="etf" aria-controls="mt-stocks-panel-etf" aria-selected="false" role="tab">국내 시총 TOP20</button>'
-      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-us" data-stocks-tab="us" aria-controls="mt-stocks-panel-us" aria-selected="false" role="tab">S&P 500 표본 TOP20</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-etf" data-stocks-tab="etf" aria-controls="mt-stocks-panel-etf" aria-selected="false" role="tab">국내 시총 TOP100</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-us" data-stocks-tab="us" aria-controls="mt-stocks-panel-us" aria-selected="false" role="tab">S&P 500 표본 TOP100</button>'
       + '</div><div class="mt-stocks-view-panels">'
       + '<div data-stocks-panel="list" id="mt-stocks-panel-list" role="tabpanel" aria-labelledby="mt-stocks-tab-list">'
       + '<section class="mt-section-block">'
@@ -1547,7 +1547,7 @@
     if (stocksTabScripts_[file]) return stocksTabScripts_[file];
     stocksTabScripts_[file] = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/' + file + '?v=20261115-sector-top20-v2';
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/' + file + '?v=20261115-sector-top100-v1';
       script.onload = function () {
         if (global[globalName]) resolve();
         else reject(new Error(file + ' 전역 모듈이 없습니다.'));
@@ -1565,7 +1565,7 @@
         !document.querySelector('link[href*="/css/marketcap-bubble.css"]')) {
       var css = document.createElement('link');
       css.rel = 'stylesheet';
-      css.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/marketcap-bubble.css?v=20261115-sector-top20-v2';
+      css.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/marketcap-bubble.css?v=20261115-sector-top100-v1';
       css.setAttribute('data-mt-stocks-bubble-css', '1');
       document.head.appendChild(css);
     }
@@ -4601,8 +4601,8 @@
     { key: 'cards', label: '카드 보기' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' },
-    { key: 'etf', label: '국내 시총 TOP20' },
-    { key: 'us', label: 'S&P 500 표본 TOP20' },
+    { key: 'etf', label: '국내 시총 TOP100' },
+    { key: 'us', label: 'S&P 500 표본 TOP100' },
     { key: 'active', label: '활성 종목' }
   ];
 
@@ -5199,18 +5199,18 @@
   function loadUsHeatmapPanel_(panel, marketKind) {
     marketKind = marketKind === 'domestic' ? 'domestic' : 'sp500';
     if (global.NineUsHeatmap) { global.NineUsHeatmap.init(panel,marketKind); return; }
-    panel.innerHTML = '<div class="mt-hint">섹터별 시가총액 TOP20 지도를 준비하는 중…</div>';
+    panel.innerHTML = '<div class="mt-hint">섹터별 시가총액 TOP100 지도를 준비하는 중…</div>';
     var root = 'https://goodbyestarwars.github.io/tistory-ticker/';
     if (!document.querySelector('link[href*="/css/us-market-heatmap.css"]')) {
       var link=document.createElement('link');
       link.rel='stylesheet';
-      link.href=root+'css/us-market-heatmap.css?v=20261115-sector-top20-v2';
+      link.href=root+'css/us-market-heatmap.css?v=20261115-sector-top100-v1';
       document.head.appendChild(link);
     }
     if(!sectorHeatmapScriptJob_) {
       sectorHeatmapScriptJob_=new Promise(function(resolve,reject){
         var script=document.createElement('script');
-        script.src=root+'js/us-market-heatmap.js?v=20261115-sector-top20-v2';
+        script.src=root+'js/us-market-heatmap.js?v=20261115-sector-top100-v1';
         script.onload=function() {
           if(global.NineUsHeatmap)resolve();else reject(new Error('sector map module missing'));
         };

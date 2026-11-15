@@ -1046,12 +1046,32 @@ def fetch_us_trade_volume_rank(token, appkey, appsecret, exchange, limit=20):
 
 
 def fetch_us_market_cap_rank(token, appkey, appsecret, exchange, limit=20):
-    """해외주식 시가총액순위[해외주식-047], TR HHDFS76350100."""
-    return _fetch_us_rank_rows(
+    """HHDFS76350100: CURR_GB=1 gives native US dollars, not millions.
+
+    Keep the market_board contract in million USD. Verified live:
+    AAPL 14,532,200,000 shares * $356.27 = $5,177,386,894,000.
+    """
+    rows = _fetch_us_rank_rows(
         token, appkey, appsecret, exchange,
         '/uapi/overseas-stock/v1/ranking/market-cap', 'HHDFS76350100',
-        {'VOL_RANG': '0', 'AUTH': ''}, limit,
+        {'VOL_RANG': '0', 'AUTH': '', 'KEYB': '', 'CURR_GB': '1'}, limit,
     )
+    out = []
+    for raw in rows:
+        row = dict(raw)
+        try:
+            cap = float(str(row.get('tomv') or '').replace(',', ''))
+            shares = float(str(row.get('shar') or '').replace(',', ''))
+            price = float(str(row.get('last_org') or row.get('last') or '').replace(',', ''))
+            # Units are checked against the same response, never inferred from
+            # a magnitude threshold or a current price from another source.
+            valid = (0 < cap < float('inf') and 0 < shares < float('inf') and
+                     0 < price < float('inf') and 0.98 <= cap / (shares * price) <= 1.02)
+        except (ValueError, TypeError, ZeroDivisionError):
+            valid = False
+        row['tomv'] = cap / 1000000 if valid else None
+        out.append(row)
+    return out
 
 
 def fetch_us_updown_rank(token, appkey, appsecret, exchange, gubn='1', limit=20, nday='0'):

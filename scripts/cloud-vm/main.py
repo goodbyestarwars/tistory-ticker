@@ -4724,29 +4724,31 @@ def us_market_breadth_endpoint(request: Request, response: Response):
 
 @app.get('/market-board/sector-top20')
 def market_sector_top20_endpoint(request: Request, response: Response,
-                                  market: str = Query('kospi')):
+                                  market: str = Query('kospi'),
+                                  limit: int = Query(20, ge=1, le=100)):
     """Market-specific market-cap top20; protected by /market-board prefix."""
     if market not in ('kospi', 'kosdaq', 'sp500'):
         raise HTTPException(status_code=400, detail='unsupported market')
     _check_rate_limit('market_sector_top20', request, max_per_window=15)
     response.headers['Cache-Control'] = 'private, max-age=180'
+    cache_key = (market, limit)
     with _sector_top20_lock:
-        cached = _sector_top20_cache.get(market)
+        cached = _sector_top20_cache.get(cache_key)
         if cached and time.time() - cached['t'] < 600:
             return envelope(cached['data'])
         try:
             appkey = os.environ.get('KIS_APPKEY', '').strip()
             appsecret = os.environ.get('KIS_APPSECRET', '').strip()
             if market == 'sp500':
-                data = market_board.fetch_sp500_sector_top20(appkey, appsecret)
+                data = market_board.fetch_sp500_sector_top20(appkey, appsecret, limit=limit)
             else:
                 data = market_board.fetch_domestic_sector_top20(
-                    appkey, appsecret, market=market)
+                    appkey, appsecret, market=market, limit=limit)
             if not data.get('rows'):
                 raise ValueError('시총순위 또는 확인된 섹터 구성종목이 없습니다.')
         except Exception as exc:
-            raise _upstream_http_exception('섹터별 시총 TOP20을 가져오지 못했습니다.', exc) from exc
-        _sector_top20_cache[market] = {'t': time.time(), 'data': data}
+            raise _upstream_http_exception('섹터별 시총 지도를 가져오지 못했습니다.', exc) from exc
+        _sector_top20_cache[cache_key] = {'t': time.time(), 'data': data}
         return envelope(data)
 
 

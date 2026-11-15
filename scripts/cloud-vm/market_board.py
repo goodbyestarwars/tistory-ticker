@@ -1133,14 +1133,78 @@ _SP500_MEMBERSHIP_URL = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_compani
 _sp500_membership_cache = {'t': 0.0, 'rows': {}}
 
 
-def fetch_domestic_sector_top20(appkey, appsecret, market='kospi'):
+def _fetch_domestic_cap_top100(market, limit):
+    """Naver market-cap ordered pages, excluding ETFs/preferred shares/SPACs.
+
+    KIS FHPST01740000 currently returns only 30 rows without continuation.
+    Reuse the existing Naver JSON transport; at most two 100-row pages per
+    cached request, with no polling or per-stock enrichment.
+    """
+    import market_temp_data
+    exchange = 'KOSPI' if market == 'kospi' else 'KOSDAQ'
+    wics = load_wics_map()
+    items, seen = [], set()
+    for page in (1, 2):
+        url = ('https://m.stock.naver.com/api/stocks/marketValue/' + exchange +
+               '?page=' + str(page) + '&pageSize=100')
+        data = market_temp_data._get_json(url, timeout=10) or {}
+        if data.get('stockListCategoryType') != exchange:
+            raise ValueError('market-cap exchange mismatch')
+        raw_rows = data.get('stocks')
+        if not isinstance(raw_rows, list) or not raw_rows:
+            raise ValueError('market-cap page unavailable')
+        for raw in raw_rows:
+            code = str(raw.get('itemCode') or '')
+            name = str(raw.get('stockName') or '')
+            # Numeric KRX common-share issue codes end in 0. Do not infer
+            # unknown/alphanumeric issue types or turn ETFs into companies.
+            if (raw.get('stockEndType') != 'stock' or
+                    not re.fullmatch(r'\d{5}0', code) or
+                    '스팩' in name or code in seen):
+                continue
+            cap_won = _number(raw.get('marketValueRaw'))
+            cap_eok = _number(raw.get('marketValue'))
+            price = _number(raw.get('closePriceRaw') or raw.get('closePrice'))
+            if (cap_won is None or not math.isfinite(cap_won) or cap_won <= 0 or
+                    cap_eok is None or not math.isfinite(cap_eok) or
+                    abs(cap_won / 100000000 - cap_eok) > 1 or
+                    price is None or not math.isfinite(price) or price <= 0):
+                continue
+            seen.add(code)
+            info = wics.get(code) or {}
+            items.append({
+                'market': market, 'code': code, 'name': name,
+                'price': price, 'market_cap': cap_won / 100000000,
+                'change_rate': _number(raw.get('fluctuationsRatio')),
+                'trade_volume': _number(raw.get('accumulatedTradingVolumeRaw')),
+                'trade_amount': _number(raw.get('accumulatedTradingValueRaw')),
+                'quote_time': raw.get('localTradedAt'),
+                'sector': info.get('sector') or '미분류',
+                'industry': info.get('industry') or '미분류',
+            })
+        if len(items) >= limit:
+            break
+    items.sort(key=lambda row: row['market_cap'], reverse=True)
+    return {
+        'market': market, 'rows': items[:limit],
+        'universe': 'NAVER ' + exchange + ' 시총순 최대200행 중 보통주 검증',
+        'sector_basis': 'WICS', 'market_cap_unit': '100 million KRW',
+        'updated_at': int(time.time()), 'available': len(items[:limit]),
+        'source': 'NAVER 시장별 시가총액 순위 / WICS 업종',
+    }
+
+
+def fetch_domestic_sector_top20(appkey, appsecret, market='kospi', limit=20):
     """KIS KOSPI/KOSDAQ ordinary-share market-cap top20, with WICS sectors."""
     if market not in ('kospi', 'kosdaq'):
         raise ValueError('unsupported market')
+    limit = max(1, min(int(limit), 100))
+    if limit > 30:
+        return _fetch_domestic_cap_top100(market, limit)
     token = kis_client.get_token(appkey, appsecret)
     market_code = '0001' if market == 'kospi' else '1001'
     raw_rows = kis_client.fetch_domestic_market_cap_rank(
-        token, appkey, appsecret, limit=40, market_code=market_code, common_only=True)
+        token, appkey, appsecret, limit=max(20, min(int(limit), 100)), market_code=market_code, common_only=True)
     wics = load_wics_map()
     seen, items = set(), []
     for raw in raw_rows:
@@ -1165,7 +1229,7 @@ def fetch_domestic_sector_top20(appkey, appsecret, market='kospi'):
         items.append(row)
     items.sort(key=lambda x: x['market_cap'], reverse=True)
     return {
-        'market': market, 'rows': items[:20], 'universe': 'KIS ' + market_code + ' 보통주',
+        'market': market, 'rows': items[:max(1, min(int(limit), 100))], 'universe': 'KIS ' + market_code + ' 보통주',
         'sector_basis': 'WICS', 'market_cap_unit': '100 million KRW',
         'updated_at': int(time.time()),
         'source': 'KIS 국내 시가총액 순위 / WICS 업종',
@@ -1226,17 +1290,17 @@ def _load_sp500_sectors():
     return parser.rows
 
 
-def fetch_sp500_sector_top20(appkey, appsecret):
+def fetch_sp500_sector_top20(appkey, appsecret, limit=20):
     """S&P 500 confirmed constituents intersect KIS US top-cap data.
 
-    KIS API top40 per exchange is a finite snapshot, not all 500 symbols.
-    This page shows 20 highest-cap matched members among that verified pool,
+    KIS API bounded results per exchange is a finite snapshot, not all 500 symbols.
+    This page shows requested highest-cap matched members among that verified pool,
     and retains the limited ranking scope in the response.
     """
     members = _load_sp500_sectors()
     token = kis_client.get_token(appkey, appsecret)
     raw = _fetch_us_kis_metric(token, appkey, appsecret,
-                               kis_client.fetch_us_market_cap_rank, 40)
+                               kis_client.fetch_us_market_cap_rank, max(20, min(int(limit), 100)))
     rows, seen = [], set()
     for record in raw:
         row = _kis_us_row(record)
@@ -1251,8 +1315,8 @@ def fetch_sp500_sector_top20(appkey, appsecret):
         rows.append(row)
     rows.sort(key=lambda r: r['market_cap'], reverse=True)
     return {
-        'market': 'sp500', 'rows': rows[:20],
-        'universe': 'KIS NYS/NAS/AMS 시총순위 각 최대40종목 ∩ S&P 500 편입 검증 명단',
+        'market': 'sp500', 'rows': rows[:max(1, min(int(limit), 100))],
+        'universe': 'KIS NYS/NAS/AMS 시총순위 각 최대100종목(요청 상한; 실제 반환 범위) ∩ S&P 500 편입 검증 명단',
         'verified_members': len(rows), 'membership_count': len(members),
         'sector_basis': 'Wikipedia S&P 500 GICS sector',
         'sector_source': _SP500_MEMBERSHIP_URL,

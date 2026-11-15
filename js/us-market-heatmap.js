@@ -1,4 +1,4 @@
-/* Shared KIS market-cap top20 sector map (KOSPI, KOSDAQ, S&P500).
+/* Shared KIS market-cap top100 sector map (KOSPI, KOSDAQ, S&P500).
  * One bootstrap /market-board/sector-top20 request then authenticated
  * /ws/quotes ticks; all cap/sector classification remains snapshot-based.
  * S&P constituents are verified server-side against a dated public index list.
@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
   var API='https://goodbyestar.cloud';
-  var MAX=20, active=null, retry=null, heartbeat=null, paintTimer=null;
+  var MAX=100, WS_MAX=20, active=null, retry=null, heartbeat=null, paintTimer=null;
   var SECTOR_KO={'Information Technology':'정보기술','Communication Services':'커뮤니케이션','Consumer Discretionary':'경기소비재','Consumer Staples':'필수소비재','Financials':'금융','Health Care':'헬스케어','Industrials':'산업재','Energy':'에너지','Materials':'소재','Utilities':'유틸리티','Real Estate':'부동산'};
   function number(x){if(x==null||x==='')return NaN;var v=Number(x);return isFinite(v)?v:NaN;}
   function label(m){return m==='kosdaq'?'코스닥':m==='sp500'?'S&P 500':'코스피';}
@@ -36,13 +36,13 @@
   }
   function connect(){
     if(!visible()||!isAdmin()||!active.rows.length||active.socket||!global.WebSocket)return;
-    var market=active.market,codes=active.rows.map(function(x){return encodeURIComponent(x.code);});
+    var market=active.market,codes=active.rows.slice(0,WS_MAX).map(function(x){return encodeURIComponent(x.code);});
     var socket;
     try{socket=new WebSocket('wss://goodbyestar.cloud/ws/quotes?codes='+codes.join(','));}
     catch(e){stateText('WebSocket 접속 실패');reconnect();return;}
     active.socket=socket;
     var owner=active;
-    stateText('KIS WebSocket 연결 중 · 실시간 수신 대기');
+    stateText('KIS WebSocket 연결 중 · 시총 상위 최대20종목 수신 대기 · 나머지는 조회값');
     socket.onopen=function(){
       if(active!==owner||owner.socket!==socket)return;
       clearInterval(heartbeat);
@@ -58,7 +58,7 @@
       row.price=p;if(isFinite(r))row.change_rate=r;
       row.lastSeen=Date.now();row.source=String(msg.source||'WebSocket');
       stateText('WebSocket 체결 수신 '+new Date(row.lastSeen).toLocaleTimeString('ko-KR')+
-        ' · 확인 '+owner.rows.filter(function(a){return isCurrent(a);}).length+'/'+owner.rows.length+'종목');
+        ' · 확인 '+owner.rows.filter(function(a){return isCurrent(a);}).length+'/'+Math.min(WS_MAX,owner.rows.length)+'종목 · 나머지는 조회값');
       scheduleDraw();
     };
     socket.onerror=function(){try{socket.close();}catch(e){}};
@@ -98,7 +98,7 @@
     var root=active.panel,chart=root.querySelector('[data-uh-tiles]'),tbody=root.querySelector('[data-uh-rows]');
     if(!chart||!tbody)return;
     chart.replaceChildren();tbody.replaceChildren();
-    var w=Math.max(300,Math.round(chart.clientWidth||root.clientWidth||720)),h=w<580?460:590;
+    var w=Math.max(300,Math.round(chart.clientWidth||root.clientWidth||720)),h=w<580?680:780;
     chart.style.height=h+'px';
     var groups={},rows=active.rows;
     rows.forEach(function(r){
@@ -127,11 +127,10 @@
         Object.assign(tile.style,{left:cell.x.toFixed(1)+'px',top:cell.y.toFixed(1)+'px',
           width:cell.w.toFixed(1)+'px',height:cell.h.toFixed(1)+'px'});
         tile.style.setProperty('--uh-strength',Math.round(Math.min(.68,Math.max(.25,Math.abs(up||0)/10))*100)+'%');
-        var rankText=(active.market==='sp500'?'표본 ':'')+row.rank+'위';
-        var fullLabel=rankText+' '+row.name+' '+pct(row.change_rate)+' '+currency(active.market,row.cap);
+        var fullLabel=row.name+' '+pct(row.change_rate)+' '+currency(active.market,row.cap);
         tile.setAttribute('aria-label',fullLabel);tile.title=fullLabel;
         if(cell.w>58&&cell.h>28){
-          var title=document.createElement('strong');title.textContent=row.rank+'위 '+(active.market==='sp500'?row.symbol:row.name);tile.appendChild(title);
+          var title=document.createElement('strong');title.textContent=active.market==='sp500'?row.symbol:row.name;tile.appendChild(title);
         }
         if(cell.w>75&&cell.h>63&&active.market==='sp500'){
           var name=document.createElement('span');name.className='uh-name';name.textContent=row.name;tile.appendChild(name);
@@ -148,12 +147,12 @@
     });
     rows.forEach(function(row){
       var tr=document.createElement('tr');
-      [row.rank,row.symbol||row.code,row.name,row.sector,currency(active.market,row.cap),price(active.market,row.price),pct(row.change_rate),
+      [row.symbol||row.code,row.name,row.sector,currency(active.market,row.cap),price(active.market,row.price),pct(row.change_rate),
         isCurrent(row)?'WS 수신':row.lastSeen?'마지막 WS':'조회값'].forEach(function(value,i){
         var td=document.createElement('td');
-        if(i===1){var a=document.createElement('a');a.href='/page/stock-search?code='+encodeURIComponent(row.code);a.textContent=value;td.appendChild(a);}
+        if(i===0){var a=document.createElement('a');a.href='/page/stock-search?code='+encodeURIComponent(row.code);a.textContent=value;td.appendChild(a);}
         else td.textContent=value;
-        if(i===6)td.className=number(row.change_rate)>0?'is-up':number(row.change_rate)<0?'is-down':'';
+        if(i===5)td.className=number(row.change_rate)>0?'is-up':number(row.change_rate)<0?'is-down':'';
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -168,12 +167,13 @@
     var chart=owner.panel.querySelector('[data-uh-tiles]');
     var table=owner.panel.querySelector('[data-uh-rows]');
     if(chart)chart.replaceChildren();if(table)table.replaceChildren();
+    ['[data-uh-count]','[data-uh-source]','[data-uh-disclaimer]'].forEach(function(k){var el=owner.panel.querySelector(k);if(el)el.textContent='';});
     stateText(label(market)+' 시총순위 확인 중');
     var buttonWrap=owner.panel.querySelector('[data-uh-select]');
     if(buttonWrap)buttonWrap.querySelectorAll('button').forEach(function(b){
       b.classList.toggle('is-active',b.getAttribute('data-mkt')===market);
     });
-    return global.NineHttp.json(API+'/market-board/sector-top20?market='+encodeURIComponent(market),{timeoutMs:26000})
+    return global.NineHttp.json(API+'/market-board/sector-top20?market='+encodeURIComponent(market)+'&limit=100',{timeoutMs:26000})
       .then(function(payload){
         if(active!==owner||id!==owner.seq)return;
         var data=payload&&payload.data||payload;
@@ -184,10 +184,10 @@
           var key=String(r.code||''),cap=number(r.market_cap);
           if(!key||seen[key]||!(cap>0))return false;
           seen[key]=true;return true;
-        }).sort(function(a,b){return number(b.market_cap)-number(a.market_cap);}).slice(0,MAX).map(function(r,i){
+        }).sort(function(a,b){return number(b.market_cap)-number(a.market_cap);}).slice(0,MAX).map(function(r){
           return {code:String(r.code),symbol:String(r.symbol||r.code).replace(/^US:/,''),
             name:String(r.name_ko||r.name||r.symbol||r.code),sector:SECTOR_KO[String(r.sector||'')]||String(r.sector||'업종 미분류'),
-            rank:i+1,cap:number(r.market_cap),price:number(r.price),change_rate:number(r.change_rate),lastSeen:0};
+            cap:number(r.market_cap),price:number(r.price),change_rate:number(r.change_rate),lastSeen:0};
         });
         if(!owner.rows.length)throw Error('시총 정보 미제공');
         owner.byCode={};owner.rows.forEach(function(r){owner.byCode[r.code]=r;});
@@ -205,8 +205,9 @@
         var note=owner.panel.querySelector('[data-uh-disclaimer]');
         if(note)note.textContent=market==='sp500'
           ? 'S&P 500 편입 확인: Wikipedia 목록(GICS 섹터, CC BY-SA 4.0) · '+(data.membership_count||'?')+
-            '개 편입 종목 명단과 KIS 거래소별 상위 40개 표본 교집합 중 최대20개. 순위는 이 조회 표본 안의 순위이며 S&P 500 전체 시총순위나 공식 지수 가중치가 아닙니다.'
-          : 'KIS '+label(market)+' 보통주 시총순위 상위20(확인된 종목만). WICS 섹터·시총 구역면적 기준, 시장 전체 종목 수와는 다릅니다.';
+            '개 편입 종목 명단과 KIS 거래소별 최대100개 조회 표본 교집합 중 최대100개. S&P 500 전체 시총순위나 공식 지수 가중치가 아닙니다.'
+          : 'NAVER '+label(market)+' 보통주 시총순위 상위100(확인된 종목만). WICS 섹터·시총 구역면적 기준, 시장 전체 종목 수와는 다릅니다.';
+        if(note)note.textContent+=' 실제 확인 '+owner.rows.length+'/100종목. 면적은 시총, 색은 전일 대비 등락이며 실제 자금 유입·유출액은 아닙니다. WS는 시총 상위 최대20종목만 구독하며 나머지는 조회값입니다.';
         draw();connect();
       }).catch(function(e){
         if(active!==owner||id!==owner.seq)return;
@@ -222,18 +223,18 @@
       seq:0,rows:[],byCode:{},socket:null};
     var domestic=kind==='domestic';
     panel.innerHTML='<section class="uh-panel">'
-      +'<div class="uh-head"><div><h3>'+(domestic?'국내 시가총액 TOP20':'S&P 500 표본 시총 TOP20')+'</h3>'
+      +'<div class="uh-head"><div><h3>'+(domestic?'국내 시가총액 TOP100':'S&P 500 표본 시총 TOP100')+'</h3>'
       +'<p>섹터별 구역 · 종목 시총에 비례하는 면적 · 전일 대비 상승 빨강 / 하락 파랑</p></div>'
       +'<span class="uh-status" data-uh-status role="status">준비 중</span></div>'
       +(domestic?'<div class="uh-filters" data-uh-select role="group" aria-label="국내 시장">'
-        +'<button type="button" class="is-active" data-mkt="kospi">코스피 TOP20</button>'
-        +'<button type="button" data-mkt="kosdaq">코스닥 TOP20</button></div>':'')
+        +'<button type="button" class="is-active" data-mkt="kospi">코스피 TOP100</button>'
+        +'<button type="button" data-mkt="kosdaq">코스닥 TOP100</button></div>':'')
       +'<div class="uh-count" data-uh-count></div>'
       +'<div class="uh-tiles" data-uh-tiles aria-label="섹터별 시가총액 히트맵"></div>'
       +'<p class="uh-source" data-uh-source></p>'
       +'<p class="uh-disclaimer" data-uh-disclaimer></p>'
       +'<details class="uh-details"><summary>시가총액·섹터·수신상태 표 보기</summary>'
-      +'<div class="uh-table-scroller"><table class="uh-table"><thead><tr><th>순위</th><th>코드</th><th>회사</th><th>섹터</th><th>시가총액</th><th>가격</th><th>등락률</th><th>상태</th></tr></thead>'
+      +'<div class="uh-table-scroller"><table class="uh-table"><thead><tr><th>코드</th><th>회사</th><th>섹터</th><th>시가총액</th><th>가격</th><th>등락률</th><th>상태</th></tr></thead>'
       +'<tbody data-uh-rows></tbody></table></div></details></section>';
     if(domestic)panel.querySelector('[data-uh-select]').addEventListener('click',function(e){
       var b=e.target.closest('[data-mkt]');if(b&&visible())load(b.getAttribute('data-mkt'));
