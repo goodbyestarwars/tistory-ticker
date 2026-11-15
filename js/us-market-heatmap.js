@@ -67,7 +67,7 @@
       status('관리자 실시간 권한 필요 · 표시는 최근 KIS 시총순위 조회값(실시간 아님)');
       return;
     }
-    status('KIS 해외 WebSocket 연결 중 · 순위 조회값은 별도');
+    status('해외 체결 WebSocket 연결 중 · 시총순위 조회값은 별도');
     var url = 'wss://goodbyestar.cloud/ws/quotes?codes=' +
       rows.map(function (r) {return encodeURIComponent(r.code);}).join(',');
     var current;
@@ -96,9 +96,9 @@
       row.live = true;
       row.lastSeen = Date.now(); // browser receipt time, NOT broker execution timestamp
       lastTickAt = row.lastSeen;
-      status('KIS 해외 WebSocket 체결 수신 · 수신 ' +
+      status((payload.source || '해외 체결 WebSocket') + ' 수신 · ' +
         new Date(lastTickAt).toLocaleTimeString('ko-KR') + ' · ' +
-        rows.filter(function (r) { return r.live; }).length + '/' + rows.length + '종목 실시간 확인');
+        rows.filter(function (r) { return r.live; }).length + '/' + rows.length + '종목 WebSocket 수신 확인');
       requestPaint();
     };
     current.onerror = function () { try { current.close(); } catch (err) {} };
@@ -238,7 +238,7 @@
       +'<div class="uh-count" data-uh-count></div>'
       +'<div class="uh-tiles" data-uh-tiles aria-label="미국 종목 시총비례 히트맵"></div>'
       +'<p class="uh-source" data-uh-source>구성종목·시총: KIS 미국 순위 캐시 / 가격: 관리자 KIS 해외 체결 WebSocket</p>'
-      +'<p class="uh-disclaimer">ETF 보유종목 또는 S&P 500·나스닥100 공식 구성종목 전체가 아닙니다. 시총·최초 가격은 순위 조회값이며 WebSocket으로 실제 수신한 종목만 실시간으로 구분합니다. 시총 단위는 백만 미국달러(USD)를 변환했습니다.</p>'
+      +'<p class="uh-disclaimer">ETF 보유종목 또는 S&P 500·나스닥100 공식 구성종목 전체가 아닙니다. 시총·최초 가격은 순위 조회값이며 WebSocket으로 실제 수신한 종목만 WebSocket 수신 여부를 구분합니다. WebSocket 수신이 거래소 무지연 실시간을 보장하지 않으며 공급자·거래소 권한에 따라 지연될 수 있습니다. 시총 단위는 백만 미국달러(USD)를 변환했습니다.</p>'
       +'<details class="uh-details"><summary>전체 종목·시가총액·수신상태 표 보기</summary><div class="uh-table-scroller"><table class="uh-table"><thead><tr><th>티커</th><th>회사</th><th>시가총액</th><th>가격</th><th>등락률</th><th>상태</th></tr></thead><tbody data-uh-rows></tbody></table></div></details></section>';
     panel.querySelector('.uh-filters').addEventListener('click',function(event){
       var button=event.target.closest('[data-uh-exchange]');if(!button)return;
