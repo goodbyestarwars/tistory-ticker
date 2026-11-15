@@ -97,7 +97,7 @@ def _record_rss_status(provider, rows=None, failed=False):
             'checkedAt': now, 'lastSuccessAt': old.get('lastSuccessAt'),
             'articleCount': len(rows or []),
             'duplicateCount': max(0, len(rows or []) - len(_dedupe_headlines(rows or []))),
-            'latestPublishedAt': max((row.get('pubDate') or '' for row in rows or []), default=''),
+            'latestPublishedAt': (max(rows, key=_published_timestamp).get('pubDate') or '') if rows else '',
         }
         if not failed:
             _rss_status[provider]['lastSuccessAt'] = now
