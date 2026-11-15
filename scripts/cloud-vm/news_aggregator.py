@@ -139,6 +139,7 @@ def get_official_news(market):
                 stamp = _published_timestamp(row)
                 if stamp and now - 7 * 86400 <= stamp <= now:
                     rows.append(row)
+        rows = _dedupe_headlines(rows)
         _official_news_cache[market] = (now, rows)
         return [dict(row) for row in rows]
 

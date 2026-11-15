@@ -205,7 +205,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>이번 주 월~일 내 수집된 뉴스를 최신순으로 봅니다. 시장별 최대 50건이며 수집 범위에 따라 일부 날짜의 기사가 없을 수 있습니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + (sourceNoteText() ? ' 국내 뉴스 출처는 ' + escapeHtml(sourceNoteText()) + '입니다.' : '') + '</p>'
+      + '<p>이번 주 월~일 내 수집된 뉴스를 최신순으로 봅니다. 시장별 최대 50건이며 수집 범위에 따라 일부 날짜의 기사가 없을 수 있습니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + ' 한국은행·미국 연준 발표는 공식 발표 탭에서 구분해 봅니다.' + '</p>'
       + '<div class="mn-tabbar"><div class="mn-tabs" role="tablist" aria-label="주요 뉴스 구분">'
       + VIEWS.map(function (view) {
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key
