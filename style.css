@@ -9307,3 +9307,10 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
     html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { padding:30px 28px 38px!important; }
   }
 }
+
+
+/* 2026-11-15 | 상단 종목 검색 좌우 확장: 가운데 정렬·좌우 메뉴 안전 여백 보존 */
+@media (min-width:721px) {
+  .navbar .nav-search { width:min(760px, calc(100% - 430px)); }
+  html.search-open body .nav-search-wrap { width:min(1240px, calc(100vw - 32px)) !important; }
+}

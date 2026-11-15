@@ -3523,3 +3523,65 @@ html.dark #foreign-flow .ff-story-row, html.dark #foreign-flow .ff-story-row spa
 :is(#foreign-flow, .ff-vp-host) .ff-apt-split > :first-child { min-width:0; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row { padding-left:4px !important; padding-right:6px !important; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-mini { border-color:var(--dk-line); }
+
+
+/* 2026-11-15 | 전체 매물대를 본 그래프 오른쪽에 부드럽게 겹친다.
+   조그만 안내 그림은 클릭 대상이 아니며 실측 가격·거래량 글자를 가리지 않는다. */
+:is(#foreign-flow, .ff-vp-host) .ff-apt-split {
+  display:block;
+  position:relative;
+  min-width:0;
+  isolation:isolate;
+}
+:is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-simple-chart {
+  position:relative;
+  z-index:1;
+  min-width:0;
+  padding-right:clamp(88px, 10vw, 114px);
+}
+:is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-mini {
+  position:absolute;
+  top:46px;
+  right:6px;
+  bottom:auto;
+  width:clamp(118px, 15%, 150px);
+  box-sizing:border-box;
+  z-index:0;
+  opacity:.62;
+  pointer-events:none;
+  padding:10px 7px;
+  background:rgba(255,255,255,.48);
+  border:1px solid rgba(100,116,139,.14);
+  border-radius:12px;
+  box-shadow:none;
+}
+:is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-mini .ff-apt-mini-title {
+  font-size:11px;
+  margin-bottom:6px;
+}
+:is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-mini .ff-apt-mini-note {
+  font-size:9.5px;
+  line-height:1.35;
+}
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-mini {
+  background:rgba(25,32,43,.46);
+  border-color:rgba(148,163,184,.18);
+}
+@media(max-width:720px) {
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-simple-chart {
+    padding-right:76px;
+  }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-mini {
+    top:72px;
+    right:1px;
+    width:102px;
+    padding:7px 5px;
+    opacity:.50;
+  }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-mini .ff-apt-mini-note {
+    display:none;
+  }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-split > .ff-apt-mini .ff-apt-mini-svg {
+    max-height:none;
+  }
+}

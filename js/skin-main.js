@@ -349,7 +349,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!document.querySelector('link[data-foreign-flow-css]')) {
       var ffLink = document.createElement('link');
       ffLink.rel = 'stylesheet';
-      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20261115-vp-align';
+      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20261115-vp-overlay';
       ffLink.setAttribute('data-foreign-flow-css', '1');
       document.head.appendChild(ffLink);
     }
