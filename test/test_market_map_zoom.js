@@ -1,0 +1,21 @@
+'use strict';
+// Pure viewport regression: no browser, provider calls or server startup.
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const source=fs.readFileSync(path.join(__dirname,'../js/market-map.js'),'utf8');
+const sandbox={window:{}};vm.runInNewContext(source,sandbox);
+const map=sandbox.window.MarketMap,svg={setAttribute(k,v){this[k]=v;}},label={};
+const state={zoom:1,viewX:0,viewY:0,root:{querySelector:s=>s.includes(' svg')?svg:label}};
+map.zoomAt(state,1.2,{x:.7,y:.4});
+let view=map.viewport(state);
+assert(Math.abs(view.x+.7*view.w-700)<1e-8,'pointer X must stay anchored');
+assert(Math.abs(view.y+.4*view.h-224)<1e-8,'pointer Y must stay anchored');
+assert.equal(label.textContent,'120%');
+map.zoomAt(state,100,{x:1,y:1});
+assert.equal(state.zoom,2.4);
+view=map.viewport(state);
+assert(view.x>=0 && view.y>=0 && view.x+view.w<=1000 && view.y+view.h<=560);
+map.zoomAt(state,.0001);
+assert.equal(state.zoom,1);
+assert.equal(state.viewX,0);assert.equal(state.viewY,0);
+assert.equal(svg.viewBox,'0 0 1000 560');
+console.log('Market-map zoom: pointer anchor, limits, bounds and reset passed');

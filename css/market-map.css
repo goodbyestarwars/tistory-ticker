@@ -147,3 +147,10 @@ html.dark #market-temp .mtm .mtm-detail-open {background:var(--dk-text);color:va
   #market-temp .mtm-side-card > h2, #market-temp .mtm-side-intro { flex:none; }
   #market-temp .mtm-node-list { flex:1; min-height:0; max-height:none; }
 }
+
+/* Keep the period definition outside the zoomed SVG, visible at every scale. */
+#market-temp .mtm-period-guide {margin:8px 0 10px;color:var(--mtm-muted);font-size:12px;line-height:1.65;}
+#market-temp .mtm-period-guide strong {color:var(--mtm-ink);font-weight:700;}
+#market-temp .mtm-quadrant-period {font-size:12px;fill:var(--mtm-muted);}
+#market-temp .mtm-chart-actions {flex-wrap:wrap;}
+#market-temp .mtm-chart-actions button[data-mtm-zoom="reset"] {width:auto;padding-inline:9px;}

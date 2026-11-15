@@ -1685,7 +1685,7 @@
       if (!document.querySelector('link[data-market-map-css]')) {
         var link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/market-map.css';
+        link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/market-map.css?v=20261116-wheel-periods';
         link.setAttribute('data-market-map-css', '1');
         document.head.appendChild(link);
       }
@@ -1698,7 +1698,7 @@
       if (global.MarketMap) return finish();
       return new Promise(function (resolve, reject) {
         var script = document.createElement('script');
-        script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/market-map.js';
+        script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/market-map.js?v=20261116-wheel-periods';
         script.async = true;
         script.onload = resolve;
         script.onerror = function () { reject(new Error('시장 지도 화면을 불러오지 못했습니다.')); };
