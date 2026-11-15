@@ -122,6 +122,8 @@
 
 - 미국 주요 시총 히트맵(2026-11-15): `market-temp.js` 종목 > 국내 주요종목에 `us` 탭 `미국 주요 히트맵`을 추가한다. 별도 `js/us-market-heatmap.js`/`css/us-market-heatmap.css`만 지연 로드하며, 기존 `NineHttp.json('/market-board?market=us&limit=40')`의 **KIS 해외 시총순위 섹션**에서 시총값이 있는 미국 종목 상위 최대24개만 시총 비례 타일로 렌더한다. `market_cap` 단위는 KIS *백만 미국달러*이므로 데이터값을 USD 조/십억으로 변환한다. ETF·지수 전체 구성 명세가 아니므로 S&P500/나스닥100 전체라고 표시하지 않는다. 이후 시세·등락은 **서버 관리자 인증** `/ws/quotes?codes=US:<ticker>`의 KIS 해외 체결(공급자 폴백 시 Finnhub 가능) 중계를 재사용하며 최초 시세/시총 REST 캐시와 실제 WS 수신 상태를 분리 표시한다. KIS 해외 `실시간지연체결가` WS 수신을 거래소 무지연 확정이라고 표기하지 않고 공급자 권한/지연 가능성을 안내한다. 연결이 불가능하면 값이 실시간인 척하지 않으며 비관리자에게 KIS WS를 개방하지 않는다. 패널을 닫을 때 WS 중단; 41슬롯 KIS 공용 허브와 거래 기능의 우선순위를 변경하거나 자격증명을 브라우저로 넘기지 않는다. 미국 ETF 보유명세의 재게시 허가 없이 원본 보유 명세를 수집·저장하지 않는 `docs/US_ETF_DATA.md` 정책은 보존한다.
 
+- **필수 렌더 경로:** `/page/market-temp?view=stocks`는 `buildStocksOnlyPage()` 별도 UI에서 `init()`의 `stocksOnly` 분기를 탄 뒤 반환하므로 `buildExploreCard()/wireViewTabs()`에만 탭을 추가하면 실제 종목 화면에 보이지 않는다. 실사용 화면에는 `mt-stocks-switcher`(종목 목록·국내 주요 히트맵·미국 주요 히트맵)를 제목 바로 아래에 렌더하고, 관리자 접근 확인 이후 `wireStocksOnlyTabs_`에서 기존 `loadEtfHeatmapPanel_`·`loadUsHeatmapPanel_`을 지연 연결한다. 기존 업종별 목록·거래대금 섹터는 종목 목록 탭에 보존하고 비관리자 원천 시세를 열지 않는다(2026-11-15). `SectorDashboard`·`MarketcapBubble` 및 시총 CSS는 필요한 탭에서만 로드하며 경로별 실제 DOM 테스트를 후속 변경에도 필수로 한다.
+
 ## 운영·주문 경계
 
 - 구성(2026-10-30 인계 기준): 사이트 백엔드 `goodbyestar.cloud`는 Oracle A1, 자동매매 runner·봇·연구는 별도 Google VM(`instance-20260712-153038`, 자동매매 전용, PC 작업은 삭제됨)이다. 아래 VM 제한은 사이트 백엔드 기준이며, 구성이 다르게 적힌 문서는 `docs/HANDOFF_2026-10-30.md`가 우선한다.

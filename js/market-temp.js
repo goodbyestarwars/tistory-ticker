@@ -1515,16 +1515,111 @@
   }
 
   function buildStocksOnlyPage() {
+    // ?view=stocks is a dedicated route. The generic buildExploreCard() tab strip
+    // is NOT mounted here; these tabs must exist in this returned HTML.
     return '<div class="mt-stocks-only">'
       + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1>'
       + '<p>거래가 활발한 국내 종목을 업종별로 확인하고, 마켓 대동여지도에서 강약을 비교합니다.</p></div>'
+      + '<div class="mt-view-toggle mt-stocks-switcher" role="tablist" aria-label="주요종목 보기 방식">'
+      + '<button type="button" class="mt-view-btn active" id="mt-stocks-tab-list" data-stocks-tab="list" aria-controls="mt-stocks-panel-list" aria-selected="true" role="tab">종목 목록</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-etf" data-stocks-tab="etf" aria-controls="mt-stocks-panel-etf" aria-selected="false" role="tab">국내 주요 히트맵</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-us" data-stocks-tab="us" aria-controls="mt-stocks-panel-us" aria-selected="false" role="tab">미국 주요 히트맵</button>'
+      + '</div><div class="mt-stocks-view-panels">'
+      + '<div data-stocks-panel="list" id="mt-stocks-panel-list" role="tabpanel" aria-labelledby="mt-stocks-tab-list">'
       + '<section class="mt-section-block">'
       + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2>'
       + '<p>거래대금 순위와 아래 업종별 종목 목록을 함께 살펴보세요.</p></div>'
       + '<div data-money-strip><div class="mt-hint">거래대금 상위 섹터를 불러오는 중입니다.</div></div>'
       + '</section><section class="mt-section-block"><div class="mt-section-head"><h2>업종별 주요종목</h2>'
       + '<p>회사명·가격·등락률을 한 줄로 비교합니다. 표시된 자료 기준시각을 확인해 주세요.</p></div>'
-      + '<div class="mt-view-panel" data-stocks-list></div></section></div>';
+      + '<div class="mt-view-panel" data-stocks-list></div></section></div>'
+      + '<section class="mt-section-block mt-view-panel" data-stocks-panel="etf" id="mt-stocks-panel-etf" role="tabpanel" aria-labelledby="mt-stocks-tab-etf" hidden></section>'
+      + '<section class="mt-section-block mt-view-panel" data-stocks-panel="us" id="mt-stocks-panel-us" role="tabpanel" aria-labelledby="mt-stocks-tab-us" hidden></section>'
+      + '</div></div>';
+  }
+
+  // Load only the dependencies the existing ETF renderer already uses; these
+  // aren't guaranteed to exist on the dedicated ?view=stocks route.
+  var stocksEtfAssetsJob_ = null;
+  var stocksTabScripts_ = {};
+  function loadStocksAssetScript_(file, globalName) {
+    if (global[globalName]) return Promise.resolve();
+    if (stocksTabScripts_[file]) return stocksTabScripts_[file];
+    stocksTabScripts_[file] = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/' + file + '?v=20261115-stocks-heatmap';
+      script.onload = function () {
+        if (global[globalName]) resolve();
+        else reject(new Error(file + ' 전역 모듈이 없습니다.'));
+      };
+      script.onerror = function () { reject(new Error(file + ' 다운로드 실패')); };
+      document.head.appendChild(script);
+    }).catch(function (error) {
+      stocksTabScripts_[file] = null;
+      throw error;
+    });
+    return stocksTabScripts_[file];
+  }
+  function ensureStocksEtfAssets_() {
+    if (!document.querySelector('link[data-mt-stocks-bubble-css]') &&
+        !document.querySelector('link[href*="/css/marketcap-bubble.css"]')) {
+      var css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/marketcap-bubble.css?v=20261115-stocks-heatmap';
+      css.setAttribute('data-mt-stocks-bubble-css', '1');
+      document.head.appendChild(css);
+    }
+    if (global.SectorDashboard && global.MarketcapBubble) return Promise.resolve();
+    if (stocksEtfAssetsJob_) return stocksEtfAssetsJob_;
+    var sdJob = global.SectorDashboard ? Promise.resolve() :
+      (global.SECTOR_MAP ? Promise.resolve() : loadStocksAssetScript_('data/sectors-v3.js', 'SECTOR_MAP'))
+        .then(function () { return loadStocksAssetScript_('js/sector-dashboard-v4.js', 'SectorDashboard'); });
+    var bubbleJob = global.MarketcapBubble ? Promise.resolve() :
+      (global.MARKETCAP_CODES ? Promise.resolve() : loadStocksAssetScript_('data/marketcap-codes.js', 'MARKETCAP_CODES'))
+        .then(function () { return loadStocksAssetScript_('js/marketcap-bubble.js', 'MarketcapBubble'); });
+    stocksEtfAssetsJob_ = Promise.all([sdJob, bubbleJob]).catch(function (error) {
+      stocksEtfAssetsJob_ = null;
+      throw error;
+    });
+    return stocksEtfAssetsJob_;
+  }
+  function wireStocksOnlyTabs_(container, access) {
+    var tabs = container.querySelectorAll('[data-stocks-tab]');
+    var panels = {};
+    container.querySelectorAll('[data-stocks-panel]').forEach(function (panel) {
+      panels[panel.getAttribute('data-stocks-panel')] = panel;
+    });
+    function openTab(key) {
+      if (!panels[key]) return;
+      tabs.forEach(function (tab) {
+        var selected = tab.getAttribute('data-stocks-tab') === key;
+        tab.classList.toggle('active', selected);
+        tab.setAttribute('aria-selected', String(selected));
+      });
+      if (key !== 'us' && global.NineUsHeatmap) global.NineUsHeatmap.pause();
+      Object.keys(panels).forEach(function (name) { panels[name].hidden = name !== key; });
+      if (key === 'list') return;
+      var panel = panels[key];
+      // The stock source is manager-only even if the page itself is accessible.
+      if (!access || !access.isAdmin || !access.isAdmin()) {
+        panel.innerHTML = '<p class="mt-hint">히트맵의 개별종목 원천 시세·시가총액은 관리자 전용입니다.</p>';
+        return;
+      }
+      if (key === 'us') { loadUsHeatmapPanel_(panel); return; }
+      if (panel.__mtLoaded || panel.__mtLoading) return;
+      panel.__mtLoading = true;
+      panel.innerHTML = '<p class="mt-hint">KODEX 200·코스닥150 구성종목 히트맵을 준비하고 있습니다.</p>';
+      ensureStocksEtfAssets_().then(function () {
+        panel.__mtLoading = false;
+        if (panel.isConnected) loadEtfHeatmapPanel_(panel);
+      }).catch(function () {
+        panel.__mtLoading = false;
+        panel.innerHTML = '<p class="mt-error">히트맵 공통 모듈 로드 실패 · 탭을 다시 눌러 재시도해 주세요.</p>';
+      });
+    }
+    tabs.forEach(function (btn) {
+      btn.addEventListener('click', function () { openTab(btn.getAttribute('data-stocks-tab')); });
+    });
   }
 
   // 기존 티스토리 /page/market-temp?view=map 에 새 화면을 부착한다.
@@ -1639,6 +1734,7 @@
       container.__mtStocksInitialized = true;
       container.innerHTML = buildStocksOnlyPage();
       waitMarketMapAccess_().then(function (access) {
+        wireStocksOnlyTabs_(container, access);
         var panel = container.querySelector('[data-stocks-list]');
         if (!access.isAdmin()) {
           container.querySelector('[data-money-strip]').innerHTML = '<p class="mt-hint">거래대금 순위는 제한 시세를 포함해 관리자만 조회할 수 있습니다.</p>';
@@ -1648,6 +1744,7 @@
         loadMoneyStrip_(container);
         loadAllStocksPanel(panel, { readOnly: true });
       }).catch(function () {
+        wireStocksOnlyTabs_(container, null);
         container.querySelector('[data-money-strip]').innerHTML = '<p class="mt-hint">접근 권한을 확인하지 못했습니다. 새로고침해 주세요.</p>';
         container.querySelector('[data-stocks-list]').innerHTML = '<p class="mt-error">종목 목록 접근 권한 확인에 실패했습니다.</p>';
       });

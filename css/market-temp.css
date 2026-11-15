@@ -3565,3 +3565,40 @@ html.dark #market-temp .mt-etf-table-wrap { border-color:var(--dk-line); }
 html.dark #market-temp .mt-etf-table th { background:var(--dk-card); border-bottom-color:var(--dk-line);color:var(--dk-sub); }
 html.dark #market-temp .mt-etf-table td { border-bottom-color:var(--dk-line); }
 @media(max-width:720px){ #market-temp .mt-etf-metadata{gap:5px 10px;} #market-temp .mt-etf-table{font-size:11px;} }
+
+
+/* ?view=stocks has a dedicated page: keep its tabs next to the actual stock
+   browser heading, never only in the generic /page/market-temp view switcher. */
+#market-temp .mt-stocks-only .mt-stocks-switcher {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:18px 0 22px;
+  padding:0 0 14px;
+  border-bottom:1px solid rgba(100,116,139,.17);
+}
+#market-temp .mt-stocks-only .mt-stocks-switcher .mt-view-btn {
+  border-radius:9px;
+  min-height:38px;
+  padding:9px 15px;
+  font:600 13px/1.3 var(--font-ui,Pretendard,sans-serif);
+}
+#market-temp .mt-stocks-only [data-stocks-panel][hidden] { display:none !important; }
+#market-temp .mt-stocks-only [data-stocks-panel="etf"],
+#market-temp .mt-stocks-only [data-stocks-panel="us"] { min-height:240px; margin-top:4px; }
+html.dark #market-temp .mt-stocks-only .mt-stocks-switcher {
+  border-color:var(--dk-line,rgba(148,163,184,.2));
+}
+@media(max-width:720px) {
+  #market-temp .mt-stocks-only .mt-stocks-switcher {
+    gap:6px;
+    margin:14px 0 16px;
+  }
+  #market-temp .mt-stocks-only .mt-stocks-switcher .mt-view-btn {
+    flex:1 1 calc(50% - 6px);
+    min-width:0;
+    padding:10px 8px;
+    font-size:12px;
+    text-align:center;
+  }
+}
