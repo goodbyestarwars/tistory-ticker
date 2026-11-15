@@ -395,7 +395,8 @@ dict 구성을 함께 대조한다.
 |---|---|---|---|
 | GET | `/domestic-news` | 없음 | 국내 일반뉴스·DART 공시. `hours`(기본 24, 1~168): 뉴스 발행시각 창, 응답 `newsWindowHours`에 반영(2026-11-13, 종목정보 패널은 168) |
 | GET | `/foreign-news` | 없음 | 미국·글로벌 일반뉴스 |
-| GET | `/market-board` | 없음 | 시장별 실시간 종목판·업종 TOP |
+| GET | `/market-board` | 관리자 세션 또는 내부 API 키 | 시장별 종목판·업종 TOP (기존 접근 정책의 제한 시세) |
+| GET | `/market-board/nasdaq-cap` | 관리자 세션 또는 내부 API 키 | KIS 나스닥(NAS) 시가총액 순위 최대40종목, `data.rows[]` (code/symbol/name/market_cap 백만 USD, price, change_rate), `updated_at`, `source`, `market_cap_unit`. 조회/캐시 데이터이며 실시간 체결은 기존 관리자 `/ws/quotes` 별도 구독. 서버 10분·브라우저 private 3분 캐시, 휴장·순위 API 실패 시 결측으로 표시 |
 | GET | `/health/realtime` | 없음 | KIS·키움 공유 허브와 `ninePayResearch`(후보·순위 오류·거래량 이벤트·KIS 폴백·신호; `NINEPAY_RESEARCH_ENABLED=1`일 때 동작). A/B 계약: `ruleVersion=ab70-v1`, `items`에 후보명·가격·70% 최초 관측·80% 우선·갭·저점·눌림·단계·신호·결측. `at`는 수신 시각, `orderStatus=미연동`. [필드·조건·저장 상세](docs/NINEPAY_SCANNER_AB_2026-10-19.md) |
 | GET | `/health/9pay` | 없음 | PC 전용 경량 피드. 같은 `data.ninePayResearch`의 running/active/ruleVersion/rankAt/rankError/amountFallback/queueDropped/persistenceError와 신호 근거11필드를 반환한다. 비동기 핸들러·메모리 읽기만 사용하며 주문/계좌/새 외부 조회는 없다 |
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 2026-10-23: 행마다 `rank`·`prev_rank`·`rank_change`(양수=순위 상승, null=NEW 또는 비교 불가)·`rank_basis`(직전 갱신 시각, 같은 거래일만 비교) 추가, 테마 안 같은 종목코드 중복 합산 제거 |

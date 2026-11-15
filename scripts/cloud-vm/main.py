@@ -376,6 +376,8 @@ _MARKET_BOARD_TTL = 30
 # keeping ordinary home summary requests on the 30-second shared cache.
 _MARKET_BOARD_LIVE_TTL = 5
 _market_board_cache = {}
+_us_nasdaq_cap_cache = {'t': 0.0, 'data': None}
+_us_nasdaq_cap_lock = threading.Lock()
 _market_board_inflight = {}  # (market, limit) -> threading.Event
 _market_board_inflight_lock = threading.Lock()
 # KIS 순위 API가 3~4초 걸려서, 30초 캐시가 만료되는 순간의 첫 방문자가 매번 그 지연을
@@ -4716,6 +4718,38 @@ def us_market_breadth_endpoint(request: Request, response: Response):
     response.headers['Cache-Control'] = 'public, max-age=30'
     import us_market_breadth
     return envelope(us_market_breadth.get_breadth())
+
+
+@app.get('/market-board/nasdaq-cap')
+def us_nasdaq_marketcap_endpoint(request: Request, response: Response):
+    """NASDAQ-only KIS market-cap ranking for the manager heatmap.
+
+    The ordinary /market-board endpoint mixes three exchanges before truncating
+    each section. The heatmap needs a dedicated NASDAQ ranking, but prices still
+    update solely through the pre-existing authenticated /ws/quotes relay.
+    AccessPolicy.RESTRICTED_PREFIXES('/market-board') protects this nested path.
+    """
+    _check_rate_limit('us_nasdaq_marketcap', request, max_per_window=20)
+    response.headers['Cache-Control'] = 'private, max-age=180'
+    now = time.time()
+    with _us_nasdaq_cap_lock:
+        cached = _us_nasdaq_cap_cache.get('data')
+        if cached is not None and now - _us_nasdaq_cap_cache['t'] < 600:
+            return envelope(cached)
+        try:
+            data = market_board.fetch_us_nasdaq_market_caps(
+                os.environ.get('KIS_APPKEY', '').strip(),
+                os.environ.get('KIS_APPSECRET', '').strip(),
+                limit=40,
+            )
+            if not data.get('rows'):
+                raise ValueError('나스닥 시총순위 응답이 비어 있습니다.')
+        except Exception as exc:
+            # Empty/unavailable is distinct from current NASDAQ rankings.
+            # Do not mislabel combined market-board rankings as NASDAQ-only.
+            raise _upstream_http_exception('나스닥 시총순위를 불러오지 못했습니다.', exc) from exc
+        _us_nasdaq_cap_cache.update({'t': time.time(), 'data': data})
+        return envelope(data)
 
 
 @app.get('/market-board')

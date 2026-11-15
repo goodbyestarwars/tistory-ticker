@@ -3602,3 +3602,93 @@ html.dark #market-temp .mt-stocks-only .mt-stocks-switcher {
     text-align:center;
   }
 }
+
+
+/* Shared domestic/US heatmap palette (US heatmap is the visual standard).
+   KODEX and custom-cap SVGs keep their cap-weighted layout, data and legends. */
+#market-temp #mt-etf-marketcap .mcb-canvas { background:rgba(100,116,139,.08); border:1px solid rgba(100,116,139,.12); border-radius:9px; }
+#market-temp #mt-etf-marketcap .mcb-label, #market-temp #mt-etf-marketcap .mcb-rate-label { fill:#192434; text-shadow:none; }
+#market-temp #mt-etf-marketcap .mcb-zone-label { fill:#192434; }
+#market-temp #mt-etf-marketcap .mcb-cell.mcb-c-3 { fill:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c-3 { background:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #mt-etf-marketcap .mcb-cell.mcb-c-2 { fill:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c-2 { background:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #mt-etf-marketcap .mcb-cell.mcb-c-1 { fill:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c-1 { background:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #mt-etf-marketcap .mcb-cell.mcb-c0 { fill:var(--ui-card-surface,#fff); stroke:rgba(255,255,255,.8); }
+#market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c0 { background:var(--ui-card-surface,#fff); color:#192434; }
+#market-temp #mt-etf-marketcap .mcb-cell.mcb-c1 { fill:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c1 { background:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #mt-etf-marketcap .mcb-cell.mcb-c2 { fill:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c2 { background:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #mt-etf-marketcap .mcb-cell.mcb-c3 { fill:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c3 { background:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #marketcap-bubble .mcb-canvas { background:rgba(100,116,139,.08); border:1px solid rgba(100,116,139,.12); border-radius:9px; }
+#market-temp #marketcap-bubble .mcb-label, #market-temp #marketcap-bubble .mcb-rate-label { fill:#192434; text-shadow:none; }
+#market-temp #marketcap-bubble .mcb-zone-label { fill:#192434; }
+#market-temp #marketcap-bubble .mcb-cell.mcb-c-3 { fill:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #marketcap-bubble .mcb-legend-seg.mcb-c-3 { background:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #marketcap-bubble .mcb-cell.mcb-c-2 { fill:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #marketcap-bubble .mcb-legend-seg.mcb-c-2 { background:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #marketcap-bubble .mcb-cell.mcb-c-1 { fill:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #marketcap-bubble .mcb-legend-seg.mcb-c-1 { background:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #marketcap-bubble .mcb-cell.mcb-c0 { fill:var(--ui-card-surface,#fff); stroke:rgba(255,255,255,.8); }
+#market-temp #marketcap-bubble .mcb-legend-seg.mcb-c0 { background:var(--ui-card-surface,#fff); color:#192434; }
+#market-temp #marketcap-bubble .mcb-cell.mcb-c1 { fill:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #marketcap-bubble .mcb-legend-seg.mcb-c1 { background:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #marketcap-bubble .mcb-cell.mcb-c2 { fill:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #marketcap-bubble .mcb-legend-seg.mcb-c2 { background:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--ui-card-surface,#fff)); color:#192434; }
+#market-temp #marketcap-bubble .mcb-cell.mcb-c3 { fill:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--ui-card-surface,#fff)); stroke:rgba(255,255,255,.8); }
+#market-temp #marketcap-bubble .mcb-legend-seg.mcb-c3 { background:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--ui-card-surface,#fff)); color:#192434; }
+html.dark #market-temp #mt-etf-marketcap .mcb-canvas { background:var(--dk-inner,#1d2733); border-color:var(--dk-line,#374151); }
+html.dark #market-temp #mt-etf-marketcap .mcb-label, html.dark #market-temp #mt-etf-marketcap .mcb-rate-label, html.dark #market-temp #mt-etf-marketcap .mcb-zone-label { fill:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #mt-etf-marketcap .mcb-cell.mcb-c-3 { fill:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c-3 { background:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #mt-etf-marketcap .mcb-cell.mcb-c-2 { fill:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c-2 { background:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #mt-etf-marketcap .mcb-cell.mcb-c-1 { fill:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c-1 { background:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #mt-etf-marketcap .mcb-cell.mcb-c0 { fill:var(--dk-card,#151b24); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c0 { background:var(--dk-card,#151b24); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #mt-etf-marketcap .mcb-cell.mcb-c1 { fill:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c1 { background:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #mt-etf-marketcap .mcb-cell.mcb-c2 { fill:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c2 { background:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #mt-etf-marketcap .mcb-cell.mcb-c3 { fill:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #mt-etf-marketcap .mcb-legend-seg.mcb-c3 { background:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-canvas { background:var(--dk-inner,#1d2733); border-color:var(--dk-line,#374151); }
+html.dark #market-temp #marketcap-bubble .mcb-label, html.dark #market-temp #marketcap-bubble .mcb-rate-label, html.dark #market-temp #marketcap-bubble .mcb-zone-label { fill:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-cell.mcb-c-3 { fill:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #marketcap-bubble .mcb-legend-seg.mcb-c-3 { background:color-mix(in srgb,var(--num-down,#1261c4) 68%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-cell.mcb-c-2 { fill:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #marketcap-bubble .mcb-legend-seg.mcb-c-2 { background:color-mix(in srgb,var(--num-down,#1261c4) 46%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-cell.mcb-c-1 { fill:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #marketcap-bubble .mcb-legend-seg.mcb-c-1 { background:color-mix(in srgb,var(--num-down,#1261c4) 25%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-cell.mcb-c0 { fill:var(--dk-card,#151b24); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #marketcap-bubble .mcb-legend-seg.mcb-c0 { background:var(--dk-card,#151b24); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-cell.mcb-c1 { fill:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #marketcap-bubble .mcb-legend-seg.mcb-c1 { background:color-mix(in srgb,var(--num-up,#d24f45) 25%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-cell.mcb-c2 { fill:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #marketcap-bubble .mcb-legend-seg.mcb-c2 { background:color-mix(in srgb,var(--num-up,#d24f45) 46%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+html.dark #market-temp #marketcap-bubble .mcb-cell.mcb-c3 { fill:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--dk-card,#151b24)); stroke:var(--dk-card,#151b24); }
+html.dark #market-temp #marketcap-bubble .mcb-legend-seg.mcb-c3 { background:color-mix(in srgb,var(--num-up,#d24f45) 68%,var(--dk-card,#151b24)); color:var(--dk-text,#e5e7eb); }
+
+/* Conventional heatmap tiles use the SAME dynamic light/dark palette as the US cap tiles. */
+#market-temp .heatmap-tile.is-up {
+  background:color-mix(in srgb,var(--num-up,#d24f45) var(--uh-strength,30%),var(--ui-card-surface,#fff)) !important;
+}
+#market-temp .heatmap-tile.is-down {
+  background:color-mix(in srgb,var(--num-down,#1261c4) var(--uh-strength,30%),var(--ui-card-surface,#fff)) !important;
+}
+#market-temp .heatmap-tile.is-flat {
+  background:var(--ui-card-surface,#fff) !important;
+}
+html.dark #market-temp .heatmap-tile.is-up {
+  background:color-mix(in srgb,var(--num-up,#d24f45) var(--uh-strength,30%),var(--dk-card,#151b24)) !important;
+}
+html.dark #market-temp .heatmap-tile.is-down {
+  background:color-mix(in srgb,var(--num-down,#1261c4) var(--uh-strength,30%),var(--dk-card,#151b24)) !important;
+}
+html.dark #market-temp .heatmap-tile.is-flat {
+  background:var(--dk-card,#151b24) !important;
+}

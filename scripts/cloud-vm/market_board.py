@@ -1124,6 +1124,51 @@ def merge_us_kis_metadata(metric_rows):
                     row[key] = metadata[key]
 
 
+
+def fetch_us_nasdaq_market_caps(appkey, appsecret, limit=40):
+    """KIS market-cap rank for NASDAQ only (not a NASDAQ-100 constituent list).
+
+    Previous /market-board combined NYS/NAS/AMS and truncated that combined
+    list to 40, so the browser saw very few NASDAQ stocks. This call obtains
+    NASDAQ rows directly without adding another ranking metric or polling loop.
+    It is only called by the protected, cached heatmap bootstrap endpoint.
+    """
+    if not appkey or not appsecret:
+        raise RuntimeError('KIS 해외 시가총액 조회 설정이 없습니다.')
+    take = max(1, min(int(limit), 40))
+    token = kis_client.get_token(appkey, appsecret)
+    source_rows = kis_client.fetch_us_market_cap_rank(
+        token, appkey, appsecret, 'NAS', limit=take)
+    seen, rows = set(), []
+    for raw in source_rows:
+        if not isinstance(raw, dict):
+            continue
+        row = _kis_us_row(raw)
+        if not row:
+            continue
+        symbol = str(row.get('symbol') or '').strip().upper()
+        market = str(row.get('exchange') or 'NAS').strip().upper()
+        cap = _number(row.get('market_cap'))
+        if not re.fullmatch(r'[A-Z][A-Z.]{0,7}', symbol):
+            continue
+        if market not in ('NAS', 'NMS', 'NASDAQ', 'DNAS', 'ND'):
+            continue
+        if symbol in seen or cap is None or cap <= 0:
+            continue
+        seen.add(symbol)
+        row['exchange'] = 'NAS'
+        rows.append(row)
+    rows.sort(key=lambda item: item['market_cap'], reverse=True)
+    return {
+        'market': 'us', 'exchange': 'NAS',
+        'rows': rows[:take], 'limit': take,
+        'available': len(rows[:take]),
+        'updated_at': int(time.time()),
+        'source': 'KIS 미국 나스닥 시가총액 순위(HHDFS76350100)',
+        'market_cap_unit': 'USD million',
+    }
+
+
 def fetch_us_weekly_rank(appkey, appsecret, limit=30, nday='3'):
     """KIS 해외 상승률/하락률 순위의 N일(기본 3 = 5거래일) 버전. 주간 리포트의 후보 풀 보강용이다(2026-10-18).
 

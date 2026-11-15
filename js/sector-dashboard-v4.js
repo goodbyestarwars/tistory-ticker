@@ -338,8 +338,12 @@
         : rate < 0
           ? 'rgba(18, 97, 196, ' + (0.12 + intensity * 0.7).toFixed(2) + ')'
           : 'rgba(156, 163, 175, 0.2)';
+      // The site heatmap palette follows the lighter US cap tiles. Keep the
+      // original inline background as a fallback on pages without that CSS.
+      var strength = Math.round((0.25 + intensity * 0.43) * 100) + '%';
+      var tone = rate > 0 ? ' is-up' : rate < 0 ? ' is-down' : ' is-flat';
       return (
-        '<div class="heatmap-tile" style="background:' + bg + '" title="' + escapeHTML(t.sector) + '">' +
+        '<div class="heatmap-tile' + tone + '" style="background:' + bg + ';--uh-strength:' + strength + '" title="' + escapeHTML(t.sector) + '">' +
           '<span class="heatmap-tile-name">' + escapeHTML(t.name) + '</span>' +
           '<span class="heatmap-tile-price">' + formatNumber(t.data.price) + '</span>' +
           '<span class="heatmap-tile-rate">' + arrowSymbol(t.data.change) + Math.abs(rate).toFixed(2) + '%</span>' +

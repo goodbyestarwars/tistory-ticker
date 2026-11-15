@@ -6,9 +6,9 @@
   'use strict';
   if (global.NineUsHeatmap) return;
   var API = 'https://goodbyestar.cloud';
-  var MAX_LIVE = 24; // don't contend with the shared KIS session for hundreds of subscriptions
+  var MAX_DISPLAY = 40, MAX_LIVE = 24; // KIS hub slots shared with other live screens
   var host = null, socket = null, retry = null, ping = null, paintTimer = null;
-  var rows = [], byCode = {}, filter = 'ALL', viewSeq = 0, lastTickAt = 0;
+  var rows = [], byCode = {}, viewSeq = 0, lastTickAt = 0;
   var sourceAt = '', busy = null, ready = false, initiated = false;
   var invalidSymbols = /^(SPY|QQQ|QQQM|IVV|VTI|VOO|DIA|IWM|VT|VUG|VTV|XLK|XLF|XLE|XLY|XLI|XLV|XLP|XLU|XLB|XLC)$/;
   function num(value) { if (value == null || value === '') return NaN; var n = Number(value); return isFinite(n) ? n : NaN; }
@@ -69,7 +69,7 @@
     }
     status('해외 체결 WebSocket 연결 중 · 시총순위 조회값은 별도');
     var url = 'wss://goodbyestar.cloud/ws/quotes?codes=' +
-      rows.map(function (r) {return encodeURIComponent(r.code);}).join(',');
+      rows.slice(0,MAX_LIVE).map(function (r) {return encodeURIComponent(r.code);}).join(',');
     var current;
     try {current = new WebSocket(url);}
     catch (e) { status('WebSocket 연결 실패 · 실시간 미수신');scheduleRetry();return;}
@@ -98,7 +98,7 @@
       lastTickAt = row.lastSeen;
       status((payload.source || '해외 체결 WebSocket') + ' 수신 · ' +
         new Date(lastTickAt).toLocaleTimeString('ko-KR') + ' · ' +
-        rows.filter(function (r) { return r.live; }).length + '/' + rows.length + '종목 WebSocket 수신 확인');
+        rows.filter(function (r) { return r.live; }).length + '/' + Math.min(rows.length,MAX_LIVE) + '구독 종목 WebSocket 수신 확인');
       requestPaint();
     };
     current.onerror = function () { try { current.close(); } catch (err) {} };
@@ -136,16 +136,13 @@
       layout(b,x,y+cutY,w,h-cutY,output);
     }
   }
-  function filtered() {
-    return rows.filter(function (r) {return filter==='ALL'||r.exchange===filter;});
-  }
   function isCurrent(r) {return !!(r.live && socket && socket.readyState === 1 && Date.now()-r.lastSeen < 90000);}
   function draw() {
     if (!host) return;
     var chart = host.querySelector('[data-uh-tiles]');
     var table = host.querySelector('[data-uh-rows]');
     if (!chart || !table) return;
-    var items = filtered();
+    var items = rows;
     var width = Math.max(300, chart.clientWidth || host.clientWidth || 700);
     var height = width<580?420:520;
     chart.style.height=height+'px';
@@ -192,31 +189,47 @@
       table.appendChild(tr);
     });
     var count=host.querySelector('[data-uh-count]');
-    if(count)count.textContent=items.length+'종목 · 전체 시총의 일부 표본';
+    if(count)count.textContent='나스닥 시총순위 '+items.length+'종목 · 실시간 구독 상위 '+Math.min(items.length,MAX_LIVE)+'종목 · 전체 나스닥 구성종목 아님';
   }
   function load() {
     if (busy) return busy;
-    status('KIS 미국 시가총액 순위 확인 중');
-    busy=global.NineHttp.json(API+'/market-board?market=us&limit=40',{timeoutMs:25000})
-      .then(function(response){
+    status('KIS 나스닥 시가총액 순위 확인 중');
+    // The exchange-specific source prevents NYSE/AMEX stocks crowding NASDAQ
+    // out BEFORE the old combined /market-board cap-40 truncation.
+    busy=global.NineHttp.json(API+'/market-board/nasdaq-cap',{timeoutMs:25000})
+      .then(function(response) {
         var result=response&&response.data||response;
-        var ranked=result&&result.sections&&result.sections.marketCap;
-        if (!Array.isArray(ranked)||!ranked.length) throw new Error('KIS 미국 시총순위 없음');
+        if (!result || !Array.isArray(result.rows) || !result.rows.length) throw new Error('나스닥 순위 응답 없음');
+        return {data:result,limited:false};
+      }).catch(function() {
+        // Deployment lag: keep a visibly labelled, limited NAS-only snapshot
+        // rather than showing NYSE as NASDAQ or leaving a blank chart.
+        return global.NineHttp.json(API+'/market-board?market=us&limit=40',{timeoutMs:25000})
+          .then(function(response){
+            var result=response&&response.data||response;
+            if(!result || !result.sections || !Array.isArray(result.sections.marketCap))
+              throw new Error('나스닥 시가총액 자료 미수신');
+            return {data:Object.assign({},result,{rows:result.sections.marketCap}),limited:true};
+          });
+      }).then(function(packet) {
+        var result=packet.data,limited=packet.limited;
+        var ranked=result.rows;
         var seen={};
         rows=ranked.map(function(item) {
           var sym=cleanSymbol(item), cap=num(item&&item.market_cap);
-          if(!sym||seen[sym]||!(cap>0)||/ETF|ETN|INDEX FUND/i.test(String(item.name||item.name_en||'')))return null;
+          if(!sym||seen[sym]||!(cap>0)||cleanExchange(item.exchange)!=='NAS'||/ETF|ETN|INDEX FUND/i.test(String(item.name||item.name_en||'')))return null;
           seen[sym]=true;
           return {symbol:sym,code:'US:'+sym,name:String(item.name_ko||item.name||item.name_en||sym),
             exchange:cleanExchange(item.exchange),price:num(item.price),change_rate:num(item.change_rate),
             market_cap:cap,live:false,lastSeen:0};
-        }).filter(Boolean).sort(function(a,b){return b.market_cap-a.market_cap;}).slice(0,MAX_LIVE);
-        if(!rows.length)throw new Error('미국 시가총액 유효값 없음');
+        }).filter(Boolean).sort(function(a,b){return b.market_cap-a.market_cap;}).slice(0,MAX_DISPLAY);
+        if(!rows.length)throw new Error('나스닥 시가총액 유효값 없음');
         byCode={};rows.forEach(function(r){byCode[r.code]=r;});
         sourceAt=result.updated_at?new Date(Number(result.updated_at)*1000).toLocaleString('ko-KR'):'조회시각 미제공';
         var source=host&&host.querySelector('[data-uh-source]');
-        if(source)source.textContent='종목·시총: '+(result.source||'KIS 미국 시총 순위')+
-          ' · 조회 '+sourceAt+' · 3개 거래소 상위40건/거래소에서 시총 상위 최대'+MAX_LIVE+'종목을 선정';
+        if(source)source.textContent='종목·시총: '+(result.source||'KIS 나스닥 시총순위')+
+          ' · 조회 '+sourceAt+' · '+(limited?'통합순위 폴백(나스닥 수 제한)':'나스닥 전용 시총순위')+
+          ' · 목록 '+rows.length+'종목 · WebSocket 구독 상위 '+Math.min(rows.length,MAX_LIVE)+'종목';
         draw();connect();
       })
       .catch(function(err){status('미국 시총 데이터 조회 실패 · ' + (err&&err.message||'자료 미수신'));});
@@ -229,23 +242,13 @@
     if(panel.__usHeatmapReady){resume();return;}
     panel.__usHeatmapReady=true;
     panel.innerHTML='<section class="uh-panel">'
-      +'<div class="uh-head"><div><h3>미국 주요 시총 히트맵</h3><p>KIS 미국 시가총액 상위 종목 표본 · 면적은 종목 시총, 색은 등락률</p></div>'
+      +'<div class="uh-head"><div><h3>나스닥 시총 히트맵</h3><p>KIS 나스닥 시가총액 상위 최대 40종목 · 면적은 종목 시총, 색은 등락률</p></div>'
       +'<span class="uh-status" data-uh-status role="status">준비 중</span></div>'
-      +'<div class="uh-filters" role="group" aria-label="미국 종목 거래소">'
-      +'<button type="button" data-uh-exchange="ALL" class="is-active">전체</button>'
-      +'<button type="button" data-uh-exchange="NAS">나스닥</button>'
-      +'<button type="button" data-uh-exchange="NYS">뉴욕증권거래소</button></div>'
       +'<div class="uh-count" data-uh-count></div>'
       +'<div class="uh-tiles" data-uh-tiles aria-label="미국 종목 시총비례 히트맵"></div>'
       +'<p class="uh-source" data-uh-source>구성종목·시총: KIS 미국 순위 캐시 / 가격: 관리자 KIS 해외 체결 WebSocket</p>'
-      +'<p class="uh-disclaimer">ETF 보유종목 또는 S&P 500·나스닥100 공식 구성종목 전체가 아닙니다. 시총·최초 가격은 순위 조회값이며 WebSocket으로 실제 수신한 종목만 WebSocket 수신 여부를 구분합니다. WebSocket 수신이 거래소 무지연 실시간을 보장하지 않으며 공급자·거래소 권한에 따라 지연될 수 있습니다. 시총 단위는 백만 미국달러(USD)를 변환했습니다.</p>'
+      +'<p class="uh-disclaimer">나스닥 전체 상장종목이나 나스닥100 지수의 공식 구성종목이 아닙니다. 시총은 KIS 순위 자료, 실시간 구독은 시총 상위 최대 24종목(기존 KIS 공유 구독 한도 보호)입니다. 다른 종목은 순위 조회값으로 표시합니다. WebSocket 수신에도 공급자 지연이 발생할 수 있습니다. 시총 단위는 백만 USD입니다.</p>'
       +'<details class="uh-details"><summary>전체 종목·시가총액·수신상태 표 보기</summary><div class="uh-table-scroller"><table class="uh-table"><thead><tr><th>티커</th><th>회사</th><th>시가총액</th><th>가격</th><th>등락률</th><th>상태</th></tr></thead><tbody data-uh-rows></tbody></table></div></details></section>';
-    panel.querySelector('.uh-filters').addEventListener('click',function(event){
-      var button=event.target.closest('[data-uh-exchange]');if(!button)return;
-      filter=button.getAttribute('data-uh-exchange');
-      panel.querySelectorAll('[data-uh-exchange]').forEach(function(b){b.classList.toggle('is-active',b===button);});
-      draw();
-    });
     if(!initiated) {
       initiated=true;
       document.addEventListener('visibilitychange',function(){if(document.hidden)close();else resume();});
