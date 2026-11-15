@@ -9282,17 +9282,17 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
 @layer np.np {
   html body#tt-body-index .home-briefing-section { --note-pad-left:32px; --note-radius:14px; }
   html body#tt-body-index .home-briefing-section .briefing-carousel-track { padding:10px 14px 24px!important; gap:28px!important; }
-  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card {
+  html body#tt-body-index .home-briefing-section.home-widget.home-widget--full .briefing-carousel-track .home-briefing-card {
     isolation:isolate; overflow:visible!important; border:0!important; border-radius:14px!important;
     background:transparent!important; box-shadow:none!important; padding:26px 32px 32px!important;
     filter:drop-shadow(0 5px 7px rgba(20,30,45,.08));
   }
-  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::before {
+  html body#tt-body-index .home-briefing-section.home-widget.home-widget--full .briefing-carousel-track .home-briefing-card::before {
     content:""!important; display:block!important; position:absolute!important; inset:0!important; width:auto!important; border:1px solid var(--ui-border)!important; border-radius:14px!important; z-index:-1;
     background:linear-gradient(90deg,rgba(var(--np-ink),.025),transparent 6%,transparent 47%,rgba(var(--np-ink),.012) 50%,transparent 53%,transparent 95%,rgba(var(--np-ink),.02)),var(--ui-card-surface)!important;
     pointer-events:none;
   }
-  html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card::after {
+  html body#tt-body-index .home-briefing-section.home-widget.home-widget--full .briefing-carousel-track .home-briefing-card::after {
     content:""!important; display:block!important; position:absolute!important; inset:5px 3px -4px!important; width:auto!important; z-index:-2;
     border:1px solid var(--ui-border)!important; border-radius:14px!important;
     background:var(--ui-card-surface)!important;
@@ -9300,10 +9300,10 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
     pointer-events:none;
   }
   @media(min-width:721px) {
-    html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { flex:0 0 520px!important; width:520px!important; }
+    html body#tt-body-index .home-briefing-section.home-widget.home-widget--full .briefing-carousel-track .home-briefing-card { flex:0 0 520px!important; width:520px!important; }
   }
   @media(max-width:720px) {
-    html body#tt-body-index .home-briefing-section .briefing-carousel-track .home-briefing-card { padding:24px 26px 30px!important; }
+    html body#tt-body-index .home-briefing-section.home-widget.home-widget--full .briefing-carousel-track .home-briefing-card { padding:24px 26px 30px!important; }
   }
 }
 
