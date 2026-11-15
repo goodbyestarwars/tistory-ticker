@@ -979,8 +979,10 @@ def fetch_domestic_fluctuation_rank(token, appkey, appsecret, limit=20, sort_cod
     return rows[:max(1, min(int(limit), 100))]
 
 
-def fetch_domestic_market_cap_rank(token, appkey, appsecret, limit=20):
+def fetch_domestic_market_cap_rank(token, appkey, appsecret, limit=20, market_code='0000', common_only=False):
     """국내주식 시가총액 상위[v1_국내주식-091]."""
+    if market_code not in ('0000', '0001', '1001', '2001'):
+        raise ValueError('unsupported KIS market_code')
     data = _get_domestic_quote(
         token, appkey, appsecret,
         '/uapi/domestic-stock/v1/ranking/market-cap',
@@ -989,8 +991,8 @@ def fetch_domestic_market_cap_rank(token, appkey, appsecret, limit=20):
             'FID_INPUT_PRICE_2': '',
             'FID_COND_MRKT_DIV_CODE': 'J',
             'FID_COND_SCR_DIV_CODE': '20174',
-            'FID_DIV_CLS_CODE': '0',
-            'FID_INPUT_ISCD': '0000',
+            'FID_DIV_CLS_CODE': '1' if common_only else '0',
+            'FID_INPUT_ISCD': market_code,
             'FID_TRGT_CLS_CODE': '0',
             'FID_TRGT_EXLS_CLS_CODE': '0',
             'FID_INPUT_PRICE_1': '',

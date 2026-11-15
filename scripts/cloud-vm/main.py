@@ -378,6 +378,8 @@ _MARKET_BOARD_LIVE_TTL = 5
 _market_board_cache = {}
 _us_nasdaq_cap_cache = {'t': 0.0, 'data': None}
 _us_nasdaq_cap_lock = threading.Lock()
+_sector_top20_cache = {}
+_sector_top20_lock = threading.Lock()
 _market_board_inflight = {}  # (market, limit) -> threading.Event
 _market_board_inflight_lock = threading.Lock()
 # KIS 순위 API가 3~4초 걸려서, 30초 캐시가 만료되는 순간의 첫 방문자가 매번 그 지연을
@@ -4718,6 +4720,34 @@ def us_market_breadth_endpoint(request: Request, response: Response):
     response.headers['Cache-Control'] = 'public, max-age=30'
     import us_market_breadth
     return envelope(us_market_breadth.get_breadth())
+
+
+@app.get('/market-board/sector-top20')
+def market_sector_top20_endpoint(request: Request, response: Response,
+                                  market: str = Query('kospi')):
+    """Market-specific market-cap top20; protected by /market-board prefix."""
+    if market not in ('kospi', 'kosdaq', 'sp500'):
+        raise HTTPException(status_code=400, detail='unsupported market')
+    _check_rate_limit('market_sector_top20', request, max_per_window=15)
+    response.headers['Cache-Control'] = 'private, max-age=180'
+    with _sector_top20_lock:
+        cached = _sector_top20_cache.get(market)
+        if cached and time.time() - cached['t'] < 600:
+            return envelope(cached['data'])
+        try:
+            appkey = os.environ.get('KIS_APPKEY', '').strip()
+            appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+            if market == 'sp500':
+                data = market_board.fetch_sp500_sector_top20(appkey, appsecret)
+            else:
+                data = market_board.fetch_domestic_sector_top20(
+                    appkey, appsecret, market=market)
+            if not data.get('rows'):
+                raise ValueError('시총순위 또는 확인된 섹터 구성종목이 없습니다.')
+        except Exception as exc:
+            raise _upstream_http_exception('섹터별 시총 TOP20을 가져오지 못했습니다.', exc) from exc
+        _sector_top20_cache[market] = {'t': time.time(), 'data': data}
+        return envelope(data)
 
 
 @app.get('/market-board/nasdaq-cap')

@@ -1522,8 +1522,8 @@
       + '<p>거래가 활발한 국내 종목을 업종별로 확인하고, 마켓 대동여지도에서 강약을 비교합니다.</p></div>'
       + '<div class="mt-view-toggle mt-stocks-switcher" role="tablist" aria-label="주요종목 보기 방식">'
       + '<button type="button" class="mt-view-btn active" id="mt-stocks-tab-list" data-stocks-tab="list" aria-controls="mt-stocks-panel-list" aria-selected="true" role="tab">종목 목록</button>'
-      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-etf" data-stocks-tab="etf" aria-controls="mt-stocks-panel-etf" aria-selected="false" role="tab">국내 주요 히트맵</button>'
-      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-us" data-stocks-tab="us" aria-controls="mt-stocks-panel-us" aria-selected="false" role="tab">나스닥 히트맵</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-etf" data-stocks-tab="etf" aria-controls="mt-stocks-panel-etf" aria-selected="false" role="tab">국내 시총 TOP20</button>'
+      + '<button type="button" class="mt-view-btn" id="mt-stocks-tab-us" data-stocks-tab="us" aria-controls="mt-stocks-panel-us" aria-selected="false" role="tab">S&P 500 TOP20</button>'
       + '</div><div class="mt-stocks-view-panels">'
       + '<div data-stocks-panel="list" id="mt-stocks-panel-list" role="tabpanel" aria-labelledby="mt-stocks-tab-list">'
       + '<section class="mt-section-block">'
@@ -1547,7 +1547,7 @@
     if (stocksTabScripts_[file]) return stocksTabScripts_[file];
     stocksTabScripts_[file] = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/' + file + '?v=20261115-nasdaq-palette-v2';
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/' + file + '?v=20261115-sector-top20-v1';
       script.onload = function () {
         if (global[globalName]) resolve();
         else reject(new Error(file + ' 전역 모듈이 없습니다.'));
@@ -1565,7 +1565,7 @@
         !document.querySelector('link[href*="/css/marketcap-bubble.css"]')) {
       var css = document.createElement('link');
       css.rel = 'stylesheet';
-      css.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/marketcap-bubble.css?v=20261115-nasdaq-palette-v2';
+      css.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/marketcap-bubble.css?v=20261115-sector-top20-v1';
       css.setAttribute('data-mt-stocks-bubble-css', '1');
       document.head.appendChild(css);
     }
@@ -1605,17 +1605,9 @@
         panel.innerHTML = '<p class="mt-hint">히트맵의 개별종목 원천 시세·시가총액은 관리자 전용입니다.</p>';
         return;
       }
-      if (key === 'us') { loadUsHeatmapPanel_(panel); return; }
-      if (panel.__mtLoaded || panel.__mtLoading) return;
-      panel.__mtLoading = true;
-      panel.innerHTML = '<p class="mt-hint">KODEX 200·코스닥150 구성종목 히트맵을 준비하고 있습니다.</p>';
-      ensureStocksEtfAssets_().then(function () {
-        panel.__mtLoading = false;
-        if (panel.isConnected) loadEtfHeatmapPanel_(panel);
-      }).catch(function () {
-        panel.__mtLoading = false;
-        panel.innerHTML = '<p class="mt-error">히트맵 공통 모듈 로드 실패 · 탭을 다시 눌러 재시도해 주세요.</p>';
-      });
+      if (key === 'us') { loadUsHeatmapPanel_(panel,'sp500'); return; }
+      // Domestic/US maps reuse one renderer, with separate market universes.
+      loadEtfHeatmapPanel_(panel);
     }
     tabs.forEach(function (btn) {
       btn.addEventListener('click', function () { openTab(btn.getAttribute('data-stocks-tab')); });
@@ -4609,8 +4601,8 @@
     { key: 'cards', label: '카드 보기' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' },
-    { key: 'etf', label: '국내 주요 히트맵' },
-    { key: 'us', label: '나스닥 히트맵' },
+    { key: 'etf', label: '국내 시총 TOP20' },
+    { key: 'us', label: 'S&P 500 TOP20' },
     { key: 'active', label: '활성 종목' }
   ];
 
@@ -5192,134 +5184,46 @@
     }
   }
 
-  // Live ETF holdings are fetched from the same verified KIS-backed endpoint as
-  // strategy-search ETF constituents. Market cap is accepted only if a quote provider
-  // supplies a positive marketCap; nothing is inferred from ETF unit weight.
+  // Legacy 'etf' route key retained; rendered content is now KOSPI/KOSDAQ
+  // common-stock top20, NOT KODEX ETF constituent holdings.
   function loadEtfHeatmapPanel_(panel) {
-    if(panel.__mtLoaded)return;
-    panel.__mtLoaded=true;
-    var MB=global.MarketcapBubble, SD=global.SectorDashboard;
-    var etfs=[{code:'069500',name:'KODEX 200'},{code:'229200',name:'KODEX 코스닥150'}];
-    panel.innerHTML='<div class="mt-top-chips mt-etf-chips">'
-      +etfs.map(function(e,i){return '<button type="button" class="mt-top-chip'+(i===0?' is-active':'')+'" data-mt-etf="'+e.code+'">'+escapeHtml(e.name)+'</button>';}).join('')
-      +'</div><p class="mt-top-note mt-etf-description">ETF 실제 구성종목 · 면적은 확인된 종목 시가총액 기준 · ETF 구성비중은 별도 표기</p>'
-      +'<div data-mt-etf-content role="status">ETF 구성종목을 불러오는 중…</div>';
-    var content=panel.querySelector('[data-mt-etf-content]'), seq=0;
-    function fmtCap(cap) {
-      if(!(Number(cap)>0))return '시총 미확인';
-      var eok=Number(cap)/100000000;
-      return eok>=10000?(eok/10000).toLocaleString('ko-KR',{maximumFractionDigits:2})+'조원':
-        eok.toLocaleString('ko-KR',{maximumFractionDigits:0})+'억원';
-    }
-    function draw(etf) {
-      var id=++seq;
-      content.innerHTML='<p class="mt-hint">구성종목·시총 조회 중…</p>';
-      global.NineHttp.json('https://goodbyestar.cloud/etf-components/'+etf.code,{timeoutMs:15000}).then(function(payload) {
-        if(!content.isConnected||seq!==id)return;
-        var data=payload && (payload.data||payload)||{};
-        var input=Array.isArray(data.components)?data.components:[];
-        var seen={};
-        var holdings=input.filter(function(x) {
-          var code=String(x.code||'').trim();
-          if(!/^[0-9A-Za-z]{6}$/.test(code)||seen[code])return false;
-          seen[code]=1;return true;
-        });
-        if(!holdings.length){content.innerHTML='<p class="mt-error">현재 구성종목 응답이 없습니다. 데이터 기준일·상품을 확인해 주세요.</p>';return;}
-        var codes=holdings.map(function(x){return String(x.code).trim();});
-        var quoteJob=SD && SD.fetchTickerData?SD.fetchTickerData(codes).catch(function(){return [];}):Promise.resolve([]);
-        return quoteJob.then(function(quotes) {
-          if(!content.isConnected||seq!==id)return;
-          var byCode={},extra={};
-          (quotes||[]).forEach(function(q) {
-            var cap=Number(q&&q.marketCap);
-            if(q&&q.code){byCode[q.code]=q;if(isFinite(cap)&&cap>0)extra[q.code]={name:q.name||q.code,cap:cap,changeRate:q.changeRate};}
-          });
-          var date=String(data.asOf||data.baseDate||data.dataDate||data.updatedAt||'기준일 확인 중');
-          var weight=holdings.reduce(function(sum,x){return sum+(Number(x.weightPct)||0);},0);
-          var caps=codes.filter(function(code){return !!extra[code];}).length;
-          content.innerHTML='<div class="mt-etf-metadata"><b>'+escapeHtml(etf.name)+'</b>'
-            +'<span>ETF 편입 확인 '+holdings.length+'종목 / 제공 '+(Number(data.componentCount)||holdings.length)+'종목</span>'
-            +'<span>ETF 편입비중 합계 '+weight.toFixed(2)+'%</span><span>시총 직접 확인 '+caps+'종목</span>'
-            +'<span>편입 기준일 '+escapeHtml(date)+'</span></div>'
-            +'<p class="mt-top-note" data-mt-etf-note>종목별 시가총액이 확인되는 대로 히트맵을 구성합니다.</p>'
-            +'<div id="mt-etf-marketcap" data-theme-filter="1"></div>'
-            +'<div class="mt-etf-table-wrap"><table class="mt-etf-table"><thead><tr><th>종목</th><th>ETF 비중</th><th>시가총액</th><th>현재가</th><th>등락률</th></tr></thead><tbody>'
-            +holdings.map(function(x) {
-              var q=byCode[x.code]||{},cap=extra[x.code]&&extra[x.code].cap;
-              var price=Number(q.price!=null?q.price:x.price);
-              var rateSource=q.changeRate!=null?q.changeRate:x.changeRatePct;
-              var rate=rateSource==null||rateSource===''?NaN:Number(rateSource);
-              return '<tr><td><a href="'+stockLinkHref_({name:x.name||q.name||x.code,code:x.code})+'">'+escapeHtml(x.name||q.name||x.code)+'</a></td>'
-                +'<td>'+(x.weightPct!=null&&x.weightPct!==''&&isFinite(Number(x.weightPct))?Number(x.weightPct).toFixed(2)+'%':'-')+'</td>'
-                +'<td>'+fmtCap(cap)+'</td><td>'+(price>0?price.toLocaleString('ko-KR')+'원':'-')+'</td>'
-                +'<td class="'+(rate>0?'is-up':rate<0?'is-down':'')+'">'+(isFinite(rate)?(rate>0?'+':'')+rate.toFixed(2)+'%':'-')+'</td></tr>';
-            }).join('')
-            +'</tbody></table></div>';
-          var box=content.querySelector('#mt-etf-marketcap'),note=content.querySelector('[data-mt-etf-note]');
-          var codeMap={};codes.forEach(function(code){codeMap[code]=true;});
-          var filter={label:etf.name,codes:codeMap,total:codes.length,
-            groups:[{label:etf.name,codes:codes}],extra:extra};
-          box.__mcbCodeFilter=filter;
-          box.addEventListener('mcb:rendered',function(ev) {
-            var count=Number(ev.detail&&ev.detail.matched);
-            note.textContent=etf.name+' 구성 '+codes.length+'종목 / 시총 확인 '+(isFinite(count)?count:caps)+'종목. '
-              +'면적은 개별 종목 시가총액 비례이며 미확인 종목은 히트맵에서 제외합니다. ETF 비중은 아래 표 참고.';
-          });
-          if(MB){try{
-            // init() targets the original global #marketcap-bubble and installs
-            // a perpetual timer. Fetch and render directly into this unique tab.
-            MB.fetchBubbleData().then(function(json){
-              if(!box.isConnected||seq!==id)return;
-              if(!json||!json.data)throw new Error('empty market-cap pool');
-              box.__mcbLastData=json.data;
-              box.__mcbLastUpdatedAt=json.updatedAt;
-              MB.setCodeFilter(box,filter);
-            }).catch(function(){
-              if(note.isConnected&&seq===id)note.textContent='시총 그래픽 데이터 조회 실패 · 아래 구성종목·시총 표는 확인 가능합니다.';
-            });
-          }catch(error){note.textContent='시총 히트맵 그래픽 로드 실패 · 아래 표를 확인하세요.';}}
-          else note.textContent='시총 히트맵 엔진이 없습니다. 아래 구성종목·시총 표만 표시합니다.';
-        });
-      }).catch(function() {
-        if(seq===id&&content.isConnected)content.innerHTML='<p class="mt-error">ETF 구성종목을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>';
-      });
-    }
-    panel.querySelector('.mt-etf-chips').addEventListener('click',function(event) {
-      var btn=event.target.closest('[data-mt-etf]');if(!btn)return;
-      panel.querySelectorAll('[data-mt-etf]').forEach(function(b){b.classList.toggle('is-active',b===btn);});
-      var etf=etfs.filter(function(e){return e.code===btn.getAttribute('data-mt-etf');})[0];
-      if(etf)draw(etf);
-    });
-    draw(etfs[0]);
+    if (!panel) return;
+    panel.__mtLoaded = true;
+    loadUsHeatmapPanel_(panel,'domestic');
   }
 
   // KIS overseas market-cap ranking establishes the universe and static area.
   // The authenticated shared KIS /ws/quotes relay supplies subsequent tick changes.
   // US ETF actual holdings require explicit redistribution rights and are not inferred.
-  function loadUsHeatmapPanel_(panel) {
-    if (global.NineUsHeatmap) { global.NineUsHeatmap.init(panel); return; }
-    if (panel.__usLoading) return;
-    panel.__usLoading = true;
-    panel.innerHTML = '<div class="mt-hint">KIS 미국 시총 히트맵을 불러오는 중…</div>';
+  var sectorHeatmapScriptJob_ = null;
+  function loadUsHeatmapPanel_(panel, marketKind) {
+    marketKind = marketKind === 'domestic' ? 'domestic' : 'sp500';
+    if (global.NineUsHeatmap) { global.NineUsHeatmap.init(panel,marketKind); return; }
+    panel.innerHTML = '<div class="mt-hint">섹터별 시가총액 TOP20 지도를 준비하는 중…</div>';
     var root = 'https://goodbyestarwars.github.io/tistory-ticker/';
     if (!document.querySelector('link[href*="/css/us-market-heatmap.css"]')) {
       var link=document.createElement('link');
       link.rel='stylesheet';
-      link.href=root+'css/us-market-heatmap.css?v=20261115-nasdaq-palette-v2';
+      link.href=root+'css/us-market-heatmap.css?v=20261115-sector-top20-v1';
       document.head.appendChild(link);
     }
-    var script=document.createElement('script');
-    script.src=root+'js/us-market-heatmap.js?v=20261115-nasdaq-palette-v2';
-    script.onload=function () {
-      panel.__usLoading=false;
-      if(global.NineUsHeatmap)global.NineUsHeatmap.init(panel);
-      else panel.innerHTML='<div class="mt-error">미국 히트맵 모듈을 불러오지 못했습니다.</div>';
-    };
-    script.onerror=function () {
-      panel.__usLoading=false;
-      panel.innerHTML='<div class="mt-error">미국 히트맵 모듈 연결 실패 · 화면을 새로고침해 다시 시도하세요.</div>';
-    };
-    document.head.appendChild(script);
+    if(!sectorHeatmapScriptJob_) {
+      sectorHeatmapScriptJob_=new Promise(function(resolve,reject){
+        var script=document.createElement('script');
+        script.src=root+'js/us-market-heatmap.js?v=20261115-sector-top20-v1';
+        script.onload=function() {
+          if(global.NineUsHeatmap)resolve();else reject(new Error('sector map module missing'));
+        };
+        script.onerror=function(){reject(new Error('sector map module load failed'));};
+        document.head.appendChild(script);
+      }).catch(function(error){sectorHeatmapScriptJob_=null;throw error;});
+    }
+    sectorHeatmapScriptJob_.then(function(){
+      if(panel.isConnected && !panel.hidden && !panel.closest('[hidden]'))
+        global.NineUsHeatmap.init(panel,marketKind);
+    }).catch(function(){
+      if(panel.isConnected)panel.innerHTML='<div class="mt-error">섹터 히트맵 모듈을 불러오지 못했습니다. 다시 선택해 주세요.</div>';
+    });
   }
 
   function loadPanel(view, panel) {

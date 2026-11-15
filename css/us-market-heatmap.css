@@ -48,3 +48,24 @@ html.dark #market-temp .uh-table th { background:var(--dk-card,#151b24); color:v
   #market-temp .uh-filters button { padding:9px 10px; flex:1 1 auto; }
 }
 @media(prefers-reduced-motion:reduce){#market-temp a.uh-tile{transition:none;}}
+
+/* Shared top20 market-sector mosaic: sector areas proportional to constituent cap. */
+#market-temp .uh-sector { position:absolute; box-sizing:border-box; overflow:hidden;
+  background:rgba(100,116,139,.045); border:2px solid var(--ui-card-surface,#fff);
+  border-radius:7px; isolation:isolate; }
+#market-temp .uh-sector-title { position:absolute; z-index:3; top:2px; left:8px;
+  display:block; width:calc(100% - 16px); overflow:hidden; white-space:nowrap;
+  text-overflow:ellipsis; pointer-events:none; color:#52657a;
+  font:700 11px/18px var(--font-ui,Pretendard,sans-serif); }
+#market-temp .uh-sector .uh-tile { border-color:var(--ui-card-surface,#fff); }
+#market-temp .uh-sector .uh-tile:focus-visible { z-index:4; }
+html.dark #market-temp .uh-sector { background:rgba(148,163,184,.07);
+  border-color:var(--dk-card,#151b24); }
+html.dark #market-temp .uh-sector-title { color:var(--dk-sub,#a6b5c5); }
+html.dark #market-temp .uh-sector .uh-tile { border-color:var(--dk-card,#151b24); }
+#market-temp .uh-table th:nth-child(3),#market-temp .uh-table td:nth-child(3) { text-align:left; }
+#market-temp .uh-disclaimer { line-height:1.65; }
+@media(max-width:720px) {
+  #market-temp .uh-sector-title { left:4px; top:0; width:calc(100% - 8px); font-size:10px; }
+  #market-temp .uh-sector .uh-tile { padding:2px; border-width:1px; }
+}

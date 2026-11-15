@@ -1125,6 +1125,144 @@ def merge_us_kis_metadata(metric_rows):
 
 
 
+
+# Sector-map displays use the broker's verified cap ranks. Separate markets
+# avoid truncating NAS/KOSDAQ after a combined top-N. Wikipedia S&P membership
+# metadata is CC BY-SA and cached (not a paid ETF holding file).
+_SP500_MEMBERSHIP_URL = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+_sp500_membership_cache = {'t': 0.0, 'rows': {}}
+
+
+def fetch_domestic_sector_top20(appkey, appsecret, market='kospi'):
+    """KIS KOSPI/KOSDAQ ordinary-share market-cap top20, with WICS sectors."""
+    if market not in ('kospi', 'kosdaq'):
+        raise ValueError('unsupported market')
+    token = kis_client.get_token(appkey, appsecret)
+    market_code = '0001' if market == 'kospi' else '1001'
+    raw_rows = kis_client.fetch_domestic_market_cap_rank(
+        token, appkey, appsecret, limit=40, market_code=market_code, common_only=True)
+    wics = load_wics_map()
+    seen, items = set(), []
+    for raw in raw_rows:
+        row = _kis_domestic_row(raw)
+        if not row:
+            continue
+        code = str(row.get('code') or '')
+        cap = _number(row.get('market_cap'))
+        if not re.fullmatch(r'\d{6}', code) or code in seen or cap is None or cap <= 0:
+            continue
+        # KIS stck_avls uses 1e8 KRW. Reject inconsistent units if shares given.
+        shares = _number(_kis_value(raw, 'lstn_stcn'))
+        price = _number(row.get('price'))
+        if shares and price and price > 0 and shares > 0:
+            expected = shares * price / 100000000
+            if expected > 0 and not 0.75 <= cap / expected <= 1.25:
+                continue
+        seen.add(code)
+        info = wics.get(code) or {}
+        row['sector'] = info.get('sector') or '미분류'
+        row['industry'] = info.get('industry') or row['sector']
+        items.append(row)
+    items.sort(key=lambda x: x['market_cap'], reverse=True)
+    return {
+        'market': market, 'rows': items[:20], 'universe': 'KIS ' + market_code + ' 보통주',
+        'sector_basis': 'WICS', 'market_cap_unit': '100 million KRW',
+        'updated_at': int(time.time()),
+        'source': 'KIS 국내 시가총액 순위 / WICS 업종',
+    }
+
+
+def _load_sp500_sectors():
+    """Read public S&P membership names/sectors; never infer from NASDAQ alone."""
+    now = time.time()
+    if (_sp500_membership_cache['rows'] and
+            now - _sp500_membership_cache['t'] < 86400):
+        return _sp500_membership_cache['rows']
+    from html.parser import HTMLParser
+
+    class Constituents(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.active = False
+            self.row = None
+            self.cell = None
+            self.rows = {}
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == 'table' and attrs.get('id') == 'constituents':
+                self.active = True
+            if self.active and tag == 'tr':
+                self.row = []
+            if self.active and self.row is not None and tag in ('td', 'th'):
+                self.cell = []
+        def handle_data(self, data):
+            if self.cell is not None:
+                self.cell.append(data)
+        def handle_endtag(self, tag):
+            if self.active and tag in ('td', 'th') and self.cell is not None:
+                self.row.append(''.join(self.cell).strip())
+                self.cell = None
+            if tag == 'tr' and self.active and self.row is not None:
+                if len(self.row) >= 3:
+                    symbol = self.row[0].replace('\n', '').strip().upper()
+                    sector = self.row[2].strip()
+                    if re.fullmatch(r'[A-Z][A-Z0-9.\-]{0,8}', symbol) and sector:
+                        self.rows[symbol] = sector
+                self.row = None
+            if tag == 'table' and self.active:
+                self.active = False
+
+    req = urllib.request.Request(
+        _SP500_MEMBERSHIP_URL,
+        headers={'User-Agent': '9Pay market research chart (Wikipedia CC BY-SA attribution; admin-only)',
+                 'Accept': 'text/html'})
+    with urllib.request.urlopen(req, timeout=10) as response:
+        html = response.read(2000000).decode('utf-8', 'replace')
+    parser = Constituents()
+    parser.feed(html)
+    if len(parser.rows) < 450:
+        raise ValueError('S&P 500 membership list incomplete')
+    _sp500_membership_cache.update({'rows': parser.rows, 't': now})
+    return parser.rows
+
+
+def fetch_sp500_sector_top20(appkey, appsecret):
+    """S&P 500 confirmed constituents intersect KIS US top-cap data.
+
+    KIS API top40 per exchange is a finite snapshot, not all 500 symbols.
+    This page shows 20 highest-cap matched members among that verified pool,
+    and retains the limited ranking scope in the response.
+    """
+    members = _load_sp500_sectors()
+    token = kis_client.get_token(appkey, appsecret)
+    raw = _fetch_us_kis_metric(token, appkey, appsecret,
+                               kis_client.fetch_us_market_cap_rank, 40)
+    rows, seen = [], set()
+    for record in raw:
+        row = _kis_us_row(record)
+        if not row:
+            continue
+        symbol = str(row.get('symbol') or '').upper().strip()
+        cap = _number(row.get('market_cap'))
+        if symbol not in members or symbol in seen or cap is None or cap <= 0:
+            continue
+        seen.add(symbol)
+        row['sector'] = members[symbol]
+        rows.append(row)
+    rows.sort(key=lambda r: r['market_cap'], reverse=True)
+    return {
+        'market': 'sp500', 'rows': rows[:20],
+        'universe': 'KIS NYS/NAS/AMS 시총순위 각 최대40종목 ∩ S&P 500 편입 검증 명단',
+        'verified_members': len(rows), 'membership_count': len(members),
+        'sector_basis': 'Wikipedia S&P 500 GICS sector',
+        'sector_source': _SP500_MEMBERSHIP_URL,
+        'membership_license': 'CC BY-SA 4.0',
+        'market_cap_unit': 'million USD', 'updated_at': int(time.time()),
+        'source': 'KIS 해외 시가총액 순위 / Wikipedia 구성종목·섹터',
+    }
+
+
+
 def fetch_us_nasdaq_market_caps(appkey, appsecret, limit=40):
     """KIS market-cap rank for NASDAQ only (not a NASDAQ-100 constituent list).
 
