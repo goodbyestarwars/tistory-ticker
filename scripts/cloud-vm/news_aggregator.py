@@ -35,6 +35,17 @@ MAJOR_NEWS_FEEDS = (
     ('CNBC', 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114'),
     ('Bloomberg', 'https://feeds.bloomberg.com/markets/news.rss'),
 )
+# Extra public headline/link feeds. Reuters is discovered via Google News,
+# NOT scraped from Reuters or a paywalled article. No article bodies are stored.
+# Per-feed cap prevents corporate releases from displacing market journalism.
+ADDITIONAL_NEWS_FEEDS = (
+    ('WSJ Markets', 'https://feeds.content.dowjones.io/public/rss/RSSMarketsMain'),
+    ('MarketWatch', 'https://feeds.marketwatch.com/marketwatch/topstories'),
+    ('Reuters via Google News', 'https://news.google.com/rss/search?q=when%3A24h+site%3Areuters.com%2Fbusiness&hl=en-US&gl=US&ceid=US%3Aen'),
+    ('GlobeNewswire Earnings', 'https://www.globenewswire.com/RssFeed/subjectcode/13-Earnings%20Releases%20And%20Operating%20Results/feedTitle/GlobeNewswire%20-%20Earnings%20Releases%20And%20Operating%20Results'),
+)
+ADDITIONAL_NEWS_PER_SOURCE_LIMIT = 6
+
 HTTP_TIMEOUT = 8
 FOREIGN_NEWS_LIMIT = 2
 LOCAL_NEWS_LIMIT = 1
@@ -104,7 +115,7 @@ def _record_rss_status(provider, rows=None, failed=False):
 
 
 def rss_source_status(market='us'):
-    names = ([name for name, _url in MAJOR_NEWS_FEEDS] if market == 'us' else [])
+    names = ([name for name, _url in MAJOR_NEWS_FEEDS + ADDITIONAL_NEWS_FEEDS] if market == 'us' else [])
     names += [name for name, _url, scope, _category in OFFICIAL_NEWS_FEEDS if scope == market]
     with _rss_status_lock:
         return [dict(_rss_status.get(name, {'provider': name, 'status': 'not-checked',
@@ -764,6 +775,9 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         providers = []
         for provider, feed_url in MAJOR_NEWS_FEEDS:
             providers.append((provider, lambda provider=provider, feed_url=feed_url: _publisher_rss(feed_url, provider)))
+        for provider, feed_url in ADDITIONAL_NEWS_FEEDS:
+            providers.append((provider, lambda provider=provider, feed_url=feed_url:
+                              _publisher_rss(feed_url, provider)[:ADDITIONAL_NEWS_PER_SOURCE_LIMIT]))
         if finnhub_api_key:
             providers.append(('Finnhub', lambda: _finnhub_general_news(finnhub_api_key)))
         if alpha_api_key:
@@ -1363,7 +1377,7 @@ def _publisher_rss(feed_url, provider):
             'pubDate': pub_date,
             'source': provider,
             'provider': provider + ' RSS',
-            'category': '시장',
+            'category': '기업 발표' if provider == 'GlobeNewswire Earnings' else '시장',
             'kind': 'news',
             'market': 'us',
             '_published_ts': _parse_date(pub_date),
