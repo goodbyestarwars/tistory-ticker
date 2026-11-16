@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ETF 이야기</title>
-<meta name="description" content="ETF가 무엇인지, NAV·괴리율·추적오차·보수·호가 스프레드는 개인 투자자 주머니에 어떻게 닿는지, 레버리지·인버스 ETF를 오래 들고 있으면 왜 깎이는지 그림으로 정리한다." />
+<meta name="description" content="ETF의 구조, 국내 상장 ETF의 투자 대상별·전략별 종류, 커버드콜·버퍼·롱숏 손익구조, NAV·괴리율·보수·추적차이·레버리지 위험을 실제 사례와 그림으로 설명한다." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
@@ -22,6 +22,23 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 .learn-fig text.fig-sub { font-size: 13.5px; }
 .learn-fig text.fig-ink { font-size: 15px; }
 @media (prefers-color-scheme: dark) { .fig-bar { fill: #5d708c; } }
+
+/* ETF 이야기: 기존 이야기 시리즈 색상·폰트 토큰을 쓰는 책용 비교 자료 */
+body.learn-page .etf-map { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:16px 0 20px; }
+body.learn-page .etf-map > div { padding:16px; border:1px solid var(--learn-line); border-radius:16px; background:var(--learn-surface); }
+body.learn-page .etf-map h3 { margin:0 0 6px; }
+body.learn-page .etf-map p { margin:0; font-size:14px; line-height:1.7; }
+body.learn-page .etf-table-scroll { max-width:100%; overflow-x:auto; margin:0 0 16px; }
+body.learn-page .etf-table-scroll .learn-table { margin:0; min-width:550px; }
+body.learn-page .etf-table-scroll td:first-child { white-space:nowrap; }
+body.learn-page .etf-sample-code { font-family:"Pretendard Variable","Pretendard",sans-serif; font-size:12px; white-space:nowrap; color:var(--learn-sub); }
+body.learn-page .etf-example-label { margin:4px 0 12px; font-size:13px; color:var(--learn-sub); }
+body.learn-page .etf-figure-key { font-family:"Pretendard Variable","Pretendard",sans-serif; font-size:13px; color:var(--learn-sub); }
+body.learn-page .etf-source-list { overflow-wrap:anywhere; }
+body.learn-page .etf-figure-aside { margin:-8px 0 20px; font-size:13px; color:var(--learn-sub); }
+body.learn-page .etf-summary { margin-top:16px; }
+@media(max-width:640px) { body.learn-page .etf-map { grid-template-columns:1fr; } body.learn-page .etf-table-scroll .learn-table { font-size:13px; } }
+@media print { body.learn-page .etf-map { grid-template-columns:repeat(2,minmax(0,1fr)); } body.learn-page .etf-table-scroll { overflow:visible; } body.learn-page .etf-table-scroll .learn-table { min-width:0; font-size:11px; } body.learn-page .etf-map > div, body.learn-page .learn-fig { break-inside:avoid; } }
 </style>
 </head>
 <body class="learn-page">
@@ -30,14 +47,14 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-search" id="learn-search"></div>
 
   <h1>ETF 이야기</h1>
-  <p class="legal-effective-date">바구니·NAV와 괴리율·추적오차·보수·스프레드, 레버리지와 인버스, 배당 ETF</p>
+  <p class="legal-effective-date">바구니·NAV·비용에서 시작해 국내 상장 ETF의 자산별·전략별 지도와 커버드콜·버퍼·롱숏까지</p>
 
   <section class="learn-sec learn-sec--intro">
   <p>삼성전자도 사고 싶고 SK하이닉스도 사고 싶고 현대차도 사고 싶다. 그런데 돈은 300만원이다. 한 종목에 몰아넣자니
   불안하고, 세 종목에 나누자니 한 주 값도 모자란다. 종목을 100개 사려면 아예 불가능하다.</p>
   <p>이 여러 종목을 미리 한 바구니에 담아 놓고, 바구니 자체를 주식처럼 사고팔게 만든 것이
   <b>ETF(Exchange Traded Fund, 상장지수펀드)</b>다. 이 글은 개인 투자자가 ETF를 살 때 실제로 돈이 새는 자리와
-  함정을 중심으로 정리한다. 그림 속 숫자는 이해를 돕는 예시이고 실제 시세가 아니다.</p>
+  함정을 중심으로 정리하고, 뒤에서는 국내 거래소에 상장된 ETF를 투자 관점별로 비교한다. 그림 속 숫자는 이해를 돕는 예시이고 실제 시세나 수익 예측이 아니다.</p>
 
   </section>
   <section class="learn-sec">
@@ -169,7 +186,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <section class="learn-sec">
   <h2 id="sec-6">추적오차 - 같은 지수를 따라가는데 왜 내 수익률이 모자랄까</h2>
   <p>지수가 12% 올랐으면 ETF도 12% 올라야 할 것 같지만 조금 모자란다. 운용 비용이 들고, 모든 종목을 매 순간 정확한
-  비율로 맞추기 어렵고, 배당이 들어오는 시점도 다르기 때문이다. 이 차이를 <b>추적오차</b>라고 한다.</p>
+  비율로 맞추기 어렵고, 배당이 들어오는 시점도 다르기 때문이다. 같은 기간 두 수익률의 차이는 <b>추적 차이</b>다. 이 차이가 기간별로 얼마나 불규칙하게 흔들리는지를 측정하는 지표가 <b>추적오차</b>다.</p>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 224" role="img" aria-label="기초지수가 12개월 뒤 112가 되었을 때 ETF는 111.5로 방향은 같지만 0.5 모자란 가상 그래프">
@@ -190,7 +207,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
       <path class="fig-acc-line" d="M130 212 L154 212" />
       <text class="fig-sub" x="160" y="216">ETF (보수·운용 때문에 조금 처진다)</text>
     </svg>
-    <figcaption>방향은 같은데 끝에 가서 0.5가 모자라다. 같은 지수를 따라가는 ETF가 여러 개라면, 최근 수익률보다 이 차이가 작은 쪽이 지수에 충실하다.</figcaption>
+    <figcaption>방향은 같은데 끝에 가서 0.5가 모자라다. 같은 지수를 따라가는 ETF가 여러 개라면, 이 그림은 추적 차이를 보여준다. 추적오차를 비교하려면 일정 기간 수익률 차이의 변동성까지 봐야 한다.</figcaption>
   </figure>
 
   </section>
@@ -370,6 +387,173 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </figure>
 
   </section>
+
+  <section class="learn-sec" aria-labelledby="etf-map-heading">
+    <h2 id="etf-map-heading">ETF의 두 번째 지도 - 무엇을 사느냐와 어떻게 버느냐</h2>
+    <p>처음에는 ‘코스피 ETF냐, 미국 ETF냐’만 구분해도 충분하다. 하지만 같은 미국 주식을 담아도
+      시가총액대로 보유할 수 있고, 모든 종목을 비슷한 비중으로 담을 수도 있으며, 콜옵션을 팔아 분배 재원을
+      마련할 수도 있다. <b>투자 대상(자산)</b>과 <b>운용 방법(전략)</b>을 분리해서 보면 ETF의 전체 모습이 보인다.</p>
+    <div class="etf-map" aria-label="ETF를 이해하는 두 축">
+      <div><h3>첫째 축 · 무엇을 담았나</h3><p>국내·해외 주식, 채권, 금, 부동산 리츠, 단기금리, 통화 등. <b>어떤 시장 위험</b>을 지는지 결정한다.</p></div>
+      <div><h3>둘째 축 · 어떻게 운용하나</h3><p>지수 추종, 동일가중, 액티브, 커버드콜, 버퍼, 롱숏, 인버스 등. <b>어떤 손익 구조</b>를 선택하는지 결정한다.</p></div>
+    </div>
+    <figure class="learn-fig">
+      <svg viewBox="0 0 420 234" role="img" aria-label="ETF는 투자 대상과 운용 전략이 교차한다. 주식·채권·금·부동산·금리·통화라는 대상 위에 지수추종·배당·옵션·롱숏·레버리지 등의 방법을 결합할 수 있다">
+        <rect class="fig-soft" x="12" y="14" width="396" height="82" rx="12"/>
+        <text class="fig-ink" x="24" y="38">무엇에 투자하나</text>
+        <text class="fig-sub" x="24" y="62">주식 · 채권 · 금 · 부동산 · 단기금리 · 통화</text>
+        <text class="fig-sub" x="24" y="83">= 수익과 위험이 발생하는 시장</text>
+        <path class="fig-ink-line" d="M210 99 L210 128"/>
+        <path class="fig-ink-line" d="M203 121 L210 130 L217 121"/>
+        <rect class="fig-soft2" x="12" y="134" width="396" height="82" rx="12"/>
+        <text class="fig-ink" x="24" y="158">어떻게 운용하나</text>
+        <text class="fig-sub" x="24" y="181">지수 추종 · 동일가중 · 액티브 · 옵션 · 롱숏</text>
+        <text class="fig-sub" x="24" y="202">= 같은 자산이라도 달라지는 손익의 모양</text>
+      </svg>
+      <figcaption>ETF는 자산별 분류와 전략별 분류가 겹친다. 예를 들어 ‘미국 주식 + 커버드콜’, ‘국내 주식 + 롱숏’이라는 식이다.</figcaption>
+    </figure>
+  </section>
+
+  <section class="learn-sec" aria-labelledby="etf-assets-heading">
+    <h2 id="etf-assets-heading">한국거래소에 상장된 ETF - 투자 대상별 사례</h2>
+    <p>아래 상품은 모두 <b>한국거래소에 상장되어 원화로 사고팔 수 있는 예시</b>다. 미국에 투자하는 ETF라고 해서
+      미국 거래소에 직접 주문하는 것은 아니다. 다만 원화로 거래한다고 환율 위험이 사라지는 것도 아니다.</p>
+    <div class="etf-table-scroll" role="region" aria-label="국내 상장 ETF 투자 대상별 사례 표" tabindex="0">
+      <table class="learn-table">
+        <thead><tr><th scope="col">투자 대상</th><th scope="col">국내 상장 ETF 예시</th><th scope="col">어떤 위험을 보나</th></tr></thead>
+        <tbody>
+          <tr><td>국내 대표지수</td><td>KODEX 200 <span class="etf-sample-code">069500</span></td><td>한국 대형주 시장의 등락</td></tr>
+          <tr><td>해외 대표지수</td><td>TIGER 미국S&amp;P500 <span class="etf-sample-code">360750</span></td><td>미국 대형주·달러 환율</td></tr>
+          <tr><td>특정 산업</td><td>TIGER 반도체TOP10 <span class="etf-sample-code">396500</span></td><td>반도체 업황과 종목 집중</td></tr>
+          <tr><td>배당주</td><td>TIGER 미국배당다우존스 <span class="etf-sample-code">458730</span></td><td>배당 지속성·주가·환율</td></tr>
+          <tr><td>만기 있는 채권</td><td>KODEX 27-12 회사채(AA-이상)액티브 <span class="etf-sample-code">0007F0</span></td><td>신용·금리·만기 전 매도가격</td></tr>
+          <tr><td>단기자금</td><td>KODEX 머니마켓액티브 <span class="etf-sample-code">488770</span></td><td>단기금리·신용·유동성</td></tr>
+          <tr><td>금</td><td>ACE KRX금현물 <span class="etf-sample-code">411060</span></td><td>금 가격의 변동</td></tr>
+          <tr><td>상장 부동산</td><td>KODEX 한국부동산리츠인프라 <span class="etf-sample-code">476800</span></td><td>부동산·금리·리츠 가격</td></tr>
+          <tr><td>달러·해외 단기금리</td><td>KODEX 미국달러SOFR금리액티브(합성) <span class="etf-sample-code">455030</span></td><td>달러 환율·미국 단기금리·합성거래</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="etf-example-label">2026년 11월 확인한 대표 사례다. 상품명·코드·운용 정책은 개편될 수 있으므로 실제 거래 전 최신 투자설명서를 확인한다.</p>
+    <div class="learn-note"><b>‘안전자산 ETF’라고 부를 때 주의할 점</b> 단기금리형은 예금이 아니며 원금 보장이나 예금자보호를 전제로 하면 안 된다. 금·리츠·채권도 각각 다른 이유로 손실이 난다.</div>
+  </section>
+
+  <section class="learn-sec" aria-labelledby="etf-strategies-heading">
+    <h2 id="etf-strategies-heading">같은 시장, 다른 방식 - 전략형 ETF의 실제 사례</h2>
+    <p>여기부터는 ‘어디에 투자하느냐’보다 <b>어떤 규칙으로 돈을 벌려고 하느냐</b>가 중요하다. 커버드콜이나 버퍼는
+      미래 주가의 손익 모양을 바꾸고, 롱숏은 두 시장의 상대적인 강약을 비교한다.</p>
+    <div class="etf-table-scroll" role="region" aria-label="국내 상장 ETF 전략별 사례 표" tabindex="0">
+      <table class="learn-table">
+        <thead><tr><th scope="col">전략</th><th scope="col">국내 상장 ETF 예시</th><th scope="col">투자자가 감수하는 대가</th></tr></thead>
+        <tbody>
+          <tr><td>동일가중</td><td>TIGER 미국S&amp;P500동일가중 <span class="etf-sample-code">488500</span></td><td>대형주 쏠림을 줄이지만 강한 대형주 상승을 덜 누릴 수 있다.</td></tr>
+          <tr><td>커버드콜</td><td>KODEX 미국S&amp;P500데일리커버드콜OTM <span class="etf-sample-code">0005A0</span></td><td>옵션 프리미엄을 얻는 대신 상승 일부를 내준다.</td></tr>
+          <tr><td>버퍼</td><td>KODEX 미국S&amp;P500버퍼3월액티브 <span class="etf-sample-code">0026E0</span></td><td>정해진 기간 하락 일부 완충을 추구하지만 상승 상한이 있다.</td></tr>
+          <tr><td>선물 롱숏</td><td>KODEX 200롱코스닥150숏선물 <span class="etf-sample-code">360140</span></td><td>코스피200이 코스닥150보다 상대적으로 강해야 유리하다.</td></tr>
+          <tr><td>생애주기 비중전환</td><td>KIWOOM 미국S&amp;P500&amp;배당다우존스비중전환 <span class="etf-sample-code">0127T0</span></td><td>시간이 흐르면서 성장 중심에서 배당 중심으로 비중이 변한다.</td></tr>
+          <tr><td>레버리지</td><td>KODEX 레버리지 <span class="etf-sample-code">122630</span></td><td>하루 지수 변동의 배수를 추구하며 경로 의존성이 커진다.</td></tr>
+          <tr><td>인버스 2배</td><td>TIGER 200선물인버스2X <span class="etf-sample-code">252710</span></td><td>선물지수의 일일 하락에서 이익을 노리며 반등 때 손실이 커진다.</td></tr>
+          <tr><td>합성·스왑 방식</td><td>KODEX CD금리액티브(합성) <span class="etf-sample-code">459580</span></td><td>기초자산 직접 보유 대신 거래상대방·계약 구조를 확인해야 한다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>모든 ETF가 ‘여러 종목을 실제로 직접 보유’하는 것은 아니다. <b>액티브</b>는 운용 판단으로 비교지수 대비
+      초과수익을 추구할 수 있고, <b>합성</b>은 스왑 등 계약으로 기초지수 성과를 구현한다. <b>인버스</b>는
+      시장의 반대 방향을 추구하고, <b>롱숏</b>은 매수할 대상과 매도할 대상을 함께 가진다.
+      선물계좌 없이 ETF 한 주를 사더라도 운용사가 내부에서 선물·옵션을 활용할 수 있다.</p>
+  </section>
+
+  <section class="learn-sec" aria-labelledby="etf-payoff-heading">
+    <h2 id="etf-payoff-heading">커버드콜과 버퍼 - 옵션을 쓰면 손익의 모양이 달라진다</h2>
+    <p>지수 ETF는 시장이 20% 오르면 대체로 그 상승을 따라간다. 커버드콜은 콜옵션을 매도해 프리미엄을 받고,
+      그 대신 일정 수준 이상의 상승을 포기한다. 버퍼는 정해진 기간의 첫 손실 구간을 완충하도록 옵션을 조합하는 대신
+      상승 상한을 둘 수 있다. <b>둘은 분배금의 많고 적음이 아니라 손익 구조부터 다르다.</b></p>
+    <figure class="learn-fig">
+      <svg viewBox="0 0 420 264" role="img" aria-label="가상 만기 손익 비교. 지수 -20 -10 0 +10 +20 퍼센트일 때 일반형 -20 -10 0 +10 +20, 커버드콜 -16 -6 +4 +12 +12, 버퍼 -10 0 0 +10 +15. 실제 ETF 수익률이 아닌 구조 예시">
+        <rect class="fig-soft" x="0" y="0" width="420" height="264" rx="10"/>
+        <text class="fig-ink" x="16" y="27">시장 등락에 따른 가상 손익</text>
+        <text class="fig-sub" x="16" y="46">같은 시작점, 동일한 기간 종료 시점 기준</text>
+        <path class="fig-dash" d="M30 80 H398 M30 130 H398 M30 180 H398"/>
+        <text class="fig-sub" x="6" y="84" font-size="11">+10</text>
+        <text class="fig-sub" x="13" y="134" font-size="11">0</text>
+        <text class="fig-sub" x="3" y="184" font-size="11">-10</text>
+        <path class="fig-ink-line" d="M32 230 L124 180 L216 130 L308 80 L400 30" stroke-width="3"/>
+        <path class="fig-acc-line" d="M32 210 L124 160 L216 110 L308 70 L400 70" stroke-width="3" stroke-dasharray="8 4"/>
+        <path class="fig-down-line" d="M32 180 L124 130 L216 130 L308 80 L400 55" stroke-width="3" stroke-dasharray="2 5"/>
+        <text class="fig-sub" x="32" y="248" text-anchor="start" font-size="11">-20%</text>
+        <text class="fig-sub" x="216" y="248" text-anchor="middle" font-size="11">0%</text>
+        <text class="fig-sub" x="400" y="248" text-anchor="end" font-size="11">+20%</text>
+      </svg>
+      <figcaption>실선=일반 지수형, 긴 점선=커버드콜, 짧은 점선=버퍼. 차트는 손익의 형태만 그린 교육용 가정이다. 실제 상품별 옵션 행사가격·기간·비용·환율에 따라 달라진다.</figcaption>
+    </figure>
+    <div class="etf-table-scroll" role="region" aria-label="가상 손익률 수치 비교" tabindex="0">
+      <table class="learn-table">
+        <thead><tr><th scope="col">시장 결과</th><th scope="col">-20%</th><th scope="col">-10%</th><th scope="col">0%</th><th scope="col">+10%</th><th scope="col">+20%</th></tr></thead>
+        <tbody>
+          <tr><td>일반 지수형</td><td>-20%</td><td>-10%</td><td>0%</td><td>+10%</td><td>+20%</td></tr>
+          <tr><td>가상 커버드콜</td><td>-16%</td><td>-6%</td><td>+4%</td><td>+12%</td><td>+12%</td></tr>
+          <tr><td>가상 버퍼</td><td>-10%</td><td>0%</td><td>0%</td><td>+10%</td><td>+15%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="etf-figure-aside">모형 가정: 커버드콜은 옵션 프리미엄 4%와 상승 상한 12%, 버퍼는 첫 10% 하락 완충과 상승 상한 15%. 배당·세금·수수료·환율은 제외했다. 실존 상품의 약속 수익률이 아니다.</p>
+    <div class="learn-note"><b>버퍼 ETF를 중간에 사면 결과가 달라진다.</b> 광고에 나온 ‘하락 10% 완충’은 통상 정해진 옵션 운용기간의 시작과 끝을 전제로 한 구조다. 중도 매수·매도는 남은 완충 폭과 상승 상한이 달라지므로 그날의 운용사 공시를 확인해야 한다. 커버드콜의 프리미엄 역시 급락 손실 전체를 막는 보험은 아니다.</div>
+  </section>
+
+  <section class="learn-sec" aria-labelledby="etf-relative-heading">
+    <h2 id="etf-relative-heading">롱숏은 인버스가 아니다 - 두 시장의 상대적인 강약을 산다</h2>
+    <p>인버스는 한 지수의 하락에서 수익을 추구한다. 반면 ‘코스피200 롱·코스닥150 숏’은 코스피200을
+      사는 쪽과 코스닥150을 파는 쪽을 함께 운용한다. 시장 전체가 오르든 내리든 <b>매수한 쪽이 상대적으로
+      더 강한지</b>가 중요하다.</p>
+    <figure class="learn-fig">
+      <svg viewBox="0 0 420 222" role="img" aria-label="가상 롱숏 예시 두 개. 사례 A 코스피200 5퍼센트 상승 코스닥150 2퍼센트 상승이면 코스피 롱 5, 코스닥 숏 마이너스2로 합계 약 3퍼센트. 사례 B 코스피200 마이너스3 코스닥150 마이너스8이면 롱 마이너스3 숏 플러스8로 약 플러스5퍼센트">
+        <rect class="fig-soft" x="0" y="0" width="420" height="222" rx="10"/>
+        <text class="fig-ink" x="14" y="29">A. 두 지수가 모두 올라도</text>
+        <rect class="fig-up" x="14" y="45" width="180" height="18" rx="3"/>
+        <text class="fig-sub" x="203" y="59">코스피200 롱 +5%</text>
+        <rect class="fig-down" x="14" y="73" width="72" height="18" rx="3"/>
+        <text class="fig-sub" x="95" y="87">코스닥150 숏 -2%</text>
+        <text class="fig-ink" x="14" y="112">상대 차이 +3%p</text>
+        <path class="fig-dash" d="M14 122 H404"/>
+        <text class="fig-ink" x="14" y="144">B. 두 지수가 모두 내려도</text>
+        <rect class="fig-down" x="14" y="157" width="108" height="18" rx="3"/>
+        <text class="fig-sub" x="131" y="171">코스피200 롱 -3%</text>
+        <rect class="fig-up" x="14" y="184" width="288" height="18" rx="3"/>
+        <text class="fig-sub" x="310" y="198">숏 +8%</text>
+        <text class="fig-ink" x="308" y="144">상대 차이 +5%p</text>
+      </svg>
+      <figcaption>각 포지션의 명목 노출이 같다고 단순화한 개념도다. 상대 성과는 시장의 상승·하락 방향과 같지 않다.</figcaption>
+    </figure>
+    <p>실제 ETF 성과는 선물의 기초지수와 현물 지수 차이, 포지션 비율, 롤오버, 일별 재조정, 비용 때문에 단순 뺄셈과 다르다.
+      상대적으로 강한 쪽도 절대적으로는 하락할 수 있다.</p>
+  </section>
+
+  <section class="learn-sec" aria-labelledby="etf-choice-heading">
+    <h2 id="etf-choice-heading">어떤 ETF가 더 좋을까 - 정답 대신 질문이 다르다</h2>
+    <div class="learn-grid">
+      <div><h3>시장 전체 성장을 오래 따라가려면</h3><p>광범위한 지수형을 먼저 본다. 지수 구성, 실제 총비용, 환율 노출, 추적 차이를 확인한다.</p></div>
+      <div><h3>현금흐름을 중요하게 본다면</h3><p>배당주형과 커버드콜을 구분한다. 분배율보다 <b>분배금 포함 총수익</b>과 분배 재원이 중요하다.</p></div>
+      <div><h3>하락을 일부 완충하려면</h3><p>버퍼 전략의 기준 기간·시작 시점·남은 완충 폭·상승 상한을 읽는다. 원금보장은 아니다.</p></div>
+      <div><h3>시장의 상대 강도에 주목한다면</h3><p>롱숏은 방향성 예측 대신 두 시장의 차이를 본다. 숏 포지션의 손실 가능성과 선물 구조를 확인한다.</p></div>
+    </div>
+    <p>더 넓게 보면 금리형·채권형은 투자 기간과 듀레이션, 금은 원자재 가격, 리츠는 금리와 부동산 수익,
+      레버리지·인버스는 일일 수익률의 누적 경로가 핵심이다. <b>ETF의 이름이 아니라 투자 목표와 상품 구조가 맞는지</b> 먼저 판단한다.</p>
+    <div class="learn-sources etf-source-list">
+      <strong>국내 상장 상품명·구조 확인 자료 (2026년 11월 기준)</strong>
+      <ul>
+        <li><a href="https://www.etfcheck.co.kr/" target="_blank" rel="noopener noreferrer">ETF CHECK · 국내 상장 ETF 종목·유형 조회</a></li>
+        <li><a href="https://kind.krx.co.kr/disclosure/etfisudetail.do?method=searchEtfIsuSummary&amp;strIsurCd=41106" target="_blank" rel="noopener noreferrer">KRX KIND · ACE KRX금현물</a> /
+            <a href="https://kind.krx.co.kr/disclosure/etfisudetail.do?method=searchEtfIsuSummary&amp;strIsurCd=47680" target="_blank" rel="noopener noreferrer">KODEX 한국부동산리츠인프라</a></li>
+        <li><a href="https://m.samsungfund.com/etf/product/view.do?id=2ETFP5" target="_blank" rel="noopener noreferrer">삼성자산운용 · 커버드콜 상품</a> /
+            <a href="https://m.samsungfund.com/etf/product/view.do?id=2ETFD3" target="_blank" rel="noopener noreferrer">롱숏 상품</a> /
+            <a href="https://m.samsungfund.com/etf/product/view.do?id=2ETFP7" target="_blank" rel="noopener noreferrer">만기매칭 채권형</a></li>
+        <li><a href="https://m.samsungfund.com/sheet/20251013/2ETFP8_20250930.pdf" target="_blank" rel="noopener noreferrer">삼성자산운용 · 버퍼 ETF 상품 자료</a> /
+            <a href="https://www.kiwoometf.com/service/etf/KO02010200M?gcode=0127T0" target="_blank" rel="noopener noreferrer">키움투자자산운용 · 생애주기 비중전환형</a></li>
+      </ul>
+      <p>상품별 약관·상장 상태·분배 정책이 바뀔 수 있다. 책에 실을 때에도 표의 종목코드는 해당 시점에 다시 대조하는 것이 좋다.</p>
+    </div>
+  </section>
+
   <section class="learn-sec">
   <h2 id="sec-13">ETF 이름부터 읽는다</h2>
   <p>이름에 많은 정보가 들어 있다. 한국 상장 ETF 이름에는 보통 운용사 브랜드, 추종 지수, 구조를 알려 주는 말이 붙는다.</p>
@@ -378,9 +562,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <tbody>
       <tr><td>운용사 브랜드(KODEX·TIGER 등)</td><td>어느 운용사 상품인지. 같은 지수라도 보수가 다를 수 있다.</td></tr>
       <tr><td>지수 이름(코스피200·S&amp;P500 등)</td><td>무엇을 따라가는지. 같은 나라 주식이어도 지수가 다르면 다른 상품이다.</td></tr>
-      <tr><td>(H)</td><td>환율 변동을 막는 환헤지. 없으면 환율이 수익률에 그대로 영향을 준다.</td></tr>
+      <tr><td>(H)</td><td>보통 환헤지 전략을 뜻한다. 환율을 완전히 제거하는 것은 아니며, 표기가 없어도 실제 환 노출 정도는 투자설명서로 확인한다.</td></tr>
       <tr><td>레버리지 / 인버스</td><td>하루 등락을 2배로 따라가거나 반대로 따라간다. 오래 들고 가는 상품이 아니다.</td></tr>
-      <tr><td>TR</td><td>분배금을 나눠 주지 않고 재투자하는 구조라는 뜻으로 쓰인다.</td></tr>
+      <tr><td>TR</td><td>배당 등을 재투자한다고 가정하는 총수익지수 표기다. 실제 ETF의 현금 분배 여부는 상품 규정과 공시로 별도 확인한다.</td></tr>
     </tbody>
   </table>
   <p>표기 방식은 운용사마다 조금씩 다르다. 이름만 믿지 말고 증권사 앱의 ETF 상세 화면이나 운용사 설명서에서
@@ -399,6 +583,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
       <tr><td>거래대금·호가 간격</td><td>사자마자 몇 %를 잃는지.</td></tr>
       <tr><td>환헤지 여부</td><td>해외 ETF라면 환율이 수익률에 끼는지.</td></tr>
       <tr><td>레버리지·인버스 여부</td><td>하루 단위 구조인지.</td></tr>
+      <tr><td>옵션 전략·손익 상한</td><td>커버드콜·버퍼의 운용 기간과 손익 구조.</td></tr>
+      <tr><td>선물·합성·액티브 운용</td><td>직접 보유 외 거래상대방·롤오버·운용판단 위험.</td></tr>
+      <tr><td>분배금 포함 총수익</td><td>분배율만 보고 수익을 과대평가하지 않는지.</td></tr>
     </tbody>
   </table>
   <p>차트는 이 표를 다 본 뒤에 본다. 차트에서 모양이 좋아 보이는 ETF가 괴리율이 크게 벌어져 있거나 거래가 없는 ETF인 경우가 있다.</p>
@@ -440,12 +627,12 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <section class="learn-sec">
   <h2 id="sec-16">한 줄 정리</h2>
-  <p>ETF는 여러 자산을 한 바구니에 담아 주식처럼 거래하는 구조일 뿐이고, 위험은 안에 든 자산과 상품 구조가 정한다.
-  살 때는 <b>무엇을 따라가는지 → 괴리율 → 보수 → 거래대금과 호가 간격</b> 순으로 본다. 레버리지와 인버스는 장기 수익률의
+  <p>ETF는 여러 자산을 한 바구니에 담아 주식처럼 거래하는 구조일 뿐이다. 위험은 안에 든 자산과 운용 전략이 함께 정한다.
+  살 때는 <b>무엇을 담는지 → 어떤 전략인지 → 괴리율 → 실제 총비용 → 거래대금과 호가 간격</b> 순으로 본다. 레버리지와 인버스는 장기 수익률의
   두 배·반대가 아니라 <b>하루 등락</b>을 따라가는 별개 구조라서, 오래 들고 있으면 지수가 본전이어도 내 돈은 깎인다.</p>
 
   <div class="learn-note">
-    이 글은 공부용 설명이고 투자 권유가 아니다. 특정 ETF를 사라거나 팔라고 말하지 않는다. 제도·세금·수수료는 상품과
+    이 글은 공부용 설명이고 투자 권유가 아니다. 특정 ETF를 사라거나 팔라고 말하지 않는다. 비교 그림의 숫자는 가정이며 제도·세금·수수료는 상품과
     시기에 따라 다르므로 중요한 결정 전에는 증권사와 운용사 공지를 확인한다.
   </div>
 
