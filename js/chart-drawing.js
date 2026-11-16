@@ -17,7 +17,7 @@
   var DRAWING_PUSH_DELAY_MS = 1500;
   var DRAWING_MAX_PATH_POINTS = 120;
   var ALL_KINDS = ['lines', 'paths', 'circles', 'hlines', 'boxes'];
-  var MODES = ['line', 'pencil', 'circle', 'box', 'hline', 'measure'];
+  var MODES = ['line', 'pencil', 'circle', 'box', 'hline', 'buyline', 'measure'];
 
   // ---- 계정 저장(2026-10-10 "로그인 기반으로 저장") ----
   // 로그인(Google)하면 종목·봉 주기별로 서버(GET/PUT /chart-drawings)에도 저장하고, 아니면 브라우저에만 둔다. 브라우저 저장은 항상 먼저 쓰는 캐시다.
@@ -199,7 +199,67 @@
     return x == null || y == null || !isFinite(x) || !isFinite(y) ? null : { x: x, y: y };
   }
 
+
+  function isPurchaseLine(shape) {
+    return !!shape && shape.label === '매입가' && shape.start && shape.end && shape.start.price === shape.end.price;
+  }
+  function horizontalPrice(shape) { return isPurchaseLine(shape) ? shape.start.price : shape.price; }
+  function setHorizontalPrice(shape, price) {
+    if (isPurchaseLine(shape)) { shape.start.price = price; shape.end.price = price; }
+    else shape.price = price;
+  }
+  function isHorizontalMode(mode) { return mode === 'hline' || mode === 'buyline'; }
+  function segmentDistance(x, y, a, b) {
+    var dx=b.x-a.x,dy=b.y-a.y,len=dx*dx+dy*dy;
+    var t=len?Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/len)):0;
+    return Math.hypot(x-a.x-t*dx,y-a.y-t*dy);
+  }
+  // Hit only user-drawn strokes, in reverse painting order; empty space never erases.
+  function shapeAt(d, coord, x, y, width, tolerance) {
+    var tol=tolerance||7,hit=null;
+    function scan(kind, test) {
+      var rows=d[kind]||[];
+      for(var i=rows.length-1;i>=0;i--)if(test(rows[i]))return {kind:kind,index:i};
+      return null;
+    }
+    function horizontal(shape) {
+      var y0=d.series.priceToCoordinate(horizontalPrice(shape)),lb=shape._label;
+      return y0!=null && ((x>=0&&x<=width&&Math.abs(y-y0)<=tol) ||
+        (lb&&x>=lb.x1&&x<=lb.x2&&y>=lb.y1&&y<=lb.y2));
+    }
+    if(d.measure) {
+      var ma=coord(d.measure.start),mb=coord(d.measure.end);
+      if(ma&&mb&&(segmentDistance(x,y,ma,{x:mb.x,y:ma.y})<=tol ||
+        segmentDistance(x,y,{x:mb.x,y:ma.y},mb)<=tol))return {kind:'measure',index:0};
+    }
+    hit=scan('lines',function(line){return isPurchaseLine(line)&&horizontal(line);});if(hit)return hit;
+    hit=scan('hlines',horizontal);if(hit)return hit;
+    hit=scan('boxes',function(box){
+      var a=coord(box.start),b=coord(box.end);if(!a||!b)return false;
+      return Math.min(segmentDistance(x,y,a,{x:b.x,y:a.y}),segmentDistance(x,y,{x:b.x,y:a.y},b),
+        segmentDistance(x,y,b,{x:a.x,y:b.y}),segmentDistance(x,y,{x:a.x,y:b.y},a))<=tol;
+    });if(hit)return hit;
+    hit=scan('circles',function(circle){
+      var a=coord(circle.start),b=coord(circle.end);if(!a||!b)return false;
+      var rx=Math.abs(a.x-b.x)/2,ry=Math.abs(a.y-b.y)/2;
+      if(rx<.5||ry<.5)return false;
+      var dx=x-(a.x+b.x)/2,dy=y-(a.y+b.y)/2;
+      var angle=Math.atan2(dy/ry,dx/rx);
+      return Math.hypot(dx-rx*Math.cos(angle),dy-ry*Math.sin(angle))<=tol;
+    });if(hit)return hit;
+    hit=scan('lines',function(line){
+      if(isPurchaseLine(line))return false;
+      var a=coord(line.start),b=coord(line.end);
+      return a&&b&&segmentDistance(x,y,a,b)<=tol;
+    });if(hit)return hit;
+    return scan('paths',function(path){
+      for(var i=1;i<path.length;i++){var a=coord(path[i-1]),b=coord(path[i]);if(a&&b&&segmentDistance(x,y,a,b)<=tol)return true;}
+      return false;
+    });
+  }
+
   var DEFAULT_TITLES = {
+    buyline: '왼쪽 클릭 후 매입가를 입력하세요. 선을 끌어 이동하고 금액을 눌러 수정할 수 있습니다. 오른쪽 클릭은 해당 선만 삭제합니다.',
     hline: '점선으로 위치를 미리 보고 클릭하면 가로선이 완성됩니다. 선을 끌면 이동하고 금액 표시를 누르면 직접 입력할 수 있습니다.',
     box: '끌어서 박스를 그리면 이름을 입력할 수 있습니다(구조·파동 구간 표시용).',
     line: '왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.',
@@ -360,6 +420,7 @@
       var stroke = style.stroke;
       d.paths.forEach(function (path) { if (Array.isArray(path) && path.length >= 2) strokePath(ctx, path, stroke, 2); });
       d.lines.forEach(function (line) {
+        if (isPurchaseLine(line)) return;
         var start = coord(line.start), end = coord(line.end);
         if (!start || !end) return;
         ctx.beginPath(); ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
@@ -393,11 +454,12 @@
         }
       });
       // 가로선: 클릭한 가격에 차트 전체 폭으로 긋고 오른쪽 끝에 금액 표시.
-      d.hlines.forEach(function (hl) {
-        var y = series.priceToCoordinate(hl.price);
+      horizontalLines().forEach(function (hl) {
+        var y = series.priceToCoordinate(horizontalPrice(hl));
         if (y == null) return;
         ctx.beginPath(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-        var txt = hl.price >= 1000 ? Math.round(hl.price).toLocaleString('ko-KR') : String(Math.round(hl.price * 100) / 100);
+        var amount = horizontalPrice(hl);
+        var txt = (isPurchaseLine(hl) ? '매입가 ' : '') + (amount >= 1000 ? Math.round(amount).toLocaleString('ko-KR') : String(Math.round(amount * 100) / 100));
         ctx.font = '700 11px sans-serif';
         var tw = ctx.measureText(txt).width + 10;
         hl._y = y;
@@ -405,7 +467,7 @@
         ctx.fillStyle = stroke; ctx.fillRect(width - tw - 4, y - 18, tw, 16);
         ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(txt, width - tw + 1, y - 10);
       });
-      if (d.mode === 'hline' && d.hlinePreview != null && !d.dragHline) {
+      if (isHorizontalMode(d.mode) && d.hlinePreview != null && !d.dragHline) {
         var previewY = series.priceToCoordinate(d.hlinePreview);
         if (previewY != null) {
           ctx.save(); ctx.setLineDash([5, 4]); ctx.globalAlpha = 0.65;
@@ -479,30 +541,37 @@
 
     function setMode(mode) {
       mode = tools.indexOf(mode) > -1 ? mode : null;
-      if (d.dragHline) d.dragHline.hl.price = d.dragHline.originalPrice;
+      if (d.dragHline) setHorizontalPrice(d.dragHline.hl, d.dragHline.originalPrice);
       overlay.style.cursor = '';
       d.mode = mode; d.enabled = !!mode;
       d.pending = null; d.preview = null; d.previewPoint = null; d.activePath = null; d.dragHline = null; d.hlinePreview = null; d.hlineDraft = null;
       if (overlay.classList) { overlay.classList.toggle('is-active', !!mode); overlay.classList.toggle('is-pencil', mode === 'pencil'); }
       paintButtons(mode);
-      var titles = opts.titles || DEFAULT_TITLES;
+      var titles = Object.assign({}, DEFAULT_TITLES, opts.titles || {});
       overlay.title = mode ? (titles[mode] || '') : (opts.title || '');
       redraw();
       if (opts.onModeChange) opts.onModeChange(mode);
     }
 
     function clearAll() {
+      if (!drawingsHaveShapes(d) && !d.measure) return false;
+      if (typeof global.confirm !== 'function' || !global.confirm('이 차트에 직접 그린 도형과 매입가선을 모두 지울까요?')) return false;
+      if (d.dragHline) setHorizontalPrice(d.dragHline.hl, d.dragHline.originalPrice);
+      d.dragHline = null;
       d.lines = []; d.paths = []; d.circles = []; d.hlines = []; d.boxes = []; d.measure = null;
       d.pending = null; d.preview = null; d.activePath = null; d.hlinePreview = null; d.hlineDraft = null;
       persist();
       redraw();
+      return true;
     }
+
+    function horizontalLines() { return d.hlines.concat(d.lines.filter(isPurchaseLine)); }
 
     // ---- 입력 ----
     // 가로선 모드에서 (px, py)에 걸리는 가로선. 금액 라벨이 먼저, 그다음 선 위아래 6px.
     function hlineAt(px, py) {
       var found = null;
-      d.hlines.forEach(function (hl) {
+      horizontalLines().slice().reverse().forEach(function (hl) {
         if (found || hl._y == null) return;
         var lb = hl._label;
         if (lb && px >= lb.x1 && px <= lb.x2 && py >= lb.y1 && py <= lb.y2) found = { hl: hl, onLabel: true };
@@ -513,7 +582,7 @@
     // 금액 라벨은 가격축 위에 그려진다. 공통 엔진의 가격축 드래그(chart-core, capture 단계)가
     // 이 점을 먼저 묻고 양보하도록 그리기 층이 자기 가로선 적중 여부를 알려 준다(2026-11-09).
     overlay.ncDrawingHit = function (clientX, clientY) {
-      if (detached || !d.enabled || d.mode !== 'hline') return false;
+      if (detached || !d.enabled || !isHorizontalMode(d.mode)) return false;
       var rect = overlay.getBoundingClientRect();
       return !!hlineAt(clientX - rect.left, clientY - rect.top);
     };
@@ -524,17 +593,18 @@
       // 그리기(가로선·박스·직선·동그라미·연필)는 마우스 왼쪽 버튼으로만. 오른쪽·휠 클릭은 무시한다(2026-10-10 요청).
       if (event.button != null && event.button !== 0) return;
       var rect = overlay.getBoundingClientRect();
-      var point = d.mode === 'hline' ? { price: Number(series.coordinateToPrice(event.clientY - rect.top)) } : pointFromEvent(event, strict);
+      var point = isHorizontalMode(d.mode) ? { price: Number(series.coordinateToPrice(event.clientY - rect.top)) } : pointFromEvent(event, strict);
       if (!point || !isFinite(point.price)) return;
       event.preventDefault();
+      if (event.isPrimary === false) return;
       if (d.mode === 'pencil') d.activePath = [point];
-      else if (d.mode === 'hline') {
+      else if (isHorizontalMode(d.mode)) {
         // 가로선 금액 수정(2026-10-10): 금액 라벨을 누르면 숫자를 직접 입력, 선을 끌면 가격이 따라 움직인다.
         var py = event.clientY - rect.top;
         var found = hlineAt(event.clientX - rect.left, py), hit = found && found.hl;
         if (hit) {
           d.hlinePreview = null;
-          d.dragHline = { hl: hit, onLabel: found.onLabel, startY: py, moved: false, originalPrice: hit.price };
+          d.dragHline = { hl: hit, onLabel: found.onLabel, startY: py, moved: false, originalPrice: horizontalPrice(hit) };
           overlay.style.cursor = 'ns-resize';
           if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
           return;
@@ -560,16 +630,16 @@
         if (Math.abs(dy - d.dragHline.startY) > 3) d.dragHline.moved = true;
         if (d.dragHline.moved) {
           var moved = series.coordinateToPrice(dy);
-          if (moved != null && isFinite(Number(moved)) && Number(moved) > 0) d.dragHline.hl.price = Number(moved);
+          if (moved != null && isFinite(Number(moved)) && Number(moved) > 0) setHorizontalPrice(d.dragHline.hl, Number(moved));
           redraw();
         }
         return;
       }
-      if (d.mode === 'hline') {
+      if (isHorizontalMode(d.mode)) {
         var hoverY = event.clientY - rect.top;
         var hoverPrice = series.coordinateToPrice(hoverY);
         var inside = event.clientX >= rect.left && event.clientX <= rect.right && hoverY >= 0 && hoverY <= rect.height;
-        var nearLine = d.hlines.some(function (hl) { var y = series.priceToCoordinate(hl.price); return y != null && Math.abs(y - hoverY) <= 6; });
+        var nearLine = horizontalLines().some(function (hl) { var y = series.priceToCoordinate(horizontalPrice(hl)); return y != null && Math.abs(y - hoverY) <= 6; });
         overlay.style.cursor = nearLine ? 'ns-resize' : 'crosshair';
         d.hlinePreview = inside && !nearLine && Number(hoverPrice) > 0 && isFinite(Number(hoverPrice)) ? Number(hoverPrice) : null;
         redraw();
@@ -595,32 +665,41 @@
     }
 
     function onPointerUp(event, cancelled) {
+      if (event && event.button != null && event.button !== 0) return;
       release(event);
       if (d.dragHline) {
         var dragged = d.dragHline;
         d.dragHline = null;
         overlay.style.cursor = '';
-        if (cancelled) { dragged.hl.price = dragged.originalPrice; redraw(); return; }
+        if (cancelled) { setHorizontalPrice(dragged.hl, dragged.originalPrice); redraw(); return; }
         if (!dragged.moved && dragged.onLabel && !cancelled) {
-          var current = dragged.hl.price, typed = null;
-          try { typed = global.prompt('가로선 금액을 입력하세요(비우면 선을 삭제합니다)', current >= 1000 ? String(Math.round(current)) : String(Math.round(current * 100) / 100)); } catch (e) { typed = null; }
+          var current = horizontalPrice(dragged.hl), typed = null;
+          try { typed = global.prompt('가로선 금액을 입력하세요(양수를 입력하세요)', current >= 1000 ? String(Math.round(current)) : String(Math.round(current * 100) / 100)); } catch (e) { typed = null; }
           if (typed !== null) {
             var cleaned = String(typed).replace(/[,\s원$]/g, '');
-            if (cleaned === '') d.hlines = d.hlines.filter(function (item) { return item !== dragged.hl; });
-            else if (isFinite(Number(cleaned)) && Number(cleaned) > 0) dragged.hl.price = Number(cleaned);
+            if (cleaned !== '' && isFinite(Number(cleaned)) && Number(cleaned) > 0) setHorizontalPrice(dragged.hl, Number(cleaned));
           }
         }
         persist();
         redraw();
         return;
       }
-      if (d.mode === 'hline' && d.hlineDraft != null) {
+      if (isHorizontalMode(d.mode) && d.hlineDraft != null) {
         var hRect = overlay.getBoundingClientRect();
         var inPlot = event.clientX >= hRect.left && event.clientX <= hRect.right && event.clientY >= hRect.top && event.clientY <= hRect.bottom;
         var hPrice = series.coordinateToPrice(event.clientY - hRect.top);
         if (!cancelled && inPlot && Number(hPrice) > 0 && isFinite(Number(hPrice))) {
-          d.hlines.push({ price: Number(hPrice) });
-          persist();
+          if (d.mode === 'buyline') {
+            var typedBuy = global.prompt('매입가를 입력하세요', String(Math.round(Number(hPrice) * 100) / 100));
+            var priceBuy = typedBuy === null ? NaN : Number(String(typedBuy).replace(/[,\s원$]/g, ''));
+            var anchorBuy = pointFromEvent(event, strict);
+            if (priceBuy > 0 && priceBuy <= 1e12 && isFinite(priceBuy) && anchorBuy) {
+              anchorBuy.price = priceBuy;
+              d.lines = d.lines.filter(function (line) { return !isPurchaseLine(line); });
+              d.lines.push({start:Object.assign({},anchorBuy),end:Object.assign({},anchorBuy),label:'매입가'});
+              persist();
+            }
+          } else { d.hlines.push({ price: Number(hPrice) }); persist(); }
         }
         d.hlineDraft = null; d.hlinePreview = null;
         redraw();
@@ -675,12 +754,20 @@
       if (d.mode === 'measure') d.previewPoint = snapToBarExtreme(d, pointFromEvent(event, strict), d.preview.y);
       redraw();
     });
-    scope.on(overlay, 'contextmenu', function (event) {
-      if (!d.enabled) return;
-      event.preventDefault();
-      release(event);
-      setMode(null);
-    });
+    scope.on(container, 'contextmenu', function (event) {
+      if (detached) return;
+      var rect=overlay.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
+      if(x<0||y<0||x>rect.width||y>rect.height)return;
+      var hit=shapeAt(d,coord,x,y,rect.width);
+      if(!hit) { if(d.enabled)event.preventDefault(); return; }
+      event.preventDefault();event.stopPropagation();
+      if(d.dragHline)setHorizontalPrice(d.dragHline.hl,d.dragHline.originalPrice);
+      d.dragHline=null;d.pending=null;d.preview=null;d.activePath=null;d.hlineDraft=null;d.hlinePreview=null;
+      if(hit.kind==='measure')d.measure=null;
+      else d[hit.kind].splice(hit.index,1);
+      overlay.style.cursor='';
+      persist();redraw();
+    }, true);
     scope.on(overlay, 'mouseleave', function () {
       if (d.mode === 'pencil' && d.activePath) return;
       d.preview = null; d.hlinePreview = null;
@@ -715,7 +802,9 @@
     });
     if (buttons.clear) {
       if ('disabled' in buttons.clear) buttons.clear.disabled = false;
-      buttons.clear.onclick = function () { clearAll(); setMode(null); };
+      buttons.clear.textContent = '전체 지우기';
+      buttons.clear.title = '이 차트의 직접 그린 도형을 확인 후 모두 지웁니다. 개별 삭제는 도형 위 오른쪽 클릭입니다.';
+      buttons.clear.onclick = function () { if (clearAll()) setMode(null); };
     }
 
     function detach() {
@@ -757,7 +846,7 @@
   }
 
   global.NineChartDrawing = {
-    attach: attach, loadShapes: loadShapes, writeShapesLocal: writeShapesLocal,
+    shapeAt: shapeAt, isPurchaseLine:isPurchaseLine, attach: attach, loadShapes: loadShapes, writeShapesLocal: writeShapesLocal,
     anchoredFromXY: anchoredFromXY, anchoredToXY: anchoredToXY,
     measureMetrics: measureMetrics, measureLabelLines: measureLabelLines, snapToBarExtreme: snapToBarExtreme,   // 측정 도구(검증용으로도 내보낸다)
     // 계정 저장 부품(검증·점검용)

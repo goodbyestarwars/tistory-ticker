@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261106-shared-axis-toolbar';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261116-drawing-actions';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -778,9 +778,10 @@
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-box-toggle" aria-pressed="false">박스</button>'
       + '<button type="button" class="ss-hline-toggle" aria-pressed="false">가로선</button>'
+      + '<button type="button" class="ss-buyline-toggle" aria-pressed="false">매입가</button>'
       + '<button type="button" class="ss-measure-toggle" aria-pressed="false" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
-      + '<button type="button" class="ss-draw-clear">지우기</button>'
+      + '<button type="button" class="ss-draw-clear">전체 지우기</button>'
       + '</div>'
       + '<div class="nine-chart-action-stack"><div class="nine-chart-capture-actions">'
       + '<button type="button" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
@@ -1394,7 +1395,7 @@
         // 예전 캔버스 배치에서 저장된 잘못된 좌표를 다시 그리지 않는다.
         bars: bars, key: 'INDEX_V2_' + symbol, timeframe: indexTimeframe,
         className: 'ss-drawing-layer', ariaLabel: '지수 차트 그리기 영역',
-        bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline', 'measure'],
+        bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline', 'buyline', 'measure'],
         buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
         style: { stroke: '#e11d48', dots: true, previewDash: true }, sync: false
       });
@@ -1552,9 +1553,10 @@
             + '<button type="button" class="ss-circle-toggle">동그라미</button>'
             + '<button type="button" class="ss-box-toggle">박스</button>'
             + '<button type="button" class="ss-hline-toggle">가로선</button>'
+            + '<button type="button" class="ss-buyline-toggle" aria-pressed="false">매입가</button>'
             + '<button type="button" class="ss-measure-toggle" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
             + '<button type="button" class="ss-pencil-toggle">연필</button>'
-            + '<button type="button" class="ss-draw-clear">지우기</button>'
+            + '<button type="button" class="ss-draw-clear">전체 지우기</button>'
             + '</div><div class="nine-chart-action-stack"><div class="nine-chart-capture-actions">'
             + '<button type="button" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
             + '<button type="button" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button>'
@@ -2679,9 +2681,10 @@
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-box-toggle" aria-pressed="false">박스</button>'
       + '<button type="button" class="ss-hline-toggle" aria-pressed="false">가로선</button>'
+      + '<button type="button" class="ss-buyline-toggle" aria-pressed="false">매입가</button>'
       + '<button type="button" class="ss-measure-toggle" aria-pressed="false" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
-      + '<button type="button" class="ss-draw-clear">지우기</button>'
+      + '<button type="button" class="ss-draw-clear">전체 지우기</button>'
       + '</div>'
       + '<div class="nine-chart-action-stack"><div class="nine-chart-capture-actions">'
       + '<button type="button" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
@@ -2952,7 +2955,7 @@
     return {
       line: scope.querySelector('.ss-draw-toggle'), pencil: scope.querySelector('.ss-pencil-toggle'),
       circle: scope.querySelector('.ss-circle-toggle'), box: scope.querySelector('.ss-box-toggle'),
-      hline: scope.querySelector('.ss-hline-toggle'), measure: scope.querySelector('.ss-measure-toggle'), clear: scope.querySelector('.ss-draw-clear')
+      hline: scope.querySelector('.ss-hline-toggle'), buyline: scope.querySelector('.ss-buyline-toggle'), measure: scope.querySelector('.ss-measure-toggle'), clear: scope.querySelector('.ss-draw-clear')
     };
   }
 
@@ -2970,7 +2973,7 @@
       core: core, container: element, chart: chart, series: series, bars: bars || [],
       key: state.selectedCode, timeframe: timeframe,
       className: 'ss-drawing-layer', ariaLabel: '차트 추세선 그리기 영역',
-      bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline', 'measure'],
+      bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline', 'buyline', 'measure'],
       buttons: stockDrawingButtons(element), store: STOCK_DRAWING_STORE,
       style: { stroke: '#e11d48', dots: true, previewDash: true },
       sync: timeframe !== 'minute'
