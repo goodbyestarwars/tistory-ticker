@@ -270,25 +270,27 @@ a { text-decoration: none; color: inherit; }
   transform: none;
 }
 
-/* PC 검색창은 로고·오른쪽 버튼의 너비와 무관하게 화면 가로 중앙.
-   충분히 넓은 PC에선 navbar(56px)+메뉴줄(--topbar-height)을 합친
-   머리말 전체의 세로 중앙에 둔다. 좁은 PC는 메뉴 겹침을 피하도록 로고 행 중앙. */
+/* PC는 로고·검색·아이콘을 같은 행의 독립된 칸에 배치한다.
+   양쪽 최소 폭을 동일하게 확보해 검색창 중앙 정렬과 메뉴/아이콘 간격을 함께 유지한다. */
 @media (min-width: 721px) {
+  .navbar {
+    display: grid;
+    grid-template-columns: minmax(230px, 1fr) minmax(0, 760px) minmax(230px, 1fr);
+  }
+  .navbar .nav-logo { grid-column: 1; grid-row: 1; min-width: 0; }
   .navbar .nav-search {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: min(560px, calc(100% - 500px));
-    max-width: none;
-    flex: none;
+    grid-column: 2;
+    grid-row: 1;
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 760px;
     margin: 0;
-    transform: translate(-50%, -50%);
+    transform: none;
   }
-}
-@media (min-width: 1280px) {
-  .navbar .nav-search {
-    top: calc((56px + var(--topbar-height)) / 2);
-  }
+  .navbar .nav-icons { grid-column: 3; grid-row: 1; justify-self: end; margin-left: 0; }
 }
 
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
@@ -9308,8 +9310,7 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
 }
 
 
-/* 2026-11-15 | 상단 종목 검색 좌우 확장: 가운데 정렬·좌우 메뉴 안전 여백 보존 */
+/* 상단 검색 확장 패널: 닫힌 검색창의 grid 배치와 독립 */
 @media (min-width:721px) {
-  .navbar .nav-search { width:min(760px, calc(100% - 430px)); }
   html.search-open body .nav-search-wrap { width:min(1240px, calc(100vw - 32px)) !important; }
 }
