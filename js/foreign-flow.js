@@ -126,7 +126,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261116-drawing-actions';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261105-capture1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -4964,12 +4964,10 @@
         + '<div class="ff-draw-tools" role="group" aria-label="차트 그리기 도구"><div class="nine-chart-drawing-segment" role="group" aria-label="그리기 도구">'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="line" aria-pressed="false" disabled>직선</button>'
-        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="hline" aria-pressed="false" disabled>가로선</button>'
-        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="buyline" aria-pressed="false" disabled>매입가</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="circle" aria-pressed="false" disabled>동그라미</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="pencil" aria-pressed="false" disabled>연필</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="measure" aria-pressed="false" disabled title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
-        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>전체 지우기</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
         + '</div><div class="nine-chart-action-stack"><div class="nine-chart-capture-actions">'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-chart-capture="save" title="차트를 2배 해상도 PNG로 저장">📷 저장</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-chart-capture="copy" title="차트를 클립보드에 복사">복사</button>'
@@ -6833,7 +6831,7 @@
   // 저장 키·형식은 예전과 같다(`tistory-ticker:flow-drawings:<종목>:day`, 직선·동그라미·연필).
   var FLOW_DRAWING_STORE = {
     key: function (code) { return 'tistory-ticker:flow-drawings:' + String(code || '') + ':day'; },
-    kinds: ['lines', 'circles', 'paths', 'hlines', 'boxes'],
+    kinds: ['lines', 'circles', 'paths'],
     legacyArray: false
   };
   var FLOW_DRAWING_TITLE = '도구 선택 후 왼쪽에서 오른쪽으로 드래그하세요.';
@@ -6860,7 +6858,7 @@
       className: 'ff-drawing-layer', ariaLabel: '가격 차트 그리기 영역', title: FLOW_DRAWING_TITLE,
       titles: { line: FLOW_DRAWING_TITLE, circle: FLOW_DRAWING_TITLE, pencil: FLOW_DRAWING_TITLE },
       bounds: 'pricePane', point: 'timePrice', clampToCanvas: true, minLengthPx: 3,
-      tools: ['line', 'circle', 'pencil', 'hline', 'buyline', 'measure'], buttons: flowDrawingButtons(container), store: FLOW_DRAWING_STORE,
+      tools: ['line', 'circle', 'pencil', 'measure'], buttons: flowDrawingButtons(container), store: FLOW_DRAWING_STORE,
       style: { stroke: '#d24f45', dots: false, previewDash: false },
       sync: false, disableButtonsOnDetach: true
     });

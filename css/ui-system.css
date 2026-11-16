@@ -445,10 +445,5 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
 .nine-breadth-bar .is-up { background:color-mix(in srgb,var(--chart-fill-up) 55%,var(--num-up)); }
 .nine-breadth-bar .is-down { background:color-mix(in srgb,var(--chart-fill-down) 55%,var(--num-down)); }
 .nine-breadth-bar .is-flat { background:var(--ui-rule); }
-.nine-purchase-editor { display:flex; flex:1 0 100%; flex-wrap:wrap; align-items:center; gap:6px; box-sizing:border-box; width:100%; padding:8px 0; margin:0; border-top:1px solid var(--ui-rule); color:var(--ui-ink); }
-.nine-purchase-editor label { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; }
-.nine-purchase-editor input { box-sizing:border-box; width:120px; min-width:0; padding:6px 8px; border:1px solid var(--ui-rule); border-radius:6px; background:var(--ui-surface); color:var(--ui-ink); font:inherit; }
-.nine-purchase-editor [role="status"] { color:var(--ui-muted); font-size:11px; }
 @media(max-width:720px) { .nine-category-breadth { margin:4px 0; width:100%; } }
 
-.nine-chart-drawing-segment:has(> .nine-purchase-editor) { flex-wrap:wrap; }
