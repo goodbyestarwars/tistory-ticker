@@ -1,33 +1,33 @@
 /**
- * 9bolt ��Ų ���� ��ũ��Ʈ (git ����)
- * ���� skin.html �ϴ� �ζ��� <script> ���Ͽ� �ִ� �ڵ带 �״�� ������ ��.
- * ���� �� push�ϸ� GitHub Pages ĳ��(�ִ� 10��) ���� ���α׿� �ݿ��ȴ�.
+ * 9bolt 스킨 공통 스크립트 (git 관리)
+ * 원래 skin.html 하단 인라인 <script> 블록에 있던 코드를 그대로 이전한 것.
+ * 수정 후 push하면 GitHub Pages 캐시(최대 10분) 지나 블로그에 반영된다.
  *
- * skin.html���� ������ ���� �־�� ��:
- *  - head�� ��ũ���/��Ʈ ���� ���� ��ũ��Ʈ (FOUC ���� - �ܺ�ȭ ����)
- *  - head�� full-width-page ��� ���� ��ũ��Ʈ
- *  - �ǵ��� pinnedNotice ��ũ��Ʈ (�ǵ� ��ũ���� �� ��)
- *  - �� ���ϰ� skin-menu.js�� �ҷ����� <script src> �� ��
+ * skin.html에는 다음만 남아 있어야 함:
+ *  - head의 다크모드/폰트 조기 적용 스크립트 (FOUC 방지 - 외부화 금지)
+ *  - head의 full-width-page 경로 감지 스크립트
+ *  - 피드의 pinnedNotice 스크립트 (피드 마크업과 한 몸)
+ *  - 이 파일과 skin-menu.js를 불러오는 <script src> 두 줄
  *
- * ���� ���: iframe ��� / ��ũ��� / ī�װ��� �Ľ̡����� �� /
- * ��ƼŬ ��� / ������������ / ǥ ��ũ�� ���� / ��� �ٹٲ� / ����� ��ξ�˻�
+ * 포함 기능: iframe 모드 / 다크모드 / 카테고리 파싱·필터 탭 /
+ * 아티클 모달 / 공유·더보기 / 표 스크롤 래핑 / 요약 줄바꿈 / 모바일 드로어·검색
  *
- * 2026-07-17(9��): KRX ���� ƼĿ fetch/�Ľ�/���� ������ js/quick-indices.js�� �Ű��
- * (�������� ���� "��޼Ӻ�" �гη� ����) - �� ���Ͽ����� ���ŵ�.
+ * 2026-07-17(9차): KRX 공시 티커 fetch/파싱/렌더 로직을 js/quick-indices.js로 옮겼다
+ * (관심지수 바의 "긴급속보" 패널로 흡수) - 이 파일에서는 제거됨.
  *
- * 2026-07-22: ����Ķ����(���� Ķ���� ����)�� �� ������ �߾� ���(openCalendarModal)
- * ��Ŀ��� ���� ������(js/stock-calendar.js, #stock-calendar ����Ʈ)�� �Ű�� - ����
- * �ִ� openCalendarModal/initCalendarWidget�� ������.
+ * 2026-07-22: 증시캘린더(구글 캘린더 위젯)를 이 파일의 중앙 모달(openCalendarModal)
+ * 방식에서 독립 페이지(js/stock-calendar.js, #stock-calendar 마운트)로 옮겼다 - 여기
+ * 있던 openCalendarModal/initCalendarWidget은 삭제됨.
  */
-/* 2026-08-30: skin-ready�� �� �̻� ȭ���� ������ �ʴ´�(�ٰŴ� skin.html��
-   #initial-paint-guard �ּ�). style.css�� ��� ��ū�� Ȯ���ϴ� �� �� Ŭ������ ����,
-   skin.html�� ���� �� ������ Ƽ���丮 ��Ų������ Ŭ������ �ٵ��� ���⼭�� ���δ�.
-   ���� �� ������ ��ٸ��� �ʰ� ��� ���δ�. */
+/* 2026-08-30: skin-ready는 더 이상 화면을 가리지 않는다(근거는 skin.html의
+   #initial-paint-guard 주석). style.css가 배경 토큰을 확정하는 데 이 클래스를 쓰고,
+   skin.html이 아직 옛 버전인 티스토리 스킨에서도 클래스가 붙도록 여기서도 붙인다.
+   가릴 게 없으니 기다리지 않고 즉시 붙인다. */
 document.documentElement.classList.add('skin-ready');
 
-/* ���� ��ũ��� ��� (���� ���� ��ũ��Ʈ�� head�� ����) ����
-   ��� ���� ����̶� ȭ�� ���� ������ �����ϰ� �ٷ� �����Ѵ�. �Ʒ� start() �ȿ� ���� ����
-   ��ú��� �ʱ�ȭ�� ������ ��ȸ�� Ȩ���� ��ư�� �������� �ʾҴ�(2026-11-12). */
+/* ── 다크모드 토글 (조기 적용 스크립트는 head에 있음) ──
+   헤더 공통 기능이라 화면 접근 판정과 무관하게 바로 연결한다. 아래 start() 안에 있을 때는
+   대시보드 초기화가 막히는 비회원 홈에서 버튼이 동작하지 않았다(2026-11-12). */
 (function () {
   var btn = document.getElementById('darkModeBtn');
   if (!btn) return;
@@ -37,18 +37,18 @@ document.documentElement.classList.add('skin-ready');
   });
 })();
 
-/* Ȩ ���Ϻ긮�� ĳ����(�ֽ� �긮�� ī�带 �¿�� �ѱ�). ȸ�� ��ú���(buildHomeDashboard)�� ��ȸ�� Ȩ(js/guest-home.js)��
-   ���� ��ũ�������� SiteInteractions.carousel�� ����. ī��� Ƽ���丮 ���� .post-card�� �Ű� ��´�(���� ����). */
+/* 홈 마켓브리핑 캐러셀(최신 브리핑 카드를 좌우로 넘김). 회원 대시보드(buildHomeDashboard)와 비회원 홈(js/guest-home.js)이
+   같은 마크업·같은 SiteInteractions.carousel을 쓴다. 카드는 티스토리 원본 .post-card를 옮겨 담는다(복제 금지). */
 window.NineHomeBriefing = window.NineHomeBriefing || {
   build: function (cards) {
     var briefing = document.createElement('section');
     briefing.className = 'home-briefing-section';
-    briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">������ �д� ���� ��Ʈ</span><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 6h4" /> <path d="M2 10h4" /> <path d="M2 14h4" /> <path d="M2 18h4" /> <rect width="16" height="20" x="4" y="2" rx="2" /> <path d="M9.5 8h5" /> <path d="M9.5 12H16" /> <path d="M9.5 16H14" /> </svg> ���Ϻ긮��</strong>'
-      + '<p>�ְ��� ������ ��ǰ� �帧, �ٽ� �ؼ��� ���캸����.</p></div>'
-      + '<a class="home-briefing-more" href="/category/���� �긮��"><svg class="briefing-archive-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg><span>�긮�� ��ī�̺�</span> <i aria-hidden="true">��</i></a></div>'
-      + '<div class="home-briefing-grid briefing-carousel-track" tabindex="0" role="region" aria-label="���Ϻ긮�� ī��"></div>'
-      + '<div class="briefing-carousel-controls"><input class="briefing-carousel-progress" type="range" min="0" max="1000" value="0" aria-label="�긮�� ī�� �̵� ��ġ">'
-      + '<div><button type="button" data-briefing-prev aria-label="���� �긮��">��</button><button type="button" data-briefing-next aria-label="���� �긮��">��</button></div></div>';
+    briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 6h4" /> <path d="M2 10h4" /> <path d="M2 14h4" /> <path d="M2 18h4" /> <rect width="16" height="20" x="4" y="2" rx="2" /> <path d="M9.5 8h5" /> <path d="M9.5 12H16" /> <path d="M9.5 16H14" /> </svg> 마켓브리핑</strong>'
+      + '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>'
+      + '<a class="home-briefing-more" href="/category/마켓 브리핑"><svg class="briefing-archive-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg><span>브리핑 아카이브</span> <i aria-hidden="true">↗</i></a></div>'
+      + '<div class="home-briefing-grid briefing-carousel-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>'
+      + '<div class="briefing-carousel-controls"><input class="briefing-carousel-progress" type="range" min="0" max="1000" value="0" aria-label="브리핑 카드 이동 위치">'
+      + '<div><button type="button" data-briefing-prev aria-label="이전 브리핑">←</button><button type="button" data-briefing-next aria-label="다음 브리핑">→</button></div></div>';
     var track = briefing.querySelector('.briefing-carousel-track');
     cards.forEach(function (card, index) {
       card.classList.add('home-briefing-card');
@@ -65,8 +65,8 @@ window.NineHomeBriefing = window.NineHomeBriefing || {
   }
 };
 
-/* �����(��720px) �ϴ� �ǹ� + ���� ��� + Ȩ ���� ��������(2026-11-08). 720px ���Ͽ����� ������ �޴´� - PC�� ���� �ʴ´�.
-   ������ �� �Լ��� �Ʒ� �� ȣ���� �����(���̺� ������ �ּ� ?mtabs=off). js/home-mobile-tabs.js, css/home-mobile-tabs.css, docs/UI_GUIDE.md '����� �ϴ� �ǹ�' */
+/* 모바일(≤720px) 하단 탭바 + 얇은 헤더 + 홈 섹션 스와이프(2026-11-08). 720px 이하에서만 파일을 받는다 - PC는 받지 않는다.
+   끄려면 이 함수와 아래 두 호출을 지운다(라이브 점검은 주소 ?mtabs=off). js/home-mobile-tabs.js, css/home-mobile-tabs.css, docs/UI_GUIDE.md '모바일 하단 탭바' */
 function loadMobileTabs() {
   if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
   if (document.querySelector('script[data-mobile-tabs]')) return;
@@ -83,14 +83,14 @@ function loadMobileTabs() {
   script.setAttribute('data-mobile-tabs', '1');
   document.body.appendChild(script);
 }
-/* ��ȸ�� Ȩ(/)�� NineAccess.run�� �Ʒ� start()�� ���� ��ú��带 �������� �ʴ´�. �ǹٴ� �ü��������� ������
-   ���� ������̼��̹Ƿ� guest-home.js�� ����Ʈ�� �˸���(html.guest-home-mode + nine:guest-home) ���� �δ��� �����Ѵ�. */
+/* 비회원 홈(/)은 NineAccess.run이 아래 start()를 막아 대시보드를 시작하지 않는다. 탭바는 시세·위젯과 무관한
+   공개 내비게이션이므로 guest-home.js가 마운트를 알리면(html.guest-home-mode + nine:guest-home) 같은 로더만 실행한다. */
 if (document.documentElement.classList.contains('guest-home-mode')) loadMobileTabs();
 else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true });
 
-/* ���� �� ���⡤������ ȸ�� ��ú��� ���Ѱ� ������ ���� �����̴�. */
+/* 공개 글 열기·공유는 회원 대시보드 권한과 독립된 공통 동작이다. */
 (function () {
-  /* ���� ��ƼŬ ��� ���� */
+  /* ── 아티클 모달 ── */
   function openArticleModal(url, title, wide, zoom) {
     var old = document.getElementById('bolt-modal');
     if (old) old.remove();
@@ -105,8 +105,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         '<div class="nm-header">' +
           '<span class="nm-title">' + (title || '') + '</span>' +
           '<div class="nm-actions">' +
-            '<a href="' + url + '" target="_blank" class="nm-ext">��â ���� ��</a>' +
-            '<button class="nm-close" id="nmClose">?</button>' +
+            '<a href="' + url + '" target="_blank" class="nm-ext">새창 열기 ↗</a>' +
+            '<button class="nm-close" id="nmClose">✕</button>' +
           '</div>' +
         '</div>' +
         iframeHTML +
@@ -149,7 +149,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (e.key === 'Escape') closeArticleModal();
   });
 
-  /* ���� ���� ���� ���� */
+  /* ── 전역 노출 ── */
   window.readPost = function(btn) {
     var card = btn.closest('.post-card');
     if (!card) return;
@@ -170,7 +170,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(function() {
         var orig = btn.textContent;
-        btn.textContent = '? �����';
+        btn.textContent = '✓ 복사됨';
         btn.style.background = '#dcfce7'; btn.style.borderColor = '#86efac'; btn.style.color = '#15803d';
         setTimeout(function() {
           btn.textContent = orig; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
@@ -181,11 +181,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
 })();
 
-/* �޸� ������ Ȩ ��ú��� üũ�� �����̴�. */
+/* 메모 권한은 홈 대시보드 체크와 독립이다. */
 (function () {
-  /* 2026-09-23 ����� ��û("�޸� ���") - ��ü ���������� �ߴ� �÷��� �޸� ��ư.
-     dashboard-enhancements�� �޸� ��� ���� ���� �׻� �ε��Ѵ�(��� ������������
-     �޸� ���� �� �־�� �ϴ� ����̶�). */
+  /* 2026-09-23 사용자 요청("메모 기능") - 전체 페이지에서 뜨는 플로팅 메모 버튼.
+     dashboard-enhancements와 달리 경로 제한 없이 항상 로드한다(어느 페이지에서든
+     메모를 남길 수 있어야 하는 기능이라). */
   (function loadMemoWidget() {
     if (window.NineAccess) { (window.NineAccess.whenMember || window.NineAccess.whenAdmin)(loadMemoWidgetNow, 'memo'); return; }
     window.addEventListener('nineaccess:ready', function () { if (window.NineAccess) window.NineAccess.whenMember(loadMemoWidgetNow, 'memo'); }, {once:true});
@@ -206,8 +206,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
 })();
 
-/* 2026-11-11 ȭ�� ���� ��å: ��ȣ ȭ��(Ȩ������MY ��)�� ���� ����(NineAccess) �ڿ��� �Ʒ� �ʱ�ȭ�� �����Ѵ�.
-   ���� 4�� ȭ�顤�Ϲ� ���� ��ٸ��� �ʰ� �ٷ� �����Ѵ�. ����Ʈ �ε� ���� �ÿ��� �����ʹ� ���� API�� ���´�. */
+/* 2026-11-11 화면 접근 정책: 보호 화면(홈·종목·MY 등)은 서버 판정(NineAccess) 뒤에만 아래 초기화를 시작한다.
+   공개 4개 화면·일반 글은 기다리지 않고 바로 시작한다. 게이트 로드 실패 시에도 데이터는 서버 API가 막는다. */
 (function nineAccessBoot() {
   function start() {
 /* DCF uses the existing page-body mount pattern. Create /page/dcf in Tistory;
@@ -227,15 +227,15 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   var core = document.createElement('script'); core.src = base + 'js/dcf-core.js'; core.setAttribute('data-dcf-page', '1');
   core.onload = function () {
     var script = document.createElement('script'); script.src = base + 'js/dcf.js';
-    script.onerror = function () { mount.textContent = 'DCF ȭ�� ��ȸ ����. �������� ���ΰ�ħ�ϼ���.'; };
+    script.onerror = function () { mount.textContent = 'DCF 화면 조회 실패. 페이지를 새로고침하세요.'; };
     document.body.appendChild(script);
   };
-  core.onerror = function () { mount.textContent = 'DCF ��� ��� ��ȸ ����. �������� ���ΰ�ħ�ϼ���.'; };
+  core.onerror = function () { mount.textContent = 'DCF 계산 모듈 조회 실패. 페이지를 새로고침하세요.'; };
   document.body.appendChild(core);
 }());
 
-/* �ڵ��Ÿ�(������ ����) ȭ��: Tistory�� /page/auto-trader �������� ����� �� �δ��� ȭ���� ���δ�(DCF�� ���� ���).
-   �����ʹ� �� PC�� ���� ��(127.0.0.1:8765)������ �д´� - ���¡��ֹ� ������ ����Ʈ��VM�� ��ġ�� �ʴ´�. */
+/* 자동매매(소유자 전용) 화면: Tistory에 /page/auto-trader 페이지를 만들면 이 로더가 화면을 붙인다(DCF와 같은 방식).
+   데이터는 이 PC의 로컬 봇(127.0.0.1:8765)에서만 읽는다 - 계좌·주문 정보는 사이트·VM을 거치지 않는다. */
 (function loadAutoTraderPage() {
   if (!/^\/(?:page|pages)\/auto-trader\/?$/.test(location.pathname)) return;
   if (document.querySelector('script[data-auto-trader-page]')) return;
@@ -249,16 +249,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   }
   var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/auto-trader.css?v=20261101-control'; document.head.appendChild(css);
   var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261101-control'; script.setAttribute('data-auto-trader-page', '1');
-  script.onerror = function () { mount.textContent = '�ڵ��Ÿ� ȭ���� �ҷ����� ���߽��ϴ�. ���ΰ�ħ�ϼ���.'; };
+  script.onerror = function () { mount.textContent = '자동매매 화면을 불러오지 못했습니다. 새로고침하세요.'; };
   document.body.appendChild(script);
 }());
 
-  /* ���� ���� /earnings-calendar ���� �δ� ����
-     Ȩ�� ���� ī��(stock-calendar.js)���̱� ����(home-widgets.js)���ְ� ����Ʈ
-     (home-weekly-report.js)�� ���� year-month ��ȸ�� ������ fetch �ϴ� ���� �� ������
-     ��ģ��. ������ ũ��(�� ���� ��ü, ���� KB) VM�� 1�ھ��, ù ȭ�鿡�� �� ȣ����
-     4���� ��ġ�� �� ���� ������ ū �����̾���. 60�� TTL ���� ��û�� �����ϸ�, ���д�
-     �� �迭�� �����Ѵ�(�� �Һ��� ��� .catch(()=>[]) �Ծ�). */
+  /* ── 월별 /earnings-calendar 공유 로더 ──
+     홈의 일정 카드(stock-calendar.js)·미국 실적(home-widgets.js)·주간 리포트
+     (home-weekly-report.js)가 같은 year-month 조회를 제각각 fetch 하던 것을 한 번으로
+     합친다. 응답이 크고(월 단위 전체, 수백 KB) VM이 1코어라, 첫 화면에서 이 호출이
+     4번씩 겹치던 게 메인 지연의 큰 원인이었다. 60초 TTL 단일 요청을 공유하며, 실패는
+     빈 배열로 흡수한다(세 소비자 모두 .catch(()=>[]) 규약). */
   (function () {
     if (window.EarningsCalendarFeed) return;
     var BASE = 'https://goodbyestar.cloud/earnings-calendar';
@@ -287,12 +287,12 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     window.EarningsCalendarFeed = { month: month, status: function (year, monthNum) { return calendarStatus[year + '-' + monthNum] || {state:'pending'}; } };
   }());
 
-  /* ���� /market-board ���� �δ� ����
-     Ȩ ���� ���(�Ʒ� loadHomeUsSummary)�� �ǽð� ������(home-realtime-table.js)�� ����
-     market=us|domestic �����͸� limit=20 / limit=40���� ���� �θ��� ���� ��ģ��. �� �����
-     ���� ��û Ǯ(__homeMarketBoardRequests)������ limit������ 30�� â�� �����ϰ� �� ����
-     ĳ�� Ű �и��� �ݵ� �̽� �ߺ��� ���ش�. home-realtime-table.js�� ���߿� ���� �̸�����
-     �ڱ� ������ �÷��� Ǯ��limit�� ������ ȣȯ�ȴ�. */
+  /* ── /market-board 공유 로더 ──
+     홈 시장 요약(아래 loadHomeUsSummary)과 실시간 종목판(home-realtime-table.js)이 같은
+     market=us|domestic 데이터를 limit=20 / limit=40으로 따로 부르던 것을 합친다. 두 모듈이
+     같은 요청 풀(__homeMarketBoardRequests)·같은 limit·같은 30초 창을 공유하게 해 서버
+     캐시 키 분리와 콜드 미스 중복을 없앤다. home-realtime-table.js가 나중에 같은 이름으로
+     자기 구현을 올려도 풀·limit이 동일해 호환된다. */
   (function () {
     if (window.HomeMarketBoard) return;
     var BASE = 'https://goodbyestar.cloud/market-board';
@@ -313,16 +313,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     window.HomeMarketBoard = { fetch: fetchBoard };
   }());
 
-  /* ���� iframe ��� ���� (��� �ȿ��� ���� �� ������ ����) ���� */
+  /* ── iframe 모드 감지 (모달 안에서 열릴 때 껍데기 숨김) ── */
   if (window !== window.top) {
     document.body.classList.add('iframe-mode');
   }
 
-  /* �ü������ÿµ� �������� ���� �ð� ������ �������� ������ �񵿱�� DOM��
-     ���� �ڿ��� ����Ǿ�� �ϹǷ� ���� ���� ���� �ε��Ѵ�. */
+  /* 시세·증시온도 페이지의 공통 시각 개선은 페이지별 위젯이 비동기로 DOM을
+     만든 뒤에도 연결되어야 하므로 별도 모듈로 지연 로드한다. */
   (function loadDashboardEnhancements() {
-    // Ȩ���� ��ϡ����� ���������� ��Ʈ Ȯ�� ����� ���� �� �߰� JS/CSS��
-    // �������� �ʴ´�. ��Ʈ/�м� ȭ�鿡���� �ε��� ù ȭ�� ��û ���� ���δ�.
+    // 홈·글 목록·법적 페이지에는 차트 확장 기능이 없어 이 추가 JS/CSS를
+    // 내려받지 않는다. 차트/분석 화면에서만 로드해 첫 화면 요청 수를 줄인다.
     if (!/\/(?:page|pages)\/(?:market-temp|stock-search|foreign-flow|overnight-market|strategy-search|pattern-scan)(?:\/|$)/i.test(location.pathname)) return;
     if (document.querySelector('script[data-dashboard-enhancements]')) return;
     var script = document.createElement('script');
@@ -344,8 +344,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       link.setAttribute('data-my-dashboard-css', '1');
       document.head.appendChild(link);
     }
-    // 2026-09-15: MY �Ź��밡 ����м��� ���� �׷���(foreign-flow.css�� .ff-apt-simple, ����
-    // :is(#foreign-flow, .ff-vp-host))�� ����. �� ��Ÿ�Ͻ�Ʈ�� ����м� ������ ���������� �ҷ��Ծ���.
+    // 2026-09-15: MY 매물대가 종목분석과 같은 그래프(foreign-flow.css의 .ff-apt-simple, 범위
+    // :is(#foreign-flow, .ff-vp-host))를 쓴다. 이 스타일시트는 종목분석 페이지 본문에서만 불러왔었다.
     if (!document.querySelector('link[data-foreign-flow-css]')) {
       var ffLink = document.createElement('link');
       ffLink.rel = 'stylesheet';
@@ -361,19 +361,19 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     document.body.appendChild(script);
   })();
 
-  /* �ֿ� ����(/pages/main-news): �ѱ����̱� ������ �� �ٱ�� �����ִ� ���� ����.
-     Ƽ���丮 ������ ������ �ƹ��͵� ��� �ǵ��� mount���� ���⼭ ����� - ����ڴ�
-     �ּҸ� ���� �� �������� �ϳ� ����� �ǰ�, ���� HTML�� ������ �ʿ䰡 ����
-     (loadMyDashboard�� ���� ����).
+  /* 주요 뉴스(/pages/main-news): 한국·미국 뉴스를 한 줄기로 보여주는 전용 지면.
+     티스토리 페이지 본문에 아무것도 없어도 되도록 mount까지 여기서 만든다 - 사용자는
+     주소만 맞춰 빈 페이지를 하나 만들면 되고, 본문 HTML을 관리할 필요가 없다
+     (loadMyDashboard와 같은 패턴).
 
-     2026-09-05: ���̴� �ڸ��� ���ƴ�. ������ `.feed`�� ��� append �ؼ� **�� ��ü ��**,
-     �׷��ϱ� ������ ���������� ��ư �Ʒ� ȭ�� �� �ؿ� �پ���(�����: "��ġ�� �̻���").
-     ���̺� HTML ������ �̷���.
+     2026-09-05: 붙이는 자리를 고쳤다. 예전엔 `.feed`를 잡아 append 해서 **글 전체 뒤**,
+     그러니까 광고와 공감·구독 버튼 아래 화면 맨 밑에 붙었다(사용자: "위치도 이상해").
+     라이브 HTML 구조는 이렇다.
        section.feed > article.post-single > div.post-single-body
-         > ����(adsbygoogle) > div.contents_style(����) > div.container_postbtn(����������)
-     ������ `.contents_style`�̹Ƿ� �ű⿡ �־�� ���� �ڡ���ư ���̶�� ���ڸ��� �´�.
-     ����ڰ� ������ ������ <div id="main-news"></div>�� ���� ������ �װ͵� �� �ȿ�
-     ���Ƿ� ����� ����. */
+         > 광고(adsbygoogle) > div.contents_style(본문) > div.container_postbtn(공감·구독)
+     본문은 `.contents_style`이므로 거기에 넣어야 광고 뒤·버튼 앞이라는 제자리에 온다.
+     사용자가 페이지 본문에 <div id="main-news"></div>를 직접 넣으면 그것도 이 안에
+     들어가므로 결과가 같다. */
   (function loadMainNews() {
     if (!/^\/(?:page|pages)\/main-news\/?$/.test(location.pathname)) return;
     if (!document.querySelector('link[data-main-news-css]')) {
@@ -386,9 +386,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!document.querySelector('#main-news')) {
       var mount = document.createElement('div');
       mount.id = 'main-news';
-      // querySelector�� �����͸� ��ǥ�� �����ϸ� "��� ����"�� �ƴ϶� "���� ����"��
-      // ù ��Ҹ� �����ش� - .post-single-body�� .contents_style�� �θ�� �װ� ����
-      // ������ �ٽ� �� �� �ڿ� �پ���. �켱������ ��Ű���� �ϳ��� ã�ƾ� �Ѵ�.
+      // querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가 아니라 "문서 순서"로
+      // 첫 요소를 돌려준다 - .post-single-body가 .contents_style의 부모라 그게 먼저
+      // 잡혀서 다시 글 맨 뒤에 붙었다. 우선순위를 지키려면 하나씩 찾아야 한다.
       var hostSelectors = ['.contents_style', '.post-single-body', '.entry-content', '.article-view', '.feed'];
       var host = null;
       for (var i = 0; i < hostSelectors.length && !host; i++) {
@@ -404,9 +404,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     document.body.appendChild(script);
   })();
 
-  /* ���� ������(������ǥ �ǵ顤���ÿµ�)�� ����� ���� ī�� UI(2026-10-16). 767px ���Ͽ����� �ҷ��´� - PC���º�����
-     ���� ��ü�� ���� �����Ƿ� ȭ���� �޶����� �ʴ´�. ���� ��ҡ������ʹ� �״�� �ΰ� ī�塤���������� ��´�.
-     js/mobile-market.js, css/mobile-market.css, docs/UI_GUIDE.md '���� ����� ī�� UI' */
+  /* 시장 페이지(시장지표 탭들·증시온도)의 모바일 전용 카드 UI(2026-10-16). 767px 이하에서만 불러온다 - PC·태블릿은
+     파일 자체를 받지 않으므로 화면이 달라지지 않는다. 기존 요소·데이터는 그대로 두고 카드·스와이프를 얹는다.
+     js/mobile-market.js, css/mobile-market.css, docs/UI_GUIDE.md '시장 모바일 카드 UI' */
   (function loadMobileMarket() {
     if (!/^\/(?:page|pages)\/(?:market-temp|kospi-futures|overnight-market)\/?$/i.test(location.pathname)) return;
     if (!window.matchMedia || !window.matchMedia('(max-width: 767px)').matches) return;
@@ -425,10 +425,10 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     document.body.appendChild(script);
   })();
 
-  loadMobileTabs(); // ���Ǵ� ���� ���� - ��ȸ�� Ȩ�� ����
+  loadMobileTabs(); // 정의는 파일 위쪽 - 비회원 홈과 공유
 
-  /* ���ÿµ�(/page/market-temp): Ƽ���丮 ������ ������ <script>/<link>�� ���� �־
-     �ֽ� �ȷ�Ʈ������ �ð�ȭ���ܱ��帧 �׷����� ����ǵ��� ��Ų���� �� �� �� �����Ѵ�. */
+  /* 증시온도(/page/market-temp): 티스토리 본문에 오래된 <script>/<link>가 남아 있어도
+     최신 팔레트·순위 시각화·단기흐름 그래프가 적용되도록 스킨에서 한 번 더 보장한다. */
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
@@ -461,22 +461,22 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     document.body.appendChild(script);
   })();
 
-  /* ������ǥ ���� ����(/pages/kospi-futures = ����, /pages/overnight-market = �۷ι�).
+  /* 시장지표 통합 지면(/pages/kospi-futures = 국내, /pages/overnight-market = 글로벌).
 
-     2026-09-06 ��û: �� �������� �ڽ��ǡ��ڽ����� ���� ��� �־� �ߺ��̶�� ����. �� ���鿡��
-     ��ư���� ������ �ϰ�, �۷ι� �� �ڽ��ǡ��ڽ��� ī��� ����(js/overnight-market.js CATEGORIES).
+     2026-09-06 요청: 두 페이지가 코스피·코스닥을 각각 들고 있어 중복이라는 지적. 한 지면에서
+     버튼으로 오가게 하고, 글로벌 쪽 코스피·코스닥 카드는 뺐다(js/overnight-market.js CATEGORIES).
 
-     �ּҴ� �� �� ��� �д� - ���� ��ũ���ϸ�ũ��Ƽ���丮 �������� �״�� �����ϰ�, ����
-     �ּҰ� ù ���� ���Ѵ�. Ƽ���丮 ������ ������ �̹� ��� �ִ� mount�� �״�� ������
-     �Ű� ���, ���� ���� ���⼭ �����.
+     주소는 둘 다 살려 둔다 - 기존 링크·북마크·티스토리 페이지가 그대로 동작하고, 들어온
+     주소가 첫 탭을 정한다. 티스토리 페이지 본문에 이미 들어 있는 mount는 그대로 재사용해
+     옮겨 담고, 없는 쪽은 여기서 만든다.
 
-     ���� �� ������ �� ����� init()�� �ٽ� �θ���. ������������ �����̳ʿ��� ����
-     lightweight-charts�� 0x0���� ���� ������ �� ����ҿ��� ���� �� ����ߴµ�(�۾��̷�
-     2026-08-14), ���̴� ���¿��� �ٽ� �׸��� �� ��θ� �ƿ� ���� �� �ִ�. �� ��� ���
-     init()�� �ڱ� Ÿ�̸Ӹ� clearInterval�ϰ� WebSocket�� �ߺ� ������ �����Ƿ� ��ȣ����
-     �����ϴ�. */
+     탭을 열 때마다 그 모듈의 init()을 다시 부른다. 접힌·숨겨진 컨테이너에서 만든
+     lightweight-charts는 0x0으로 굳는 문제가 이 저장소에서 여러 번 재발했는데(작업이력
+     2026-08-14), 보이는 상태에서 다시 그리면 그 경로를 아예 피할 수 있다. 두 모듈 모두
+     init()이 자기 타이머를 clearInterval하고 WebSocket도 중복 연결을 막으므로 재호출이
+     안전하다. */
   (function loadMarketIndicatorTabs() {
-    // �� ���� ���� ��Ʈ ���� ǥ�� ��Ģ. ��/�к����׸��� ����� �� ����� �����Ѵ�.
+    // 세 시장 탭의 차트 공통 표시 규칙. 봉/분봉·그리기 기능은 각 모듈이 유지한다.
     window.MarketChartStyle = {
       height: 230,
       theme: function (dark) {
@@ -493,47 +493,47 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261110-panel-spacing';
     var TABS = [
       {
-        key: 'domestic', label: '���� ������ǥ', slug: 'kospi-futures',
+        key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
         script: ASSET_BASE + 'js/kospi-futures.js?v=20261025-tab-explainers',
-        // kospi-futures.js��domestic-market-indicators.js�� �ڱ� CSS�� ������ �ִ´�. �����ڱ� ǥ(indicator-board)�� ���⼭ �̸� �ִ´�.
+        // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
-        key: 'investor', badge: '���� ����', label: '���� ������ ����', slug: 'domestic-market-indicators',
+        key: 'investor', badge: '수급 집계', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
         mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
         script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261110-no-summaries',
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
-        key: 'global', label: '�۷ι� ������ǥ', slug: 'overnight-market',
+        key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
         mountIds: ['overnight-market'],
         globalName: 'OvernightMarket',
         script: ASSET_BASE + 'js/overnight-market.js?v=20261110-no-summaries',
-        // 2026-09-06 ����Ʈ("�۷ι� ������ǥ CSS ���°� ������ �޶�"): overnight-market.js��
-        // �ڱ� CSS�� �� �ִ´� - ���� Ƽ���丮 ������ ������ <link>�� ���� �־���.
-        // �׷��� ���� �ּҿ��� �۷ι� ���� ���� ��Ÿ�� ���� �׷�����. ���⼭ �־��ش�.
+        // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
+        // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
+        // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
-        key: 'us-macro', badge: '��ǥ �ڷ�', label: '�ֿ� �̱� ��ǥ', slug: 'us-macro-indicators',
+        key: 'us-macro', badge: '발표 자료', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
         script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261025-tab-explainers',
         styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
-        key: 'crypto', badge: '�����ڻ� �ü�', label: '�����ڻ�', slug: 'crypto-market',
+        key: 'crypto', badge: '가상자산 시세', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
         script: ASSET_BASE + 'js/crypto-market.js?v=20261115-crypto-live',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges',
           ASSET_BASE + 'css/crypto-market.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
-        // 2026-10-11: �ѱ����������� �Ϻ� ���� ����ȯ��. ����Ʈ(#fx-rates)�� �Ʒ� build()�� ����� - skin.html ���� ����.
-        // ?tab=fx �� �� ���� �ٷ� �� �� �ִ�. �ǽð� ��/�޷��� �۷ι� ������ǥ ���� �״�� ����Ѵ�.
-        key: 'fx', badge: '�Ϻ� ����', label: 'ȯ��', slug: 'fx-rates',
+        // 2026-10-11: 한국수출입은행 일별 공식 고시환율. 마운트(#fx-rates)는 아래 build()가 만든다 - skin.html 변경 없음.
+        // ?tab=fx 로 이 탭을 바로 열 수 있다. 실시간 원/달러는 글로벌 시장지표 탭이 그대로 담당한다.
+        key: 'fx', badge: '일별 고시', label: '환율', slug: 'fx-rates',
         mountIds: ['fx-rates'], globalName: 'FxRates',
         script: ASSET_BASE + 'js/fx-rates.js?v=20261025-tab-explainers',
         styles: [ASSET_BASE + 'css/fx-rates.css?v=20261025-plain-explainer-notes']
@@ -546,8 +546,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var wantedTab = /[?&]tab=([a-z-]+)/i.exec(location.search);
     if (wantedTab && TABS.some(function (tab) { return tab.key === wantedTab[1].toLowerCase(); })) initialKey = wantedTab[1].toLowerCase();
 
-    /* �̹� ���� ������ ����Ű�� <link>�� ������(Ƽ���丮 ������ ������ ���� �ִ� ���)
-       �ߺ����� ���� �ʴ´�. ���ϸ��� ���� �Ǵ��Ѵ� - ?v= ���� ���� �ٸ� �� �ִ�. */
+    /* 이미 같은 파일을 가리키는 <link>가 있으면(티스토리 페이지 본문에 박혀 있는 경우)
+       중복으로 넣지 않는다. 파일명만 보고 판단한다 - ?v= 값은 서로 다를 수 있다. */
     function ensureStyle(href, key) {
       var file = href.split('?')[0].split('/').pop();
       if (document.querySelector('link[data-mi-css="' + key + '"]')) return;
@@ -563,8 +563,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       return TABS.filter(function (tab) { return tab.key === key; })[0] || null;
     }
 
-    /* �̹� ������ ������ �ִ� <script>�� ����� �Ѵ�. Ƽ���丮 ������ HTML�� �ڱ� �����
-       �ҷ����� ���� �� �ִµ�, ���⼭ ���� ������ �� ������ ��� IIFE�� �� �� ����. */
+    /* 이미 페이지 본문에 있는 <script>도 세어야 한다. 티스토리 페이지 HTML이 자기 모듈을
+       불러오는 중일 수 있는데, 여기서 같은 파일을 또 넣으면 모듈 IIFE가 두 번 돈다. */
     function ensureScript(tab) {
       if (tab.key === 'investor' && window.DomesticMarketIndicators) return false;
       if (tab.key === 'investor') {
@@ -614,7 +614,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }); return; }
       var tab = tabByKey(key);
       if (!tab) return;
-      if (ensureScript(tab)) return; // �ֽ� ��ũ��Ʈ�� ������ ����� ������ init�Ѵ�.
+      if (ensureScript(tab)) return; // 최신 스크립트가 붙으면 모듈이 스스로 init한다.
       var module = window[tab.globalName];
       var method = tab.method || 'init';
       if (module && typeof module[method] === 'function') {
@@ -638,7 +638,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     function build() {
       if (document.querySelector('[data-mi-tabs]')) return;
-      // ������ ��� �ִ� mount�� ���������� ��´�. �� �� ������ �� ������ �ƴϴ�.
+      // 본문에 들어 있는 mount를 기준점으로 삼는다. 둘 다 없으면 이 지면이 아니다.
       var anchor = null;
       for (var i = 0; i < TABS.length && !anchor; i++) {
         for (var j = 0; j < TABS[i].mountIds.length && !anchor; j++) {
@@ -648,8 +648,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (!anchor || !anchor.parentNode) return;
 
       ensureStyle(CSS_URL, 'tabs');
-      // �� ���� CSS�� ó������ ���� �ִ´�. ���� ���� ���� ������ ��Ÿ�� ���� ȭ����
-      // �� �� ���� ��������(FOUC).
+      // 두 탭의 CSS를 처음부터 같이 넣는다. 탭을 여는 순간 받으면 스타일 없는 화면이
+      // 한 번 스쳐 지나간다(FOUC).
       TABS.forEach(function (tab) {
         (tab.styles || []).forEach(function (href) { ensureStyle(href, tab.key); });
       });
@@ -708,8 +708,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
   })();
 
-  /* Ȩ�� ���� ����/API�� ���� ��Ȳ�� ������ ���ġ�Ѵ�. �鿣�� ���� URL�� �״�� �ΰ�,
-     ���⼭�� ī�� ��ġ����� ���衤���� ��ȣ ��� ��Ģ���� ����Ѵ�. */
+  /* 홈은 기존 위젯/API를 시장 상황판 구조로 재배치한다. 백엔드 계산과 URL은 그대로 두고,
+     여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {
     if (location.pathname !== '/' && location.pathname !== '') return;
 
@@ -720,10 +720,10 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     window.HomeMarketSelection = window.HomeMarketSelection || (function () {
       var selected = null;
-      // 2026-09-05: ���� ���� js/skin-shell.js�� MarketHours �ϳ��� ����. ������ ��
-      // �ȿ� ���� �ھƵ״µ� ���� ������ ���ϸ��� �ٸ� ���� ������ �־���(�̱� ��ȯ
-      // 17:00/20:30, ���� â ��09:00/��07:00), ��߳��� �������� ������ ȭ���� ������.
-      // skin.html�� skin-shell.js�� �� ���Ϻ��� ���� defer�� �θ��Ƿ� �׻� �����Ѵ�.
+      // 2026-09-05: 시장 경계는 js/skin-shell.js의 MarketHours 하나만 쓴다. 예전엔 이
+      // 안에 직접 박아뒀는데 같은 판정이 파일마다 다른 경계로 복제돼 있었고(미국 전환
+      // 17:00/20:30, 휴장 창 토09:00/토07:00), 어긋나는 구간에서 실제로 화면이 깨졌다.
+      // skin.html이 skin-shell.js를 이 파일보다 먼저 defer로 부르므로 항상 존재한다.
       function autoMarket() {
         var hours = window.MarketHours;
         return hours ? hours.homeMarket() : 'domestic';
@@ -745,14 +745,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261113-linked-futures')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261113-linked-futures';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261116-gross-contracts';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261117-utf8-repair';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261116-free-official-v1';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
 
     function isWeekendReportWindow() {
-      // 2026-08-22: HomeMarketSelection�� ���� ����(����� 07:00~������ 06:00)��
-      // ������ ���� ���� - ������ 06:00/07:00���� ��¦ ��߳� �־���.
+      // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과
+      // 동일한 경계로 통일 - 예전엔 06:00/07:00으로 살짝 어긋나 있었다.
       var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
       var day = kst.getUTCDay();
       var hour = kst.getUTCHours();
@@ -784,7 +784,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       try {
         localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: data }));
       } catch (error) {
-        /* ���� ������ ������ �̹� ���丸 ǥ���Ѵ�. */
+        /* 저장 공간이 없으면 이번 응답만 표시한다. */
       }
     }
 
@@ -794,7 +794,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var existing = document.querySelector('script[data-home-source="' + src + '"]');
         var settled = false;
         var timeout = setTimeout(function () {
-          finish(new Error(globalName + ' ��ũ��Ʈ �ε� �ð� �ʰ�'));
+          finish(new Error(globalName + ' 스크립트 로드 시간 초과'));
         }, 10000);
 
         function finish(error) {
@@ -808,17 +808,17 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         function bind(script) {
           script.addEventListener('load', function () {
             script.setAttribute('data-home-state', 'loaded');
-            finish(window[globalName] ? null : new Error(globalName + ' ��� ����'));
+            finish(window[globalName] ? null : new Error(globalName + ' 모듈 없음'));
           }, { once: true });
           script.addEventListener('error', function () {
             script.setAttribute('data-home-state', 'error');
-            finish(new Error(globalName + ' ��ũ��Ʈ �ε� ����'));
+            finish(new Error(globalName + ' 스크립트 로드 실패'));
           }, { once: true });
         }
 
         if (existing) {
           if (existing.getAttribute('data-home-state') === 'loaded') {
-            finish(window[globalName] ? null : new Error(globalName + ' ��� ����'));
+            finish(window[globalName] ? null : new Error(globalName + ' 모듈 없음'));
             return;
           }
           if (existing.getAttribute('data-home-state') === 'error') existing.remove();
@@ -842,12 +842,12 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
 
     function dashboardHtml() {
-        return '<section class="home-dashboard home-editorial-page" aria-label="������ ���� ��Ȳ��">'
+        return '<section class="home-dashboard home-editorial-page" aria-label="오늘의 시장 상황판">'
         + '<div class="home-market-toolbar">'
-        + '<div class="home-market-switch" role="tablist" aria-label="���� ���� ��ȯ">'
-        + '<button type="button" data-home-market-switch="domestic" role="tab"><span class="home-market-switch-icon" aria-hidden="true">????</span><span>�ѱ�����</span></button><button type="button" data-home-market-switch="us" role="tab"><span class="home-market-switch-icon" aria-hidden="true">????</span><span>�̱�����</span></button><button type="button" data-home-market-switch="closed" role="tab"><span class="home-market-switch-icon" aria-hidden="true">??</span><span>����</span></button>'
+        + '<div class="home-market-switch" role="tablist" aria-label="메인 시장 전환">'
+        + '<button type="button" data-home-market-switch="domestic" role="tab"><span class="home-market-switch-icon" aria-hidden="true">🇰🇷</span><span>한국증시</span></button><button type="button" data-home-market-switch="us" role="tab"><span class="home-market-switch-icon" aria-hidden="true">🇺🇸</span><span>미국증시</span></button><button type="button" data-home-market-switch="closed" role="tab"><span class="home-market-switch-icon" aria-hidden="true">📅</span><span>휴장</span></button>'
         + '</div><div class="home-switch-countdown" hidden role="timer" aria-live="off"></div></div>'
-        + '<section class="home-closed-page" data-home-closed-page aria-label="���� ����" hidden>'
+        + '<section class="home-closed-page" data-home-closed-page aria-label="시장 휴장" hidden>'
         + '<div class="home-closed-lead"><div class="home-closed-kicker"><span>MARKET CLOSED NOTE</span><div class="home-closed-title-row">'
         + '<svg class="home-closed-lock" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
         + '<path d="M28 68 V45a22 22 0 0 1 44 0v23" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>'
@@ -855,130 +855,130 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '<path d="M45 90a6 6 0 1 1 10 4l3 13h-16l3-13a6 6 0 0 1 0-4z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>'
         + '<path d="M61 83a7 7 0 0 1-10 3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
         + '</svg>'
-        + '<h1>Markets Closed</h1></div><p>�ָ����ѱ� �����Ͽ��� ���� ���ð� ���ϴ�. �̱� ���ô� ���� �ŷ��Ͽ� ��˴ϴ�.</p></div><a class="home-closed-status" href="/page/stock-calendar" aria-label="Ķ����"><strong>���� �ŷ����� �غ��ϴ� �ð��Դϴ�.</strong><span>���� �ŷ��Ϻ��� ���� �����Ͱ� ������Ʈ�˴ϴ�.</span><small>�������� ������ ���� ���� ȭ���� �� �ǿ��� Ȯ���� �� �ֽ��ϴ�.</small><span class="home-closed-link">Ķ���� ��</span></a></div>'
+        + '<h1>Markets Closed</h1></div><p>주말·한국 공휴일에는 국내 증시가 쉽니다. 미국 증시는 현지 거래일에 운영됩니다.</p></div><a class="home-closed-status" href="/page/stock-calendar" aria-label="캘린더"><strong>다음 거래일을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다.</span><small>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</small><span class="home-closed-link">캘린더 →</span></a></div>'
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section hmb2 home-block-column" id="homeMarketBoard">'
-        + '<section class="home-market-overview ui-content-block"><div class="home-card-heading"><div><strong class="ui-section-title" data-home-market-field="title">���� ����</strong><span id="hmbUpdated">������ ������ �� �ü� Ȯ�� ��</span></div>'
-        + '<div class="home-cb-wrap"><button type="button" class="vol-history-link" data-vol-open="all" data-vol-history hidden aria-expanded="false" aria-controls="volPanel">���� ������ �̷�</button><span class="home-market-live" data-home-market-field="live">�ǽð�</span></div></div>'
+        + '<section class="home-market-overview ui-content-block"><div class="home-card-heading"><div><strong class="ui-section-title" data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
+        + '<div class="home-cb-wrap"><button type="button" class="vol-history-link" data-vol-open="all" data-vol-history hidden aria-expanded="false" aria-controls="volPanel">오늘 변동성 이력</button><span class="home-market-live" data-home-market-field="live">실시간</span></div></div>'
         + '<div class="hmb2-status" data-hmb-status>'
         + '<dl class="hmb-list hmb2-verdict">'
-        + '<div class="hmb2-temp"><dt>���ÿµ�</dt><dd data-market-field="temperature">������ Ȯ�� ��</dd></div>'
-        + '<div class="hmb2-direction"><dt>���� ����</dt><dd data-market-field="direction">������ Ȯ�� ��</dd></div>'
-        + '<div class="hmb2-participation" data-home-participation aria-label="��� 100 ��� �ŷ���"></div>'
+        + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-participation" data-home-participation aria-label="평균 100 대비 거래량"></div>'
         + '<div class="hmb2-market-ratios" data-domestic-ratios>'
-        + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>�ڽ���</dt><dd>������ Ȯ�� ��</dd></div>'
-        + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>�ڽ���</dt><dd>������ Ȯ�� ��</dd></div></div>'
-        + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio="SP500"><dt>S&amp;P 500</dt><dd>������ Ȯ�� ��</dd></div><div data-us-ratio="NASDAQ"><dt>������ ����</dt><dd>������ Ȯ�� ��</dd></div><div data-us-ratio="SOX"><dt>�ʶ��Ǿ� �ݵ�ü</dt><dd>������ Ȯ�� ��</dd></div><span class="hmb2-breadth-total" data-us-breadth-meta>���� �������� �� �����ü�</span></div>'
+        + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
+        + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
+        + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio="SP500"><dt>S&amp;P 500</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="NASDAQ"><dt>나스닥 종합</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="SOX"><dt>필라델피아 반도체</dt><dd>데이터 확인 중</dd></div><span class="hmb2-breadth-total" data-us-breadth-meta>지수 구성종목 · 지연시세</span></div>'
         + '<div class="hmp-basis hmp-note" data-participation-basis></div>'
         + '</dl>'
-        // 2026-11-04 �ֵ�/���� ����: ���� ���⡤���/�϶� �ٷ� �Ʒ�(�̱� ���). /us-sector-rotation(ETF Ȯ�� �Ϻ�) ���� ����.
+        // 2026-11-04 주도/주의 업종: 시장 방향·상승/하락 바로 아래(미국 모드). /us-sector-rotation(ETF 확정 일봉) 값만 쓴다.
         + '<div class="hus-rotation" data-home-us-rotation hidden>'
-        + '<div class="hus-rot-col" data-us-rot="leaders"><strong>�ֵ� ���� <small>���ԡ��ֵ� �� ����� / �ŷ���� ����</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">Ȯ�� ��</li></ul></div>'
-        + '<div class="hus-rot-col" data-us-rot="cautions"><strong>���� ���� <small>��ȭ����Ż �� ����� / �ŷ���� ����</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">Ȯ�� ��</li></ul></div>'
-        + '<p class="ui-kpi-source" data-us-rot-meta>������ ���� ETF ��� �� ������ ���� ����</p></div>'
-        + '<div class="hus-rotation hkr-rotation" data-home-kr-rotation hidden aria-label="���� �ֵ������� ����">'
-        + '<div class="hus-rot-col" data-kr-rot="leaders"><strong>�ֵ� ���� <small>���� ��� �����</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">Ȯ�� ��</li></ul></div>'
-        + '<div class="hus-rot-col" data-kr-rot="cautions"><strong>���� ���� <small>���� ��� �����</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">Ȯ�� ��</li></ul></div>'
-        + '<p class="ui-kpi-source">���� ���� �з� ���� ǥ�� �� ����� �ܼ���� �� ���� ����</p></div>'
-        // 2026-10-15 ���� ������ �����: CB�����̵�ī��VI�� �� ���� ���� ǥ���ϰ� ������ �󼼸� ����(homeCircuitBreakerBadges�� ä���).
+        + '<div class="hus-rot-col" data-us-rot="leaders"><strong>주도 업종 <small>유입·주도 · 등락률 / 거래대금 강도</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<div class="hus-rot-col" data-us-rot="cautions"><strong>주의 업종 <small>둔화·이탈 · 등락률 / 거래대금 강도</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<p class="ui-kpi-source" data-us-rot-meta>업종은 섹터 ETF 기반 · 정규장 종가 기준</p></div>'
+        + '<div class="hus-rotation hkr-rotation" data-home-kr-rotation hidden aria-label="국내 주도·주의 업종">'
+        + '<div class="hus-rot-col" data-kr-rot="leaders"><strong>주도 업종 <small>종목별 평균 등락률</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<div class="hus-rot-col" data-kr-rot="cautions"><strong>주의 업종 <small>종목별 평균 등락률</small></strong><ul class="hus-rot-list"><li class="ui-kpi-empty">확인 중</li></ul></div>'
+        + '<p class="ui-kpi-source">국내 업종 분류 종목 표본 · 등락률 단순평균 · 지연 가능</p></div>'
+        // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
         + '</div>'
-        + '</section><div class="home-index-strip" aria-label="��ǥ ���� ����">'
+        + '</section><div class="home-index-strip" aria-label="대표 시장 지수">'
         + '<article class="home-index-card" data-home-index-slot="primary">'
-        + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">�� Ȯ�� ��</span></div>'
+        + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '<article class="home-index-card" data-home-index-slot="secondary">'
-        + '<div class="home-index-top"><strong data-index-field="label">KOSDAQ</strong><span data-index-field="status">�� Ȯ�� ��</span></div>'
+        + '<div class="home-index-top"><strong data-index-field="label">KOSDAQ</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
-        // �̱� �� ��° ī��� ���� ��/���� �� �ٿ�30 ����, ���� �ŷ� �� SOX�� �ڵ� ��ȯ�Ѵ�.
+        // 미국 세 번째 카드는 본장 전/마감 후 다우30 선물, 본장 거래 중 SOX로 자동 전환한다.
         + '<article class="home-index-card" data-home-index-slot="tertiary" hidden>'
-        + '<div class="home-index-top"><strong data-index-field="label">�ʶ��Ǿ� �ݵ�ü</strong><span data-index-field="status">�� Ȯ�� ��</span></div>'
+        + '<div class="home-index-top"><strong data-index-field="label">필라델피아 반도체</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
-        // 2026-11-07 ����� ��û: ���� ����� '���� �ٽ� ��ǥ'�� ���� ������ ������ �� �ڸ��� �ΰ�,
-        // KOSPI200 �ְ������� ���� ���մ��� �Ʒ� '���� ���� ��ǥ'(#homeMarketAux)�� �ű��.
-        + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">������ ����</strong><span data-home-summary-field="meta">�ֽ� ������</span></div>'
+        // 2026-11-07 사용자 요청: 국내 모드의 '시장 핵심 지표'를 나눠 투자자 동향은 이 자리에 두고,
+        // KOSPI200 주간선물은 경제 종합뉴스 아래 '시장 보조 지표'(#homeMarketAux)로 옮긴다.
+        + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">투자자 동향</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list hmb2-core">'
-        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ ���� ���� ���ż� ��">'
-        + '<div class="hmb-investor-trend-head"><dt>������ ����</dt>'
-        + '<div class="hmb-investor-mini-legend" data-home-investor-mini-legend><span class="hmb-mini-period">���� ���� ���ż�</span>'
-        + '<span class="is-foreign"><i aria-hidden="true"></i>�ܱ���</span><span class="is-inst"><i aria-hidden="true"></i>���</span>'
-        + '<span class="is-indiv"><i aria-hidden="true"></i>����</span></div>'
-        + '<small class="hmb-investor-mini-fallback" data-home-investor-mini-fallback>���� ����: ����ݾ� �� �� ���� ���� ����</small></div>'
-        + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">������ Ȯ�� ��</span></div>'
+        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 당일 누적 순매수 비교">'
+        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt>'
+        + '<div class="hmb-investor-mini-legend" data-home-investor-mini-legend><span class="hmb-mini-period">당일 누적 순매수</span>'
+        + '<span class="is-foreign"><i aria-hidden="true"></i>외국인</span><span class="is-inst"><i aria-hidden="true"></i>기관</span>'
+        + '<span class="is-indiv"><i aria-hidden="true"></i>개인</span></div>'
+        + '<small class="hmb-investor-mini-fallback" data-home-investor-mini-fallback>막대 길이: 절대금액 · 두 시장 동일 눈금</small></div>'
+        + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
-        // 2026-11-04 �۷ι� ����(�̱� ���): ��ǥ 4�� + ���� ���� 3��. ���� renderHomeGlobalBlock�� /futures �������� ä���.
+        // 2026-11-04 글로벌 지수(미국 모드): 지표 4종 + 현물 지수 3종. 값은 renderHomeGlobalBlock이 /futures 응답으로 채운다.
         + '<div class="hgl" data-home-global hidden><div class="ui-kpi-grid hgl-metrics">'
-        + ['WTI|WTI ����', 'USDKRW|��/�޷�', 'US10Y|�̱� 10�⹰', 'VIX|VIX ������'].map(function (def) {
+        + ['WTI|WTI 원유', 'USDKRW|원/달러', 'US10Y|미국 10년물', 'VIX|VIX 변동성'].map(function (def) {
           var p = def.split('|');
           return '<article class="ui-kpi-tile" data-global-tile="' + p[0] + '"><div class="ui-kpi-top"><strong>' + p[1] + '</strong></div>'
             + '<div class="ui-kpi-value-row"><strong data-global-field="price">-</strong><em data-global-field="change">-</em></div>'
-            + '<small class="ui-kpi-source" data-global-field="time">Ȯ�� ��</small></article>';
+            + '<small class="ui-kpi-source" data-global-field="time">확인 중</small></article>';
         }).join('')
         + '</div></div></section>'
-        // 2026-10-05 ����� ��û("�̱����� �ؿ� S&P ETF �� �ֿ� ETF ���ͷ�, ĭ�� ���缭 �̴ϸ��ϰ�"): �̱� ��忡����.
-        // ���� �Ӹ��� �Ʒ� ETF 8���� 1�ϡ�1������YTD �� ǥ�� ǥ���Ѵ�. ���� ���� /us-etf-returns.
-        + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">�ֿ� ETF ���ͷ�</strong><span data-home-us-etfs-meta>1�� �� 1���� �� 3���� �� 6���� �� ���� ����</span></div>'
-        + '<div class="hmb-etf-table-wrap"><table class="hmb-etf-table" aria-label="�ֿ� �̱� ETF ���ͷ� ��">'
-        + '<thead><tr><th scope="col">ETF</th><th scope="col">1��</th><th scope="col">1����</th><th scope="col">3����</th><th scope="col">6����</th><th scope="col">YTD</th></tr></thead>'
+        // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
+        // 공통 머리말 아래 ETF 8개를 1일·1개월·YTD 비교 표로 표시한다. 값은 기존 /us-etf-returns.
+        + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 3개월 · 6개월 · 연초 이후</span></div>'
+        + '<div class="hmb-etf-table-wrap"><table class="hmb-etf-table" aria-label="주요 미국 ETF 수익률 비교">'
+        + '<thead><tr><th scope="col">ETF</th><th scope="col">1일</th><th scope="col">1개월</th><th scope="col">3개월</th><th scope="col">6개월</th><th scope="col">YTD</th></tr></thead>'
         + '<tbody data-home-us-etfs-list></tbody></table></div></div>'
-        + '<section class="home-top-disclosures ui-content-block" aria-label="�������� �ְ� ����" data-home-disclosure-section hidden>'
-        + '<div class="home-top-disclosures-head"><strong class="ui-section-title" data-home-disclosure-field="title">�������� �ְ� ����</strong><span data-home-disclosure-field="meta">�ֱ� 7��</span></div>'
-        + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">���ø� Ȯ���ϴ� ��...</p></div>'
+        + '<section class="home-top-disclosures ui-content-block" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
+        + '<div class="home-top-disclosures-head"><strong class="ui-section-title" data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
+        + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
         + '</section>'
         + '</section>'
-        + '<section class="home-economic-news editorial-section home-block-column" id="homeEconomicNews" aria-label="�ǽð� ���� ���մ���">'
+        + '<section class="home-economic-news editorial-section home-block-column" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
         + '<div class="home-economic-disclosures-slot" data-home-disclosure-slot></div>'
-        + '<section class="home-economic-content ui-content-block"><div class="hen-head"><div><strong class="ui-section-title">���� ���մ���</strong><span data-hen-session>���� �� �ǽð� Ÿ�Ӷ���</span></div><small class="nt-stamp" data-hen-updated>�ֽ� ���� Ȯ�� ��</small></div>'
-        + '<div class="hen-breaking" data-hen-breaking aria-label="�߿� ���� �Ӻ�" hidden>'
-        + '<div class="hen-breaking-head"><strong>�Ӻ�</strong><span>���� �� �Žð��� �� �ݸ�</span></div>'
+        + '<section class="home-economic-content ui-content-block"><div class="hen-head"><div><strong class="ui-section-title">경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small class="nt-stamp" data-hen-updated>최신 뉴스 확인 중</small></div>'
+        + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보" hidden>'
+        + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 거시경제 · 금리</span></div>'
         + '<div class="hen-breaking-list" data-hen-breaking-list></div>'
         + '</div>'
-        + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>���� ������ �ҷ����� ���Դϴ�.</p></div>'
+        + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</section>'
-        // 2026-11-04 �ڽ���200 �߰����� ���� ī��: ���� ���մ��� �ٷ� �Ʒ�(���� ��, �̱� ��忡����). ���� data-market-field����Ʈ ����� �״�� �Ű��.
-        + '<section class="home-night-content ui-content-block" data-home-night-futures hidden aria-label="KOSPI200 �߰�����"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 �߰�����</strong><span data-night-field="status">Ȯ�� ��</span></div>'
-        + '<div class="ui-kpi-value-row"><strong data-market-field="nightFutures">������ Ȯ�� ��</strong></div>'
+        // 2026-11-04 코스피200 야간선물 독립 카드: 경제 종합뉴스 바로 아래(같은 열, 미국 모드에서만). 기존 data-market-field·차트 계약을 그대로 옮겼다.
+        + '<section class="home-night-content ui-content-block" data-home-night-futures hidden aria-label="KOSPI200 야간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 야간선물</strong><span data-night-field="status">확인 중</span></div>'
+        + '<div class="ui-kpi-value-row"><strong data-market-field="nightFutures">데이터 확인 중</strong></div>'
         + '<div class="ui-kpi-value-row hnc-change"><em data-night-field="change">-</em></div>'
-        + '<dl class="hnc-range"><div><dt>����</dt><dd data-night-field="high">-</dd></div><div><dt>����</dt><dd data-night-field="low">-</dd></div></dl>'
+        + '<dl class="hnc-range"><div><dt>고가</dt><dd data-night-field="high">-</dd></div><div><dt>저가</dt><dd data-night-field="low">-</dd></div></dl>'
         + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div>'
-        + '<small class="ui-kpi-source" data-night-field="time">���� �ð� Ȯ�� ��</small></section></section></div>'
-        + '<section class="home-futures-pair" data-home-futures-pair aria-label="�ְ����� ���ݰ� �ð��� ������ ����">'
-        + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 �ְ����� �� �ð��� �Ÿ�</strong><span data-futures-flow-total>���ż� �� ���</span></div>'
-        + '<div class="hff-controls" data-no-swipe><div class="hmb-mode-segment" role="group" aria-label="���� ������ ����">'
-        + [['all','3��ü ��'],['foreign','�ܱ���'],['institution','���'],['individual','����']].map(function (p) { return '<button type="button" data-futures-actor="'+p[0]+'" aria-pressed="'+(p[0]==='all')+'">'+p[1]+'</button>'; }).join('')
-        + '</div><div class="hmb-mode-segment" role="group" aria-label="���� ���� ǥ��"><button type="button" data-futures-display="interval" aria-pressed="false">���� ����</button><button type="button" data-futures-display="cumulative" aria-pressed="true">���� ����</button></div></div>'
-        + '<div data-futures-flow-bars><div class="hmb-investor-spark-empty">�ڷ� Ȯ�� ��</div></div>'
-        + '<input class="hff-time" type="range" min="0" max="14" step="1" value="14" data-futures-time data-no-swipe aria-label="���ݰ� ������ ���� 30�� ����" disabled>'
-        + '<div class="hff-linked-readout" data-futures-flow-readout aria-live="polite">���� �̷� ���</div>'
+        + '<small class="ui-kpi-source" data-night-field="time">수신 시각 확인 중</small></section></section></div>'
+        + '<section class="home-futures-pair" data-home-futures-pair aria-label="주간선물 가격과 시간별 투자자 수급">'
+        + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 주간선물 · 시간별 매매</strong><span data-futures-flow-total>순매수 · 계약</span></div>'
+        + '<div class="hff-controls" data-no-swipe><div class="hmb-mode-segment" role="group" aria-label="선물 투자자 선택">'
+        + [['all','3주체 비교'],['foreign','외국인'],['institution','기관'],['individual','개인']].map(function (p) { return '<button type="button" data-futures-actor="'+p[0]+'" aria-pressed="'+(p[0]==='all')+'">'+p[1]+'</button>'; }).join('')
+        + '</div><div class="hmb-mode-segment" role="group" aria-label="선물 수급 표시"><button type="button" data-futures-display="interval" aria-pressed="false">구간 증감</button><button type="button" data-futures-display="cumulative" aria-pressed="true">당일 누적</button></div></div>'
+        + '<div data-futures-flow-bars><div class="hmb-investor-spark-empty">자료 확인 중</div></div>'
+        + '<input class="hff-time" type="range" min="0" max="14" step="1" value="14" data-futures-time data-no-swipe aria-label="가격과 수급을 비교할 30분 구간" disabled>'
+        + '<div class="hff-linked-readout" data-futures-flow-readout aria-live="polite">관측 이력 대기</div>'
         + '<div data-futures-activity-table></div>'
-        + '<small class="ui-kpi-source" data-futures-flow-meta>���� ��ü �� �ڷ� Ȯ�� ��</small></section>'
-        // �ְ�/�߰� ������ ���� ī�� ���̾ƿ��� 30�� ���� ��Ʈ�� �����Ѵ�.
-        + '<section class="home-market-aux home-night-content ui-content-block" id="homeMarketAux" data-home-market-aux data-home-day-futures aria-label="KOSPI200 �ְ�����"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 �ְ�����</strong><span data-home-day-field="status">Ȯ�� ��</span></div>'
-        + '<div class="ui-kpi-value-row"><strong data-home-day-field="price">Ȯ�� ��</strong></div>'
+        + '<small class="ui-kpi-source" data-futures-flow-meta>선물 전체 · 자료 확인 중</small></section>'
+        // 주간/야간 선물은 같은 카드 레이아웃과 30분 세션 차트를 재사용한다.
+        + '<section class="home-market-aux home-night-content ui-content-block" id="homeMarketAux" data-home-market-aux data-home-day-futures aria-label="KOSPI200 주간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 주간선물</strong><span data-home-day-field="status">확인 중</span></div>'
+        + '<div class="ui-kpi-value-row"><strong data-home-day-field="price">확인 중</strong></div>'
         + '<div class="ui-kpi-value-row hnc-change"><em data-home-day-field="change">-</em></div>'
-        + '<dl class="hnc-range"><div><dt>����</dt><dd data-home-day-field="high">-</dd></div><div><dt>����</dt><dd data-home-day-field="low">-</dd></div></dl>'
+        + '<dl class="hnc-range"><div><dt>고가</dt><dd data-home-day-field="high">-</dd></div><div><dt>저가</dt><dd data-home-day-field="low">-</dd></div></dl>'
         + '<div class="home-index-chart home-night-futures-chart" data-home-day-chart></div>'
-        + '<div class="hff-linked-readout" data-futures-price-readout aria-live="polite">���� ��¥�� ���� ���� �� ����</div>'
-        + '<small class="ui-kpi-source" data-home-day-field="time">���ؽð� Ȯ�� ��</small></section>'
+        + '<div class="hff-linked-readout" data-futures-price-readout aria-live="polite">같은 날짜의 수급 관측 시 연동</div>'
+        + '<small class="ui-kpi-source" data-home-day-field="time">기준시각 확인 중</small></section>'
         + '</section>'
-        + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="�ǽð� ������"></section>'
+        + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
         + '</section>';
     }
 
-    // 2026-10-10 ���� ���� ���� ���� ��Ÿ��. ��ũ���� ����� ���� �ٿ� ù �׸����� �� ������� ���´�.
+    // 2026-10-10 국내 시장 위젯 개편 스타일. 마크업을 만들기 전에 붙여 첫 그림부터 새 모양으로 나온다.
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261116-futures-activity';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261117-utf8-repair';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -989,7 +989,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     // The shared module guards duplicate loads and rebinds its existing timer.
     loadHomeScript('https://goodbyestarwars.github.io/tistory-ticker/js/home-switch-countdown.js?v=20261026-restore', 'HomeSwitchCountdown')
       .then(function (countdown) { countdown.refresh(); })
-      .catch(function (error) { console.warn('���� ī��Ʈ�ٿ� �ʱ�ȭ ����', error); });
+      .catch(function (error) { console.warn('시장 카운트다운 초기화 실패', error); });
 
     function field(name) {
       return dashboardSection.querySelector('[data-market-field="' + name + '"]');
@@ -999,13 +999,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var element = field(name);
       if (!element) return;
       var fullText = text == null ? '' : String(text);
-      // ��� API�� �Ͻ������� '?'�� ��ȯ�ص� ����ڰ� �ǹ� ���� ����ǥ��
-      // ��ǥ ������ �������� �ʵ��� ���� ������ �ٲ� ǥ���Ѵ�.
+      // 요약 API가 일시적으로 '?'를 반환해도 사용자가 의미 없는 물음표를
+      // 지표 값으로 오해하지 않도록 상태 문구로 바꿔 표시한다.
       var placeholderOnly = /^\?+$/.test(fullText.trim());
       if (placeholderOnly) fullText = '';
       element.textContent = fullText;
       element.hidden = placeholderOnly;
-      // 2026-10-23 ����� ��û: hover ����(native tooltip, '?' Ŀ��)�� ���ְ� ���ټ� ���̺��� �����Ѵ�.
+      // 2026-10-23 사용자 요청: hover 설명(native tooltip, '?' 커서)은 없애고 접근성 레이블만 유지한다.
       element.setAttribute('aria-label', fullText);
       element.classList.remove('home-positive', 'home-negative', 'home-neutral');
       if (tone) element.classList.add(tone);
@@ -1020,26 +1020,26 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
       var labels = dashboardSection.querySelectorAll('.hmb-list dt');
       var investorTrend = dashboardSection.querySelector('[data-home-investor-trend]');
-      // �̱� ���� ��� ī��� �׸��� 5�����̶� 3�� �׸��� ������ ĭ�� �� ä�� ���´� -
-      // ���� ���� ���� ���� �ð���� ������ �ڽ��� ������ ������ �� �ִ� �ڽ��� �߰�������
-      // �� �� ĭ�� ä���(���� ���� ��࿡���� �̹� ������ ������ �־� ���� �� ������).
+      // 미국 시장 요약 카드는 항목이 5개뿐이라 3열 그리드 마지막 칸이 빈 채로 남는다 -
+      // 국내 장이 열려 있을 시간대라 다음날 코스피 방향을 가늠할 수 있는 코스피 야간선물을
+      // 그 빈 칸에 채운다(국내 시장 요약에서는 이미 투자자 동향이 있어 굳이 안 보여줌).
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
-      if (title) title.textContent = isUs ? '�۷ι� ����' : '������ ����';
+      if (title) title.textContent = isUs ? '글로벌 지수' : '투자자 동향';
       var marketAux = dashboardSection.querySelector('[data-home-market-aux]');
       if (marketAux) marketAux.hidden = isUs;
       if (meta) {
-        meta.textContent = '��ǥ�� ���� �ð�';
+        meta.textContent = '지표별 수집 시각';
         meta.hidden = !isUs;
       }
       var metricControls = dashboardSection.querySelector('[data-home-metric-controls]');
       if (metricControls) metricControls.hidden = isUs;
-      if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '���� ����' : '��� ���� ����';
-      // Outside the US cash session, the large "���� ����" headline already
-      // shows the same "���� ���� �� / ���� ���� / �̱��� ����" label.
+      if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : '상승 종목 비율';
+      // Outside the US cash session, the large "시장 방향" headline already
+      // shows the same "본장 개장 전 / 본장 마감 / 미국장 휴장" label.
       // Hide only the duplicate small row, not the headline or live futures.
       // Restore it for the US regular session (breadth) and domestic market (temperature).
       var secondaryMarketStatus = dashboardSection.querySelector('.hmb2-verdict > .hmb2-temp');
-      // �������̱��� ���� ��� ���� ��� ���븦 �����Ѵ�.
+      // 국내·미국이 같은 상승 비율 행과 막대를 공유한다.
       if (secondaryMarketStatus) secondaryMarketStatus.hidden = true;
       var domesticRatios = dashboardSection.querySelector('[data-domestic-ratios]');
       if (domesticRatios) domesticRatios.hidden = isUs;
@@ -1047,7 +1047,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (usRatios) usRatios.hidden = !isUs || !!(usSession && !usSession.open);
       if (investorTrend) investorTrend.hidden = isUs;
       if (nightFutures) nightFutures.hidden = !isUs;
-      // �̱� ���: ���������� �гΰ� �۷ι� ��ǥ �г��� ���� '���� ���'(�ٽ� ��ǥ) ĭ�� ����Ѵ�. ���� ���� �״��.
+      // 미국 모드: 선물·업종 패널과 글로벌 지표 패널이 기존 '시장 요약'(핵심 지표) 칸을 대신한다. 국내 모드는 그대로.
       dashboardSection.classList.toggle('is-us-market', isUs);
       var soxCard = homeIndexCard('tertiary');
       if (soxCard) soxCard.hidden = !isUs;
@@ -1061,7 +1061,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (futuresFlow) futuresFlow.hidden = isUs;
       var pair = dashboardSection.querySelector('[data-home-futures-pair]');
       if (pair) pair.hidden = isUs || !!session.closed;
-      // �ٽ� ��ǥ ĭ�� �̱� ��忡�� '�۷ι� ����'�� �ȴ�(������ ���� ����� ���� ��� ����).
+      // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(투자자 동향 목록은 국내 모드 전용).
       var coreList = dashboardSection.querySelector('#homeMarketBoard .hmb2-core');
       if (coreList) coreList.hidden = isUs;
       if (!isUs) renderHomeDayFutures(homeDayFutureQuote, false);
@@ -1077,7 +1077,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }
     }
 
-    // �ֿ� ETF ���ͷ�(�̱� ���). �Ϻ� �����̶� 10�� �ȿ��� �ٽ� �θ��� �ʴ´�. �����ϸ� ĭ�� ���� ä �д�.
+    // 주요 ETF 수익률(미국 모드). 일봉 기준이라 10분 안에는 다시 부르지 않는다. 실패하면 칸을 숨긴 채 둔다.
     function loadHomeUsEtfs(box) {
       if (Date.now() - homeUsEtfsAt < 600000 && box.getAttribute('data-loaded') === '1') { box.hidden = false; return; }
       homeUsEtfsAt = Date.now();
@@ -1089,8 +1089,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         function pct(v) { return window.NineUI.signedPercent(v); }
         function tone(v) { return v > 0 ? 'home-positive' : v < 0 ? 'home-negative' : 'home-neutral'; }
         list.innerHTML = items.map(function (it) {
-          var title = (it.symbol || '') + ' ' + (it.name || '') + ' �� 1�� ' + pct(it.return1w)
-            + ' �� 1���� ' + pct(it.return1m) + ' �� 3���� ' + pct(it.return3m) + ' �� 6���� ' + pct(it.return6m) + ' �� ���� ���� ' + pct(it.returnYtd);
+          var title = (it.symbol || '') + ' ' + (it.name || '') + ' · 1주 ' + pct(it.return1w)
+            + ' · 1개월 ' + pct(it.return1m) + ' · 3개월 ' + pct(it.return3m) + ' · 6개월 ' + pct(it.return6m) + ' · 연초 이후 ' + pct(it.returnYtd);
           return '<tr title="' + escapeHomeHtml(title) + '">'
             + '<td><span class="hmb-etf-name"><b>' + escapeHomeHtml(it.symbol || '') + '</b><span>' + escapeHomeHtml(it.name || '') + '</span></span></td>'
             + '<td class="' + tone(it.return1d) + '">' + pct(it.return1d) + '</td>'
@@ -1100,9 +1100,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
             + '<td class="' + tone(it.returnYtd) + '">' + pct(it.returnYtd) + '</td></tr>';
         }).join('');
         var meta = box.querySelector('[data-home-us-etfs-meta]');
-        if (meta && d.date) meta.textContent = d.date.slice(5).replace('-', '.') + ' �̱� ����' + (d.final === false ? '(����)' : '') + ' �� 1�� �� 1���� �� 3���� �� 6���� �� ���� ����';
+        if (meta && d.date) meta.textContent = d.date.slice(5).replace('-', '.') + ' 미국 종가' + (d.final === false ? '(잠정)' : '') + ' · 1일 · 1개월 · 3개월 · 6개월 · 연초 이후';
         box.setAttribute('data-loaded', '1');
-        box.hidden = !homeShowsUs; // ������ ���� ���� ���� ������ �ٲ������ ���� ä �д�
+        box.hidden = !homeShowsUs; // 응답이 오는 사이 국내 탭으로 바뀌었으면 숨긴 채 둔다
       }).catch(function () { box.hidden = true; });
     }
 
@@ -1113,9 +1113,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       ['KOSPI', 'KOSDAQ'].forEach(function (market) {
         if (Array.isArray(payload[market])) all = all.concat(payload[market]);
       });
-      // GAS bubble ������ KOSPI/KOSDAQ �迭�� ����ϰ�, market-board ������
-      // rows/sections�� ����Ѵ�. Ȩ������ ��� ������ ĳ�õǾ������� �������
-      // ���� ���� ������� ����ȭ�Ѵ�.
+      // GAS bubble 응답은 KOSPI/KOSDAQ 배열을 사용하고, market-board 응답은
+      // rows/sections를 사용한다. 홈에서는 어느 응답이 캐시되었는지와 관계없이
+      // 같은 업종 요약으로 정규화한다.
       if (!all.length && Array.isArray(payload.rows)) all = payload.rows.slice();
       if (!all.length && payload.sections && typeof payload.sections === 'object') {
         var seen = {};
@@ -1135,7 +1135,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         if (!sectors.length && item && (item.sector || item.industry)) sectors = [item.sector || item.industry];
         sectors.forEach(function (sector) {
           sector = String(sector || '').trim();
-          if (!sector || /^(�̺з�|unknown|n\/a|na|-|��Ÿ)$/i.test(sector)) return;
+          if (!sector || /^(미분류|unknown|n\/a|na|-|기타)$/i.test(sector)) return;
           if (!groups[sector]) groups[sector] = { total: 0, count: 0 };
           groups[sector].total += changeRate;
           groups[sector].count += 1;
@@ -1152,8 +1152,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     function sectorSummaryText(items, emptyText) {
       var names = (items || []).map(function (item) { return String(item && (item.sector || item.industry) || '').trim(); })
-        .filter(function (name) { return name && !/^(�̺з�|unknown|n\/a|na|-|��Ÿ)$/i.test(name); });
-      return names.length ? names.join(' �� ') : (emptyText || '���� ������ ����');
+        .filter(function (name) { return name && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(name); });
+      return names.length ? names.join(' · ') : (emptyText || '업종 데이터 없음');
     }
 
     function resolveMarketDirection(marketTemp, indexRates) {
@@ -1165,9 +1165,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         ? avgChange.avgChangeRate
         : null;
 
-      // �̱� ����� �ŷ���� ���� ������ ��� ������ ����, ���� �϶��Ͽ���
-      // �Ϻ� ������ ������� "���� ����"�� ���� �� �ִ�. �����ڡ�S&P500��
-      // ��� ���� �����̸� ��ǥ ���� ������ �켱�ϰ�, ���� �������� ȥ���� �д�.
+      // 미국 요약은 거래대금 상위 종목의 상승 비율만 보면, 지수 하락일에도
+      // 일부 종목의 상승으로 "강한 강세"가 나올 수 있다. 나스닥·S&P500이
+      // 모두 같은 방향이면 대표 지수 방향을 우선하고, 서로 엇갈리면 혼조로 둔다.
       var validIndexRates = Array.isArray(indexRates) ? indexRates.filter(function (rate) { return typeof rate === 'number' && isFinite(rate); }) : [];
       if (validIndexRates.length >= 2) {
         var indexUp = validIndexRates.every(function (rate) { return rate > 0; });
@@ -1175,55 +1175,55 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var indexAverage = validIndexRates.reduce(function (sum, rate) { return sum + rate; }, 0) / validIndexRates.length;
         if (indexDown) {
           if ((riseRatio != null && riseRatio <= 0.3) || (averageRate != null && averageRate <= -1) || indexAverage <= -1) {
-            return { label: '���� �༼', tone: 'home-negative' };
+            return { label: '강한 약세', tone: 'home-negative' };
           }
-          return { label: '�༼ ����', tone: 'home-negative' };
+          return { label: '약세 우위', tone: 'home-negative' };
         }
-        if (!indexUp) return { label: 'ȥ��', tone: 'home-neutral' };
+        if (!indexUp) return { label: '혼조', tone: 'home-neutral' };
         if (riseRatio != null && averageRate != null && riseRatio >= 0.85 && averageRate >= 1 && indexAverage >= 1) {
-          return { label: '�޵�', tone: 'home-positive' };
+          return { label: '급등', tone: 'home-positive' };
         }
         if ((riseRatio != null && riseRatio >= 0.7) && (averageRate == null || averageRate >= 0) && indexAverage >= 0) {
-          return { label: '���� ����', tone: 'home-positive' };
+          return { label: '강한 강세', tone: 'home-positive' };
         }
-        if (riseRatio != null && riseRatio >= 0.55) return { label: '��� ����', tone: 'home-positive' };
-        return { label: 'ȥ��', tone: 'home-neutral' };
+        if (riseRatio != null && riseRatio >= 0.55) return { label: '상승 우위', tone: 'home-positive' };
+        return { label: '혼조', tone: 'home-neutral' };
       }
 
-      // ���ÿµ� ��꿡 �̹� ���Ե� ��ü ���� ��� ������ ��յ������ �Բ� ����.
-      // ���ڰ� ���� ��쿡�� ���� ���¸� ������ �ʴ´�.
+      // 증시온도 계산에 이미 포함된 전체 시장 상승 비율과 평균등락률을 함께 본다.
+      // 숫자가 없는 경우에는 임의 상태를 만들지 않는다.
       if (riseRatio != null && averageRate != null && riseRatio <= 0.15 && averageRate <= -1) {
-        return { label: '�޶�', tone: 'home-negative' };
+        return { label: '급락', tone: 'home-negative' };
       }
       if ((riseRatio != null && riseRatio <= 0.3) || (averageRate != null && averageRate <= -1)) {
-        return { label: '���� �༼', tone: 'home-negative' };
+        return { label: '강한 약세', tone: 'home-negative' };
       }
       if (riseRatio != null && averageRate != null && riseRatio >= 0.85 && averageRate >= 1) {
-        return { label: '�޵�', tone: 'home-positive' };
+        return { label: '급등', tone: 'home-positive' };
       }
       if ((riseRatio != null && riseRatio >= 0.7) || (averageRate != null && averageRate >= 1)) {
-        return { label: '���� ����', tone: 'home-positive' };
+        return { label: '강한 강세', tone: 'home-positive' };
       }
-      if (riseRatio != null && riseRatio <= 0.45) return { label: '�༼ ����', tone: 'home-negative' };
-      if (riseRatio != null && riseRatio >= 0.55) return { label: '��� ����', tone: 'home-positive' };
+      if (riseRatio != null && riseRatio <= 0.45) return { label: '약세 우위', tone: 'home-negative' };
+      if (riseRatio != null && riseRatio >= 0.55) return { label: '상승 우위', tone: 'home-positive' };
       if (riseRatio != null || averageRate != null) {
-        return { label: 'ȥ��', tone: 'home-neutral' };
+        return { label: '혼조', tone: 'home-neutral' };
       }
-      return { label: '������ Ȯ�� ��', tone: 'home-neutral' };
+      return { label: '데이터 확인 중', tone: 'home-neutral' };
     }
 
     function renderMarketExchange(market) {
       var exchange = market && market.components && market.components.exchange;
       if (!exchange || typeof exchange.price !== 'number') return;
       var exchangeRate = Number(exchange.changeRate);
-      var arrow = exchangeRate > 0 ? ' ��' : exchangeRate < 0 ? ' ��' : '';
-      setField('exchange', exchange.price.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '��' + arrow,
+      var arrow = exchangeRate > 0 ? ' ▲' : exchangeRate < 0 ? ' ▼' : '';
+      setField('exchange', exchange.price.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '원' + arrow,
         exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
     }
 
-    // 2026-10-02 ����� ����("��ú���� 21.2�� �߸��ε� ���ÿµ� ���������� �µ��� ����"): ��������
-    // 2026-09-07 �������� 3�� ��������(score100)�� ���� �ִµ� ��ú��常 GAS ���Ž� �µ�(��)�� �а� �־���.
-    // VM /market-temp�� ����������3�ܰ� ��޸� ����. ���� �� ���� ����� �ֱ� ĳ��/������ ǥ���Ѵ�.
+    // 2026-10-02 사용자 지적("대시보드는 21.2도 중립인데 증시온도 페이지에는 온도가 없어"): 페이지는
+    // 2026-09-07 개편부터 3축 종합점수(score100)를 보여 주는데 대시보드만 GAS 레거시 온도(℃)를 읽고 있었다.
+    // VM /market-temp의 종합점수·3단계 등급만 쓴다. 실패 시 같은 계약의 최근 캐시/지연을 표시한다.
     var homeVmScoreText = '';
 
     function setHomeVmScore(data) {
@@ -1231,7 +1231,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var score = Number(data.score100);
       if (!isFinite(score) || score < 0 || score > 100) return;
       var label = data.grade3 && data.grade3.label ? ' ' + data.grade3.label : '';
-      homeVmScoreText = Math.round(score) + '��' + label;
+      homeVmScoreText = Math.round(score) + '점' + label;
       renderDomesticBreadth(data);
     }
 
@@ -1247,21 +1247,21 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var rate = Number(item.change_rate);
         return isFinite(rate) ? rate : null;
       });
-      if (rates.some(function (rate) { return rate === null; })) return { label: '������ Ȯ�� ��', tone: 'home-neutral' };
+      if (rates.some(function (rate) { return rate === null; })) return { label: '데이터 확인 중', tone: 'home-neutral' };
       var total = market && market.marketBreadth && market.marketBreadth.total;
       var ratio = total && typeof total.up === 'number' && typeof total.down === 'number'
         && typeof total.total === 'number' && total.total > 0 && total.up >= 0 && total.down >= 0
         && total.up + total.down <= total.total ? total.up / total.total : null;
       var down = rates.every(function (rate) { return rate < 0; });
       var up = rates.every(function (rate) { return rate > 0; });
-      if (!down && !up) return { label: 'ȥ��', tone: 'home-neutral' };
+      if (!down && !up) return { label: '혼조', tone: 'home-neutral' };
       if (down) {
-        if (ratio != null && ratio <= 0.15 && rates.every(function (rate) { return rate <= -1; })) return { label: '�޶�', tone: 'home-negative' };
-        return { label: (ratio != null && ratio <= 0.3) || rates.every(function (rate) { return rate <= -1; }) ? '���� �༼' : '�༼ ����', tone: 'home-negative' };
+        if (ratio != null && ratio <= 0.15 && rates.every(function (rate) { return rate <= -1; })) return { label: '급락', tone: 'home-negative' };
+        return { label: (ratio != null && ratio <= 0.3) || rates.every(function (rate) { return rate <= -1; }) ? '강한 약세' : '약세 우위', tone: 'home-negative' };
       }
-      if (ratio != null && ratio >= 0.85 && rates.every(function (rate) { return rate >= 1; })) return { label: '�޵�', tone: 'home-positive' };
-      if (ratio != null && ratio <= 0.45) return { label: '���� ��¡����� �༼', tone: 'home-neutral' };
-      return { label: ratio != null && ratio >= 0.7 ? '���� ����' : '��� ����', tone: 'home-positive' };
+      if (ratio != null && ratio >= 0.85 && rates.every(function (rate) { return rate >= 1; })) return { label: '급등', tone: 'home-positive' };
+      if (ratio != null && ratio <= 0.45) return { label: '지수 상승·종목 약세', tone: 'home-neutral' };
+      return { label: ratio != null && ratio >= 0.7 ? '강한 강세' : '상승 우위', tone: 'home-positive' };
     }
 
     function renderDomesticDirection(market) {
@@ -1278,24 +1278,24 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var exchange = market.components && market.components.exchange;
         if (exchange && typeof exchange.price === 'number') {
           var exchangeRate = Number(exchange.changeRate);
-          var arrow = exchangeRate > 0 ? ' ��' : exchangeRate < 0 ? ' ��' : '';
-          setField('exchange', exchange.price.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '��' + arrow,
+          var arrow = exchangeRate > 0 ? ' ▲' : exchangeRate < 0 ? ' ▼' : '';
+          setField('exchange', exchange.price.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '원' + arrow,
             exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
         }
         var updated = document.getElementById('hmbUpdated');
-        if (updated && market.updatedAt) updated.textContent = window.NineTime.updated(market.updatedAt) || ('��Ȳ ' + formatHomeTimestamp(market.updatedAt) + ' ����');
+        if (updated && market.updatedAt) updated.textContent = window.NineTime.updated(market.updatedAt) || ('시황 ' + formatHomeTimestamp(market.updatedAt) + ' 기준');
       }
     }
 
     var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';
 
-    // ���� ��� ����. ���ա��̺з��� ������� ���� �϶����� ��ġ�� �ʴ´�.
+    // 공통 요약 막대. 보합·미분류는 배경으로 남겨 하락으로 합치지 않는다.
     function renderHomeRiseRatio(upRatio, downRatio, targetRow) {
       var valid = typeof upRatio === 'number' && isFinite(upRatio) && upRatio >= 0 && upRatio <= 1;
       var row = targetRow || dashboardSection.querySelector('.hmb2-verdict > .hmb2-temp');
       var value = row && row.querySelector('dd');
       if (value) {
-        value.textContent = valid ? (targetRow ? '��� ' : '') + (upRatio * 100).toFixed(1) + '%' : '������ Ȯ�� ��';
+        value.textContent = valid ? (targetRow ? '상승 ' : '') + (upRatio * 100).toFixed(1) + '%' : '데이터 확인 중';
         value.className = valid ? upRatio >= 0.55 ? 'home-positive' : upRatio <= 0.45 ? 'home-negative' : 'home-neutral' : 'home-neutral';
       }
       var bar = row && row.querySelector('[data-hmb-upbar]');
@@ -1314,12 +1314,12 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var flatBar = bar.querySelector('.is-flat');
       if (flatBar) flatBar.style.width = ((1 - upRatio - down) * 100).toFixed(2) + '%';
       bar.setAttribute('role', 'img');
-      bar.setAttribute('aria-label', '��� ' + (upRatio * 100).toFixed(1) + '% �� �϶� ' + (down * 100).toFixed(1) + '% �� ������ ���ա��̺з�');
+      bar.setAttribute('aria-label', '상승 ' + (upRatio * 100).toFixed(1) + '% · 하락 ' + (down * 100).toFixed(1) + '% · 나머지 보합·미분류');
       bar.title = bar.getAttribute('aria-label');
       bar.hidden = false;
     }
 
-    // ���� ������ ����� �̱� ��ȸ ǥ���� ���� ǥ�ñ⸦ ���� ���� ������ �����Ѵ�.
+    // 국내 전종목 집계와 미국 조회 표본은 같은 표시기를 쓰되 집계 범위를 구분한다.
     function renderHomeBreadthEntry(row, label, entry, isSample) {
       if (!row) return;
       if (entry && typeof entry.up === 'number' && typeof entry.down === 'number') {
@@ -1328,11 +1328,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           var flat = typeof entry.flat === 'number' ? entry.flat : null;
           row.classList.remove('hmb2-temp');
           row.innerHTML = '<dt>' + label + '</dt>'
-            + '<span class="hmb2-breadth-total">' + (isSample ? '���� ' : '��ü ') + count.toLocaleString('ko-KR') + '����</span><dd></dd>'
+            + '<span class="hmb2-breadth-total">' + (isSample ? '집계 ' : '전체 ') + count.toLocaleString('ko-KR') + '종목</span><dd></dd>'
             + '<span class="hmb2-upbar" data-hmb-upbar><i class="is-up"></i><i class="is-flat"></i><i class="is-down"></i></span>'
-            + '<span class="hmb2-breadth-counts"><span>��� <b class="home-positive">' + entry.up.toLocaleString('ko-KR') + '</b></span>'
-            + '<span>' + (flat === null ? '�̺з�' : '����') + ' <b>' + (flat === null ? count - entry.up - entry.down : flat).toLocaleString('ko-KR') + '</b></span>'
-            + '<span>�϶� <b class="home-negative">' + entry.down.toLocaleString('ko-KR') + '</b></span></span>';
+            + '<span class="hmb2-breadth-counts"><span>상승 <b class="home-positive">' + entry.up.toLocaleString('ko-KR') + '</b></span>'
+            + '<span>' + (flat === null ? '미분류' : '보합') + ' <b>' + (flat === null ? count - entry.up - entry.down : flat).toLocaleString('ko-KR') + '</b></span>'
+            + '<span>하락 <b class="home-negative">' + entry.down.toLocaleString('ko-KR') + '</b></span></span>';
           renderHomeRiseRatio(entry.up / count, entry.down / count, row);
           return;
         }
@@ -1347,7 +1347,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var byMarket = data && data.marketBreadth && data.marketBreadth.byMarket;
       ['KOSPI', 'KOSDAQ'].forEach(function (key) {
         var row = dashboardSection.querySelector('[data-domestic-ratio="' + key + '"]');
-        renderHomeBreadthEntry(row, key === 'KOSPI' ? '�ڽ���' : '�ڽ���', byMarket && byMarket[key], false);
+        renderHomeBreadthEntry(row, key === 'KOSPI' ? '코스피' : '코스닥', byMarket && byMarket[key], false);
       });
     }
 
@@ -1359,7 +1359,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var data = body && body.data ? body.data : body;
         renderMarketTemperature(data);
         renderDomesticBreadth(data);
-      }).catch(function () { /* ���� ���� ǥ�ø� �����Ѵ�. */ });
+      }).catch(function () { /* 기존 정상 표시를 유지한다. */ });
     }
 
     function nyClockParts(now) {
@@ -1384,28 +1384,28 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       try {
         clock = nyClockParts(now);
       } catch (error) {
-        return { open: false, label: '���� ���� Ȯ�� ��', subtitle: '�̱� ���� �� ���� ���� Ȯ�� ��' };
+        return { open: false, label: '본장 상태 확인 중', subtitle: '미국 현물 · 본장 상태 확인 중' };
       }
       var minute = clock.minutes;
       var weekend = clock.weekday === 'Sat' || clock.weekday === 'Sun';
-      if (weekend) return { open: false, label: '�̱��� ����', subtitle: '�̱� ���� �� ����' };
-      // 2026-09-07 ����Ʈ("�̱��� �뵿���ε� ���� �ƴ� �ɷ� ����"): ���� ������ �ָ���
-      // ���� �־���. ������ ǥ�� js/skin-shell.js�� MarketHours �� ������ �д� - ����
-      // ������ ���� ���Ͽ� �����ߴٰ� ȭ���� ���ȴ� ����(2026-09-05 MarketHours ����)��
-      // �ݺ����� �ʴ´�.
-      // skin-main.js���� global ��Ī�� ���� - window�� �о�� ReferenceError�� �� ����
-      // (2026-09-06 ������ǥ �ǿ��� ���� �Ǽ��� �ߴ�).
+      if (weekend) return { open: false, label: '미국장 휴장', subtitle: '미국 현물 · 휴장' };
+      // 2026-09-07 리포트("미국장 노동절인데 휴장 아닌 걸로 나와"): 여기 판정이 주말만
+      // 보고 있었다. 휴장일 표는 js/skin-shell.js의 MarketHours 한 곳에만 둔다 - 같은
+      // 판정을 여러 파일에 복제했다가 화면이 갈렸던 전례(2026-09-05 MarketHours 도입)를
+      // 반복하지 않는다.
+      // skin-main.js에는 global 별칭이 없다 - window로 읽어야 ReferenceError가 안 난다
+      // (2026-09-06 시장지표 탭에서 같은 실수를 했다).
       if (window.MarketHours && window.MarketHours.isUsHoliday
           && window.MarketHours.isUsHoliday(now)) {
-        return { open: false, label: '�̱��� ����', subtitle: '�̱� ���� �� ����' };
+        return { open: false, label: '미국장 휴장', subtitle: '미국 현물 · 휴장' };
       }
-      if (minute < 9 * 60 + 30) return { open: false, label: '���� ���� ��', subtitle: '�̱� ���� �� ���� ���� ��' };
-      if (minute >= 16 * 60) return { open: false, label: '���� ����', subtitle: '�̱� ���� �� ���� ����' };
-      return { open: true, label: '����', subtitle: '�̱� ���� �� ����' };
+      if (minute < 9 * 60 + 30) return { open: false, label: '본장 개장 전', subtitle: '미국 현물 · 본장 개장 전' };
+      if (minute >= 16 * 60) return { open: false, label: '본장 마감', subtitle: '미국 현물 · 본장 마감' };
+      return { open: true, label: '장중', subtitle: '미국 현물 · 장중' };
     }
 
-    // CME �ְ����� ���� �ŷ��ð�(ET) �ٻ�. �Ͽ��� 18:00�� ���� �ݿ��� 17:00�� ������,
-    // ���� 17:00~18:00 �� �ð��� ����. ������ ����ŷ��� �ݿ����� �ʴ´�.
+    // CME 주가지수 선물 거래시간(ET) 근사. 일요일 18:00에 열려 금요일 17:00에 닫히고,
+    // 매일 17:00~18:00 한 시간을 쉰다. 공휴일 단축거래는 반영하지 않는다.
     function usFuturesSessionOpen(now) {
       var clock;
       try {
@@ -1419,19 +1419,19 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       return clock.minutes < 17 * 60 || clock.minutes >= 18 * 60;
     }
 
-    // 2026-09-04: �̱� ȭ���� ��� ���� ��Ʈ���� �׻� �����ڡ�S&P500 "����"�� �׸��� �־���.
-    // ������ �ѱ��ð� 22:30~05:00(����Ÿ�� ����)���� ��������, ���� �̱����� ���� ����
-    // ���� ������ �״�� ���� �ִ� ī�带 ��� ���� �ȴ�(����� ����: "�̱� �ǽð� ƼĿ��
-    // ǥ���� �Ǵ°� �־�"). ������ ���� �ְ� ���������� ���� �ִ� �ð��뿡�� �̹� ���� ����
-    // ������100��S&P500 ������ �ٲ� ������ �����̴� ���� �����ش�.
+    // 2026-09-04: 미국 화면의 상단 지수 스트립이 항상 나스닥·S&P500 "현물"을 그리고 있었다.
+    // 현물은 한국시간 22:30~05:00(서머타임 기준)에만 움직여서, 낮에 미국증시 탭을 열면
+    // 전날 종가가 그대로 굳어 있는 카드를 계속 보게 된다(사용자 지적: "미국 실시간 티커에
+    // 표현만 되는게 있어"). 본장이 닫혀 있고 지수선물이 열려 있는 시간대에는 이미 수집 중인
+    // 나스닥100·S&P500 선물로 바꿔 실제로 움직이는 값을 보여준다.
     function usIndexSessionState(now) {
       var spot = usRegularSessionState(now);
       if (spot.open) {
         return {
           source: 'spot',
           keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
-          labels: ['������ ���� ����', 'S&P500 ����'],
-          live: '������ ���� �� S&P500 ����',
+          labels: ['나스닥 종합 현물', 'S&P500 현물'],
+          live: '나스닥 종합 · S&P500 현물',
           statusLabel: spot.label,
           subtitle: spot.subtitle
         };
@@ -1440,26 +1440,26 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         return {
           source: 'futures',
           keys: ['NASDAQ100', 'SP500'],
-          labels: ['������100 ����(CME)', 'S&P500 ����(CME)'],
-          live: '������100 �� S&P500 ����(CME)',
-          statusLabel: '���� �ŷ���',
-          // 2026-10-15 "�����̾� �����̾�" ����: ���� ���� ���� ������ �ٸ��ٴ� ���� ������ �� �ڴ´�.
-          subtitle: '�̱� ��������(CME) �ŷ��� �� ���� ������ ���� �ٸ�(���� ' + spot.label + ')'
+          labels: ['나스닥100 선물(CME)', 'S&P500 선물(CME)'],
+          live: '나스닥100 · S&P500 선물(CME)',
+          statusLabel: '선물 거래중',
+          // 2026-10-15 "선물이야 현물이야" 문의: 선물 값은 현물 지수와 다르다는 점을 부제에 못 박는다.
+          subtitle: '미국 지수선물(CME) 거래중 · 현물 지수와 값이 다름(현물 ' + spot.label + ')'
         };
       }
       return {
         source: 'spot',
         keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
-        labels: ['������ ���� ����', 'S&P500 ����'],
-        live: '������ ���� �� S&P500 ����',
+        labels: ['나스닥 종합 현물', 'S&P500 현물'],
+        live: '나스닥 종합 · S&P500 현물',
         statusLabel: spot.label,
         subtitle: spot.subtitle
       };
     }
 
-    // 2026-09-05: �ڽ��� �߰����� ���� ������ js/skin-shell.js�� MarketHours�� �Ű��.
-    // ������ ǥ�� �� ���ϡ�kospi-futures.js��domestic-market-indicators.js �� ����
-    // ������ �־, �ذ� �ٲ�� �� ������ �� ���ľ� �ߴ�. ���� �� ���� ��ģ��.
+    // 2026-09-05: 코스피 야간선물 휴장 판정을 js/skin-shell.js의 MarketHours로 옮겼다.
+    // 휴장일 표가 이 파일·kospi-futures.js·domestic-market-indicators.js 세 곳에
+    // 복제돼 있어서, 해가 바뀌면 세 군데를 다 고쳐야 했다. 이제 한 곳만 고친다.
     function isNightFuturesHoliday() {
       var hours = window.MarketHours;
       return hours ? hours.isNightSessionHoliday() : false;
@@ -1486,11 +1486,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         return { industry: industry, average: groups[industry].total / groups[industry].count };
       }).sort(function (a, b) { return b.average - a.average; });
       var eligibleIndustries = industries.filter(function (item) {
-        return item.industry && !/^(�̺з�|unknown|n\/a|na|-|��Ÿ)$/i.test(item.industry);
+        return item.industry && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(item.industry);
       });
-      // ���� �϶��Ͽ��� ��� ������ ����� ������ �� �� �ִ�. ��� ������
-      // �ֵ� �������� ������ �� ��� �� ĭ�� �ǹǷ�, ��� ������ ���� ����
-      // ��������� �� �϶��� ���� ������ �ֵ� �������� ǥ���Ѵ�.
+      // 지수 하락일에는 모든 업종의 평균이 음수가 될 수 있다. 양수 업종만
+      // 주도 업종으로 고르면 이 경우 빈 칸이 되므로, 상승 업종이 없을 때는
+      // 상대적으로 덜 하락한 상위 업종을 주도 업종으로 표시한다.
       var leaders = eligibleIndustries.filter(function (item) { return item.average > 0; }).slice(0, 3);
       if (!leaders.length) leaders = eligibleIndustries.slice(0, 3);
       var cautions = eligibleIndustries.filter(function (item) { return item.average < 0; }).slice(-3).reverse();
@@ -1519,17 +1519,17 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       latestUsBoardData = data;
       var summary = summarizeUsMarket(data, latestHomeIndices);
       if (!summary) {
-        setField('temperature', '������ Ȯ�� ��', 'home-neutral');
-        setField('leaders', '������ Ȯ�� ��', 'home-neutral');
-        setField('cautions', '������ Ȯ�� ��', 'home-neutral');
+        setField('temperature', '데이터 확인 중', 'home-neutral');
+        setField('leaders', '데이터 확인 중', 'home-neutral');
+        setField('cautions', '데이터 확인 중', 'home-neutral');
         return;
       }
       var sessionOpen = !summary.sessionState || summary.sessionState.open;
       if (!sessionOpen) setField('direction', summary.direction.label, summary.direction.tone);
-      setField('leaders', sectorSummaryText(summary.leaders, '���� ������ ����'), 'home-positive');
-      setField('cautions', sectorSummaryText(summary.cautions, '���� ������ ����'), 'home-negative');
+      setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
+      setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
       var updated = document.getElementById('hmbUpdated');
-      if (updated && summary.updatedAt) updated.textContent = window.NineTime.updated(summary.updatedAt) || (formatHomeTimestamp(summary.updatedAt) + ' ����');
+      if (updated && summary.updatedAt) updated.textContent = window.NineTime.updated(summary.updatedAt) || (formatHomeTimestamp(summary.updatedAt) + ' 기준');
     }
 
     function renderUsIndexBreadth(body) {
@@ -1540,27 +1540,27 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var ratios = [];
       ['SP500', 'NASDAQ', 'SOX'].forEach(function (key) {
         var entry = body && body.byIndex && body.byIndex[key];
-        var label = key === 'SP500' ? 'S&P 500' : key === 'SOX' ? '�ʶ��Ǿ� �ݵ�ü' : '������ ����';
+        var label = key === 'SP500' ? 'S&P 500' : key === 'SOX' ? '필라델피아 반도체' : '나스닥 종합';
         var row = dashboardSection.querySelector('[data-us-ratio="' + key + '"]');
         var valid = entry && entry.status !== 'unavailable' && typeof entry.total === 'number' && entry.total > 0;
         renderHomeBreadthEntry(row, escapeHomeHtml(label), valid ? entry : null, false);
         if (valid) {
-          if (entry.missing) notes.push(label + ' ���� ' + entry.missing + '����');
-          if (entry.status === 'stale') notes.push(label + ' ���� ����');
-          // ���� ������ S&P 500�������� ���� �� ���� �����̴�. ���� ����(SOX)�� ǥ�ø� �Ѵ�.
+          if (entry.missing) notes.push(label + ' 결측 ' + entry.missing + '종목');
+          if (entry.status === 'stale') notes.push(label + ' 갱신 지연');
+          // 시장 방향은 S&P 500·나스닥 종합 두 지수 기준이다. 업종 지수(SOX)는 표시만 한다.
           if (entry.status === 'ok' && key !== 'SOX') ratios.push(entry.up / entry.total);
-          if (row) row.title = 'TradingView ���� �������� �� �����ü� �� ���� ' + (entry.retrievedAt || 'Ȯ�� ��');
+          if (row) row.title = 'TradingView 지수 구성종목 · 지연시세 · 수집 ' + (entry.retrievedAt || '확인 중');
         }
       });
       var meta = dashboardSection.querySelector('[data-us-breadth-meta]');
-      if (meta) meta.textContent = 'TradingView �� �����ü�(�ִ� 15��) �� 2�� ĳ��' + (notes.length ? ' �� ' + notes.join(' �� ') : '');
+      if (meta) meta.textContent = 'TradingView · 지연시세(최대 15분) · 2분 캐시' + (notes.length ? ' · ' + notes.join(' · ') : '');
       if (usRegularSessionState().open) {
         // Two index breadth ratios are averaged; overlapping constituents are not presented as a combined stock count.
         if (ratios.length === 2) {
           var indexRates = (latestHomeIndices || []).filter(function (item) { return item.symbol === 'NASDAQ_INDEX' || item.symbol === 'SP500_INDEX'; }).map(function (item) { return Number(item.change_rate); }).filter(isFinite);
           var direction = resolveMarketDirection({components: {riseRatio: {ratio: (ratios[0] + ratios[1]) / 2}, avgChange: {avgChangeRate: indexRates.length ? indexRates.reduce(function (a, b) { return a + b; }, 0) / indexRates.length : 0}}}, indexRates);
           setField('direction', direction.label, direction.tone);
-        } else setField('direction', '������ Ȯ�� ��', 'home-neutral');
+        } else setField('direction', '데이터 확인 중', 'home-neutral');
       }
       renderHomeUsPanels();
     }
@@ -1573,8 +1573,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var latestHomeParticipation = {domestic: null, us: null};
 
     function homeParticipationModel(market, body) {
-      var definitions = market === 'us' ? [['SP500','S&P 500'],['NASDAQ','������ ����'],['SOX','�ʶ��Ǿ� �ݵ�ü']]
-        : [['KOSPI','�ڽ���'],['KOSDAQ','�ڽ���']];
+      var definitions = market === 'us' ? [['SP500','S&P 500'],['NASDAQ','나스닥 종합'],['SOX','필라델피아 반도체']]
+        : [['KOSPI','코스피'],['KOSDAQ','코스닥']];
       var number = function (v) { return typeof v === 'number' && isFinite(v) && v >= 0; };
       return definitions.map(function (definition) {
         var entry = body && body.byIndex && body.byIndex[definition[0]], volume = entry && entry.volumeIndex;
@@ -1660,7 +1660,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
       var scale = homeVolumeScale(models);
 
-      target.innerHTML = '<div class="hmp-caption">�ŷ���</div>' + models.map(function (model) {
+      target.innerHTML = '<div class="hmp-caption">거래량</div>' + models.map(function (model) {
 
         var volume = model.volume;
 
@@ -1668,17 +1668,17 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
         var value = volume ? normalized.toFixed(1).replace(/\.0$/, '')
 
-          : market === 'us' ? (model.status === 'stale' ? '���� ����' : 'Ȯ�� ��')
+          : market === 'us' ? (model.status === 'stale' ? '갱신 지연' : '확인 중')
 
-          : model.status === 'stale' ? '���� ����' : 'Ȯ�� ��';
+          : model.status === 'stale' ? '갱신 지연' : '확인 중';
 
         var delta = volume ? normalized - 100 : null;
 
         var tone = delta === null || Math.abs(delta) < .000001 ? 'home-neutral' : delta > 0 ? 'home-positive' : 'home-negative';
 
-        var label = model.label + ' ���ð��� 5�к� �ŷ��� ' + value + (volume ? ' / ��� 100' : '');
+        var label = model.label + ' 동시간대 5분봉 거래량 ' + value + (volume ? ' / 평균 100' : '');
 
-        var tooltip = volume ? '�ֱ� 10�ŷ��� ���ð��� 5�к� �ŷ��� ��� 100 �� ���� ' + model.entry.retrievedAt
+        var tooltip = volume ? '최근 10거래일 동시간대 5분봉 거래량 평균 100 · 수집 ' + model.entry.retrievedAt
 
           : label;
 
@@ -1694,7 +1694,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
       }).join('');
 
-      // �������� 3����(�̱�: �ʶ��Ǿ� �ݵ�ü �߰�) ĭ ���� ������ ǥ�� Ŭ����.
+      // 게이지가 3개면(미국: 필라델피아 반도체 추가) 칸 폭을 넓히는 표시 클래스.
 
       if (target.parentElement) target.parentElement.classList.toggle('has-three-gauges', models.length > 2);
 
@@ -1715,18 +1715,18 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
 
     function renderParticipationBasis(models) {
-      return '<details class="hmp-details"><summary>10�� ���ð��� 5�к� �ŷ��� ��� 100 �� �ڼ���</summary>'
+      return '<details class="hmp-details"><summary>10일 동시간대 5분봉 거래량 평균 100 · 자세히</summary>'
         + models.map(function (model) {
           var e = model.entry, v = model.volume;
-          var time = e && isFinite(Date.parse(e.retrievedAt)) ? new Date(e.retrievedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' KST' : '�ð� ��Ȯ��';
+          var time = e && isFinite(Date.parse(e.retrievedAt)) ? new Date(e.retrievedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' KST' : '시각 미확인';
           var lag = e && typeof e.delaySeconds === 'number' && isFinite(e.delaySeconds) && e.delaySeconds>=0
-            ? ' �� ������ '+Math.round(e.delaySeconds/60)+'�� ����' : ' �� ���� Ȯ�� �ʿ�';
-          return '<div>'+escapeHomeHtml(model.label)+' �� '+(v ? '��ȿ '+v.eligible+'/'+v.total+'����' : model.status === 'stale' ? '���� ����' : '�ڷ� Ȯ�� ��')
-            +' �� ���� '+escapeHomeHtml(time+lag)
-            +(model.participation ? '<br>�ŷ��� ���� ���� '+(model.participation.ratio*100).toFixed(1)+'% �� ��� �ŷ��� �߾Ӱ� '+model.participation.median.toFixed(2)+'��' : '')+'</div>';
+            ? ' · 공급자 '+Math.round(e.delaySeconds/60)+'분 지연' : ' · 지연 확인 필요';
+          return '<div>'+escapeHomeHtml(model.label)+' · '+(v ? '유효 '+v.eligible+'/'+v.total+'종목' : model.status === 'stale' ? '갱신 지연' : '자료 확인 중')
+            +' · 수집 '+escapeHomeHtml(time+lag)
+            +(model.participation ? '<br>거래량 증가 종목 '+(model.participation.ratio*100).toFixed(1)+'% · 상대 거래량 중앙값 '+model.participation.median.toFixed(2)+'배' : '')+'</div>';
         }).join('')
-        + '<div>�ѱ����̱� ���� ����: TradingView ���� ���������� �ŷ��� �ջ� / �ֱ� 10�ŷ��� ���ð��� 5�к� ��� ��100. ��ȿ ǥ�� 95% �̻� ǥ��. '
-        + '�Ϸ� �������ŷ���ݡ��ż� ������ �ƴ�. ���� �ð��� ü�� �ð��� �ƴϸ� ���� ���� ��¥���ð� ������. ��ܿ��� �������� ������ 5�к� �ڷ�.</div></details>';
+        + '<div>한국·미국 동일 기준: TradingView 지수 구성종목의 거래량 합산 / 최근 10거래일 동시간대 5분봉 평균 ×100. 유효 표본 95% 이상만 표시. '
+        + '하루 누적·거래대금·매수 우위가 아님. 수집 시각은 체결 시각이 아니며 원본 관측 날짜·시각 미제공. 장외에는 공급자의 마지막 5분봉 자료.</div></details>';
     }
     function renderUsParticipation(models) {
       return renderParticipationBasis(models);
@@ -1744,8 +1744,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     function renderMarketSectors(bubble) {
       var summary = sectorSummary(bubble);
-      // ���� ���� ���� ���� ���踦 �̱������ ���� �� ĭ ���/0�� ����� ǥ���Ѵ�.
-      // �̱� ���� ETF �����̼ǰ� �����ڡ�ǥ���� �ٸ��Ƿ� ���� ������ �����Ѵ�.
+      // 기존 시총 버블 업종 집계를 미국시장과 같은 두 칸 목록/0선 막대로 표시한다.
+      // 미국 섹터 ETF 로테이션과 공급자·표본이 다르므로 별도 설명을 유지한다.
       var rotation = dashboardSection.querySelector('[data-home-kr-rotation]');
       if (!rotation) return;
       var scale = Math.max(0.5, summary.leaders.concat(summary.cautions).reduce(function (max, row) {
@@ -1757,10 +1757,10 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         list.innerHTML = group[1].length ? group[1].map(function (row) {
           var rate = row.average, width = Math.min(50, Math.abs(rate) / scale * 50);
           return '<li><span class="hus-name">' + escapeHomeHtml(row.sector) + '</span>'
-            + '<span class="hus-bar" role="img" aria-label="' + escapeHomeHtml(row.sector + ' ��� ' + rate.toFixed(2) + '%') + '"><i class="' + (rate >= 0 ? 'is-up' : 'is-down') + '" style="width:' + width.toFixed(1) + '%"></i></span>'
+            + '<span class="hus-bar" role="img" aria-label="' + escapeHomeHtml(row.sector + ' 평균 ' + rate.toFixed(2) + '%') + '"><i class="' + (rate >= 0 ? 'is-up' : 'is-down') + '" style="width:' + width.toFixed(1) + '%"></i></span>'
             + '<b class="' + homeTone(rate) + '">' + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%</b>'
-            + '<small>' + row.count + '����</small></li>';
-        }).join('') : '<li class="ui-kpi-empty">�ش� ���� ������ ����</li>';
+            + '<small>' + row.count + '종목</small></li>';
+        }).join('') : '<li class="ui-kpi-empty">해당 업종 데이터 없음</li>';
       });
     }
 
@@ -1768,13 +1768,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       return dashboardSection.querySelector('[data-home-index-slot="' + slot + '"]');
     }
 
-    // 2026-08-29: � �����ͷ� ��ȯ. /futures ������ �Ϻ��� ���� �߰� �к��� ����. ���̾ƿ� �۾� ��
-    // �ٽ� ���� ������ �ʿ��ϸ� �� ���� true�θ� �ٲٸ� �ȴ�(�Ʒ� �ⱸ�� ����).
+    // 2026-08-29: 운영 데이터로 전환. /futures 응답의 일봉과 별도 야간 분봉을 쓴다. 레이아웃 작업 때
+    // 다시 고정 샘플이 필요하면 이 값을 true로만 바꾸면 된다(아래 기구는 유지).
     var HOME_USE_SAMPLE_CHARTS = false;
     var homeSessionCharts = {}, homePriceMode = 'area', homePriceModes = {}, homeSessionLoading = false;
-    // ����/����� ��Ʈ(ī��)���� ���� ����Ѵ�. homePriceMode �� ���� ������ ���� ��Ʈ�� �⺻���̴�.
+    // 면적/막대는 차트(카드)마다 따로 기억한다. homePriceMode 는 아직 고르지 않은 차트의 기본값이다.
     function homeModeOf(key) { return homePriceModes[key] || homePriceMode; }
-    // ���콺 ������ �� ���(js/home-chart-hover.js�� �д´�). [x%, y%, ����] - ������ textContent �θ� �������� �Ӽ� �̽��������� ���⼭ �Ѵ�.
+    // 마우스 오버용 점 목록(js/home-chart-hover.js가 읽는다). [x%, y%, 문구] - 문구는 textContent 로만 쓰이지만 속성 이스케이프는 여기서 한다.
     function homeHoverAttr(points) {
       return JSON.stringify(points.map(function (p) { return [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100, p[2]]; }))
         .replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1784,17 +1784,17 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var pct = (value / base - 1) * 100;
       return (pct > 0 ? '+' : '') + pct.toFixed(2) + '%';
     }
-    // Ȩ KR/US�� ��� ���������� ��ȯ�� ���Ǵ� ������ �� ��ư ������Ʈ.
-    // �̺�Ʈ ������ ��Ʈ�� ���� ���� �ڵ鷯�� �����ϰ�, ���ð��� aria-pressed�� ǥ���Ѵ�.
+    // 홈 KR/US의 모든 면적·막대 전환에 사용되는 동일한 두 버튼 컴포넌트.
+    // 이벤트 연결은 차트별 기존 위임 핸들러가 소유하고, 선택값은 aria-pressed로 표현한다.
     function homeModeSegment(attribute, selected, ariaLabel) {
       return '<div class="hmb-mode-segment" role="group" aria-label="' + ariaLabel + '">'
-        + '<button type="button" ' + attribute + '="area" aria-pressed="' + (selected === 'area') + '">����</button>'
-        + '<button type="button" ' + attribute + '="bar" aria-pressed="' + (selected === 'bar') + '">����</button></div>';
+        + '<button type="button" ' + attribute + '="area" aria-pressed="' + (selected === 'area') + '">면적</button>'
+        + '<button type="button" ' + attribute + '="bar" aria-pressed="' + (selected === 'bar') + '">막대</button></div>';
     }
 
     function homePriceSwitchControls(key, periodLabel) {
       return '<div class="hmb-price-controls"><span>' + periodLabel + '</span>'
-        + homeModeSegment('data-price-mode', homeModeOf(key), '���� ���� �׷��� ǥ�� ���') + '</div>';
+        + homeModeSegment('data-price-mode', homeModeOf(key), '가격 추이 그래프 표시 방식') + '</div>';
     }
     function renderHomeSessionChart(element, key, reference) {
       var result = homeSessionCharts[key] || {}, meta = result.session;
@@ -1805,9 +1805,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       element.setAttribute('data-session-symbol', key);
       var mode = homeModeOf(key);
       var controls = homePriceSwitchControls(key,
-        '30�� �� ' + (['KOSPI', 'KOSDAQ', 'KOSPI200_DAY', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '����ð�'));
+        '30분 · ' + (['KOSPI', 'KOSDAQ', 'KOSPI200_DAY', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간'));
       if (!meta || !rows.length) {
-        element.innerHTML = controls + '<div class="hmb-investor-spark-empty">���� ��� ���� ��</div>';
+        element.innerHTML = controls + '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
         return;
       }
       function amount(v) { return Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 }); }
@@ -1844,25 +1844,25 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }
       rows.forEach(function (r) {
         var tone = r.close > base ? 'buy' : r.close < base ? 'sell' : 'flat';
-        var title = '<title>' + time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' ���� �� ' + amount(r.close) + ' �� ���� ' + time(r.ts) + '</title>';
+        var title = '<title>' + time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' 구간 · ' + amount(r.close) + ' · 관측 ' + time(r.ts) + '</title>';
         marks += mode === 'bar'
           ? '<rect data-price-slot="' + r.slot + '" class="hmb-investor-' + tone + '" x="' + (x(r.slot) - 28 / meta.slotCount) + '" y="' + Math.min(zero, y(r.close)) + '" width="' + 56 / meta.slotCount + '" height="' + Math.max(.6, Math.abs(zero - y(r.close))) + '">' + title + '</rect>'
           : '<circle class="hmb-investor-' + tone + '" cx="' + x(r.slot) + '" cy="' + y(r.close) + '" r=".7">' + title + '</circle>';
       });
       function dot(r, value, name) { return '<span class="hmb-investor-point is-' + name + '" style="left:' + x(r.slot) + '%;top:' + y(value) / 90 * 100 + '%"></span>'; }
-      var zoneName = ['KOSPI', 'KOSDAQ', 'KOSPI200_DAY', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '����ð�';
+      var zoneName = ['KOSPI', 'KOSDAQ', 'KOSPI200_DAY', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간';
       var hoverPoints = rows.map(function (r) {
         var change = hasReference ? homePercentText(Number(r.close), base) : '';
         return [x(r.slot), y(Number(r.close)) / 90 * 100,
-          time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' ' + zoneName + ' ���� �� ���� ' + amount(r.close)
-            + (change ? ' (���� ��� ' + change + ')' : '') + '\n���� ' + time(r.ts)];
+          time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' ' + zoneName + ' 구간 · 지수 ' + amount(r.close)
+            + (change ? ' (기준 대비 ' + change + ')' : '') + '\n관측 ' + time(r.ts)];
       });
-      element.innerHTML = controls + '<div class="hmb-investor-spark-wrap" data-hover-points="' + homeHoverAttr(hoverPoints) + '"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30�� ���� ����, ���� ���� ' + amount(high.high) + ', ���� ' + amount(low.low) + '">'
+      element.innerHTML = controls + '<div class="hmb-investor-spark-wrap" data-hover-points="' + homeHoverAttr(hoverPoints) + '"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 가격 추이, 관측 고점 ' + amount(high.high) + ', 저점 ' + amount(low.low) + '">'
         + '<line class="hmb-investor-zero" x1="1" x2="99" y1="' + zero + '" y2="' + zero + '" vector-effect="non-scaling-stroke"/>' + marks + '</svg>' + dot(high, high.high, 'high') + dot(low, low.low, 'low') + '</div>'
         + '<div class="hmb-investor-axis"><span>' + time(Date.parse(meta.start) / 1000) + '</span><span>' + time(Date.parse(meta.end) / 1000) + '</span></div>'
-        + '<div class="hmb-investor-extrema"><span>���� ���� <b>' + amount(high.high) + '</b></span><span>���� <b>' + amount(low.low) + '</b></span></div>'
-        + '<div class="hmb-investor-asof">' + meta.date + ' �� ���� ' + time(rows[rows.length - 1].ts) + ' �� ' + rows.length + '/' + meta.slotCount + '��</div>'
-        + '<div class="hmb-investor-asof">' + result.basis + (hasReference ? ' �� ' + (result.referenceBasis === 'previous-stored-close' ? '���� �ŷ��� ���� ���� ' : '���� ���ذ� ') + amount(base) : ' �� ù ���� �ð� ���� ' + amount(base) + ' (���� ���ذ� ��Ȯ��)') + '</div>';
+        + '<div class="hmb-investor-extrema"><span>관측 고점 <b>' + amount(high.high) + '</b></span><span>저점 <b>' + amount(low.low) + '</b></span></div>'
+        + '<div class="hmb-investor-asof">' + meta.date + ' · 관측 ' + time(rows[rows.length - 1].ts) + ' · ' + rows.length + '/' + meta.slotCount + '개</div>'
+        + '<div class="hmb-investor-asof">' + result.basis + (hasReference ? ' · ' + (result.referenceBasis === 'previous-stored-close' ? '직전 거래일 저장 종가 ' : '전일 기준값 ') + amount(base) : ' · 첫 관측 시가 기준 ' + amount(base) + ' (전일 기준값 미확인)') + '</div>';
     }
     dashboardSection.addEventListener('click', function (event) {
       var metricModeButton = event.target.closest('[data-home-metric-mode]');
@@ -1951,7 +1951,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (!element) return;
       var metricMini = key === 'USDKRW' || key === 'KOSPI200_DAY';
       if (metricMini) element.setAttribute('data-metric-symbol', key);
-      // �ٿ� ������ 30�� �������� ���� ��� �Ϻ� ��Ʈ�� ��Ȯ�� �Ⱓ ǥ��� �Բ� ����Ѵ�.
+      // 다우 선물의 30분 관측값이 없는 경우 일봉 차트를 정확한 기간 표기와 함께 사용한다.
       if (['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'SOX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0
           || (key === 'DOW' && homeSessionCharts.DOW && homeSessionCharts.DOW.rows && homeSessionCharts.DOW.rows.length)) {
         stopHomeChartMotion(element);
@@ -1972,24 +1972,24 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       else chartRows = nightSessionRows(chartRows);
       var values = chartRows.map(function (row) { return Number(row && row.close); })
         .filter(function (value) { return isFinite(value); });
-      var caption = key === 'kospiNight' ? '�߰� ���� �к� ����' : '�ֱ� 20�ŷ��� �ڷ� ����';
+      var caption = key === 'kospiNight' ? '야간 세션 분봉 없음' : '최근 20거래일 자료 없음';
       if (monthlyMini && chartRows.length) {
         var first = String(chartRows[0].date || '').replace(/-/g, '');
         var last = String(chartRows[chartRows.length - 1].date || '').replace(/-/g, '');
         if (/^\d{8}$/.test(first) && /^\d{8}$/.test(last)) {
-          caption = (chartRows.length >= 20 ? '�ֱ� 20�ŷ���' : 'Ȯ���� ' + chartRows.length + '�ŷ���') + ' �� '
+          caption = (chartRows.length >= 20 ? '최근 20거래일' : '확보된 ' + chartRows.length + '거래일') + ' · '
             + first.slice(0, 4) + '.' + first.slice(4, 6) + '.' + first.slice(6, 8)
             + ' ~ ' + last.slice(0, 4) + '.' + last.slice(4, 6) + '.' + last.slice(6, 8);
         }
       } else if (chartRows.length) {
-        caption = '�߰� 1ȸ �� ' + nightMinuteLabel(chartRows[0].ts) + ' ~ '
-          + nightMinuteLabel(chartRows[chartRows.length - 1].ts) + ' KST �� ' + chartRows.length + '�� �ü�';
+        caption = '야간 1회 · ' + nightMinuteLabel(chartRows[0].ts) + ' ~ '
+          + nightMinuteLabel(chartRows[chartRows.length - 1].ts) + ' KST · ' + chartRows.length + '개 시세';
       }
       element.setAttribute('data-history-count', String(values.length));
       element.setAttribute('data-history-range', caption);
       var note = element.nextElementSibling;
       if (metricMini) {
-        // ����� ȭ�鿡 �ߺ� ��¥ ������ ���� �ʴ´�. ���� �̷� ������ tooltip/�Ӽ��� ����.
+        // 사용자 화면에 중복 날짜 설명을 쌓지 않는다. 원래 이력 정보는 tooltip/속성에 유지.
         if (note && note.classList.contains('home-index-history-caption')) note.remove();
         element.setAttribute('title', caption);
       } else {
@@ -2001,7 +2001,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (values.length < 2) {
         stopHomeChartMotion(element);
         homeChartMotion.delete(element);
-        element.innerHTML = '<span class="home-index-chart-empty">���� ������ ����</span>';
+        element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
         return;
       }
       var width = element.clientWidth || 240;
@@ -2010,7 +2010,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var topPad = monthlyMini ? 5 : 2;
       var bottom = monthlyMini ? height - 16 : height - 2;
       var plotHeight = bottom - topPad;
-      var lineEnd = width - 26; // ���� ���� ���� ������ �� ��ǥ�� �굵�� ���� ������ �д�.
+      var lineEnd = width - 26; // 펜촉 끝이 실제 데이터 끝 좌표에 닿도록 우측 공간을 둔다.
       var min = Math.min.apply(Math, values);
       var max = Math.max.apply(Math, values);
       var range = max - min || 1;
@@ -2080,13 +2080,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
             metricParts += '<rect class="hmb-investor-' + side + '" x="' + (p[0] - barWidth / 2).toFixed(2)
               + '" y="' + Math.min(p[1], refY).toFixed(2) + '" width="' + barWidth.toFixed(2)
               + '" height="' + Math.max(.6, Math.abs(p[1] - refY)).toFixed(2) + '" rx="1"><title>'
-              + String(chartRows[index].date || '') + ' �� ' + val.toLocaleString('ko-KR', {maximumFractionDigits: 2})
+              + String(chartRows[index].date || '') + ' · ' + val.toLocaleString('ko-KR', {maximumFractionDigits: 2})
               + '</title></rect>';
           });
         }
         var svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="'
-          + (key === 'USDKRW' ? '��/�޷�' : 'KOSPI200 �ְ�����') + ' �ֱ� 20�ŷ��� '
-          + (miniMode === 'bar' ? '����' : '����') + ' ��Ʈ">'
+          + (key === 'USDKRW' ? '원/달러' : 'KOSPI200 주간선물') + ' 최근 20거래일 '
+          + (miniMode === 'bar' ? '막대' : '면적') + ' 차트">'
           + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + refY.toFixed(2)
           + '" y2="' + refY.toFixed(2) + '" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
           + metricParts + '</svg>';
@@ -2163,19 +2163,19 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (selected === 'closed') return {
         closed: true,
         market: 'closed',
-        title: '����',
-        live: '�ָ� �� ������',
-        subtitle: '���� ���� �ȳ�',
+        title: '휴장',
+        live: '주말 · 공휴일',
+        subtitle: '시장 휴장 안내',
         keys: [],
         labels: []
       };
-      // get()�� �׻� ���� �����ֹǷ�(���ð� ������ MarketHours.homeMarket()) ���⼭
-      // �ð��� �ٽ� ������� �ʴ´� - ��踦 �� ������ ��� ���� ����� �Ѵ�.
+      // get()은 항상 값을 돌려주므로(선택값 없으면 MarketHours.homeMarket()) 여기서
+      // 시각을 다시 계산하지 않는다 - 경계를 두 곳에서 재는 일이 없어야 한다.
       var isUsSession = selected === 'us';
       var usSession = usIndexSessionState();
       return isUsSession ? {
         market: 'us',
-        title: '�̱� ����',
+        title: '미국 시장',
         live: usSession.live,
         subtitle: usSession.subtitle,
         statusLabel: usSession.statusLabel,
@@ -2184,14 +2184,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       } : (function () {
         var hours = window.MarketHours;
         var kr = hours && typeof hours.krCash === 'function' ? hours.krCash() : null;
-        var label = kr && kr.label ? kr.label : '�� ����';
+        var label = kr && kr.label ? kr.label : '장 마감';
         var live = label;
         var subtitle = kr && (kr.open || kr.nxtOpen)
-          ? '���� ���� �� ' + label
-          : '���� ���� �� ' + label;
+          ? '국내 현물 · ' + label
+          : '국내 현물 · ' + label;
         return {
           market: 'domestic',
-          title: '���� ����',
+          title: '국내 시장',
           live: live,
           subtitle: subtitle,
           statusLabel: label,
@@ -2209,17 +2209,17 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var realtimeBoard = dashboardSection.querySelector('.home-realtime-board');
       dashboardSection.classList.toggle('is-market-closed', isClosed);
       if (closedPage) closedPage.hidden = !isClosed;
-      // CSS �����ڰ� ��Ų�� body id�� �������� �ʵ��� DOM ��ü������ �����.
-      // Tistory ��Ų��WebView�� body id ���̷� ���� ���� �Ʒ��� ���� ���� ȭ����
-      // ���� ���� �����Ѵ�.
+      // CSS 선택자가 스킨의 body id에 의존하지 않도록 DOM 자체에서도 숨긴다.
+      // Tistory 스킨·WebView별 body id 차이로 휴장 지면 아래에 이전 시장 화면이
+      // 남는 것을 방지한다.
       if (overviewGrid) overviewGrid.hidden = isClosed;
       if (widgetGrid) widgetGrid.hidden = isClosed;
       if (realtimeBoard) realtimeBoard.hidden = isClosed;
-      // 2026-08-22: "�� �� ���� ����Ʈ"(js/home-weekly-report.js�� ����� #homeWeeklyReport)��
-      // �� �Լ��� �����ϴ� �����̳ʵ�� ������ .feed�� ���� �ٴ� ��Ҷ�, �ָ��� ����
-      // �ѱ�����/�̱����÷� �ٲ㵵 ��� ȭ�� �߰��� ���� ���̴� ������ �־���(����ڰ�
-      // "���� �Ǹ� �ǵ�� �Ź� �ϴ� �Ǽ�"��� ���� ����). ���� ���� ���� ���̵��� ���⼭��
-      // ���� isClosed �������� ����ȭ�Ѵ�.
+      // 2026-08-22: "한 주 마감 리포트"(js/home-weekly-report.js가 만드는 #homeWeeklyReport)는
+      // 이 함수가 관리하는 컨테이너들과 별개로 .feed에 직접 붙는 요소라, 주말엔 탭을
+      // 한국증시/미국증시로 바꿔도 계속 화면 중간에 끼어 보이는 문제가 있었다(사용자가
+      // "휴장 탭만 건들면 매번 하는 실수"라고 재차 지적). 휴장 탭일 때만 보이도록 여기서도
+      // 같은 isClosed 기준으로 동기화한다.
       var weeklyReport = document.getElementById('homeWeeklyReport');
       if (weeklyReport) weeklyReport.hidden = !isClosed;
       if (isClosed) return;
@@ -2228,7 +2228,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var updated = document.getElementById('hmbUpdated');
       if (title) title.textContent = session.title;
       if (live) live.textContent = session.live;
-      var sessionSignature = session.keys.join('|') + '��' + (session.subtitle || '');
+      var sessionSignature = session.keys.join('|') + '·' + (session.subtitle || '');
       if (updated && (!updated.dataset || updated.dataset.homeSession !== sessionSignature)) {
         updated.textContent = session.subtitle;
         if (updated.dataset) updated.dataset.homeSession = sessionSignature;
@@ -2248,8 +2248,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         if (previousKey && previousKey !== key) {
           if (price) price.textContent = '-';
           if (change) change.textContent = '-';
-          if (status) status.textContent = '�� Ȯ�� ��';
-          if (chart) chart.innerHTML = '<span class="home-index-chart-empty">�ü� ��ȯ ��</span>';
+          if (status) status.textContent = '· 확인 중';
+          if (chart) chart.innerHTML = '<span class="home-index-chart-empty">시세 전환 중</span>';
         }
       });
     }
@@ -2296,8 +2296,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       return value == null ? '-' : value.toLocaleString('ko-KR', {minimumFractionDigits: digits || 0, maximumFractionDigits: digits == null ? 2 : digits});
     }
 
-    // �ڽ���200 �߰����� ���� ī��. ���� /futures(KOSPI200_NIGHT)�� �ִ� �͸� ���� ������ '�̼���'���� �д�.
-    // ���� ����� KOSPI200_DAY ���� �ü��� �ѱ� Ȩ���� ��ȸ(�� VM ������ ����).
+    // 코스피200 야간선물 독립 카드. 값은 /futures(KOSPI200_NIGHT)에 있는 것만 쓰고 없으면 '미수신'으로 둔다.
+    // 기존 저장된 KOSPI200_DAY 선물 시세만 한국 홈에서 조회(새 VM 수집기 없음).
     var homeDayFutureQuote = null;
     var homeMetricQuotes = {};
     var homeDayFutureRequestedAt = 0;
@@ -2315,19 +2315,19 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var holiday = !!(hours && typeof hours.isKrHoliday === 'function' && hours.isKrHoliday());
       var open = !holiday && !!(state && state.phase === 'regular');
       var fresh = !!(item && !item.stale && homeFresh(item, 5));
-      var status = holiday ? '����' : price == null ? (failed ? '���� ����' : '�̼���')
-        : open ? (fresh && !item.market_closed ? '�ŷ���' : '�ü� ����') : '�� ����';
+      var status = holiday ? '휴장' : price == null ? (failed ? '수신 지연' : '미수신')
+        : open ? (fresh && !item.market_closed ? '거래중' : '시세 지연') : '장 마감';
       homeFill(card, 'data-home-day-field', 'price', price == null ? '-' : homeFmt(price, 2),
         price == null ? 'home-neutral' : homeTone(change));
       homeFill(card, 'data-home-day-field', 'change',
-        change == null ? '-' : (change > 0 ? '��' : change < 0 ? '��' : '') + homeFmt(Math.abs(change), 2)
+        change == null ? '-' : (change > 0 ? '▲' : change < 0 ? '▼' : '') + homeFmt(Math.abs(change), 2)
           + (rate == null ? '' : ' (' + (rate > 0 ? '+' : rate < 0 ? '-' : '') + Math.abs(rate).toFixed(2) + '%)'),
         homeTone(change));
       homeFill(card, 'data-home-day-field', 'status', status, 'home-neutral');
       homeFill(card, 'data-home-day-field', 'high', item && homeNum(item.high) != null ? homeFmt(homeNum(item.high), 2) : '-', 'home-positive');
       homeFill(card, 'data-home-day-field', 'low', item && homeNum(item.low) != null ? homeFmt(homeNum(item.low), 2) : '-', 'home-negative');
       homeFill(card, 'data-home-day-field', 'time',
-        (stamp ? '������ ���� ' + stamp : '������ ���� �ð� ����') + ' �� ���� �ü�', 'home-neutral');
+        (stamp ? '데이터 기준 ' + stamp : '데이터 기준 시각 없음') + ' · 저장 시세', 'home-neutral');
       renderHomeSessionChart(card.querySelector('[data-home-day-chart]'), 'KOSPI200_DAY', price != null && change != null ? price - change : null);
       renderHomeFuturesHistory();
     }
@@ -2339,9 +2339,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var p = item && homeNum(item.price), c = item && homeNum(item.change);
         if (symbol === 'USDKRW') {
           homeFill(dashboardSection, 'data-home-metric-asof', symbol,
-            (item && homeKstTime(item.updated_at)) || '���ؽð� ����', 'home-neutral');
+            (item && homeKstTime(item.updated_at)) || '기준시각 없음', 'home-neutral');
         }
-        // ��ǥ���� ���� �Ϻ� �ࡤ���ݴ�� �ǹ̻��� ����, ����/����� �ٽ���ǥ ���񿡼� �� ���� ��ȯ.
+        // 대표지수 공통 일봉 축·가격대비 의미색을 쓰고, 면적/막대는 핵심지표 제목에서 한 번만 전환.
         renderHomeIndexChart(chart, item && item.chart, symbol, p != null && c != null ? p - c : null);
       });
     }
@@ -2369,14 +2369,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if(!sampleButton){sampleButton=document.createElement('button');sampleButton.type='button';sampleButton.setAttribute('data-futures-sample','');var sampleGroup=document.createElement('div');sampleGroup.className='hmb-mode-segment';sampleGroup.appendChild(sampleButton);card.querySelector('.hff-controls').appendChild(sampleGroup);}
       var today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
       sampleButton.hidden=today!=='2026-11-13'||!!(homeFuturesPayload&&homeFuturesPayload.observations&&homeFuturesPayload.observations.length);
-      sampleButton.textContent=data.sample?'���� ����':'���� ����';sampleButton.setAttribute('aria-pressed',String(!!data.sample));
+      sampleButton.textContent=data.sample?'샘플 끄기':'샘플 보기';sampleButton.setAttribute('aria-pressed',String(!!data.sample));
       var rows=shared.futuresRows(data.observations,data.historyDate);
       if(homeFuturesSelectedSlot==null&&rows.length)homeFuturesSelectedSlot=rows[rows.length-1].slot;
       card.querySelector('[data-futures-flow-bars]').innerHTML=shared.futuresChart(data.observations,{date:data.historyDate,actor:homeFuturesActor,mode:homeFuturesDisplay});
       card.querySelectorAll('[data-futures-actor]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-actor')===homeFuturesActor));});
       card.querySelectorAll('[data-futures-display]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-display')===homeFuturesDisplay));});
       var n=data.available&&data.participants&&data.participants[homeFuturesActor]?homeNum(data.participants[homeFuturesActor].net):null;
-      card.querySelector('[data-futures-flow-total]').textContent=(data.sample?'���� ǥ�� �� �� ���� ���� ���� ':'���� ���� ���ż� ')+(n==null?'������':(n>0?'+':n<0?'?':'')+homeFmt(Math.abs(n),0)+'���');
+      card.querySelector('[data-futures-flow-total]').textContent=(data.sample?'샘플 표시 중 · 실제 현재 누적 ':'당일 누적 순매수 ')+(n==null?'미집계':(n>0?'+':n<0?'−':'')+homeFmt(Math.abs(n),0)+'계약');
       var slider=card.querySelector('[data-futures-time]');slider.disabled=!rows.length;slider.value=homeFuturesSelectedSlot==null?14:homeFuturesSelectedSlot;
       var table=card.querySelector('[data-futures-activity-table]');
       if(table&&shared.futuresActivityTable)table.innerHTML=shared.futuresActivityTable(data.observations,{date:data.historyDate,mode:homeFuturesDisplay,selectedSlot:homeFuturesSelectedSlot,snapshot:data.sample?null:data});
@@ -2394,13 +2394,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var total=activity?activity.totalContracts:null;
       var card=dashboardSection.querySelector('[data-home-futures-flow]');
       var heading=card&&card.querySelector('[data-futures-flow-total]');
-      if(heading)heading.textContent=(homeFuturesDisplay==='interval'?'���� ���� �ŷ��� ':'���� ���� ���� �ŷ��� ')+(total==null?'������':homeFmt(total,0)+'���');
+      if(heading)heading.textContent=(homeFuturesDisplay==='interval'?'선택 구간 거래량 ':'선택 시점 누적 거래량 ')+(total==null?'미집계':homeFmt(total,0)+'계약');
       if(card)card.querySelectorAll('[data-futures-row]').forEach(function(tr){tr.classList.toggle('is-selected',Number(tr.getAttribute('data-futures-row'))===slot);});
-      if(flowText)flowText.textContent=!rows.length?'���� �̷� ��� �� ù ���� ���� ������ ��� ��':!row?data.historyDate+' �� �� ���� ���� ���� ����':data.historyDate+' �� '+(row.previousTs&&homeFuturesDisplay==='interval'?futuresObservationTime(row.previousTs)+'��':'')+futuresObservationTime(row.ts)+' ���� �� '+(homeFuturesDisplay==='interval'?'���� ���� ��� ���� ':'���� ���� ���ż� ')+(value==null?'���� ���� ����':(value>0?'+':value<0?'?':'')+homeFmt(Math.abs(value),0)+'���');
-      if(homeFuturesActor==='all' && row && flowText)flowText.textContent=data.historyDate+' �� '+futuresObservationTime(row.ts)+' ���� ���� �� '+(homeFuturesDisplay==='interval'?'���� ���� ���':'���� ����')+' �� '+[['foreign','�ܱ���'],['institution','���'],['individual','����']].map(function(actor){var v=row[actor[0]+(homeFuturesDisplay==='interval'?'Delta':'')];return actor[1]+' '+(v==null?'������':(v>0?'+':v<0?'?':'')+homeFmt(Math.abs(v),0)+'���');}).join(' / ');
-      if(data.sample&&flowText)flowText.textContent='[���� ������ �� ���� �Ÿ� �ƴ�] '+flowText.textContent.replace(' ����',' ����');
-      if(priceText)priceText.textContent=!rows.length?'���� ���� �̷� ��� �� ���ݰ� �ٸ� ��¥�� �������� ����':!same?'���ݡ����� ��¥ ����ġ �� ���� ����':point?data.historyDate+' �� '+futuresObservationTime(point.ts)+' ���� ���� �� '+homeFmt(point.close,2):'���� ������ ���� ���� ����';
-      if(data.sample&&priceText)priceText.textContent='���� ���� / ������ ���� �� '+priceText.textContent;
+      if(flowText)flowText.textContent=!rows.length?'관측 이력 대기 · 첫 관측 이전 구간은 비워 둠':!row?data.historyDate+' · 이 구간 수급 관측 없음':data.historyDate+' · '+(row.previousTs&&homeFuturesDisplay==='interval'?futuresObservationTime(row.previousTs)+'→':'')+futuresObservationTime(row.ts)+' 관측 · '+(homeFuturesDisplay==='interval'?'직전 관측 대비 증감 ':'당일 누적 순매수 ')+(value==null?'이전 관측 없음':(value>0?'+':value<0?'−':'')+homeFmt(Math.abs(value),0)+'계약');
+      if(homeFuturesActor==='all' && row && flowText)flowText.textContent=data.historyDate+' · '+futuresObservationTime(row.ts)+' 서버 관측 · '+(homeFuturesDisplay==='interval'?'직전 관측 대비':'당일 누적')+' · '+[['foreign','외국인'],['institution','기관'],['individual','개인']].map(function(actor){var v=row[actor[0]+(homeFuturesDisplay==='interval'?'Delta':'')];return actor[1]+' '+(v==null?'미집계':(v>0?'+':v<0?'−':'')+homeFmt(Math.abs(v),0)+'계약');}).join(' / ');
+      if(data.sample&&flowText)flowText.textContent='[샘플 데이터 · 실제 매매 아님] '+flowText.textContent.replace(' 관측',' 예시');
+      if(priceText)priceText.textContent=!rows.length?'수급 관측 이력 대기 · 가격과 다른 날짜를 연결하지 않음':!same?'가격·수급 날짜 불일치 · 연동 보류':point?data.historyDate+' · '+futuresObservationTime(point.ts)+' 가격 관측 · '+homeFmt(point.close,2):'같은 구간의 가격 관측 없음';
+      if(data.sample&&priceText)priceText.textContent='실제 가격 / 수급은 샘플 · '+priceText.textContent;
       dashboardSection.querySelectorAll('[data-home-futures-pair] [data-linked-cursor]').forEach(function(n){n.remove();});
       if(slot==null||!same||!row)return;
       dashboardSection.querySelectorAll('[data-home-futures-pair] .hmb-investor-spark').forEach(function(svg){
@@ -2432,12 +2432,12 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var data = env && env.data || env || {}, rows = data.participants || {};
         homeFuturesPayload = data;
         renderHomeFuturesHistory();
-        card.querySelector('[data-futures-flow-meta]').textContent = 'KOSPI200 ���� ��ü���� �� 30�к� ������ ���� ���� �� �������ܰ� �ƴ�'
-          + (data.retrievedAt ? ' �� ��ȸ ' + homeKstTime(data.retrievedAt) : '')
-          + ' �� ���� ������/�ð� ������' + (data.stale ? ' �� ����/��ȸ ����' : '');
+        card.querySelector('[data-futures-flow-meta]').textContent = 'KOSPI200 선물 전체시장 · 30분별 마지막 서버 관측 · 잠정·잔고 아님'
+          + (data.retrievedAt ? ' · 조회 ' + homeKstTime(data.retrievedAt) : '')
+          + ' · 원본 기준일/시각 미제공' + (data.stale ? ' · 지연/조회 실패' : '');
       }).catch(function () {
         futuresFlowRequestedAt = Date.now() - 240000;
-        card.querySelector('[data-futures-flow-meta]').textContent = '��ȸ ���� �� ���� ǥ�� ���� �� ���� ���� �� ��õ�';
+        card.querySelector('[data-futures-flow-meta]').textContent = '조회 실패 · 이전 표시 유지 · 다음 갱신 시 재시도';
       });
     }
     window.addEventListener('home-mtab-activate',function(e){if(e.detail&&e.detail.group==='market'){renderHomeDayFutures(homeDayFutureQuote,false);loadHomeDayFutures();}});
@@ -2447,7 +2447,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (homeDayFutureLoading || Date.now() - homeDayFutureRequestedAt < 50000) return;
       homeDayFutureLoading = true;
       homeDayFutureRequestedAt = Date.now();
-      // ���� ������ �Ϻ� ��Ʈ 2���� �Բ� ������ �߰� �ֱ�/���� ���μ����� ������ �ʴ´�.
+      // 기존 응답의 일봉 차트 2종을 함께 가져와 추가 주기/수집 프로세스를 만들지 않는다.
       fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI200_DAY&days=30&stored_only=true', 12000)
         .then(function (response) {
           var rows = response && Array.isArray(response.data) ? response.data : [];
@@ -2472,19 +2472,19 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var inSession = kst >= 18 || kst < 6;
       var holiday = isNightFuturesHoliday();
       var fresh = homeFresh(item, 30);
-      var status = holiday ? '����' : !item ? '�̼���' : !inSession ? '�帶��' : fresh && !item.stale ? '�ŷ���' : '���� �� �̼���';
+      var status = holiday ? '휴장' : !item ? '미수신' : !inSession ? '장마감' : fresh && !item.stale ? '거래중' : '지연 · 미수신';
       var change = item ? homeNum(item.change) : null, rate = item ? homeNum(item.change_rate) : null;
       var tone = homeTone(change);
-      homeFill(card, 'data-night-field', 'status', status, status === '�ŷ���' ? 'home-positive' : 'home-neutral');
-      homeFill(card, 'data-night-field', 'change', change == null ? '-' : (change > 0 ? '��' : change < 0 ? '��' : '') + homeFmt(Math.abs(change), 2) + (rate == null ? '' : ' (' + (rate > 0 ? '+' : rate < 0 ? '-' : '') + Math.abs(rate).toFixed(2) + '%)'), tone);
+      homeFill(card, 'data-night-field', 'status', status, status === '거래중' ? 'home-positive' : 'home-neutral');
+      homeFill(card, 'data-night-field', 'change', change == null ? '-' : (change > 0 ? '▲' : change < 0 ? '▼' : '') + homeFmt(Math.abs(change), 2) + (rate == null ? '' : ' (' + (rate > 0 ? '+' : rate < 0 ? '-' : '') + Math.abs(rate).toFixed(2) + '%)'), tone);
       homeFill(card, 'data-night-field', 'high', item && homeNum(item.high) != null ? homeFmt(homeNum(item.high), 2) : '-', 'home-positive');
       homeFill(card, 'data-night-field', 'low', item && homeNum(item.low) != null ? homeFmt(homeNum(item.low), 2) : '-', 'home-negative');
       var stamp = item && homeKstTime(item.updated_at);
-      homeFill(card, 'data-night-field', 'time', stamp ? '������ ���� ' + stamp + ' �� 18:00~06:00 �߰� ����' : '������ ���� �ð� ����');
+      homeFill(card, 'data-night-field', 'time', stamp ? '마지막 수신 ' + stamp + ' · 18:00~06:00 야간 세션' : '마지막 수신 시각 없음');
     }
 
     var US_GLOBAL_TILES = {
-      WTI: {digits: 2, prefix: '$', note: '����(CL ���ӿ���) �� '}, USDKRW: {digits: 1, suffix: '��'},
+      WTI: {digits: 2, prefix: '$', note: '선물(CL 연속월물) · '}, USDKRW: {digits: 1, suffix: '원'},
       US10Y: {digits: 2, suffix: '%', pp: true}, VIX: {digits: 2}
     };
 
@@ -2492,14 +2492,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var by = latestFuturesBySymbol || {};
       var globalBlock = dashboardSection.querySelector('[data-home-global]');
       if (!globalBlock || !homeShowsUs) return;
-      // �ֵ�/���� ����: /us-sector-rotation(ETF Ȯ�� �Ϻ�). �ǽð� ���� �м��� �ƴϴ�.
+      // 주도/주의 업종: /us-sector-rotation(ETF 확정 일봉). 실시간 업종 분석이 아니다.
       var rotation = dashboardSection.querySelector('[data-home-us-rotation]');
       var groups = [['leaders', ['emerging', 'leading'], -1], ['cautions', ['lagging', 'weakening'], 1]].map(function (def) {
         var rows = homeUsRotation ? def[1].reduce(function (all, k) { return all.concat(homeUsRotation[k] || []); }, []) : [];
         return {key: def[0], rows: rows.filter(function (r) { return r && r.sector && homeNum(r.rotationScore) != null; })
           .sort(function (a, b) { return def[2] * (a.rotationScore - b.rotationScore); }).slice(0, 3)};
       });
-      // ���� ���̴� �� ǥ�� ���� ����(���� ū ����� = ���� ��)�� ����, 0�� �������� ����� �����ʡ��϶��� �����̴�.
+      // 막대 길이는 두 표가 같은 눈금(가장 큰 등락률 = 절반 폭)을 쓰고, 0선 기준으로 상승은 오른쪽·하락은 왼쪽이다.
       var rotScale = groups.reduce(function (m, g) { return g.rows.reduce(function (n, r) { return Math.max(n, Math.abs(homeNum(r.return1d) || 0)); }, m); }, 0.5);
       groups.forEach(function (g) {
         var list = rotation && rotation.querySelector('[data-us-rot="' + g.key + '"] .hus-rot-list');
@@ -2508,46 +2508,46 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           var rt = homeNum(r.return1d), tv = homeNum(r.tradingValueRatio);
           var width = rt == null ? 0 : Math.min(50, Math.abs(rt) / rotScale * 50);
           return '<li><span class="hus-name">' + escapeHomeHtml(r.sector) + '</span>'
-            + '<span class="hus-bar" role="img" aria-label="' + escapeHomeHtml(r.sector + ' ' + (rt == null ? '����� ����' : rt.toFixed(2) + '%')) + '"><i class="' + (rt > 0 ? 'is-up' : 'is-down') + '" style="width:' + width.toFixed(1) + '%"></i></span>'
+            + '<span class="hus-bar" role="img" aria-label="' + escapeHomeHtml(r.sector + ' ' + (rt == null ? '등락률 없음' : rt.toFixed(2) + '%')) + '"><i class="' + (rt > 0 ? 'is-up' : 'is-down') + '" style="width:' + width.toFixed(1) + '%"></i></span>'
             + '<b class="' + homeTone(rt) + '">' + (rt == null ? '-' : (rt > 0 ? '+' : '') + rt.toFixed(2) + '%') + '</b>'
-            + '<small>' + (tv != null ? tv.toFixed(2) + '��' : '-') + '</small></li>';
-        }).join('') : '<li class="ui-kpi-empty">' + (homeUsRotation ? '���� ������ ����' : 'Ȯ�� ��') + '</li>';
+            + '<small>' + (tv != null ? tv.toFixed(2) + '배' : '-') + '</small></li>';
+        }).join('') : '<li class="ui-kpi-empty">' + (homeUsRotation ? '업종 데이터 없음' : '확인 중') + '</li>';
       });
       var rotMeta = rotation && rotation.querySelector('[data-us-rot-meta]');
       if (rotMeta) rotMeta.textContent = homeUsRotation && homeUsRotation.date
-        ? '���� ETF ��� �� ' + homeUsRotation.date.slice(5).replace('-', '.') + ' ������ ����' + (homeUsRotation.final === false ? '(����)' : '') + ' �� �ǽð� �ƴ�'
-        : '���� ETF ��� �� ������ ���� ����';
-      // �۷ι� ��ǥ 4��(WTI����/�޷����� 10�⹰��VIX).
+        ? '섹터 ETF 기반 · ' + homeUsRotation.date.slice(5).replace('-', '.') + ' 정규장 종가' + (homeUsRotation.final === false ? '(잠정)' : '') + ' · 실시간 아님'
+        : '섹터 ETF 기반 · 정규장 종가 기준';
+      // 글로벌 지표 4종(WTI·원/달러·미 10년물·VIX).
       globalBlock.querySelectorAll('[data-global-tile]').forEach(function (tile) {
         var key = tile.getAttribute('data-global-tile'), cfg = US_GLOBAL_TILES[key] || {}, item = by[key];
         var price = item ? homeNum(item.price) : null, change = item ? homeNum(item.change) : null, rate = item ? homeNum(item.change_rate) : null;
         homeFill(tile, 'data-global-field', 'price', price == null ? '-' : (cfg.prefix || '') + homeFmt(price, cfg.digits) + (cfg.suffix || ''), homeTone(change));
-        var delta = cfg.pp ? (change == null ? null : (change > 0 ? '��' : change < 0 ? '��' : '') + Math.abs(change).toFixed(2) + '%p')
-          : (rate == null ? null : (change > 0 ? '��' : change < 0 ? '��' : '') + Math.abs(rate).toFixed(2) + '%');
+        var delta = cfg.pp ? (change == null ? null : (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(change).toFixed(2) + '%p')
+          : (rate == null ? null : (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%');
         homeFill(tile, 'data-global-field', 'change', delta || '-', homeTone(change));
         var stamp = item && homeKstTime(item.updated_at);
-        homeFill(tile, 'data-global-field', 'time', !item ? '�̼���' : (cfg.note || '') + (item.stale ? '���� �� ' : '') + (stamp ? '���� ' + stamp : '���ؽð� ����'));
+        homeFill(tile, 'data-global-field', 'time', !item ? '미수신' : (cfg.note || '') + (item.stale ? '지연 · ' : '') + (stamp ? '수집 ' + stamp : '기준시각 없음'));
       });
     }
 
-    // �̱� ���� �����̼�: �Ϻ� Ȯ�����̶� 10�п� �� ���� �д´�. �����ϸ� ������ ���� �����Ѵ�.
+    // 미국 업종 로테이션: 일봉 확정값이라 10분에 한 번만 읽는다. 실패하면 마지막 값을 유지한다.
     function loadHomeUsRotation() {
       if (Date.now() - homeUsRotationAt < 600000 && homeUsRotation) return;
       homeUsRotationAt = Date.now();
       fetchHomeJson('https://goodbyestar.cloud/us-sector-rotation', 12000).then(function (env) {
         var d = env && env.data ? env.data : env;
         if (d && d.available !== false) { homeUsRotation = d; renderHomeUsPanels(); }
-      }).catch(function () { /* ���� �� ���� */ });
+      }).catch(function () { /* 이전 값 유지 */ });
     }
 
-    // �̱� ������ ���δ� ���� MarketHours(���� ���� �ð���DST�����塤���� ����)�� ���� ��ó�� ����Ѵ�.
+    // 미국 정규장 여부는 공통 MarketHours(뉴욕 현지 시간·DST·휴장·조기 마감)를 단일 출처로 사용한다.
     function usThirdIndexState(now) {
       var hours = window.MarketHours;
       var spot = hours && typeof hours.us === 'function' ? hours.us(now) : null;
       var regular = !!(spot && spot.open && spot.phase === 'regular');
       return regular
-        ? { key: 'SOX', label: '�ʶ��Ǿ� �ݵ�ü', regular: true }
-        : { key: 'DOW', label: '�ٿ�����30 ����(CME)', regular: false };
+        ? { key: 'SOX', label: '필라델피아 반도체', regular: true }
+        : { key: 'DOW', label: '다우존스30 선물(CME)', regular: false };
     }
 
     function renderHomeIndices(items) {
@@ -2559,34 +2559,34 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       renderMarketParticipation();
       if (session.market === 'domestic') renderDomesticDirection(homeDomesticMarketTemp);
       if (session.market === 'us' && latestUsBoardData) renderUsMarketSummary(latestUsBoardData);
-      // �̱� ���� ��� ī���� "�ڽ��� �߰�����" ĭ - hidden ���¿��� ���� �׻� ä���ּ�
-      // ������ ��ȯ�Ǵ� ����(applyHomeSummarySession) �ٷ� �ֽŰ��� ���̰� �Ѵ�.
+      // 미국 시장 요약 카드의 "코스피 야간선물" 칸 - hidden 상태여도 값은 항상 채워둬서
+      // 세션이 전환되는 순간(applyHomeSummarySession) 바로 최신값이 보이게 한다.
       var nightItem = bySymbol.KOSPI200_NIGHT;
       var nightChartEl = dashboardSection.querySelector('[data-night-futures-chart]');
       renderHomeNightCard(nightItem);
       latestFuturesBySymbol = bySymbol;
       renderHomeUsPanels();
       if (isNightFuturesHoliday()) {
-        setField('nightFutures', '����', 'home-neutral');
-        // ���� ������ �� ĭ���� ǥ���Ѵ�. ��Ʈ �� ���±��� "����"��
-        // �ݺ��ϸ� �� ĭ�� �� ��ó�� ���δ�.
+        setField('nightFutures', '휴장', 'home-neutral');
+        // 휴장 문구는 값 칸에만 표시한다. 차트 빈 상태까지 "휴장"을
+        // 반복하면 한 칸이 두 줄처럼 보인다.
         if (nightChartEl) { nightChartEl.hidden = true; nightChartEl.innerHTML = ''; }
       } else if (nightItem) {
         var nPrice = Number(nightItem.price);
         var nChange = Number(nightItem.change);
         var nRate = Number(nightItem.change_rate);
         var nTone = !isFinite(nChange) || nChange === 0 ? 'home-neutral' : nChange > 0 ? 'home-positive' : 'home-negative';
-        // �������������� ���� ī���� ���� ��(renderHomeNightCard)�� �����ֹǷ� �� ĭ���� ���簡�� �д�.
+        // 등락폭·등락률은 독립 카드의 별도 줄(renderHomeNightCard)이 보여주므로 값 칸에는 현재가만 둔다.
         var nText = isFinite(nPrice) ? nPrice.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-';
         setField('nightFutures', nText, nTone);
-        // �߰� ��Ʈ���� ������ ���� ���� �к��� ����Ѵ�. ������ ������ �� ���� �Ŀ���
-        // �����, ���� 18:00 ������ ù �к��� �����ϸ� �׶� �� �������� ��ü�Ѵ�.
+        // 야간 차트에는 별도로 받은 실제 분봉만 사용한다. 마지막 세션은 장 종료 후에도
+        // 남기고, 다음 18:00 세션의 첫 분봉이 도착하면 그때 새 세션으로 교체한다.
         if (nightChartEl) {
           nightChartEl.hidden = false;
           renderHomeIndexChart(nightChartEl, [], 'kospiNight', isFinite(nPrice) && isFinite(nChange) ? nPrice - nChange : null);
         }
       } else {
-        setField('nightFutures', '������ Ȯ�� ��', 'home-neutral');
+        setField('nightFutures', '데이터 확인 중', 'home-neutral');
         if (nightChartEl) { nightChartEl.hidden = true; nightChartEl.innerHTML = ''; }
       }
       var thirdCard = homeIndexCard('tertiary');
@@ -2596,7 +2596,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var thirdChange = thirdItem ? homeNum(thirdItem.change) : null;
         var thirdRate = thirdItem ? homeNum(thirdItem.change_rate) : null;
         var thirdTone = homeTone(thirdChange);
-        // ���� ���Կ��� �ٸ� ������ ��ü�� �� ���� �ü�����Ʈ�� ���� ȥ����Ű�� �ʴ´�.
+        // 같은 슬롯에서 다른 지수로 교체할 때 종전 시세·차트를 남겨 혼동시키지 않는다.
         if (thirdCard.getAttribute('data-home-index') !== third.key) {
           thirdCard.setAttribute('data-home-index', third.key);
           var oldChart = thirdCard.querySelector('[data-index-field="chart"]');
@@ -2608,13 +2608,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var thirdStatusEl = thirdCard.querySelector('[data-index-field="status"]');
         if (thirdLabelEl) thirdLabelEl.textContent = third.label;
         if (thirdPriceEl) { thirdPriceEl.textContent = thirdPrice == null ? '-' : thirdPrice.toLocaleString('ko-KR', {maximumFractionDigits: 2}); thirdPriceEl.className = thirdTone; }
-        if (thirdChangeEl) { thirdChangeEl.textContent = thirdRate == null ? '-' : (thirdChange > 0 ? '��' : thirdChange < 0 ? '��' : '') + Math.abs(thirdRate).toFixed(2) + '%'; thirdChangeEl.className = thirdTone; }
+        if (thirdChangeEl) { thirdChangeEl.textContent = thirdRate == null ? '-' : (thirdChange > 0 ? '▲' : thirdChange < 0 ? '▼' : '') + Math.abs(thirdRate).toFixed(2) + '%'; thirdChangeEl.className = thirdTone; }
         if (thirdStatusEl) {
           var thirdDelayed = !!(thirdItem && (thirdItem.stale || !homeFresh(thirdItem, 30)));
-          thirdStatusEl.textContent = !thirdItem ? '�� �̼���'
-            : thirdDelayed ? '�� �ü� ����'
-            : third.regular ? '�� ���� �ŷ���'
-            : usFuturesSessionOpen() ? '�� ���� �ŷ��ð�' : '�� ���� ������ ��';
+          thirdStatusEl.textContent = !thirdItem ? '· 미수신'
+            : thirdDelayed ? '· 시세 지연'
+            : third.regular ? '· 현물 거래중'
+            : usFuturesSessionOpen() ? '· 선물 거래시간' : '· 선물 마지막 값';
         }
         renderHomeIndexChart(thirdCard.querySelector('[data-index-field="chart"]'),
           thirdItem && thirdItem.chart, third.key,
@@ -2633,8 +2633,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var statusEl = card.querySelector('[data-index-field="status"]');
         var chartEl = card.querySelector('[data-index-field="chart"]');
         if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
-        if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '��' : change < 0 ? '��' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
-        if (statusEl) statusEl.textContent = item ? '�� ' + (item.status || session.statusLabel || '����') : '�� ������ ����';
+        if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
+        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || session.statusLabel || '장중') : '· 데이터 지연';
         renderHomeIndexChart(chartEl, item && item.chart, key, item && item.price != null && item.change != null ? Number(item.price) - Number(item.change) : null);
       });
     }
@@ -2655,7 +2655,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         .then(function (history) { return history.load(group); })
         .then(function () { if (latestHomeIndices) renderHomeIndices(latestHomeIndices);
           renderHomeDayFutures(homeDayFutureQuote, false); })
-        .catch(function () { /* �̷� �ε� ���� �� ���� �ֱ� �ڷ�� �ü� ȭ���� �����Ѵ�. */ });
+        .catch(function () { /* 이력 로딩 실패 시 기존 최근 자료로 시세 화면을 유지한다. */ });
     }
     function loadHomeIndices() {
       var session = homeMarketSession();
@@ -2672,7 +2672,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           var card = homeIndexCard(slot);
           if (!card) return;
           var status = card.querySelector('[data-index-field="status"]');
-          if (status) status.textContent = '�� �ü� ����';
+          if (status) status.textContent = '· 시세 지연';
         });
       });
     }
@@ -2688,7 +2688,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }, 60 * 1000);
 
 
-    // �������� ���� ������ ���� ���� �г��� �� ���� ǥ���Ѵ�.
+    // 관심종목 공시 레일은 경제 뉴스 패널의 맨 위에 표시한다.
     var homeMarketBoard = dashboardSection.querySelector('#homeMarketBoard');
     var homeDisclosureSection = homeMarketBoard && homeMarketBoard.querySelector('[data-home-disclosure-section]');
     var homeDisclosureSlot = dashboardSection.querySelector('[data-home-disclosure-slot]');
@@ -2711,8 +2711,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         try {
           window.HomeMarketSelection.set(market);
         } catch (error) {
-          // �Ϻ� ���� WebView���� CustomEvent�� �����ص� set()�� ���ð���
-          // ���� �����ϹǷ�, �Ʒ����� ȭ���� ���� ����ȭ�� �� �ִ�.
+          // 일부 구형 WebView에서 CustomEvent가 실패해도 set()은 선택값을
+          // 먼저 저장하므로, 아래에서 화면을 직접 동기화할 수 있다.
         }
         syncMarketSwitch();
         applyHomeMarketSession(homeMarketSession());
@@ -2721,14 +2721,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     syncMarketSwitch();
     window.addEventListener('home-market-change', function () {
       syncMarketSwitch();
-      // ���� ���� �ü� API ������ ��ٸ��� �ʰ� �غ�� ���� ������ ��� ����.
-      // ���� �Ʒ��� ���� ���� ���� �ڵ鷯�� ������ �δ��� �����Ѵ�.
+      // 휴장 탭은 시세 API 응답을 기다리지 않고 준비된 휴장 지면을 즉시 연다.
+      // 이후 아래의 공통 시장 변경 핸들러가 데이터 로더를 갱신한다.
       applyHomeMarketSession(homeMarketSession());
       if (weeklyReportModule && weeklyReportModule.init) weeklyReportModule.init();
     });
-    // ��ú���� �ǵ� �ֻ��(ù ����/�� ī�� �ٷ� ��)�� �ִ´�. ������ ���� ���ŵ�
-    // #investor-trend-widget mount�� ���������� ��µ�, �� mount�� ��� ��ġ��
-    // �����ǵ��� ù ī�带 ���������� �����Ѵ�.
+    // 대시보드는 피드 최상단(첫 공지/글 카드 바로 앞)에 넣는다. 예전엔 이제 제거된
+    // #investor-trend-widget mount를 기준점으로 썼는데, 그 mount가 없어도 위치가
+    // 유지되도록 첫 카드를 기준점으로 폴백한다.
     var dashboardAnchor = investorMount || feed.querySelector('.notice-card, .post-card');
     if (dashboardAnchor) feed.insertBefore(dashboardSection, dashboardAnchor);
     else feed.appendChild(dashboardSection);
@@ -2737,9 +2737,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var oldSidebar = document.querySelector('.sidebar-right');
     if (oldSidebar) oldSidebar.hidden = true;
 
-    // ȯ���� ������ ���� �µ��� ���簪�� �ٽ��̴�. ���� ĳ�ø� ���� �׸���
-    // ����ó�� �ٲ�ų� ������ ������ �ڿ��� ������ ȯ���� ȭ�鿡 ���� �� �ִ�.
-    // Ű�� �÷� ���� ���� ����ϰ�, �ֽ� ������ ���� �ڿ��� ������ �׸���.
+    // 환율을 포함한 시장 온도는 현재값이 핵심이다. 예전 캐시를 먼저 그리면
+    // 제공처가 바뀌거나 서버가 복구된 뒤에도 오래된 환율이 화면에 남을 수 있다.
+    // 키를 올려 기존 값을 폐기하고, 최신 응답을 받은 뒤에만 정상값을 그린다.
     var marketTempCacheKey = 'home_market_temp_vm_v3';
     var marketSectorCacheKey = 'home_market_sectors_v1';
     var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 2 * 60 * 1000);
@@ -2777,24 +2777,24 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         else renderMarketTemperature(market);
       })
       .catch(function () {
-        // ��Ʈ��ũ�� ������ ��쿡�� 2�� �̳��� ĳ�ø� ��� ǥ�÷� ����Ѵ�.
-        // ���� ��ο����� �ݵ�� �̹� ��û�� �ֽ� ������ ���� �׸���.
+        // 네트워크가 실패한 경우에만 2분 이내의 캐시를 비상 표시로 사용한다.
+        // 정상 경로에서는 반드시 이번 요청의 최신 응답을 먼저 그린다.
         if (cachedMarketTemp) {
           if (homeMarketSession().market === 'us') renderMarketExchange(cachedMarketTemp);
           else renderMarketTemperature(cachedMarketTemp);
         } else if (homeMarketSession().market !== 'us') {
-          if (!homeVmScoreText) setField('temperature', '�Ͻ� ����', 'home-neutral');
-          setField('direction', '������ Ȯ�� ��', 'home-neutral');
-          setField('exchange', '�Ͻ� ����', 'home-neutral');
+          if (!homeVmScoreText) setField('temperature', '일시 지연', 'home-neutral');
+          setField('direction', '데이터 확인 중', 'home-neutral');
+          setField('exchange', '일시 지연', 'home-neutral');
         }
       });
 
-    // ���� ������ �� ���񡤾����� ���� ��ġ�� ���� ����� ���� �����̴�.
-    // ù ����Ʈ�� ����/����/��ŷ ������ ���� �ʰ�, �������� ���� ���°� �� ��
-    // ���� ��ุ ä���. ���� ���� ������ ������ ��� �����Ѵ�.
+    // 시총 버블은 전 종목·업종을 여러 배치로 묶어 만드는 느린 응답이다.
+    // 첫 페인트와 수급/패턴/랭킹 렌더를 막지 않고, 브라우저가 유휴 상태가 된 뒤
+    // 업종 요약만 채운다. 이전 정상 응답은 위에서 즉시 재사용한다.
     var loadHomeSectors = function () {
-      // 2026-08-05: 12000 -> 20000(�� marketTemp ȣ��� ������ ���� - ���޽ð��� �����
-      // ù ����Ʈ�� ������ ������, �ʹ� ª���� "�ֵ� ����"/"���� ����"�� ���� �Ͻ� �������� ���).
+      // 2026-08-05: 12000 -> 20000(위 marketTemp 호출과 동일한 이유 - 유휴시간에 실행돼
+      // 첫 페인트를 막지는 않지만, 너무 짧으면 "주도 업종"/"주의 업종"도 같이 일시 지연으로 뜬다).
       fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 20000)
         .then(function (bubble) {
           writeHomeDataCache(marketSectorCacheKey, bubble);
@@ -2803,7 +2803,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         .catch(function () {
           if (!cachedMarketSectors) {
             var lists = dashboardSection.querySelectorAll('[data-home-kr-rotation] .hus-rot-list');
-            lists.forEach(function (list) { list.innerHTML = '<li class="ui-kpi-empty">���� ���� ����</li>'; });
+            lists.forEach(function (list) { list.innerHTML = '<li class="ui-kpi-empty">업종 수신 지연</li>'; });
           }
       });
     };
@@ -2815,19 +2815,19 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         : fetchHomeJson('https://goodbyestar.cloud/market-board?market=us&limit=40', 12000))
         .then(renderUsMarketSummary)
         .catch(function () {
-          setField('temperature', '������ Ȯ�� ��', 'home-neutral');
-          setField('leaders', '������ Ȯ�� ��', 'home-neutral');
-          setField('cautions', '������ Ȯ�� ��', 'home-neutral');
+          setField('temperature', '데이터 확인 중', 'home-neutral');
+          setField('leaders', '데이터 확인 중', 'home-neutral');
+          setField('cautions', '데이터 확인 중', 'home-neutral');
         });
     };
 
     loadHomeDomesticSummary = function () {
       if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
-      // ���� �ݹ鿡�� �����ϸ� ����� WebView�� ��� �̷�鼭 �ֵ�/���� ������
-      // ��� ���� �� �ִ�. fetch ��ü�� �񵿱��̹Ƿ� ��� ������ ù ȭ���� ���� �ʴ´�.
-      // ���� ������ ���� �� ������, ���� �ݹ鿡 ������ ����� WebView����
-      // ��ȸ�� �ڷ� �з� "�ֵ�/���� ����"�� ��� ��� ���δ�. ĳ�ø� ����
-      // �׸� �� �ֽ� ���� ��û�� ��� �����Ѵ�.
+      // 지연 콜백에만 의존하면 모바일 WebView가 계속 미루면서 주도/주의 업종이
+      // 비어 보일 수 있다. fetch 자체는 비동기이므로 즉시 시작해 첫 화면을 막지 않는다.
+      // 업종 응답은 느릴 수 있지만, 지연 콜백에 넣으면 모바일 WebView에서
+      // 조회가 뒤로 밀려 "주도/주의 업종"이 계속 비어 보인다. 캐시를 먼저
+      // 그린 뒤 최신 응답 요청을 즉시 병행한다.
       loadHomeSectors();
       loadHomeInvestorTrend();
     };
@@ -2836,19 +2836,19 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (value == null || value === '') return '-';
       var n = Number(value);
       if (!isFinite(n)) return '-';
-      if (n === 0) return '0��';
+      if (n === 0) return '0억';
       var sign = n < 0 ? '-' : '+';
       var abs = Math.abs(n);
-      if (abs >= 10000) return sign + (abs / 10000).toFixed(1).replace(/\.0$/, '') + '��';
-      return sign + Math.round(abs).toLocaleString('ko-KR') + '��';
+      if (abs >= 10000) return sign + (abs / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+      return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
     }
 
-    // Ȩ�� ���� ���� �������� ����Ѵ�. ���� �Ϻ� ���� ��Ʈ/���� �������� ���� ������� ����.
+    // 홈은 당일 누적 관측값만 사용한다. 원본 일별 누적 차트/장중 렌더러는 별도 계약으로 보존.
     var homeInvestorMiniHistory = null;
     var homeInvestorMiniLastAttempt = 0;
     var homeInvestorMiniInterval = 5 * 60 * 1000;
-    var homeInvestorMode = 'area';  // 2026-10-16 ����� ��û: ����/���� ��ȯ ��ǥ�� �⺻���� ����
-    var homeInvestorActor = 'compare'; // �ܱ��Ρ��������, �⺻ ��
+    var homeInvestorMode = 'area';  // 2026-10-16 사용자 요청: 면적/막대 전환 지표의 기본값은 면적
+    var homeInvestorActor = 'compare'; // 외국인·기관·비교, 기본 비교
     var homeInvestorResults = null;
     var homeInvestorLoading = false;
 
@@ -2865,13 +2865,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         return Number.isInteger(r.slot) && r.slot >= 0 && r.slot < 14
           && (r.frgn != null && isFinite(Number(r.frgn)) || r.orgn != null && isFinite(Number(r.orgn)));
       }).slice().sort(function (a, b) { return a.slot - b.slot; });
-      if (!rows.length) return '<div class="hmb-investor-spark-empty">���� ��� ���� ��</div>';
+      if (!rows.length) return '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
       var foreigners = actor === 'institution' ? [] : rows.filter(function (r) { return r.frgn != null && isFinite(Number(r.frgn)); });
       var institutions = actor === 'foreign' ? [] : rows.filter(function (r) { return r.orgn != null && isFinite(Number(r.orgn)); });
-      if (!foreigners.length && !institutions.length) return '<div class="hmb-investor-spark-empty">������ ������ ������ ����</div>';
+      if (!foreigners.length && !institutions.length) return '<div class="hmb-investor-spark-empty">선택한 투자자 관측값 없음</div>';
       var extremaField = actor === 'institution' ? 'orgn' : 'frgn';
       var extremaRows = actor === 'institution' ? institutions : foreigners;
-      var extremaLabel = actor === 'institution' ? '���' : '�ܱ���';
+      var extremaLabel = actor === 'institution' ? '기관' : '외국인';
       var nums = [0].concat(foreigners.map(function (r) { return Number(r.frgn); }))
         .concat(institutions.map(function (r) { return Number(r.orgn); }));
       var min = Math.min.apply(Math, nums), max = Math.max.apply(Math, nums);
@@ -2892,7 +2892,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
             var v = Number(r[field]), side = v > 0 ? 'buy' : v < 0 ? 'sell' : 'flat';
             var minute = 540 + r.slot * 30, label = Math.floor(minute / 60) + ':' + String(minute % 60).padStart(2, '0');
             marks += '<rect x="' + (x(r.slot) + (institution ? 0.3 : -2.4)).toFixed(2) + '" y="' + (v === 0 ? zero - .3 : Math.min(zero, y(v))) + '" width="2.3" height="' + Math.max(.6, Math.abs(y(v) - zero)) + '" rx=".3" class="hmb-investor-' + side + (institution ? ' hmb-investor-institution' : '') + '"><title>'
-              + (institution ? '���' : '�ܱ���') + ' ' + label + ' �� ' + investorAmountText(v) + '</title></rect>';
+              + (institution ? '기관' : '외국인') + ' ' + label + ' · ' + investorAmountText(v) + '</title></rect>';
           });
           return;
         }
@@ -2926,18 +2926,18 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         (actor === 'foreign' ? ['frgn'] : actor === 'institution' ? ['orgn'] : ['frgn','orgn']).forEach(function(field){
           if(r[field]==null||!isFinite(Number(r[field])))return;
           hover.push([x(r.slot),y(Number(r[field]))/90*100,
-            label+' KST ���� �� '+(field==='frgn'?'�ܱ���':'���')+' ���� '+investorAmountText(r[field])+'\n���� '+investorTimeText(r.asOf)]);
+            label+' KST 구간 · '+(field==='frgn'?'외국인':'기관')+' 누적 '+investorAmountText(r[field])+'\n수집 '+investorTimeText(r.asOf)]);
         });
       });
       var extrema = foreignMax && foreignMin ?
-        '<div class="hmb-investor-extrema"><span>'+extremaLabel+' ���� <b>'+investorAmountText(foreignMax[extremaField])+'</b></span>'
-          +'<span>���� <b>'+investorAmountText(foreignMin[extremaField])+'</b></span></div>' : '';
-      // ���� �ܱ��� ���������� ��ġ ��Ŀ�� ���� 70px ��Ʈ ���ο� �״�� �д�.
+        '<div class="hmb-investor-extrema"><span>'+extremaLabel+' 고점 <b>'+investorAmountText(foreignMax[extremaField])+'</b></span>'
+          +'<span>저점 <b>'+investorAmountText(foreignMin[extremaField])+'</b></span></div>' : '';
+      // 기존 외국인 고점·저점 위치 마커는 같은 70px 차트 내부에 그대로 둔다.
       function extremePoint(row, name) {
         return row ? '<span class="hmb-investor-point is-'+name+'" style="left:'+x(row.slot).toFixed(2)+'%;top:'+(y(Number(row[extremaField]))/90*100).toFixed(2)+'%" aria-hidden="true"></span>' : '';
       }
       var points = extremePoint(foreignMax,'high') + (foreignMin && foreignMax && Number(foreignMin[extremaField]) !== Number(foreignMax[extremaField]) ? extremePoint(foreignMin,'low') : '');
-      return '<div class="hmb-investor-spark-wrap" data-hover-points="'+homeHoverAttr(hover)+'"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30�� ���� ���ż� �� '+(actor === 'foreign' ? '�ܱ���' : actor === 'institution' ? '���' : '�ܱ��� �Ǽ������ ����')+' �� Ȯ�� '+rows.length+'��">'
+      return '<div class="hmb-investor-spark-wrap" data-hover-points="'+homeHoverAttr(hover)+'"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 누적 순매수 · '+(actor === 'foreign' ? '외국인' : actor === 'institution' ? '기관' : '외국인 실선·기관 점선')+' · 확보 '+rows.length+'개">'
         +'<line x1="1" y1="'+zero+'" x2="99" y2="'+zero+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
         +marks+'</svg>'+points+'</div>'
         +'<div class="hmb-investor-axis"><span>09:00</span><span>12:00</span><span>15:30</span></div>'+extrema;
@@ -2973,16 +2973,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var response = history[index] || {}, result = response.data || response;
         var rows = shared.intradayRows(result.rows, result.date), label = market.toUpperCase();
         var last = rows.length ? rows[rows.length-1] : null;
-        var caption = rows.length ? result.date + ' �� ���� ' + investorTimeText(last.asOf) + ' KST' : '���� ���� ������ ����';
+        var caption = rows.length ? result.date + ' · 관측 ' + investorTimeText(last.asOf) + ' KST' : '장중 저장 관측값 없음';
         if (rows.length) {
           var delayed = active && (result.date !== today || now.getTime() - Date.parse(last.asOf) > 10*60*1000);
-          caption += ' �� ' + (isCached || response._homeCached ? '��ȸ ���� �� ���尪' : delayed ? '���� ���� �� ���尪' : active && result.date === today ? '���� ����' : '������ ���� ������');
-          caption += ' �� ' + rows.length + '/14����';
+          caption += ' · ' + (isCached || response._homeCached ? '조회 지연 · 저장값' : delayed ? '관측 지연 · 저장값' : active && result.date === today ? '장중 잠정' : '마지막 저장 관측값');
+          caption += ' · ' + rows.length + '/14슬롯';
         }
         return '<div class="hmb-investor-row hmb-investor-mini-row"><div class="hmb-investor-row-top"><strong>' + label + '</strong></div>'
           + shared.miniBars(rows, {date:result.date, market:label, maxAbs:maxAbs})
           + '<div class="hmb-investor-asof">' + escapeHomeHtml(caption) + '</div>'
-          + '<div class="hmb-investor-asof">���� ���� �� ������ ���� �� ���</div></div>';
+          + '<div class="hmb-investor-asof">당일 누적 · 마지막 관측 · 억원</div></div>';
       }).join('');
     }
 
@@ -3005,14 +3005,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         return '<div class="hmb-investor-row">'
           + '<div class="hmb-investor-row-top"><strong>' + market.label + '</strong>'
           + '<span class="hmb-investor-amounts">'
-          + '<span class="' + (homeInvestorActor === 'institution' ? 'is-unselected' : '') + '" title="�ܱ��� ���� ���ż�"><small class="hmb-investor-actor-name is-foreign">�ܱ���</small><b class="' + homeTone(foreign) + '">' + investorAmountText(foreign) + '</b></span>'
-          + '<span class="' + (homeInvestorActor === 'foreign' ? 'is-unselected' : '') + '" title="��� ���� ���ż�"><small class="hmb-investor-actor-name is-institution">���</small><b class="' + homeTone(institution) + '">' + investorAmountText(institution) + '</b></span></span></div>'
+          + '<span class="' + (homeInvestorActor === 'institution' ? 'is-unselected' : '') + '" title="외국인 누적 순매수"><small class="hmb-investor-actor-name is-foreign">외국인</small><b class="' + homeTone(foreign) + '">' + investorAmountText(foreign) + '</b></span>'
+          + '<span class="' + (homeInvestorActor === 'foreign' ? 'is-unselected' : '') + '" title="기관 누적 순매수"><small class="hmb-investor-actor-name is-institution">기관</small><b class="' + homeTone(institution) + '">' + investorAmountText(institution) + '</b></span></span></div>'
           + investorSparkline(result, homeInvestorMode, market.key, homeInvestorActor)
-          + '<div class="hmb-investor-asof">' + String(result.date || '').replace(/[^0-9-]/g, '') + ' �� '
-          + (rows.length ? '���� ' + investorTimeText(result.asOf) + ' �� ' + rows.length + '/14��' : '�Ϻ� �ֱٰ� �� ���� ��� ����') + '</div>'
+          + '<div class="hmb-investor-asof">' + String(result.date || '').replace(/[^0-9-]/g, '') + ' · '
+          + (rows.length ? '관측 ' + investorTimeText(result.asOf) + ' · ' + rows.length + '/14개' : '일별 최근값 · 장중 기록 없음') + '</div>'
           + '</div>';
       }).join('');
-      body.innerHTML = html || '<span class="hmb-investor-loading">������ Ȯ�� ��</span>';
+      body.innerHTML = html || '<span class="hmb-investor-loading">데이터 확인 중</span>';
     }
 
     var investorHost = dashboardSection.querySelector('[data-home-investor-trend]');
@@ -3047,7 +3047,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       homeInvestorLoading = true;
       var body = host.querySelector('.hmb-investor-trend-body');
       loadHomeScript(HOME_INVESTOR_FLOW_SCRIPT_URL, 'InvestorFlow').then(function () {
-        if (typeof window.InvestorFlow.miniBars !== 'function') throw new Error('���� ���� ��� ���');
+        if (typeof window.InvestorFlow.miniBars !== 'function') throw new Error('장중 공통 모듈 대기');
         if (!homeInvestorMiniHistory) {
           var cached = readHomeDataCache('home-investor-mini-intraday-v2', 7 * 24 * 60 * 60 * 1000);
           if (Array.isArray(cached) && cached.length === 2) homeInvestorMiniHistory = cached;
@@ -3058,9 +3058,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           return fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=intraday&market=' + market, 12000)
             .then(function (response) {
               var d = response && response.data;
-              if (!response || response.success !== true || !d || d.period !== 'intraday' || d.market !== market || !Array.isArray(d.rows)) throw new Error('���� ���� ����');
+              if (!response || response.success !== true || !d || d.period !== 'intraday' || d.market !== market || !Array.isArray(d.rows)) throw new Error('장중 응답 오류');
               var rows = window.InvestorFlow.intradayRows(d.rows,d.date);
-              if (!rows.length) throw new Error('���� ������ ����');
+              if (!rows.length) throw new Error('저장 관측값 없음');
               return response;
             }).catch(function () {
               var old = homeInvestorMiniHistory && homeInvestorMiniHistory[index];
@@ -3072,14 +3072,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         writeHomeDataCache('home-investor-mini-intraday-v2', results);
         renderHomeInvestorMiniHistory(results, false);
       }).catch(function () {
-        if (body) body.innerHTML = '<span class="hmb-investor-loading">���� ���� ǥ�� ��� Ȯ�� �ʿ�</span>';
+        if (body) body.innerHTML = '<span class="hmb-investor-loading">장중 수급 표시 모듈 확인 필요</span>';
       }).then(function () { homeInvestorLoading = false; });
     };
 
     loadSummaryForSession(homeMarketSession());
     window.addEventListener('home-market-change', function () {
-      // �� ���¸� �ٲٸ� ���� ������ ���� ī�尡 ȭ�鿡 ���´�. ������
-      // ��ȯ�ϴ� ���� ī���� �󺧡�������Ʈ�� �Բ� �ʱ�ȭ�ϰ� �ٽ� ��ȸ�Ѵ�.
+      // 탭 상태만 바꾸면 직전 시장의 지수 카드가 화면에 남는다. 시장을
+      // 전환하는 순간 카드의 라벨·값·차트를 함께 초기화하고 다시 조회한다.
       loadHomeIndices();
       loadHomeSessionCharts();
       loadHomeIndexBreadth();
@@ -3089,8 +3089,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (document.hidden) return;
       var session = homeMarketSession();
       var wasClosed = dashboardSection.classList.contains('is-market-closed');
-      // �ݿ��Ͽ� Ȩ�� ���� �� ä ����Ϸ� �Ѿ�� �ָ� ���� �������� ��ȯ�Ѵ�.
-      // �ݴ�� �������� �Ǹ� �ڵ� ���� ������ �ٽ� �����Ѵ�.
+      // 금요일에 홈을 열어 둔 채 토요일로 넘어가도 주말 휴장 지면으로 전환한다.
+      // 반대로 월요일이 되면 자동 시장 선택을 다시 적용한다.
       if (session.closed || wasClosed) {
         if (session.closed !== wasClosed) {
           syncMarketSwitch();
@@ -3107,13 +3107,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     function calendarMeta(rawTitle) {
       var segments = String(rawTitle || '').split('|').map(function (item) { return item.trim(); });
-      var head = segments[0] || '(���� ����)';
+      var head = segments[0] || '(제목 없음)';
       var category = segments[1] || '';
       var stock = head.match(/^\$(\S+)\s*(.*)$/);
       var flag = !stock && head.match(/^(\p{Regional_Indicator}{2})\s*(.*)$/u);
       return {
         title: stock ? ((stock[1] ? stock[1] + ' ' : '') + stock[2]).trim() : flag ? flag[2].trim() : head,
-        category: category || (stock ? '����' : flag ? flag[1] : '����')
+        category: category || (stock ? '종목' : flag ? flag[1] : '증시')
       };
     }
 
@@ -3144,9 +3144,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var dateLabel = Number(parts.month) + '.' + Number(parts.day) + '.';
       var usDate = String(event.us_date || '').slice(0, 10);
       var timeLabel = usDate
-        ? '�̱� ' + Number(usDate.slice(5, 7)) + '/' + Number(usDate.slice(8, 10))
-          + (event.us_session ? ' �� ' + event.us_session : '')
-        : allDay ? '����' : parts.hour + ':' + parts.minute;
+        ? '미국 ' + Number(usDate.slice(5, 7)) + '/' + Number(usDate.slice(8, 10))
+          + (event.us_session ? ' · ' + event.us_session : '')
+        : allDay ? '종일' : parts.hour + ':' + parts.minute;
       return includeDate ? dateLabel + ' ' + timeLabel : timeLabel;
     }
 
@@ -3156,8 +3156,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (market === 'us' || market === 'usa' || market === 'foreign') return 1;
       var source = String(event && (event.source || event.provider || '') || '');
       var title = String(event && event.title || '').trim();
-      if (/dart|����|�ѱ�|kospi|kosdaq/i.test(source + ' ' + title)) return 0;
-      if (/finnhub|�̱�|nasdaq|nyse|s&p/i.test(source + ' ' + title)) return 1;
+      if (/dart|국내|한국|kospi|kosdaq/i.test(source + ' ' + title)) return 0;
+      if (/finnhub|미국|nasdaq|nyse|s&p/i.test(source + ' ' + title)) return 1;
       if (/^\$/.test(title) || /^\p{Regional_Indicator}{2}/u.test(title)) return 1;
       return 0;
     }
@@ -3176,15 +3176,15 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var upcoming = (events || []).filter(function (event) { return eventDate(event) >= todayStart; })
         .sort(compareCalendarEvents);
       var todayItems = upcoming.filter(function (event) { return eventDate(event) < tomorrow; });
-      if (todayItems.length) return { items: todayItems.slice(0, 4), includeDate: false, label: '���� ����' };
-      if (!upcoming.length) return { items: [], includeDate: true, label: '���� �Ǵ� ���� ����� ����' };
+      if (todayItems.length) return { items: todayItems.slice(0, 4), includeDate: false, label: '오늘 일정' };
+      if (!upcoming.length) return { items: [], includeDate: true, label: '오늘 또는 가장 가까운 일정' };
       var nearest = eventDate(upcoming[0]).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
       return {
         items: upcoming.filter(function (event) {
           return eventDate(event).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) === nearest;
         }).slice(0, 4),
         includeDate: true,
-        label: '���� ����� ����'
+        label: '가장 가까운 일정'
       };
     }
 
@@ -3194,7 +3194,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (!list) return;
       if (label) label.textContent = result.label;
       if (!result.items.length) {
-        list.innerHTML = '<p class="home-card-state">���� ������ �ֿ� ������ �����ϴ�.</p>';
+        list.innerHTML = '<p class="home-card-state">오늘 예정된 주요 일정이 없습니다.</p>';
         return;
       }
       list.innerHTML = result.items.map(function (event) {
@@ -3207,12 +3207,12 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }).join('');
     }
 
-    // ������ ��� �ǻ������ �ʿ��� �ü����� �켱������ ����. Ȩ�� API��WebSocket
-    // ������ �ڸ� ���� �� �ҷ��� ù ȭ�鿡�� 15��¥�� Ķ���� ��û�� �������� �ʰ� �Ѵ�.
+    // 일정은 즉시 의사결정에 필요한 시세보다 우선순위가 낮다. 홈의 API·WebSocket
+    // 연결이 자리 잡은 뒤 불러와 첫 화면에서 15초짜리 캘린더 요청이 경쟁하지 않게 한다.
     window.setTimeout(function () {
       loadHomeScript(CALENDAR_SCRIPT_URL, 'StockCalendar')
         .then(function (calendar) {
-          if (!calendar || !calendar.fetchEvents) throw new Error('Ķ���� ��� ����');
+          if (!calendar || !calendar.fetchEvents) throw new Error('캘린더 모듈 없음');
           var today = homeKstParts(new Date());
           return calendar.fetchEvents(Number(today.year), Number(today.month) - 1)
             .then(function (events) {
@@ -3224,13 +3224,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         .then(renderSchedule)
         .catch(function () {
           var list = document.getElementById('homeScheduleList');
-          if (list) list.innerHTML = '<p class="home-card-state">������ �ҷ����� ���߽��ϴ�.</p>';
+          if (list) list.innerHTML = '<p class="home-card-state">일정을 불러오지 못했습니다.</p>';
         });
     }, 2000);
 
-    /* �ֽ� �긮�� 8��: ���� ��, ū ��� ī�带 �¿�� �ѱ�� ĳ����. */
+    /* 최신 브리핑 8건: 제목 위, 큰 흰색 카드를 좌우로 넘기는 캐러셀. */
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
-    var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '���� �긮��'; });
+    var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '마켓 브리핑'; });
     var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 8);
     allCards.forEach(function (card) {
       if (selectedCards.indexOf(card) === -1) card.remove();
@@ -3239,25 +3239,25 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     var briefing = null;
     if (selectedCards.length) {
-      briefing = window.NineHomeBriefing.build(selectedCards); // ���Ǵ� ���� ���� - ��ȸ�� Ȩ�� ����
+      briefing = window.NineHomeBriefing.build(selectedCards); // 정의는 파일 위쪽 - 비회원 홈과 공유
       feed.appendChild(briefing);
       window.NineHomeBriefing.initCarousel(briefing);
     } else {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
-      briefing.innerHTML = '<div class="home-section-heading"><div><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 6h4" /> <path d="M2 10h4" /> <path d="M2 14h4" /> <path d="M2 18h4" /> <rect width="16" height="20" x="4" y="2" rx="2" /> <path d="M9.5 8h5" /> <path d="M9.5 12H16" /> <path d="M9.5 16H14" /> </svg> ���Ϻ긮��</strong>'
-        + '<span>���� �Ǵܿ� �ʿ��� �ٽ� �ؼ�</span></div></div>'
-        + '<div class="home-card-state">�ֽ� ���Ϻ긮���� Ȯ���ϴ� ���Դϴ�.</div>'
-        + '<a class="home-briefing-more" href="/category/���� �긮��"><span>�긮�� ��ī�̺�</span><strong>���� �긮��</strong><i aria-hidden="true">��</i></a>';
+      briefing.innerHTML = '<div class="home-section-heading"><div><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 6h4" /> <path d="M2 10h4" /> <path d="M2 14h4" /> <path d="M2 18h4" /> <rect width="16" height="20" x="4" y="2" rx="2" /> <path d="M9.5 8h5" /> <path d="M9.5 12H16" /> <path d="M9.5 16H14" /> </svg> 마켓브리핑</strong>'
+        + '<span>투자 판단에 필요한 핵심 해석</span></div></div>'
+        + '<div class="home-card-state">최신 마켓브리핑을 확인하는 중입니다.</div>'
+        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><span>브리핑 아카이브</span><strong>마켓 브리핑</strong><i aria-hidden="true">→</i></a>';
       feed.appendChild(briefing);
     }
 
     var pagination = feed.querySelector(':scope > .pagination');
     if (pagination) pagination.remove();
 
-    // 2026-10-18 ����� ��û("���忡�� ���Ϻ긮���� ���µ� �߰�"): ���� �긮�� ������ ���� ����� .home-widget-grid ������ �ű�µ�,
-    // ���� ȭ���� �� �׸��带 ��°�� ���ܼ� �긮�ε� ���� �������. ����(dashboardSection.is-market-closed)�̸� �ְ� ����Ʈ �ٷ� �Ʒ���
-    // ���� ���̰�, ���� ������ ���� �ڸ�(ǥ���� �� �ּ� ��� ��)�� �ǵ�����. �� ��ȯ���� Ŭ������ �ٲ� ������ �ٽ� �����.
+    // 2026-10-18 사용자 요청("휴장에는 마켓브리핑이 없는데 추가"): 마켓 브리핑 섹션은 위젯 모듈이 .home-widget-grid 안으로 옮기는데,
+    // 휴장 화면은 그 그리드를 통째로 숨겨서 브리핑도 같이 사라졌다. 휴장(dashboardSection.is-market-closed)이면 주간 리포트 바로 아래로
+    // 꺼내 보이고, 장이 열리면 원래 자리(표시해 둔 주석 노드 앞)로 되돌린다. 탭 전환으로 클래스가 바뀔 때마다 다시 맞춘다.
     function syncBriefingPlacement() {
       var section = feed.querySelector('.home-briefing-section') || document.querySelector('.home-briefing-section');
       if (!section) return;
@@ -3281,8 +3281,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     if (window.MutationObserver) new MutationObserver(syncBriefingPlacement).observe(dashboardSection, { attributes: true, attributeFilter: ['class'] });
 
-    // �� ����� ������ �ڵ忡 �������� �ʴ´�. ���� ���� �ε��� ���ķ�
-    // �ٲ� ù ȭ�鿡�� ��Ʈ��ũ �պ� �� �� �̻��� ���δ�.
+    // 네 모듈은 서로의 코드에 의존하지 않는다. 기존 직렬 로딩을 병렬로
+    // 바꿔 첫 화면에서 네트워크 왕복 한 번 이상을 줄인다.
     Promise.all([
       loadHomeScript(HOME_WEEKLY_REPORT_SCRIPT_URL, 'HomeWeeklyReport').catch(function () { return null; }),
       loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets').catch(function () { return null; }),
@@ -3308,16 +3308,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         setTimeout(syncBriefingPlacement, 1500);
       })
       .catch(function () {
-        /* ���� ���� ����� ������ ���� ������ ��ú���� �״�� ����� �� �ְ� �д�. */
+        /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
       });
     // Publish the complete synchronous layout; do not wait for API or optional widgets.
     document.documentElement.classList.remove('home-render-pending');
   })();
 
-  /* ���� ī�װ��� �۸��: �Ź� ������ ���� ����(2026-08-26) ����
-     �Ϲ� ī�װ����� ��ǥ 1�� + ������ �ִ� 4�� �ڿ� ���� ī�塤2���� �ݺ��Ѵ�. �ٸ�
-     ���Ϻ긮���� ���� ũ���� ���� ī�� �������� ǥ���Ѵ�.
-     ���� ������ �ֽż� �״�� �Һ��ϸ� ���������� �ʴ´�. */
+  /* ── 카테고리 글목록: 신문 지면형 고정 편집(2026-08-26) ──
+     일반 카테고리는 대표 1개 + 헤드라인 최대 4개 뒤에 작은 카드·2열을 반복한다. 다만
+     마켓브리핑은 같은 크기의 가로 카드 선반으로 표시한다.
+     글은 언제나 최신순 그대로 소비하며 재정렬하지 않는다. */
   (function buildCategoryFeedBlocks() {
     if (location.pathname.indexOf('/category/') !== 0) return;
     var feed = document.querySelector('.feed');
@@ -3325,24 +3325,24 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!feed.querySelector('.category-masthead')) {
       var masthead = document.createElement('header');
       masthead.className = 'category-masthead';
-      masthead.innerHTML = '<div><p>MARKET BRIEFING</p><h1>���� �긮��</h1><span>���� ����� ������ �帧�� ���ƺ���, ���� �ŷ��� �����غ��ϴ�.</span></div>'
-        + '<small>�ֽż� �� ��ü ��</small>';
+      masthead.innerHTML = '<div><p>MARKET BRIEFING</p><h1>마켓 브리핑</h1><span>지난 시장과 종목의 흐름을 돌아보며, 다음 거래를 생각해봅니다.</span></div>'
+        + '<small>최신순 · 전체 글</small>';
       feed.insertBefore(masthead, feed.firstChild);
     }
     var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
-    var isMarketBriefing = decodeURIComponent(location.pathname) === '/category/���� �긮��';
+    var isMarketBriefing = decodeURIComponent(location.pathname) === '/category/마켓 브리핑';
     if (!cards.length || (cards.length < 2 && !isMarketBriefing)) return;
 
     var BLOCK_SEQUENCE = [
-      { key: 'hero', min: 2, max: 5 },   // �ֽ� ��ǥ 1 + ������ �ִ� 4
-      { key: 'cards', min: 3, max: 3 },  // ���� ī���� 3�� �׸���
-      { key: 'duo', min: 2, max: 2 }     // ���η� ������ 2��
+      { key: 'hero', min: 2, max: 5 },   // 최신 대표 1 + 헤드라인 최대 4
+      { key: 'cards', min: 3, max: 3 },  // 작은 카드형 3개 그리드
+      { key: 'duo', min: 2, max: 2 }     // 가로로 나란한 2개
     ];
-    var tailAnchor = cards[cards.length - 1].nextSibling; /* ������ ī�� �� ���(���������̼� ��) �տ� ���� */
+    var tailAnchor = cards[cards.length - 1].nextSibling; /* 마지막 카드 뒤 요소(페이지네이션 등) 앞에 삽입 */
 
     function renderBlock(type, slice, beforeNode) {
       if (type === 'single') {
-        slice[0].classList.add('feed-featured'); // �̹� ���ڸ��� �����Ƿ� �̵� ���� Ŭ������
+        slice[0].classList.add('feed-featured'); // 이미 제자리에 있으므로 이동 없이 클래스만
         return;
       }
       if (type === 'hero' || type === 'briefingHero') {
@@ -3376,16 +3376,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       });
     }
 
-    // ���Ϻ긮���� �Ϲ� ī�װ����� hero/cards/duo ������ �и��Ѵ�.
+    // 마켓브리핑은 일반 카테고리의 hero/cards/duo 편집과 분리한다.
     if (isMarketBriefing) {
       // Equal-size editorial cards on an Apple-style horizontal shelf. Keep the
       // original articles, links, dates and order; reuse the shared carousel.
       var shelf = document.createElement('section');
       shelf.className = 'briefing-shelf';
-      shelf.innerHTML = '<div class="briefing-shelf-track" tabindex="0" role="region" aria-label="���Ϻ긮�� ī��"></div>'
-        + '<button type="button" class="briefing-shelf-arrow briefing-shelf-prev" data-briefing-shelf-prev aria-label="���� ���Ϻ긮��">?</button>'
-        + '<button type="button" class="briefing-shelf-arrow briefing-shelf-next" data-briefing-shelf-next aria-label="���� ���Ϻ긮��">?</button>'
-        + '<p class="briefing-shelf-empty" hidden>�˻� ����� �����ϴ�.</p>';
+      shelf.innerHTML = '<div class="briefing-shelf-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>'
+        + '<button type="button" class="briefing-shelf-arrow briefing-shelf-prev" data-briefing-shelf-prev aria-label="이전 마켓브리핑">‹</button>'
+        + '<button type="button" class="briefing-shelf-arrow briefing-shelf-next" data-briefing-shelf-next aria-label="다음 마켓브리핑">›</button>'
+        + '<p class="briefing-shelf-empty" hidden>검색 결과가 없습니다.</p>';
       feed.insertBefore(shelf, cards[0]);
       var shelfTrack = shelf.querySelector('.briefing-shelf-track');
       cards.forEach(function (card) {
@@ -3400,7 +3400,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }).catch(function () {});
       var search = document.createElement('label');
       search.className = 'briefing-search';
-      search.innerHTML = '<input type="search" aria-label="���Ϻ긮�� ���񡤳��� �˻�" placeholder="���Ϻ긮�� ���񡤳��� �˻�" autocomplete="off"><small data-briefing-search-result>��ü ' + cards.length + '��</small>';
+      search.innerHTML = '<input type="search" aria-label="마켓브리핑 제목·내용 검색" placeholder="마켓브리핑 제목·내용 검색" autocomplete="off"><small data-briefing-search-result>전체 ' + cards.length + '건</small>';
       feed.insertBefore(search, shelf);
       var input = search.querySelector('input');
       var result = search.querySelector('[data-briefing-search-result]');
@@ -3413,7 +3413,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           if (match) shown += 1;
         });
         shelf.querySelector('.briefing-shelf-empty').hidden = shown !== 0;
-        result.textContent = query ? shown + '�� �˻���' : '��ü ' + cards.length + '��';
+        result.textContent = query ? shown + '건 검색됨' : '전체 ' + cards.length + '건';
       });
       return;
     }
@@ -3423,7 +3423,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     while (idx < cards.length) {
       var remaining = cards.length - idx;
       var block = BLOCK_SEQUENCE[sequenceIndex % BLOCK_SEQUENCE.length];
-      // �������� 1���� ������ �ܵ� ī��� �������Ѵ�.
+      // 마지막에 1개만 남으면 단독 카드로 마무리한다.
       if (remaining < block.min) block = { key: 'single', min: 1, max: 1 };
       var take = Math.min(block.max, remaining);
       var slice = cards.slice(idx, idx + take);
@@ -3433,11 +3433,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       sequenceIndex += 1;
     }
   })();
-  /* ���� ����ũ�� ���̵�� ��� (���� ���� �� ����, 2026-07-21 ���̵�� �������� #3)
-     ���� ���� ��ũ��Ʈ(head)�� �̹� html.sidebar-collapsed�� �ٿ����� �� �����Ƿ�
-     ��ư ������(�ܹ��� ? X) ���¸� ���⼭ ����ȭ. ����� ��ξ�(#mobileMenuBtn)�ʹ�
-     ������ ���� ��� - CSS�� min-width:721px �ȿ����� .sidebar-collapsed�� �ؼ��ϹǷ�
-     ����Ͽ����� �� Ŭ������ �־ ���̾ƿ��� ���� ����. ���� */
+  /* ── 데스크톱 사이드바 토글 (완전 숨김 ↔ 복원, 2026-07-21 사이드바 리디자인 #3)
+     조기 적용 스크립트(head)가 이미 html.sidebar-collapsed를 붙여놨을 수 있으므로
+     버튼 아이콘(햄버거 ⇄ X) 상태만 여기서 동기화. 모바일 드로어(#mobileMenuBtn)와는
+     완전히 별개 기능 - CSS가 min-width:721px 안에서만 .sidebar-collapsed를 해석하므로
+     모바일에서는 이 클래스가 있어도 레이아웃에 영향 없음. ── */
   (function() {
     var btn = document.getElementById('sidebarToggleBtn');
     if (!btn) return;
@@ -3449,16 +3449,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     });
   })();
 
-  /* ���� ī�װ��� ���� �Ľ� ([##_category_list_##] ���) ���� */
+  /* ── 카테고리 동적 파싱 ([##_category_list_##] 기반) ── */
   var catColors = ['#2563eb','#16a34a','#d97706','#7c3aed','#e11d48','#0891b2','#b45309','#0f766e'];
-  /* 2026-07-12: ���� �긮���� ���� ������ �޴�(skin-menu.js)�� �°ݵż�
-     ���̵�� "ī�װ���" ��Ͽ��� �ߺ� ���� �� �� */
-  var sidebarCatExclude = ['���� �긮��'];
-  /* ī�װ����� �� ������ ���� ����. ī�װ��� �̸��� �ٲٸ� �� Ű�� ���� ���ľ� ��(�� �׷��� �⺻ ���������� ��ü��) */
+  /* 2026-07-12: 마켓 브리핑은 왼쪽 페이지 메뉴(skin-menu.js)로 승격돼서
+     사이드바 "카테고리" 목록에는 중복 노출 안 함 */
+  var sidebarCatExclude = ['마켓 브리핑'];
+  /* 카테고리명 → 아이콘 수동 매핑. 카테고리 이름을 바꾸면 이 키도 같이 고쳐야 함(안 그러면 기본 아이콘으로 대체됨) */
   var catIconPaths = {
-    '���� �м�': '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
-    '�ϻ�ٹݻ�': '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
-    '�ϱ���': '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    '종목 분석': '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+    '일상다반사': '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
+    '일기장': '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     'Insight Archive': '<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>'
   };
   var catIconDefault = '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>';
@@ -3469,7 +3469,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   if (catDataEl) {
     var allLinks = Array.from(catDataEl.querySelectorAll('a'));
 
-    /* depth-1 = /category/NAME (������ �� 1��) */
+    /* depth-1 = /category/NAME (슬래시 딱 1개) */
     var depth1Links = allLinks.filter(function(a) {
       return /\/category\/[^/]+$/.test(a.getAttribute('href') || '');
     });
@@ -3479,7 +3479,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       return /\/category\/[^/]+\/[^/]+$/.test(a.getAttribute('href') || '');
     });
 
-    /* ���� ���� ���̵��: depth-1 �� ǥ�� ���� */
+    /* ── 좌측 사이드바: depth-1 만 표시 ── */
     if (catCustomList) {
       depth1Links.forEach(function(a, idx) {
         var href = a.getAttribute('href');
@@ -3494,7 +3494,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           count = m ? m[2] : '';
         }
         if (!name) return;
-        var bareName = name.replace(/\s*\(�����\)\s*$/, '').trim();
+        var bareName = name.replace(/\s*\(비공개\)\s*$/, '').trim();
         if (sidebarCatExclude.indexOf(bareName) > -1) return;
         var color = catColors[idx % catColors.length];
         var iconPath = catIconPaths[bareName] || catIconDefault;
@@ -3508,13 +3508,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       });
     }
 
-    /* ���� ��� ���� ��: 2026-07-11 UI���� ����(�����λ� ���ʿ� �Ǵ�) ����
-       skin.html�� #filterBar ��ü�� ��Ų ���� ���� �����ϰ�, ���⼭ DOM���� �����. */
+    /* ── 상단 필터 탭: 2026-07-11 UI에서 제거(디자인상 불필요 판단) ──
+       skin.html의 #filterBar 자체는 스킨 편집 없이 유지하고, 여기서 DOM에서 떼어낸다. */
     var filterBar = document.getElementById('filterBar');
     if (filterBar) { filterBar.remove(); filterBar = null; }
-    var topBarExclude = ['�ϱ���', 'Insight Archive'];
+    var topBarExclude = ['일기장', 'Insight Archive'];
 
-    /* ���� subCatMap: depth-2�� �θ� �������� �׷��� ���� */
+    /* ── subCatMap: depth-2를 부모 기준으로 그루핑 ── */
     depth2Links.forEach(function(a) {
       var href = a.getAttribute('href') || '';
       var parentSlug = (href.match(/\/category\/([^/]+)\//) || [])[1] || '';
@@ -3540,7 +3540,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     });
   }
 
-  /* ���� ī�װ��� ���� �� active ���� */
+  /* ── 카테고리 필터 탭 active ── */
   var path = decodeURIComponent(location.pathname).toLowerCase();
   var activeCat = '';
   document.querySelectorAll('.filter-tab').forEach(function(tab) {
@@ -3555,8 +3555,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }
     }
   });
-  /* ��� �ǿ� ���� ī�װ���(�ϱ���/Insight Archive �� topBarExclude ���)��
-     ī�װ��� �������� ���� ���� ī�װ��� �ٴ� �ߵ��� URL���� ���� ���� */
+  /* 상단 탭에 없는 카테고리(일기장/Insight Archive 등 topBarExclude 대상)도
+     카테고리 페이지에 들어가면 서브 카테고리 바는 뜨도록 URL에서 직접 감지 */
   if (!activeCat) {
     Object.keys(subCatMap).forEach(function(parentName) {
       var p = parentName.toLowerCase();
@@ -3573,13 +3573,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (allTab) { allTab.classList.add('active'); activeCat = 'all'; }
   }
 
-  /* ���� ���� ī�װ��� ���� ���� ������ ����
-     ��� �ǿ��� ���ܵ� ī�װ���(�ϱ���/Insight Archive)�� ���� �� ���
-     ��� ���� �� ��ü�� ���� ī�װ��� ������ ��ü�Ѵ�(��ü��/���� �긮�� �ڸ��� ǥ��). */
+  /* ── 세부 카테고리 서브 필터 렌더링 ──
+     상단 탭에서 제외된 카테고리(일기장/Insight Archive)는 서브 바 대신
+     상단 필터 바 자체를 하위 카테고리 탭으로 교체한다(전체글/마켓 브리핑 자리에 표시). */
   var subBar = document.getElementById('subFilterBar');
   if (subCatMap[activeCat]) {
     var subs = subCatMap[activeCat];
-    var isExcludedCat = topBarExclude.indexOf(activeCat.replace(/\s*\(�����\)\s*$/, '').trim()) > -1;
+    var isExcludedCat = topBarExclude.indexOf(activeCat.replace(/\s*\(비공개\)\s*$/, '').trim()) > -1;
     var tabClass = isExcludedCat ? 'filter-tab' : 'sub-filter-tab';
     var html = '';
     subs.forEach(function(s) {
@@ -3594,7 +3594,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
   }
 
-  /* ���� ���� ī�װ��� active ǥ�� ���� */
+  /* ── 좌측 카테고리 active 표시 ── */
   document.querySelectorAll('.cat-custom-list a').forEach(function(a) {
     var p = (a.dataset.parent || '').toLowerCase();
     if (p && path.indexOf(p.replace(/ /g, '+')) > -1) {
@@ -3603,14 +3603,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   });
 
 
-  /* ���� ī�װ��� ���� ��/������(��: /page/market-temp �� ���� Page)��
-     "ī�װ��� ����" ���� ���� ���� */
+  /* ── 카테고리 없는 글/페이지(예: /page/market-temp 등 개별 Page)의
+     "카테고리 없음" 뱃지 숨김 ── */
   document.querySelectorAll('.post-cat-badge').forEach(function(el) {
-    if (el.textContent.trim() === 'ī�װ��� ����') el.style.display = 'none';
+    if (el.textContent.trim() === '카테고리 없음') el.style.display = 'none';
   });
 
-  /* ���� ǥ ���� ��ũ�� ����: table�� overflow-x:auto�� �ָ� auto ���̺� ���̾ƿ���
-     ĭ �ʺ� ������ �����־� ��׷����淡, div�� ���μ� �� div�� ��ũ�ѵǰ� �� ���� */
+  /* ── 표 가로 스크롤 래핑: table에 overflow-x:auto만 주면 auto 테이블 레이아웃이
+     칸 너비를 억지로 욱여넣어 찌그러지길래, div로 감싸서 그 div가 스크롤되게 함 ── */
   document.querySelectorAll('.post-single-body table, .post-expand-body table').forEach(function(table) {
     if (table.parentElement && table.parentElement.classList.contains('table-scroll-wrap')) return;
     var wrap = document.createElement('div');
@@ -3619,28 +3619,28 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     wrap.appendChild(table);
   });
 
-  /* ���� �ε��� ��� �ؽ�Ʈ �ٹٲ� ���� ���� */
+  /* ── 인덱스 요약 텍스트 줄바꿈 개선 ── */
   document.querySelectorAll('.post-excerpt').forEach(function(el) {
-    /* innerHTML ��� ó��: Ƽ���丮�� ������ <br> ���� */
+    /* innerHTML 기반 처리: 티스토리가 삽입한 <br> 보존 */
     var raw = el.innerHTML;
-    /* �� <br> �� \n */
+    /* ① <br> → \n */
     raw = raw.replace(/<br\s*\/?>/gi, '\n');
-    /* �� ������ �±� ���� */
+    /* ② 나머지 태그 제거 */
     raw = raw.replace(/<[^>]+>/g, '');
-    /* �� HTML ��ƼƼ ���ڵ� */
+    /* ③ HTML 엔티티 디코딩 */
     var tmp = document.createElement('div');
     tmp.innerHTML = raw;
     raw = tmp.textContent.replace(/\r\n|\r/g, '\n').trim();
-    /* �� �ߺ� �ؽ�Ʈ ���� */
+    /* ④ 중복 텍스트 제거 */
     if (raw.length > 20) {
       var check = raw.slice(0, 30);
       var dupIdx = raw.indexOf(check, 5);
       if (dupIdx > 0 && dupIdx <= 60) { raw = raw.slice(dupIdx); }
     }
-    /* �� "����.\n����" �� "����. ����" (��ȣ ȥ�� ���ִ� ���� ����) */
+    /* ⑤ "숫자.\n내용" → "숫자. 내용" (번호 혼자 떠있는 현상 방지) */
     raw = raw.replace(/(\d+)\.\n+/g, '$1. ');
-    /* �� ���� ��� �� �ٹٲ� (���� ���� ����) */
-    /* "?1. " "����).2. " ó�� ������/��ȣ �� ���ڰ� �ٷ� �ٴ� ��� ���� */
+    /* ⑥ 숫자 목록 앞 줄바꿈 (공백 유무 무관) */
+    /* "?1. " "할인).2. " 처럼 구두점/괄호 뒤 숫자가 바로 붙는 경우 포함 */
     raw = raw.replace(/([.!?)\]][\s]*(\d+)\.\s+)/g, function(m) {
       var parts = m.match(/^([.!?)\]])\s*(\d+)\.\s+$/);
       if (!parts) return m;
@@ -3649,18 +3649,18 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     raw = raw.replace(/([^\n])\s+(\d+)\.\s+/g, function(m, before, num) {
       return before + '\n' + num + '. ';
     });
-    /* �� ��á��Ҹ� �� �ٹٲ� */
-    raw = raw.replace(/([^\n])\s*[-?��??]\s+/g, '$1\n- ');
-    /* �� ��ħǥ/����ǥ/����ǥ �� �� �ѱ� ���� �ܶ� ���� */
-    /* �� ���ڰ� ���ڸ� ����: "1. �ϴ�..." ���� ��ȣ��� ���� �ǵ帮�� ���� */
-    raw = raw.replace(/([^\d\n][.!?])\s+([��-�RA-Z])/g, '$1\n$2');
-    /* �� ���� �ٹٲ� ���� */
+    /* ⑦ 대시·불릿 앞 줄바꿈 */
+    raw = raw.replace(/([^\n])\s*[-•·✦▸]\s+/g, '$1\n- ');
+    /* ⑧ 마침표/느낌표/물음표 뒤 새 한글 문장 단락 구분 */
+    /* 앞 글자가 숫자면 제외: "1. 일단..." 같은 번호목록 점을 건드리지 않음 */
+    raw = raw.replace(/([^\d\n][.!?])\s+([가-힣A-Z])/g, '$1\n$2');
+    /* ⑨ 연속 줄바꿈 정리 */
     raw = raw.replace(/\n{3,}/g, '\n\n');
-    /* �� ���� ��� (3�� Ŭ������ style.css .post-excerpt ��Ģ�� ���) */
+    /* ⑩ 최종 출력 (3줄 클램프는 style.css .post-excerpt 규칙이 담당) */
     el.innerHTML = raw.replace(/\n/g, '<br>');
   });
 
-  /* ���� ����� ��ξ� & �˻� �������� ���� */
+  /* ── 모바일 드로어 & 검색 오버레이 ── */
   (function() {
     var menuBtn    = document.getElementById('mobileMenuBtn');
     var overlay    = document.getElementById('mobileOverlay');
@@ -3672,11 +3672,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var scrollBtn  = document.getElementById('scrollTopBtn');
     var drawerHdr  = document.querySelector('.drawer-header');
 
-    /* ��ξ� ����/�ݱ� */
+    /* 드로어 열기/닫기 */
     function openDrawer() {
       if (!sidebar || !menuBtn || !overlay) return;
       menuBtn.classList.add('open');
-      menuBtn.setAttribute('aria-label', '�޴� �ݱ�');
+      menuBtn.setAttribute('aria-label', '메뉴 닫기');
       sidebar.classList.add('drawer-open');
       overlay.classList.add('open');
       document.body.style.overflow = 'hidden';
@@ -3685,7 +3685,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     function closeDrawer() {
       if (!sidebar || !menuBtn || !overlay) return;
       menuBtn.classList.remove('open');
-      menuBtn.setAttribute('aria-label', '�޴� ����');
+      menuBtn.setAttribute('aria-label', '메뉴 열기');
       sidebar.classList.remove('drawer-open');
       overlay.classList.remove('open');
       document.body.style.overflow = '';
@@ -3696,14 +3696,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     });
     if (overlay) overlay.addEventListener('click', closeDrawer);
 
-    /* ��ξ� ���� ��ũ Ŭ�� �� �ڵ� ���� */
+    /* 드로어 내부 링크 클릭 시 자동 닫힘 */
     if (sidebar) sidebar.addEventListener('click', function(e) {
       if (e.target.tagName === 'A' && window.innerWidth <= 720) {
         setTimeout(closeDrawer, 120);
       }
     });
 
-    /* �˻� �������� */
+    /* 검색 오버레이 */
     if (searchBtn) searchBtn.addEventListener('click', function() {
       if (!searchOv) return;
       searchOv.classList.add('open');
@@ -3716,7 +3716,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (e.target === searchOv) searchOv.classList.remove('open');
     });
 
-    /* ESC Ű ���� */
+    /* ESC 키 닫힘 */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         closeDrawer();
@@ -3724,7 +3724,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }
     });
 
-    /* ��ũ�� ž ��ư */
+    /* 스크롤 탑 버튼 */
     if (scrollBtn) {
       window.addEventListener('scroll', function() {
         if (window.scrollY > 300) scrollBtn.classList.add('visible');
@@ -3735,22 +3735,22 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       });
     }
 
-    /* �������� �� ��ξ� ���� */
+    /* 리사이즈 시 드로어 정리 */
     window.addEventListener('resize', function() {
       if (window.innerWidth > 720) {
         closeDrawer();
-        /* ����ũž ��ȯ �� sidebar top ���� */
+        /* 데스크탑 전환 시 sidebar top 복원 */
         var sl2 = document.querySelector('.sidebar-left');
         if (sl2) sl2.style.top = '';
       }
     });
   })();
 
-  /* 2026-09-15 �۾����ü�: ���������� "���� ����" ī�� ����� VI�����̵�ī ����.
-     ���� �� ���� 20�ʸ��� ��ȸ�� �� ĳ��(/api/circuit-breaker)�� �д´� - �������� ���ǻ� API��
-     ���� �θ��� �ʴ´�. ���̵�ī(���� ��ü)�� VI(��������)�� ���谡 �޶� ���� �� ���� ������,
-     �ߵ��� ������ �� �� �����. ���̵�ī�� Ȯ�ε� ������ ��ó�� ����� ������ ������ available=false��
-     ���� ������ ���� �ʴ´�. */
+  /* 2026-09-15 작업지시서: 메인페이지 "국내 시장" 카드 헤더의 VI·사이드카 배지.
+     서버 한 곳이 20초마다 조회해 둔 캐시(/api/circuit-breaker)만 읽는다 - 브라우저가 증권사 API를
+     직접 부르지 않는다. 사이드카(지수 전체)와 VI(개별종목)는 위계가 달라 배지 두 개로 나누고,
+     발동이 없으면 둘 다 숨긴다. 사이드카는 확인된 데이터 출처가 생기기 전까지 서버가 available=false로
+     보내 배지가 뜨지 않는다. */
   (function homeCircuitBreakerBadges() {
     var CB_API = 'https://goodbyestar.cloud/api/circuit-breaker';
     var CB_POLL_MS = 20000;
@@ -3778,69 +3778,69 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       return !!selection && typeof selection.get === 'function' && selection.get() === 'domestic';
     }
 
-    // ���� ��ü ���̵�ī(��Ȳ)����Ŷ�극��Ŀ(����). �ߵ� ���� ���� ��, �� �Ʒ� ���� �������ŷ��簳 �̷�. ���� id�� �� ���� �׸���.
-    var MARKET_LABEL = { KOSPI: '�ڽ���', KOSDAQ: '�ڽ���' };
+    // 시장 전체 사이드카(주황)·서킷브레이커(빨강). 발동 중이 가장 위, 그 아래 당일 해제·거래재개 이력. 같은 id는 한 번만 그린다.
+    var MARKET_LABEL = { KOSPI: '코스피', KOSDAQ: '코스닥' };
     var haltOpen = null;
     function haltTitle(e) {
-      var side = e.direction === 'SELL' ? '�ŵ� ���̵�ī' : e.direction === 'BUY' ? '�ż� ���̵�ī' : '���̵�ī';
-      return (MARKET_LABEL[e.market] || e.market) + ' ' + (e.kind === 'CIRCUIT_BREAKER' ? '��Ŷ�극��Ŀ' + (e.stage ? ' ' + e.stage + '�ܰ�' : '') : side);
+      var side = e.direction === 'SELL' ? '매도 사이드카' : e.direction === 'BUY' ? '매수 사이드카' : '사이드카';
+      return (MARKET_LABEL[e.market] || e.market) + ' ' + (e.kind === 'CIRCUIT_BREAKER' ? '서킷브레이커' + (e.stage ? ' ' + e.stage + '단계' : '') : side);
     }
     function haltRow(e) {
       var cls = e.kind === 'CIRCUIT_BREAKER' ? 'is-cb' : 'is-sidecar';
-      var state = e.status === 'active' ? '�ߵ� ��' : (e.status === 'resumed' ? '�ŷ� �簳 ' + hhmm(e.resumed_at || e.released_at)
-        : '���� ' + hhmm(e.released_at || e.resumed_at) + (e.basis === 'DURATION_ELAPSED' ? ' (���ӽð� ���)' : ''));
-      var pct = typeof e.change_pct === 'number' ? ' �� ' + (e.kind === 'CIRCUIT_BREAKER' ? '���� ' : '���� ') + (e.change_pct > 0 ? '+' : '') + e.change_pct.toFixed(2) + '%' : '';
+      var state = e.status === 'active' ? '발동 중' : (e.status === 'resumed' ? '거래 재개 ' + hhmm(e.resumed_at || e.released_at)
+        : '해제 ' + hhmm(e.released_at || e.resumed_at) + (e.basis === 'DURATION_ELAPSED' ? ' (지속시간 경과)' : ''));
+      var pct = typeof e.change_pct === 'number' ? ' · ' + (e.kind === 'CIRCUIT_BREAKER' ? '지수 ' : '선물 ') + (e.change_pct > 0 ? '+' : '') + e.change_pct.toFixed(2) + '%' : '';
       return '<li class="' + cls + (e.status === 'active' ? ' is-active' : ' is-ended') + '"><b>' + esc(haltTitle(e)) + '</b>'
-        + '<span>�ߵ� ' + esc(hhmm(e.triggered_at)) + esc(pct) + '</span><em>' + esc(state) + '</em></li>';
+        + '<span>발동 ' + esc(hhmm(e.triggered_at)) + esc(pct) + '</span><em>' + esc(state) + '</em></li>';
     }
-    // ��ó�� '�ǽð��� �ƴ�'�� �׻� ������. ��ũ�� �ѱ��ŷ��� KIND �ּҸ� ����Ѵ�.
+    // 출처와 '실시간이 아님'을 항상 밝힌다. 링크는 한국거래소 KIND 주소만 허용한다.
     function haltSource(halt) {
       var url = /^https:\/\/kind\.krx\.co\.kr\//.test(String(halt.source_url || '')) ? halt.source_url : '';
-      var label = esc(halt.source || '�ѱ��ŷ��� ����');
-      return '<small class="home-halt-src">��ó ' + (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + '</a>' : label)
-        + ' �� ' + esc(halt.delay_note || '���� ���� �� �ǽð� �����Ͱ� �ƴմϴ�')
-        + (halt.received_at ? ' �� Ȯ�� ' + esc(hhmm(halt.received_at)) : '') + '</small>';
+      var label = esc(halt.source || '한국거래소 공시');
+      return '<small class="home-halt-src">출처 ' + (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + '</a>' : label)
+        + ' · ' + esc(halt.delay_note || '공시 기준 · 실시간 데이터가 아닙니다')
+        + (halt.received_at ? ' · 확인 ' + esc(hhmm(halt.received_at)) : '') + '</small>';
     }
     function renderHalt(el, halt) {
       if (!el) return;
       if (!halt) { el.hidden = true; return; }
       if (!halt.available) {
-        // ���� ��ΰ� ���ų� ����: �������� ���̰� ���� �ʰ� 'Ȯ�� �Ұ�'�� ���� ������ ǥ���Ѵ�(����� ��ʰ� �ƴ�).
+        // 수신 경로가 없거나 끊김: 정상으로 보이게 두지 않고 '확인 불가'를 낮은 강조로 표시한다(경고색 배너가 아님).
         el.className = 'home-halt is-unknown';
-        el.innerHTML = '<span>���̵�ī����Ŷ�극��Ŀ �ڵ� Ȯ�� �Ұ�</span><small>'
-          + esc(halt.reason === 'FETCH_FAILED' ? '���� ����(�ѱ��ŷ��� ���� ����) �� �����̶�� ���� �ƴ� �� �ѱ��ŷ��� ���� Ȯ��'
-            : halt.reason === 'STALE' ? '���� ���� �� �� �����̶�� ���� �ƴ� �� �ѱ��ŷ��� ���� Ȯ��' : '���� ��� �̿��� �� ���� ���θ� �� �� ���� �� �ѱ��ŷ��� ���� Ȯ��') + '</small>';
+        el.innerHTML = '<span>사이드카·서킷브레이커 자동 확인 불가</span><small>'
+          + esc(halt.reason === 'FETCH_FAILED' ? '수신 실패(한국거래소 접속 오류) · 정상이라는 뜻이 아님 · 한국거래소 공지 확인'
+            : halt.reason === 'STALE' ? '수신 지연 중 · 정상이라는 뜻이 아님 · 한국거래소 공지 확인' : '수신 경로 미연결 · 정상 여부를 알 수 없음 · 한국거래소 공지 확인') + '</small>';
         el.hidden = false;
         return;
       }
       var seen = {};
       var events = (halt.events || []).filter(function (e) { if (!e || seen[e.id]) return false; seen[e.id] = true; return true; });
-      if (!events.length) { el.hidden = true; return; }                       // �̺�Ʈ�� ������ ��ʸ� ���� �ʴ´�
+      if (!events.length) { el.hidden = true; return; }                       // 이벤트가 없으면 배너를 두지 않는다
       var byNewest = function (a, b) { return String(b.triggered_at).localeCompare(String(a.triggered_at)); };
       var active = events.filter(function (e) { return e.status === 'active'; }).sort(byNewest);
       var ended = events.filter(function (e) { return e.status !== 'active'; }).sort(byNewest);
       var anyCb = active.some(function (e) { return e.kind === 'CIRCUIT_BREAKER'; });
       el.className = 'home-halt ' + (active.length ? (anyCb ? 'is-cb-active' : 'is-sidecar-active') : 'is-history');
-      // ���� �� ��(������ ��ħ). �ߵ� ���̸� �⺻ ��ħ, ���� �̷¸� ������ �⺻ ���� - ����ڰ� ���� �ڿ��� �� ������ �����Ѵ�.
+      // 압축 한 줄(눌러서 펼침). 발동 중이면 기본 펼침, 해제 이력만 있으면 기본 접힘 - 사용자가 누른 뒤에는 그 선택을 유지한다.
       var open = haltOpen === null ? active.length > 0 : haltOpen;
       var summary = active.length
-        ? (anyCb ? '��Ŷ�극��Ŀ' : '���̵�ī') + ' �ߵ� �� ' + active.length + '�� �� ������ ��'
-        : '���� ���� ��ġ ' + events.length + '�� �� ��� ����';
-      el.innerHTML = '<button type="button" class="home-halt-sum" aria-expanded="' + (open ? 'true' : 'false') + '">' + esc(summary) + '<i aria-hidden="true">' + (open ? '?' : '?') + '</i></button>'
+        ? (anyCb ? '서킷브레이커' : '사이드카') + ' 발동 중 ' + active.length + '건 · 누르면 상세'
+        : '오늘 시장 조치 ' + events.length + '건 · 모두 해제';
+      el.innerHTML = '<button type="button" class="home-halt-sum" aria-expanded="' + (open ? 'true' : 'false') + '">' + esc(summary) + '<i aria-hidden="true">' + (open ? '▴' : '▾') + '</i></button>'
         + '<div class="home-halt-body"' + (open ? '' : ' hidden') + '>'
-        + (active.length ? '<strong>' + (anyCb ? '��Ŷ�극��Ŀ' : '���̵�ī') + ' �ߵ� ��</strong>' : '<strong>���� ���� ��ġ �̷�</strong>')
+        + (active.length ? '<strong>' + (anyCb ? '서킷브레이커' : '사이드카') + ' 발동 중</strong>' : '<strong>오늘 시장 조치 이력</strong>')
         + '<ul>' + active.map(haltRow).join('') + '</ul>'
-        + (ended.length ? (active.length ? '<h4>���� �������ŷ��簳 �̷�</h4>' : '') + '<ul class="is-history-list">' + ended.map(haltRow).join('') + '</ul>' : '')
+        + (ended.length ? (active.length ? '<h4>오늘 해제·거래재개 이력</h4>' : '') + '<ul class="is-history-list">' + ended.map(haltRow).join('') + '</ul>' : '')
         + haltSource(halt) + '</div>';
       el.hidden = false;
     }
 
-    // ---- ���� ������ �����(CB �� ���̵�ī �� VI) ----
-    var KIND_TEXT = { STATIC: '����', DYNAMIC: '����', BOTH: '����������' };
+    // ---- 시장 변동성 모니터(CB · 사이드카 · VI) ----
+    var KIND_TEXT = { STATIC: '정적', DYNAMIC: '동적', BOTH: '정적·동적' };
     function fmtNum(v) { return typeof v === 'number' && isFinite(v) && v !== 0 ? v.toLocaleString('ko-KR') : '-'; }
     function fmtPct(v) { return typeof v === 'number' && isFinite(v) && v !== 0 ? (v > 0 ? '+' : '') + v.toFixed(2) + '%' : '-'; }
 
-    // ���� �ߵ� ���� CB�����̵�ī�� ��� ī��� �ø���(�����Ǹ� ��ܿ��� ������ �̷��� ������ ���� �󼼿��� ���´�).
+    // 지금 발동 중인 CB·사이드카만 경고 카드로 올린다(해제되면 상단에서 빠지고 이력은 눌러서 여는 상세에만 남는다).
     function activeHalts(halt) {
       if (!halt || !halt.available) return [];
       return (halt.events || []).filter(function (e) { return e.status === 'active' && (e.kind === 'CIRCUIT_BREAKER' || e.kind === 'SIDECAR'); })
@@ -3848,14 +3848,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     function haltCardHtml(e, open) {
       var isCb = e.kind === 'CIRCUIT_BREAKER';
-      var detail = [MARKET_LABEL[e.market] || e.market, isCb ? (e.stage ? e.stage + '�ܰ�' : '') : (e.direction === 'SELL' ? '�ŵ�' : e.direction === 'BUY' ? '�ż�' : '')]
-        .filter(function (t) { return t; }).join(' �� ');
+      var detail = [MARKET_LABEL[e.market] || e.market, isCb ? (e.stage ? e.stage + '단계' : '') : (e.direction === 'SELL' ? '매도' : e.direction === 'BUY' ? '매수' : '')]
+        .filter(function (t) { return t; }).join(' · ');
       return '<button type="button" class="vol-alert ' + (isCb ? 'is-cb' : 'is-side') + '" data-vol-open="halt" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="volPanel">'
-        + '<strong>' + (isCb ? '��Ŷ�극��Ŀ' : '���̵�ī') + '</strong>'
-        + '<b class="vol-state">' + esc((detail ? detail + ' ' : '') + '�ߵ�') + '</b>'
-        + '<span>' + esc(hhmm(e.triggered_at)) + ' �ߵ�</span></button>';
+        + '<strong>' + (isCb ? '서킷브레이커' : '사이드카') + '</strong>'
+        + '<b class="vol-state">' + esc((detail ? detail + ' ' : '') + '발동') + '</b>'
+        + '<span>' + esc(hhmm(e.triggered_at)) + ' 발동</span></button>';
     }
-    // VI ī��� ���: �ߵ� ���� 1�� �̻��� ���� ���� �ְ�, ��ü ��Ȳ�� �� �޴� ���̸� null(ī�带 �׸��� �ʴ´�).
+    // VI 카드용 요약: 발동 중이 1건 이상일 때만 값이 있고, 전체 현황을 못 받는 중이면 null(카드를 그리지 않는다).
     function viLine(data) {
       if (data.vi_available === false || data.vi_active_count == null) return null;
       var act = (data.vi_today || []).filter(function (r) { return r.status === 'active'; });
@@ -3865,7 +3865,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     function viCardHtml(v, open) {
       return '<button type="button" class="vol-alert is-vi" data-vol-open="vi" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="volPanel">'
-        + '<strong>��������ȭ��ġ VI ' + v.count + '�� �ߵ���</strong></button>';
+        + '<strong>변동성완화장치 VI ' + v.count + '건 발동중</strong></button>';
     }
     function haltHistoryCount(halt) {
       return halt && halt.available ? (halt.events || []).length : 0;
@@ -3878,7 +3878,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         if (viView.kind !== 'ALL' && r.kind !== viView.kind) return false;
         return true;
       });
-      return rows;   // ������ �̹� �ߵ� �� �켱, �ֱ� �ߵ� ������ ������ ������
+      return rows;   // 서버가 이미 발동 중 우선, 최근 발동 순으로 정렬해 보낸다
     }
     function seg(group, items) {
       return '<span class="vol-seg" role="group">' + items.map(function (it) {
@@ -3888,31 +3888,31 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     function viPanelHtml(data) {
       if (data.vi_available === false) {
-        return '<p class="vol-note">VI ��ü ��Ȳ�� ���� ���ϰ� �ֽ��ϴ�. �����̶�� ���� �ƴϸ� ���� �ߵ� ���� ���� ���� �� �� �����ϴ�.</p>';
+        return '<p class="vol-note">VI 전체 현황을 받지 못하고 있습니다. 정상이라는 뜻이 아니며 지금 발동 중인 종목 수를 알 수 없습니다.</p>';
       }
       var rows = viRows(data);
-      var html = '<div class="vol-ctl">' + seg('mode', [['active', '�ߵ� ��'], ['today', '���� �̷�']])
-        + seg('market', [['ALL', '��ü'], ['KOSPI', '�ڽ���'], ['KOSDAQ', '�ڽ���']])
-        + seg('kind', [['ALL', '��ü'], ['STATIC', '����'], ['DYNAMIC', '����']]) + '</div>';
-      if (!rows.length) return html + '<p class="vol-note">' + (viView.mode === 'active' ? '���� �ߵ� ���� VI�� �����ϴ�.' : '���ǿ� �´� ���� VI �̷��� �����ϴ�.') + '</p>';
+      var html = '<div class="vol-ctl">' + seg('mode', [['active', '발동 중'], ['today', '오늘 이력']])
+        + seg('market', [['ALL', '전체'], ['KOSPI', '코스피'], ['KOSDAQ', '코스닥']])
+        + seg('kind', [['ALL', '전체'], ['STATIC', '정적'], ['DYNAMIC', '동적']]) + '</div>';
+      if (!rows.length) return html + '<p class="vol-note">' + (viView.mode === 'active' ? '지금 발동 중인 VI가 없습니다.' : '조건에 맞는 오늘 VI 이력이 없습니다.') + '</p>';
       html += '<ul class="vol-list">' + rows.map(function (r) {
-        var state = r.status === 'active' ? '�ߵ� ��' : r.status === 'released' ? '����' : 'Ȯ�� �Ұ�';
+        var state = r.status === 'active' ? '발동 중' : r.status === 'released' ? '해제' : '확인 불가';
         var refPrice = r.kind === 'DYNAMIC' ? r.dyn_price : r.static_price;
         var refDprt = r.kind === 'DYNAMIC' ? r.dyn_dprt : r.static_dprt;
         return '<li class="' + (r.status === 'active' ? 'is-active' : '') + '">'
           + '<a class="vol-name" href="/page/stock-search?code=' + encodeURIComponent(r.code) + '&amp;name=' + encodeURIComponent(r.name) + '">' + esc(r.name) + ' <small>' + esc(r.code) + '</small></a>'
-          + '<span class="vol-kind">' + esc(KIND_TEXT[r.kind] ? KIND_TEXT[r.kind] + ' VI' : 'VI ���� Ȯ�� �Ұ�') + '</span>'
+          + '<span class="vol-kind">' + esc(KIND_TEXT[r.kind] ? KIND_TEXT[r.kind] + ' VI' : 'VI 종류 확인 불가') + '</span>'
           + '<b class="vol-state">' + state + '</b>'
-          + '<span class="vol-time">�ߵ� ' + esc(hhmmss(r.triggered_at)) + ' �� ���� ' + esc(r.released_at ? hhmmss(r.released_at) : '-') + '</span>'
-          + '<span class="vol-price">�ߵ��� ' + fmtNum(r.price) + ' �� ���ذ� ' + fmtNum(refPrice) + ' (' + fmtPct(refDprt) + ')</span>'
-          + '<span class="vol-count">���� ' + (r.count == null ? '-' : r.count) + 'ȸ</span></li>';
+          + '<span class="vol-time">발동 ' + esc(hhmmss(r.triggered_at)) + ' · 해제 ' + esc(r.released_at ? hhmmss(r.released_at) : '-') + '</span>'
+          + '<span class="vol-price">발동가 ' + fmtNum(r.price) + ' · 기준가 ' + fmtNum(refPrice) + ' (' + fmtPct(refDprt) + ')</span>'
+          + '<span class="vol-count">오늘 ' + (r.count == null ? '-' : r.count) + '회</span></li>';
       }).join('') + '</ul>';
       var basis = data.vi_basis || {};
-      return html + '<small class="vol-src">��������ȭ��ġ ��Ȳ(20�� ����)' + (basis.ws_events ? ' �� �ǽð� H0STVIC0 ���� ' + basis.ws_events + '��' : '') + ' �� ���� ���� ���� ���źк��� ���Դϴ�</small>';
+      return html + '<small class="vol-src">변동성완화장치 현황(20초 갱신)' + (basis.ws_events ? ' · 실시간 H0STVIC0 보완 ' + basis.ws_events + '건' : '') + ' · 서버 가동 이후 수신분부터 쌓입니다</small>';
     }
 
-    // ���(�̺�Ʈ�� ���� ��)���� ī�� ������ �׸��� �ʴ´�. �ߵ� ���� �͸� ī���: ��Ŷ�극��Ŀ(����) �� ���̵�ī(��Ȳ) �� VI(ȸ��).
-    // ������ �̺�Ʈ�� ī�忡�� ������ ���� �̷��� ��(ī�带 ���� ���ų� ����� '���� ������ �̷�' ��ũ)������ ����.
+    // 평소(이벤트가 없을 때)에는 카드 영역을 그리지 않는다. 발동 중인 것만 카드로: 서킷브레이커(빨강) · 사이드카(주황) · VI(회색).
+    // 해제된 이벤트는 카드에서 빠지고 당일 이력은 상세(카드를 눌러 열거나 헤더의 '오늘 변동성 이력' 링크)에서만 본다.
     function renderAlerts(box, data) {
       if (!box) return;
       if (!isDomesticCard()) { hideAll(); return; }
@@ -3927,9 +3927,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         link.hidden = !!cards || !(haltHistory || viHistory);
         link.setAttribute('aria-expanded', panel === 'all' ? 'true' : 'false');
       }
-      var html = cards;                  // ������ �� �Ǹ� ī�尡 ���� �� ���� ������ ���� �ʴ´�(�� �� ���� ��� �ִ� �� ����)
+      var html = cards;                  // 수신이 안 되면 카드가 없을 뿐 별도 문구는 두지 않는다(안 뜰 때는 비어 있는 게 정상)
       if (!html && !panel) { box.hidden = true; box.innerHTML = ''; return; }
-      box.innerHTML = html + '<div class="vol-panel" id="volPanel" role="region" aria-label="���� ������ ��"' + (panel ? '' : ' hidden') + '></div>';
+      box.innerHTML = html + '<div class="vol-panel" id="volPanel" role="region" aria-label="시장 변동성 상세"' + (panel ? '' : ' hidden') + '></div>';
       box.hidden = false;
       var p = box.querySelector('.vol-panel');
       function haltHolder() {
@@ -3937,7 +3937,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         var holder = document.createElement('div');
         holder.className = 'home-halt';
         renderHalt(holder, data.market_halt);
-        if (holder.hidden) holder.innerHTML = '<small class="vol-note">���� ���̵�ī����Ŷ�극��Ŀ �ߵ� �̷��� �����ϴ�.</small>';
+        if (holder.hidden) holder.innerHTML = '<small class="vol-note">오늘 사이드카·서킷브레이커 발동 이력이 없습니다.</small>';
         holder.hidden = false;
         return holder;
       }
@@ -3952,7 +3952,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     function openPanel(next, focusBack) {
       panel = panel === next ? null : next;
-      if (panel === 'all') viView.mode = 'today';          // �̷� ��ũ�� ���� ���� �̷º��� ���� �ش�
+      if (panel === 'all') viView.mode = 'today';          // 이력 링크로 열면 오늘 이력부터 보여 준다
       renderAlerts(q('[data-vol-monitor]'), lastData);
       if (!panel && focusBack) { var b = q('[data-vol-open="' + focusBack + '"]'); if (b) b.focus(); }
     }
@@ -3978,7 +3978,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           if (!data) return;
           renderAlerts(q('[data-vol-monitor]'), data);
         })
-        .catch(function () { /* ���� ǥ�ö� �����ϸ� ���� ���¸� �״�� �д� */ });
+        .catch(function () { /* 보조 표시라 실패하면 직전 상태를 그대로 둔다 */ });
     }
 
     document.addEventListener('click', function (event) {
@@ -4004,11 +4004,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       else tick();
     });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
-    setTimeout(tick, 2000);   // Ȩ ī�尡 �׷��� �� ù ��ȸ
+    setTimeout(tick, 2000);   // 홈 카드가 그려진 뒤 첫 조회
     setInterval(tick, CB_POLL_MS);
   })();
 
-/* 2026-10-05: ���� �����̼��� Ȩ���� ���� > ���ÿµ� ������(js/market-temp.js)�� �Ű��. */
+/* 2026-10-05: 업종 로테이션은 홈에서 시장 > 증시온도 페이지(js/market-temp.js)로 옮겼다. */
 
   }
   function go() { window.NineAccess.run(start); }
@@ -4018,4 +4018,3 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   tag.addEventListener('load', go, { once: true });
   tag.addEventListener('error', start, { once: true });
 })();
-

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""OHLC ������ + �ݴ���Ż + ���� ���� SQLite DB ��Ű��.
-daily_prices: ���� �Ϻ� 260�� - daily_scan.py�� INSERT.
-fundamentals: DART �繫��ǥ ��� - migrate_fundamentals.py�� fundamentals_cache.json���� �̰�.
-investor_flow_daily: ����/�ܱ���/��� �Ϻ� ���Ÿ� - daily_scan.py�� /foreign-flow�� INSERT.
-investor_summary: ���ŵ�/�����ŷ�/����� ���(ka10014/ka20068/ka10059) - migrate_investor_summary.py��
-batch_scan.py�� investor_flow_cache.json���� �̰�.
-���� �ϳ��� SELECT ... WHERE code=?�� Ŀ�� ��ȸ�ϸ� ��ü ���� ���� �����ϰ� �޸𸮿�
-���� 1���и� �ö󰡴� �� SQLite�� ���� �ٽ� ����(JSON ��ü �ε� �� �޸� 4�� ���� ������)."""
+"""OHLC 스냅샷 + 펀더멘탈 + 수급 공유 SQLite DB 스키마.
+daily_prices: 종목별 일봉 260일 - daily_scan.py가 INSERT.
+fundamentals: DART 재무제표 요약 - migrate_fundamentals.py가 fundamentals_cache.json에서 이관.
+investor_flow_daily: 개인/외국인/기관 일별 순매매 - daily_scan.py와 /foreign-flow가 INSERT.
+investor_summary: 공매도/대차거래/연기금 요약(ka10014/ka20068/ka10059) - migrate_investor_summary.py가
+batch_scan.py의 investor_flow_cache.json에서 이관.
+종목 하나씩 SELECT ... WHERE code=?로 커서 순회하면 전체 종목 수와 무관하게 메모리에
+종목 1개분만 올라가는 게 SQLite를 고른 핵심 이유(JSON 전체 로드 시 메모리 4배 증폭 실측됨)."""
 
 import os
 import json
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS daily_prices (
 );
 CREATE INDEX IF NOT EXISTS idx_daily_prices_code ON daily_prices(code);
 
--- ��û�� ���� �����ϴ� �����ְ� ��Ʈ �̷�. ��ġ/�˻���� daily_prices�� �и��Ѵ�.
+-- 요청한 종목만 보존하는 수정주가 차트 이력. 배치/검색기용 daily_prices와 분리한다.
 CREATE TABLE IF NOT EXISTS chart_daily_prices (
     code TEXT NOT NULL, date TEXT NOT NULL, open REAL NOT NULL, high REAL NOT NULL,
     low REAL NOT NULL, close REAL NOT NULL, volume INTEGER NOT NULL,
@@ -111,8 +111,8 @@ CREATE TABLE IF NOT EXISTS future_contracts (
     contract_code TEXT NOT NULL
 );
 
--- ��/ǲ �ɼ� ���� ���(��ü ���� �ջ��� �ƴ϶� �ֱٿ��� ���� 1�྿) - ������ �ƴ϶�
--- side(CALL/PUT) ���� ���踸 ����. �� ��簡�� �����ʹ� �������� �ʴ´�(�µ�ǵ� ���踸 �ʿ�).
+-- 콜/풋 옵션 수급 요약(전체 만기 합산이 아니라 최근월물 기준 1행씩) - 종목별이 아니라
+-- side(CALL/PUT) 단위 집계만 저장. 상세 행사가별 데이터는 저장하지 않는다(온디맨드 집계만 필요).
   CREATE TABLE IF NOT EXISTS option_flow (
       side TEXT PRIMARY KEY,
       volume INTEGER,
@@ -121,8 +121,8 @@ CREATE TABLE IF NOT EXISTS future_contracts (
       updated_at TEXT
   );
 
-  -- �ڽ���200 �ɼ� �ֱٿ����� ��簡�� ���ڷ�. �հ� ī��� ������ ������
-  -- ���������� ��/ǲ OI���ŷ��� ���������� �׸� �� �ְ� �Ѵ�.
+  -- 코스피200 옵션 최근월물의 행사가별 원자료. 합계 카드와 별도로 보관해
+  -- 브라우저에서 콜/풋 OI·거래량 프로파일을 그릴 수 있게 한다.
   CREATE TABLE IF NOT EXISTS option_flow_strike (
       side TEXT NOT NULL,
       strike REAL NOT NULL,
@@ -154,13 +154,13 @@ CREATE TABLE IF NOT EXISTS future_chart_minute (
     PRIMARY KEY (symbol, ts)
 );
 
--- 2026-07-19: KIS ���������ڸŸŵ���(�Ϻ�, FHPTJ04160001)�� 00:00~15:40(KST)�� TR
--- ��ü�� �����־(OPSQ2001 TIME LIMIT, kiwoom_market.py ����) �� �ð��뿣 ���� ����
--- ����� �����ؾ� �ϴµ�, �θ޸� ĳ�ô� ���� ������(�����) ������� SQLite�� �ű� -
--- daily_prices/investor_flow_daily�� �޸� batch_scan ����� �ƴ϶� �µ�ǵ�� "�׶��׶�
--- ��ȸ�� ����"�� ���δ�(������ �ƴ�, ������ Ŀ���� ���� - ����� �Ⱓ �������� 5�����̶�
--- �־��� ��쵵 "��ȸ�� ���� �� x 5"�� ����). rows_json�� kiwoom_market�� daily ��
--- ����Ʈ�� �״�� ����ȭ(�ٸ� *_json �÷��� ���� ����, fundamentals.annual_json ��).
+-- 2026-07-19: KIS 종목별투자자매매동향(일별, FHPTJ04160001)이 00:00~15:40(KST)엔 TR
+-- 자체가 막혀있어서(OPSQ2001 TIME LIMIT, kiwoom_market.py 참고) 그 시간대엔 직전 성공
+-- 결과를 재사용해야 하는데, 인메모리 캐시는 배포 때마다(재시작) 사라져서 SQLite로 옮김 -
+-- daily_prices/investor_flow_daily과 달리 batch_scan 대상이 아니라 온디맨드로 "그때그때
+-- 조회된 종목"만 쌓인다(전종목 아님, 무한정 커지지 않음 - 종목당 기간 선택지가 5개뿐이라
+-- 최악의 경우도 "조회된 종목 수 x 5"행 수준). rows_json은 kiwoom_market의 daily 행
+-- 리스트를 그대로 직렬화(다른 *_json 컬럼과 동일 패턴, fundamentals.annual_json 등).
 CREATE TABLE IF NOT EXISTS kis_flow_cache (
     code TEXT NOT NULL,
     target_days INTEGER NOT NULL,
@@ -169,22 +169,22 @@ CREATE TABLE IF NOT EXISTS kis_flow_cache (
     PRIMARY KEY (code, target_days)
 );
 
--- 2026-08-23: ��� �����ǰ�(invest_opinion.py, KIS ���������ǰ�)�� ����м� ������������
--- �µ�ǵ� ���̺� ȣ��(VM �޸� ĳ��)�� ������, ��Ʈ�˻�/�����˻�ó�� �� ���� ���� ������
--- �����ϴ� ���������� �ึ�� ���̺� ȣ���ϸ� �ʹ� ������(����� Ȯ��) �Ϸ� 1ȸ ��ġ��
--- �̸� ����� �����صδ� �뵵 - invest_opinion.summarize_opinions()�� ����� �״��
--- JSON ����ȭ�Ѵ�(���� �÷�ȭ ���ʿ�, kis_flow_cache�� ������ ����).
+-- 2026-08-23: 평균 투자의견(invest_opinion.py, KIS 종목투자의견)을 종목분석 페이지에서는
+-- 온디맨드 라이브 호출(VM 메모리 캐시)로 쓰지만, 차트검색/전략검색처럼 한 번에 수십 종목을
+-- 나열하는 페이지에서 행마다 라이브 호출하면 너무 느려서(사용자 확인) 하루 1회 배치로
+-- 미리 계산해 저장해두는 용도 - invest_opinion.summarize_opinions()의 결과를 그대로
+-- JSON 직렬화한다(개별 컬럼화 불필요, kis_flow_cache와 동일한 이유).
 CREATE TABLE IF NOT EXISTS invest_opinions (
     code TEXT PRIMARY KEY,
     updated_at TEXT,
     summary_json TEXT
 );
 
--- 2026-07-20: ���� ������ "�����ں� �Ÿ� ����" ����(�۾����ü� #4) - ���庰(�ڽ���/�ڽ���)
--- ����/�ܱ���/����� �Ϻ� ���ż�(���, KIS FHPTJ04040000 1�� �ҽ�, investor_trend.py ����).
--- 2026-07-21: �ڽ��� ���� ���忡�� �ڽ���/�ڽ��� ���� �������� Ȯ���ϸ� market �÷� �߰�
--- (PK�� date �ܵ����� (market, date) ����Ű�� ����) - _migrate_investor_trend_market()��
--- ���� ���� DB(�÷� ����)�� 'KOSPI'�� ���̱׷��̼��Ѵ�.
+-- 2026-07-20: 메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4) - 시장별(코스피/코스닥)
+-- 개인/외국인/기관계 일별 순매수(억원, KIS FHPTJ04040000 1차 소스, investor_trend.py 참고).
+-- 2026-07-21: 코스피 단일 시장에서 코스피/코스닥 다중 시장으로 확장하며 market 컬럼 추가
+-- (PK를 date 단독에서 (market, date) 복합키로 변경) - _migrate_investor_trend_market()이
+-- 기존 배포 DB(컬럼 없음)를 'KOSPI'로 마이그레이션한다.
 CREATE TABLE IF NOT EXISTS investor_trend_daily (
     market TEXT NOT NULL,
     date TEXT NOT NULL,
@@ -192,11 +192,11 @@ CREATE TABLE IF NOT EXISTS investor_trend_daily (
     frgn_amt REAL,
     orgn_amt REAL,
     updated_at TEXT,
-    index_close REAL,   -- 2026-10-12: KIS �Ϻ� ������ �������� ����(bstp_nmix_prpr). ������ ���� ���ż��� ������ ���� �Ⱓ�� ���ϴ� ȭ���
+    index_close REAL,   -- 2026-10-12: KIS 일별 응답의 업종지수 종가(bstp_nmix_prpr). 투자자 누적 순매수와 지수를 같은 기간에 비교하는 화면용
     PRIMARY KEY (market, date)
 );
 
--- Half-hour observations from the existing KIS daily-value poll (���).
+-- Half-hour observations from the existing KIS daily-value poll (억원).
 CREATE TABLE IF NOT EXISTS investor_trend_intraday (
     market TEXT NOT NULL,
     date TEXT NOT NULL,
@@ -210,13 +210,13 @@ CREATE TABLE IF NOT EXISTS investor_trend_intraday (
     PRIMARY KEY (market, date, slot)
 );
 
--- 2026-08-05: ����м� �Ź��� ī�� "���� ü�ᰡ" ��(js/foreign-flow.js) - KIS pbar-tratio��
--- "����"�� �ֹǷ�, ��ȸ�� ������(kis_flow_cache�� ������ �µ�ǵ� ���� ���� - ��ġ ����)
--- �׳� �ֽ� ���� �������� ���ݺ��� UPSERT�� ���� �ŷ���ġ�� �ڿ��� �״´�. pbar-tratio
--- ��ü�� �̹� "�� ���������� ���� ����ġ"�� ���� �� �ȿ����� �� ������ ����⸸ �ϸ�
--- �ǰ�(������ ����), ��¥�� �ٲ�� �� ���� �� �̻� ���ŵ��� �ʾ� �׳��� ���� ����
--- ���������� �ڿ��� �����ȴ�. �µ�ǵ�� "��Ȯ�� �ֱ� N�ŷ���"�� �ƴ϶� "��ȸ�� ��
--- �ִ� ��¥ �� �ֱ� N��"���� ������ ��(main.py pbar_tratio ��������Ʈ ����).
+-- 2026-08-05: 종목분석 매물대 카드 "실제 체결가" 뷰(js/foreign-flow.js) - KIS pbar-tratio는
+-- "오늘"만 주므로, 조회될 때마다(kis_flow_cache와 동일한 온디맨드 적재 패턴 - 배치 없음)
+-- 그날 최신 누적 스냅샷을 가격별로 UPSERT해 여러 거래일치를 자연히 쌓는다. pbar-tratio
+-- 자체가 이미 "그 시점까지의 당일 누적치"라 같은 날 안에서는 새 값으로 덮어쓰기만 하면
+-- 되고(더하지 않음), 날짜가 바뀌면 그 행은 더 이상 갱신되지 않아 그날의 마감 근접
+-- 스냅샷으로 자연히 고정된다. 온디맨드라 "정확히 최근 N거래일"이 아니라 "조회된 적
+-- 있는 날짜 중 최근 N개"임을 감안할 것(main.py pbar_tratio 엔드포인트 참고).
 CREATE TABLE IF NOT EXISTS volume_profile_daily (
     code TEXT NOT NULL,
     trade_date TEXT NOT NULL,
@@ -227,8 +227,8 @@ CREATE TABLE IF NOT EXISTS volume_profile_daily (
 );
 CREATE INDEX IF NOT EXISTS idx_volume_profile_daily_code ON volume_profile_daily(code);
 
--- User-managed ���ÿµ� ī�� ����. ���� �ü�/�м� ���̺��� �и��ϰ�,
--- ���� ���� JSON�� �� ������ ���������� ��ü�� �б� ���� ���̱׷��̼� ���⵵�� �����.
+-- User-managed 증시온도 카드 구성. 실제 시세/분석 테이블과 분리하고,
+-- 작은 설정 JSON을 한 행으로 원자적으로 교체해 읽기 비용과 마이그레이션 복잡도를 낮춘다.
 CREATE TABLE IF NOT EXISTS sector_cards_config (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     config_json TEXT NOT NULL,
@@ -253,10 +253,10 @@ CREATE TABLE IF NOT EXISTS watchlist_configs (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
--- 2026-09-23 ����� ��û(�޸� ��� - "DB�� ���� ��������" -> �� ����Ҹ� ���� ������
--- ���� �̹� �ִ� Google �α��Ρ�watchlist_configs�� ���� ������ �����϶�� ������
--- Ȯ����). ����/���� �޸� �� �� �ϳ��� JSON �迭�� ���� - watchlist_configs�� ������
--- ����ڴ� 1�� + revision ������ ���ü� ����.
+-- 2026-09-23 사용자 요청(메모 기능 - "DB는 직접 쓰지말고" -> 새 저장소를 새로 만들지
+-- 말고 이미 있는 Google 로그인·watchlist_configs와 같은 패턴을 재사용하라는 뜻으로
+-- 확인함). 종목별/자유 메모 둘 다 하나의 JSON 배열로 저장 - watchlist_configs와 동일한
+-- 사용자당 1행 + revision 낙관적 동시성 패턴.
 CREATE TABLE IF NOT EXISTS user_memos (
     user_id INTEGER PRIMARY KEY,
     memos_json TEXT NOT NULL,
@@ -265,8 +265,8 @@ CREATE TABLE IF NOT EXISTS user_memos (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
--- 2026-10-10 ��Ʈ ����(���������׶�̡����ʡ��ڽ������μ�) ���� ����. ����ڡ����񡤺� �ֱ�(day/week/month)�� 1��,
--- ��� 64KB ����(chart_drawings.py). �޸�� ���� revision ������ ���ü� ����.
+-- 2026-10-10 차트 도형(직선·동그라미·연필·박스·가로선) 계정 저장. 사용자·종목·봉 주기(day/week/month)당 1행,
+-- 행당 64KB 상한(chart_drawings.py). 메모와 같은 revision 낙관적 동시성 패턴.
 CREATE TABLE IF NOT EXISTS user_chart_drawings (
     user_id INTEGER NOT NULL,
     code TEXT NOT NULL,
@@ -278,8 +278,8 @@ CREATE TABLE IF NOT EXISTS user_chart_drawings (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
--- ���ÿµ� ī���� ����ں� ������. sector_cards_config�� ��ڰ� ���� ���� �⺻���̰�,
--- �� ���̺��� ���� ���� ����ڸ� �⺻������ �б��Ѵ�.
+-- 증시온도 카드의 사용자별 편집본. sector_cards_config는 운영자가 만든 공용 기본값이고,
+-- 이 테이블에 행이 생긴 사용자만 기본값에서 분기한다.
 CREATE TABLE IF NOT EXISTS user_sector_cards_config (
     user_id INTEGER PRIMARY KEY,
     config_json TEXT NOT NULL,
@@ -288,8 +288,8 @@ CREATE TABLE IF NOT EXISTS user_sector_cards_config (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
--- 2026-10-02: ���ÿµ� '���� ���� ����' ��ǥ ������ 2�� ���� ���(money_picks.py). �Ϸ� �� �� 15:35 ����
--- ù ���� �� TOP10 �׸��� ��ǥ ���� 2~3���� �� ���� ���簡(rec_price)�� �����.
+-- 2026-10-02: 증시온도 '돈이 몰린 섹터' 대표 종목의 2주 추적 기록(money_picks.py). 하루 한 번 15:35 이후
+-- 첫 갱신 때 TOP10 테마별 대표 종목 2~3개와 그 시점 현재가(rec_price)를 남긴다.
 CREATE TABLE IF NOT EXISTS money_sector_picks (
     rec_date TEXT NOT NULL,
     code TEXT NOT NULL,
@@ -301,8 +301,8 @@ CREATE TABLE IF NOT EXISTS money_sector_picks (
     PRIMARY KEY (rec_date, code)
 );
 
--- 2026-10-02: ���� �ֿ����� '�߰� ����' ī��(Ȱ�� ���� ī���� ���� ���� ����)�� ��� ���� ���ߴ�
--- ����ں� ���. ���� ������ ���� ����ȭ�� �� ���� �����̴�(�� ��ϰ� ����).
+-- 2026-10-02: 국내 주요종목 '추가 종목' 카드(활성 섹터 카드의 ＋로 담은 종목)를 기기 간에 맞추는
+-- 사용자별 목록. 행이 없으면 아직 동기화한 적 없는 계정이다(빈 목록과 구분).
 CREATE TABLE IF NOT EXISTS user_top_picks (
     user_id INTEGER PRIMARY KEY,
     picks_json TEXT NOT NULL,
@@ -310,10 +310,10 @@ CREATE TABLE IF NOT EXISTS user_top_picks (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
--- 2026-08: ���� 2�� ���� ��õ�� ���� ������ ���� ������(2026-08-22: 4�ֿ��� 2�ַ�
--- � �Ⱓ ���, T+20 ���� ���� - monitor_swing_recommendations.py ����). legacy_*��
--- �� ���� �𵨰��� ȸ�� �񱳿��� �� ���� �ൿ�� �������� �ʴ´�. �������
--- daily_prices�� ����� ���� �� monitor_swing_recommendations.py�� T+5/T+10/T+20�� ä���.
+-- 2026-08: 국내 2주 스윙 추천의 재현 가능한 판정 스냅샷(2026-08-22: 4주에서 2주로
+-- 운영 기간 축소, T+20 추적 제거 - monitor_swing_recommendations.py 참고). legacy_*는
+-- 구 별점 모델과의 회귀 비교용일 뿐 최종 행동을 결정하지 않는다. 결과값은
+-- daily_prices가 충분히 쌓인 뒤 monitor_swing_recommendations.py가 T+5/T+10/T+20을 채운다.
 CREATE TABLE IF NOT EXISTS swing_recommendation_snapshots (
     as_of_date TEXT NOT NULL,
     code TEXT NOT NULL,
@@ -366,13 +366,13 @@ CREATE INDEX IF NOT EXISTS idx_swing_snapshots_code_date
 CREATE INDEX IF NOT EXISTS idx_swing_snapshots_regime
     ON swing_recommendation_snapshots(model_version, chart_regime, as_of_date);
 
--- 2026-09-02: ��ĵ(�����˻�/��Ʈ�˻�) ����� ���� ���� ����. ��ĵ ĳ�� JSON�� ����
--- ��°�� ����Ἥ "���� ���� ������ �� �� ��� �ƴ���"�� ��¤�� �ٰŰ� ������.
--- ��ĵ�� �� �� �׳��� ��Ʈ ����� ���ذ��� ���� ���ܵΰ�, ���ͷ��� ��ȸ ������
--- daily_prices�� ������ ����Ѵ�(�ߺ� ���� �� �� - �Ϻ��� �����Ǹ� ����� ���� ����).
--- scanner�� 'strategy:<ī�װ���id>' / 'pattern:<����Ű>' ������ ���ӽ����̽� ���ڿ�.
--- ���� �� �罺ĵ(rescan_patterns.py)�� ���Ƶ� �׳� ù ����� ���ذ��� �����Ѵ�
--- (INSERT OR IGNORE) - ���� �罺ĵ���� ������ ������ �������� ���� ���δ�.
+-- 2026-09-02: 스캔(전략검색/차트검색) 결과의 사후 성과 추적. 스캔 캐시 JSON은 매일
+-- 통째로 덮어써서 "어제 뽑힌 종목이 그 뒤 어떻게 됐는지"를 되짚을 근거가 없었다.
+-- 스캔이 돌 때 그날의 히트 종목과 기준가만 여기 남겨두고, 수익률은 조회 시점에
+-- daily_prices와 대조해 계산한다(중복 저장 안 함 - 일봉이 정정되면 결과도 따라 정정).
+-- scanner는 'strategy:<카테고리id>' / 'pattern:<패턴키>' 형태의 네임스페이스 문자열.
+-- 같은 날 재스캔(rescan_patterns.py)이 돌아도 그날 첫 기록의 기준가를 유지한다
+-- (INSERT OR IGNORE) - 장중 재스캔가로 덮으면 성과가 실제보다 좋게 보인다.
 CREATE TABLE IF NOT EXISTS scan_hits (
     scan_date TEXT NOT NULL,
     scanner TEXT NOT NULL,
@@ -386,10 +386,10 @@ CREATE TABLE IF NOT EXISTS scan_hits (
 CREATE INDEX IF NOT EXISTS idx_scan_hits_scanner_date ON scan_hits(scanner, scan_date);
 CREATE INDEX IF NOT EXISTS idx_scan_hits_code ON scan_hits(code, scan_date);
 
--- ���� �긮��(2026-10-23): ���� �ŷ��� KST 07:00�� ������ �� �� Ȯ���ϴ� '�� ���� ��' ������.
--- �ŷ���(target_date)�� 1��. status='final'�̸� �� �ŷ��� �ȿ��� ���ΰ�ħ������ �����ͷ� ����� �ʴ´�
--- (������ morning_briefing.revise()�� �ϸ� first_confirmed_at �� �״�� �ΰ� revised_at/revision/revisions_json �� �����).
--- �ð��� ���� KST 'YYYY-MM-DD HH:MM:SS' ���ڿ�. ������ snapshot_json(�̱� ��ǥ���߰���������ȣ�����).
+-- 시장 브리핑(2026-10-23): 국내 거래일 KST 07:00에 서버가 한 번 확정하는 '장 시작 전' 스냅샷.
+-- 거래일(target_date)당 1행. status='final'이면 그 거래일 안에는 새로고침·장중 데이터로 덮어쓰지 않는다
+-- (정정은 morning_briefing.revise()만 하며 first_confirmed_at 은 그대로 두고 revised_at/revision/revisions_json 에 남긴다).
+-- 시각은 전부 KST 'YYYY-MM-DD HH:MM:SS' 문자열. 본문은 snapshot_json(미국 지표·야간선물·신호·통계).
 CREATE TABLE IF NOT EXISTS morning_briefing (
     target_date TEXT PRIMARY KEY,
     status TEXT NOT NULL,
@@ -407,7 +407,7 @@ CREATE TABLE IF NOT EXISTS morning_briefing (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
--- ���� �̷�(�����������). �õ� 1ȸ���� 1��, ������ ���� morning_briefing.RUN_KEEP �Ǹ� ����� �����.
+-- 실행 이력(복구·감사용). 시도 1회마다 1행, 오래된 행은 morning_briefing.RUN_KEEP 건만 남기고 지운다.
 CREATE TABLE IF NOT EXISTS morning_briefing_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     target_date TEXT NOT NULL,
@@ -419,10 +419,10 @@ CREATE TABLE IF NOT EXISTS morning_briefing_runs (
 );
 CREATE INDEX IF NOT EXISTS idx_morning_briefing_runs_date ON morning_briefing_runs(target_date, id);
 
--- AI ���� �ڸ�Ʈ(2026-10-23): ������ ���� �м��� ��� ��ü�� Groq(GAS ����)�� �Ѱ� ���� ī�庰 �� �� �ؼ�.
--- ai_comments: ī��(slot)�� 1�� = ���� ȭ�鿡 ������ Ȯ�� �ڸ�Ʈ. text �� ������ ����� �͸� ����.
---   state/sig = �ڸ�Ʈ�� ���� ���� ���� ����, current_state/current_sig = ���� �ֱ� ���� ���� ����(���� �ٸ��� ��ȸ API�� �����).
--- ai_comment_history: ����� �ڸ�Ʈ ����(�ֱ� 14�� �ݺ� �����������). ai_comment_runs: Groq ȣ�� 1ȸ�� 1��(ȣ�ⷮ����ū������).
+-- AI 시장 코멘트(2026-10-23): 서버가 정량 분석한 사실 객체를 Groq(GAS 경유)에 넘겨 만든 카드별 한 줄 해설.
+-- ai_comments: 카드(slot)당 1행 = 지금 화면에 내보낼 확정 코멘트. text 는 검증을 통과한 것만 들어간다.
+--   state/sig = 코멘트를 만들 때의 시장 상태, current_state/current_sig = 가장 최근 점검 때의 상태(둘이 다르면 조회 API가 숨긴다).
+-- ai_comment_history: 통과한 코멘트 전부(최근 14일 반복 방지·감사용). ai_comment_runs: Groq 호출 1회당 1행(호출량·토큰·오류).
 CREATE TABLE IF NOT EXISTS ai_comments (
     slot TEXT PRIMARY KEY,
     group_name TEXT NOT NULL,
@@ -483,10 +483,10 @@ CREATE INDEX IF NOT EXISTS idx_ai_comment_runs_started ON ai_comment_runs(starte
 
 
 def get_conn(db_file=None, *, read_only=False):
-    """timeout=600: daily_scan.py ���� ��ð� ��ġ�� ���� Ʈ������� ���� ��� ���� ��
-    �ٸ� ��ũ��Ʈ(migrate_*.py ��)�� ��� 'database is locked' ������ ���� ���
-    ��ٷȴٰ� ��õ��ϵ��� ��(������ ���� ���� - 2�����δ� �����ؼ� 10������ �ø�,
-    ������ daily_scan.py�� 100���񸶴ٸ� Ŀ���ؼ� API�� ���� �� �� ������ 5�� �Ѱ� �ɸ�)."""
+    """timeout=600: daily_scan.py 같은 장시간 배치가 쓰기 트랜잭션을 오래 쥐고 있을 때
+    다른 스크립트(migrate_*.py 등)가 즉시 'database is locked' 에러를 내는 대신
+    기다렸다가 재시도하도록 함(실제로 겪은 문제 - 2분으로는 부족해서 10분으로 늘림,
+    구버전 daily_scan.py가 100종목마다만 커밋해서 API가 느릴 때 그 구간이 5분 넘게 걸림)."""
     if read_only:
         # WAL readers must not request a writer lock or change journal mode.
         uri = Path(db_file or DB_FILE).resolve().as_uri() + '?mode=ro'
@@ -498,18 +498,18 @@ def get_conn(db_file=None, *, read_only=False):
 
 
 def _ensure_column(conn, table, column, coltype):
-    """CREATE TABLE IF NOT EXISTS�� �̹� �ִ� ���̺��� �� �÷��� �߰������� �����Ƿ�,
-    ���� � DB(future_prices)�� ���߿� �÷��� �ø� ��(��: OI) �� ���۷� ���̱׷��̼��Ѵ�."""
+    """CREATE TABLE IF NOT EXISTS는 이미 있는 테이블에 새 컬럼을 추가해주지 않으므로,
+    기존 운영 DB(future_prices)에 나중에 컬럼을 늘릴 때(예: OI) 이 헬퍼로 마이그레이션한다."""
     cols = [r[1] for r in conn.execute('PRAGMA table_info(%s)' % table)]
     if column not in cols:
         conn.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table, column, coltype))
 
 
 def _migrate_investor_trend_market(conn):
-    """investor_trend_daily�� PK=date �ܵ�(������)�̸� PK=(market, date)�� ������ϸ�
-    ���� ���� ���� 'KOSPI'�� �±��Ѵ�. _ensure_column���δ� PK ��ü�� �� �ٲ㼭(SQLite
-    �Ѱ�) ���̺� ������� �ʿ� - �� �����ʹ� KIS/���̹����� ����� ������ ���� �δ���
-    �����Ƿ� �����ϰ� ó��."""
+    """investor_trend_daily가 PK=date 단독(구버전)이면 PK=(market, date)로 재생성하며
+    기존 행은 전부 'KOSPI'로 태깅한다. _ensure_column으로는 PK 자체를 못 바꿔서(SQLite
+    한계) 테이블 재생성이 필요 - 이 데이터는 KIS/네이버에서 재수집 가능해 유실 부담이
+    없으므로 안전하게 처리."""
     cols = [r[1] for r in conn.execute("PRAGMA table_info(investor_trend_daily)")]
     if not cols or 'market' in cols:
         return
@@ -535,11 +535,11 @@ def _migrate_investor_trend_market(conn):
 def create_schema(conn):
     conn.executescript(SCHEMA)
     _ensure_column(conn, 'futures_flow_observations', 'details_json', 'TEXT')
-    # 2026-08-21 �ڵ� ����: fundamentals.fetch_stock()�� dividend Ű���� ��ȯ�ϴµ�
-    # migrate_fundamentals.py�� �̰� INSERT�� �� ���̺� ��Ű���� �װ� ���� �÷��� ����
-    # DART ��� �����Ͱ� SQLite �̰� �������� ��°�� �����ǰ� �־���. ���� �� ���̺���
-    # �д� ���� �ڵ�� ����(���� fundamentals_cache.json�� ���� ����) � ȭ�� ������
-    # ������, ���� �� ���̺��� ���� ����� ������ ���� ���� ���׸� �̸� ���Ƶд�.
+    # 2026-08-21 코드 감사: fundamentals.fetch_stock()이 dividend 키까지 반환하는데
+    # migrate_fundamentals.py의 이관 INSERT와 이 테이블 스키마엔 그걸 담을 컬럼이 없어
+    # DART 배당 데이터가 SQLite 이관 과정에서 통째로 누락되고 있었다. 현재 이 테이블을
+    # 읽는 서비스 코드는 없어(전부 fundamentals_cache.json을 직접 읽음) 운영 화면 영향은
+    # 없지만, 향후 이 테이블을 쓰는 기능이 생겼을 때의 잠재 버그를 미리 막아둔다.
     _ensure_column(conn, 'fundamentals', 'dividend_json', 'TEXT')
     _ensure_column(conn, 'investor_flow_daily', 'ind_net', 'REAL')
     _ensure_column(conn, 'future_prices', 'oi', 'INTEGER')
@@ -560,7 +560,7 @@ def create_schema(conn):
     _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime', 'TEXT')
     _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime_changed', 'INTEGER')
     _migrate_investor_trend_market(conn)
-    # 2026-10-12: � ���� investor_trend_daily �� �������� ���� �÷��� ���Ѵ�(������ �߰�). ���� �÷� ���̱׷��̼��� ���̺��� �ٽ� ���� �ڿ� �����Ѵ�.
+    # 2026-10-12: 운영 중인 investor_trend_daily 에 업종지수 종가 컬럼을 더한다(없으면 추가). 시장 컬럼 마이그레이션이 테이블을 다시 만든 뒤에 실행한다.
     _ensure_column(conn, 'investor_trend_daily', 'index_close', 'REAL')
     conn.commit()
 
@@ -628,11 +628,11 @@ def upsert_swing_snapshot(conn, snapshot):
 def update_swing_snapshot_outcome(conn, as_of_date, code, model_version, outcomes):
     """Fill forward returns after T+5/T+10 become available.
 
-    2026-08-22: � �Ⱓ�� 4��(T+5/T+10/T+20)���� 2��(T+5/T+10)�� �����鼭
-    t20_return/t20_excess_return/t20_regime/t20_regime_changed�� �� UPDATE����
-    ������ �����ߴ� - �÷� ��ü�� ���� ������ ȣȯ�� ���� DB ��Ű���� �״�� ���ܵε�
-    (�� 4�� �� ���� �����Ͱ� �̹� ���� ���� ����), �����δ� �� �Լ��� �� �÷�����
-    �ƿ� �ǵ帮�� �ʾƼ� ���� ���� �Ǽ��� NULL�� ������� ������ ����."""
+    2026-08-22: 운영 기간을 4주(T+5/T+10/T+20)에서 2주(T+5/T+10)로 좁히면서
+    t20_return/t20_excess_return/t20_regime/t20_regime_changed는 이 UPDATE에서
+    완전히 제외했다 - 컬럼 자체는 과거 데이터 호환을 위해 DB 스키마에 그대로 남겨두되
+    (옛 4주 모델 시절 데이터가 이미 값을 갖고 있음), 앞으로는 이 함수가 그 컬럼들을
+    아예 건드리지 않아서 기존 값이 실수로 NULL로 덮어써질 위험이 없다."""
     fields = ('t5_return', 't10_return', 't5_excess_return', 't10_excess_return', 'mfe', 'mae')
     values = [outcomes.get(field) for field in fields]
     values.extend([outcomes.get('outcomeUpdatedAt') or ''])
@@ -705,7 +705,7 @@ def load_user_sector_cards_config(conn, user_id):
 
 
 def save_user_sector_cards_config(conn, user_id, sectors, updated_at, expected_revision=None):
-    """����� �������� ���������� �����ϰ� ���� �⺻ ī�忡�� �մ��� �ʴ´�."""
+    """사용자 편집본만 원자적으로 저장하고 공용 기본 카드에는 손대지 않는다."""
     conn.execute('BEGIN IMMEDIATE')
     try:
         current = conn.execute(
@@ -737,7 +737,7 @@ def save_user_sector_cards_config(conn, user_id, sectors, updated_at, expected_r
 
 
 def load_user_top_picks(conn, user_id):
-    """����� �߰� ���� ���. ���� ������ None(�̵���ȭ), ������ list."""
+    """저장된 추가 종목 목록. 행이 없으면 None(미동기화), 있으면 list."""
     row = conn.execute('SELECT picks_json FROM user_top_picks WHERE user_id=?', (user_id,)).fetchone()
     if not row:
         return None
@@ -749,7 +749,7 @@ def load_user_top_picks(conn, user_id):
 
 
 def save_user_top_picks(conn, user_id, picks, updated_at):
-    """������ ������ �̱��(����� �۰� �� ����� ���Ƿ� revision �浹 ó���� ���� �ʴ´�)."""
+    """마지막 저장이 이긴다(목록이 작고 한 사람이 쓰므로 revision 충돌 처리는 두지 않는다)."""
     payload = json.dumps(picks, ensure_ascii=False, separators=(',', ':'))
     conn.execute(
         'INSERT INTO user_top_picks (user_id, picks_json, updated_at) VALUES (?, ?, ?) '
@@ -775,7 +775,7 @@ def upsert_google_user(conn, user, updated_at):
     google_sub = str(user.get('sub', '')).strip()
     email = str(user.get('email', '')).strip().lower()
     name = str(user.get('name', '')).strip()
-    # ���̹� ����(google_sub='naver:<id>')�� �̸��� ���Ǹ� �� �� �־� email�� �� �ȴ�.
+    # 네이버 계정(google_sub='naver:<id>')은 이메일 동의를 끌 수 있어 email이 비어도 된다.
     if not google_sub or (not email and not google_sub.startswith('naver:')):
         raise ValueError('Google user identity is incomplete')
     conn.execute(
@@ -896,8 +896,8 @@ def load_user_chart_drawings(conn, user_id, code, timeframe):
 
 def save_user_chart_drawings(conn, user_id, code, timeframe, drawings, updated_at,
                              expected_revision=None, delete_if_empty=False, max_rows=None):
-    """revision�� �ٸ��� CHART_DRAWINGS_REVISION_CONFLICT, ����� �� ���� max_rows�� ������
-    CHART_DRAWINGS_ROW_LIMIT. delete_if_empty�̸� ������ ��� ����� ���� �����(���� ȸ��)."""
+    """revision이 다르면 CHART_DRAWINGS_REVISION_CONFLICT, 사용자 행 수가 max_rows를 넘으면
+    CHART_DRAWINGS_ROW_LIMIT. delete_if_empty이면 도형이 모두 사라진 행은 지운다(공간 회수)."""
     conn.execute('BEGIN IMMEDIATE')
     try:
         current = conn.execute(
@@ -935,9 +935,9 @@ def save_user_chart_drawings(conn, user_id, code, timeframe, drawings, updated_a
 
 
 def load_daily_prices(conn, code):
-    """daily_prices���� ������ �������� OHLC�� ���� kiwoom_market.fetch_daily_ohlc()��
-    ������ �� ����({date, open, high, low, close, volume})���� ��ȯ.
-    week52_scan.py/rescan_patterns.py�� ����(API ��ȣ�� ���� �� DB�� �д� ��ũ��Ʈ��)."""
+    """daily_prices에서 종목의 오름차순 OHLC를 꺼내 kiwoom_market.fetch_daily_ohlc()와
+    동일한 행 형식({date, open, high, low, close, volume})으로 반환.
+    week52_scan.py/rescan_patterns.py가 공유(API 재호출 없이 이 DB만 읽는 스크립트들)."""
     rows = conn.execute(
         'SELECT date, open, high, low, close, volume FROM daily_prices WHERE code=? ORDER BY date',
         (code,),
@@ -949,18 +949,18 @@ def load_daily_prices(conn, code):
 
 
 def latest_date(conn, table, code):
-    """table(daily_prices �Ǵ� investor_flow_daily)���� ������ ���� �ֱ� ���� ��¥.
-    daily_scan.py�� '������ �����Ͱ� �̹� ������ API ��ȣ�� ��ŵ'�� �Ǵ��ϴ� �� ��.
-    table�� ȣ��� �ڵ忡 ���� ���ͷ��� �޴´�(����� �Է� �ƴ�) - f-string �����̶� ����."""
+    """table(daily_prices 또는 investor_flow_daily)에서 종목의 가장 최근 저장 날짜.
+    daily_scan.py가 '오늘자 데이터가 이미 있으면 API 재호출 스킵'을 판단하는 데 씀.
+    table은 호출부 코드에 박힌 리터럴만 받는다(사용자 입력 아님) - f-string 조립이라도 안전."""
     assert table in ('daily_prices', 'investor_flow_daily')
     row = conn.execute('SELECT MAX(date) FROM %s WHERE code=?' % table, (code,)).fetchone()
     return row[0] if row else None
 
 
 def load_investor_flow_daily(conn, code, limit=None):
-    """investor_flow_daily���� ������ ��������(�ֽ��� �켱) ����
-    kiwoom_market.fetch_foreign_inst_daily()�� ������ ����({date, close, change_pct,
-    ind_net, foreign_net, inst_net})���� ��ȯ. limit�� ��ȸ â�� �����ϸ� ���� �̷��� �����Ѵ�."""
+    """investor_flow_daily에서 종목의 내림차순(최신일 우선) 행을
+    kiwoom_market.fetch_foreign_inst_daily()와 동일한 형식({date, close, change_pct,
+    ind_net, foreign_net, inst_net})으로 반환. limit은 조회 창만 제한하며 저장 이력은 보존한다."""
     query = (
         'SELECT date, close, change_pct, ind_net, foreign_net, inst_net FROM investor_flow_daily '
         'WHERE code=? ORDER BY date DESC')
@@ -978,8 +978,8 @@ def load_investor_flow_daily(conn, code, limit=None):
 
 
 def upsert_investor_flow_daily(conn, code, flow_rows):
-    """KIS Ȯ�� ���� ������ ������ ���� �Ϻ� ������ ���� �����Ѵ�.
-    ���� �����Ͱ� ���� ����ġ�� None�̸� ������ ����� Ȯ��ġ�� ����� �ʴ´�."""
+    """KIS 확정 개인 수급을 포함한 종목별 일별 수급을 영속 저장한다.
+    개인 데이터가 아직 잠정치로 None이면 기존에 저장된 확정치를 덮어쓰지 않는다."""
     if not flow_rows:
         return
     conn.executemany(
@@ -994,7 +994,7 @@ def upsert_investor_flow_daily(conn, code, flow_rows):
 
 
 def set_future_contract(conn, symbol, contract_code):
-    """���� ��ü �� ���� ���� �Ϻ��� ������ �ʰ� �Ѵ�."""
+    """월물 교체 시 이전 월물 일봉을 보이지 않게 한다."""
     conn.execute('CREATE TABLE IF NOT EXISTS future_contracts ('
                  'symbol TEXT PRIMARY KEY, contract_code TEXT NOT NULL)')
     previous = conn.execute('SELECT contract_code FROM future_contracts WHERE symbol=?', (symbol,)).fetchone()
@@ -1015,7 +1015,7 @@ def load_future_contract(conn, symbol):
 
 
 def upsert_future_price(conn, symbol, name, price, change, change_rate, high, low, updated_at, oi=None, oi_change=None):
-    """oi/oi_change(�̰�������/����)�� KIS �ҽ�(�߰�����)�� ���� - ���� �ɺ��� None �״�� ����."""
+    """oi/oi_change(미결제약정/증감)는 KIS 소스(야간선물)만 제공 - 없는 심볼은 None 그대로 저장."""
     conn.execute(
         'INSERT INTO future_prices (symbol, name, price, change, change_rate, high, low, updated_at, oi, oi_change) '
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '
@@ -1029,10 +1029,10 @@ def upsert_future_price(conn, symbol, name, price, change, change_rate, high, lo
 
 
 def upsert_future_orderbook(conn, symbol, ask_price, bid_price, ask_qty, bid_qty, updated_at):
-    """KIS WebSocket ����/�ɼ� 1�ܰ� ȣ���� �����Ѵ�.
+    """KIS WebSocket 선물/옵션 1단계 호가를 저장한다.
 
-    ���� ƽ�� ȣ�� ƽ�� ���� �ٸ� TR�� �����ϹǷ�, ȣ���� ������ �� ���ݡ����
-    �����Ͱ� �������� �ʵ��� ���� UPDATE�� ����Ѵ�.
+    가격 틱과 호가 틱은 서로 다른 TR로 도착하므로, 호가만 갱신할 때 가격·등락
+    데이터가 지워지지 않도록 별도 UPDATE를 사용한다.
     """
     cursor = conn.execute(
         'UPDATE future_prices SET ask_price=?, bid_price=?, ask_qty=?, bid_qty=?, updated_at=? WHERE symbol=?',
@@ -1049,7 +1049,7 @@ def upsert_future_orderbook(conn, symbol, ask_price, bid_price, ask_qty, bid_qty
 
 
 def upsert_future_chart_rows(conn, symbol, rows):
-    """rows: [{date, open, high, low, close}, ...]. �ߺ� INSERT�� PRIMARY KEY(symbol,date) UPSERT�� ����."""
+    """rows: [{date, open, high, low, close}, ...]. 중복 INSERT는 PRIMARY KEY(symbol,date) UPSERT로 방지."""
     def normalize_date(value):
         return str(value or '').replace('-', '')[:8]
 
@@ -1063,7 +1063,7 @@ def upsert_future_chart_rows(conn, symbol, rows):
 
 
 def _canonical_future_chart_rows(rows):
-    """���� YYYY-MM-DD ��� ǥ�� YYYYMMDD ���� ���� �Ⱓ�� ���ġ��ߺ� �����Ѵ�."""
+    """구형 YYYY-MM-DD 행과 표준 YYYYMMDD 행이 섞인 기간을 정렬·중복 제거한다."""
     by_date = {}
     for row in rows:
         date = str(row[0] or '').replace('-', '')[:8]
@@ -1084,11 +1084,11 @@ def load_future_chart(conn, symbol, limit_days=90):
 
 
 def load_future_chart_since(conn, symbol, since_date):
-    """since_date: 'YYYYMMDD'. date >= since_date�� �ุ - �� load_future_chart�� limit_days��
-    row ���� �����̶� �ŷ��� �е��� �ٸ� �ɺ�����(ä���� ��5��, BTC�� ��7��) 'N��ġ' �ǹ̰�
-    �޶����� ������ �־���(��: ����ä ��ġ��ũ�� 20����, �̱�ä�� 13������ ���߳��� - 2026-07-18
-    ����� �������� �߰�) - main.py�� /futures/avg�� �ɺ��� �����ϰ� ��Ȯ�� ���� �޷� �Ⱓ��
-    ���ϰ� ���� �� �� �Լ��� ����."""
+    """since_date: 'YYYYMMDD'. date >= since_date인 행만 - 위 load_future_chart의 limit_days는
+    row 개수 제한이라 거래일 밀도가 다른 심볼끼리(채권은 주5일, BTC는 주7일) 'N일치' 의미가
+    달라지는 문제가 있었음(예: 국고채 벤치마크가 20개월, 미국채는 13개월로 들쭉날쭉 - 2026-07-18
+    사용자 지적으로 발견) - main.py의 /futures/avg가 심볼과 무관하게 정확히 같은 달력 기간을
+    비교하고 싶을 때 이 함수를 쓴다."""
     rows = conn.execute(
         'SELECT date, open, high, low, close FROM future_chart WHERE symbol=?',
         (symbol,),
@@ -1097,7 +1097,7 @@ def load_future_chart_since(conn, symbol, since_date):
 
 
 def upsert_future_chart_minute_rows(conn, symbol, rows):
-    """rows: [{ts, open, high, low, close}, ...], ts�� UTC epoch��(����)."""
+    """rows: [{ts, open, high, low, close}, ...], ts는 UTC epoch초(정수)."""
     conn.executemany(
         'INSERT INTO future_chart_minute (symbol, ts, open, high, low, close) VALUES (?, ?, ?, ?, ?, ?) '
         'ON CONFLICT(symbol, ts) DO UPDATE SET '
@@ -1108,7 +1108,7 @@ def upsert_future_chart_minute_rows(conn, symbol, rows):
 
 
 def load_future_chart_minute(conn, symbol, limit_bars=1500):
-    """�ֱ� limit_bars�� 1�к�(�뷫 �ֱ� 3~4�ŷ���ġ, �Ϸ� ������ ���� �� 390��)."""
+    """최근 limit_bars개 1분봉(대략 최근 3~4거래일치, 하루 정규장 기준 약 390개)."""
     rows = conn.execute(
         'SELECT ts, open, high, low, close FROM future_chart_minute WHERE symbol=? ORDER BY ts DESC LIMIT ?',
         (symbol, limit_bars),
@@ -1149,11 +1149,11 @@ def load_option_flow(conn):
 
 
 def replace_option_flow_strikes(conn, rows):
-    """�ֱٿ��� ��簡�� �ɼ� ���� �������� ��ü�Ѵ�.
+    """최근월물 행사가별 옵션 수급 스냅샷을 교체한다.
 
-    API�� �ֱٿ��� ��ü�� �Ź� �����ֹǷ� ���� ���� ��簡�� ������ �ʵ���
-    ���� �� ���� �� ���� ���� �� �� �������� �ִ´�. �հ� option_flow ����
-    ������ ������ ���� ī�塤AI �ؼ����� ȣȯ���� �����Ѵ�.
+    API가 최근월물 전체를 매번 내려주므로 이전 만기 행사가가 섞이지 않도록
+    기존 상세 행을 한 번에 지운 뒤 새 스냅샷을 넣는다. 합계 option_flow 행은
+    별도로 유지해 기존 카드·AI 해설과의 호환성을 보장한다.
     """
     conn.execute('DELETE FROM option_flow_strike')
     if rows:
@@ -1177,8 +1177,8 @@ def load_option_flow_strikes(conn):
 
 
 def upsert_kis_flow_cache(conn, code, target_days, rows, updated_at):
-    """kiwoom_market._daily_rows_from_kis_with_fallback_cache()�� KIS ���� �� ����.
-    rows�� json.dumps�� �״�� ����ȭ(dict/list�� ���� �÷�ȭ ���ʿ�)."""
+    """kiwoom_market._daily_rows_from_kis_with_fallback_cache()가 KIS 성공 시 저장.
+    rows는 json.dumps로 그대로 직렬화(dict/list라 별도 컬럼화 불필요)."""
     import json
     conn.execute(
         'INSERT INTO kis_flow_cache (code, target_days, updated_at, rows_json) VALUES (?, ?, ?, ?) '
@@ -1190,7 +1190,7 @@ def upsert_kis_flow_cache(conn, code, target_days, rows, updated_at):
 
 
 def load_kis_flow_cache(conn, code, target_days):
-    """(rows, updated_at) Ʃ�� �Ǵ� ����� �� ������ (None, None)."""
+    """(rows, updated_at) 튜플 또는 저장된 게 없으면 (None, None)."""
     import json
     row = conn.execute(
         'SELECT rows_json, updated_at FROM kis_flow_cache WHERE code=? AND target_days=?',
@@ -1202,8 +1202,8 @@ def load_kis_flow_cache(conn, code, target_days):
 
 
 def upsert_invest_opinion(conn, code, summary, updated_at):
-    """invest_opinion_scan.py(�Ϸ� 1ȸ ��ġ)�� ���� �ϳ��� ����� ����. ��Ʈ�˻�/�����˻���
-    �ึ�� KIS�� ���̺�� ȣ������ �ʰ� �� ���� �״�� �����Ѵ�."""
+    """invest_opinion_scan.py(하루 1회 배치)가 종목 하나의 요약을 저장. 차트검색/전략검색이
+    행마다 KIS를 라이브로 호출하지 않고 이 값을 그대로 재사용한다."""
     import json
     conn.execute(
         'INSERT INTO invest_opinions (code, updated_at, summary_json) VALUES (?, ?, ?) '
@@ -1214,7 +1214,7 @@ def upsert_invest_opinion(conn, code, summary, updated_at):
 
 
 def load_invest_opinions(conn, codes=None):
-    """{code: summary_dict} - codes�� �ָ� �� ����鸸, �����ϸ� ����� ��ü�� ��ȯ�Ѵ�."""
+    """{code: summary_dict} - codes를 주면 그 종목들만, 생략하면 저장된 전체를 반환한다."""
     import json
     if codes:
         placeholders = ','.join('?' for _ in codes)
@@ -1234,12 +1234,12 @@ def load_invest_opinions(conn, codes=None):
 
 
 def upsert_investor_trend_rows(conn, market, rows):
-    """market: 'KOSPI'/'KOSDAQ'. rows: [{date('YYYYMMDD'), ind, frgn, orgn, index(����)}, ...], �ݾ� ���� ���.
-    �̹� Ȯ���� ������ ���� �ٲ��� ������ ����(����) ���� ����ȸ ������ ���ŵž� �ϹǷ� UPSERT.
-    index(�������� ����)�� ���� ȣ��(���̹���Ű�� ���� ��)�� �̹� ����� ���� ������ ������ �ʰ� COALESCE �Ѵ�."""
+    """market: 'KOSPI'/'KOSDAQ'. rows: [{date('YYYYMMDD'), ind, frgn, orgn, index(선택)}, ...], 금액 단위 억원.
+    이미 확정된 과거일 값은 바뀌지 않지만 당일(장중) 행은 재조회 때마다 갱신돼야 하므로 UPSERT.
+    index(업종지수 종가)가 없는 호출(네이버·키움 폴백 등)이 이미 저장된 지수 종가를 지우지 않게 COALESCE 한다."""
     from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).isoformat()
-    _ensure_column(conn, 'investor_trend_daily', 'index_close', 'REAL')  # ���̱׷��̼� �� DB ���� �����ϰ�(�̹� ������ �ƹ� �ϵ� �� ��)
+    _ensure_column(conn, 'investor_trend_daily', 'index_close', 'REAL')  # 마이그레이션 전 DB 에도 안전하게(이미 있으면 아무 일도 안 함)
     conn.executemany(
         'INSERT INTO investor_trend_daily (market, date, ind_amt, frgn_amt, orgn_amt, updated_at, index_close) '
         'VALUES (?, ?, ?, ?, ?, ?, ?) '
@@ -1252,9 +1252,9 @@ def upsert_investor_trend_rows(conn, market, rows):
 
 
 def delete_investor_trend_non_trading(conn, market, first_date, last_date, trading_dates):
-    """first_date~last_date(YYYYMMDD) ���̿��� trading_dates(�ŷ��Ұ� ������ ������ �ŷ���)�� ���� ��¥�� ���� �����.
-    ���� ��¥�� ������ �ָ��������Ͽ� �ְ� �հ� ���� ���� �߸� ������ ��(2026-10-12 � �ڽ��ڿ��� �ָ� 8�� Ȯ��)�� �ٷ���´�.
-    �ŷ��� ����� KIS �� �� ���� �� �� 300�������̹Ƿ� �� ���� ���� ��ŷ��ϸ� �����, ���� ���� �ǵ帮�� �ʴ´�. ���� ��¥ ����� �����ش�."""
+    """first_date~last_date(YYYYMMDD) 사이에서 trading_dates(거래소가 실제로 돌려준 거래일)에 없는 날짜의 행을 지운다.
+    예전 날짜별 백필이 주말·휴장일에 주간 합계 같은 값을 잘못 저장한 행(2026-10-12 운영 코스닥에서 주말 8행 확인)을 바로잡는다.
+    거래일 목록은 KIS 가 한 번에 준 약 300영업일이므로 그 구간 안의 비거래일만 지우고, 구간 밖은 건드리지 않는다. 지운 날짜 목록을 돌려준다."""
     trading = set(trading_dates)
     rows = conn.execute('SELECT date FROM investor_trend_daily WHERE market=? AND date>=? AND date<=?',
                         (market, first_date, last_date)).fetchall()
@@ -1266,9 +1266,9 @@ def delete_investor_trend_non_trading(conn, market, first_date, last_date, tradi
 
 
 def load_investor_trend_daily(conn, market, limit_days=140):
-    """market �ϳ��� ��������(��¥��) �ֱ� limit_days�� - investor_trend.py�� ��/�� ���谡
-    �� ������ ����. index_close �� 2026-10-12 �� ������ ���̶� ������ None."""
-    # index_close �÷��� create_schema �� �� �� ���ƾ� �����. ���� ���̱׷��̼� ���� DB(���� ���� �ٸ� ���μ��� ��)�� ���� �� �ְ� NULL �� ����Ѵ�.
+    """market 하나의 오름차순(날짜순) 최근 limit_days개 - investor_trend.py의 주/월 집계가
+    이 위에서 돈다. index_close 는 2026-10-12 에 덧붙은 값이라 없으면 None."""
+    # index_close 컬럼은 create_schema 가 한 번 돌아야 생긴다. 아직 마이그레이션 전인 DB(배포 직후 다른 프로세스 등)도 읽을 수 있게 NULL 로 대신한다.
     has_index = 'index_close' in [c[1] for c in conn.execute('PRAGMA table_info(investor_trend_daily)')]
     rows = conn.execute(
         'SELECT date, ind_amt, frgn_amt, orgn_amt, updated_at, %s FROM investor_trend_daily '
@@ -1283,8 +1283,8 @@ def load_investor_trend_daily(conn, market, limit_days=140):
 
 
 def upsert_volume_profile_daily(conn, code, trade_date, bins):
-    """bins: [{price, volume}, ...] - �׳��� �ֽ� ���� ���������� �����(������ ����,
-    pbar-tratio ���� ��ü�� �̹� �� ���������� ����ġ�� - ��Ű�� �ּ� ����)."""
+    """bins: [{price, volume}, ...] - 그날의 최신 누적 스냅샷으로 덮어쓴다(더하지 않음,
+    pbar-tratio 응답 자체가 이미 그 시점까지의 누적치라서 - 스키마 주석 참고)."""
     from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).isoformat()
     if not bins:
@@ -1300,10 +1300,10 @@ def upsert_volume_profile_daily(conn, code, trade_date, bins):
 
 
 def load_volume_profile_days(conn, code, days, exclude_date=None):
-    """code�� ����� �ŷ��� �� �ֽż� �ִ� days��(exclude_date�� ������ �� ��¥�� ���� -
-    ���� ���� ��¥�� �Ѱ� ȣ����� �ǽð� ����� ���� �ݿ����� �ʰ� �Ѵ�)�� ��� ���ݺ���
-    �ŷ����� �ջ��� ��ȯ�Ѵ�. ��ȯ��: [{price, volume}, ...], ���� �ݿ��� �ŷ��� ����
-    len(dates)�� ȣ��ο��� ���� �� �� �ְ� (rows, date_count) Ʃ�÷� �ش�."""
+    """code에 저장된 거래일 중 최신순 최대 days개(exclude_date가 있으면 그 날짜는 제외 -
+    보통 오늘 날짜를 넘겨 호출부의 실시간 응답과 이중 반영되지 않게 한다)를 골라 가격별로
+    거래량을 합산해 반환한다. 반환값: [{price, volume}, ...], 실제 반영된 거래일 수는
+    len(dates)로 호출부에서 따로 알 수 있게 (rows, date_count) 튜플로 준다."""
     if exclude_date:
         date_rows = conn.execute(
             'SELECT DISTINCT trade_date FROM volume_profile_daily WHERE code=? AND trade_date<>? '
@@ -1328,15 +1328,15 @@ def load_volume_profile_days(conn, code, days, exclude_date=None):
 
 
 def prune_volume_profile_daily(conn, cutoff_date):
-    """cutoff_date('YYYY-MM-DD')���� ������ ���� ����� - ��ġ ���� ��ȸ�� ������ ���̱⸸
-    �ϴ� �� ���� ������(main.py�� �ֱ������� ȣ��)."""
+    """cutoff_date('YYYY-MM-DD')보다 이전인 행을 지운다 - 배치 없이 조회할 때마다 쌓이기만
+    하는 걸 막는 정리용(main.py가 주기적으로 호출)."""
     conn.execute('DELETE FROM volume_profile_daily WHERE trade_date<?', (cutoff_date,))
     conn.commit()
 
 
 def list_volume_profile_codes(conn, since_date):
-    """since_date('YYYY-MM-DD') ���� volume_profile_daily�� ����� �� �ִ� �����ڵ�, �ֱ� ������ ��.
-    volume_profile_collector.py�� "�ֱ� ��ȸ�������� ����"�� ���� ���� ��� ���� �� ����."""
+    """since_date('YYYY-MM-DD') 이후 volume_profile_daily에 저장된 적 있는 종목코드, 최근 저장일 순.
+    volume_profile_collector.py가 "최근 조회·수집된 종목"을 매일 수집 대상에 넣을 때 쓴다."""
     rows = conn.execute(
         'SELECT code, MAX(trade_date) AS last_date FROM volume_profile_daily WHERE trade_date>=? '
         'GROUP BY code ORDER BY last_date DESC, code',
@@ -1349,5 +1349,4 @@ if __name__ == '__main__':
     conn = get_conn()
     create_schema(conn)
     conn.close()
-    print('��Ű�� ����/Ȯ�� �Ϸ�: %s' % DB_FILE)
-
+    print('스키마 생성/확인 완료: %s' % DB_FILE)

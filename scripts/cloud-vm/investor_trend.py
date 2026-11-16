@@ -1,47 +1,47 @@
 # -*- coding: utf-8 -*-
-"""���� ������ "�����ں� �Ÿ� ����" ����(�۾����ü� #4, 2026-07-20 + UI���� ���ü�
-2026-07-21) - ���庰(�ڽ���/�ڽ���) ����/�ܱ���/����� �Ϻ� ���ż�(���) ���� + ��/��/�� ����.
+"""메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4, 2026-07-20 + UI개선 지시서
+2026-07-21) - 시장별(코스피/코스닥) 개인/외국인/기관계 일별 순매수(억원) 수집 + 일/주/월 집계.
 
-�۾����ü��� Ű�� TR(get_investor_summary/get_investor_trend)�� stk_cd ���� ȣ���ϸ�
-���� ��ü(�ڽ���) ���� �شٰ� ����������, ���� ���(2026-07-20, MCP get_investor_summary/
-get_investor_trend�� stk_cd ���� ���� ȣ��) �� �� `����: 'stk_cd'`�� ���� - �� TR ���
-���� ��ȸ �����̰� ���� ��ü ���踦 �������� �ʴ´�.
+작업지시서는 키움 TR(get_investor_summary/get_investor_trend)을 stk_cd 없이 호출하면
+시장 전체(코스피) 값을 준다고 가정했지만, 실측 결과(2026-07-20, MCP get_investor_summary/
+get_investor_trend를 stk_cd 없이 직접 호출) 둘 다 `오류: 'stk_cd'`로 실패 - 두 TR 모두
+종목별 조회 전용이고 시장 전체 집계를 지원하지 않는다.
 
-**������ �ҽ�**: KIS(�ѱ���������) TR `FHPTJ04040000`(���庰 �����ڸŸŵ���(�Ϻ�),
-kis_client.fetch_market_investor_daily)�� ����Ѵ�. �ѱ����� HTS [0404] ���庰 �Ϻ������
-1:1 �����ϴ� ���� API�̸� market_iscd�� 'KSP'(�ڽ���)/'KSQ'(�ڽ���)�� �����Ѵ�. �Ϸ�ġ����
-��ȸ�Ǵ� ������(���� ������ FID_INPUT_DATE_1=FID_INPUT_DATE_2�� ������) ��¥���� �ݺ�
-ȣ���� DB(investor_trend_daily, market �÷����� ���� ����)�� �״´�. `_tr_pbmn`(�ŷ����)
-�ʵ�� �鸸�� �����̸�, �ܱ����� frgn_reg_ntby_pbmn(��� �ܱ���)�� ����Ѵ�. KIS ��� ����
-���� KIS ĳ�ø� �����ϰ� �ٸ� �����ڷ� ��ü���� �ʴ´�.
+**데이터 소스**: KIS(한국투자증권) TR `FHPTJ04040000`(시장별 투자자매매동향(일별),
+kis_client.fetch_market_investor_daily)만 사용한다. 한국투자 HTS [0404] 시장별 일별동향과
+1:1 대응하는 정식 API이며 market_iscd로 'KSP'(코스피)/'KSQ'(코스닥)를 선택한다. 하루치씩만
+조회되는 구조라(공식 예제가 FID_INPUT_DATE_1=FID_INPUT_DATE_2만 검증됨) 날짜별로 반복
+호출해 DB(investor_trend_daily, market 컬럼으로 시장 구분)에 쌓는다. `_tr_pbmn`(거래대금)
+필드는 백만원 단위이며, 외국인은 frgn_reg_ntby_pbmn(등록 외국인)만 사용한다. KIS 장애 때는
+기존 KIS 캐시를 유지하고 다른 공급자로 대체하지 않는다.
 
-**���� ���(2026-07-20, �ڽ��� ����)**: �� ������ ���� ��ǥ�ߴ� "HTS �����ں��Ÿ�����
-([0780]/[0404]/[0403] ��) �ڽ��� ��"�� ��Ȯ�� ��ġ�ϴ� �ҽ��� �� ã�� - KIS �Ϻ�/Ű��
-ka10051/KIS �ü�(FHPTJ04030000, ���) �� ������ ���������� ���� �佺��Ű�� HTS ����
-�޶���, Ű�� ���� AI ���Ƿε� "������ REST TR �� �� ȭ��� 1:1 �����ϴ� �� ����, ����
-TR(ka10059)�� �� ����(800����) ��ȸ �ջ��ؾ� �ϴµ� �׷��� ETF ���Կ��Ρ�����ó�� ��
-ȭ�� ���� ���� ���̷� ���� ��ġ�� ���� �� ��"�̶�� ���� ����(������ ��ȸ�� �� ���Ÿ���
-ȣ�ⷮ�� ���������̶� ä�� �� ��). ����� �Ǵ����� KIS �Ϻ��� ���� �ҽ��� ä��.
-**2026-07-21 ����**: �׷��� ����ڰ� KRX ���� ���(�ڽ��� ���/�ܱ���/���� ���ż�, �ʾ��
-����)�� ���� ������ ��� KIS �Ϻ� ���� KRX ������ ���� ��Ȯ�� ��ġ���� Ȯ��(���� ����
-0.07��, ��� 4.9�� �� �ݿø� ����) - �� �¾Ҵ� �� Ű��/�佺 HTS `[0780]` ���� ���� KRX
-���� ��ġ�� �ٸ� ��ü ���踦 ���� �־��� ������ ���. KIS �Ϻ��� ���信 �����ٴ� ���̶�
-�״�� ����.
+**최종 결론(2026-07-20, 코스피 기준)**: 이 위젯이 원래 목표했던 "HTS 투자자별매매종합
+([0780]/[0404]/[0403] 등) 코스피 행"과 정확히 일치하는 소스는 못 찾음 - KIS 일별/키움
+ka10051/KIS 시세(FHPTJ04030000, 폐기) 세 가지를 실측했지만 전부 토스·키움 HTS 값과
+달랐고, 키움 공식 AI 문의로도 "공개된 REST TR 중 그 화면과 1:1 대응하는 건 없고, 종목별
+TR(ka10059)을 전 종목(800여개) 순회 합산해야 하는데 그래도 ETF 포함여부·단위처리 등
+화면 내부 로직 차이로 완전 일치는 보장 안 됨"이라는 답을 받음(전종목 순회는 매 갱신마다
+호출량이 비현실적이라 채택 안 함). 사용자 판단으로 KIS 일별을 최종 소스로 채택.
+**2026-07-21 정정**: 그러나 사용자가 KRX 공식 통계(코스피 기관/외국인/개인 순매수, 십억원
+단위)를 직접 대조한 결과 KIS 일별 값이 KRX 원본과 거의 정확히 일치함을 확인(개인 오차
+0.07억, 기관 4.9억 등 반올림 수준) - 안 맞았던 건 키움/토스 HTS `[0780]` 위젯 쪽이 KRX
+공식 수치와 다른 자체 집계를 쓰고 있었던 것으로 결론. KIS 일별이 정답에 가깝다는 뜻이라
+그대로 유지.
 
-**�ڽ��� ������ 2026-07-21 ���� ��� ������ �ҽ��� ���� �� ���� �������� ����**�� - KIS
-���������ɼ� ī�װ��� 43�� API ��ü�� �����ڸŸŵ��� API ��ü�� ����(kis-code-assistant-mcp
-Ȯ��), Ű�� ���۷��� �������� ���� ������ TR�� ����, ���̹��� �ش� �������� ����(�����
-Ȯ�� �� �ڽ���/�ڽ��� 2�� �������� ��� ���� ����).
+**코스피 선물은 2026-07-21 조사 결과 데이터 소스가 없어 이 위젯 범위에서 제외**됨 - KIS
+국내선물옵션 카테고리 43개 API 전체에 투자자매매동향 API 자체가 없고(kis-code-assistant-mcp
+확인), 키움 레퍼런스 문서에도 선물 투자자 TR이 없고, 네이버도 해당 페이지가 없음(사용자
+확인 후 코스피/코스닥 2개 시장으로 축소 진행 결정).
 
-���̹� ���� ���� ����(2026-07-20, curl ����):
-- bizdate �Ķ���Ͱ� �ʼ� - �����ϸ� �� �������� ��(�� URL�� �Ķ���� ���� ȣ���� ��� 0��).
-- sosok�� ����(�Ǵ� ����) �ڽ���, ���� �־(��: 1) �� ������������ �� ��� - 2026-07-21
-  ��Ȯ���ص� ������ �� ����� �ڽ����� �� �������� �� ����(���� ���).
-- page=N���� bizdate ���� ���� ���������̼� ����(1������=10��, page=14�� �� 6���� ��) -
-  bond_yield.py�� interestDailyQuote.naver�� ������ ����¡ ����.
-- ���� ���̺� �÷� ����: ��¥, ����, �ܱ���, �����, (��� ���� 6�÷�), ��Ÿ���� - �� �����
-  �� 4�÷�(��¥/����/�ܱ���/�����)�� ����. �� ��ȣ�� �� Ŭ����(rate_up3/rate_down3)�� �ƴ϶�
-  �ؽ�Ʈ ��ü�� '-'�� ���Ե� ����(Ŭ������ �����, �Ľ̿� �� ��)."""
+네이버 폴백 검증 경위(2026-07-20, curl 실측):
+- bizdate 파라미터가 필수 - 생략하면 빈 페이지가 옴(위 URL에 파라미터 없이 호출한 결과 0행).
+- sosok는 비우면(또는 생략) 코스피, 값을 넣어도(예: 1) 이 페이지에서는 빈 결과 - 2026-07-21
+  재확인해도 여전히 빈 결과라 코스닥은 이 페이지로 못 받음(공식 결론).
+- page=N으로 bizdate 기준 과거 페이지네이션 가능(1페이지=10행, page=14가 약 6개월 전) -
+  bond_yield.py의 interestDailyQuote.naver와 동일한 페이징 관례.
+- 응답 테이블 컬럼 순서: 날짜, 개인, 외국인, 기관계, (기관 세부 6컬럼), 기타법인 - 이 모듈은
+  앞 4컬럼(날짜/개인/외국인/기관계)만 쓴다. 값 부호는 셀 클래스(rate_up3/rate_down3)가 아니라
+  텍스트 자체에 '-'로 포함돼 있음(클래스는 색상용, 파싱엔 안 씀)."""
 
 import logging
 import json
@@ -64,19 +64,19 @@ UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 _URL = 'https://finance.naver.com/sise/investorDealTrendDay.naver?bizdate=%s&sosok=&page=%d'
 
 _ROWS_PER_PAGE = 10
-_HISTORY_PAGES = 14  # 140�� - "��" �� �ֱ� 6����(~126�ŷ���) + ������
-_RECENT_POLL_SEC = 60  # ��/�� �� "1�� ����" �䱸����
-_HISTORY_REFRESH_SEC = 6 * 3600  # �� ���� �帶�� �� Ȯ��ġ�� ��� - �ٸ� ��ġ ���� ���� �ֱ�
+_HISTORY_PAGES = 14  # 140행 - "월" 탭 최근 6개월(~126거래일) + 여유분
+_RECENT_POLL_SEC = 60  # 일/주 탭 "1분 갱신" 요구사항
+_HISTORY_REFRESH_SEC = 6 * 3600  # 월 탭은 장마감 후 확정치면 충분 - 다른 배치 모듈과 동일 주기
 
-# ���� Ű(����Ʈ/�����Ķ���Ϳ�, �ҹ���) -> DB�� �����ϴ� ����� + �� �ҽ��� �Ķ����.
-# ������ ������ �ҽ��� ���� ����(�� ��� ����Ʈ�� ����).
+# 시장 키(프론트/쿼리파라미터용, 소문자) -> DB에 저장하는 시장명 + 각 소스별 파라미터.
+# 선물은 데이터 소스가 없어 제외(위 모듈 독스트링 참고).
 MARKETS = {
     'kospi': {'db': 'KOSPI', 'kis_iscd': 'KSP', 'kis_inds_cd': '0001', 'kiwoom_mrkt_tp': '0', 'naver': True, 'label': 'KOSPI'},
     'kosdaq': {'db': 'KOSDAQ', 'kis_iscd': 'KSQ', 'kis_inds_cd': '1001', 'kiwoom_mrkt_tp': '1', 'naver': False, 'label': 'KOSDAQ'},
 }
 DEFAULT_MARKET = 'kospi'
 
-# ��¥ �� + ����/�ܱ���/����� 3�� �� ���� �̴´�(�� �������/��Ÿ���� �÷��� ����).
+# 날짜 셀 + 개인/외국인/기관계 3개 값 셀만 뽑는다(뒤 기관세부/기타법인 컬럼은 무시).
 _ROW_RE = re.compile(
     r'<td class="date2">(?P<date>[\d.]+)</td>\s*'
     r'<td class="rate_\w+3">(?P<ind>-?[\d,]+)</td>\s*'
@@ -108,7 +108,7 @@ def _fetch_page(bizdate, page):
 
 
 def fetch_recent(pages=1, bizdate=None):
-    """[���̹� ����, �ڽ��� ����] �ֱ� page*10��(��������). pages=1�̸� �ֱ� 10�ŷ���."""
+    """[네이버 폴백, 코스피 전용] 최근 page*10행(오름차순). pages=1이면 최근 10거래일."""
     bizdate = bizdate or _today_bizdate()
     rows = []
     for page in range(1, pages + 1):
@@ -116,12 +116,12 @@ def fetch_recent(pages=1, bizdate=None):
         if not page_rows:
             break
         rows.extend(page_rows)
-    rows.reverse()  # ���̹��� �ֽż����� �ֹǷ� ������������ ������(�ٸ� ������� ����)
+    rows.reverse()  # 네이버는 최신순으로 주므로 오름차순으로 뒤집음(다른 수집기와 통일)
     return rows
 
 
 def refresh_recent(market_db='KOSPI'):
-    """[���̹� ����, �ڽ��� ����] 1�� ������ - page=1(�ֱ� 10�ŷ���)�� ����ȸ�� ���� ���� �� ����."""
+    """[네이버 폴백, 코스피 전용] 1분 폴링용 - page=1(최근 10거래일)만 재조회해 당일 장중 값 갱신."""
     rows = fetch_recent(pages=1)
     if not rows:
         logger.warning('investor_trend[%s]: Naver recent fetch got 0 rows', market_db)
@@ -135,7 +135,7 @@ def refresh_recent(market_db='KOSPI'):
 
 
 def refresh_history(market_db='KOSPI'):
-    """[���̹� ����, �ڽ��� ����] 6�ð� �ֱ� - ���� ���������� �Ⱦ� "��/��" ���� �Ⱓ�� ä���."""
+    """[네이버 폴백, 코스피 전용] 6시간 주기 - 과거 페이지까지 훑어 "주/월" 집계 기간을 채운다."""
     rows = fetch_recent(pages=_HISTORY_PAGES)
     if not rows:
         logger.warning('investor_trend[%s]: Naver history fetch got 0 rows', market_db)
@@ -149,22 +149,22 @@ def refresh_history(market_db='KOSPI'):
         conn.close()
 
 
-# ---- KIS(1�� �ҽ�) - ���庰 �����ڸŸŵ���(�Ϻ�), ��¥�� �ݺ� ȣ�� ----
+# ---- KIS(1차 소스) - 시장별 투자자매매동향(일별), 날짜별 반복 호출 ----
 
-_KIS_CALL_DELAY_SEC = 0.25  # ���� �� ������ ���� ȣ�� ����(���� rate limit ����ȭ �� ���־� ����������)
-_KIS_TARGET_DAYS = _HISTORY_PAGES * _ROWS_PER_PAGE  # ���̹� ����� ������ ������(140��)
-_KIS_MAX_CALENDAR_DAYS = 220  # �ָ�/������ �����ص� 140�������� ä��� ����� ����
+_KIS_CALL_DELAY_SEC = 0.25  # 백필 시 과도한 연속 호출 방지(공식 rate limit 문서화 안 돼있어 보수적으로)
+_KIS_TARGET_DAYS = _HISTORY_PAGES * _ROWS_PER_PAGE  # 네이버 폴백과 동일한 보관량(140행)
+_KIS_MAX_CALENDAR_DAYS = 220  # 주말/공휴일 포함해도 140영업일을 채우기 충분한 여유
 
 
 def _kis_row_to_common(date_str, row):
     def amt(key):
         try:
-            return float(row.get(key) or 0) / 100  # �鸸�� -> ���(2026-07-20 ���̺� �������� Ȯ��)
+            return float(row.get(key) or 0) / 100  # 백만원 -> 억원(2026-07-20 라이브 실측으로 확정)
         except (TypeError, ValueError):
             return 0.0
 
     def index_close():
-        # �������� ����(bstp_nmix_prpr). ���� ���� �� �ð� ������ ���� �� ���� �� ������ ���������.
+        # 업종지수 종가(bstp_nmix_prpr). 장중 행은 그 시각 지수라 마감 후 같은 날 행으로 덮어써진다.
         try:
             value = float(row.get('bstp_nmix_prpr'))
         except (TypeError, ValueError):
@@ -181,7 +181,7 @@ def _kis_row_to_common(date_str, row):
 
 
 def fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd='KSP', kis_inds_cd='0001'):
-    """date_str('YYYYMMDD') �Ϸ�ġ. ������/������ �����̸� None."""
+    """date_str('YYYYMMDD') 하루치. 휴장일/데이터 없음이면 None."""
     output = kis_client.fetch_market_investor_daily(
         token, appkey, appsecret, date_str, date_str, market_iscd=kis_iscd, inds_cd=kis_inds_cd)
     if not output:
@@ -189,18 +189,18 @@ def fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd='KSP', kis_inds_c
     return _kis_row_to_common(date_str, output[0])
 
 
-# ---- KIS �̷�(�� �� ȣ��� �� 300������) - �����ں� �ڱ� �帧 �׷���(1��)�� ----
-# 2026-10-12 � VM ����: FHPTJ04040000 �� ��¥�� �ϳ��� �൵(DATE_1=DATE_2) �� ��¥������ �ֱ� 300������ ����
-# �Ѳ����� �����ش�(�ڽ��ǡ��ڽ��� ��� 2025-07-16~2026-10-08, ��¥ �ߺ� ����, �ʵ� ���� ����). �ึ�� ���ż� ��������ݰ� ��������
-# ������ �ְ� **�Ѹż����Ѹŵ� �ʵ�� ����**(���ż� ��� *_ntby_tr_pbmn, ���ż� ���� *_ntby_qty, ���� bstp_nmix_*).
-# �׷��� �� ����� �Ѹż����Ѹŵ��� ���������� ���ż����� �Ųٷ� ��������� �ʴ´�.
+# ---- KIS 이력(한 번 호출로 약 300영업일) - 투자자별 자금 흐름 그래프(1년)용 ----
+# 2026-10-12 운영 VM 실측: FHPTJ04040000 은 날짜를 하나만 줘도(DATE_1=DATE_2) 그 날짜까지의 최근 300영업일 행을
+# 한꺼번에 내려준다(코스피·코스닥 모두 2025-07-16~2026-10-08, 날짜 중복 없음, 필드 구성 동일). 행마다 순매수 수량·대금과 업종지수
+# 종가만 있고 **총매수·총매도 필드는 없다**(순매수 대금 *_ntby_tr_pbmn, 순매수 수량 *_ntby_qty, 지수 bstp_nmix_*).
+# 그래서 이 모듈은 총매수·총매도를 저장하지도 순매수에서 거꾸로 계산하지도 않는다.
 _HISTORY_MAX_DAYS = 300
-_HISTORY_NOTE_GROSS = ('KIS ���庰 �����ڸŸŵ���(�Ϻ�, FHPTJ04040000)�� �����ں� ���ż�(���������)�� ���������� �����ϰ� '
-                       '�Ѹż����Ѹŵ� �ݾ� �ʵ尡 �����ϴ�. ���ż����� �Ųٷ� ������� �ʽ��ϴ�.')
+_HISTORY_NOTE_GROSS = ('KIS 시장별 투자자매매동향(일별, FHPTJ04040000)은 투자자별 순매수(수량·대금)와 업종지수만 제공하고 '
+                       '총매수·총매도 금액 필드가 없습니다. 순매수에서 거꾸로 계산하지 않습니다.')
 
 
 def fetch_kis_history(token, appkey, appsecret, kis_iscd, kis_inds_cd, anchor=None):
-    """����(�����̸� ���� ����� ���� ��¥)�� �������� KIS �Ϻ� ���� ��ü(�ֱ� �� 300������)�� ���� ������ �ٲ� �����ش�."""
+    """오늘(휴장이면 가장 가까운 이전 날짜)을 기준으로 KIS 일별 응답 전체(최근 약 300영업일)를 공통 행으로 바꿔 돌려준다."""
     day = anchor or datetime.now(KST)
     for back in range(0, 8):
         date_str = (day - timedelta(days=back)).strftime('%Y%m%d')
@@ -208,14 +208,14 @@ def fetch_kis_history(token, appkey, appsecret, kis_iscd, kis_inds_cd, anchor=No
             token, appkey, appsecret, date_str, date_str, market_iscd=kis_iscd, inds_cd=kis_inds_cd)
         if output:
             rows = [_kis_row_to_common(date_str, r) for r in output if r.get('stck_bsop_date')]
-            # �� ���� ��� 0�� ���� �ŷ��� �ڷᰡ �ƴϴ�(��Ȯ���������� ����) - 0�� �ŷ��� �������� �ʴ´�.
+            # 세 값이 모두 0인 행은 거래일 자료가 아니다(미확정·미지원 응답) - 0원 거래로 저장하지 않는다.
             return [r for r in rows if r['ind'] or r['frgn'] or r['orgn']]
         time.sleep(_KIS_CALL_DELAY_SEC)
     return []
 
 
 def backfill_history_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
-    """������ �� �� ��: ����� KIS 1ȸ ȣ��� �̷¡����� ������ ä���. ���� ��¥�� ����Ἥ �ߺ��� ������ �ʴ´�."""
+    """시작할 때 한 번: 시장당 KIS 1회 호출로 이력·지수 종가를 채운다. 같은 날짜는 덮어써서 중복이 생기지 않는다."""
     token = kis_client.get_token(appkey, appsecret)
     rows = fetch_kis_history(token, appkey, appsecret, kis_iscd, kis_inds_cd)
     if not rows:
@@ -225,7 +225,7 @@ def backfill_history_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
     conn = db_schema.get_conn()
     try:
         db_schema.upsert_investor_trend_rows(conn, market_db, rows)
-        # �� �������� �ŷ��Ұ� �������� ���� ��¥�� ��ŷ����̴�. ���� ��¥�� ������ ���� �ָ��������� ��(�ְ� �հ� ���� ��)�� �����.
+        # 이 구간에서 거래소가 돌려주지 않은 날짜는 비거래일이다. 예전 날짜별 백필이 남긴 주말·휴장일 행(주간 합계 같은 값)은 지운다.
         stale = db_schema.delete_investor_trend_non_trading(conn, market_db, first, last, [r['date'] for r in rows])
     finally:
         conn.close()
@@ -240,8 +240,8 @@ def _iso_date(d):
 
 
 def get_history(market=DEFAULT_MARKET, days=260, now=None):
-    """/investor-trend/history - DB�� ���� �Ϻ� ���ż�(���)�� ���� ������ ��¥ ������������ �����ش�(�ǽð� ȣ�� ����).
-    �ŷ��� ���� ���� �� ��ü�� ����(0������ ä���� ����), Ȯ���� �Ⱓ��ŭ�� �������� ��û �ϼ����� ������ count �� �� �� �ִ�."""
+    """/investor-trend/history - DB에 쌓인 일별 순매수(억원)와 지수 종가를 날짜 오름차순으로 돌려준다(실시간 호출 없음).
+    거래가 없는 날은 행 자체가 없고(0원으로 채우지 않음), 확보된 기간만큼만 내려가며 요청 일수보다 적으면 count 로 알 수 있다."""
     market_cfg = MARKETS.get(market, MARKETS[DEFAULT_MARKET])
     days = max(5, min(int(days or 260), _HISTORY_MAX_DAYS))
     conn = db_schema.get_conn()
@@ -257,18 +257,18 @@ def get_history(market=DEFAULT_MARKET, days=260, now=None):
         if not (r['ind'] or r['frgn'] or r['orgn']):
             continue
         if datetime.strptime(r['date'], '%Y%m%d').weekday() >= 5:
-            continue  # �ָ����� ���� ������ �ʴ´�(���� ������ ���� �ָ� �� ���)
+            continue  # 주말에는 장이 열리지 않는다(예전 백필이 남긴 주말 행 방어)
         clean.append(r)
     clean.sort(key=lambda r: r['date'])
     clean = clean[-days:]
     now = now or datetime.now(KST)
     latest = clean[-1]['date'] if clean else None
     as_of = max((r['updated_at'] for r in clean if r.get('updated_at')), default=None)
-    # ���� ���� ���� ����ġ�̰ų� ���� ���� ����ġ�� �� �ִ�(�����ں� ��ġ�� ���� �ڿ��� ���� ������ �� ����).
+    # 당일 행은 장중 누적치이거나 마감 직후 잠정치일 수 있다(투자자별 수치는 마감 뒤에도 조금 고쳐질 수 있음).
     provisional = bool(latest == now.strftime('%Y%m%d') and now.hour * 60 + now.minute < 18 * 60 + 30)
     return {
-        'market': market_cfg['label'], 'unit': '���', 'source': 'KIS ���庰 �����ڸŸŵ���(�Ϻ�) FHPTJ04040000',
-        'foreignBasis': '��� �ܱ��� ���ż�(frgn_reg_ntby_pbmn)',
+        'market': market_cfg['label'], 'unit': '억원', 'source': 'KIS 시장별 투자자매매동향(일별) FHPTJ04040000',
+        'foreignBasis': '등록 외국인 순매수(frgn_reg_ntby_pbmn)',
         'asOf': as_of, 'latestDate': _iso_date(latest) if latest else None, 'provisional': provisional,
         'count': len(clean), 'requestedDays': days,
         'from': _iso_date(clean[0]['date']) if clean else None, 'to': _iso_date(latest) if latest else None,
@@ -282,9 +282,9 @@ def get_history(market=DEFAULT_MARKET, days=260, now=None):
 
 
 def backfill_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd, target_days=_KIS_TARGET_DAYS, max_calendar_days=_KIS_MAX_CALENDAR_DAYS):
-    """���ú��� �Ž��� �ö󰡸� ��¥���� ȣ�� - target_days(������)�� ä��ų�
-    max_calendar_days(�޷���)�� �� �� ������. �ָ��� ȣ�� ��ü�� �ǳʶڴ�(�������� ȣ����
-    �ϵ� �� �������� �ڿ� ��ŵ). ȣ�⸶�� upsert�ؼ� �߰��� �����ص� �׶����� ������� ����."""
+    """오늘부터 거슬러 올라가며 날짜별로 호출 - target_days(영업일)를 채우거나
+    max_calendar_days(달력일)를 다 돌 때까지. 주말은 호출 자체를 건너뛴다(공휴일은 호출은
+    하되 빈 응답으로 자연 스킵). 호출마다 upsert해서 중간에 실패해도 그때까지 진행분은 보존."""
     token = kis_client.get_token(appkey, appsecret)
     conn = db_schema.get_conn()
     collected = 0
@@ -293,7 +293,7 @@ def backfill_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd, target_day
     try:
         while collected < target_days and calendar_checked < max_calendar_days:
             calendar_checked += 1
-            if d.weekday() < 5:  # ��~�ݸ� ȣ��(��/�� ��ŵ)
+            if d.weekday() < 5:  # 월~금만 호출(토/일 스킵)
                 date_str = d.strftime('%Y%m%d')
                 row = None
                 try:
@@ -311,13 +311,13 @@ def backfill_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd, target_day
                  market_db, collected, calendar_checked)
 
 
-_FORCE_KIS_REBACKFILL = False  # 2026-07-21: �ڽ��� �����ڵ�(0001->1001) ������ �̹� �����
-# �߸���(���� 0) ���� �����Ϳ��� �ݿ��Ϸ��� 1ȸ True�� ������ ����� �Ϸᡤ���̺� Ȯ�ε� - ����.
+_FORCE_KIS_REBACKFILL = False  # 2026-07-21: 코스닥 업종코드(0001->1001) 수정을 이미 저장된
+# 잘못된(전부 0) 백필 데이터에도 반영하려고 1회 True로 배포해 재백필 완료·라이브 확인됨 - 원복.
 
 
 def _ensure_kis_backfill(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
-    """�̹� ����� �׿�������(����� ��) ������ �ǳʶڴ� - �Ź� 130��ȸ ȣ���� ����.
-    _FORCE_KIS_REBACKFILL=True�� ������ �ǳʶ��� �ʰ� �׻� �����."""
+    """이미 충분히 쌓여있으면(재시작 등) 백필을 건너뛴다 - 매번 130여회 호출은 낭비.
+    _FORCE_KIS_REBACKFILL=True인 동안은 건너뛰지 않고 항상 재백필."""
     if not _FORCE_KIS_REBACKFILL:
         conn = db_schema.get_conn()
         try:
@@ -331,7 +331,7 @@ def _ensure_kis_backfill(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
 
 
 def refresh_recent_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
-    """1�� ������ - ���� �Ϸ�ġ�� ����ȸ(���� �� ����)."""
+    """1분 폴링용 - 오늘 하루치만 재조회(장중 값 갱신)."""
     token = kis_client.get_token(appkey, appsecret)
     date_str = _today_bizdate()
     row = fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd, kis_inds_cd)
@@ -351,13 +351,13 @@ def refresh_recent_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
         conn.close()
 
 
-# ---- Ű��(3��, "����"��) - ka10051 �����������ڼ��ż��� "����" �� ----
+# ---- 키움(3차, "오늘"만) - ka10051 업종별투자자순매수의 "종합" 행 ----
 
 def fetch_kiwoom_today(appkey, secretkey, mrkt_tp='0'):
-    """ka10051�� ��¥ �Ķ���Ͱ� ���� ����/�ֱ� Ȯ�� �������� �ش� - "����" ����.
-    stex_tp=3(���� KRX+NXT)�� �� ������Ʈ ����(market_rank.py, kis_client.py ��).
-    mrkt_tp='0'(�ڽ���)/'1'(�ڽ���) - ������ ù ���� �׻� "����"(mrkt_tp=0�� ��
-    inds_cd="001_AL" "����(KOSPI)"�� ���� Ȯ��, �ڽ��ڵ� ���� ��ġ�� ������ ����)."""
+    """ka10051은 날짜 파라미터가 없어 현재/최근 확정 스냅샷만 준다 - "오늘" 전용.
+    stex_tp=3(통합 KRX+NXT)이 이 프로젝트 관례(market_rank.py, kis_client.py 등).
+    mrkt_tp='0'(코스피)/'1'(코스닥) - 응답의 첫 행이 항상 "종합"(mrkt_tp=0일 때
+    inds_cd="001_AL" "종합(KOSPI)"로 실측 확인, 코스닥도 같은 위치일 것으로 가정)."""
     token = kiwoom_client.get_token(appkey, secretkey)
     res = kiwoom_client.call_tr(token, 'ka10051', '/api/dostk/sect', {
         'mrkt_tp': mrkt_tp,
@@ -366,7 +366,7 @@ def fetch_kiwoom_today(appkey, secretkey, mrkt_tp='0'):
     })
     rows = res.get('inds_netprps') or []
     if not rows:
-        logger.warning('investor_trend: ka10051(mrkt_tp=%s) ������ ������� - return_code=%s',
+        logger.warning('investor_trend: ka10051(mrkt_tp=%s) 응답이 비어있음 - return_code=%s',
                         mrkt_tp, res.get('return_code'))
         return None
     top_row = rows[0]
@@ -386,7 +386,7 @@ def fetch_kiwoom_today(appkey, secretkey, mrkt_tp='0'):
 
 
 def refresh_recent_kiwoom(appkey, secretkey, market_db, mrkt_tp):
-    """1�� ������ - "����" �ุ Ű������ �����(���� ���� KIS/���̹� ���� �״�� ����)."""
+    """1분 폴링용 - "오늘" 행만 키움으로 덮어쓴다(과거 행은 KIS/네이버 백필 그대로 유지)."""
     row = fetch_kiwoom_today(appkey, secretkey, mrkt_tp)
     if not row:
         return
@@ -399,7 +399,7 @@ def refresh_recent_kiwoom(appkey, secretkey, market_db, mrkt_tp):
         conn.close()
 
 
-# ---- ��/��/�� ���� - rows�� ��������(��¥��) [{date, ind, frgn, orgn}, ...] ���� ----
+# ---- 일/주/월 집계 - rows는 오름차순(날짜순) [{date, ind, frgn, orgn}, ...] 가정 ----
 
 def bucket_daily(rows, count=10):
     rows = rows[-count:]
@@ -417,7 +417,7 @@ def _week_monday(date_str):
 def _week_label(monday_str):
     d = datetime.strptime(monday_str, '%Y%m%d')
     week_of_month = (d.day - 1) // 7 + 1
-    return '%d�� %d��' % (d.month, week_of_month)
+    return '%d월 %d주' % (d.month, week_of_month)
 
 
 def bucket_weekly(rows, count=5):
@@ -515,7 +515,7 @@ def get_intraday_result(market=DEFAULT_MARKET, now=None):
     low = min(rows, key=lambda r: r['low']) if rows else None
     return {'period': 'intraday', 'market': market, 'date': _iso_date(date),
             'intervalMinutes': 30, 'sessionStart': '09:00', 'sessionEnd': '15:30', 'slotCount': 14,
-            'source': 'KIS FHPTJ04040000', 'basis': '���� �ð� ���� ���� ���ż�',
+            'source': 'KIS FHPTJ04040000', 'basis': '수집 시각 기준 누적 순매수',
             'state': 'ok' if rows else 'no_samples', 'rows': rows, 'latest': latest,
             'asOf': rows[-1]['asOf'] if rows else fallback['updated_at'] if fallback else None,
             'extrema': {'high': {'value': high['high'], 'slot': high['slot']} if high else None,
@@ -523,8 +523,8 @@ def get_intraday_result(market=DEFAULT_MARKET, now=None):
 
 
 def get_result(period, market=DEFAULT_MARKET):
-    """main.py�� /investor-trend�� ȣ�� - DB�� ���� ĳ�ø� �д´�(�ǽð� ȣ�� ����).
-    market: MARKETS�� Ű('kospi'/'kosdaq', �ҹ���) - �𸣴� ���̸� �⺻ �ڽ��Ƿ� ó��."""
+    """main.py의 /investor-trend가 호출 - DB에 쌓인 캐시만 읽는다(실시간 호출 없음).
+    market: MARKETS의 키('kospi'/'kosdaq', 소문자) - 모르는 값이면 기본 코스피로 처리."""
     if period == 'intraday':
         return get_intraday_result(market)
     fn = PERIOD_BUCKETS.get(period)
@@ -541,7 +541,7 @@ def get_result(period, market=DEFAULT_MARKET):
 
 
 def _refresh_recent_chain(market_cfg, has_kis, kis_appkey, kis_appsecret):
-    """"����" ���� KIS(FHPTJ04040000)�θ� �����Ѵ�."""
+    """"오늘" 행은 KIS(FHPTJ04040000)로만 갱신한다."""
     market_db = market_cfg['db']
     if not has_kis:
         logger.warning('investor_trend[%s] KIS credentials unavailable; keeping existing KIS cache', market_db)
@@ -553,7 +553,7 @@ def _refresh_recent_chain(market_cfg, has_kis, kis_appkey, kis_appsecret):
 
 
 def _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appkey, kiwoom_secretkey, state):
-    """���� �ϳ��� ���� KIS �ʱ� ����(1ȸ) + "����" ����(�� tick)."""
+    """시장 하나에 대한 KIS 초기 백필(1회) + "오늘" 갱신(매 tick)."""
     has_kis = bool(kis_appkey and kis_appsecret)
     market_db = market_cfg['db']
 
@@ -567,7 +567,7 @@ def _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appke
             logger.warning('investor_trend[%s] KIS credentials unavailable; backfill skipped', market_db)
         state['backfilled'] = True
 
-    # �̷¡����� ���� Ȯ��(���μ��� ���� �� 1ȸ, ����� KIS 1ȸ ȣ��). �����ϸ� ���� tick ���� �ٽ� �õ��ϵ� �ִ� 5�������� �θ���(KIS �ѵ� ��ȣ).
+    # 이력·지수 종가 확보(프로세스 시작 뒤 1회, 시장당 KIS 1회 호출). 실패하면 다음 tick 에서 다시 시도하되 최대 5번까지만 부른다(KIS 한도 보호).
     if has_kis and not state.get('history_done') and state.get('history_tries', 0) < 5:
         state['history_tries'] = state.get('history_tries', 0) + 1
         try:
@@ -592,7 +592,7 @@ def _poll_loop(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, kiwoom_s
                               market_state[market_key])
             except Exception:
                 logger.exception('investor_trend[%s] poll tick failed', market_cfg['db'])
-        # 2026-09-15 ���� ����: ���� ���� ���� �ð����� "����" ���� �ٲ��� �����Ƿ� 15�и��ٸ�.
+        # 2026-09-15 부하 절감: 국내 장이 닫힌 시간에는 "오늘" 행이 바뀌지 않으므로 15분마다만.
         import market_clock
         time.sleep(market_clock.sleep_seconds(market_clock.kr_market_active(), _RECENT_POLL_SEC))
 
