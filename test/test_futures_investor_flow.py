@@ -10,7 +10,7 @@ class FuturesFlow(unittest.TestCase):
     def setUp(self):
         path = Path(__file__).resolve().parents[1] / 'scripts/cloud-vm/investor_trend.py'
         tree = ast.parse(path.read_text(encoding='utf-8'))
-        names = ('parse_futures_investors', 'get_futures_result')
+        names = ('parse_futures_investors', 'futures_activity_details', 'get_futures_result')
         self.clock = 1000
         self.calls = 0
         self.failure = False
@@ -39,6 +39,24 @@ class FuturesFlow(unittest.TestCase):
         row.update(frgn_shnu_vol='0', frgn_seln_vol='0', frgn_ntby_qty='0')
         self.assertEqual(parse(self.payload)['foreign']['net'], 0)
 
+    def test_whole_market_counts_require_other_and_balanced_sides(self):
+        get = self.env['get_futures_result']
+        self.assertIsNone(get('fixture', 'fixture')['totalContracts'])
+        row = self.payload['output'][0]
+        row.update(etc_corp_shnu_vol='1', etc_corp_seln_vol='7', etc_corp_ntby_vol='-6')
+        self.clock += 301
+        data = get('fixture', 'fixture')
+        self.assertEqual(data['totalContracts'], 37)
+        self.assertEqual(data['participants']['other']['net'], -6)
+        row.update(etc_corp_seln_vol='6', etc_corp_ntby_vol='-5')
+        self.clock += 301
+        self.assertIsNone(get('fixture', 'fixture')['totalContracts'])
+        row.update(etc_corp_shnu_vol='', etc_corp_ntby_vol='bad')
+        self.clock += 301
+        data = get('fixture', 'fixture')
+        self.assertTrue(data['available'])
+        self.assertIsNone(data['totalContracts'])
+
     def test_cache_throttle_and_stale_failure(self):
         get = self.env['get_futures_result']
         self.assertTrue(get('fixture', 'fixture')['available'])
@@ -54,3 +72,4 @@ class FuturesFlow(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

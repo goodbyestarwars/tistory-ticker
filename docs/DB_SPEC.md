@@ -714,3 +714,7 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 ## volume_power_observations (2026-11-14)
 
 기존 ohlc_snapshot.db의 체결강도 순위 연구 기록. `session TEXT`, `slot INTEGER`(장중 분÷5×5), `observed_ts INTEGER`(종목판 `updated_at`), `rank INTEGER`, `code TEXT`, `name`, `price`, `change_rate`, `strength REAL NOT NULL`(KIS FHPST01680000 `tday_rltv`), `trade_amount`; PK(session,slot,code). 원천은 기존 `/market-board` 국내 KIS 응답의 `volumePowerStocks`(ETF·ETN·스팩 제외) 상위 30행이며 새 외부 호출·폴러는 없다. 한국 거래일 09:00~15:30 KST·조회 120초 이내만 저장, 같은 슬롯은 처음 값 유지(INSERT OR IGNORE), 결측·비정상 강도는 행 제외, 400일 보존. 종목판이 갱신될 때(방문 또는 기존 트래픽 연동 워머)만 기록하므로 빈 슬롯은 미관측이며 0이나 직전 값으로 채우지 않는다. KRX 순위값이며 NXT 통합·체결 스트리밍이 아니다. 주문·검색기 판정에 쓰지 않는 연구 자료다(`scripts/cloud-vm/volume_power_log.py`).
+
+## futures_flow_observations 계약 분해 (2026-11-17)
+
+기존 session/observed_ts PK 및 foreign_net/institution_net/individual_net을 보존하고 nullable details_json TEXT를 공통 create_schema/_ensure_column으로 추가한다. JSON은 검증된 participants{foreign,institution,individual,other?}{buy,sell,net} 및 totalContracts/totalStatus/totalBasis다. 현재 관측의 3주체 net과 일치할 때만 저장하며, 중복 관측 INSERT OR IGNORE·14일보존은 유지한다. 과거행은 NULL 그대로이며 매수/매도/전체계약을 순매수에서 소급 복원하지 않는다. 신규 수집/프로세스/주문 없음.

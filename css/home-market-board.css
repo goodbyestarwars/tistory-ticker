@@ -1,10 +1,10 @@
-/* 홈 「국내 시장」 위젯 개편 (2026-10-10) - Apple 홈페이지의 타이포그래피·여백 + 금융 리포트의 정보 밀도.
+/* Ȩ ������ ���塹 ���� ���� (2026-10-10) - Apple Ȩ�������� Ÿ�����׷��ǡ����� + ���� ����Ʈ�� ���� �е�.
  *
- * 범위: #homeMarketBoard.hmb2 안쪽만. 경제뉴스 안의 공시/일정 블록도 포함한다. 실시간 종목판과 휴장 배치는 유지한다.
- * 적용 순서(CSS 우선순위): style.css의 옛 규칙(body#tt-body-index .home-editorial-page ...)이 겹겹이 있어서, 여기서는
- *   `body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2`(id 포함)로 한 단계 더 높은 구체성을 쓴다.
- *   @layer np 안의 !important 몇 개(카드 border-image, 띠 margin-top, 머리말 min-height)만 파일 아래쪽 @layer np 블록에서 같은 !important로 덮는다.
- * 색: 상승 #d24f45 / 하락 #1261c4(다크 #ff8a83 / #80b8ff) 외에 새 장식색을 쓰지 않는다. 블록 재질·여백·부제목은 style.css의 공통 컴포넌트를 쓴다.
+ * ����: #homeMarketBoard.hmb2 ���ʸ�. �������� ���� ����/���� ���ϵ� �����Ѵ�. �ǽð� �����ǰ� ���� ��ġ�� �����Ѵ�.
+ * ���� ����(CSS �켱����): style.css�� �� ��Ģ(body#tt-body-index .home-editorial-page ...)�� ����� �־, ���⼭��
+ *   `body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2`(id ����)�� �� �ܰ� �� ���� ��ü���� ����.
+ *   @layer np ���� !important �� ��(ī�� border-image, �� margin-top, �Ӹ��� min-height)�� ���� �Ʒ��� @layer np ���Ͽ��� ���� !important�� ���´�.
+ * ��: ��� #d24f45 / �϶� #1261c4(��ũ #ff8a83 / #80b8ff) �ܿ� �� ��Ļ��� ���� �ʴ´�. ���� ���������顤�������� style.css�� ���� ������Ʈ�� ����.
  */
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-futures-pair) {
   --hmb-ink: rgb(var(--np-ink, 26, 26, 26));
@@ -27,7 +27,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   min-width: 0;
 }
 
-/* 국내·미국 시장 전환선과 같은 상단 줄에 두고, 카운트다운 외곽 박스는 쓰지 않는다. */
+/* �������̱� ���� ��ȯ���� ���� ��� �ٿ� �ΰ�, ī��Ʈ�ٿ� �ܰ� �ڽ��� ���� �ʴ´�. */
 body#tt-body-index .home-editorial-page .home-market-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   min-width: 0; margin: 0;
@@ -103,7 +103,7 @@ html.dark body#tt-body-index .home-editorial-page .hsc-separator { color: #9ba2a
   body#tt-body-index .home-editorial-page .hsc-digit.is-flipping .hsc-flap { animation-duration: .01ms !important; animation-delay: 0s !important; }
 }
 
-/* 홈 주요 세 영역 제목은 국내 시장 제목 크기를 기준으로 통일한다. */
+/* Ȩ �ֿ� �� ���� ������ ���� ���� ���� ũ�⸦ �������� �����Ѵ�. */
 @layer np {
   html body#tt-body-index .home-editorial-page #homeEconomicNews .hen-head strong,
   html body#tt-body-index .home-editorial-page #homeRealtimeBoard .hrt-head strong {
@@ -132,7 +132,7 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAu
 .home-market-overview { display: grid; gap: var(--ui-paragraph-gap); }
 .home-economic-content { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 
-/* ── A. 시장 개요 블록: 공통 부제목 · 갱신 시각 · 상태 ── */
+/* ���� A. ���� ���� ����: ���� ������ �� ���� �ð� �� ���� ���� */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-card-heading {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 0; margin: 0;
 }
@@ -148,7 +148,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-card-heading
   font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: #6b7280; white-space: nowrap; margin-left: 0; text-align: left; font-variant-numeric: tabular-nums;
 }
 html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-card-heading #hmbUpdated { color: var(--dk-sub); }
-/* 좁은 화면(2026-11-03): 제목 줄이 부제(nowrap)와 '선물(CME)' 라벨 때문에 카드보다 넓어져 라벨이 화면 밖으로 밀리고 페이지가 옆으로 늘어났다. 줄을 바꿔 카드 안에 가둔다. */
+/* ���� ȭ��(2026-11-03): ���� ���� ����(nowrap)�� '����(CME)' �� ������ ī�庸�� �о��� ���� ȭ�� ������ �и��� �������� ������ �þ��. ���� �ٲ� ī�� �ȿ� ���д�. */
 @media (max-width: 640px) {
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-card-heading { flex-wrap: wrap; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-card-heading #hmbUpdated { white-space: normal; }
@@ -160,7 +160,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-market-live 
   font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); letter-spacing: .02em;
 }
 
-/* ── B. 시장 핵심 상태: 큰 글자 위계만으로 읽는다(색 배경 없음) ── */
+/* ���� B. ���� �ٽ� ����: ū ���� ���踸���� �д´�(�� ��� ����) ���� */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-status { margin-top: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict {
   display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0;
@@ -212,7 +212,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-note { margin
 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmp-basis { grid-column: 1 / -1; order: 4; margin-top: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmp-basis[hidden] { display: none; }
-/* 거래량 게이지가 3개(미국: S&P 500·나스닥 종합·필라델피아 반도체)면 칸을 넓힌다(js/skin-main.js가 has-three-gauges를 붙임). 2개(국내)는 그대로. */
+/* �ŷ��� �������� 3��(�̱�: S&P 500�������� ���ա��ʶ��Ǿ� �ݵ�ü)�� ĭ�� ������(js/skin-main.js�� has-three-gauges�� ����). 2��(����)�� �״��. */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-three-gauges > .hmb2-participation { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth.has-three-gauges { grid-template-columns: max-content 176px minmax(0, 1fr); }
 @media (max-width: 600px) {
@@ -225,7 +225,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratio
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios dd { grid-column: 2; grid-row: 1; font-size: 12px; }
 }
 
-/* ── C. 지수 카드: 독립 박스 사이와 박스 안쪽 모두 공통 여백을 유지한다 ── */
+/* ���� C. ���� ī��: ���� �ڽ� ���̿� �ڽ� ���� ��� ���� ������ �����Ѵ� ���� */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ui-section-gap); margin-top: 0;
   padding: 0; border: 0;
@@ -250,7 +250,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .home-index-chart { margin-top: 8px; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .home-index-chart + .home-index-history-caption { margin-top: 10px; }
 
-/* ── E. 핵심 시장 지표: 공통 블록 안의 요약·시세 ── */
+/* ���� E. �ٽ� ���� ��ǥ: ���� ���� ���� ��ࡤ�ü� ���� */
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb-summary-head {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px;
   margin: 0; padding: 0; border: 0;
@@ -267,15 +267,15 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAu
   margin: 0; font: 600 14px/1.45 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums;
   overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; word-break: keep-all;
 }
-/* 한국 핵심지표 2개: 제목·값·차트·기준시각을 동일한 4행으로 정렬.
-   면적/막대는 제목 우측 공통 선택기만 소유하고 각 SVG에는 버튼·날짜 문구를 넣지 않는다. */
+/* �ѱ� �ٽ���ǥ 2��: ���񡤰�����Ʈ�����ؽð��� ������ 4������ ����.
+   ����/����� ���� ���� ���� ���ñ⸸ �����ϰ� �� SVG���� ��ư����¥ ������ ���� �ʴ´�. */
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb-summary-head .hmb-metric-controls {
   display: inline-flex; align-items: center; gap: 2px; font: 500 10px/1.3 var(--font-ui);
 }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb-summary-head .hmb-metric-controls[hidden] { display: none; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb-metric-controls > span { margin-right: 6px; white-space: nowrap; }
-/* 공통 면적/막대 세그먼트: 홈 KR/US 대표지수, 세션 가격, 투자자 수급, 원/달러·주간선물.
-   기존 봉 주기처럼 두 개의 직접 선택 버튼만 두어 화살표·중복 선택 문구를 제거한다. */
+/* ���� ����/���� ���׸�Ʈ: Ȩ KR/US ��ǥ����, ���� ����, ������ ����, ��/�޷����ְ�����.
+   ���� �� �ֱ�ó�� �� ���� ���� ���� ��ư�� �ξ� ȭ��ǥ���ߺ� ���� ������ �����Ѵ�. */
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-night-content, .home-futures-flow) .hmb-mode-segment {
   display: inline-flex; align-items: stretch; flex: 0 0 auto; gap: 2px;
 }
@@ -332,16 +332,16 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAu
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend .hmb-investor-trend-head { margin-bottom: 6px; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb2-core > [data-home-night-futures] { grid-column: 1 / -1; }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb2-core > [data-home-night-futures][hidden] { display: none; }
-/* 투자자 동향 */
+/* ������ ���� */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend { grid-column: 1 / -1; padding-top: 0; border-top: 0; }
-/* 2026-11-07 박스 제목이 '투자자 동향'이 되어 안쪽 같은 이름표는 화면에서 숨기고 목록 의미(dt)만 남긴다. */
+/* 2026-11-07 �ڽ� ������ '������ ����'�� �Ǿ� ���� ���� �̸�ǥ�� ȭ�鿡�� ����� ��� �ǹ�(dt)�� �����. */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head > dt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head dt { margin: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
-/* 원본 InvestorFlow(20거래일 누적)의 3주체 선·별도 지수 점선을 카드에 축소.
-   30분 선택 버튼과 겹치는 라벨을 제거하고 기존 투자자 차트의 70px 높이·2열 유지. */
+/* ���� InvestorFlow(20�ŷ��� ����)�� 3��ü �������� ���� ������ ī�忡 ���.
+   30�� ���� ��ư�� ��ġ�� ���� �����ϰ� ���� ������ ��Ʈ�� 70px ���̡�2�� ����. */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-legend {
   display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 3px 8px;
   color: var(--hmb-mute); font: 500 10px/1.3 var(--font-ui);
@@ -403,9 +403,9 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-acto
   display: inline-flex; gap: 3px; align-items: center; white-space: nowrap;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-name::before {
-  content: '●'; font-size: 8px; color: var(--hmb-mute);
+  content: '��'; font-size: 8px; color: var(--hmb-mute);
 }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-name.is-institution::before { content: '◇'; font-size: 11px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-name.is-institution::before { content: '��'; font-size: 11px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-actor-filter {
   display: inline-flex; align-items: stretch; gap: 1px; border: 1px solid var(--hmb-line);
   padding: 2px; background: transparent;
@@ -448,7 +448,7 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAu
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content, .home-futures-flow) .hmb-investor-axis { display: flex; justify-content: space-between; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content, .home-futures-flow) .hmb-investor-asof { margin-top: 6px; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content, .home-futures-flow) .hmb-investor-spark-empty { display: flex; align-items: center; justify-content: center; height: 90px; color: var(--hmb-mute); font: 400 12px/1.5 var(--font-ui, system-ui, sans-serif); }
-/* 이 카드는 고정 높이 70px: 뒤쪽 공통 90px 규칙을 정확하게 한 번만 덮는다. */
+/* �� ī��� ���� ���� 70px: ���� ���� 90px ��Ģ�� ��Ȯ�ϰ� �� ���� ���´�. */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { height: 70px; margin-top: 5px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-empty { height: 70px; }
 
@@ -456,15 +456,15 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spar
   body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content, .home-futures-flow) .hmb-investor-switch { min-width: 44px; min-height: 44px; }
 }
 
-/* ── F. 관심종목 주간 공시: 경제 종합뉴스 패널 상단, 기존 가로 이동·선택 기능은 그대로 ── */
+/* ���� F. �������� �ְ� ����: ���� ���մ��� �г� ���, ���� ���� �̵������� ����� �״�� ���� */
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures { margin: 0 0 var(--ui-section-gap); }
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
 body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
 
-/* ── G. 공통 지표 타일 (2026-11-04 미국시장 개편, 9Pay 지표 타일 표준) ──
- * .ui-kpi-grid / .ui-kpi-tile / .ui-kpi-top / .ui-kpi-value-row / .ui-kpi-source / .ui-kpi-empty 는 다른 화면도 재사용하는 공통 클래스다.
- * 색은 기존 토큰(--num-up/--num-down, 다크는 --dk-*)만 쓰고 상승 빨강·하락 파랑 의미색을 유지한다. */
+/* ���� G. ���� ��ǥ Ÿ�� (2026-11-04 �̱����� ����, 9Pay ��ǥ Ÿ�� ǥ��) ����
+ * .ui-kpi-grid / .ui-kpi-tile / .ui-kpi-top / .ui-kpi-value-row / .ui-kpi-source / .ui-kpi-empty �� �ٸ� ȭ�鵵 �����ϴ� ���� Ŭ������.
+ * ���� ���� ��ū(--num-up/--num-down, ��ũ�� --dk-*)�� ���� ��� �������϶� �Ķ� �ǹ̻��� �����Ѵ�. */
 body#tt-body-index .home-editorial-page :is(.home-night-content, #homeMarketAux, .home-futures-flow) {
   --hmb-ink: rgb(var(--np-ink, 26, 26, 26));
   --hmb-mute: rgba(var(--np-ink, 26, 26, 26), .56);
@@ -494,7 +494,7 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-c
 body#tt-body-index .home-editorial-page .home-night-content .home-positive { color: var(--num-up); }
 body#tt-body-index .home-editorial-page .home-night-content .home-negative { color: var(--num-down); }
 body#tt-body-index .home-editorial-page .home-night-content .home-neutral { color: var(--hmb-mute); }
-/* 주도·주의 업종: 시장 방향 바로 아래 */
+/* �ֵ������� ����: ���� ���� �ٷ� �Ʒ� */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-rotation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hmb-line); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-rot-col > strong { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-rot-col > strong small { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
@@ -510,7 +510,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar::before {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-up { left: 50%; border-radius: 0 4px 4px 0; background: var(--chart-fill-up); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-bar i.is-down { right: 50%; border-radius: 4px 0 0 4px; background: var(--chart-fill-down); }
-/* 글로벌 지수: 기존 4종을 반복 카드가 아닌 시세 스트립으로 비교, 항목별 갱신시각 유지 */
+/* �۷ι� ����: ���� 4���� �ݺ� ī�尡 �ƴ� �ü� ��Ʈ������ ��, �׸� ���Žð� ���� */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl { display: block; margin-top: 12px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hgl-metrics .ui-kpi-tile { min-width: 0; padding: 2px 12px; border: 0; border-left: 1px solid var(--hmb-line); border-radius: 0; background: transparent; }
@@ -536,15 +536,15 @@ body#tt-body-index .home-editorial-page .home-night-content .home-index-chart { 
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hus-rotation { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* 미국 모드: 나스닥·S&P500·SOX 세 지수 카드를 한 줄에 둔다(모바일은 세로 한 열). */
+/* �̱� ���: �����ڡ�S&P500��SOX �� ���� ī�带 �� �ٿ� �д�(������� ���� �� ��). */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[hidden] { display: none; }
 @media (min-width: 561px) {
   body#tt-body-index .home-editorial-page.is-us-market #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  /* 세 카드의 현재가·등락률을 항상 두 줄로 고정해 차트·설명 가로줄이 카드마다 같은 높이에 놓이게 한다. */
+  /* �� ī���� ���簡��������� �׻� �� �ٷ� ������ ��Ʈ������ �������� ī�帶�� ���� ���̿� ���̰� �Ѵ�. */
   body#tt-body-index .home-editorial-page.is-us-market #homeMarketBoard.hmb2 .home-index-strip .home-index-price-row { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 2px; }
 }
 
-/* ── 반응형 ── */
+/* ���� ������ ���� */
 @media (max-width: 1100px) and (min-width: 721px) {
   body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb2-core { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb2-fx { grid-column: auto; }
@@ -557,7 +557,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-nums { grid-column: 2; }
 }
 @media (max-width: 420px) {
-  /* 좁은 화면에서는 한 줄에 2개를 억지로 넣지 않는다. 그래프의 56px 높이는 유지. */
+  /* ���� ȭ�鿡���� �� �ٿ� 2���� ������ ���� �ʴ´�. �׷����� 56px ���̴� ����. */
   body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) .hmb2-core { grid-template-columns: minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card,
@@ -566,7 +566,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-amounts { gap: 6px; }
 }
 
-/* style.css @layer np 안의 !important(카드 border-image·띠 margin-top·머리말 min-height)를 같은 층에서 덮는다. */
+/* style.css @layer np ���� !important(ī�� border-image���� margin-top���Ӹ��� min-height)�� ���� ������ ���´�. */
 @layer np {
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card { border-image: none !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip { margin-top: 0 !important; border-image: none !important; }
@@ -576,7 +576,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
 }
 
 @layer np {
-  /* 옛 규칙의 글꼴·높이 !important를 같은 층에서 덮는다(제목·시장 방향 글꼴, 칸 최소 높이). */
+  /* �� ��Ģ�� �۲á����� !important�� ���� ������ ���´�(���񡤽��� ���� �۲�, ĭ �ּ� ����). */
   html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row :is(strong, em).home-positive { color: var(--num-up) !important; }
   html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row :is(strong, em).home-negative { color: var(--num-down) !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction dd {
@@ -586,7 +586,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card[h
   body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAux, .home-futures-pair) :is(.hmb2-verdict, .hmb2-core) > div { min-height: 0 !important; padding: 0 !important; border: 0 !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > .hmb-investor-trend { border-top: 0 !important; padding-top: 0 !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row { justify-content: flex-start !important; }
-  /* 왼쪽 위젯 높이가 바뀌어도 경제뉴스 카드 안의 목록이 남는 높이를 채우도록만 맞춘다(뉴스 항목 디자인·데이터는 그대로). */
+  /* ���� ���� ���̰� �ٲ� �������� ī�� ���� ����� ���� ���̸� ä�쵵�ϸ� �����(���� �׸� �����Ρ������ʹ� �״��). */
   body#tt-body-index .home-editorial-page #homeEconomicNews { display: flex !important; flex-direction: column !important; }
   body#tt-body-index .home-editorial-page #homeEconomicNews .hen-list { flex: 1 1 auto !important; min-height: 0 !important; max-height: none !important; height: auto !important; overflow-y: auto !important; }
 }
@@ -596,7 +596,7 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAu
 html.dark .home-chart-axis { fill: #a5adb7; }
 
 
-/* ── 2026-10-15 시장 변동성 모니터(CB·사이드카·VI): '시장 방향' 오른쪽 빈 공간. 제목만 MaruBuri, 나머지는 Pretendard(--font-ui). 발동 상태만 색을 쓴다. ── */
+/* ���� 2026-10-15 ���� ������ �����(CB�����̵�ī��VI): '���� ����' ������ �� ����. ���� MaruBuri, �������� Pretendard(--font-ui). �ߵ� ���¸� ���� ����. ���� */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-status { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { flex: 0 1 auto; min-width: 0; }
 .vol-monitor { position: relative; display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; flex: 1 1 320px; max-width: 480px; margin-left: auto; font-family: var(--font-ui, "Pretendard Variable", "Pretendard", system-ui, sans-serif); font-variant-numeric: tabular-nums; }
@@ -644,21 +644,21 @@ body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, #homeMarketAu
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content, .home-futures-flow) .hmb-price-controls { display:flex; align-items:center; justify-content:flex-end; gap:5px; color:var(--hmb-mute); font:400 11px/1.4 var(--font-ui,system-ui,sans-serif); }
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-night-content, .home-futures-flow) .hmb-price-controls > span:first-child { margin-right:auto; }
 
-/* 2026-10-20 관심종목 공시 수동 넘김(이전/다음) */
+/* 2026-10-20 �������� ���� ���� �ѱ�(����/����) */
 .home-disclosure-nav { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
 .home-disclosure-nav[hidden] { display: none; }
 .home-disclosure-nav button { width: 26px; height: 26px; padding: 0; border: 1px solid var(--hmb-line, #e2e8f0); border-radius: 2px; background: transparent; color: inherit; font: 600 15px/1 var(--font-ui, system-ui, sans-serif); cursor: pointer; }
 .home-disclosure-nav small { min-width: 30px; text-align: center; color: var(--hmb-faint, #94a3b8); font: 500 11px/1 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
 .home-disclosure-nav button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 
-/* 국내·미국 공통: 상승 종목 비율 옆 가로 막대(상승=붉은색, 하락=푸른색, 기존 의미색) */
+/* �������̱� ����: ��� ���� ���� �� ���� ����(���=������, �϶�=Ǫ����, ���� �ǹ̻�) */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar { display: flex; flex: 0 0 120px; align-self: center; width: 120px; height: 8px; overflow: hidden; border-radius: 4px; background: rgba(var(--np-ink), .08); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar[hidden] { display: none !important; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar i { display: block; height: 100%; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up { background: color-mix(in srgb, var(--chart-fill-up) 55%, var(--hmb-up)); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: color-mix(in srgb, var(--chart-fill-down) 55%, var(--hmb-down)); }
 
-/* KOSPI200 야간선물 카드 축소(2026-11-04): 가격·등락·고저는 왼쪽, 30분 차트는 오른쪽에 나란히 두고 차트 높이를 줄인다. 고가·저가가 위에 있어 차트 아래 '관측 고점/저점' 줄은 숨긴다. */
+/* KOSPI200 �߰����� ī�� ���(2026-11-04): ���ݡ������������ ����, 30�� ��Ʈ�� �����ʿ� ������ �ΰ� ��Ʈ ���̸� ���δ�. ������������ ���� �־� ��Ʈ �Ʒ� '���� ����/����' ���� �����. */
 body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content:not([hidden]) { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); column-gap: 20px; align-items: start; }
 body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content > .hmb-summary-head { grid-column: 1 / -1; margin-bottom: 6px; }
 body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content > :is(.ui-kpi-value-row, .hnc-range) { grid-column: 1; }
@@ -692,3 +692,24 @@ body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hff-l
   body#tt-body-index .home-editorial-page .home-futures-pair { grid-template-columns:minmax(0,1fr); }
   body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux { order:-1; }
 }
+
+/* Time-by-time futures gross contracts, using existing investor colours and table tokens. */
+.home-futures-pair .hff-controls { flex-wrap:wrap; }
+.home-futures-pair .hff-legend { display:flex; flex-wrap:wrap; gap:6px 12px; font-size:11px; color:var(--hmb-mute); }
+.home-futures-pair .hff-actor-foreign { fill:var(--chart-fill-up); color:var(--num-up); }
+.home-futures-pair .hff-actor-institution { fill:var(--chart-fill-down); color:var(--num-down); }
+.home-futures-pair .hff-actor-individual { fill:color-mix(in srgb, #32846a 22%, var(--ui-surface)); color:#32846a; }
+.home-futures-pair .hff-activity-scroll { overflow:auto; max-height:280px; overscroll-behavior:contain; margin-top:10px; }
+.home-futures-pair .hff-activity-table { width:100%; min-width:560px; border-collapse:separate; border-spacing:0; font-variant-numeric:tabular-nums; color:var(--hmb-ink); font-size:11px; }
+.home-futures-pair .hff-activity-table caption { text-align:left; padding:4px 0 8px; color:var(--hmb-mute); font-size:11px; }
+.home-futures-pair .hff-activity-table th, .home-futures-pair .hff-activity-table td { padding:7px 8px; text-align:right; border-bottom:1px solid var(--ui-rule); white-space:nowrap; vertical-align:top; }
+.home-futures-pair .hff-activity-table th:first-child { text-align:left; }
+.home-futures-pair .hff-activity-table thead { position:sticky; top:0; z-index:2; background:var(--ui-surface); }
+.home-futures-pair .hff-activity-table td span, .home-futures-pair .hff-activity-table td b, .home-futures-pair .hff-activity-table th small { display:block; }
+.home-futures-pair .hff-activity-table th small { font-size:10px; font-weight:400; color:var(--hmb-mute); }
+.home-futures-pair .hff-activity-table .is-selected { background:var(--ui-accent-soft); }
+.home-futures-pair .hff-activity-table tfoot { position:sticky; bottom:0; background:var(--ui-surface); z-index:1; }
+.home-futures-pair .hff-activity-table tfoot td, .home-futures-pair .hff-activity-table tfoot th { border-top:1px solid var(--ui-rule); }
+.home-futures-pair .hff-activity-note { margin:8px 0; font-size:10px; line-height:1.5; color:var(--hmb-mute); }
+html.dark .home-futures-pair .hff-activity-table :is(thead,tfoot) { background:var(--dk-card); }
+

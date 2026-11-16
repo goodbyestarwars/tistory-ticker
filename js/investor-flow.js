@@ -1,18 +1,18 @@
-/* 투자자별 순매수 추이 + 고객예탁금·신용잔고 흐름 (시장지표 > 국내 시장지표 02·03, 2026-10-12)
+/* �����ں� ���ż� ���� + ������Ź�ݡ��ſ��ܰ� �帧 (������ǥ > ���� ������ǥ 02��03, 2026-10-12)
  *
- * InvestorFlow.mount(host)        - 02 투자자별 매매동향: 기간 누적 순매수 선(지수 겹쳐 보기 선택, 날짜별 툴팁에 당일·기간 누적), 하단 요약표,
- *                                   투자자별 규칙 기반 요약
- *                                   (2026-10-16: 일별·주간·월간 순매수 막대 그래프는 제거했다. 일별 수치는 누적 선 툴팁과 요약표에서 본다.)
- * InvestorFlow.mountBalance(host) - 03 증시자금: 고객예탁금·신용잔고 추이·5/20거래일 변화·20일 평균 대비·규칙 기반 해설
- * (처음엔 '04 국내 증시 자금 흐름'이라는 독립 구역이었으나, 02와 같은 순매수 데이터를 다뤄 02로 합쳤다.)
+ * InvestorFlow.mount(host)        - 02 �����ں� �Ÿŵ���: �Ⱓ ���� ���ż� ��(���� ���� ���� ����, ��¥�� ������ ���ϡ��Ⱓ ����), �ϴ� ���ǥ,
+ *                                   �����ں� ��Ģ ��� ���
+ *                                   (2026-10-16: �Ϻ����ְ������� ���ż� ���� �׷����� �����ߴ�. �Ϻ� ��ġ�� ���� �� ������ ���ǥ���� ����.)
+ * InvestorFlow.mountBalance(host) - 03 �����ڱ�: ������Ź�ݡ��ſ��ܰ� ���̡�5/20�ŷ��� ��ȭ��20�� ��� ��񡤱�Ģ ��� �ؼ�
+ * (ó���� '04 ���� ���� �ڱ� �帧'�̶�� ���� �����̾�����, 02�� ���� ���ż� �����͸� �ٷ� 02�� ���ƴ�.)
  *
- * 데이터
- *  - 투자자별: VM `GET /investor-trend/history?market=kospi|kosdaq&days=300` (KIS 시장별 투자자매매동향(일별) FHPTJ04040000이 SQLite에 쌓은 값,
- *    단위 억원, 거래일만, 날짜 오름차순). 외국인은 등록 외국인 순매수 기준이다. 이 원자료에는 **순매수만** 있어 총매수·총매도는 지원하지 않는다
- *    (순매수에서 거꾸로 계산하지 않는다).
- *  - 고객예탁금·신용잔고: 부모 모듈(js/domestic-market-indicators.js)이 이미 받은 `funds.series`를 그대로 넘겨 받는다(추가 요청 없음).
- * 표현 원칙: 투자자별 순매수는 시장 안에서 주체별 매매 우위를 보여 주는 자료이며 시장 전체의 신규 자금 유입액이 아니다. 요약은 정해진 계산 규칙의
- * 서술일 뿐 매수·매도 추천이나 점수·판정이 아니다.
+ * ������
+ *  - �����ں�: VM `GET /investor-trend/history?market=kospi|kosdaq&days=300` (KIS ���庰 �����ڸŸŵ���(�Ϻ�) FHPTJ04040000�� SQLite�� ���� ��,
+ *    ���� ���, �ŷ��ϸ�, ��¥ ��������). �ܱ����� ��� �ܱ��� ���ż� �����̴�. �� ���ڷῡ�� **���ż���** �־� �Ѹż����Ѹŵ��� �������� �ʴ´�
+ *    (���ż����� �Ųٷ� ������� �ʴ´�).
+ *  - ������Ź�ݡ��ſ��ܰ�: �θ� ���(js/domestic-market-indicators.js)�� �̹� ���� `funds.series`�� �״�� �Ѱ� �޴´�(�߰� ��û ����).
+ * ǥ�� ��Ģ: �����ں� ���ż��� ���� �ȿ��� ��ü�� �Ÿ� ������ ���� �ִ� �ڷ��̸� ���� ��ü�� �ű� �ڱ� ���Ծ��� �ƴϴ�. ����� ������ ��� ��Ģ��
+ * ������ �� �ż����ŵ� ��õ�̳� ������������ �ƴϴ�.
  */
 (function (global) {
   'use strict';
@@ -20,19 +20,19 @@
   var API = global.INVESTOR_FLOW_API_BASE || 'https://goodbyestar.cloud';
   var HISTORY_DAYS = 300;
   var TTL_MS = 5 * 60 * 1000;
-  var PERIODS = [{ key: 'w', label: '1주', n: 5 }, { key: 'm', label: '1개월', n: 20 }, { key: 'q', label: '3개월', n: 60 }, { key: 'y', label: '1년', n: 250 }];
+  var PERIODS = [{ key: 'w', label: '1��', n: 5 }, { key: 'm', label: '1����', n: 20 }, { key: 'q', label: '3����', n: 60 }, { key: 'y', label: '1��', n: 250 }];
   var INVESTORS = [
-    { key: 'foreign', label: '외국인', color: 'var(--mi-inv-foreign, #D94F45)' },
-    { key: 'institution', label: '기관', color: 'var(--mi-inv-inst, #3273C8)' },
-    { key: 'individual', label: '개인', color: 'var(--mi-inv-indiv, #168B70)' }
+    { key: 'foreign', label: '�ܱ���', color: 'var(--mi-inv-foreign, #D94F45)' },
+    { key: 'institution', label: '���', color: 'var(--mi-inv-inst, #3273C8)' },
+    { key: 'individual', label: '����', color: 'var(--mi-inv-indiv, #168B70)' }
   ];
   var MARKETS = [{ key: 'kospi', label: 'KOSPI' }, { key: 'kosdaq', label: 'KOSDAQ' }];
-  var TREND_PCT = 1.0;      // 20거래일 변화율이 이 값(%) 이상이면 증가 추세, 이하(음수)면 감소 추세, 안쪽이면 보합권
-  var STREAK_MIN = 5;       // 문장에서 '연속'을 언급하는 최소 거래일 수
+  var TREND_PCT = 1.0;      // 20�ŷ��� ��ȭ���� �� ��(%) �̻��̸� ���� �߼�, ����(����)�� ���� �߼�, �����̸� ���ձ�
+  var STREAK_MIN = 5;       // ���忡�� '����'�� ����ϴ� �ּ� �ŷ��� ��
 
   function esc(value) { return global.NineUI.escapeHtml(value); }
 
-  /* ───────────── 계산(순수 함수, 테스트 대상) ───────────── */
+  /* �������������������������� ���(���� �Լ�, �׽�Ʈ ���) �������������������������� */
   function fmtEok(v, signed) { return global.IndicatorBoard ? global.IndicatorBoard.util.fmtEok(v, signed) : String(v); }
 
   function lastRows(rows, n) { return rows.slice(Math.max(0, rows.length - n)); }
@@ -43,15 +43,15 @@
     return total;
   }
 
-  /* 기간 누적: 기간 직전 거래일을 시작점(0)으로 두고 그날부터 순매수를 더해 간다. 직전 거래일 자료가 없으면 '기간 시작'(0)을 앞에 둔다.
-     같은 길이의 지수 종가(보조 축용)를 함께 만든다. */
+  /* �Ⱓ ����: �Ⱓ ���� �ŷ����� ������(0)���� �ΰ� �׳����� ���ż��� ���� ����. ���� �ŷ��� �ڷᰡ ������ '�Ⱓ ����'(0)�� �տ� �д�.
+     ���� ������ ���� ����(���� ���)�� �Բ� �����. */
   function cumulative(rows, n) {
     var take = lastRows(rows, n);
     var before = rows.length > take.length ? rows[rows.length - take.length - 1] : null;
-    var dates = [before ? before.date : '기간 시작'];
+    var dates = [before ? before.date : '�Ⱓ ����'];
     var index = [before && before.indexClose != null ? before.indexClose : null];
     var out = {}, daily = {};
-    INVESTORS.forEach(function (inv) { out[inv.key] = [0]; daily[inv.key] = [null]; });   // 기준점(0)에는 '당일' 값이 없다
+    INVESTORS.forEach(function (inv) { out[inv.key] = [0]; daily[inv.key] = [null]; });   // ������(0)���� '����' ���� ����
     take.forEach(function (r) {
       dates.push(r.date);
       index.push(r.indexClose != null ? r.indexClose : null);
@@ -64,7 +64,7 @@
     return { dates: dates, series: out, daily: daily, index: index, days: take.length, hasBaselineDate: !!before };
   }
 
-  /* 끝에서부터 같은 부호가 이어진 거래일 수. sign: 1 순매수, -1 순매도, 0 값 없음 */
+  /* ���������� ���� ��ȣ�� �̾��� �ŷ��� ��. sign: 1 ���ż�, -1 ���ŵ�, 0 �� ���� */
   function streak(rows, key) {
     var sign = 0, days = 0;
     for (var i = rows.length - 1; i >= 0; i--) {
@@ -78,7 +78,7 @@
 
   function pctChange(now, before) { return before ? (now - before) / Math.abs(before) * 100 : null; }
 
-  /* 잔고형 시계열([[날짜, 값], ...] 오름차순)의 최근 5·20거래일 변화와 20거래일 평균 대비 */
+  /* �ܰ��� �ð迭([[��¥, ��], ...] ��������)�� �ֱ� 5��20�ŷ��� ��ȭ�� 20�ŷ��� ��� ��� */
   function balanceStats(points) {
     var n = points.length, out = { count: n, last: n ? points[n - 1][1] : null, lastDate: n ? points[n - 1][0] : null };
     function back(k) { return n > k ? points[n - 1 - k][1] : null; }
@@ -96,7 +96,7 @@
     return out;
   }
 
-  var TREND_TEXT = { up: '증가 추세', down: '감소 추세', flat: '보합권' };
+  var TREND_TEXT = { up: '���� �߼�', down: '���� �߼�', flat: '���ձ�' };
 
   function balanceSeries(funds, field) {
     var out = [];
@@ -106,7 +106,7 @@
         ? (raw != null && typeof raw === 'object' ? raw.loan_total : raw)
         : (raw && raw.investor_deposits);
       var date = String(row.date || '').slice(0, 10);
-      // null·빈 값은 0원이 아니라 '값 없음'이므로 건너뛴다(Number(null) === 0 이라 isFinite 만으로는 걸러지지 않는다).
+      // null���� ���� 0���� �ƴ϶� '�� ����'�̹Ƿ� �ǳʶڴ�(Number(null) === 0 �̶� isFinite �����δ� �ɷ����� �ʴ´�).
       if (!date || picked == null || picked === '') return;
       var value = Number(picked);
       if (isFinite(value)) out.push([date, value]);
@@ -118,7 +118,7 @@
   function round1(x) { return Math.round(x * 10) / 10; }
   function mmdd(iso) { return String(iso).slice(5).replace('-', '.'); }
 
-  /* 요약: 정해진 규칙으로만 만든다(추천·점수·판정 없음). 투자자 요약(02)과 잔고 요약(03)을 따로 만들고, summarize 는 둘을 이어 붙인 래퍼다. */
+  /* ���: ������ ��Ģ���θ� �����(��õ������������ ����). ������ ���(02)�� �ܰ� ���(03)�� ���� �����, summarize �� ���� �̾� ���� ���۴�. */
   function summarizeInvestors(rows, marketLabel) {
     var lines = [], sentences = [];
     var n20 = lastRows(rows, 20);
@@ -126,19 +126,19 @@
       var buyers = [], sellers = [];
       INVESTORS.forEach(function (inv) {
         var sum = sumOf(n20, inv.key);
-        lines.push({ label: inv.label, text: '최근 20거래일 ' + (sum >= 0 ? '순매수 ' : '순매도 ') + fmtEok(Math.abs(sum)), tone: sum > 0 ? 'up' : sum < 0 ? 'down' : '', sum: sum });
+        lines.push({ label: inv.label, text: '�ֱ� 20�ŷ��� ' + (sum >= 0 ? '���ż� ' : '���ŵ� ') + fmtEok(Math.abs(sum)), tone: sum > 0 ? 'up' : sum < 0 ? 'down' : '', sum: sum });
         (sum >= 0 ? buyers : sellers).push(inv.label);
       });
       var parts = [];
-      if (buyers.length) parts.push(buyers.join('·') + ' 순매수');
-      if (sellers.length) parts.push(sellers.join('·') + ' 순매도');
-      var s1 = marketLabel + ' 최근 20거래일 합계는 ' + parts.join(', ') + '입니다.';
+      if (buyers.length) parts.push(buyers.join('��') + ' ���ż�');
+      if (sellers.length) parts.push(sellers.join('��') + ' ���ŵ�');
+      var s1 = marketLabel + ' �ֱ� 20�ŷ��� �հ�� ' + parts.join(', ') + '�Դϴ�.';
       var best = null;
       INVESTORS.forEach(function (inv) { var st = streak(rows, inv.key); if (st.days >= STREAK_MIN && (!best || st.days > best.days)) best = { label: inv.label, days: st.days, sign: st.sign }; });
-      if (best) s1 += ' ' + best.label + ' ' + best.days + '거래일 연속 ' + (best.sign > 0 ? '순매수' : '순매도') + ' 중입니다.';
+      if (best) s1 += ' ' + best.label + ' ' + best.days + '�ŷ��� ���� ' + (best.sign > 0 ? '���ż�' : '���ŵ�') + ' ���Դϴ�.';
       sentences.push(s1);
     } else {
-      lines.push({ label: '투자자별', text: n20.length ? '확보된 거래일 ' + n20.length + '일(20일 미만)이라 요약하지 않습니다.' : '투자자별 자료가 없어 요약하지 않습니다.', tone: '' });
+      lines.push({ label: '�����ں�', text: n20.length ? 'Ȯ���� �ŷ��� ' + n20.length + '��(20�� �̸�)�̶� ������� �ʽ��ϴ�.' : '�����ں� �ڷᰡ ���� ������� �ʽ��ϴ�.', tone: '' });
     }
     return { lines: lines, sentences: sentences };
   }
@@ -146,22 +146,22 @@
   function summarizeBalances(deposits, credit) {
     var lines = [], sentences = [];
     function balanceLine(label, st) {
-      if (!st || st.pct20 == null) { lines.push({ label: label, text: '자료 부족(21거래일 미만)', tone: '' }); return; }
-      lines.push({ label: label, text: TREND_TEXT[st.trend] + ' (20거래일 ' + (st.pct20 > 0 ? '+' : '') + st.pct20.toFixed(1) + '%)', tone: st.trend === 'up' ? 'up' : st.trend === 'down' ? 'down' : '' });
+      if (!st || st.pct20 == null) { lines.push({ label: label, text: '�ڷ� ����(21�ŷ��� �̸�)', tone: '' }); return; }
+      lines.push({ label: label, text: TREND_TEXT[st.trend] + ' (20�ŷ��� ' + (st.pct20 > 0 ? '+' : '') + st.pct20.toFixed(1) + '%)', tone: st.trend === 'up' ? 'up' : st.trend === 'down' ? 'down' : '' });
     }
-    balanceLine('고객예탁금', deposits);
-    balanceLine('신용잔고', credit);
+    balanceLine('������Ź��', deposits);
+    balanceLine('�ſ��ܰ�', credit);
     if (deposits && credit && deposits.trend && credit.trend) {
       var d = deposits.trend, c = credit.trend, s2;
-      if (d === 'up' && c === 'up') s2 = '고객예탁금이 늘어 대기자금이 커지고 있고, 신용잔고도 함께 늘고 있어 레버리지 확대 여부를 살펴볼 필요가 있습니다.';
-      else if (d === 'up' && c === 'flat') s2 = '고객예탁금은 늘고 있고 신용잔고는 보합권이라 대기자금은 커지지만 차입 투자 확대는 뚜렷하지 않습니다.';
-      else if (d === 'up' && c === 'down') s2 = '고객예탁금은 늘고 신용잔고는 줄어 대기자금이 커지는 동안 차입 투자는 줄고 있습니다.';
-      else if (d === 'flat' && c === 'up') s2 = '고객예탁금은 보합권인데 신용잔고는 늘어 차입 투자 비중이 커지는지 살펴볼 필요가 있습니다.';
-      else if (d === 'flat' && c === 'flat') s2 = '고객예탁금과 신용잔고 모두 보합권입니다.';
-      else if (d === 'flat' && c === 'down') s2 = '고객예탁금은 보합권이고 신용잔고는 줄어 차입 투자가 줄고 있습니다.';
-      else if (d === 'down' && c === 'up') s2 = '고객예탁금은 줄었는데 신용잔고는 늘어, 대기자금은 줄고 차입 투자 비중은 커지는 모습입니다.';
-      else if (d === 'down' && c === 'flat') s2 = '고객예탁금은 줄었고 신용잔고는 보합권이라 대기자금이 줄어드는 흐름입니다.';
-      else s2 = '고객예탁금과 신용잔고가 모두 줄어 대기자금과 차입 투자가 함께 줄어드는 흐름입니다.';
+      if (d === 'up' && c === 'up') s2 = '������Ź���� �þ� ����ڱ��� Ŀ���� �ְ�, �ſ��ܰ��� �Բ� �ð� �־� �������� Ȯ�� ���θ� ���캼 �ʿ䰡 �ֽ��ϴ�.';
+      else if (d === 'up' && c === 'flat') s2 = '������Ź���� �ð� �ְ� �ſ��ܰ��� ���ձ��̶� ����ڱ��� Ŀ������ ���� ���� Ȯ��� �ѷ����� �ʽ��ϴ�.';
+      else if (d === 'up' && c === 'down') s2 = '������Ź���� �ð� �ſ��ܰ��� �پ� ����ڱ��� Ŀ���� ���� ���� ���ڴ� �ٰ� �ֽ��ϴ�.';
+      else if (d === 'flat' && c === 'up') s2 = '������Ź���� ���ձ��ε� �ſ��ܰ��� �þ� ���� ���� ������ Ŀ������ ���캼 �ʿ䰡 �ֽ��ϴ�.';
+      else if (d === 'flat' && c === 'flat') s2 = '������Ź�ݰ� �ſ��ܰ� ��� ���ձ��Դϴ�.';
+      else if (d === 'flat' && c === 'down') s2 = '������Ź���� ���ձ��̰� �ſ��ܰ��� �پ� ���� ���ڰ� �ٰ� �ֽ��ϴ�.';
+      else if (d === 'down' && c === 'up') s2 = '������Ź���� �پ��µ� �ſ��ܰ��� �þ�, ����ڱ��� �ٰ� ���� ���� ������ Ŀ���� ����Դϴ�.';
+      else if (d === 'down' && c === 'flat') s2 = '������Ź���� �پ��� �ſ��ܰ��� ���ձ��̶� ����ڱ��� �پ��� �帧�Դϴ�.';
+      else s2 = '������Ź�ݰ� �ſ��ܰ��� ��� �پ� ����ڱݰ� ���� ���ڰ� �Բ� �پ��� �帧�Դϴ�.';
       sentences.push(s2);
     }
     return { lines: lines, sentences: sentences };
@@ -172,8 +172,8 @@
     return { lines: a.lines.concat(b.lines), sentences: a.sentences.concat(b.sentences) };
   }
 
-  /* ───────────── 화면 ───────────── */
-  var NOTE_NET = '투자자별 순매수는 시장 안에서 투자 주체별 매매 우위를 보여 주는 자료입니다. 한 주체가 순매수한 만큼 다른 주체가 순매도(상대방)하므로, 순매수 금액을 시장 전체의 신규 자금 유입액으로 읽으면 안 됩니다. 개인·외국인·기관 세 주체의 합이 0이 아닌 것은 기타법인 등 나머지 주체가 있기 때문입니다.';
+  /* �������������������������� ȭ�� �������������������������� */
+  var NOTE_NET = '�����ں� ���ż��� ���� �ȿ��� ���� ��ü�� �Ÿ� ������ ���� �ִ� �ڷ��Դϴ�. �� ��ü�� ���ż��� ��ŭ �ٸ� ��ü�� ���ŵ�(����)�ϹǷ�, ���ż� �ݾ��� ���� ��ü�� �ű� �ڱ� ���Ծ����� ������ �� �˴ϴ�. ���Ρ��ܱ��Ρ���� �� ��ü�� ���� 0�� �ƴ� ���� ��Ÿ���� �� ������ ��ü�� �ֱ� �����Դϴ�.';
 
   function kstStamp(iso) {
     var t = Date.parse(iso);
@@ -185,23 +185,23 @@
   function marketOf(key) { return MARKETS.filter(function (m) { return m.key === key; })[0]; }
 
 
-  /* 누적 순매수 선 그래프 명세(IndicatorBoard.createChart 입력). 툴팁은 투자자마다 [당일 순매수 | 기간 누적]을 나란히 보이고,
-     기준점(누적 0)에는 당일 값이 없어 '-'로 두며 제목에 '누적 시작점'이라고 밝힌다. 지수 겹쳐 보기를 켜면 지수가 오른쪽 축 점선과 툴팁 한 줄로 나온다. */
+  /* ���� ���ż� �� �׷��� ����(IndicatorBoard.createChart �Է�). ������ �����ڸ��� [���� ���ż� | �Ⱓ ����]�� ������ ���̰�,
+     ������(���� 0)���� ���� ���� ���� '-'�� �θ� ���� '���� ������'�̶�� ������. ���� ���� ���⸦ �Ѹ� ������ ������ �� ������ ���� �� �ٷ� ���´�. */
   function lineSpec(cum, label, showIndex) {
     var IB = global.IndicatorBoard;
     var hasIndex = showIndex && cum.index.some(function (v) { return v != null; });
     return {
       type: 'lines', dates: cum.dates,
-      tipHeads: ['당일 순매수', '기간 누적'],
-      meta: cum.dates.map(function (d, i) { return i === 0 ? { tip: (cum.hasBaselineDate ? mmdd(d) + ' · ' : '') + '누적 시작점(0)' } : null; }),
-      series: INVESTORS.map(function (inv) { return { key: inv.key, label: inv.label, color: inv.color, fillColor: inv.key === 'foreign' ? 'var(--chart-fill-up)' : inv.key === 'institution' ? 'var(--chart-fill-down)' : inv.color, values: cum.series[inv.key], tipExtra: { label: '당일 순매수', values: cum.daily[inv.key] } }; }),
-      fmt: fmtEok, axisFmt: IB.util.fmtEokAxis, zero: true, ariaLabel: label + ' 투자자별 누적 순매수',
-      axisTitles: hasIndex ? { left: '누적 순매수(원)', right: label + ' 지수(포인트)' } : { left: '누적 순매수(원)' },
-      secondary: hasIndex ? { label: label + ' 지수', values: cum.index, fmt: function (v) { return IB.util.num(v, 2); }, axisFmt: function (v) { return IB.util.num(v, 0); } } : null
+      tipHeads: ['���� ���ż�', '�Ⱓ ����'],
+      meta: cum.dates.map(function (d, i) { return i === 0 ? { tip: (cum.hasBaselineDate ? mmdd(d) + ' �� ' : '') + '���� ������(0)' } : null; }),
+      series: INVESTORS.map(function (inv) { return { key: inv.key, label: inv.label, color: inv.color, fillColor: inv.key === 'foreign' ? 'var(--chart-fill-up)' : inv.key === 'institution' ? 'var(--chart-fill-down)' : inv.color, values: cum.series[inv.key], tipExtra: { label: '���� ���ż�', values: cum.daily[inv.key] } }; }),
+      fmt: fmtEok, axisFmt: IB.util.fmtEokAxis, zero: true, ariaLabel: label + ' �����ں� ���� ���ż�',
+      axisTitles: hasIndex ? { left: '���� ���ż�(��)', right: label + ' ����(����Ʈ)' } : { left: '���� ���ż�(��)' },
+      secondary: hasIndex ? { label: label + ' ����', values: cum.index, fmt: function (v) { return IB.util.num(v, 2); }, axisFmt: function (v) { return IB.util.num(v, 0); } } : null
     };
   }
 
-  /* 02 투자자별 매매동향 - 투자자별 순매수 추이(일별 막대 · 누적 선 · 실제 매수·매도 · 요약). 시장 전환·기간은 이 안의 모든 그래프·표가 같이 따른다. */
+  /* 02 �����ں� �Ÿŵ��� - �����ں� ���ż� ����(�Ϻ� ���� �� ���� �� �� ���� �ż����ŵ� �� ���). ���� ��ȯ���Ⱓ�� �� ���� ��� �׷�����ǥ�� ���� ������. */
   function mount(host, options) {
     var opts = options || {};
     var IB = global.IndicatorBoard;
@@ -217,21 +217,21 @@
     }
 
     host.innerHTML = '<div class="ibd ifl">'
-      + '<div class="mi-sub-title">투자자별 순매수 추이</div>'
-      + '<div class="mi-sub-cap">외국인·기관·개인의 순매수를 기간 누적 선으로 봅니다. 시장과 기간을 고르면 아래 그래프와 표가 모두 따라 바뀝니다. 그래프에 마우스를 올리면 그날의 당일 순매수와 기간 누적 순매수가 함께 나옵니다.</div>'
-      + '<div class="ifl-controls">' + seg('시장', MARKETS, 'kospi', 'data-if-market') + seg('기간', PERIODS, 'm', 'data-if-period')
+      + '<div class="mi-sub-title">�����ں� ���ż� ����</div>'
+      + '<div class="mi-sub-cap">�ܱ��Ρ������������ ���ż��� �Ⱓ ���� ������ ���ϴ�. ����� �Ⱓ�� ������ �Ʒ� �׷����� ǥ�� ��� ���� �ٲ�ϴ�. �׷����� ���콺�� �ø��� �׳��� ���� ���ż��� �Ⱓ ���� ���ż��� �Բ� ���ɴϴ�.</div>'
+      + '<div class="ifl-controls">' + seg('����', MARKETS, 'kospi', 'data-if-market') + seg('�Ⱓ', PERIODS, 'm', 'data-if-period')
       + '<span class="ifl-asof nt-stamp" data-if-asof></span></div>'
       + '<div class="ifl-state" data-if-state role="status" hidden></div>'
-      + '<section class="ifl-sec"><div class="ifl-sechead"><div class="mi-sub2-title">누적 순매수 추이</div>'
-      + '<label class="ifl-check"><input type="checkbox" data-if-index checked /> 지수 겹쳐 보기(오른쪽 축)</label></div>'
+      + '<section class="ifl-sec"><div class="ifl-sechead"><div class="mi-sub2-title">���� ���ż� ����</div>'
+      + '<label class="ifl-check"><input type="checkbox" data-if-index checked /> ���� ���� ����(������ ��)</label></div>'
       + '<div class="ifl-cap" data-if-linecap></div><div data-if-lines></div>'
-      + '<table class="ifl-table" data-if-cumtable><caption class="ibd-sr">투자자별 기간 누적 순매수</caption><thead><tr><th>투자자</th><th class="num">기간 누적 순매수</th><th class="num">최근 1일</th><th class="num">연속 일수</th></tr></thead><tbody></tbody></table>'
+      + '<table class="ifl-table" data-if-cumtable><caption class="ibd-sr">�����ں� �Ⱓ ���� ���ż�</caption><thead><tr><th>������</th><th class="num">�Ⱓ ���� ���ż�</th><th class="num">�ֱ� 1��</th><th class="num">���� �ϼ�</th></tr></thead><tbody></tbody></table>'
       + '<div class="ifl-note">' + esc(NOTE_NET) + '</div><div class="ifl-note" data-if-basis></div></section>'
-      + '<section class="ifl-sec ifl-summary"><div class="mi-sub2-title">투자자별 순매수 요약</div><div data-if-summary></div></section>'
+      + '<section class="ifl-sec ifl-summary"><div class="mi-sub2-title">�����ں� ���ż� ���</div><div data-if-summary></div></section>'
       + '</div>';
     var root = host.querySelector('.ifl');
     function q(sel) { return root.querySelector(sel); }
-    charts.lines = IB.createChart(q('[data-if-lines]'), { height: 240, emptyText: '선택한 기간의 자료가 없습니다.' });
+    charts.lines = IB.createChart(q('[data-if-lines]'), { height: 240, emptyText: '������ �Ⱓ�� �ڷᰡ �����ϴ�.' });
 
     function rowsOf() { var d = state.data[state.market]; return d && d.rows ? d.rows : []; }
 
@@ -246,22 +246,22 @@
         var on = p.key === state.period, short = rows.length && rows.length < p.n;
         b.classList.toggle('is-active', on); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
         b.disabled = !!short;
-        b.title = short ? '확보된 자료가 ' + rows.length + '거래일이라 선택할 수 없습니다' : (p.n + '거래일 기준');
+        b.title = short ? 'Ȯ���� �ڷᰡ ' + rows.length + '�ŷ����̶� ������ �� �����ϴ�' : (p.n + '�ŷ��� ����');
       });
     }
 
     function renderAsOf() {
       var d = state.data[state.market], el = q('[data-if-asof]');
       if (!d) { el.textContent = ''; return; }
-      el.textContent = ((window.NineTime && window.NineTime.asOf(d.latestDate)) || ('기준일 ' + (d.latestDate || '-'))) + ' · ' + ((window.NineTime && window.NineTime.updated(d.asOf)) || ('갱신 ' + kstStamp(d.asOf))) + ' · 자료 ' + d.count + '거래일(' + (d.from || '-') + ' ~ ' + (d.to || '-') + ')';
+      el.textContent = ((window.NineTime && window.NineTime.asOf(d.latestDate)) || ('������ ' + (d.latestDate || '-'))) + ' �� ' + ((window.NineTime && window.NineTime.updated(d.asOf)) || ('���� ' + kstStamp(d.asOf))) + ' �� �ڷ� ' + d.count + '�ŷ���(' + (d.from || '-') + ' ~ ' + (d.to || '-') + ')';
     }
 
     function renderState() {
       var el = q('[data-if-state]'), d = state.data[state.market], msgs = [];
-      if (state.error && !d) msgs.push('투자자별 순매수 자료를 불러오지 못했습니다. 잠시 후 다시 시도합니다.');
-      if (state.loading && !d) msgs.push('불러오는 중입니다.');
-      if (d && d.provisional) msgs.push('오늘 값은 장중 누적 또는 마감 직후 잠정치이며 마감 후 일부 고쳐질 수 있습니다.');
-      if (d && d.count < 20) msgs.push('확보된 자료가 ' + d.count + '거래일뿐이라 일부 기간은 선택할 수 없습니다.');
+      if (state.error && !d) msgs.push('�����ں� ���ż� �ڷḦ �ҷ����� ���߽��ϴ�. ��� �� �ٽ� �õ��մϴ�.');
+      if (state.loading && !d) msgs.push('�ҷ����� ���Դϴ�.');
+      if (d && d.provisional) msgs.push('���� ���� ���� ���� �Ǵ� ���� ���� ����ġ�̸� ���� �� �Ϻ� ������ �� �ֽ��ϴ�.');
+      if (d && d.count < 20) msgs.push('Ȯ���� �ڷᰡ ' + d.count + '�ŷ��ϻ��̶� �Ϻ� �Ⱓ�� ������ �� �����ϴ�.');
       el.hidden = !msgs.length; el.textContent = msgs.join(' ');
     }
 
@@ -269,8 +269,8 @@
       var rows = rowsOf(), p = periodOf(state.period);
       var cum = cumulative(rows, p.n);
       var label = marketOf(state.market).label;
-      q('[data-if-linecap]').textContent = '선택한 기간의 시작을 0으로 두고 거래일마다 순매수를 더한 값입니다. 기간을 바꾸면 그 기간 기준으로 다시 누적합니다. 마우스를 올리면 그날의 당일 순매수와 기간 누적 순매수를 함께 봅니다.' + (state.showIndex ? ' 진회색 점선은 ' + label + ' 지수입니다(오른쪽 축).' : '');
-      if (!cum.days) { charts.lines.update({ type: 'lines', dates: [], series: [], emptyText: '선택한 기간의 자료가 없습니다.' }); renderCumTable(rows, cum, p); return; }
+      q('[data-if-linecap]').textContent = '������ �Ⱓ�� ������ 0���� �ΰ� �ŷ��ϸ��� ���ż��� ���� ���Դϴ�. �Ⱓ�� �ٲٸ� �� �Ⱓ �������� �ٽ� �����մϴ�. ���콺�� �ø��� �׳��� ���� ���ż��� �Ⱓ ���� ���ż��� �Բ� ���ϴ�.' + (state.showIndex ? ' ��ȸ�� ������ ' + label + ' �����Դϴ�(������ ��).' : '');
+      if (!cum.days) { charts.lines.update({ type: 'lines', dates: [], series: [], emptyText: '������ �Ⱓ�� �ڷᰡ �����ϴ�.' }); renderCumTable(rows, cum, p); return; }
       charts.lines.update(lineSpec(cum, label, state.showIndex));
       renderCumTable(rows, cum, p);
     }
@@ -280,14 +280,14 @@
       body.innerHTML = INVESTORS.map(function (inv) {
         var arr = cum.series[inv.key], total = take.length ? arr[arr.length - 1] : null, st = streak(rows, inv.key);
         function cell(v, label) { return '<td class="num ' + (v > 0 ? 'up' : v < 0 ? 'down' : '') + '" data-label="' + label + '">' + (v == null ? '-' : esc(fmtEok(v, true))) + '</td>'; }
-        return '<tr><th scope="row"><i class="ibd-swatch" style="background:' + inv.color + '"></i> ' + inv.label + '</th>' + cell(total, '기간 누적 순매수') + cell(last ? Number(last[inv.key]) : null, '최근 1일')
-          + '<td class="num" data-label="연속 일수">' + (st.days ? st.days + '일 연속 ' + (st.sign > 0 ? '순매수' : '순매도') : '-') + '</td></tr>';
+        return '<tr><th scope="row"><i class="ibd-swatch" style="background:' + inv.color + '"></i> ' + inv.label + '</th>' + cell(total, '�Ⱓ ���� ���ż�') + cell(last ? Number(last[inv.key]) : null, '�ֱ� 1��')
+          + '<td class="num" data-label="���� �ϼ�">' + (st.days ? st.days + '�� ���� ' + (st.sign > 0 ? '���ż�' : '���ŵ�') : '-') + '</td></tr>';
       }).join('');
     }
 
     function renderBasis() {
       var d = state.data[state.market];
-      q('[data-if-basis]').textContent = d && d.foreignBasis ? '외국인은 ' + d.foreignBasis + ' 기준입니다. 이 자료에는 순매수만 있고 매수·매도 총액은 없습니다.' : '';
+      q('[data-if-basis]').textContent = d && d.foreignBasis ? '�ܱ����� ' + d.foreignBasis + ' �����Դϴ�. �� �ڷῡ�� ���ż��� �ְ� �ż����ŵ� �Ѿ��� �����ϴ�.' : '';
     }
 
     function renderSummary() {
@@ -295,7 +295,7 @@
       q('[data-if-summary]').innerHTML = '<ul class="ifl-lines">' + s.lines.map(function (l) {
         return '<li><span class="ifl-lk">' + esc(l.label) + '</span><span class="ifl-lv ' + (l.tone || '') + '">' + esc(l.text) + '</span></li>';
       }).join('') + '</ul>' + (s.sentences.length ? '<div class="ifl-sentence">' + s.sentences.map(esc).join(' ') + '</div>' : '')
-        + '<div class="ifl-note">위 문장은 정해진 계산 규칙(최근 20거래일 순매수 합계의 부호)으로 만든 자료 요약이며 매수·매도 추천이 아닙니다. 요약은 선택한 시장(' + esc(label) + ') 기준입니다.</div>';
+        + '<div class="ifl-note">�� ������ ������ ��� ��Ģ(�ֱ� 20�ŷ��� ���ż� �հ��� ��ȣ)���� ���� �ڷ� ����̸� �ż����ŵ� ��õ�� �ƴմϴ�. ����� ������ ����(' + esc(label) + ') �����Դϴ�.</div>';
     }
 
     function renderAll() {
@@ -328,7 +328,7 @@
 
     renderAll();
     load('kospi', true).then(function () {
-      // 기본 기간(1개월)이 확보된 자료보다 길면 가장 긴 선택 가능 기간으로 낮춘다.
+      // �⺻ �Ⱓ(1����)�� Ȯ���� �ڷẸ�� ��� ���� �� ���� ���� �Ⱓ���� �����.
       var rows = rowsOf(), cur = periodOf(state.period);
       if (rows.length && rows.length < cur.n) {
         var ok = PERIODS.filter(function (x) { return rows.length >= x.n; }).pop();
@@ -338,13 +338,13 @@
     timer = setInterval(function () { if (!document.hidden && document.body.contains(root) && root.offsetParent !== null) load(state.market, true); }, TTL_MS);
 
     return {
-      update: function () { /* 투자자별 자료는 자체 API 를 쓰므로 부모가 넘기는 funds 는 쓰지 않는다 */ },
+      update: function () { /* �����ں� �ڷ�� ��ü API �� ���Ƿ� �θ� �ѱ�� funds �� ���� �ʴ´� */ },
       redraw: function () { Object.keys(charts).forEach(function (k) { charts[k].redraw(); }); },
       destroy: function () { clearInterval(timer); Object.keys(charts).forEach(function (k) { charts[k].destroy(); }); }
     };
   }
 
-  /* 03 증시자금 - 고객예탁금·신용잔고 흐름(최근 값 · 5·20거래일 변화 · 20일 평균 대비 · 규칙 기반 해설). 부모가 넘기는 funds.series 만 쓴다. */
+  /* 03 �����ڱ� - ������Ź�ݡ��ſ��ܰ� �帧(�ֱ� �� �� 5��20�ŷ��� ��ȭ �� 20�� ��� ��� �� ��Ģ ��� �ؼ�). �θ� �ѱ�� funds.series �� ����. */
   var BALANCE_CHART_DAYS = 60;
 
   function mountBalance(host, options) {
@@ -352,18 +352,18 @@
     var IB = global.IndicatorBoard;
     var state = { funds: opts.funds || null };
     host.innerHTML = '<div class="ibd ifl ifl-bal">'
-      + '<div class="mi-sub-title">고객예탁금·신용잔고 흐름</div>'
-      + '<div class="mi-sub-cap">두 값은 개념이 달라 합치지 않습니다. 고객예탁금 증가는 대기자금 확대, 신용잔고 증가는 차입 투자 확대를 보는 참고 지표입니다. 그래프는 최근 ' + BALANCE_CHART_DAYS + '거래일이며 점선은 20거래일 평균입니다.</div>'
-      + '<div class="ifl-pair"><div><div class="ifl-minih">고객예탁금</div><div data-if-deposit></div></div><div><div class="ifl-minih">신용잔고</div><div data-if-credit></div></div></div>'
-      + '<table class="ifl-table" data-if-baltable><caption class="ibd-sr">고객예탁금·신용잔고 변화</caption><thead><tr><th>지표</th><th class="num">최근 값</th><th class="num">5거래일 변화</th><th class="num">20거래일 변화</th><th class="num">20일 평균 대비</th></tr></thead><tbody></tbody></table>'
+      + '<div class="mi-sub-title">������Ź�ݡ��ſ��ܰ� �帧</div>'
+      + '<div class="mi-sub-cap">�� ���� ������ �޶� ��ġ�� �ʽ��ϴ�. ������Ź�� ������ ����ڱ� Ȯ��, �ſ��ܰ� ������ ���� ���� Ȯ�븦 ���� ���� ��ǥ�Դϴ�. �׷����� �ֱ� ' + BALANCE_CHART_DAYS + '�ŷ����̸� ������ 20�ŷ��� ����Դϴ�.</div>'
+      + '<div class="ifl-pair"><div><div class="ifl-minih">������Ź��</div><div data-if-deposit></div></div><div><div class="ifl-minih">�ſ��ܰ�</div><div data-if-credit></div></div></div>'
+      + '<table class="ifl-table" data-if-baltable><caption class="ibd-sr">������Ź�ݡ��ſ��ܰ� ��ȭ</caption><thead><tr><th>��ǥ</th><th class="num">�ֱ� ��</th><th class="num">5�ŷ��� ��ȭ</th><th class="num">20�ŷ��� ��ȭ</th><th class="num">20�� ��� ���</th></tr></thead><tbody></tbody></table>'
       + '<div class="ifl-note" data-if-balnote></div>'
-      + '<div class="ifl-sec ifl-summary"><div class="mi-sub2-title">흐름 해설 (계산 규칙 기반)</div><div data-if-balsum></div></div>'
+      + '<div class="ifl-sec ifl-summary"><div class="mi-sub2-title">�帧 �ؼ� (��� ��Ģ ���)</div><div data-if-balsum></div></div>'
       + '</div>';
     var root = host.querySelector('.ifl');
     function q(sel) { return root.querySelector(sel); }
     var charts = {
-      deposit: IB.createChart(q('[data-if-deposit]'), { height: 170, emptyText: '고객예탁금 자료가 없습니다.' }),
-      credit: IB.createChart(q('[data-if-credit]'), { height: 170, emptyText: '신용잔고 자료가 없습니다.' })
+      deposit: IB.createChart(q('[data-if-deposit]'), { height: 170, emptyText: '������Ź�� �ڷᰡ �����ϴ�.' }),
+      credit: IB.createChart(q('[data-if-credit]'), { height: 170, emptyText: '�ſ��ܰ� �ڷᰡ �����ϴ�.' })
     };
 
     function render() {
@@ -371,12 +371,12 @@
       var deposits = balanceStats(depositPts), credit = balanceStats(creditPts);
       function chartSpec(points, label) {
         var take = points.slice(Math.max(0, points.length - BALANCE_CHART_DAYS));
-        var st = balanceStats(points), ref = st.avg20 != null ? [{ value: st.avg20, label: '20일 평균' }] : [];
+        var st = balanceStats(points), ref = st.avg20 != null ? [{ value: st.avg20, label: '20�� ���' }] : [];
         return { type: 'lines', dates: take.map(function (x) { return x[0]; }), series: [{ key: label, label: label, color: 'var(--ibd-num)', values: take.map(function (x) { return x[1]; }) }],
-          fmt: fmtEok, axisFmt: IB.util.fmtEokAxis, zero: false, refLines: ref, ariaLabel: label + ' 추이', emptyText: label + ' 자료가 없습니다.' };
+          fmt: fmtEok, axisFmt: IB.util.fmtEokAxis, zero: false, refLines: ref, ariaLabel: label + ' ����', emptyText: label + ' �ڷᰡ �����ϴ�.' };
       }
-      charts.deposit.update(chartSpec(depositPts, '고객예탁금'));
-      charts.credit.update(chartSpec(creditPts, '신용잔고'));
+      charts.deposit.update(chartSpec(depositPts, '������Ź��'));
+      charts.credit.update(chartSpec(creditPts, '�ſ��ܰ�'));
       function pctText(v) { return global.NineUI.signedPercent(v); }
       function chg(change, pct) {
         if (change == null) return '<td class="num">-</td>';
@@ -386,13 +386,13 @@
         return '<tr><th scope="row">' + label + '</th><td class="num">' + (st.last == null ? '-' : esc(fmtEok(st.last))) + '</td>' + chg(st.change5, st.pct5) + chg(st.change20, st.pct20)
           + '<td class="num ' + (st.vsAvg20Pct > 0 ? 'up' : st.vsAvg20Pct < 0 ? 'down' : '') + '">' + pctText(st.vsAvg20Pct) + '</td></tr>';
       }
-      q('[data-if-baltable] tbody').innerHTML = rowHtml('고객예탁금', deposits) + rowHtml('신용잔고', credit);
-      q('[data-if-balnote]').textContent = '변화율 ±' + TREND_PCT + '% 이내는 보합권으로 봅니다. 기준일 ' + (deposits.lastDate || '-') + ' · 자료 ' + deposits.count + '거래일(확보된 만큼만 계산).';
+      q('[data-if-baltable] tbody').innerHTML = rowHtml('������Ź��', deposits) + rowHtml('�ſ��ܰ�', credit);
+      q('[data-if-balnote]').textContent = '��ȭ�� ��' + TREND_PCT + '% �̳��� ���ձ����� ���ϴ�. ������ ' + (deposits.lastDate || '-') + ' �� �ڷ� ' + deposits.count + '�ŷ���(Ȯ���� ��ŭ�� ���).';
       var s = summarizeBalances(deposits, credit);
       q('[data-if-balsum]').innerHTML = '<ul class="ifl-lines">' + s.lines.map(function (l) {
         return '<li><span class="ifl-lk">' + esc(l.label) + '</span><span class="ifl-lv ' + (l.tone || '') + '">' + esc(l.text) + '</span></li>';
       }).join('') + '</ul>' + (s.sentences.length ? '<div class="ifl-sentence">' + s.sentences.map(esc).join(' ') + '</div>' : '')
-        + '<div class="ifl-note">위 문장은 정해진 계산 규칙(고객예탁금·신용잔고 20거래일 변화율 ±' + TREND_PCT + '%)으로 만든 자료 요약이며 매수·매도 추천이 아닙니다.</div>';
+        + '<div class="ifl-note">�� ������ ������ ��� ��Ģ(������Ź�ݡ��ſ��ܰ� 20�ŷ��� ��ȭ�� ��' + TREND_PCT + '%)���� ���� �ڷ� ����̸� �ż����ŵ� ��õ�� �ƴմϴ�.</div>';
     }
     render();
 
@@ -403,14 +403,14 @@
     };
   }
 
-  /* 홈 요약(작은 카드): 원본 '누적 순매수 추이'의 동일한 20거래일 누적 계산을 사용.
-     진입점 하나로 지수/시장별 차트 모두 그리며 대시보드에 계산식 복제 금지. */
+  /* Ȩ ���(���� ī��): ���� '���� ���ż� ����'�� ������ 20�ŷ��� ���� ����� ���.
+     ������ �ϳ��� ����/���庰 ��Ʈ ��� �׸��� ��ú��忡 ���� ���� ����. */
   function miniChart(rows, options) {
     var opts = options || {}, intraday = opts.period === 'intraday';
     var data = Array.isArray(rows) ? rows : [], cum;
     if (intraday) {
       data = intradayRows(data, opts.date);
-      if (!data.length) return '<div class="hmb-investor-spark-empty">장중 저장 관측값 없음</div>';
+      if (!data.length) return '<div class="hmb-investor-spark-empty">���� ���� ������ ����</div>';
       cum = {dates: data.map(function (r) { return slotLabel(r.slot); }), series: {}, index: [], days: 1};
       INVESTORS.forEach(function (inv, i) {
         cum.series[inv.key] = data.map(function (r) { return validAmount(r[['frgn','orgn','ind'][i]]) ? Number(r[['frgn','orgn','ind'][i]]) : null; });
@@ -420,11 +420,11 @@
         return r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.date || ''))
           && INVESTORS.every(function (i) { return validAmount(r[i.key]); });
       });
-      if (!data.length) return '<div class="hmb-investor-spark-empty">누적 수급 자료 없음</div>';
+      if (!data.length) return '<div class="hmb-investor-spark-empty">���� ���� �ڷ� ����</div>';
       cum = cumulative(data, opts.days || 20);
     }
     var n = cum.dates.length;
-    if (!intraday && n < 2) return '<div class="hmb-investor-spark-empty">누적 수급 자료 없음</div>';
+    if (!intraday && n < 2) return '<div class="hmb-investor-spark-empty">���� ���� �ڷ� ����</div>';
     var width = 240, height = 70, left = 3, right = width - 3, top = 5, bottom = height - 5;
     var amounts = [0];
     INVESTORS.forEach(function (inv) {
@@ -437,7 +437,7 @@
     function y(v) { return bottom - (v - min) / (max - min) * (bottom - top); }
     function fmt(v) {
       var a = Math.abs(v);
-      return (v > 0 ? '+' : v < 0 ? '-' : '') + (a >= 10000 ? (a / 10000).toFixed(2) + '조' : Math.round(a).toLocaleString('ko-KR') + '억');
+      return (v > 0 ? '+' : v < 0 ? '-' : '') + (a >= 10000 ? (a / 10000).toFixed(2) + '��' : Math.round(a).toLocaleString('ko-KR') + '��');
     }
     var svg = '<line x1="' + left + '" x2="' + right + '" y1="' + y(0).toFixed(2)
       + '" y2="' + y(0).toFixed(2) + '" stroke="var(--hmb-line, #e0e4e8)" stroke-width=".8" vector-effect="non-scaling-stroke"/>';
@@ -453,13 +453,13 @@
         if (g.length < 2) return;
         svg += '<polyline points="' + g.map(function (i) { return x(i).toFixed(2) + ',' + y(arr[i]).toFixed(2); }).join(' ')
           + '" fill="none" stroke="' + inv.color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke">'
-          + '<title>' + inv.label + ' 누적 ' + fmt(arr[g[g.length-1]]) + '</title></polyline>';
+          + '<title>' + inv.label + ' ���� ' + fmt(arr[g[g.length-1]]) + '</title></polyline>';
       });
       arr.forEach(function (v, i) {
         if (!validAmount(v)) return;
         // Isolated samples remain visible; never join missing slots or fields.
         if (intraday || i === n-1) svg += '<circle cx="' + x(i).toFixed(2) + '" cy="' + y(v).toFixed(2) + '" r="1.8" fill="' + inv.color + '"><title>'
-          + esc(cum.dates[i] + ' · ' + inv.label + ' 누적 ' + fmt(v)) + '</title></circle>';
+          + esc(cum.dates[i] + ' �� ' + inv.label + ' ���� ' + fmt(v)) + '</title></circle>';
       });
     });
     var indexes = cum.index.filter(function (v) { return v != null && isFinite(Number(v)); });
@@ -479,29 +479,29 @@
       paths.forEach(function (pts) {
         svg += '<polyline points="' + pts
           + '" fill="none" stroke="var(--hmb-mute, #808a96)" stroke-width="1.1" stroke-dasharray="3 3" opacity=".75" vector-effect="non-scaling-stroke">'
-          + '<title>' + esc(opts.market || '시장') + ' 지수(별도 축)</title></polyline>';
+          + '<title>' + esc(opts.market || '����') + ' ����(���� ��)</title></polyline>';
       });
     }
     var points = [];
     cum.dates.forEach(function (date, i) {
-      var tip = (intraday ? opts.date + ' · ' + date + ' KST 슬롯' : date) + '\n' + INVESTORS.map(function (inv) {
-        return inv.label + ' 누적 ' + (validAmount(cum.series[inv.key][i]) ? fmt(cum.series[inv.key][i]) : '미관측');
-      }).join(' · ');
-      if (intraday) tip += '\n실제 관측 ' + data[i].asOf;
-      else if (cum.index[i] != null && isFinite(cum.index[i])) tip += '\n지수 ' + Number(cum.index[i]).toLocaleString('ko-KR', {maximumFractionDigits:2}) + ' (별도 축)';
+      var tip = (intraday ? opts.date + ' �� ' + date + ' KST ����' : date) + '\n' + INVESTORS.map(function (inv) {
+        return inv.label + ' ���� ' + (validAmount(cum.series[inv.key][i]) ? fmt(cum.series[inv.key][i]) : '�̰���');
+      }).join(' �� ');
+      if (intraday) tip += '\n���� ���� ' + data[i].asOf;
+      else if (cum.index[i] != null && isFinite(cum.index[i])) tip += '\n���� ' + Number(cum.index[i]).toLocaleString('ko-KR', {maximumFractionDigits:2}) + ' (���� ��)';
       INVESTORS.forEach(function (inv) {
         var v = cum.series[inv.key][i];
         if (validAmount(v)) points.push([Math.round(x(i) / width * 10000) / 100, Math.round(y(v) / height * 10000) / 100, tip]);
       });
     });
     var first = cum.dates[0], last = cum.dates[n - 1];
-    var label = (opts.market || '시장') + (intraday ? ' ' + opts.date + ' 당일 30분 슬롯별 누적 순매수 (재합산 없음)' : ' 최근 ' + cum.days + '거래일 누적 순매수');
+    var label = (opts.market || '����') + (intraday ? ' ' + opts.date + ' ���� 30�� ���Ժ� ���� ���ż� (���ջ� ����)' : ' �ֱ� ' + cum.days + '�ŷ��� ���� ���ż�');
     return '<div class="hmb-investor-spark-wrap hmb-investor-mini-cumulative" data-hover-points="' + esc(JSON.stringify(points))
       + '"><svg class="hmb-investor-spark" viewBox="0 0 ' + width + ' ' + height
       + '" preserveAspectRatio="none" role="img" aria-label="' + esc(label) + '">'
       + svg + '</svg></div>'
       + (intraday ? '<div class="hmb-investor-mini-dates"><span>09:00</span><span>12:00</span><span>15:30</span></div>'
-        : '<div class="hmb-investor-mini-dates"><span>' + esc(first === '기간 시작' ? '누적 시작' : first.slice(5)) + '</span><span>' + esc(last.slice(5)) + '</span></div>');
+        : '<div class="hmb-investor-mini-dates"><span>' + esc(first === '�Ⱓ ����' ? '���� ����' : first.slice(5)) + '</span><span>' + esc(last.slice(5)) + '</span></div>');
   }
 
   function validAmount(v) { return v != null && v !== '' && typeof v !== 'boolean' && isFinite(Number(v)); }
@@ -529,16 +529,16 @@
   function miniBars(rows, options) {
     var opts = options || {}, contracts = opts.unit === 'contracts';
     var valid = contracts && opts.snapshot ? [opts.snapshot] : intradayRows(rows, opts.date);
-    if (!valid.length) return '<div class="hmb-investor-spark-empty">장중 저장 관측값 없음</div>';
+    if (!valid.length) return '<div class="hmb-investor-spark-empty">���� ���� ������ ����</div>';
     var last = valid[valid.length-1], fields = ['frgn','orgn','ind'];
     var maximum = Math.max(1, Number(opts.maxAbs) || 0);
     fields.forEach(function (key) { if (validAmount(last[key])) maximum = Math.max(maximum, Math.abs(Number(last[key]))); });
-    return '<div class="hmb-investor-bars" role="list" aria-label="' + esc((opts.market || '시장') + ' ' + (opts.date || '') + ' 당일 누적 순매수; 막대 길이는 ' + (contracts ? '절대계약수' : '절대금액')) + '">'
+    return '<div class="hmb-investor-bars" role="list" aria-label="' + esc((opts.market || '����') + ' ' + (opts.date || '') + ' ���� ���� ���ż�; ���� ���̴� ' + (contracts ? '�������' : '����ݾ�')) + '">'
       + INVESTORS.map(function (inv,i) {
         var raw = last[fields[i]], known = validAmount(raw), value = known ? Number(raw) : null;
         var width = known ? Math.min(100, Math.abs(value)/maximum*100) : 0;
-        var amount = known ? (value > 0 ? '+' : value < 0 ? '−' : '') + Math.round(Math.abs(value)).toLocaleString('ko-KR') + (contracts ? '계약' : '억') : '미관측';
-        var direction = known ? value > 0 ? '순매수' : value < 0 ? '순매도' : '보합' : '';
+        var amount = known ? (value > 0 ? '+' : value < 0 ? '?' : '') + Math.round(Math.abs(value)).toLocaleString('ko-KR') + (contracts ? '���' : '��') : '�̰���';
+        var direction = known ? value > 0 ? '���ż�' : value < 0 ? '���ŵ�' : '����' : '';
         return '<div class="hmb-investor-bar-row" role="listitem" style="--investor-color:' + inv.color + ';--investor-fill:' + (i === 0 ? 'var(--chart-fill-up)' : i === 1 ? 'var(--chart-fill-down)' : 'color-mix(in srgb, var(--investor-color) 13%, transparent)') + '">'
           + '<span class="hmb-investor-bar-name">' + inv.label + '</span>'
           + '<div class="hmb-investor-bar-track"><i aria-hidden="true" style="width:' + width.toFixed(2) + '%"></i>'
@@ -547,6 +547,18 @@
   }
 
   // Futures observations use server retrieval timestamps, never fabricated exchange ticks.
+
+  function futuresActivity(participants) {
+    var checked = {}, total = 0, sells = 0;
+    ['foreign','institution','individual','other'].forEach(function(key) {
+      var p = participants && participants[key], fields = p && [p.buy,p.sell,p.net];
+      if (!fields || !fields.every(function(v){return typeof v === 'number' && Number.isSafeInteger(v);}) || p.buy < 0 || p.sell < 0 || p.buy-p.sell !== p.net) return;
+      checked[key] = {buy:p.buy,sell:p.sell,net:p.net};
+      total += p.buy; sells += p.sell;
+    });
+    return {participants:checked,totalContracts:Object.keys(checked).length===4 && total===sells ? total : null};
+  }
+
   function futuresRows(rows, date) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) return [];
     var start = Date.parse(date + 'T08:45:00+09:00'), slots = {};
@@ -560,6 +572,17 @@
     out.forEach(function (r,i) {
       var before = out[i-1], continuous = before && r.slot === before.slot+1 && r.ts-before.ts <= 2400;
       r.previousTs = continuous ? before.ts : null;
+      r.activity = futuresActivity(r.participants);
+      r.activityDelta = {participants:{},totalContracts:null};
+      if (continuous) {
+        var deltas = {};
+        ['foreign','institution','individual','other'].forEach(function(key) {
+          var p=r.activity.participants[key], prev=before.activity.participants[key];
+          if(p && prev && p.buy>=prev.buy && p.sell>=prev.sell)
+            deltas[key]={buy:p.buy-prev.buy,sell:p.sell-prev.sell,net:p.net-prev.net};
+        });
+        r.activityDelta=futuresActivity(deltas);
+      }
       ['foreign','institution','individual'].forEach(function (key) {
         r[key] = validAmount(r[key]) ? Number(r[key]) : null;
         r[key+'Delta'] = continuous && r[key]!=null && validAmount(before[key]) ? r[key]-Number(before[key]) : null;
@@ -568,21 +591,59 @@
     return out;
   }
 
+
   function futuresChart(rows, options) {
-    var opts=options||{}, actor=['foreign','institution','individual'].indexOf(opts.actor)>=0?opts.actor:'foreign';
+    var opts=options||{}, actor=['foreign','institution','individual','all'].indexOf(opts.actor)>=0?opts.actor:'foreign';
+    var actors=actor==='all'?['foreign','institution','individual']:[actor];
+    var names={foreign:'�ܱ���',institution:'���',individual:'����'};
     var data=futuresRows(rows,opts.date), interval=opts.mode!=='cumulative';
-    var field=actor+(interval?'Delta':''), values=data.map(function(r){return r[field];});
+    var values=[];
+    data.forEach(function(r){actors.forEach(function(key){values.push(r[key+(interval?'Delta':'')]);});});
     var max=Math.max.apply(null,[1].concat(values.filter(validAmount).map(Math.abs)));
     var marks='<line x1="4" x2="96" y1="45" y2="45" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>';
     data.forEach(function(r){
-      var value=r[field], x=4+r.slot/14*92;
-      if(value==null)return;
-      var h=Math.abs(value)/max*34;
-      marks+='<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+'" x="'+(x-2)+'" y="'+(value>=0?45-h:45)+'" width="4" height="'+Math.max(.5,h)+'"><title>'+esc((new Date(r.ts*1000)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' 서버 관측 · '+(value>0?'+':'')+value.toLocaleString('ko-KR')+'계약')+'</title></rect>';
+      actors.forEach(function(key,i){
+        var value=r[key+(interval?'Delta':'')], width=actors.length===1?4:1.5;
+        var x=4+r.slot/14*92+(i-(actors.length-1)/2)*1.7;
+        if(value==null)return;
+        var h=Math.abs(value)/max*34;
+        marks+='<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+(actors.length>1?' hff-actor-'+key:'')+'" x="'+(x-width/2)+'" y="'+(value>=0?45-h:45)+'" width="'+width+'" height="'+Math.max(.5,h)+'"><title>'+esc(names[key]+' '+(new Date(r.ts*1000)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' ���� ���� �� '+(value>0?'+':'')+value.toLocaleString('ko-KR')+'���')+'</title></rect>';
+      });
     });
-    return '<div class="hmb-investor-spark-wrap hff-timeline"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="'+esc((opts.date||'관측 대기')+' '+(interval?'구간':'누적')+' 순매수 계약. 첫 관측 이전과 누락 구간은 비워 둠')+'">'+marks+'</svg>'
-      +(!data.length?'<span class="hff-empty">장중 관측 이력 대기 · 과거 구간 복원 안 함</span>':!values.some(validAmount)?'<span class="hff-empty">첫 관측 · 다음 구간부터 변화 표시</span>':'')+'</div>'
+    return (actors.length>1?'<div class="hff-legend"><span class="hff-actor-foreign">�ܱ���</span><span class="hff-actor-institution">���</span><span class="hff-actor-individual">����</span><small>�� ���ż� �� �Ʒ� ���ŵ� �� ���</small></div>':'')
+      +'<div class="hmb-investor-spark-wrap hff-timeline"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="'+esc((opts.date||'���� ���')+' '+(interval?'����':'����')+' ���ż� ���. ù ���� ������ ���� ������ ��� ��')+'">'+marks+'</svg>'
+      +(!data.length?'<span class="hff-empty">���� ���� �̷� ��� �� ���� ���� ���� �� ��</span>':!values.some(validAmount)?'<span class="hff-empty">ù ���� �� ���� �������� ��ȭ ǥ��</span>':'')+'</div>'
       +'<div class="hmb-investor-axis"><span>08:45</span><span>15:45 KST</span></div>';
+  }
+
+  function futuresActivityTable(rows, options) {
+    var opts=options||{}, interval=opts.mode==='interval', data=futuresRows(rows,opts.date);
+    function num(v){return v==null?'������':Number(v).toLocaleString('ko-KR');}
+    function cell(p,net) {
+      return '<td><span>�ż� '+num(p&&p.buy)+'</span><span>�ŵ� '+num(p&&p.sell)+'</span><b>'+(net==null?'���ż� ������':(net>0?'���ż� +':net<0?'���ŵ� ?':'���ż� ')+num(Math.abs(net)))+'</b></td>';
+    }
+    function rowHtml(row,label,activity,fields,extra) {
+      return '<tr'+(row.slot===opts.selectedSlot?' class="is-selected"':'')+'><th scope="row">'+esc(label)+(extra?'<small>'+esc(extra)+'</small>':'')+'</th>'
+        +'<td>'+num(activity.totalContracts)+'</td>'
+        +['foreign','institution','individual','other'].map(function(key){
+          var p=activity.participants[key],net=fields?fields[key]:p?p.net:null;
+          return cell(p,net);
+        }).join('')+'</tr>';
+    }
+    var html=data.map(function(row){
+      var time=new Date(row.ts*1000).toLocaleTimeString('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'});
+      var start=interval&&row.previousTs?new Date(row.previousTs*1000).toLocaleTimeString('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})+'��':'';
+      var fields={};['foreign','institution','individual'].forEach(function(k){fields[k]=row[k+(interval?'Delta':'')];});
+      var activity=interval?row.activityDelta:row.activity;fields.other=activity.participants.other?activity.participants.other.net:null;
+      return rowHtml(row,start+time,activity,fields,interval&&!row.previousTs?'���� ���� ����':'���� ����');
+    }).join('');
+    var snapshot=opts.snapshot, footer='';
+    if(snapshot && snapshot.available && snapshot.participants) {
+      var stamp=String(snapshot.retrievedAt||''),time=stamp?new Date(stamp).toLocaleTimeString('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}):'�ð� ��Ȯ��';
+      footer='<tfoot>'+rowHtml({},'�ֱ� ��ȸ '+time,futuresActivity(snapshot.participants),null,'���� ���� �� ���� �ð� ������'+(snapshot.stale?' �� ����':''))+'</tfoot>';
+    }
+    return '<div class="hff-activity-scroll"><table class="hff-activity-table"><caption>'+(interval?'���� ���� ���� ���� ��� ��':'�� ���� �������� ���� ���� ��� ��')+' �� 30�к� ������ ���� �� ���� ���</caption><thead><tr><th>���� �ð�(KST)</th><th>��ü �ŷ���</th><th>�ܱ���</th><th>���</th><th>����</th><th>��Ÿ����</th></tr></thead><tbody>'+html+'</tbody>'+footer+'</table></div>'
+      +'<p class="hff-activity-note">��ü=�ܱ��Ρ���������Ρ���Ÿ������ �ż� �հ�(�ŵ� �հ�� ��ġ�� ���� ǥ��). �ż�+�ŵ� �ջ� �ƴ�. ���� ���ż��� ����� �ð����� �ż����ŵ�����ü�� �������Դϴ�.</p>';
   }
 
   global.InvestorFlow = {
@@ -591,10 +652,13 @@
     miniBars: miniBars,
     futuresChart: futuresChart,
     futuresRows: futuresRows,
+    futuresActivityTable: futuresActivityTable,
+    futuresActivity: futuresActivity,
     intradayRows: intradayRows,
     mountBalance: mountBalance,
     _calc: { cumulative: cumulative, streak: streak, balanceStats: balanceStats, balanceSeries: balanceSeries, summarize: summarize, summarizeInvestors: summarizeInvestors, summarizeBalances: summarizeBalances, lastRows: lastRows, sumOf: sumOf, PERIODS: PERIODS, TREND_PCT: TREND_PCT, INVESTORS: INVESTORS,
       mmdd: mmdd, lineSpec: lineSpec }
   };
 })(window);
+
 

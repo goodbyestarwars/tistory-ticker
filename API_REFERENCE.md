@@ -598,3 +598,9 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 `GET /access-policy`는 기존 envelope와 `screens[].allowed`를 유지하고 `isMember`(검증된 Google 이메일 허용목록 여부)를 추가한다. 개인 응답은 no-store. 화면 키 `scanner`/`strategy`는 관리자 전용이며 확대된 일반 화면과 분리한다. 기존 roles/screens PUT 호환. 일반회원 화면 허용은 제한 시세 REST/WS 또는 주문 권한을 부여하지 않는다.
 
 `GET /access-policy/members`: Google 관리자 세션만 `{emails, revision, audit}`(최근20건) 반환. `PUT /access-policy/members`: Google 관리자+허용 Origin+빈도 제한, JSON `{email, action: "add" | "remove"}`. 정규화/중복 멱등/최대1000명/입력254자/본문2048바이트 제한. 오류 400(입력)/403(권한·Origin)/413(크기)/429(빈도)/500(저장)/503(목록 읽기). 비공개 파일·감사·서명 세션·재로그인·해제 동작은 [접근 정책](docs/ACCESS_POLICY_2026-11-11.md) 참조. 공개/일반회원 응답에 이메일 목록·감사를 포함하지 않는다.
+
+### 선물 시간별 매수·매도 계약 분해 (2026-11-17)
+
+기존 관리자 `GET /futures/investor-flow`에 `totalContracts:int|null,totalStatus:complete|incomplete|unbalanced,totalBasis:all-investor-buy-equals-sell`를 추가한다. `participants.other`는 KIS `etc_corp_shnu_vol/seln_vol/ntby_vol`의 양수 정수·매수−매도 검증을 통과할 때만 제공한다. 전체는 기존3주체와 기타법인 매수합이 매도합과 같을 때의 한쪽 합계이며 기관 하위주체를 중복 합산하지 않는다. 선택적 기타법인 결측이 기존3주체 순매수 응답을 막지 않는다.
+
+`observations`는 기존 ts/foreign/institution/individual을 유지하며 신규 저장행에 동일 participants·totalContracts·totalStatus·totalBasis를 추가한다. 과거 net-only행은 participants={}·totalContracts=null이다. 기존 5분 캐시·동시잠금·기존 장중폴러·14일보존·권한은 유지한다. 최근 조회 snapshot은 장중 이력의 빈 매수/매도 값을 채우는 용도가 아니며 별도 표시한다. 공급자 기준일/시각 미제공을 조회시각으로 대체하지 않는다.
