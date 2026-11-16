@@ -363,10 +363,10 @@
     if(!lay.points.length)return shape+'<text x="500" y="248" text-anchor="middle" class="mtm-axis">지도에 표시할 비교 자료가 없습니다</text>'
       + '<text x="500" y="280" text-anchor="middle" class="mtm-axis">과거 자료가 부족한 항목은 임의로 표시하지 않습니다</text></svg>';
     shape+='<path d="M'+mx+' '+plot.t+'V'+plot.b+'M'+plot.l+' '+my+'H'+plot.r+'" class="mtm-axis-line"/>';
-    var labels=[['단기 강세 · 장기 약세',plot.l+18,plot.t+20,'start','20거래일 우위 · 250거래일 열위'],
-      ['단·장기 모두 강함',plot.r-18,plot.t+20,'end','20·250거래일 모두 시장 대비 우위'],
-      ['단·장기 모두 약함',plot.l+18,plot.b-30,'start','20·250거래일 모두 시장 대비 열위'],
-      ['장기 강세 · 단기 약세',plot.r-18,plot.b-30,'end','250거래일 우위 · 20거래일 열위']];
+    var labels=[['단기 강세 · 장기 약세',plot.l+18,plot.t+20,'start','20일 수익률 우위 · 250일 수익률 열위'],
+      ['단·장기 모두 강함',plot.r-18,plot.t+20,'end','20일 수익률 우위 · 250일 수익률 우위'],
+      ['단·장기 모두 약함',plot.l+18,plot.b-30,'start','20일 수익률 열위 · 250일 수익률 열위'],
+      ['장기 강세 · 단기 약세',plot.r-18,plot.b-30,'end','250일 수익률 우위 · 20일 수익률 열위']];
     labels.forEach(function(v,i){shape+='<g data-quadrant data-right="'+(i%2===1)+'" data-bottom="'+(i>1)+'" pointer-events="none"><text text-anchor="'+v[3]+'" class="mtm-quadrant">'+v[0]+'</text>'
       +'<text y="15" text-anchor="'+v[3]+'" class="mtm-quadrant-period">'+v[4]+'</text></g>';});
     [-.5,.5].forEach(function(k){
@@ -572,7 +572,7 @@
       +'<output data-mtm-zoom-label>100%</output><button type="button" data-mtm-zoom="in" aria-label="확대">+</button>'
       +'<button type="button" data-mtm-zoom="reset" aria-label="지도 배율 초기화">초기화</button></div></div>'
       +'<p class="mtm-period-guide"><strong>비교 기간</strong> 가로 250거래일(약 1년) · 세로 20거래일(약 1개월)<br>'
-      +'각 기간의 수익률을 해당 시장 지수와 비교합니다. 연속 강세 일수가 아니며, 시장 대비 우위가 주가 상승을 뜻하지는 않습니다.</p>'
+      +'20거래일 전→기준일, 250거래일 전→기준일의 전체 수익률을 각각 시장과 비교합니다. 예: 종목 +5%, 시장 +2%면 시장보다 3%p 우위입니다. 며칠 연속 우세했는지는 이 지도에서 계산하지 않습니다.</p>'
       +'<div class="mtm-chart" data-mtm-chart data-no-swipe></div><p class="mtm-quality" data-mtm-quality></p>'
       +'<div class="mtm-page-nav" data-mtm-page-nav hidden><button type="button" data-mtm-page="prev">이전</button><span data-mtm-page-label></span><button type="button" data-mtm-page="next">다음</button></div>'
       +'<div class="mtm-guide"><span>지도 위 휠로 확대·축소 · 초기화로 전체 보기</span><span>원이 클수록 시가총액이 큽니다.</span>'

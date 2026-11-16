@@ -490,7 +490,19 @@
   }
   // 외부 피드의 링크가 javascript: 등 비-http(s) 스킴이면 빈 문자열(2026-11-07 모의진단).
   function safeUrl(url) { var v = String(url == null ? '' : url).trim(); return /^https?:\/\//i.test(v) ? v : ''; }
-  global.NineUI = { safeUrl: safeUrl, chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, loadKeywordCloud: loadKeywordCloud, loadNewsStocks: loadNewsStocks, persistPrefs: persistPrefs, loadChartLibrary: loadChartLibrary };
+  function categoryBreadth(rates) {
+    var counts = { up: 0, down: 0, flat: 0, missing: 0 };
+    (rates || []).forEach(function (value) {
+      if (value == null || String(value).trim() === '' || !isFinite(Number(value))) counts.missing++;
+      else counts[Number(value) > 0 ? 'up' : Number(value) < 0 ? 'down' : 'flat']++;
+    });
+    var total = counts.up + counts.down + counts.flat;
+    var label = '상승 ' + counts.up + ' · 하락 ' + counts.down + ' · 보합 ' + counts.flat + (counts.missing ? ' · 미확인 ' + counts.missing : '');
+    return '<span class="nine-category-breadth"><span>' + label + '</span><span class="nine-breadth-bar" role="img" aria-label="' + label + '">'
+      + ['up', 'flat', 'down'].map(function (key) { return '<i class="is-' + key + '" style="width:' + (total ? counts[key] / total * 100 : 0) + '%"></i>'; }).join('')
+      + '</span></span>';
+  }
+  global.NineUI = { categoryBreadth: categoryBreadth, safeUrl: safeUrl, chartOptions: chartOptions, marketSessionLabel: marketSessionLabel, escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, sourceNote: sourceNote, chartFill: chartFill, chartOhlcFill: chartOhlcFill, loadStyle: loadStyle, loadKeywordCloud: loadKeywordCloud, loadNewsStocks: loadNewsStocks, persistPrefs: persistPrefs, loadChartLibrary: loadChartLibrary };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 

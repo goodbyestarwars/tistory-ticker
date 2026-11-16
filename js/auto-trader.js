@@ -9,6 +9,15 @@
  */
 (function (global) {
   'use strict';
+  function skipReasonKo(reason) {
+    var labels = {
+      SLOTS_FULL: '동시 보유 가능 종목 수가 가득 차 신규 매수하지 않음',
+      '9PAY_BUDGET_OR_SLOTS_FULL': '9Pay 매수 예산 또는 보유 가능 종목 수 한도에 도달',
+      BUDGET_EXCEEDED: '매수 예산 한도 초과', HOLD_BUY: '오늘 신규 매수 보류', MANUAL_STOP: '사용자 중지 상태'
+    };
+    return labels[reason] || '상세 사유 해석 미등록 (기록 코드: ' + String(reason || '미제공') + ')';
+  }
+
 
   var ROOT_ID = 'auto-trader';
   var VM = 'https://goodbyestar.cloud';
@@ -867,7 +876,7 @@
     if (skipped.length) {
       html += '<details class="at-more" data-act-more="skips"' + (activityOpen.skips ? ' open' : '') + '><summary>매수하지 않은 이유 (' + skipped.length + '개 사유 · 표시 최대 20건)</summary>'
         + '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th>차단·탈락 사유</th><th class="n">기록 횟수</th></tr></thead><tbody>'
-        + skipped.map(function (row) { return '<tr><td>' + esc(row.code) + '</td><td>' + esc(row.reason) + '</td><td class="n">' + esc(row.count == null ? '-' : row.count) + '</td></tr>'; }).join('')
+        + skipped.map(function (row) { return '<tr><td>' + esc(row.code === '*' ? '전체 종목 공통' : row.code) + '</td><td>' + esc(skipReasonKo(row.reason)) + '</td><td class="n">' + esc(row.count == null ? '-' : row.count) + '</td></tr>'; }).join('')
         + '</tbody></table></div><p class="at-note">횟수는 같은 종목·사유의 반복 기록이며 서로 다른 종목 수가 아닙니다.</p></details>';
     }
     html += '<p class="at-note">이 로그는 주문 판단·접수 기록입니다. ACK·SENT는 체결 확정이 아니며 주문 기준가도 실제 체결가와 다를 수 있습니다. 과거 장부에 근거가 없으면 복원한 것처럼 표시하지 않습니다.</p>';

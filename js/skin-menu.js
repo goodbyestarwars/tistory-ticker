@@ -35,7 +35,7 @@
       children: [
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/page/market-temp?view=map', label: '마켓 대동여지도' },
-        { href: '/page/foreign-flow', label: '종목분석' },
+        { href: '/page/stock-search', label: '흐름 탐색' },
         { href: '/page/pattern-scan', label: '검색기' },
         { href: '/page/strategy-search', label: '전략검색' }
       ]

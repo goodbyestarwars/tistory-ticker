@@ -329,6 +329,37 @@
     if (opts.title) overlay.title = opts.title;
     container.appendChild(overlay);
 
+    // Common purchase-price editor; uses the same saved horizontal line on every chart.
+    var purchaseEditor = null, purchaseInput = null, purchaseStatus = null;
+    if (buttons.clear && buttons.clear.parentNode && tools.indexOf('buyline') >= 0) {
+      var oldEditor = buttons.clear.parentNode.querySelector('[data-purchase-editor]');
+      if (oldEditor) oldEditor.remove();
+      purchaseEditor = document.createElement('form');
+      purchaseEditor.setAttribute('data-purchase-editor', '');
+      purchaseEditor.className = 'nine-purchase-editor';
+      purchaseEditor.innerHTML = '<label>매입가 <input type="text" inputmode="decimal" aria-label="차트 매입가" placeholder="가격 입력"></label><button type="submit">적용</button><span role="status"></span>';
+      buttons.clear.parentNode.insertBefore(purchaseEditor, buttons.clear.nextSibling);
+      purchaseInput = purchaseEditor.querySelector('input');
+      purchaseStatus = purchaseEditor.querySelector('[role="status"]');
+      purchaseEditor.onsubmit = function (event) {
+        event.preventDefault();
+        var price = Number(purchaseInput.value.replace(/[,\s원$]/g, ''));
+        if (!(price > 0 && price <= 1e12 && isFinite(price))) { purchaseStatus.textContent = '양수 가격을 입력하세요'; return; }
+        var bar = d.bars[d.bars.length - 1];
+        if (!bar) { purchaseStatus.textContent = '차트 자료를 먼저 불러오세요'; return; }
+        var point = { time: bar.time != null ? bar.time : bar.date, logical: d.bars.length - 1, price: price };
+        d.lines = d.lines.filter(function (line) { return !isPurchaseLine(line); });
+        d.lines.push({ start: Object.assign({}, point), end: Object.assign({}, point), label: '매입가' });
+        persist(); redraw(); setMode(null);
+      };
+    }
+    function refreshPurchaseEditor() {
+      if (!purchaseInput) return;
+      var line = d.lines.filter(isPurchaseLine)[0];
+      if (document.activeElement !== purchaseInput) purchaseInput.value = line ? String(line.start.price) : '';
+      purchaseStatus.textContent = line ? '차트 표시 ' + Number(line.start.price).toLocaleString('ko-KR') : '미설정 · 차트 표시용';
+    }
+
     // ---- 크기 ----
     function measure() {
       if (opts.bounds === 'pricePane') {
@@ -379,6 +410,7 @@
 
     function redraw() {
       if (detached || !overlay) return;
+      refreshPurchaseEditor();
       if (overlay.isConnected === false) return;
       if (!fitCanvas()) return;
       var ctx = overlay.getContext('2d');
@@ -798,7 +830,7 @@
       var btn = buttons[m];
       if (!btn || tools.indexOf(m) < 0) return;
       if ('disabled' in btn) btn.disabled = false;
-      btn.onclick = function () { setMode(d.mode === m ? null : m); };
+      btn.onclick = function () { if (m === 'buyline' && purchaseInput) { purchaseInput.focus(); return; } setMode(d.mode === m ? null : m); };
     });
     if (buttons.clear) {
       if ('disabled' in buttons.clear) buttons.clear.disabled = false;
@@ -820,6 +852,7 @@
         if (btn.classList) btn.classList.remove('is-active');
         if (btn.hasAttribute ? btn.hasAttribute('aria-pressed') : MODES.indexOf(m) > -1) btn.setAttribute('aria-pressed', 'false');
       });
+      if (purchaseEditor) { purchaseEditor.onsubmit = null; purchaseEditor.remove(); }
       layers = [];
       if (overlay.remove) overlay.remove();
     }

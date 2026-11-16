@@ -257,6 +257,7 @@
       return dateValue(b.pubDate) - dateValue(a.pubDate);
     });
     var available = Math.min(rows.length, compact() ? COMPACT_MAX : 10);
+    if (session) session.textContent += ' · 최신순 ' + Math.min(rows.length, compact() ? Math.min(state.shown, available) : 10) + '건 표시' + (compact() ? ' (더보기 10건씩·최대 50건)' : ' (최대 10건)') + ' · 공시는 속보에서 분리';
     // 접힌 건은 DOM에 두지 않는다. 갱신 때마다 보이는 건수만 다시 그린다.
     rows = rows.slice(0, compact() ? Math.min(state.shown, available) : 10);
     if (!rows.length) {

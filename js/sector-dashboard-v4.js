@@ -187,7 +187,7 @@
       if (!rows) return '';
       return (
         '<div class="sector-card">' +
-          '<div class="sector-card-title">' + escapeHTML(sector) + '</div>' +
+          '<div class="sector-card-title" data-category="' + escapeHTML(sector) + '">' + escapeHTML(sector) + global.NineUI.categoryBreadth((sectorMap[sector] || []).map(function (item) { var e = resolveEntry(item, krxMap); var q = dataByCode[e.code]; return q ? q.changeRate : null; })) + '</div>' +
           rows +
         '</div>'
       );
@@ -417,7 +417,21 @@
       if (rateEl && !isNaN(changeRate)) {
         rateEl.textContent = arrowSymbol(direction) + Math.abs(changeRate).toFixed(2) + '%';
         rateEl.className = 'sector-row-rate ' + directionClass(direction);
+        rows[i].setAttribute('data-change-rate', String(changeRate));
       }
+    }
+    var touched = [];
+    for (var j = 0; j < rows.length; j++) {
+      var card = rows[j].closest('.sector-card');
+      if (!card || touched.indexOf(card) >= 0) continue;
+      touched.push(card);
+      var breadth = card.querySelector('.nine-category-breadth');
+      if (breadth) breadth.outerHTML = global.NineUI.categoryBreadth(Array.from(card.querySelectorAll('.sector-row-rate')).map(function (el) {
+        var text = el.textContent;
+        if (text.indexOf('%') < 0) return null;
+        var n = Number(text.replace(/[^0-9.]/g, ''));
+        return el.classList.contains('sector-down') || text.indexOf('▼') >= 0 ? -n : n;
+      }));
     }
   }
 

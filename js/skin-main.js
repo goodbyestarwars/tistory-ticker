@@ -955,7 +955,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 선물 투자자 동향</strong><span data-futures-flow-total>순매수 · 계약</span></div>'
         + '<div class="hff-controls" data-no-swipe><div class="hmb-mode-segment" role="group" aria-label="선물 투자자 선택">'
         + [['foreign','외국인'],['institution','기관'],['individual','개인']].map(function (p) { return '<button type="button" data-futures-actor="'+p[0]+'" aria-pressed="'+(p[0]==='foreign')+'">'+p[1]+'</button>'; }).join('')
-        + '</div><div class="hmb-mode-segment" role="group" aria-label="선물 수급 표시"><button type="button" data-futures-display="interval" aria-pressed="true">구간</button><button type="button" data-futures-display="cumulative" aria-pressed="false">누적</button></div></div>'
+        + '</div><div class="hmb-mode-segment" role="group" aria-label="선물 수급 표시"><button type="button" data-futures-display="interval" aria-pressed="false">구간 증감</button><button type="button" data-futures-display="cumulative" aria-pressed="true">당일 누적</button></div></div>'
         + '<div data-futures-flow-bars><div class="hmb-investor-spark-empty">자료 확인 중</div></div>'
         + '<input class="hff-time" type="range" min="0" max="14" step="1" value="14" data-futures-time data-no-swipe aria-label="가격과 수급을 비교할 30분 구간" disabled>'
         + '<div class="hff-linked-readout" data-futures-flow-readout aria-live="polite">관측 이력 대기</div>'
@@ -2344,7 +2344,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         renderHomeIndexChart(chart, item && item.chart, symbol, p != null && c != null ? p - c : null);
       });
     }
-    var futuresFlowRequestedAt = 0, homeFuturesPayload = null, homeFuturesActor = 'foreign', homeFuturesDisplay = 'interval', homeFuturesSelectedSlot = null, homeFuturesLinkedDate = null;
+    var futuresFlowRequestedAt = 0, homeFuturesPayload = null, homeFuturesActor = 'foreign', homeFuturesDisplay = 'cumulative', homeFuturesSelectedSlot = null, homeFuturesLinkedDate = null;
     var homeFuturesSampleEnabled = true;
     function homeFuturesDisplayData(now) {
       var data = homeFuturesPayload || {};
@@ -2375,7 +2375,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       card.querySelectorAll('[data-futures-actor]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-actor')===homeFuturesActor));});
       card.querySelectorAll('[data-futures-display]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-futures-display')===homeFuturesDisplay));});
       var n=data.available&&data.participants&&data.participants[homeFuturesActor]?homeNum(data.participants[homeFuturesActor].net):null;
-      card.querySelector('[data-futures-flow-total]').textContent=(data.sample?'샘플 표시 중 · 실제 현재 누적 ':'현재 누적 ')+(n==null?'미집계':(n>0?'+':n<0?'−':'')+homeFmt(Math.abs(n),0)+'계약');
+      card.querySelector('[data-futures-flow-total]').textContent=(data.sample?'샘플 표시 중 · 실제 현재 누적 ':'당일 누적 순매수 ')+(n==null?'미집계':(n>0?'+':n<0?'−':'')+homeFmt(Math.abs(n),0)+'계약');
       var slider=card.querySelector('[data-futures-time]');slider.disabled=!rows.length;slider.value=homeFuturesSelectedSlot==null?14:homeFuturesSelectedSlot;
       syncHomeFuturesSelection();
     }
@@ -2387,7 +2387,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var point=same&&(price.rows||[]).filter(function(r){return r.slot===slot;})[0];
       var flowText=dashboardSection.querySelector('[data-futures-flow-readout]'),priceText=dashboardSection.querySelector('[data-futures-price-readout]');
       var value=row?row[homeFuturesActor+(homeFuturesDisplay==='interval'?'Delta':'')]:null;
-      if(flowText)flowText.textContent=!rows.length?'관측 이력 대기 · 첫 관측 이전 구간은 비워 둠':!row?data.historyDate+' · 이 구간 수급 관측 없음':data.historyDate+' · '+(row.previousTs&&homeFuturesDisplay==='interval'?futuresObservationTime(row.previousTs)+'→':'')+futuresObservationTime(row.ts)+' 관측 · '+(value==null?'이전 관측 없음':(value>0?'+':value<0?'−':'')+homeFmt(Math.abs(value),0)+'계약');
+      if(flowText)flowText.textContent=!rows.length?'관측 이력 대기 · 첫 관측 이전 구간은 비워 둠':!row?data.historyDate+' · 이 구간 수급 관측 없음':data.historyDate+' · '+(row.previousTs&&homeFuturesDisplay==='interval'?futuresObservationTime(row.previousTs)+'→':'')+futuresObservationTime(row.ts)+' 관측 · '+(homeFuturesDisplay==='interval'?'직전 관측 대비 증감 ':'당일 누적 순매수 ')+(value==null?'이전 관측 없음':(value>0?'+':value<0?'−':'')+homeFmt(Math.abs(value),0)+'계약');
       if(data.sample&&flowText)flowText.textContent='[샘플 데이터 · 실제 매매 아님] '+flowText.textContent.replace(' 관측',' 예시');
       if(priceText)priceText.textContent=!rows.length?'수급 관측 이력 대기 · 가격과 다른 날짜를 연결하지 않음':!same?'가격·수급 날짜 불일치 · 연동 보류':point?data.historyDate+' · '+futuresObservationTime(point.ts)+' 가격 관측 · '+homeFmt(point.close,2):'같은 구간의 가격 관측 없음';
       if(data.sample&&priceText)priceText.textContent='실제 가격 / 수급은 샘플 · '+priceText.textContent;
