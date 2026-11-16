@@ -199,6 +199,54 @@
     return x == null || y == null || !isFinite(x) || !isFinite(y) ? null : { x: x, y: y };
   }
 
+  function segmentDistance(x, y, a, b) {
+    var dx=b.x-a.x,dy=b.y-a.y,len=dx*dx+dy*dy;
+    var t=len?Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/len)):0;
+    return Math.hypot(x-a.x-t*dx,y-a.y-t*dy);
+  }
+  // Hit only user-drawn strokes, in reverse painting order; empty space never erases.
+  function shapeAt(d, coord, x, y, width, tolerance) {
+    var tol=tolerance||7,hit=null;
+    function scan(kind, test) {
+      var rows=d[kind]||[];
+      for(var i=rows.length-1;i>=0;i--)if(test(rows[i]))return {kind:kind,index:i};
+      return null;
+    }
+    function horizontal(shape) {
+      var y0=d.series.priceToCoordinate(shape.price),lb=shape._label;
+      return y0!=null && ((x>=0&&x<=width&&Math.abs(y-y0)<=tol) ||
+        (lb&&x>=lb.x1&&x<=lb.x2&&y>=lb.y1&&y<=lb.y2));
+    }
+    if(d.measure) {
+      var ma=coord(d.measure.start),mb=coord(d.measure.end);
+      if(ma&&mb&&(segmentDistance(x,y,ma,{x:mb.x,y:ma.y})<=tol ||
+        segmentDistance(x,y,{x:mb.x,y:ma.y},mb)<=tol))return {kind:'measure',index:0};
+    }
+    hit=scan('hlines',horizontal);if(hit)return hit;
+    hit=scan('boxes',function(box){
+      var a=coord(box.start),b=coord(box.end);if(!a||!b)return false;
+      return Math.min(segmentDistance(x,y,a,{x:b.x,y:a.y}),segmentDistance(x,y,{x:b.x,y:a.y},b),
+        segmentDistance(x,y,b,{x:a.x,y:b.y}),segmentDistance(x,y,{x:a.x,y:b.y},a))<=tol;
+    });if(hit)return hit;
+    hit=scan('circles',function(circle){
+      var a=coord(circle.start),b=coord(circle.end);if(!a||!b)return false;
+      var rx=Math.abs(a.x-b.x)/2,ry=Math.abs(a.y-b.y)/2;
+      if(rx<.5||ry<.5)return false;
+      var dx=x-(a.x+b.x)/2,dy=y-(a.y+b.y)/2;
+      var angle=Math.atan2(dy/ry,dx/rx);
+      return Math.hypot(dx-rx*Math.cos(angle),dy-ry*Math.sin(angle))<=tol;
+    });if(hit)return hit;
+    hit=scan('lines',function(line){
+      var a=coord(line.start),b=coord(line.end);
+      return a&&b&&segmentDistance(x,y,a,b)<=tol;
+    });if(hit)return hit;
+    return scan('paths',function(path){
+      for(var i=1;i<path.length;i++){var a=coord(path[i-1]),b=coord(path[i]);if(a&&b&&segmentDistance(x,y,a,b)<=tol)return true;}
+      return false;
+    });
+  }
+
+
   var DEFAULT_TITLES = {
     hline: '점선으로 위치를 미리 보고 클릭하면 가로선이 완성됩니다. 선을 끌면 이동하고 금액 표시를 누르면 직접 입력할 수 있습니다.',
     box: '끌어서 박스를 그리면 이름을 입력할 수 있습니다(구조·파동 구간 표시용).',
@@ -269,21 +317,8 @@
     if (opts.title) overlay.title = opts.title;
     container.appendChild(overlay);
 
-    // Standalone price-entry button uses the existing horizontal-line storage/rendering.
-    var purchaseLine = null;
-    overlay.ncInputPurchasePrice = function () {
-      if (detached) return;
-      var current = purchaseLine && d.hlines.indexOf(purchaseLine) >= 0 ? purchaseLine.price : '';
-      var typed = global.prompt('매입가를 입력하세요', String(current));
-      if (typed === null) return;
-      var price = Number(String(typed).replace(/[,\s원$]/g, ''));
-      if (!(price > 0 && price <= 1e12 && isFinite(price))) return;
-      if (purchaseLine && d.hlines.indexOf(purchaseLine) >= 0) purchaseLine.price = price;
-      else { purchaseLine = {price:price}; d.hlines.push(purchaseLine); }
-      persist(); redraw();
-    };
-
-
+    // Purchase uses the existing left-click horizontal-line tool.
+    overlay.ncTogglePurchaseLine = function () { setMode(d.mode === 'hline' ? null : 'hline'); };
     // ---- 크기 ----
     function measure() {
       if (opts.bounds === 'pricePane') {
@@ -484,6 +519,8 @@
 
     // ---- 도구 상태·단추 ----
     function paintButtons(mode) {
+      var purchase=container.parentElement&&container.parentElement.querySelector('[data-chart-purchase]');
+      if(purchase)purchase.setAttribute('aria-pressed',mode==='hline'?'true':'false');
       MODES.forEach(function (m) {
         var btn = buttons[m];
         if (!btn) return;
@@ -500,10 +537,28 @@
       d.pending = null; d.preview = null; d.previewPoint = null; d.activePath = null; d.dragHline = null; d.hlinePreview = null; d.hlineDraft = null;
       if (overlay.classList) { overlay.classList.toggle('is-active', !!mode); overlay.classList.toggle('is-pencil', mode === 'pencil'); }
       paintButtons(mode);
-      var titles = opts.titles || DEFAULT_TITLES;
+      var titles = Object.assign({},DEFAULT_TITLES,opts.titles||{});
       overlay.title = mode ? (titles[mode] || '') : (opts.title || '');
       redraw();
       if (opts.onModeChange) opts.onModeChange(mode);
+    }
+
+    var clearDialog = null;
+    function requestClearAll() {
+      if(clearDialog || (!drawingsHaveShapes(d) && !d.measure))return;
+      var previous=document.activeElement,dialog=document.createElement('dialog');
+      clearDialog=dialog;dialog.className='nine-drawing-confirm';
+      dialog.setAttribute('aria-label','전체 지우기 확인');
+      dialog.innerHTML='<p>이 차트에 직접 그린 도형을 모두 지울까요?</p><div><button type="button" data-answer="yes">Y</button><button type="button" data-answer="no">N</button></div>';
+      document.body.appendChild(dialog);
+      dialog.querySelector('[data-answer="yes"]').onclick=function(){clearAll();setMode(null);dialog.close();};
+      dialog.querySelector('[data-answer="no"]').onclick=function(){dialog.close();};
+      dialog.addEventListener('keydown',function(e){
+        if(e.key.toLowerCase()==='y'){e.preventDefault();dialog.querySelector('[data-answer="yes"]').click();}
+        else if(e.key.toLowerCase()==='n'){e.preventDefault();dialog.close();}
+      });
+      dialog.addEventListener('close',function(){clearDialog=null;dialog.remove();if(previous&&previous.isConnected)previous.focus();},{once:true});
+      dialog.showModal();dialog.querySelector('[data-answer="no"]').focus();
     }
 
     function clearAll() {
@@ -610,6 +665,7 @@
     }
 
     function onPointerUp(event, cancelled) {
+      if(!cancelled && event && event.button != null && event.button !== 0)return;
       release(event);
       if (d.dragHline) {
         var dragged = d.dragHline;
@@ -690,12 +746,18 @@
       if (d.mode === 'measure') d.previewPoint = snapToBarExtreme(d, pointFromEvent(event, strict), d.preview.y);
       redraw();
     });
-    scope.on(overlay, 'contextmenu', function (event) {
-      if (!d.enabled) return;
-      event.preventDefault();
-      release(event);
-      setMode(null);
-    });
+    scope.on(container, 'contextmenu', function(event) {
+      if(detached)return;
+      var rect=overlay.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
+      if(x<0||y<0||x>rect.width||y>rect.height)return;
+      var hit=shapeAt(d,coord,x,y,rect.width);
+      if(!hit){if(d.enabled)event.preventDefault();return;}
+      event.preventDefault();event.stopPropagation();
+      if(d.dragHline)d.dragHline.hl.price=d.dragHline.originalPrice;
+      d.dragHline=null;d.pending=null;d.preview=null;d.activePath=null;d.hlineDraft=null;d.hlinePreview=null;
+      if(hit.kind==='measure')d.measure=null;else d[hit.kind].splice(hit.index,1);
+      persist();redraw();
+    },true);
     scope.on(overlay, 'mouseleave', function () {
       if (d.mode === 'pencil' && d.activePath) return;
       d.preview = null; d.hlinePreview = null;
@@ -730,12 +792,14 @@
     });
     if (buttons.clear) {
       if ('disabled' in buttons.clear) buttons.clear.disabled = false;
-      buttons.clear.onclick = function () { clearAll(); setMode(null); };
+      buttons.clear.textContent='전체 지우기';
+      buttons.clear.onclick = requestClearAll;
     }
 
     function detach() {
       if (detached) return;
       detached = true;
+      if(clearDialog)clearDialog.close();
       if (frame) { global.cancelAnimationFrame(frame); frame = 0; }
       scope.dispose();
       MODES.concat(['clear']).forEach(function (m) {
@@ -746,7 +810,7 @@
         if (btn.classList) btn.classList.remove('is-active');
         if (btn.hasAttribute ? btn.hasAttribute('aria-pressed') : MODES.indexOf(m) > -1) btn.setAttribute('aria-pressed', 'false');
       });
-      overlay.ncInputPurchasePrice = null;
+      overlay.ncTogglePurchaseLine = null;
       layers = [];
       if (overlay.remove) overlay.remove();
     }
@@ -773,7 +837,7 @@
   }
 
   global.NineChartDrawing = {
-    attach: attach, loadShapes: loadShapes, writeShapesLocal: writeShapesLocal,
+    shapeAt:shapeAt, attach: attach, loadShapes: loadShapes, writeShapesLocal: writeShapesLocal,
     anchoredFromXY: anchoredFromXY, anchoredToXY: anchoredToXY,
     measureMetrics: measureMetrics, measureLabelLines: measureLabelLines, snapToBarExtreme: snapToBarExtreme,   // 측정 도구(검증용으로도 내보낸다)
     // 계정 저장 부품(검증·점검용)

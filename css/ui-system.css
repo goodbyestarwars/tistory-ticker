@@ -455,3 +455,11 @@ html body .nine-chart-capture-actions > .nine-chart-purchase-btn {
   border-radius:3px !important;margin-right:6px;padding:4px 10px;
 }
 html body .nine-chart-capture-actions > .nine-chart-purchase-btn:hover {background:#f7ddda !important;}
+
+.nine-drawing-confirm {box-sizing:border-box;position:fixed;inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;padding:22px;width:min(360px,calc(100vw - 32px));border:1px solid var(--ui-rule,#ddd);border-radius:10px;background:var(--ui-surface,#fff);color:var(--ui-ink,#25303d);font:14px/1.6 var(--font-ui,sans-serif);}
+.nine-drawing-confirm::backdrop {background:rgba(0,0,0,.28);}
+.nine-drawing-confirm p {margin:0 0 18px;}
+.nine-drawing-confirm > div {display:flex;justify-content:flex-end;gap:8px;}
+.nine-drawing-confirm button {min-width:64px;padding:7px 16px;border:1px solid var(--ui-rule,#ddd);border-radius:4px;background:var(--ui-surface,#fff);color:inherit;font:inherit;cursor:pointer;}
+.nine-drawing-confirm [data-answer="yes"] {background:var(--chart-fill-up,#FAE8E7);}
+html body .nine-chart-capture-actions > .ss-memo-toggle {margin-right:6px;border:1px solid var(--ui-rule,#ddd);border-radius:3px;padding:4px 10px;}

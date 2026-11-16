@@ -267,7 +267,7 @@ html.dark #stock-search.ss-workspace :is(.ssw-sub, .ssw-more, .ssw-co-industry) 
 /* 넓은 PC(1280px 이상): 차트 오른쪽 열로 붙는다. 차트는 남은 폭으로 줄어들 뿐 가려지지 않는다.
    화면을 내려도 머리 메뉴 아래에 붙어 있도록 sticky로 두고, 내용은 열 안에서 스크롤한다. */
 @media (min-width: 1280px) {
-  #stock-search.ss-workspace.ssw-info-open .ss-panels {
+  #stock-search.ss-workspace.ssw-info-open .ss-panels:not(.us-stocks-market-grid) {
     grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr) clamp(320px, 22vw, 380px);
   }
   #stock-search.ss-workspace.ssw-info-open .ssw-info {

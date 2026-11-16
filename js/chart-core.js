@@ -40,7 +40,7 @@
   var ROOT = (SELF_SRC.match(/^(.*\/)js\/chart-core\.js/) || [])[1] || 'https://goodbyestarwars.github.io/tistory-ticker/';
   var MODULES = {
     data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261022-order1' },
-    drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261117-purchase-button' },
+    drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261117-drawing-mouse-v2' },
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261105-shape-selection', needs: ['data', 'autowave'] },
     divergence: { file: 'js/chart-divergence.js', global: 'NineChartDivergence', v: '20261022-div1', needs: ['wave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261105-shape-selection' },
@@ -1665,13 +1665,15 @@
       var options=getOptions(),overlay;
       // Only drawing-enabled charts receive the standalone purchase control.
       overlay=options&&options.container&&options.container.querySelector('.ss-drawing-layer,.ff-drawing-layer,.nc-drawing-layer');
-      if(!overlay||typeof overlay.ncInputPurchasePrice!=='function')return;
+      if(!overlay||typeof overlay.ncTogglePurchaseLine!=='function')return;
       var purchase=save.parentNode.querySelector('[data-chart-purchase]');
       if(!purchase){purchase=document.createElement('button');purchase.type='button';purchase.textContent='매입가';
-        purchase.className='nine-chart-purchase-btn';purchase.setAttribute('data-chart-purchase','');
-        purchase.title='매입가를 입력해 가로선으로 표시';save.parentNode.insertBefore(purchase,save);}
-      purchase.onclick=function(){var o=getOptions(),layer=o&&o.container&&o.container.querySelector('.ss-drawing-layer,.ff-drawing-layer,.nc-drawing-layer');
-        if(layer&&typeof layer.ncInputPurchasePrice==='function')layer.ncInputPurchasePrice();};
+        purchase.className='nine-chart-purchase-btn';purchase.setAttribute('data-chart-purchase','');purchase.setAttribute('aria-pressed','false');
+        purchase.title='차트에서 왼쪽 클릭으로 매입가 가로선 그리기';save.parentNode.insertBefore(purchase,save);}
+      var memo=root.querySelector('.ss-memo-toggle');
+      if(memo)save.parentNode.insertBefore(memo,purchase);
+      purchase.onclick=function(){if(memo&&memo.getAttribute('aria-pressed')==='true')memo.click();var o=getOptions(),layer=o&&o.container&&o.container.querySelector('.ss-drawing-layer,.ff-drawing-layer,.nc-drawing-layer');
+        if(layer&&typeof layer.ncTogglePurchaseLine==='function')layer.ncTogglePurchaseLine();};
     });
     root.querySelectorAll('[data-chart-capture]').forEach(function(button){
       button.onclick=function(){
