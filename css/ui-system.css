@@ -447,3 +447,11 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
 .nine-breadth-bar .is-flat { background:var(--ui-rule); }
 @media(max-width:720px) { .nine-category-breadth { margin:4px 0; width:100%; } }
 
+
+/* Standalone purchase control, immediately before chart save. */
+html body .nine-chart-capture-actions > .nine-chart-purchase-btn {
+  background:var(--chart-fill-up,#FAE8E7) !important;
+  color:#8d4540 !important;border:1px solid #f0d4d2 !important;
+  border-radius:3px !important;margin-right:6px;padding:4px 10px;
+}
+html body .nine-chart-capture-actions > .nine-chart-purchase-btn:hover {background:#f7ddda !important;}

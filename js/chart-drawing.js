@@ -269,6 +269,21 @@
     if (opts.title) overlay.title = opts.title;
     container.appendChild(overlay);
 
+    // Standalone price-entry button uses the existing horizontal-line storage/rendering.
+    var purchaseLine = null;
+    overlay.ncInputPurchasePrice = function () {
+      if (detached) return;
+      var current = purchaseLine && d.hlines.indexOf(purchaseLine) >= 0 ? purchaseLine.price : '';
+      var typed = global.prompt('매입가를 입력하세요', String(current));
+      if (typed === null) return;
+      var price = Number(String(typed).replace(/[,\s원$]/g, ''));
+      if (!(price > 0 && price <= 1e12 && isFinite(price))) return;
+      if (purchaseLine && d.hlines.indexOf(purchaseLine) >= 0) purchaseLine.price = price;
+      else { purchaseLine = {price:price}; d.hlines.push(purchaseLine); }
+      persist(); redraw();
+    };
+
+
     // ---- 크기 ----
     function measure() {
       if (opts.bounds === 'pricePane') {
@@ -731,6 +746,7 @@
         if (btn.classList) btn.classList.remove('is-active');
         if (btn.hasAttribute ? btn.hasAttribute('aria-pressed') : MODES.indexOf(m) > -1) btn.setAttribute('aria-pressed', 'false');
       });
+      overlay.ncInputPurchasePrice = null;
       layers = [];
       if (overlay.remove) overlay.remove();
     }

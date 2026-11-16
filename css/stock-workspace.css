@@ -339,14 +339,3 @@ html.dark #stock-search.ss-workspace :is(.ssw-sub, .ssw-more, .ssw-co-industry) 
   #stock-search.ss-workspace:not([data-ssw-panel="info"]) .ssw-info { display: none; }
 }
 
-/* Flow exploration: existing chart above the order book; information panel stays independent. */
-@media(min-width:861px) {
-  #stock-search.ss-workspace .ss-panels { grid-template-columns:minmax(0,1fr); gap:16px; }
-  #stock-search.ss-workspace .ss-panel-right { grid-column:1; grid-row:1; }
-  #stock-search.ss-workspace .ss-panel-left { grid-column:1; grid-row:2; max-width:none; }
-  #stock-search.ss-workspace .ss-resize-handle { display:none; }
-}
-@media(min-width:1280px) {
-  #stock-search.ss-workspace.ssw-info-open .ss-panels { grid-template-columns:minmax(0,1fr) clamp(320px,22vw,380px); }
-  #stock-search.ss-workspace.ssw-info-open .ssw-info { grid-column:2; grid-row:1 / span 2; align-self:start; }
-}

@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261106-shared-axis-toolbar';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261117-purchase-button';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -622,7 +622,7 @@
   function loadWorkspaceModule() {
     if (isIndependentChartMode() || document.querySelector('script[data-stock-workspace]')) return;
     var script = document.createElement('script');
-    script.src = CHART_BASE + 'js/stock-workspace.js?v=20261112-workspace1';
+    script.src = CHART_BASE + 'js/stock-workspace.js?v=20261117-book-left';
     script.async = true;
     script.setAttribute('data-stock-workspace', '1');
     document.head.appendChild(script);
