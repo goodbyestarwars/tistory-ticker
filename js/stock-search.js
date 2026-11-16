@@ -223,6 +223,7 @@
   var lwcChart = null;
   var lwcChartContainer = null;
   var lwcCandleSeries = null;
+  var lwcMinuteUpdate = null;
   var lwcLiveBars = [];
   var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
@@ -1296,6 +1297,8 @@
       syncIndexCapabilities(panel, bars);
       host.textContent = '';
       var options = core.chartOptions(LWC, 'search', { autoSize:true, height:440, timeframe:indexTimeframe });
+      options.timeScale.shiftVisibleRangeOnNewBar = false;
+      options.timeScale.lockVisibleTimeRangeOnResize = true;
       options.handleScale.mouseWheel = false;
       options.handleScroll.mouseWheel = false;
       indexChart = LWC.createChart(host, options);
@@ -2122,6 +2125,7 @@
         var scopeMinutes = Number(state.minuteScope) || 1;
         var nowSec = Math.floor(Date.now() / 1000) + 9 * 3600;   // 분봉 시각은 한국 시계를 UTC처럼 담는다(minuteRowsToBars)
         var secOfDay = nowSec % 86400;
+        if (Math.floor(last.date / 86400) !== Math.floor(nowSec / 86400) || secOfDay < 9 * 3600 || secOfDay >= 15 * 3600 + 20 * 60) return;
         var bucket = Math.floor(nowSec / (60 * scopeMinutes)) * 60 * scopeMinutes;
         if (bucket > last.date && Math.floor(last.date / 86400) === Math.floor(nowSec / 86400) && secOfDay >= 9 * 3600 && secOfDay <= 15 * 3600 + 20 * 60) {
           last = { date: bucket, open: price, high: price, low: price, close: price, volume: 0 };
@@ -2134,7 +2138,9 @@
     last.close = price;
     last.high = Math.max(Number(last.high) || price, price);
     last.low = Math.min(Number(last.low) || price, price);
+    var liveRange = lwcLiveTimeframe === 'minute' && lwcChart ? lwcChart.timeScale().getVisibleLogicalRange() : null;
     lwcCandleSeries.update({ time: last.date, open: last.open, high: last.high, low: last.low, close: last.close });
+    if (liveRange) lwcChart.timeScale().setVisibleLogicalRange(liveRange);
   }
 
   // ---- 분봉 자동 재조회 ----
@@ -2908,7 +2914,8 @@
       if (left !== shownLeft) { tooltip.style.left = left + 'px'; shownLeft = left; }
       var time = param.time;
       var key = (time && typeof time === 'object' ? time.year + '-' + time.month + '-' + time.day : String(time))
-        + '|' + bar.open + '|' + bar.high + '|' + bar.low + '|' + bar.close;
+        + '|' + bar.open + '|' + bar.high + '|' + bar.low + '|' + bar.close
+        + '|' + JSON.stringify(volInfo && volInfo.map && volInfo.map[String(param.time)]);
       if (key === shownKey) { if (tooltip.hidden) tooltip.hidden = false; return; }
       shownKey = key;
       tooltip.innerHTML = '<b>' + escapeHtml(chartOhlcDateText(param.time)) + '</b>'
@@ -3250,10 +3257,15 @@
   }
 
   function renderLwChart(container, bars, timeframe, preserveView) {
+    if (preserveView && timeframe === 'minute' && lwcMinuteUpdate && lwcChartContainer === container) {
+      lwcMinuteUpdate(bars);
+      return;
+    }
     // 전체화면 모달을 여닫는 순간에도 이전 DOM 참조가 남을 수 있다.
     // 렌더 대상을 찾지 못한 경우 기존 차트를 먼저 지워 빈 화면을 만들지 않는다.
     if (!container || !container.querySelectorAll) return;
     var renderId = ++lwcRenderId;
+    lwcMinuteUpdate = null;
 
     chartReady().then(function (LWC) {
       // 지지·저항은 체크했을 때만 모듈이 필요하다
@@ -3327,15 +3339,17 @@
 
       var isUsChart = /^US:/i.test(String(state.selectedCode || ''));
       var priceMinMove = isUsChart ? 0.01 : 1;
+      var minuteProfile = null;
       var candleSeries = core.addCandles(chart, LWC, bars, {
         type: 'custom',
         minMove: priceMinMove,
         formatter: function (v) { return chartPriceText(v, isUsChart); }
       }, { top: 0.06, bottom: 0.08 });
-      lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart, { map: core.volumeMultiples(bars, 20), label: timeframe === 'day' ? '20일' : '직전 20봉' });
+      var tooltipVolume = { map: core.volumeMultiples(bars, 20), label: timeframe === 'day' ? '20일' : '직전 20봉' };
+      lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart, tooltipVolume);
       lwcCandleSeries = candleSeries;
       if (state.volumeProfileEnabled && typeof candleSeries.attachPrimitive === 'function') {
-        try { candleSeries.attachPrimitive(createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode, container, timeframe === 'week' ? '주봉' : timeframe === 'month' ? '월봉' : timeframe === 'minute' ? '분봉' : '일봉')); } catch (e) { /* 매물대만 빠지고 차트는 계속 */ }
+        try { minuteProfile = createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode, container, timeframe === 'week' ? '주봉' : timeframe === 'month' ? '월봉' : timeframe === 'minute' ? '분봉' : '일봉'); candleSeries.attachPrimitive(minuteProfile); } catch (e) { /* 매물대만 빠지고 차트는 계속 */ }
       } else if (!state.volumeProfileEnabled) {
         publishVolumeProfile(state.selectedCode, null);
       }
@@ -3346,11 +3360,13 @@
       if (state.liveQuotes[state.selectedCode]) updateLiveChartQuote(state.selectedCode, state.liveQuotes[state.selectedCode]);
 
       var priceLegendHtml = [];
+      var minuteMa = [];
+      var minuteBollinger = [];
       var legendLines = {};   // 범례 키 -> 선 시리즈(굵게 표시용)
       if (state.maEnabled) {
         core.maLineStudies(ensureMaLines(), document.documentElement.classList.contains('dark')).forEach(function (study) {
           var points = core.movingAveragePoints(bars, study.source, study.period);
-          if (!points.length) return;   // 봉이 모자라(예: 448일선) 그릴 수 없는 선은 범례도 만들지 않는다
+          if (!points.length && timeframe !== 'minute') return;   // 봉이 모자라(예: 448일선) 그릴 수 없는 선은 범례도 만들지 않는다
           var maSeries = core.addMovingAverageLine(chart, LWC, study, points, {
             priceScaleId: 'right',
             priceFormat: {
@@ -3360,6 +3376,7 @@
             }
           });
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
+          minuteMa.push({ study: study, series: maSeries });
           legendLines[study.key] = lineEntries(maSeries);
           priceLegendHtml.push('<span data-study="ma" data-line-key="' + study.key + '" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:' + study.color + '">' + study.label + ' <b>' + latest + '</b></span>');
         });
@@ -3371,7 +3388,8 @@
         priceLegendHtml.push('<span style="color:' + core.SUPPLY_TRACES.color + '">거래량·가격 흔적은 국내 일봉에서만 표시됩니다</span>');
       }
       if (state.bollingerEnabled) {
-        legendLines.bollinger = lineEntries(core.addBollingerBands(chart, LWC, bars));
+        minuteBollinger = core.addBollingerBands(chart, LWC, bars);
+        legendLines.bollinger = lineEntries(minuteBollinger);
         priceLegendHtml.push('<span data-study="bollinger" data-line-key="bollinger" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:#d9a600">볼린저 20·2</span>');
       }
 
@@ -3478,6 +3496,11 @@
       paneLabels.innerHTML = '<span>RSI(14)</span>';
       if (state.rsiEnabled) container.appendChild(paneLabels);
 
+      function refreshVolumeLegend() {
+      var oldLegend = container.querySelector('.ss-volume-study-label');
+      if (oldLegend) oldLegend.remove();
+      volumeMaPoints = volumePane.ma20.points;
+      volumeMa5Points = volumePane.ma5.points;
       var latestBar = bars[bars.length - 1] || {};
       var previousBar = bars.length > 1 ? bars[bars.length - 2] : null;
       var latestVolumeMa5 = volumeMa5Points.length ? volumeMa5Points[volumeMa5Points.length - 1].value : null;
@@ -3506,6 +3529,8 @@
         + '<span class="ss-volume-day-label">전일 대비</span>'
         + '<b class="ss-volume-day-change ' + (volumeChangePct > 0 ? 'is-up' : (volumeChangePct < 0 ? 'is-down' : 'is-flat')) + '">' + formatSignedPercent(volumeChangePct) + '</b>';
       container.appendChild(volumeLegend);
+      }
+      refreshVolumeLegend();
 
       if (savedRange) chart.timeScale().setVisibleRange(savedRange);
       else chart.timeScale().fitContent();
@@ -3547,6 +3572,59 @@
         return { chart: lwcChart, container: lwcChartContainer, code: state.selectedCode,
           name: state.selectedName, timeframe: state.timeframe, minuteScope: state.minuteScope };
       });
+      if (timeframe === 'minute') lwcMinuteUpdate = function (nextBars) {
+        if (!nextBars || !nextBars.length || lwcChart !== chart) return;
+        var scale = chart.timeScale();
+        var range = scale.getVisibleLogicalRange();
+        // 시간 좌표를 기준으로 복원한다. 공급자의 rolling window로 앞 봉이 빠져도 같은 시각을 본다.
+        var anchor = bars.length ? bars[0].date : null;
+        var anchorIndex = nextBars.findIndex(function (bar) { return bar.date === anchor; });
+        var shift = anchorIndex >= 0 ? anchorIndex : 0;
+        if (anchorIndex < 0 && anchor != null) {
+          var oldIndex = bars.findIndex(function (bar) { return bar.date === nextBars[0].date; });
+          if (oldIndex >= 0) shift = -oldIndex;
+        }
+        bars = nextBars;
+        candleSeries.setData(bars.map(function (bar) {
+          return { time: bar.date, open: bar.open, high: bar.high, low: bar.low, close: bar.close };
+        }));
+        lwcLiveBars = bars.map(function (bar) { return Object.assign({}, bar); });
+        minuteMa.forEach(function (entry) {
+          var points = core.movingAveragePoints(bars, entry.study.source, entry.study.period);
+          entry.series.setData(points);
+          var label = container.querySelector('[data-line-key="' + entry.study.key + '"] b');
+          if (label) label.textContent = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
+        });
+        if (minuteBollinger.length) {
+          minuteBollinger.forEach(function (series) { chart.removeSeries(series); });
+          minuteBollinger = core.addBollingerBands(chart, LWC, bars);
+          legendLines.bollinger = lineEntries(minuteBollinger);
+          applyLineHighlight(legendLines, container.querySelector('.ss-price-study-label'));
+        }
+        if (minuteProfile && candleSeries.detachPrimitive) {
+          candleSeries.detachPrimitive(minuteProfile);
+          minuteProfile = createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode, container, '분봉');
+          candleSeries.attachPrimitive(minuteProfile);
+        }
+        volumePane.updateData(bars);
+        refreshVolumeLegend();
+        rsiValues = state.rsiEnabled ? stockRsi(bars) : null;
+        if (rsiSeries) rsiSeries.setData(bars.map(function (bar, i) {
+          return rsiValues[i] == null ? null : { time: bar.date, value: rsiValues[i] };
+        }).filter(Boolean));
+        if (lwcRsiZonesCleanup) lwcRsiZonesCleanup();
+        lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
+        // 툴팁 구독과 작도 인스턴스는 유지한다.
+        tooltipVolume.map = core.volumeMultiples(bars, 20);
+        if (drawingCtl && drawingCtl.shapes) drawingCtl.shapes.bars = bars;
+        if (state.wave.enabled) applyStockWave();
+        if (state.supportResistanceEnabled && global.NineChartSR) {
+          srResult = stockSrResult(bars, null, timeframe);
+          if (lwcSrCleanup) lwcSrCleanup();
+          lwcSrCleanup = global.NineChartSR.install(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); }, { isUs: isUsChart });
+        }
+        if (range) scale.setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+      };
       resizeStockChart();
       if (savedHeights) chart.panes().forEach(function (pane, i) { if (savedHeights[i]) pane.setHeight(savedHeights[i]); });
     }).catch(function () {
