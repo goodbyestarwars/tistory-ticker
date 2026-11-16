@@ -2138,8 +2138,7 @@
   }
 
   // ---- 분봉 자동 재조회 ----
-  // 분봉 탭에 머무는 동안 60초마다 다시 불러온다(캔들·이평선·거래량 전체 재렌더 - 확대구간
-  // 보존 없음, kospi-futures.js의 setData() 방식보다 단순하다).
+  // 60초 재조회는 기존 화면을 유지하며 적용 직전의 확대·이동 구간을 복원한다.
 
   function stopMinuteRefresh() {
     clearInterval(state.minuteRefreshTimer);
@@ -2155,7 +2154,7 @@
         return;
       }
       delete state.minuteCache[minuteCacheKey(code, state.minuteScope)]; // 60초 캐시 TTL과 무관하게 강제로 새로 받음
-      renderMinuteChart(container, code);
+      renderMinuteChart(container, code, true);
     }, MINUTE_REFRESH_MS);
   }
 
@@ -2751,7 +2750,7 @@
       });
   }
 
-  function renderMinuteChart(container, code) {
+  function renderMinuteChart(container, code, background) {
     var chartEl = activeStockChartElement(container);
     if (!chartEl) return;
     var scope = state.minuteScope;
@@ -2761,7 +2760,9 @@
       renderLwChart(chartEl, cached.bars, 'minute');
       return;
     }
-    chartEl.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>분봉을 불러오는 중...</div>';
+    var requestId = (state.minuteRequestId || 0) + 1;
+    state.minuteRequestId = requestId;
+    if (!background) chartEl.innerHTML = '<div class="ss-hint">분봉을 불러오는 중...</div>';
     var loader = typeof state.externalMinuteLoader === 'function' && /^US:/i.test(String(code))
       ? state.externalMinuteLoader(scope)
       : fetchJson(VM_OHLC_MINUTE_URL + encodeURIComponent(code) + '?tic_scope=' + encodeURIComponent(scope));
@@ -2769,13 +2770,13 @@
       .then(function (payload) {
         var bars = Array.isArray(payload) ? payload : minuteRowsToBars((payload && payload.data) || []);
         state.minuteCache[cacheKey] = { t: Date.now(), bars: bars };
-        if (state.selectedCode === code && state.timeframe === 'minute') {
+        if (state.minuteRequestId === requestId && state.selectedCode === code && state.timeframe === 'minute' && state.minuteScope === scope) {
           var currentChartEl = activeStockChartElement(container);
-          if (currentChartEl) renderLwChart(currentChartEl, bars, 'minute');
+          if (currentChartEl && bars.length) renderLwChart(currentChartEl, bars, 'minute', background);
         }
       })
       .catch(function () {
-        if (state.selectedCode === code && state.timeframe === 'minute') {
+        if (!background && state.minuteRequestId === requestId && state.selectedCode === code && state.timeframe === 'minute' && state.minuteScope === scope) {
           chartEl.innerHTML = '<div class="ss-hint ss-error">분봉 데이터를 불러오지 못했어요.</div>';
         }
       });
@@ -3248,11 +3249,27 @@
     };
   }
 
-  function renderLwChart(container, bars, timeframe) {
+  function renderLwChart(container, bars, timeframe, preserveView) {
     // 전체화면 모달을 여닫는 순간에도 이전 DOM 참조가 남을 수 있다.
     // 렌더 대상을 찾지 못한 경우 기존 차트를 먼저 지워 빈 화면을 만들지 않는다.
     if (!container || !container.querySelectorAll) return;
     var renderId = ++lwcRenderId;
+
+    chartReady().then(function (LWC) {
+      // 지지·저항은 체크했을 때만 모듈이 필요하다
+      var studyLoads = [];
+      if (state.supportResistanceEnabled || state.buyZoneEnabled) studyLoads.push(global.NineChartCore.loadModule('sr').catch(function () { return null; }));
+      if (state.rsiDivergenceEnabled) studyLoads.push(global.NineChartCore.loadModule('divergence').catch(function () { return null; }));
+      return Promise.all(studyLoads).then(function () { return LWC; });
+    }).then(function (LWC) {
+      if (renderId !== lwcRenderId || !document.body.contains(container)) return;
+      var savedRange = null, savedPrice = null, savedHeights = null;
+      if (preserveView && lwcChart && lwcChartContainer === container) {
+        savedRange = lwcChart.timeScale().getVisibleRange();
+        var priceScale = lwcChart.priceScale('right');
+        if (priceScale.getVisibleRange && !priceScale.options().autoScale) savedPrice = priceScale.getVisibleRange();
+        savedHeights = lwcChart.panes().map(function (pane) { return pane.getHeight(); });
+      }
     lwcCandleSeries = null;
     lwcLiveBars = [];
     lwcLiveTimeframe = null;
@@ -3280,14 +3297,6 @@
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones').forEach(function (el) { el.remove(); });
     if (container.parentNode && container.parentNode.querySelectorAll) container.parentNode.querySelectorAll('.ss-vp-panel').forEach(function (el) { el.remove(); });
 
-    chartReady().then(function (LWC) {
-      // 지지·저항은 체크했을 때만 모듈이 필요하다
-      var studyLoads = [];
-      if (state.supportResistanceEnabled || state.buyZoneEnabled) studyLoads.push(global.NineChartCore.loadModule('sr').catch(function () { return null; }));
-      if (state.rsiDivergenceEnabled) studyLoads.push(global.NineChartCore.loadModule('divergence').catch(function () { return null; }));
-      return Promise.all(studyLoads).then(function () { return LWC; });
-    }).then(function (LWC) {
-      if (renderId !== lwcRenderId || !document.body.contains(container)) return;
       var core = global.NineChartCore;
       if (container.querySelector('.ss-hint')) container.innerHTML = '';
 
@@ -3498,7 +3507,9 @@
         + '<b class="ss-volume-day-change ' + (volumeChangePct > 0 ? 'is-up' : (volumeChangePct < 0 ? 'is-down' : 'is-flat')) + '">' + formatSignedPercent(volumeChangePct) + '</b>';
       container.appendChild(volumeLegend);
 
-      chart.timeScale().fitContent();
+      if (savedRange) chart.timeScale().setVisibleRange(savedRange);
+      else chart.timeScale().fitContent();
+      if (savedPrice && chart.priceScale('right').setVisibleRange) chart.priceScale('right').setVisibleRange(savedPrice);
       if (timeframe !== 'minute' && global.NineChartData && (/^[0-9A-Z]{6}$/i.test(String(state.selectedCode || '')) || isUsChart)) {
         var visibleDates = global.NineChartData.rangeDates(bars, state.selectedCode);
         if (visibleDates) chart.timeScale().setVisibleRange(visibleDates);
@@ -3537,8 +3548,9 @@
           name: state.selectedName, timeframe: state.timeframe, minuteScope: state.minuteScope };
       });
       resizeStockChart();
+      if (savedHeights) chart.panes().forEach(function (pane, i) { if (savedHeights[i]) pane.setHeight(savedHeights[i]); });
     }).catch(function () {
-      if (renderId !== lwcRenderId) return;
+      if (renderId !== lwcRenderId || (preserveView && lwcChartContainer === container && lwcChart)) return;
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
   }
