@@ -147,7 +147,7 @@
       toggle.type = 'button';
       toggle.className = 'ssw-info-toggle';
       toggle.setAttribute('aria-controls', 'sswInfo');
-      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-expanded', String(root.classList.contains('ssw-info-open')));
       toggle.textContent = '종목정보';
       head.appendChild(toggle);
     }
@@ -497,7 +497,7 @@
   }
   /* 종목정보는 비모달이다(2026-11-13): 넓은 PC는 차트 오른쪽 열로 붙고(차트가 그만큼 좁아질 뿐 계속 조작 가능),
      좁은 PC는 배경 가림 없이 오른쪽에 떠 있다. 같은 오른쪽을 쓰는 전역 관심종목과는 기존 닫기 API로 하나만 연다.
-     열림 상태는 관심종목처럼 기억한다. 배경(.ssw-backdrop) 노드는 기존 계약 보존용으로 남기되 띄우지 않는다. */
+     열림 상태 저장 계약은 보존하되, 페이지 진입 기본값은 항상 종목정보 열림이다. 배경(.ssw-backdrop) 노드는 기존 계약 보존용으로 남기되 띄우지 않는다. */
   var INFO_OPEN_KEY = 'ssw_info_open_v1';
   function setInfoOpen(open, keep) {
     if (!el.backdrop) return;
@@ -651,9 +651,9 @@
       decorateHead();
     }
     showTab(state.tab);
-    // 지난번에 열어 둔 종목정보는 다시 연다(PC만, 전역 관심종목이 열린 채면 그쪽을 존중).
-    if (storedInfoOpen() && global.matchMedia && global.matchMedia('(min-width: 861px)').matches
-      && !doc.documentElement.classList.contains('wl-open')) setInfoOpen(true, true);
+    // 진입 기본값은 종목정보. 과거 닫힘 저장값과 무관하게 열고 같은 화면에서는 자유롭게 전환한다.
+    setInfoOpen(true, true);
+    if (global.matchMedia && global.matchMedia('(max-width: 860px)').matches) showPanel('info');
     resolveInitial();
   }
 
