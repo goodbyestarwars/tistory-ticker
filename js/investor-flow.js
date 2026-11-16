@@ -623,7 +623,7 @@
       return '<td><span>�ż� '+num(p&&p.buy)+'</span><span>�ŵ� '+num(p&&p.sell)+'</span><b>'+(net==null?'���ż� ������':(net>0?'���ż� +':net<0?'���ŵ� ?':'���ż� ')+num(Math.abs(net)))+'</b></td>';
     }
     function rowHtml(row,label,activity,fields,extra) {
-      return '<tr'+(row.slot===opts.selectedSlot?' class="is-selected"':'')+'><th scope="row">'+esc(label)+(extra?'<small>'+esc(extra)+'</small>':'')+'</th>'
+      return '<tr'+(typeof row.slot==='number'?' data-futures-row="'+row.slot+'"':'')+(row.slot===opts.selectedSlot?' class="is-selected"':'')+'><th scope="row">'+esc(label)+(extra?'<small>'+esc(extra)+'</small>':'')+'</th>'
         +'<td>'+num(activity.totalContracts)+'</td>'
         +['foreign','institution','individual','other'].map(function(key){
           var p=activity.participants[key],net=fields?fields[key]:p?p.net:null;
