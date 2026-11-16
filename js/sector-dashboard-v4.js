@@ -187,7 +187,7 @@
       if (!rows) return '';
       return (
         '<div class="sector-card">' +
-          '<div class="sector-card-title" data-category="' + escapeHTML(sector) + '">' + escapeHTML(sector) + global.NineUI.categoryBreadth((sectorMap[sector] || []).map(function (item) { var e = resolveEntry(item, krxMap); var q = dataByCode[e.code]; return q ? q.changeRate : null; })) + '</div>' +
+          '<div class="sector-card-title" data-category="' + escapeHTML(sector) + '">' + escapeHTML(sector) + (global.NineUI.categoryBreadth ? global.NineUI.categoryBreadth((sectorMap[sector] || []).map(function (item) { var e = resolveEntry(item, krxMap); var q = dataByCode[e.code]; return q ? q.changeRate : null; })) : '') + '</div>' +
           rows +
         '</div>'
       );

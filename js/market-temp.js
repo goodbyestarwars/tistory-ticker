@@ -4222,7 +4222,7 @@
       }).join('');
       var summary = (summaries || {})[key];
       var groupAdopt = kind === 'cand' ? '<span class="mt-group-adopt" role="button" tabindex="0" data-adopt-group="' + escapeHtml(key) + '" title="이 업종 종목을 한 번에 내 카테고리로">＋ ' + groups[key].length + '종목 한 번에 편입</span>' : '';
-      return '<section class="sector-card' + (kind ? ' is-' + kind : '') + '"><div class="sector-card-title">' + escapeHtml(sector) + ' <small>' + groups[key].length + '종목</small>' + global.NineUI.categoryBreadth(groups[key].map(function (entry) { var quote = entry.quote && Object.keys(entry.quote).length ? entry.quote : entry.item; return quote.changeRate; })) + groupAdopt
+      return '<section class="sector-card' + (kind ? ' is-' + kind : '') + '"><div class="sector-card-title">' + escapeHtml(sector) + ' <small>' + groups[key].length + '종목</small>' + (global.NineUI.categoryBreadth ? global.NineUI.categoryBreadth(groups[key].map(function (entry) { var quote = entry.quote && Object.keys(entry.quote).length ? entry.quote : entry.item; return quote.changeRate; })) : '') + groupAdopt
         + (summary ? '<span class="mt-all-stock-sector-total" title="' + (summary.scanTotal ? '스캔 선별 종목의 거래대금 합계(장중 추가 종목 제외)' : '조회 종목의 거래대금 합계') + '">' + formatFlowAmount_(summary.total) + '</span>' : '') + '</div><div class="mt-all-stock-rows">' + rows + '</div></section>';
     }
     function byTotal(a, b) {
