@@ -293,6 +293,17 @@ a { text-decoration: none; color: inherit; }
   .navbar .nav-icons { grid-column: 3; grid-row: 1; justify-self: end; margin-left: 0; }
 }
 
+/* PC 검색은 로고 행(56px)과 기본 메뉴 행(48px)의 세로 중앙에 둔다.
+   양옆 메뉴와 겹치지 않는 넓은 화면만 적용; 모바일/좁은 PC는 기존 행 유지. */
+@media (min-width: 1280px) {
+  .navbar .nav-search {
+    top: 24px;
+    max-width: min(760px, 100%, calc(100vw - 960px));
+    justify-self: center;
+  }
+  html.sidebar-collapsed .navbar .nav-search { top: 0; }
+}
+
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
    사이드바 카드용 "음각" 스타일)을 심었다 - 마크업/자동완성 로직(js/stock-search-panel.js)은
    그대로. navbar가 라이트모드 기본값에서 밝은 배경(rgb(255, 254, 252))으로 바뀌면서
