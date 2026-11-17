@@ -1,3 +1,10 @@
+**2026-11-18 마켓 브리핑 전체 검색 기록실 도입**
+
+- 기존 /category/마켓 브리핑 카테고리의 현재 페이지 카드 텍스트 검색을 색인 기반 전체 검색으로 교체. js/skin-main.js에서 js/briefing-archive.js·css/briefing-archive.css를 해당 페이지에만 지연 연결. 종목명·종목코드·사명 별칭·산업/주제·본문 단어 검색, 게시일/본문 기준일 월 필터, 관련도·최신순, 15개씩 더 보기. 검색 결과는 원문으로 이동하고 홈 브리핑·본문 URL·기존 선반/페이지네이션 DOM을 보존.
+- scripts/build_briefing_index.py가 공개 티스토리 마켓 브리핑 전체 페이지와 글을 순회해 data/sectors-v3.js 종목 사전을 재사용하고 data/briefing-index.js 메타데이터 색인으로 생성. .github/workflows/briefing-index.yml은 매일 KST 03:35·원본 변경·수동 실행, 새 VM·DB·외부 시세 호출 없음. 스키마와 실패/누락 보존은 docs/MARKET_BRIEFING_ARCHIVE.md. 공개 파일에는 원문 HTML 전체/원시 시세를 복제하지 않으며 산업 자동 분류는 공식 업종이 아님.
+- 배포 빌드에서 새 파일이 Git diff 기본 검사에 포함되지 않던 오류를 수정(스테이징 후 cached diff). 운영 공개 목록 실제 2페이지 39건 수집 확인, 전체 본문 38건·비정형 HTML 1건은 목록 요약 색인으로 표시(coverage=excerpt). 짧은 기업명과 그룹명/일반어 중복 매칭을 제외해 대상·한화·SK 오인식 사례 수정.
+- 검증: Python 단위3건 통과, 프런트 JS 구문 검사 통과, GitHub Actions 색인 빌드/커밋 성공. 종목 별칭·검색 점수 추가 회귀 test/test_briefing_archive.js도 연결. GitHub master 정적 Pages 자동 배포 대상이며 티스토리 skin.html 변경·실계좌/주문 경계 변경 없음. 실제 브라우저 PC·모바일 사용성·Pages CDN 전파 실측은 별도 확인 필요.
+
 **2026-11-18 KOSPI200 주간선물 누적선·시간대별 막대 통합**
 
 - 홈 선물 수급의 중복 ‘당일 누적/구간 증감’ 전환 버튼 제거. 공통 InvestorFlow.futuresChart에 세 주체별 누적 순매수선(상단)·직전 관측 대비 순매수막대(하단)를 동일한 08:45~15:45 시간축에 통합. 각 패널 독립 계약수 눈금, 관측 공백·초기 증분 미집계 유지.
