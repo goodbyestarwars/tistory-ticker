@@ -724,6 +724,8 @@ body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hnc-r
 .home-futures-pair .hff-price-summary .hnc-range :is(dt,dd) { margin:0; font-size:12px; font-variant-numeric:tabular-nums; }
 .home-futures-pair .hff-price-summary .hnc-range dt { color:var(--hmb-mute); font-weight:400; }
 body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hmb-investor-spark-wrap { height:190px; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux > [data-home-day-chart] { flex:1; display:flex; flex-direction:column; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hmb-investor-spark-wrap { flex:1; min-height:190px; }
 body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hmb-investor-asof { line-height:1.7; margin-top:8px; }
 body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .ui-kpi-source { border-top:1px solid var(--hmb-line); padding-top:12px; }
 .home-futures-pair .hff-chart-shell { display:grid; grid-template-columns:48px minmax(0,1fr); position:relative; }
