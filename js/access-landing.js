@@ -1,8 +1,8 @@
 /**
  * 9Pay 비로그인 첫 화면(로그인 랜딩) (2026-11-11).
- * 비로그인 방문자가 한 브라우저 세션에서 처음 보는 화면 위에 크리스마스 사진과 함께 덮는다.
+ * 비로그인 방문자가 한 브라우저 세션에서 처음 보는 화면 위에 마이클 조던 경기 사진과 함께 덮는다.
  * 상단 메뉴는 공개 4개 화면, [로그인]을 누르면 Google·네이버·카카오(블로그 관리자) 선택.
- * 배경은 Unsplash의 Sam Jotham Sutharson 사진을 사용한다. 로딩 중에는 단색 배경을 유지한다.
+ * 배경은 Steve Lipofsky의 CC BY-SA 3.0 조던 경기 사진을 사용한다. 로딩 중에는 단색 배경을 유지한다.
  * 판정은 NineAccess가 한다: 로그인한 사용자·관리자에게는 보이지 않고, 이 파일은 표시만 맡는다.
  * 카카오는 사이트 회원 로그인이 아니라 기존 티스토리 관리자 로그인(.nav-manage-btn)으로 연결한다.
  */
@@ -17,8 +17,8 @@
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);background:#10140f;overflow:hidden}' +
-    '.nl-photo{position:absolute;inset:0;background:url(https://images.unsplash.com/photo-1702411607515-f3df65dbd0c7?auto=format&fit=crop&w=1920&q=82) center 50%/cover no-repeat}' +
-    '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,20,38,.62) 0%,rgba(7,20,38,.18) 52%,rgba(7,20,38,0) 78%),linear-gradient(0deg,rgba(7,20,38,.5) 0%,rgba(7,20,38,0) 40%)}' +
+    '.nl-photo{position:absolute;inset:0;background:url(https://upload.wikimedia.org/wikipedia/commons/f/f0/Jordan_by_Lipofsky_16577_%28high_quality%29.jpg) center 11%/cover no-repeat}' +
+    '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,8,12,.68) 0%,rgba(6,8,12,.26) 53%,rgba(6,8,12,0) 82%),linear-gradient(0deg,rgba(6,8,12,.5) 0%,rgba(6,8,12,0) 40%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
     '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-weight:700}' +
     '.nl-logo{color:#fff;text-decoration:none;font-size:26px;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}' +
@@ -40,7 +40,7 @@
     '.nl-btn.ghost:hover{background:rgba(255,255,255,.26)}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}' +
     '.nl-credit{font-family:system-ui,"Malgun Gothic",sans-serif;position:absolute;right:clamp(12px,3vw,40px);bottom:10px;font-size:10px;max-width:calc(100% - 24px);text-align:right;color:rgba(255,255,255,.85);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
-    '.nl-credit:hover{color:#fff;text-decoration:underline}' +
+    '.nl-credit a{color:inherit;text-decoration:underline;text-underline-offset:2px}.nl-credit a:hover{color:#fff}' +
     '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
     '.nl-modal[hidden]{display:none}' +
     '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:transparent;border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
@@ -54,7 +54,7 @@
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-note{margin-top:12px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72)}' +
     '@media (min-width:721px) and (max-height:500px){.nl-hero{bottom:130px}}' +
-    '@media (max-width:720px){.nl-photo{background-position:70% center;background-size:cover}.nl-shade{background:linear-gradient(0deg,rgba(7,20,38,.88),rgba(7,20,38,.12) 70%)}.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
+    '@media (max-width:720px){.nl-photo{background-position:55% center;background-size:cover}.nl-shade{background:linear-gradient(0deg,rgba(6,8,12,.88),rgba(6,8,12,.13) 70%)}.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
     '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(190px,24vh);max-width:calc(100% - 40px)}.nl-actions{left:20px;right:20px;bottom:40px;flex-direction:column;gap:12px}.nl-btn{min-width:0;max-width:none;flex:none;width:100%;height:56px;padding:0 8px;font-size:15px}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -122,7 +122,7 @@
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
-      '<a class="nl-credit" href="https://unsplash.com/photos/a-lit-christmas-tree-in-front-of-a-window-JqRkgN6eErk" target="_blank" rel="noopener">사진: Sam Jotham Sutharson / Unsplash</a>' +
+      '<div class="nl-credit">사진: <a href="https://commons.wikimedia.org/wiki/File:Jordan_by_Lipofsky_16577_(high_quality).jpg" target="_blank" rel="noopener">Steve Lipofsky / Basketballphoto.com</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a> · 화면 비율에 맞춰 잘림</div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
