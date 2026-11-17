@@ -1,62 +1,97 @@
 /* Shared collision-free news keyword cloud. Counts are article frequency, never sentiment. */
 (function (global) {
   'use strict';
-  // Dense readable rows for the market overview's expanded 80-word set.
-  // Keeps every rank visible without a multi-thousand-pixel spiral fallback.
-  function layoutRows(area, words, makeButton) {
+  // The 80-keyword news overview keeps the original free-form word cloud.
+  // Dominant words sit near the centre; smaller ones fill the surrounding space
+  // on a deterministic spiral. Height grows only if collision checks need room.
+  // Other users of layout() retain their original 320/390px cloud unchanged.
+  function layoutExpandedCloud(area, words, makeButton) {
     var width = area.clientWidth;
     if (!width) return;
     area.replaceChildren();
-    if (!words.length) { area.textContent = '기사 제목에서 2건 이상 반복된 키워드가 없습니다.'; area.style.height = 'auto'; return; }
+    if (!words.length) {
+      area.textContent = '기사 제목에서 2건 이상 반복된 키워드가 없습니다.';
+      area.style.height = 'auto';
+      return;
+    }
     var max = Math.max.apply(null, words.map(function (w) { return w.count; }));
     var min = Math.min.apply(null, words.map(function (w) { return w.count; }));
-    var margin = width < 500 ? 10 : 14, horizontalGap = width < 500 ? 9 : 14;
-    var verticalGap = width < 500 ? 9 : 14;
-    var row = [], rowWidth = 0, rowHeight = 0, top = margin;
-    function flush() {
-      if (!row.length) return;
-      var x = Math.max(margin, (width - rowWidth) / 2);
-      row.forEach(function (item) {
-        item.button.style.left = x + 'px';
-        item.button.style.top = top + (rowHeight - item.h) / 2 + 'px';
-        item.button.style.visibility = 'visible';
-        x += item.w + horizontalGap;
-      });
-      top += rowHeight + verticalGap;
-      row = []; rowWidth = 0; rowHeight = 0;
-    }
-    words.forEach(function (word, index) {
+    var elements = words.map(function (word, index) {
       var button = makeButton(word);
       button.classList.add('nkc-word');
-      var label = document.createElement('span'); label.textContent = word.text;
+      var label = document.createElement('span');
+      label.textContent = word.text;
       button.replaceChildren(label);
       button.style.setProperty('--nkc-delay', -(index % 9) * .83 + 's');
       button.style.setProperty('--nkc-duration', 6 + (index % 5) + 's');
       area.appendChild(button);
-      var size = min === max ? 18 : 13 + 29 * Math.sqrt((word.count - min) / (max - min));
-      // The first ranked terms keep visual emphasis; lower ranks stay readable
-      // without turning an 80-word mobile overview into a long article.
-      if (width < 500) size = Math.min(size, index < 10 ? 30 : index < 30 ? 22 : 17);
-      else size = Math.min(size, index < 16 ? 40 : index < 40 ? 27 : 20);
+      var size = min === max ? (width < 500 ? 16 : 20)
+        : 14 + 34 * Math.sqrt((word.count - min) / (max - min));
+      // Keep the first words prominent without filling the entire mobile view.
+      if (width < 500) size = Math.min(size, index < 6 ? 32 : index < 15 ? 24 : index < 30 ? 18 : 14);
+      else size = Math.min(size, index < 12 ? 44 : index < 35 ? 27 : 20);
       button.style.fontSize = size + 'px';
       button.style.fontWeight = index < 5 ? '700' : '500';
-      button.style.position = 'absolute'; button.style.visibility = 'hidden';
-      var w = button.offsetWidth, h = button.offsetHeight;
-      var allowed = Math.max(60, width - 2 * margin);
-      if (w > allowed) {
-        button.style.fontSize = Math.max(12, size * allowed / w) + 'px';
-        w = button.offsetWidth; h = button.offsetHeight;
+      button.style.position = 'absolute';
+      button.style.visibility = 'hidden';
+      var measuredWidth = button.offsetWidth;
+      var allowedWidth = Math.max(60, width - 16);
+      if (measuredWidth > allowedWidth) {
+        button.style.fontSize = Math.max(12, size * allowedWidth / measuredWidth) + 'px';
+        measuredWidth = button.offsetWidth;
       }
-      if (row.length && rowWidth + horizontalGap + w > allowed) flush();
-      row.push({button:button,w:w,h:h});
-      rowWidth += (rowWidth ? horizontalGap : 0) + w;
-      rowHeight = Math.max(rowHeight,h);
+      return {button:button,w:measuredWidth,h:button.offsetHeight};
     });
-    flush();
-    area.style.height = Math.max(180,Math.ceil(top + margin - verticalGap)) + 'px';
+    var steps = 5000, gap = 6, margin = 7;
+    function place(height) {
+      var placed = [];
+      for (var index = 0; index < elements.length; index++) {
+        var item = elements[index], hit = null;
+        var rx = Math.max(0, (width - item.w) / 2 - margin);
+        var ry = Math.max(0, (height - item.h) / 2 - margin);
+        for (var step = 0; step < steps; step++) {
+          var angle = step * 2.399963229728653;
+          var radius = Math.sqrt((step + .5) / steps);
+          var cos = Math.cos(angle), sin = Math.sin(angle);
+          var x = (width - item.w) / 2 + rx * radius * Math.sign(cos) * Math.pow(Math.abs(cos), .6);
+          var y = (height - item.h) / 2 + ry * radius * Math.sign(sin) * Math.pow(Math.abs(sin), .6);
+          if (x < margin || y < margin || x + item.w > width - margin || y + item.h > height - margin) continue;
+          if (placed.some(function (p) {
+            return x < p.x + p.w + gap && x + item.w + gap > p.x
+              && y < p.y + p.h + gap && y + item.h + gap > p.y;
+          })) continue;
+          hit = {x:x,y:y,w:item.w,h:item.h};
+          break;
+        }
+        if (!hit) return null;
+        placed.push(hit);
+      }
+      return placed;
+    }
+    var height = width < 500 ? Math.max(360, 340 + words.length * 6)
+      : Math.max(390, 350 + words.length * 2);
+    var maxHeight = width < 500 ? 1800 : 1300;
+    var positions = null;
+    for (; height <= maxHeight; height += 100) {
+      positions = place(height);
+      if (positions) break;
+    }
+    if (!positions) {
+      // An extreme set of long titles still has access to the complete ranked
+      // list below the cloud. Preserve the original cloud rather than rows.
+      area.style.height = (width < 500 ? 420 : 390) + 'px';
+      layout(area, words.slice(0, 40), makeButton);
+      return;
+    }
+    area.style.height = height + 'px';
+    elements.forEach(function (item, index) {
+      item.button.style.left = positions[index].x + 'px';
+      item.button.style.top = positions[index].y + 'px';
+      item.button.style.visibility = 'visible';
+    });
   }
   function layout(area, words, makeButton, options) {
-    if (options && options.packed) return layoutRows(area, words, makeButton);
+    if (options && options.packed) return layoutExpandedCloud(area, words, makeButton);
     var width = area.clientWidth;
     if (!width) return;
     area.replaceChildren();
