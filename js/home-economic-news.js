@@ -80,6 +80,13 @@
     return hour < 12 ? 'am' : 'pm';
   }
 
+  // Reuse the same listed-company/industry relevance rule as MainNews;
+  // leave the source payload and disclosures unmodified.
+  function relevantHeadline(item) {
+    var matcher = global.NineNewsStocks;
+    return !matcher || !matcher.isMarketRelevant || matcher.isMarketRelevant(item);
+  }
+
   function kindLabel(item) {
     return item && item.category && item.category !== '일반' ? item.category : '뉴스';
   }
@@ -205,6 +212,7 @@
     var rows = (items || []).filter(function (item) {
       if (!item || !item.title) return false;
       if (item.kind !== 'disclosure') {
+        if (!relevantHeadline(item)) return false;
         var stamp = dateValue(item.pubDate);
         return stamp > 0 && stamp >= Date.now() - 24 * 60 * 60 * 1000 && stamp <= Date.now();
       }
@@ -250,7 +258,7 @@
     renderFlash(flash || state.flash);
     var cutoff = Date.now() - 24 * 60 * 60 * 1000;
     var rows = (items || []).filter(function (item) {
-      if (!item || item.kind === 'disclosure') return false;
+      if (!item || item.kind === 'disclosure' || !relevantHeadline(item)) return false;
       var timestamp = dateValue(item.pubDate);
       return timestamp > 0 && timestamp >= cutoff && timestamp <= Date.now();
     }).slice().sort(function (a, b) {
