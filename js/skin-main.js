@@ -955,7 +955,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '<section class="home-futures-flow ui-content-block" data-home-futures-flow><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 주간선물 · 시간별 매매</strong><span data-futures-flow-total>순매수 · 계약</span></div>'
         + '<div class="hff-controls" data-no-swipe><div class="hmb-mode-segment" role="group" aria-label="선물 투자자 선택">'
         + [['all','3주체 비교'],['foreign','외국인'],['institution','기관'],['individual','개인']].map(function (p) { return '<button type="button" data-futures-actor="'+p[0]+'" aria-pressed="'+(p[0]==='all')+'">'+p[1]+'</button>'; }).join('')
-        + '</div><span class="hff-combined-caption">누적 흐름 + 시간대별 증감</span></div>'
+        + '</div><span class="hff-combined-caption">당일 누적 흐름</span></div>'
         + '<div data-futures-flow-bars><div class="hmb-investor-spark-empty">자료 확인 중</div></div>'
         + '<div class="hff-selection-bar" data-no-swipe><div class="hff-linked-readout" data-futures-flow-readout aria-live="polite">관측 이력 대기</div>'
         + '<div class="hff-time-nav" role="group" aria-label="관측 시각 탐색"><button type="button" data-futures-step="-1" aria-label="이전 관측">‹</button><button type="button" data-futures-step="1" aria-label="다음 관측">›</button><button type="button" data-futures-latest>최근</button></div></div>'
@@ -2415,11 +2415,11 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         card.querySelectorAll('[data-futures-row]').forEach(function(tr){tr.classList.toggle('is-selected',Number(tr.getAttribute('data-futures-row'))===slot);});
         card.querySelectorAll('[data-futures-slot]').forEach(function(node){node.classList.toggle('is-selected',Number(node.getAttribute('data-futures-slot'))===slot);});
       }
-      if(flowText)flowText.textContent=!rows.length?'관측 이력 대기 · 첫 관측 이전 구간은 비워 둠':!row?data.historyDate+' · 이 구간 수급 관측 없음':data.historyDate+' · '+(row.previousTs?futuresObservationTime(row.previousTs)+' → ':'')+futuresObservationTime(row.ts)+' 서버 관측 · 누적/구간 동시 비교'+(row.previousTs?'':' · 첫 관측 또는 관측 공백');
+      if(flowText)flowText.textContent=!rows.length?'관측 이력 대기 · 첫 관측 이전 구간은 비워 둠':!row?data.historyDate+' · 이 구간 수급 관측 없음':data.historyDate+' · '+(row.previousTs?futuresObservationTime(row.previousTs)+' → ':'')+futuresObservationTime(row.ts)+' 서버 관측 · 선택 구간 증감은 직전 관측 대비'+(row.previousTs?'':' · 첫 관측 또는 관측 공백');
       var kpis=card&&card.querySelector('[data-futures-selected-kpis]');
       if(kpis)kpis.innerHTML=[['foreign','외국인'],['institution','기관'],['individual','개인']].map(function(actor){
         var cumulative=row?row[actor[0]]:null,delta=row?row[actor[0]+'Delta']:null;
-        return '<div><span class="hff-actor-'+actor[0]+'">'+actor[1]+'</span><div class="hff-kpi-metric"><small>당일 누적</small><strong class="'+homeTone(cumulative)+'">'+fmtContract(cumulative)+'</strong></div><div class="hff-kpi-metric"><small>구간 증감</small><strong class="'+homeTone(delta)+'">'+fmtContract(delta)+'</strong></div></div>';
+        return '<div><span class="hff-actor-'+actor[0]+'">'+actor[1]+'</span><div class="hff-kpi-metric"><small>당일 누적</small><strong class="'+homeTone(cumulative)+'">'+fmtContract(cumulative)+'</strong></div><div class="hff-kpi-metric"><small>선택 구간 증감</small><strong class="'+homeTone(delta)+'">'+fmtContract(delta)+'</strong></div></div>';
       }).join('');
       if(card){var index=rows.findIndex(function(r){return r.slot===slot;});card.querySelectorAll('[data-futures-step]').forEach(function(b){b.disabled=!rows.length||(Number(b.dataset.futuresStep)<0?index<=0:index>=rows.length-1);});var latest=card.querySelector('[data-futures-latest]');if(latest)latest.disabled=!rows.length||index>=rows.length-1;}
       if(data.sample&&flowText)flowText.textContent='[샘플 데이터 · 실제 매매 아님] '+flowText.textContent.replace(' 관측',' 예시');
@@ -2430,7 +2430,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       dashboardSection.querySelectorAll('[data-home-futures-pair] .hmb-investor-spark').forEach(function(svg){
         if(!same&&svg.closest('[data-home-day-chart]'))return;
         var line=document.createElementNS('http://www.w3.org/2000/svg','line'),x=4+slot/14*92;
-        line.setAttribute('x1',x);line.setAttribute('x2',x);line.setAttribute('y1','4');line.setAttribute('y2',svg.classList.contains('hff-combined-plot')?'117':'85');line.setAttribute('data-linked-cursor','');line.setAttribute('class','hff-cursor');line.setAttribute('vector-effect','non-scaling-stroke');svg.appendChild(line);
+        line.setAttribute('x1',x);line.setAttribute('x2',x);line.setAttribute('y1','4');line.setAttribute('y2',svg.classList.contains('hff-combined-plot')?'96':'85');line.setAttribute('data-linked-cursor','');line.setAttribute('class','hff-cursor');line.setAttribute('vector-effect','non-scaling-stroke');svg.appendChild(line);
       });
     }
     dashboardSection.addEventListener('click',function(e){

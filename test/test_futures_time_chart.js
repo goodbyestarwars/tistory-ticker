@@ -9,17 +9,17 @@ assert.equal(result.length,3);assert.equal(result[0].foreignDelta,null);assert.e
 assert.equal(result[1].foreignDelta,-400);assert.equal(result[1].institutionDelta,null);assert.equal(result[1].individualDelta,10);
 assert.equal(result[2].foreignDelta,null);assert.equal(shared.futuresRows(rows,'2026-11-14').length,0);
 const chart=shared.futuresChart(rows,{date:'2026-11-13',actor:'foreign'});
-assert(chart.includes('hff-combined-plot'));assert(chart.includes('hff-flow-line'));assert(chart.includes('hff-interval-bar'));
-assert(chart.includes('누적 순매수'));assert(chart.includes('직전 관측 대비'));
-assert.equal((chart.match(/hff-interval-bar/g)||[]).length,1);
+assert(chart.includes('hff-combined-plot'));assert(chart.includes('hff-flow-line'));assert(!chart.includes('hff-interval-bar'));
+assert(chart.includes('누적 순매수'));assert(chart.includes('선택 구간 증감'));
+assert.equal((chart.match(/hff-axis-scale/g)||[]).length,1);
 assert.equal((chart.match(/<circle data-futures-slot=/g)||[]).length,3);
 assert.equal((chart.match(/<polyline/g)||[]).length,1);
-assert(chart.includes('구간 −400계약'));assert(chart.includes('누적 +1,600계약'));
+assert(!chart.includes('<rect'));assert(chart.includes('누적 +1,600계약'));
 const all=shared.futuresChart(rows,{date:'2026-11-13',actor:'all'});
 for(const key of ['foreign','institution','individual'])assert(all.includes('hff-actor-'+key));
-assert.equal((all.match(/hff-interval-bar/g)||[]).length,2);
+assert.equal((all.match(/hff-interval-bar/g)||[]).length,0);
 assert(shared.futuresChart([],{date:null}).includes('관측 이력 대기'));
-console.log('PASS combined cumulative/interval, gaps, shared x axis, and 3 actors');
+console.log('PASS cumulative-only chart, retained interval values, gaps, shared x axis, and 3 actors');
 
 
 // UI regression: direct click/touch replaces the long slider and wheel trap.
