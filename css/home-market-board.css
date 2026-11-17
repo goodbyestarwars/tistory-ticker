@@ -714,7 +714,7 @@ body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hff-l
 html.dark .home-futures-pair .hff-activity-table :is(thead,tfoot) { background:var(--dk-card); }
 
 /* Futures: one time axis, readable net contracts, compact quote hierarchy. */
-body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux:not([hidden]) { display:flex; flex-direction:column; gap:14px; justify-content:flex-start; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux:not([hidden]) { display:flex; flex-direction:column; align-items:stretch; gap:14px; justify-content:flex-start; }
 body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux > * { margin:0; min-width:0; }
 .home-futures-pair .hff-price-summary { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:16px; }
 body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .ui-kpi-value-row strong { font-size:32px; line-height:1.25; }
@@ -729,7 +729,7 @@ body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .ui-kp
 .home-futures-pair .hff-chart-shell { display:grid; grid-template-columns:48px minmax(0,1fr); position:relative; }
 .home-futures-pair .hff-chart-shell > .hmb-investor-axis { grid-column:2; }
 .home-futures-pair .hff-value-axis { display:flex; flex-direction:column; justify-content:space-between; padding:19px 0 21px; text-align:right; color:var(--hmb-mute); font:400 10px/1 var(--font-data,var(--font-ui)); font-variant-numeric:tabular-nums; }
-body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { height:170px; margin-top:0; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { height:170px !important; margin-top:0; }
 .home-futures-pair .hff-flow-line { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .home-futures-pair .hff-flow-dot { fill:currentColor; }
 .home-futures-pair .hff-legend { margin-bottom:8px; align-items:center; }

@@ -975,13 +975,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
 
     // 2026-10-10 국내 시장 위젯 개편 스타일. 마크업을 만들기 전에 붙여 첫 그림부터 새 모양으로 나온다.
-    if (!document.querySelector('link[data-home-market-board-css]')) {
-      var hmbCss = document.createElement('link');
+    var hmbCss = document.querySelector('link[data-home-market-board-css], link[href*="/css/home-market-board.css"]');
+    if (!hmbCss) {
+      hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261117-futures-readable';
-      hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
+    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261117-futures-readable-2';
+    hmbCss.setAttribute('data-home-market-board-css', '1');
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
