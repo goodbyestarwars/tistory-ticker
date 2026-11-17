@@ -600,27 +600,38 @@
     var values=[];
     data.forEach(function(r){actors.forEach(function(key){values.push(r[key+(interval?'Delta':'')]);});});
     var max=Math.max.apply(null,[1].concat(values.filter(validAmount).map(Math.abs)));
-    var marks='<line x1="4" x2="96" y1="45" y2="45" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>';
+    var marks=[11,45,79].map(function(y){return '<line x1="4" x2="96" y1="'+y+'" y2="'+y+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>';}).join('');
+    if(!interval)actors.forEach(function(key){
+      var groups=[];
+      data.forEach(function(r){
+        if(r[key]==null)return;
+        var group=groups[groups.length-1];
+        if(!group||r.slot!==group[group.length-1].slot+1||r.ts-group[group.length-1].ts>2400){group=[];groups.push(group);}
+        group.push(r);
+      });
+      groups.forEach(function(group){if(group.length>1)marks+='<polyline class="hff-flow-line hff-actor-'+key+'" vector-effect="non-scaling-stroke" points="'+group.map(function(r){return (4+r.slot/14*92)+','+(45-r[key]/max*34);}).join(' ')+'"/>';});
+    });
     data.forEach(function(r){
       actors.forEach(function(key,i){
         var value=r[key+(interval?'Delta':'')], width=actors.length===1?4:1.5;
-        var x=4+r.slot/14*92+(i-(actors.length-1)/2)*1.7;
+        var x=4+r.slot/14*92+(interval?(i-(actors.length-1)/2)*1.7:0);
         if(value==null)return;
         var h=Math.abs(value)/max*34;
-        marks+='<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+(actors.length>1?' hff-actor-'+key:'')+'" x="'+(x-width/2)+'" y="'+(value>=0?45-h:45)+'" width="'+width+'" height="'+Math.max(.5,h)+'"><title>'+esc(names[key]+' '+(new Date(r.ts*1000)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' 서버 관측 · '+(value>0?'+':'')+value.toLocaleString('ko-KR')+'계약')+'</title></rect>';
+        var title='<title>'+esc(names[key]+' '+(new Date(r.ts*1000)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' 서버 관측 · '+(value>0?'+':'')+value.toLocaleString('ko-KR')+'계약')+'</title>';
+        marks+=interval?'<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+' hff-actor-'+key+'" x="'+(x-width/2)+'" y="'+(value>=0?45-h:45)+'" width="'+width+'" height="'+Math.max(.5,h)+'">'+title+'</rect>':'<circle data-futures-slot="'+r.slot+'" class="hff-flow-dot hff-actor-'+key+'" cx="'+x+'" cy="'+(45-value/max*34)+'" r=".65">'+title+'</circle>';
       });
     });
     return (actors.length>1?'<div class="hff-legend"><span class="hff-actor-foreign">외국인</span><span class="hff-actor-institution">기관</span><span class="hff-actor-individual">개인</span><small>위 순매수 · 아래 순매도 · 계약</small></div>':'')
-      +'<div class="hmb-investor-spark-wrap hff-timeline"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="'+esc((opts.date||'관측 대기')+' '+(interval?'구간':'누적')+' 순매수 계약. 첫 관측 이전과 누락 구간은 비워 둠')+'">'+marks+'</svg>'
+      +'<div class="hff-chart-shell"><div class="hff-value-axis" aria-hidden="true"><span>+'+max.toLocaleString('ko-KR')+'</span><span>0</span><span>−'+max.toLocaleString('ko-KR')+'</span></div><div class="hmb-investor-spark-wrap hff-timeline"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="'+esc((opts.date||'관측 대기')+' '+(interval?'구간':'누적')+' 순매수 계약. 첫 관측 이전과 누락 구간은 비워 둠')+'">'+marks+'</svg>'
       +(!data.length?'<span class="hff-empty">장중 관측 이력 대기 · 과거 구간 복원 안 함</span>':!values.some(validAmount)?'<span class="hff-empty">첫 관측 · 다음 구간부터 변화 표시</span>':'')+'</div>'
-      +'<div class="hmb-investor-axis"><span>08:45</span><span>15:45 KST</span></div>';
+      +'<div class="hmb-investor-axis"><span>08:45</span><span>12:15</span><span>15:45 KST</span></div></div>';
   }
 
   function futuresActivityTable(rows, options) {
     var opts=options||{}, interval=opts.mode==='interval', data=futuresRows(rows,opts.date);
     function num(v){return v==null?'미집계':Number(v).toLocaleString('ko-KR');}
     function cell(p,net) {
-      return '<td><span>매수 '+num(p&&p.buy)+'</span><span>매도 '+num(p&&p.sell)+'</span><b>'+(net==null?'순매수 미집계':(net>0?'순매수 +':net<0?'순매도 −':'순매수 ')+num(Math.abs(net)))+'</b></td>';
+      return '<td><b class="'+(net>0?'home-positive':net<0?'home-negative':'')+'">'+(net==null?'미집계':(net>0?'+':net<0?'−':'')+num(Math.abs(net)))+'</b><span>매수 '+num(p&&p.buy)+'</span><span>매도 '+num(p&&p.sell)+'</span></td>';
     }
     function rowHtml(row,label,activity,fields,extra) {
       return '<tr'+(typeof row.slot==='number'?' data-futures-row="'+row.slot+'"':'')+(row.slot===opts.selectedSlot?' class="is-selected"':'')+'><th scope="row">'+esc(label)+(extra?'<small>'+esc(extra)+'</small>':'')+'</th>'
@@ -660,4 +671,5 @@
       mmdd: mmdd, lineSpec: lineSpec }
   };
 })(window);
+
 

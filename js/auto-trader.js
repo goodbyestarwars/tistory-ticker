@@ -657,7 +657,7 @@
     var st = statusLine(c);
     var timerOn = vm.timerState === 'enabled';
     var startHint = '14:00 KST에 자동매매 주문 시간이 종료됩니다. [중지]는 엔진·봇 주문을 함께 차단하며, [시작] 명령이 성공하기 전에는 날짜가 바뀌어도 유지됩니다. 이미 접수된 주문은 취소하지 않습니다.';
-    return '<section class="at-card at-ctl"><div class="at-ctl-head"><h2>자동매매</h2>'
+    return '<section class="at-card at-ctl" aria-label="실행 상태와 제어"><div class="at-ctl-head">'
       + '<span class="at-ctl-link' + (c.received ? '' : ' is-bad') + '">VM 연결 ' + esc(link) + '</span></div>'
       + (c.configured ? '' : '<p class="at-banner is-bad">서버에 제어 비밀값이 설정되지 않아 제어할 수 없습니다.</p>')
       + '<p class="at-ctl-status' + (st.bad ? ' is-bad' : st.ok ? ' is-ok' : '') + '">' + esc(st.text) + '</p>'
@@ -666,7 +666,6 @@
       + '<span class="at-ctl-last">최근 명령: ' + esc(lastCmd) + (c.pending ? ' · 처리 대기 중' : '') + '</span></div>'
       + (startHint ? '<p class="at-note">' + esc(startHint) + '</p>' : '')
       + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '')
-      + logHtml(c.log)
       + '<details class="at-more" data-act-more="ctlDetail"' + (activityOpen.ctlDetail ? ' open' : '') + '><summary>상세 상태·오늘 신규 매수 보류</summary>'
       + '<div class="at-ctl-grid">'
       + cell('실행 타이머', timer, vm.timerState === 'enabled' ? 'is-on' : '') + cell('실행 서비스', service)
@@ -1257,3 +1256,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })(window);
+

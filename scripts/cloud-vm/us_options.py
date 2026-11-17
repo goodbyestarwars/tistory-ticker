@@ -4,12 +4,13 @@ Cboe 지연 시세 공개 JSON(옵션 체인 전체, 종목에 따라 1.5~6MB)�
 행사가별 감마 노출(GEX) 추정치만 뽑아 낸다. 서버 부담을 줄이기 위한 규칙:
 - 결과(작은 요약)만 캐시한다. 장중 5분, 장외 30분, 옵션 없음·너무 큰 응답은 1시간.
 - 같은 종목 동시 요청은 한 번만 받는다(락). 서로 다른 종목도 한 번에 하나씩만 받는다(세마포어).
-- 응답이 MAX_BODY_BYTES를 넘으면(SPY 같은 큰 체인) 받다가 중단하고 '지원 안 함'을 캐시한다.
+- 응답은 순차 파싱하고 계산 필드만 보존한다. 전송/압축 해제 64MiB·10만 계약 상한은 유지한다.
 - 캐시 항목 수 상한, 받은 체인은 계산 직후 버린다(1GB 메모리 VM).
-감마 노출은 "시장조성자가 콜을 팔고 풋을 샀다"는 가정의 추정치이며 실제 포지션이 아니다.
+감마 부호는 콜 양수·풋 음수라는 포지션 가정의 추정치이며 실제 시장조성자 보유 내역이 아니다.
 미결제약정은 전일 기준이라 장중에는 갱신되지 않는다.
 """
 import gzip
+import codecs
 import json
 import logging
 import math
@@ -26,12 +27,13 @@ import us_stocks
 from snapshot_io import atomic_json
 
 CBOE_URL = 'https://cdn-api.cboe.com/api/global/delayed_quotes/options/%s.json'
-MAX_BODY_BYTES = 4 * 1024 * 1024
+MAX_BODY_BYTES = 64 * 1024 * 1024
+MAX_CONTRACTS = 100000
+MAX_ITEM_BYTES = 1024 * 1024
 TTL_OPEN = 300
 TTL_CLOSED = 1800
 TTL_NEGATIVE = 3600
 CACHE_MAX = 40
-STRIKE_BAND = 0.06
 _NY = ZoneInfo('America/New_York')
 logger = logging.getLogger('us_options')
 FAIL_LOG_INTERVAL = 600
@@ -79,16 +81,136 @@ def _lock_for(symbol):
         return _locks.setdefault(symbol, threading.Lock())
 
 
+class _ChainLimit(Exception):
+    pass
+
+
+class _LimitedStream:
+    """Bound both wire bytes and decompressed bytes without retaining a full body."""
+    def __init__(self, source):
+        self.source, self.total = source, 0
+
+    def read(self, size=-1):
+        raw = self.source.read(min(size if size >= 0 else 65536, MAX_BODY_BYTES - self.total + 1))
+        self.total += len(raw)
+        if self.total > MAX_BODY_BYTES:
+            raise _ChainLimit()
+        return raw
+
+
+class _ChainJSON:
+    """Incremental Cboe object reader; discard unused contract fields immediately."""
+    FIELDS = ('option', 'gamma', 'open_interest', 'volume', 'bid', 'ask', 'last_trade_price', 'iv')
+
+    def __init__(self, source):
+        self.source, self.buffer, self.pos, self.eof = source, '', 0, False
+        self.decoder = codecs.getincrementaldecoder('utf-8')()
+        self.json_decoder = json.JSONDecoder()
+
+    def fill(self):
+        self.buffer = self.buffer[self.pos:]
+        self.pos = 0
+        raw = self.source.read(65536)
+        self.eof = not raw
+        self.buffer += self.decoder.decode(raw, final=self.eof)
+
+    def peek(self):
+        while True:
+            while self.pos < len(self.buffer) and self.buffer[self.pos].isspace():
+                self.pos += 1
+            if self.pos < len(self.buffer):
+                return self.buffer[self.pos]
+            if self.eof:
+                return ''
+            self.fill()
+
+    def expect(self, char):
+        if self.peek() != char:
+            raise json.JSONDecodeError('Unexpected token', self.buffer, self.pos)
+        self.pos += 1
+
+    def value(self):
+        self.peek()
+        while True:
+            try:
+                value, end = self.json_decoder.raw_decode(self.buffer, self.pos)
+                # A number at a chunk boundary may continue in the next chunk.
+                if not self.eof and (end == len(self.buffer) or self.buffer[end] not in ' \r\n\t,:]}'):
+                    self.fill()
+                    continue
+                self.pos = end
+                return value
+            except json.JSONDecodeError:
+                if self.eof:
+                    raise
+                if len(self.buffer) - self.pos > MAX_ITEM_BYTES:
+                    raise _ChainLimit()
+                self.fill()
+
+    def options(self):
+        self.expect('[')
+        rows = []
+        if self.peek() != ']':
+            while True:
+                item = self.value()
+                if not isinstance(item, dict):
+                    raise ValueError('Invalid contract')
+                rows.append({key: item[key] for key in self.FIELDS if key in item})
+                if len(rows) > MAX_CONTRACTS:
+                    raise _ChainLimit()
+                if self.peek() == ']':
+                    break
+                self.expect(',')
+        self.expect(']')
+        return rows
+
+    def object(self, data=False):
+        self.expect('{')
+        result = {}
+        if self.peek() != '}':
+            while True:
+                key = self.value()
+                if not isinstance(key, str):
+                    raise ValueError('Invalid key')
+                self.expect(':')
+                if not data and key == 'data':
+                    result[key] = self.object(data=True)
+                elif data and key == 'options':
+                    result[key] = self.options()
+                else:
+                    value = self.value()
+                    if (data and key == 'current_price') or (not data and key == 'timestamp'):
+                        result[key] = value
+                if self.peek() == '}':
+                    break
+                self.expect(',')
+        self.expect('}')
+        return result
+
+
 def _fetch_chain(symbol):
-    """체인 JSON을 받아 dict로. 너무 크면 None, 옵션 없음은 ValueError."""
+    """Stream and compact the chain. Never publish a silently truncated chain."""
     request = urllib.request.Request(CBOE_URL % symbol, headers={
         'User-Agent': 'Mozilla/5.0', 'Accept-Encoding': 'gzip',
     })
     try:
         with urllib.request.urlopen(request, timeout=15) as response:
             length = response.headers.get('Content-Length')
-            raw = response.read(MAX_BODY_BYTES + 1)
             encoding = response.headers.get('Content-Encoding', '')
+            if length and int(length) > MAX_BODY_BYTES:
+                return None
+            wire = _LimitedStream(response)
+            source = gzip.GzipFile(fileobj=wire) if 'gzip' in encoding else wire
+            reader = _ChainJSON(_LimitedStream(source))
+            chain = reader.object()
+            if reader.peek():
+                raise ValueError('Trailing JSON')
+            return chain
+    except _ChainLimit:
+        return None
+    except (ValueError, UnicodeError, EOFError) as exc:
+        _log_fail(symbol, 'bad_json')
+        raise us_stocks.UsStockUnavailable('옵션 체인 형식이 올바르지 않습니다.') from exc
     except urllib.error.HTTPError as exc:
         _log_fail(symbol, 'http_%s' % exc.code)
         if exc.code in (403, 404):
@@ -97,20 +219,6 @@ def _fetch_chain(symbol):
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         _log_fail(symbol, type(exc).__name__)
         raise us_stocks.UsStockUnavailable('옵션 체인을 불러오지 못했습니다.')
-    if 'gzip' in encoding:
-        try:
-            raw = gzip.decompress(raw)
-        except OSError:
-            _log_fail(symbol, 'gzip_error')
-            raise us_stocks.UsStockUnavailable('옵션 체인을 불러오지 못했습니다.')
-    # 압축 전송이어도 풀린 크기를 기준으로 상한을 둔다(파싱 때 메모리를 쓰는 건 풀린 쪽).
-    if len(raw) > MAX_BODY_BYTES or (length and not encoding and int(length) > MAX_BODY_BYTES):
-        return None
-    try:
-        return json.loads(raw)
-    except ValueError:
-        _log_fail(symbol, 'bad_json')
-        raise us_stocks.UsStockUnavailable('옵션 체인 형식이 올바르지 않습니다.')
 
 
 def _as_of(chain):
@@ -290,7 +398,7 @@ def summarize(chain, today, symbol='', now=None):
     if not rows:
         return None
     expiry_date = '20%s-%s-%s' % (nearest[0:2], nearest[2:4], nearest[4:6])
-    near = sorted(k for k in rows if abs(k / price - 1) <= STRIKE_BAND)
+    near = sorted(rows)
     call_wall = max(rows, key=lambda k: rows[k]['call'])
     put_wall = max(rows, key=lambda k: rows[k]['put'])
     return {
@@ -306,6 +414,11 @@ def summarize(chain, today, symbol='', now=None):
         'as_of': _as_of(chain),
         'call_wall': call_wall,
         'put_wall': put_wall,
+        'max_call_gex': round(rows[call_wall]['call'], 2),
+        'max_put_gex': round(rows[put_wall]['put'], 2),
+        'coverage': {'scope': 'all_strikes_nearest_expiry', 'strike_count': len(rows),
+                     'contract_count': sum(1 for expiry, _, _, _ in parsed if expiry == nearest),
+                     'min_strike': near[0], 'max_strike': near[-1]},
         'net': round(sum(r['call'] - r['put'] for r in rows.values()), 1),
         'overview': _overview(parsed, price, nearest, now or _ny_now(), symbol, today),
         'source': 'Cboe 지연 시세',
@@ -355,3 +468,4 @@ def get_summary(symbol):
             _cache[symbol] = (time.time() + ttl, payload)
         _trim_cache()
         return payload
+

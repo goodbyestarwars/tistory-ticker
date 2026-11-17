@@ -432,7 +432,7 @@ dict 구성을 함께 대조한다.
 
 미국 단건/일괄 시세의 기존 `price/change/change_rate/previous_close`는 브로커의 최신가·전일 대비 계약을 유지한다. 애프터마켓에는 `regular_session{price,previous_close,change,change_rate,as_of,session_date,source}`와 `session_change/session_change_rate`를 추가한다. 당일 정규장 종가는 Yahoo chart 메타데이터로 보강(종목/뉴욕 날짜/마감 시각 검증, 성공·실패 모두 5분 메모리 캐시), 시간외 가격은 실제 당일 프리·애프터 체결이 확인된 Yahoo 차트 시세를 우선하며 KIS→키움은 장애 대체 경로다. 대체 경로는 `extended_unverified`, Yahoo는 `delayed` 및 `quote_time`(epoch초)을 표시한다. 시간외 등락은 이 정규장 종가 대비이며 기준 확인 실패 시 새 필드는 null이다. 웹은 이 기준을 사용하고 정규장 종가·등락도 함께 표시한다. Yahoo에 시간외 메타 가격이 없으면 당일 해당 세션의 실제 1분봉 종가를 사용하며 시간외 데이터도 없으면 정규장 마감으로 표시한다.
 
-| GET | `/us-options/{symbol}` | 없음 | 미국 종목 가장 가까운 만기(당일이면 0DTE)의 행사가별 감마 노출 요약. Cboe 지연 시세 공개 JSON 기반, 결과만 캐시(장중 5분·장외 30분·옵션 없음/4MB 초과 1시간). 행사가별 `call/put`(감마 노출 백만$)·`*_oi`·`*_vol`과 `as_of`(Cboe 기준 시각 epoch초) 포함 |
+| GET | `/us-options/{symbol}` | 없음 | 미국 종목 가장 가까운 만기(당일이면 0DTE)의 행사가별 감마 노출 요약. Cboe 지연 시세 공개 JSON 기반, 결과만 캐시(장중 5분·장외 30분·옵션 없음/용량 상한 초과 1시간). 행사가별 `call/put`(감마 노출 백만$)·`*_oi`·`*_vol`과 `as_of`(Cboe 기준 시각 epoch초) 포함. 최근 만기의 공급자 제공 전체 행사가 반환(±6% 제한 없음), `coverage{scope:all_strikes_nearest_expiry,strike_count,contract_count,min_strike,max_strike}`·`max_call_gex/max_put_gex`(백만$/주가1%) 추가. 순차 파싱·전송/압축해제 각각64MiB·10만계약 상한, 초과 시 부분 정상 응답 금지 |
 | GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석. 분석 v3의 `summary.insider`는 최근90일 비파생 P/S 매수·매도와 기타 변동/공시일/원문을 구분. `summary.analyst_ratings`는 월별 추천 집계와 별도이며 `access_denied`는 기관별 자료 미확보를 뜻함. 상세: `docs/US_ANALYSIS_REVIEW_2026-10-20.md` |
 | GET/PUT | `/watchlist` | Google 세션 | 관심종목 조회·저장 |
 | GET | `/watchlist/disclosures` | Google 세션 | 관심종목 최근 7일 DART 공시 |

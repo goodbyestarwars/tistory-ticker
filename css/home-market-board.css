@@ -713,3 +713,47 @@ body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hff-l
 .home-futures-pair .hff-activity-note { margin:8px 0; font-size:10px; line-height:1.5; color:var(--hmb-mute); }
 html.dark .home-futures-pair .hff-activity-table :is(thead,tfoot) { background:var(--dk-card); }
 
+/* Futures: one time axis, readable net contracts, compact quote hierarchy. */
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux:not([hidden]) { display:flex; flex-direction:column; gap:14px; justify-content:flex-start; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux > * { margin:0; min-width:0; }
+.home-futures-pair .hff-price-summary { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:16px; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .ui-kpi-value-row strong { font-size:32px; line-height:1.25; }
+.home-futures-pair .hff-kpi-label { font:400 11px/1.5 var(--font-ui); color:var(--hmb-mute); }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hnc-range { display:grid; gap:8px; margin:0; min-width:140px; }
+.home-futures-pair .hff-price-summary .hnc-range > div { display:flex; align-items:baseline; justify-content:space-between; gap:16px; }
+.home-futures-pair .hff-price-summary .hnc-range :is(dt,dd) { margin:0; font-size:12px; font-variant-numeric:tabular-nums; }
+.home-futures-pair .hff-price-summary .hnc-range dt { color:var(--hmb-mute); font-weight:400; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hmb-investor-spark-wrap { height:190px; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hmb-investor-asof { line-height:1.7; margin-top:8px; }
+body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .ui-kpi-source { border-top:1px solid var(--hmb-line); padding-top:12px; }
+.home-futures-pair .hff-chart-shell { display:grid; grid-template-columns:48px minmax(0,1fr); position:relative; }
+.home-futures-pair .hff-chart-shell > .hmb-investor-axis { grid-column:2; }
+.home-futures-pair .hff-value-axis { display:flex; flex-direction:column; justify-content:space-between; padding:19px 0 21px; text-align:right; color:var(--hmb-mute); font:400 10px/1 var(--font-data,var(--font-ui)); font-variant-numeric:tabular-nums; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { height:170px; margin-top:0; }
+.home-futures-pair .hff-flow-line { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.home-futures-pair .hff-flow-dot { fill:currentColor; }
+.home-futures-pair .hff-legend { margin-bottom:8px; align-items:center; }
+.home-futures-pair .hff-legend > span::before { content:''; display:inline-block; width:12px; height:3px; margin:0 4px 3px 0; background:currentColor; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-time-nav { display:flex; align-items:center; gap:8px; margin:8px 0; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-time { flex:1; width:0; height:30px; margin:0; cursor:ew-resize; }
+.home-futures-pair .hff-time-nav button { min-width:30px; min-height:30px; padding:2px 8px; border:1px solid var(--hmb-line); border-radius:var(--ui-radius-band,999px); background:transparent; color:var(--hmb-ink); font:500 12px/1.4 var(--font-ui); cursor:pointer; }
+.home-futures-pair .hff-time-nav button:disabled { opacity:.35; cursor:default; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-linked-readout { min-height:0; margin:6px 0; line-height:1.6; }
+.home-futures-pair .hff-selected-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:10px 0; }
+.home-futures-pair .hff-selected-kpis > div { padding:10px; border-radius:8px; background:color-mix(in srgb,var(--hmb-ink) 4%,transparent); }
+.home-futures-pair .hff-selected-kpis span { font:500 11px/1.5 var(--font-ui); }
+.home-futures-pair .hff-selected-kpis strong { display:block; font:700 20px/1.5 var(--font-data,var(--font-ui)); font-variant-numeric:tabular-nums; }
+.home-futures-pair .hff-selected-kpis small { display:block; color:var(--hmb-mute); font:400 10px/1.4 var(--font-ui); }
+.home-futures-pair .hff-activity-table { font-size:12px; }
+.home-futures-pair .hff-activity-table td b { font-size:13px; margin-bottom:4px; }
+.home-futures-pair .hff-activity-table td span { font-size:10px; color:var(--hmb-mute); line-height:1.5; }
+.home-futures-pair .hff-activity-table tbody tr { cursor:pointer; }
+.home-futures-pair .hff-activity-table tfoot { position:static; }
+.home-futures-pair .hff-activity-scroll { max-height:245px; scrollbar-width:thin; }
+@media(max-width:720px) {
+  .home-futures-pair .hff-selected-kpis > div { padding:8px; }
+  .home-futures-pair .hff-selected-kpis strong { font-size:18px; }
+  body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hmb-investor-spark-wrap { height:160px; }
+}
+
+

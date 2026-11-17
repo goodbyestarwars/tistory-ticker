@@ -406,6 +406,22 @@ html.dark .us-opt-more:hover { background: var(--dk-hover); }
 html.dark .us-opt-card.us-stocks-panel .us-opt-head-0dte { border-top-color: var(--dk-line); }
 .us-opt-head b { white-space: nowrap; }
 
+/* Entire nearest-expiry ladder, with numeric GEX and direct maximum navigation. */
+.us-opt-card .us-opt-ladder { position:relative; max-height:500px; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+.us-opt-card .us-opt-row { height:49px; border-bottom:1px solid var(--ui-rule,#eceef1); grid-template-columns:minmax(0,1fr) 68px minmax(0,1fr); }
+.us-opt-card .us-opt-cols { grid-template-columns:minmax(0,1fr) 68px minmax(0,1fr); }
+.us-opt-card :is(.us-opt-l,.us-opt-r) { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:2px; height:100%; isolation:isolate; overflow:hidden; padding:0 5px; }
+.us-opt-card .us-opt-l { align-items:flex-end; }
+.us-opt-card .us-opt-row i { position:absolute; bottom:0; height:100%; max-width:100%; z-index:-1; opacity:.7; }
+.us-opt-card .us-opt-l i { right:0; background:var(--chart-fill-down); }
+.us-opt-card .us-opt-r i { left:0; background:var(--chart-fill-up); }
+.us-opt-card .us-opt-gex { font-size:13px; font-weight:700; }
+.us-opt-card .us-opt-n { font-size:9px; }
+.us-opt-card .us-opt-tiles small { display:block; margin-top:4px; font-size:11px; color:var(--ui-text-secondary,#69717c); }
+.us-opt-card .us-opt-jumps { display:flex; gap:6px; padding:6px 8px 10px; }
+.us-opt-card .us-opt-jumps button { border:1px solid var(--ui-rule,#eceef1); border-radius:var(--ui-radius-band,999px); background:transparent; color:inherit; padding:5px 10px; font:500 11px/1.5 var(--font-ui); cursor:pointer; }
+html.dark .us-opt-card .us-opt-tiles small { color:var(--dk-sub); }
+
 /* 옵션 패널 박스는 콘텐츠 카드 공통 면(--ui-card-surface: 라이트 흰색·다크 --dk-card)을 쓴다(2026-11-03). 칸·지표 타일이 투명해 페이지 바탕색이 비치던 것을 바로잡는다. */
 .us-opt-col, .us-opt-tiles > div { background: var(--ui-card-surface, #fff); }
 
@@ -449,3 +465,4 @@ html.dark .us-modal { color: var(--dk-text, #e6ebf2); }
 html.dark .us-modal-head, html.dark .us-modal-list li, html.dark .us-modal-open { border-color: var(--dk-line); }
 html.dark .us-modal-note, html.dark .us-modal-close { color: var(--dk-mute, #b4bfd0); }
 @media (max-width: 640px) { .us-modal-overlay { padding: 8px; } .us-modal { max-height: calc(100vh - 16px); border-radius: 12px; } }
+

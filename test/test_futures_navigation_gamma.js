@@ -1,0 +1,25 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('js/skin-main.js','utf8');
+const window={NineUI:{escapeHtml:String}};
+vm.runInNewContext(fs.readFileSync('js/investor-flow.js','utf8'),{window});
+const data={historyDate:'2026-11-17',observations:[0,2,5].map(slot=>({ts:Date.parse('2026-11-17T08:45:00+09:00')/1000+slot*1800,foreign:slot+1,institution:-slot,individual:0}))};
+let updates=0;
+const navigation=source.slice(source.indexOf('    function selectHomeFuturesIndex'),source.indexOf("    dashboardSection.addEventListener('click',function(e){var step="));
+// Keep the same lexical state as the home renderer.
+const nav=new Function('window','homeFuturesDisplayData','syncHomeFuturesSelection','var homeFuturesSelectedSlot=null;'+navigation+';return {selectHomeFuturesIndex,stepHomeFutures,get:()=>homeFuturesSelectedSlot};')(window,()=>data,()=>updates++);
+nav.selectHomeFuturesIndex(Infinity);assert.equal(nav.get(),5);
+nav.stepHomeFutures(-1);assert.equal(nav.get(),2);nav.stepHomeFutures(-1);assert.equal(nav.get(),0);
+nav.stepHomeFutures(-1);assert.equal(nav.get(),0);assert.equal(updates,3);
+nav.stepHomeFutures(1);assert.equal(nav.get(),2);
+const us=fs.readFileSync('js/us-stocks.js','utf8');
+const block=us.slice(us.indexOf('  function fmtOptCount'),us.indexOf('  function loadNativeChart'));
+const render=new Function(block+';return renderOptionsCard;')();
+const mount={querySelector:()=>({querySelector:()=>null}),querySelectorAll:()=>[],hidden:true,innerHTML:''};
+const strikes=Array.from({length:100},(_,i)=>({strike:i+50,call:i,put:100-i,call_oi:10,put_oi:20,call_vol:1000,put_vol:1000}));
+render(mount,{available:true,is_0dte:true,expiry:'2026-11-17',price:100,call_wall:149,put_wall:50,max_call_gex:99,max_put_gex:100,net:0,strikes,coverage:{scope:'all_strikes_nearest_expiry',min_strike:50,max_strike:149}});
+assert.equal((mount.innerHTML.match(/data-opt-strike=/g)||[]).length,100);
+assert(!mount.innerHTML.includes('us-opt-far'));assert(mount.innerHTML.includes('99백만$'));
+assert(mount.innerHTML.includes('해당 만기 전체 100개'));assert(mount.innerHTML.includes('OI 초과'));
+assert(!mount.innerHTML.includes('= 신규 포지션'));assert(!mount.hidden);
+console.log('PASS actual observation navigation, gaps, clamped ends, whole-strike ladder and maxima');

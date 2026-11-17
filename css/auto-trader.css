@@ -100,8 +100,8 @@ html.dark #auto-trader { --at-panel: var(--dk-card); --at-warn: #f0b35c; --at-ok
 @media (max-width: 640px) {
   #auto-trader .at-box .at-table td { white-space: nowrap; }
 }
-html.dark body #auto-trader .at-table td.at-up, html.dark body #auto-trader .at-kpi b.at-up, html.dark body #auto-trader dd.at-up { color: var(--num-up); }
-html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .at-kpi b.at-down { color: var(--num-down); }
+html.dark body #auto-trader .at-table td.at-up, html.dark body #auto-trader .at-kpi b.at-up, html.dark body #auto-trader dd.at-up { color: var(--dk-up, var(--num-up)) !important; }
+html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .at-kpi b.at-down { color: var(--dk-down, var(--num-down)) !important; }
 
 /* ── 연구 기능 통합 (2026-10-11): 새 카드를 만들지 않고 기존 .at-box 안에서 상태 태그·게이지·구분 행만 추가 ── */
 #auto-trader .at-tag { display: inline-block; padding: 1px 7px; border-radius: 5px; background: rgba(var(--np-ink, 26, 26, 26), .07); color: var(--at-mute); font-size: 11.5px; font-weight: 650; }
@@ -143,7 +143,7 @@ html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .a
 /* ── 운영센터 개편 (2026-10-15): 넓은 2단, 잔고 상태 배너, 구분·매도 관리 배지, 분석 전용 카드 ── */
 /* 좌우 플로팅 버튼(왼쪽 글쓰기·오른쪽 탭)이 본문을 덮지 않도록 양쪽에 버튼 폭만큼 비운다. 폭 상한은 홈과 같은 --home-content-max. */
 #auto-trader { --at-edge: 72px; }
-#auto-trader.at-wide { width: min(var(--home-content-max, 1440px), calc(100vw - 2 * var(--at-edge))); max-width: none; position: relative; left: 50%; transform: translateX(-50%); }
+#auto-trader.at-wide { width:100%; max-width:100%; box-sizing:border-box; position:relative; left:auto; transform:none; margin-inline:auto; }
 #auto-trader .at-kpi { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 #auto-trader .at-grid { grid-template-columns: minmax(0, 1.9fr) minmax(300px, 1fr); }
 #auto-trader .at-st small { color: var(--at-mute); font-size: 11px; }
@@ -323,3 +323,4 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 
 #auto-trader .at-ctl-log, #auto-trader .at-ctl-log :is(li,span,strong,small,time,b) { font-size:13px!important; line-height:1.7!important; }
 #auto-trader [data-decision-body][hidden] { display:none!important; }
+
