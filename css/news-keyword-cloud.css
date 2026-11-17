@@ -6,7 +6,15 @@
 .news-keyword-cloud:has(.nkc-word:is(:hover,:focus-visible)) .nkc-word > span { animation-play-state:paused; }
 .news-keyword-cloud .nkc-word:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
 @keyframes nkc-drift { 0%,100% { transform:translateY(-2px); } 50% { transform:translateY(2px); } }
+.news-keyword-cloud.nkc-expanded { min-height:0; }
+.news-keyword-cloud.nkc-expanded .nkc-word > span { animation-name:nkc-organic-drift; }
+@keyframes nkc-organic-drift {
+  0%,100% { transform:translate3d(0,-6px,0) rotate(-.7deg); }
+  30% { transform:translate3d(2px,1px,0) rotate(.4deg); }
+  60% { transform:translate3d(-2px,6px,0) rotate(-.5deg); }
+}
 @media (prefers-reduced-motion:reduce) {
   .news-keyword-cloud .nkc-word, .news-keyword-cloud .nkc-word > span { transition:none; }
-  .news-keyword-cloud .nkc-word > span { animation:none; }
+  .news-keyword-cloud .nkc-word > span,
+  .news-keyword-cloud.nkc-expanded .nkc-word > span { animation:none; }
 }

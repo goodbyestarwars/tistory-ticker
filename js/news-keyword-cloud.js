@@ -25,24 +25,27 @@
       button.style.setProperty('--nkc-delay', -(index % 9) * .83 + 's');
       button.style.setProperty('--nkc-duration', 6 + (index % 5) + 's');
       area.appendChild(button);
-      var size = min === max ? (width < 500 ? 16 : 20)
-        : 14 + 34 * Math.sqrt((word.count - min) / (max - min));
+      var size = min === max ? (width < 500 ? 17 : 21)
+        : 15 + 37 * Math.sqrt((word.count - min) / (max - min));
       // Keep the first words prominent without filling the entire mobile view.
-      if (width < 500) size = Math.min(size, index < 6 ? 32 : index < 15 ? 24 : index < 30 ? 18 : 14);
-      else size = Math.min(size, index < 12 ? 44 : index < 35 ? 27 : 20);
+      if (width < 500) size = Math.min(size, index < 6 ? 35 : index < 15 ? 26 : index < 30 ? 19 : 15);
+      else size = Math.min(size, index < 12 ? 48 : index < 35 ? 29 : 21);
       button.style.fontSize = size + 'px';
       button.style.fontWeight = index < 5 ? '700' : '500';
       button.style.position = 'absolute';
       button.style.visibility = 'hidden';
       var measuredWidth = button.offsetWidth;
-      var allowedWidth = Math.max(60, width - 16);
+      var allowedWidth = Math.max(1, width - 32);
       if (measuredWidth > allowedWidth) {
         button.style.fontSize = Math.max(12, size * allowedWidth / measuredWidth) + 'px';
         measuredWidth = button.offsetWidth;
       }
-      return {button:button,w:measuredWidth,h:button.offsetHeight};
+      // Reserve the full independent animation envelope, including rotation.
+      var padX = Math.ceil(2 + button.offsetHeight * .0062);
+      var padY = Math.ceil(6 + measuredWidth * .0062);
+      return {button:button,w:measuredWidth + padX * 2,h:button.offsetHeight + padY * 2,padX:padX,padY:padY};
     });
-    var steps = 5000, gap = 6, margin = 7;
+    var steps = 5000, gap = 2, margin = 7;
     function place(height) {
       var placed = [];
       for (var index = 0; index < elements.length; index++) {
@@ -70,7 +73,8 @@
     }
     var height = width < 500 ? Math.max(360, 340 + words.length * 6)
       : Math.max(390, 350 + words.length * 2);
-    var maxHeight = width < 500 ? 1800 : 1300;
+    var maxHeight = Math.max(width < 500 ? 2400 : 1800,
+      elements.reduce(function (sum, item) { return sum + item.h + gap + margin * 2; }, 0));
     var positions = null;
     for (; height <= maxHeight; height += 100) {
       positions = place(height);
@@ -83,14 +87,18 @@
       layout(area, words.slice(0, 40), makeButton);
       return;
     }
-    area.style.height = height + 'px';
+    var minY = Math.min.apply(null, positions.map(function (p) { return p.y; }));
+    var maxY = Math.max.apply(null, positions.map(function (p) { return p.y + p.h; }));
+    var paddingY = width < 500 ? 8 : 10;
+    area.style.height = Math.ceil(maxY - minY + paddingY * 2) + 'px';
     elements.forEach(function (item, index) {
-      item.button.style.left = positions[index].x + 'px';
-      item.button.style.top = positions[index].y + 'px';
+      item.button.style.left = (positions[index].x + item.padX) + 'px';
+      item.button.style.top = (positions[index].y - minY + paddingY + item.padY) + 'px';
       item.button.style.visibility = 'visible';
     });
   }
   function layout(area, words, makeButton, options) {
+    area.classList.toggle('nkc-expanded', !!(options && options.packed));
     if (options && options.packed) return layoutExpandedCloud(area, words, makeButton);
     var width = area.clientWidth;
     if (!width) return;

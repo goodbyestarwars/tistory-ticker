@@ -74,7 +74,7 @@ test('expanded mobile cloud keeps every item visible without a dropped word',()=
   const inner={window:w,document:fakeDocument,Set,Map};
   vm.runInNewContext(fs.readFileSync('js/news-keyword-cloud.js','utf8'),inner);
   const area={
-    clientWidth:360,style:{},children:[],
+    clientWidth:360,classList:{toggle(){}},style:{},children:[],
     replaceChildren(){this.children=[];},
     appendChild(el){this.children.push(el);}
   };
@@ -108,11 +108,13 @@ test('expanded cloud is scattered in two dimensions, with zero overlaps at deskt
     get offsetHeight(){return parseFloat(this.style.fontSize||'14')*1.27+7;}
   });
   [320,360,390,720,1325].forEach(width=>{
-    const area={clientWidth:width,style:{},children:[],replaceChildren(){this.children=[];},appendChild(el){this.children.push(el);}};
+    const area={clientWidth:width,classList:{toggle(){}},style:{},children:[],replaceChildren(){this.children=[];},appendChild(el){this.children.push(el);}};
     w.NineKeywordCloud.layout(area,words,button,{packed:true});
     assert.equal(area.children.length,80,'no missing words at '+width);
-    const rects=area.children.map(el=>({x:parseFloat(el.style.left),y:parseFloat(el.style.top),w:el.offsetWidth,h:el.offsetHeight}));
+    const rects=area.children.map(el=>({x:parseFloat(el.style.left)-Math.ceil(2+el.offsetHeight*.0062),y:parseFloat(el.style.top)-Math.ceil(6+el.offsetWidth*.0062),w:el.offsetWidth+2*Math.ceil(2+el.offsetHeight*.0062),h:el.offsetHeight+2*Math.ceil(6+el.offsetWidth*.0062)}));
     const height=parseFloat(area.style.height);
+    assert(Math.abs(Math.min(...rects.map(r=>r.y))-(width<500?8:10))<1,'trimmed top');
+    assert(Math.abs(height-Math.max(...rects.map(r=>r.y+r.h))-(width<500?8:10))<1,'trimmed bottom');
     assert(rects.every(r=>r.x>=0&&r.y>=0&&r.x+r.w<=width&&r.y+r.h<=height),'bounds at '+width);
     for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
       const a=rects[i],b=rects[j];
