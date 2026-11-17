@@ -3433,23 +3433,31 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
           next: '[data-briefing-shelf-next]', card: '.feed-briefing-cards-item'
         });
       }).catch(function () {});
-      var search = document.createElement('label');
-      search.className = 'briefing-search';
-      search.innerHTML = '<input type="search" aria-label="마켓브리핑 제목·내용 검색" placeholder="마켓브리핑 제목·내용 검색" autocomplete="off"><small data-briefing-search-result>전체 ' + cards.length + '건</small>';
-      feed.insertBefore(search, shelf);
-      var input = search.querySelector('input');
-      var result = search.querySelector('[data-briefing-search-result]');
-      input.addEventListener('input', function () {
-        var query = input.value.trim().toLowerCase();
-        var shown = 0;
-        cards.forEach(function (card) {
-          var match = !query || card.textContent.toLowerCase().indexOf(query) !== -1;
-          card.hidden = !match;
-          if (match) shown += 1;
-        });
-        shelf.querySelector('.briefing-shelf-empty').hidden = shown !== 0;
-        result.textContent = query ? shown + '건 검색됨' : '전체 ' + cards.length + '건';
-      });
+      // 전체 브리핑 기록실은 기존 선반·원문·페이지네이션을 보존한 채 별도 공통 검색 모듈로 초기화한다.
+      // 색인 미수신 시 모듈이 현재 페이지 검색으로 복구한다. 스킨 HTML 편집 불필요.
+      var archiveBase = 'https://goodbyestarwars.github.io/tistory-ticker/';
+      if (!document.querySelector('link[data-briefing-archive-css]')) {
+        var archiveCss = document.createElement('link');
+        archiveCss.rel = 'stylesheet';
+        archiveCss.href = archiveBase + 'css/briefing-archive.css';
+        archiveCss.setAttribute('data-briefing-archive-css', '1');
+        document.head.appendChild(archiveCss);
+      }
+      function initArchive() {
+        if (window.NineBriefingArchive) window.NineBriefingArchive.mount({ feed: feed, shelf: shelf, cards: cards });
+      }
+      if (window.NineBriefingArchive) initArchive();
+      else {
+        var archiveScript = document.createElement('script');
+        archiveScript.src = archiveBase + 'js/briefing-archive.js';
+        archiveScript.async = true;
+        archiveScript.onload = initArchive;
+        archiveScript.onerror = function () {
+          // 불러오지 못해도 기존 티스토리 카드·날짜·URL·페이지 번호를 그대로 이용할 수 있다.
+          console.warn('[BriefingArchive] 검색 모듈 미수신, 기존 목록을 유지합니다.');
+        };
+        document.head.appendChild(archiveScript);
+      }
       return;
     }
 
