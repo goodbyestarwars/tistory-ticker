@@ -377,6 +377,9 @@ WTI·브렌트유·금은 `/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,
 공유 SiteInteractions 캐러셀 사용, 검색에 따른 hidden 카드와 빈 결과·양끝 버튼 상태를 유지한다.
 기사 없는 장식 이미지나 카드별 임의 색상을 추가하지 않는다.
 
+마켓 브리핑 **전체 검색 기록실(2026-11-18)**은 같은 공개 카테고리 경로에서 색인 준비 후 기존 선반 대신 세로 결과 목록을 보여 준다. 검색 입력→게시일/명시 기준일 월 필터→주제/정렬→원문 링크 순서다. 결과에는 종목명·종목코드 칩(클릭 시 해당 종목 재검색)을 넣고, 산업·주제는 복수 연결한다. 페이지당 15건 더 보기, 모바일 단일열·공통 제목 Noto Serif KR/본문 Pretendard, 상승·하락색은 사용하지 않는다. 색인 실패 때는 원래 300×400 선반·페이지네이션을 표시하고 '현재 페이지 검색'으로 명시한다. 코드는 js/briefing-archive.js 및 css/briefing-archive.css, 원본 설계는 docs/MARKET_BRIEFING_ARCHIVE.md.
+
+
 새 UI는 `css/ui-system.css`의 토큰과 컴포넌트 클래스를 우선 사용한다. 버튼은 역할별로
 `ui-btn-a`(주요 실행), `ui-btn-b`(보조 실행), `ui-btn-c`(이동·더보기), `ui-btn-d`(텍스트형)을
 사용하고, 의미가 드러나는 별칭인 `ui-btn-primary`, `ui-btn-secondary`, `ui-btn-soft`,
