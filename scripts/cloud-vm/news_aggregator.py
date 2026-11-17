@@ -40,6 +40,7 @@ MAJOR_NEWS_FEEDS = (
 # Per-feed cap prevents corporate releases from displacing market journalism.
 ADDITIONAL_NEWS_FEEDS = (
     ('WSJ Markets', 'https://feeds.content.dowjones.io/public/rss/RSSMarketsMain'),
+    ('WSJ Technology', 'https://feeds.content.dowjones.io/public/rss/RSSWSJD'),
     ('MarketWatch', 'https://feeds.marketwatch.com/marketwatch/topstories'),
     ('Reuters via Google News', 'https://news.google.com/rss/search?q=when%3A24h+site%3Areuters.com%2Fbusiness&hl=en-US&gl=US&ceid=US%3Aen'),
     ('GlobeNewswire Earnings', 'https://www.globenewswire.com/RssFeed/subjectcode/13-Earnings%20Releases%20And%20Operating%20Results/feedTitle/GlobeNewswire%20-%20Earnings%20Releases%20And%20Operating%20Results'),
