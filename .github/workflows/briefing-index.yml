@@ -40,13 +40,26 @@ jobs:
         run: python scripts/build_briefing_index.py
       - name: Publish only when source-backed index changed
         run: |
-          git add data/briefing-index.js
-          if git diff --cached --quiet -- data/briefing-index.js; then
-            echo "No index changes"
-            exit 0
-          fi
+          cp data/briefing-index.js "$RUNNER_TEMP/briefing-index.js"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "data(briefing): refresh public archive search index"
-          git pull --rebase origin master
-          git push origin HEAD:master
+          # 다른 master 배포가 동시에 진행돼도 생성 색인을 새 HEAD 위에 다시 올린다.
+          # 단일 행 JSON에 git rebase를 하면 충돌하기 쉬우므로 사용하지 않는다.
+          for attempt in 1 2 3; do
+            git fetch origin master
+            git reset --hard origin/master
+            cp "$RUNNER_TEMP/briefing-index.js" data/briefing-index.js
+            git add data/briefing-index.js
+            if git diff --cached --quiet -- data/briefing-index.js; then
+              echo "No index changes"
+              exit 0
+            fi
+            git commit -m "data(briefing): refresh public archive search index"
+            if git push origin HEAD:master; then
+              echo "Published briefing index"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Index publication failed after retries" >&2
+          exit 1
