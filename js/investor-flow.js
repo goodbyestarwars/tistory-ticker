@@ -601,24 +601,14 @@
     data.forEach(function(r){actors.forEach(function(key){values.push(r[key+(interval?'Delta':'')]);});});
     var max=Math.max.apply(null,[1].concat(values.filter(validAmount).map(Math.abs)));
     var marks=[11,45,79].map(function(y){return '<line x1="4" x2="96" y1="'+y+'" y2="'+y+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>';}).join('');
-    if(!interval)actors.forEach(function(key){
-      var groups=[];
-      data.forEach(function(r){
-        if(r[key]==null)return;
-        var group=groups[groups.length-1];
-        if(!group||r.slot!==group[group.length-1].slot+1||r.ts-group[group.length-1].ts>2400){group=[];groups.push(group);}
-        group.push(r);
-      });
-      groups.forEach(function(group){if(group.length>1)marks+='<polyline class="hff-flow-line hff-actor-'+key+'" vector-effect="non-scaling-stroke" points="'+group.map(function(r){return (4+r.slot/14*92)+','+(45-r[key]/max*34);}).join(' ')+'"/>';});
-    });
     data.forEach(function(r){
       actors.forEach(function(key,i){
-        var value=r[key+(interval?'Delta':'')], width=actors.length===1?4:1.5;
-        var x=4+r.slot/14*92+(interval?(i-(actors.length-1)/2)*1.7:0);
+        var value=r[key+(interval?'Delta':'')], width=actors.length===1?4:1.7;
+        var x=4+r.slot/14*92+(i-(actors.length-1)/2)*1.9;
         if(value==null)return;
         var h=Math.abs(value)/max*34;
         var title='<title>'+esc(names[key]+' '+(new Date(r.ts*1000)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' 서버 관측 · '+(value>0?'+':'')+value.toLocaleString('ko-KR')+'계약')+'</title>';
-        marks+=interval?'<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+' hff-actor-'+key+'" x="'+(x-width/2)+'" y="'+(value>=0?45-h:45)+'" width="'+width+'" height="'+Math.max(.5,h)+'">'+title+'</rect>':'<circle data-futures-slot="'+r.slot+'" class="hff-flow-dot hff-actor-'+key+'" cx="'+x+'" cy="'+(45-value/max*34)+'" r=".65">'+title+'</circle>';
+        marks+='<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+' hff-flow-bar hff-actor-'+key+'" x="'+(x-width/2)+'" y="'+(value>=0?45-h:45)+'" width="'+width+'" height="'+Math.max(.5,h)+'">'+title+'</rect>';
       });
     });
     return (actors.length>1?'<div class="hff-legend"><span class="hff-actor-foreign">외국인</span><span class="hff-actor-institution">기관</span><span class="hff-actor-individual">개인</span><small>위 순매수 · 아래 순매도 · 계약</small></div>':'')

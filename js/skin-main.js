@@ -745,7 +745,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261113-linked-futures')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261113-linked-futures';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261117-futures-readable';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261118-futures-bars';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261116-free-official-v1';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
@@ -960,12 +960,13 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '<div class="hff-time-nav" data-no-swipe><button type="button" data-futures-step="-1" aria-label="이전 관측">‹</button><input class="hff-time" type="range" min="0" max="14" step="1" value="14" data-futures-time data-no-swipe aria-label="가격과 수급을 비교할 관측 시각" disabled><button type="button" data-futures-step="1" aria-label="다음 관측">›</button><button type="button" data-futures-latest>최근</button></div>'
         + '<div class="hff-linked-readout" data-futures-flow-readout aria-live="polite">관측 이력 대기</div>'
         + '<div class="hff-selected-kpis" data-futures-selected-kpis></div>'
-        + '<div data-futures-activity-table></div>'
+        + '<details class="hff-details"><summary>시간별 매매 상세</summary><div data-futures-activity-table></div></details>'
         + '<small class="ui-kpi-source" data-futures-flow-meta>선물 전체 · 자료 확인 중</small></section>'
         // 주간/야간 선물은 같은 카드 레이아웃과 30분 세션 차트를 재사용한다.
         + '<section class="home-market-aux home-night-content ui-content-block" id="homeMarketAux" data-home-market-aux data-home-day-futures aria-label="KOSPI200 주간선물"><div class="hmb-summary-head"><strong class="ui-section-title">KOSPI200 주간선물</strong><span data-home-day-field="status">확인 중</span></div>'
-        + '<div class="hff-price-summary"><div><span class="hff-kpi-label">최근 가격</span><div class="ui-kpi-value-row"><strong data-home-day-field="price">확인 중</strong></div><div class="ui-kpi-value-row hnc-change"><em data-home-day-field="change">-</em><span class="hff-kpi-label">전일 대비</span></div></div>'
-        + '<dl class="hnc-range"><div><dt>당일 고가</dt><dd data-home-day-field="high">-</dd></div><div><dt>당일 저가</dt><dd data-home-day-field="low">-</dd></div><div><dt>등락 기준가</dt><dd data-home-day-field="previous">-</dd></div></dl></div>'
+        + '<div class="ui-kpi-value-row"><strong data-home-day-field="price">확인 중</strong></div>'
+        + '<div class="ui-kpi-value-row hnc-change"><em data-home-day-field="change">-</em></div>'
+        + '<dl class="hnc-range"><div><dt>고가</dt><dd data-home-day-field="high">-</dd></div><div><dt>저가</dt><dd data-home-day-field="low">-</dd></div><div><dt>기준가</dt><dd data-home-day-field="previous">-</dd></div></dl>'
         + '<div class="home-index-chart home-night-futures-chart" data-home-day-chart></div>'
         + '<div class="hff-linked-readout" data-futures-price-readout aria-live="polite">같은 날짜의 수급 관측 시 연동</div>'
         + '<small class="ui-kpi-source" data-home-day-field="time">기준시각 확인 중</small></section>'
@@ -981,7 +982,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       hmbCss.rel = 'stylesheet';
       document.head.appendChild(hmbCss);
     }
-    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261117-futures-readable-4';
+    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261118-futures-compact';
     hmbCss.setAttribute('data-home-market-board-css', '1');
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
