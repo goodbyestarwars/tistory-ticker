@@ -1,7 +1,7 @@
 **2026-11-18 주요뉴스·홈 경제뉴스 관련성 필터 공통 적용**
 
 - 기존 `NineNewsStocks`의 상장기업 명칭·종목코드·검증 별칭(기존 Jensen Huang→NVDA 포함) 및 거시경제·산업+사업 사건 패턴을 재사용하여 `isMarketRelevant` 표시 판정 추가. 사용법·일반 제품 리뷰를 배제하고 명시적 증권/실적/금리 등 기업·시장 사건은 보존. 이름 사전을 새로 복제하지 않으며, 기존 KRX_MAP·StockSearchPanel 자료 갱신을 따라간다.
-- `main-news.js` 주요뉴스·주간 홈(비회원·회원)·키워드 클라우드와 `home-economic-news.js` 장중 뉴스·속보 화면에 공통 판정 적용. `skin-shell.js`, `skin-main.js`, `home-weekly-report.js` 자산 버전 갱신. 원본 수집·조회 API·서버 캐시/DB·sourceStatus·공식 발표·공시·가상자산 전용·타임윈도·시세/주문 경계는 변경하지 않음. 카탈로그 로드 실패 시 기존 뉴스를 표시하는 가용성 폴백은 보존한다.
+- `main-news.js` 주요뉴스·주간 홈(비회원·회원)·키워드 클라우드와 `home-economic-news.js` 장중 뉴스·속보 화면에 공통 판정 적용. `skin-shell.js`, `skin-main.js`, `home-weekly-report.js` 자산 버전 갱신. 원본 수집·조회 API·서버 캐시/DB·sourceStatus·공식 발표·공시·가상자산 전용·타임윈도·시세/주문 경계는 변경하지 않음. 분류 스크립트 미준비/실패 시 일반 뉴스를 무조건 표시하지 않고 보류하도록 수정(공식 발표·공시는 기존 표시 경로 유지).
 - 검증: 변경 JS 6개 V8 구문 파싱 통과, U+FFFD 손상0개, 실공통 소스 실행에서 기업·경제/산업 관련 8건 포함/일반 소비자 뉴스6건 제외·원본 객체 불변·Jensen Huang→NVDA 확인. 전용 `test/test_news_market_relevance.js` 추가. 브라우저/운영 서버 실제 뉴스별 표출과 Pages 전파는 배포 후 별도 실측이 필요하다. master 직접 반영·Pages 자동 배포 대상으로 기록.
 - 이력 50건 유지를 위해 기존 최하단 11/13 항목을 `docs/history/WORK_HISTORY_2026-11-18_news_relevance_rotation.md`에 원문 보존.
 
