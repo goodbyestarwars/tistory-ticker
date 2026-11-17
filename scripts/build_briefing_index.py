@@ -205,7 +205,7 @@ def mentioned(text, needle):
     # 짧은 기업명은 일반어·그룹명과 충돌하므로 '$한화' 또는 명시적 코드처럼
     # 표기된 경우만 종목으로 확정한다. 텍스트 검색에서는 일반 단어로 찾을 수 있다.
     if needle in AMBIGUOUS_NAMES:
-        return re.search(r"(?<![가-힣A-Za-z0-9])\\$" + re.escape(needle) +
+        return re.search(r"(?<![가-힣A-Za-z0-9])\$" + re.escape(needle) +
                          r"(?![가-힣A-Za-z0-9])", text, flags=re.I) is not None
     prefix = r"(?<![가-힣A-Za-z0-9])"
     if re.fullmatch(r"[A-Za-z0-9]+", needle):
