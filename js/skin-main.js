@@ -235,7 +235,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 }());
 
 /* 자동매매(소유자 전용) 화면: Tistory에 /page/auto-trader 페이지를 만들면 이 로더가 화면을 붙인다(DCF와 같은 방식).
-   데이터는 이 PC의 로컬 봇(127.0.0.1:8765)에서만 읽는다 - 계좌·주문 정보는 사이트·VM을 거치지 않는다. */
+   관리자 인증 후 기존 서버의 비식별 자동매매 상태만 조회한다. 실주문 명령은 제공하지 않는다. */
 (function loadAutoTraderPage() {
   if (!/^\/(?:page|pages)\/auto-trader\/?$/.test(location.pathname)) return;
   if (document.querySelector('script[data-auto-trader-page]')) return;
@@ -247,8 +247,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!host) return;
     host.appendChild(mount);
   }
-  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/auto-trader.css?v=20261117-layout'; document.head.appendChild(css);
-  var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261117-layout'; script.setAttribute('data-auto-trader-page', '1');
+  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/auto-trader.css?v=20261118-market-gate'; document.head.appendChild(css);
+  var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261118-market-gate'; script.setAttribute('data-auto-trader-page', '1');
   script.onerror = function () { mount.textContent = '자동매매 화면을 불러오지 못했습니다. 새로고침하세요.'; };
   document.body.appendChild(script);
 }());
