@@ -592,30 +592,41 @@
 
 
 
+  // One observed time axis, two independently scaled net-contract panels.
   function futuresChart(rows, options) {
-    var opts=options||{}, actor=['foreign','institution','individual','all'].indexOf(opts.actor)>=0?opts.actor:'foreign';
-    var actors=actor==='all'?['foreign','institution','individual']:[actor];
-    var names={foreign:'외국인',institution:'기관',individual:'개인'};
-    var data=futuresRows(rows,opts.date), interval=opts.mode!=='cumulative';
-    var values=[];
-    data.forEach(function(r){actors.forEach(function(key){values.push(r[key+(interval?'Delta':'')]);});});
-    var max=Math.max.apply(null,[1].concat(values.filter(validAmount).map(Math.abs)));
-    var marks=[11,45,79].map(function(y){return '<line x1="4" x2="96" y1="'+y+'" y2="'+y+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>';}).join('');
-    data.forEach(function(r){
-      actors.forEach(function(key,i){
-        var value=r[key+(interval?'Delta':'')], width=actors.length===1?4:1.7;
-        var x=4+r.slot/14*92+(i-(actors.length-1)/2)*1.9;
-        if(value==null)return;
-        var h=Math.abs(value)/max*34;
-        var title='<title>'+esc(names[key]+' '+(new Date(r.ts*1000)).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' 서버 관측 · '+(value>0?'+':'')+value.toLocaleString('ko-KR')+'계약')+'</title>';
-        marks+='<rect data-futures-slot="'+r.slot+'" class="hmb-investor-'+(value>=0?'buy':'sell')+' hff-flow-bar hff-actor-'+key+'" x="'+(x-width/2)+'" y="'+(value>=0?45-h:45)+'" width="'+width+'" height="'+Math.max(.5,h)+'">'+title+'</rect>';
+    var opts=options||{}, actor=['foreign','institution','individual','all'].indexOf(opts.actor)>=0?opts.actor:'all';
+    var actors=actor==='all'?['foreign','institution','individual']:[actor], names={foreign:'외국인',institution:'기관',individual:'개인'};
+    var data=futuresRows(rows,opts.date), cum=[],delta=[];
+    data.forEach(function(r){actors.forEach(function(k){if(validAmount(r[k]))cum.push(Math.abs(r[k]));if(validAmount(r[k+'Delta']))delta.push(Math.abs(r[k+'Delta']));});});
+    var cm=Math.max.apply(null,[1].concat(cum)),dm=Math.max.apply(null,[1].concat(delta));
+    var xOf=function(slot){return 4+slot/14*92;};
+    var fmt=function(v){return (v>0?'+':v<0?'−':'')+Math.abs(v).toLocaleString('ko-KR');};
+    var time=function(ts){return new Date(ts*1000).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour12:false});};
+    var marks=[9,34,59,69,91,113].map(function(y){return '<line x1="4" x2="96" y1="'+y+'" y2="'+y+'" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>';}).join('');
+    marks+='<line x1="4" x2="96" y1="64" y2="64" class="hff-plot-divider" vector-effect="non-scaling-stroke"/>';
+    actors.forEach(function(k){
+      var points=[],prevSlot=null;
+      function flush(){if(points.length>1)marks+='<polyline class="hff-flow-line hff-actor-'+k+'" points="'+points.join(' ')+'" vector-effect="non-scaling-stroke"/>';points=[];}
+      data.forEach(function(r){
+        if(!validAmount(r[k])){flush();prevSlot=null;return;}
+        if(prevSlot!==null&&r.slot!==prevSlot+1)flush();
+        var x=xOf(r.slot),y=34-r[k]/cm*25;points.push(x+','+y);
+        marks+='<circle data-futures-slot="'+r.slot+'" class="hff-flow-dot hff-actor-'+k+'" cx="'+x+'" cy="'+y+'" r="'+(actors.length===1?1.1:.75)+'"><title>'+esc(names[k]+' '+time(r.ts)+' 서버 관측 · 누적 '+fmt(r[k])+'계약')+'</title></circle>';
+        prevSlot=r.slot;
       });
+      flush();
     });
-    return (actors.length>1?'<div class="hff-legend"><span class="hff-actor-foreign">외국인</span><span class="hff-actor-institution">기관</span><span class="hff-actor-individual">개인</span><small>위 순매수 · 아래 순매도 · 계약</small></div>':'')
-      +'<div class="hff-chart-shell"><div class="hff-value-axis" aria-hidden="true"><span>+'+max.toLocaleString('ko-KR')+'</span><span>0</span><span>−'+max.toLocaleString('ko-KR')+'</span></div><div class="hmb-investor-spark-wrap hff-timeline"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="'+esc((opts.date||'관측 대기')+' '+(interval?'구간':'누적')+' 순매수 계약. 첫 관측 이전과 누락 구간은 비워 둠')+'">'+marks+'</svg>'
-      +(!data.length?'<span class="hff-empty">장중 관측 이력 대기 · 과거 구간 복원 안 함</span>':!values.some(validAmount)?'<span class="hff-empty">첫 관측 · 다음 구간부터 변화 표시</span>':'')+'</div>'
-      +'<div class="hmb-investor-axis"><span>08:45</span><span>12:15</span><span>15:45 KST</span></div></div>';
+    data.forEach(function(r){actors.forEach(function(k,i){
+      var v=r[k+'Delta'];if(!validAmount(v))return;
+      var w=actors.length===1?3.4:1.45,x=xOf(r.slot)+(i-(actors.length-1)/2)*1.65,h=Math.max(.5,Math.abs(v)/dm*22);
+      marks+='<rect data-futures-slot="'+r.slot+'" class="hff-flow-bar hff-interval-bar hmb-investor-'+(v>=0?'buy':'sell')+'" x="'+(x-w/2)+'" y="'+(v>=0?91-h:91)+'" width="'+w+'" height="'+h+'"><title>'+esc(names[k]+' '+time(r.ts)+' 서버 관측 · 구간 '+fmt(v)+'계약')+'</title></rect>';
+    });});
+    var legend='<div class="hff-legend">'+actors.map(function(k){return '<span class="hff-actor-'+k+'">'+names[k]+'</span>';}).join('')+'<small>위 누적 순매수(선) · 아래 직전 관측 대비(막대) · 계약</small></div>';
+    var axis=function(max){return '<div class="hff-axis-scale"><span>+'+max.toLocaleString('ko-KR')+'</span><span>0</span><span>−'+max.toLocaleString('ko-KR')+'</span></div>';};
+    var empty=!data.length?'장중 관측 이력 대기 · 과거 구간 복원 안 함':!cum.length&&!delta.length?'유효한 순매수 관측 없음':'';
+    return legend+'<div class="hff-chart-shell"><div class="hff-value-axis" aria-hidden="true">'+axis(cm)+axis(dm)+'</div><div class="hmb-investor-spark-wrap hff-timeline"><svg class="hmb-investor-spark hff-combined-plot" viewBox="0 0 100 122" preserveAspectRatio="none" role="img" aria-label="'+esc((opts.date||'관측 대기')+' 누적 순매수 선과 직전 관측 대비 순매수 막대. 관측 공백과 초기 구간은 이어 그리지 않음')+'">'+marks+'</svg>'+(empty?'<span class="hff-empty">'+empty+'</span>':'')+'</div><div class="hmb-investor-axis"><span>08:45</span><span>12:15</span><span>15:45 KST</span></div></div>';
   }
+
 
   function futuresActivityTable(rows, options) {
     var opts=options||{}, interval=opts.mode==='interval', data=futuresRows(rows,opts.date);

@@ -715,8 +715,9 @@ html.dark .home-futures-pair .hff-activity-table :is(thead,tfoot) { background:v
 /* Futures: one time axis, readable net contracts, compact quote hierarchy. */
 .home-futures-pair .hff-chart-shell { display:grid; grid-template-columns:48px minmax(0,1fr); position:relative; }
 .home-futures-pair .hff-chart-shell > .hmb-investor-axis { grid-column:2; }
-.home-futures-pair .hff-value-axis { display:flex; flex-direction:column; justify-content:space-between; padding:19px 0 21px; text-align:right; color:var(--hmb-mute); font:400 10px/1 var(--font-data,var(--font-ui)); font-variant-numeric:tabular-nums; }
-body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { height:140px !important; margin-top:0; }
+.home-futures-pair .hff-value-axis { display:grid; grid-template-rows:1fr 1fr; gap:8px; padding:12px 2px 4px 0; color:var(--hmb-mute); font:400 10px/1 var(--font-data,var(--font-ui)); font-variant-numeric:tabular-nums; }
+.home-futures-pair .hff-axis-scale { display:flex; flex-direction:column; justify-content:space-between; text-align:right; min-width:0; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { height:206px !important; margin-top:0; }
 .home-futures-pair .hff-flow-line { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .home-futures-pair .hff-flow-dot { fill:currentColor; }
 .home-futures-pair .hff-legend { margin-bottom:8px; align-items:center; }
@@ -748,3 +749,22 @@ body#tt-body-index .home-editorial-page .home-futures-pair .hff-linked-readout {
 .home-futures-pair .hff-flow-bar { stroke:currentColor; stroke-width:1; vector-effect:non-scaling-stroke; }
 .home-futures-pair .hff-details { margin-top:8px; color:var(--hmb-ink); font:400 12px/1.5 var(--font-ui); }
 .home-futures-pair .hff-details > summary { cursor:pointer; color:var(--hmb-mute); }
+
+/* Futures share one KST axis, with independent net-contract scales for line and bars. */
+.home-futures-pair .hff-combined-caption { color:var(--hmb-mute); font:400 11px/1.4 var(--font-ui); align-self:center; }
+.home-futures-pair .hff-legend small { flex-basis:100%; font:400 10px/1.5 var(--font-ui); }
+.home-futures-pair .hff-plot-divider { stroke:var(--hmb-line); stroke-width:1; opacity:.65; }
+.home-futures-pair .hff-flow-line { fill:none; stroke:currentColor; stroke-width:1.65; }
+.home-futures-pair .hff-flow-dot { fill:currentColor; opacity:.8; }
+.home-futures-pair .hff-flow-dot.is-selected { r:1.6; opacity:1; }
+.home-futures-pair .hff-interval-bar.hmb-investor-buy { fill:var(--chart-fill-up); stroke:var(--num-up); }
+.home-futures-pair .hff-interval-bar.hmb-investor-sell { fill:var(--chart-fill-down); stroke:var(--num-down); }
+.home-futures-pair .hff-interval-bar { opacity:.75; }
+.home-futures-pair .hff-interval-bar.is-selected { opacity:1; stroke-width:1.5; }
+.home-futures-pair .hff-kpi-metric { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:baseline; gap:2px 4px; margin-top:5px; }
+.home-futures-pair .hff-kpi-metric small { font-size:10px; }
+.home-futures-pair .hff-kpi-metric strong { font-size:13px; line-height:1.3; }
+@media(max-width:480px) {
+  body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { height:184px !important; }
+  .home-futures-pair .hff-kpi-metric { grid-template-columns:minmax(0,1fr); gap:0; }
+}
