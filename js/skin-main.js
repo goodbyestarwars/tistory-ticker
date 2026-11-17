@@ -982,7 +982,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       hmbCss.rel = 'stylesheet';
       document.head.appendChild(hmbCss);
     }
-    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261118-futures-compact';
+    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261118-global-before-night';
     hmbCss.setAttribute('data-home-market-board-css', '1');
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
@@ -1015,6 +1015,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 
     var homeUsEtfsAt = 0;
     var homeShowsUs = false;
+    var homeSummarySlot = null;
     function applyHomeSummarySession(session) {
       var isUs = !!session && session.market === 'us';
       var usSession = isUs ? usRegularSessionState() : null;
@@ -1026,6 +1027,20 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       // 국내 장이 열려 있을 시간대라 다음날 코스피 방향을 가늠할 수 있는 코스피 야간선물을
       // 그 빈 칸에 채운다(국내 시장 요약에서는 이미 투자자 동향이 있어 굳이 안 보여줌).
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
+      var summary = title && title.closest('.home-market-summary');
+      if (summary && nightFutures) {
+        if (!homeSummarySlot) {
+          homeSummarySlot = document.createComment('home-summary-original-slot');
+          summary.parentNode.insertBefore(homeSummarySlot, summary);
+        }
+        if (isUs) {
+          summary.setAttribute('data-home-global-panel', '');
+          nightFutures.parentNode.insertBefore(summary, nightFutures);
+        } else {
+          summary.removeAttribute('data-home-global-panel');
+          if (homeSummarySlot.parentNode) homeSummarySlot.parentNode.insertBefore(summary, homeSummarySlot.nextSibling);
+        }
+      }
       if (title) title.textContent = isUs ? '글로벌 지수' : '투자자 동향';
       var marketAux = dashboardSection.querySelector('[data-home-market-aux]');
       if (marketAux) marketAux.hidden = isUs;
@@ -1064,7 +1079,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       var pair = dashboardSection.querySelector('[data-home-futures-pair]');
       if (pair) pair.hidden = isUs || !!session.closed;
       // 핵심 지표 칸은 미국 모드에서 '글로벌 지수'가 된다(투자자 동향 목록은 국내 모드 전용).
-      var coreList = dashboardSection.querySelector('#homeMarketBoard .hmb2-core');
+      var coreList = summary && summary.querySelector('.hmb2-core');
       if (coreList) coreList.hidden = isUs;
       if (!isUs) renderHomeDayFutures(homeDayFutureQuote, false);
       if (isUs) { loadHomeUsRotation(); renderHomeUsPanels(); }
