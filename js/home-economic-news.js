@@ -84,7 +84,7 @@
   // leave the source payload and disclosures unmodified.
   function relevantHeadline(item) {
     var matcher = global.NineNewsStocks;
-    return !matcher || !matcher.isMarketRelevant || matcher.isMarketRelevant(item);
+    return !!(matcher && matcher.isMarketRelevant && matcher.isMarketRelevant(item));
   }
 
   function kindLabel(item) {
@@ -269,7 +269,7 @@
     // 접힌 건은 DOM에 두지 않는다. 갱신 때마다 보이는 건수만 다시 그린다.
     rows = rows.slice(0, compact() ? Math.min(state.shown, available) : 10);
     if (!rows.length) {
-      list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
+      list.innerHTML = '<p class="home-card-state">' + (!global.NineNewsStocks && (items || []).length ? '경제 뉴스 분류 자료를 확인하는 중입니다.' : '현재 표시할 경제 뉴스가 없습니다.') + '</p>';
       return;
     }
     var groups = { am: [], pm: [] };
