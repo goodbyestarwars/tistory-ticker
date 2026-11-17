@@ -775,3 +775,6 @@ body#tt-body-index .home-editorial-page .home-futures-pair .hff-combined-plot .h
 body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { touch-action:pan-y; }
 body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline svg { cursor:crosshair; }
 @media(pointer:coarse){body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline svg { cursor:default; }}
+
+/* The widget grid already owns the section gap; do not add it a second time. */
+body#tt-body-index .home-editorial-page .home-widget-grid > .home-futures-pair { margin-top:0; }

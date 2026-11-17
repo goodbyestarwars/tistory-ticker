@@ -175,14 +175,14 @@
     var economic = registry['economic-news'];
     if (!market || !economic) return;
     economic.style.height = '';
-    // Editorial home sections keep their own natural height so a longer
-    // disclosure list does not stretch the news column into an empty panel.
-    if (market.closest('.home-editorial-page')) return;
+    // Match the domestic PC columns; US panels and stacked/mobile layouts keep natural height.
+    var dashboard = market.closest('.home-dashboard');
+    if (market.closest('.home-editorial-page') && dashboard && dashboard.classList.contains('is-us-market')) return;
     var marketRect = market.getBoundingClientRect();
     var economicRect = economic.getBoundingClientRect();
     // Browser zoom changes the CSS viewport width. Only equalize cards while
     // they are actually sharing the same grid row; stacked layouts stay fluid.
-    if (Math.abs(marketRect.top - economicRect.top) > 2) return;
+    if (!marketRect.width || !economicRect.width || Math.abs(marketRect.top - economicRect.top) > 2) return;
     economic.style.height = Math.ceil(marketRect.height) + 'px';
   }
 
@@ -1095,6 +1095,7 @@
     options.dashboard.setAttribute('data-widgets-ready', '1');
     global.addEventListener('home-market-change', function () {
       loadDisclosures();
+      syncEconomicHeight();
     });
     applyState(loadState());
     syncEconomicHeight();
