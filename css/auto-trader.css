@@ -324,3 +324,24 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 #auto-trader .at-ctl-log, #auto-trader .at-ctl-log :is(li,span,strong,small,time,b) { font-size:13px!important; line-height:1.7!important; }
 #auto-trader [data-decision-body][hidden] { display:none!important; }
 
+
+
+/* 하락장 신규 매수 제어: 서버 상태만 반영하고 주문 조작 UI는 추가하지 않는다. */
+#auto-trader .at-gate { margin-top: var(--ui-card-padding, 18px); padding: 14px 16px; border: 1px solid var(--at-line); border-radius: 12px; background: var(--at-panel); }
+#auto-trader .at-gate.is-blocked { border-color: var(--at-warn); }
+#auto-trader .at-gate-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+#auto-trader .at-gate-top strong { font-size: 12px; color: var(--at-mute); }
+#auto-trader .at-gate-state { margin: 4px 0 0; font-size: 17px; font-weight: 700; color: var(--at-ink); }
+#auto-trader .at-gate.is-blocked .at-gate-state { color: var(--at-warn); }
+#auto-trader .at-gate-tag { padding: 4px 10px; border: 1px solid var(--at-line); border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--at-mute); }
+#auto-trader .at-gate.is-blocked .at-gate-tag { border-color: var(--at-warn); color: var(--at-warn); }
+#auto-trader .at-gate-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+#auto-trader .at-gate-values small { display: block; color: var(--at-mute); font-size: 11.5px; }
+#auto-trader .at-gate-values b { display: block; margin-top: 3px; font-size: 14px; overflow-wrap: anywhere; }
+#auto-trader .at-gate .at-note { margin-top: 12px; }
+@media (max-width: 640px) {
+  #auto-trader .at-gate { padding: 12px; }
+  #auto-trader .at-gate-state { font-size: 15px; }
+  #auto-trader .at-gate-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #auto-trader .at-gate-values > div:last-child { grid-column: 1 / -1; }
+}
