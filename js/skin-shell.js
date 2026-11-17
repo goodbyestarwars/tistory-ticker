@@ -243,12 +243,12 @@
     var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
     var scriptJob = global.NineKeywordCloud ? Promise.resolve() : new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = base + 'js/news-keyword-cloud.js';
+      script.src = base + 'js/news-keyword-cloud.js?v=20261118-entities80-v1';
       script.onload = function () { if (global.NineKeywordCloud) resolve(); else reject(new Error('Keyword cloud unavailable')); };
       script.onerror = function () { script.remove(); reject(new Error('Keyword cloud load failed')); };
       document.head.appendChild(script);
     });
-    keywordCloudLoad = Promise.all([loadStyle(base + 'css/news-keyword-cloud.css'), scriptJob])
+    keywordCloudLoad = Promise.all([loadStyle(base + 'css/news-keyword-cloud.css?v=20261118-entities80-v1'), scriptJob])
       .then(function () { return global.NineKeywordCloud; });
     keywordCloudLoad.catch(function () { keywordCloudLoad = null; });
     return keywordCloudLoad;
@@ -260,7 +260,7 @@
     if (newsStockLoad) return newsStockLoad;
     var scriptJob = global.NineNewsStocks ? Promise.resolve(global.NineNewsStocks) : new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/news-stock-matcher.js?v=20261118-finance-filter-v1';
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/news-stock-matcher.js?v=20261118-entities80-v1';
       script.onload = function () { global.NineNewsStocks ? resolve(global.NineNewsStocks) : reject(new Error('News stock matcher unavailable')); };
       script.onerror = function () { script.remove(); reject(new Error('News stock matcher load failed')); };
       document.head.appendChild(script);
