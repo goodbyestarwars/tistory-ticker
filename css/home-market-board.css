@@ -722,8 +722,9 @@ body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { heigh
 .home-futures-pair .hff-flow-dot { fill:currentColor; }
 .home-futures-pair .hff-legend { margin-bottom:8px; align-items:center; }
 .home-futures-pair .hff-legend > span::before { content:''; display:inline-block; width:12px; height:3px; margin:0 4px 3px 0; background:currentColor; }
-body#tt-body-index .home-editorial-page .home-futures-pair .hff-time-nav { display:flex; align-items:center; gap:8px; margin:8px 0; }
-body#tt-body-index .home-editorial-page .home-futures-pair .hff-time { flex:1; width:0; height:30px; margin:0; cursor:ew-resize; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-selection-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 10px; margin:8px 0; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-selection-bar > .hff-linked-readout { flex:1 1 180px; margin:0; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-time-nav { display:flex; align-items:center; gap:6px; margin:0; flex:0 0 auto; }
 .home-futures-pair .hff-time-nav button { min-width:30px; min-height:30px; padding:2px 8px; border:1px solid var(--hmb-line); border-radius:var(--ui-radius-band,999px); background:transparent; color:var(--hmb-ink); font:500 12px/1.4 var(--font-ui); cursor:pointer; }
 .home-futures-pair .hff-time-nav button:disabled { opacity:.35; cursor:default; }
 body#tt-body-index .home-editorial-page .home-futures-pair .hff-linked-readout { min-height:0; margin:6px 0; line-height:1.6; }
@@ -746,7 +747,7 @@ body#tt-body-index .home-editorial-page .home-futures-pair .hff-linked-readout {
 
 
 /* Both cumulative and interval futures use grouped bars; price reuses the night card. */
-.home-futures-pair .hff-flow-bar { stroke:currentColor; stroke-width:1; vector-effect:non-scaling-stroke; }
+.home-futures-pair .hff-flow-bar { stroke:none; }
 .home-futures-pair .hff-details { margin-top:8px; color:var(--hmb-ink); font:400 12px/1.5 var(--font-ui); }
 .home-futures-pair .hff-details > summary { cursor:pointer; color:var(--hmb-mute); }
 
@@ -757,10 +758,10 @@ body#tt-body-index .home-editorial-page .home-futures-pair .hff-linked-readout {
 .home-futures-pair .hff-flow-line { fill:none; stroke:currentColor; stroke-width:1.65; }
 .home-futures-pair .hff-flow-dot { fill:currentColor; opacity:.8; }
 .home-futures-pair .hff-flow-dot.is-selected { r:1.6; opacity:1; }
-.home-futures-pair .hff-interval-bar.hmb-investor-buy { fill:var(--chart-fill-up); stroke:var(--num-up); }
-.home-futures-pair .hff-interval-bar.hmb-investor-sell { fill:var(--chart-fill-down); stroke:var(--num-down); }
+.home-futures-pair .hff-interval-bar.hmb-investor-buy { fill:var(--chart-fill-up); }
+.home-futures-pair .hff-interval-bar.hmb-investor-sell { fill:var(--chart-fill-down); }
 .home-futures-pair .hff-interval-bar { opacity:.75; }
-.home-futures-pair .hff-interval-bar.is-selected { opacity:1; stroke-width:1.5; }
+.home-futures-pair .hff-interval-bar.is-selected { opacity:1; }
 .home-futures-pair .hff-kpi-metric { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:baseline; gap:2px 4px; margin-top:5px; }
 .home-futures-pair .hff-kpi-metric small { font-size:10px; }
 .home-futures-pair .hff-kpi-metric strong { font-size:13px; line-height:1.3; }
@@ -768,3 +769,9 @@ body#tt-body-index .home-editorial-page .home-futures-pair .hff-linked-readout {
   body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { height:184px !important; }
   .home-futures-pair .hff-kpi-metric { grid-template-columns:minmax(0,1fr); gap:0; }
 }
+
+/* Futures: borderless signed bars, normal page scroll and direct timestamp selection. */
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-combined-plot .hff-interval-bar { stroke:none; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline { touch-action:pan-y; }
+body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline svg { cursor:crosshair; }
+@media(pointer:coarse){body#tt-body-index .home-editorial-page .home-futures-pair .hff-timeline svg { cursor:default; }}

@@ -20,3 +20,14 @@ for(const key of ['foreign','institution','individual'])assert(all.includes('hff
 assert.equal((all.match(/hff-interval-bar/g)||[]).length,2);
 assert(shared.futuresChart([],{date:null}).includes('관측 이력 대기'));
 console.log('PASS combined cumulative/interval, gaps, shared x axis, and 3 actors');
+
+
+// UI regression: direct click/touch replaces the long slider and wheel trap.
+const main=fs.readFileSync(path.join(__dirname,'../js/skin-main.js'),'utf8');
+const css=fs.readFileSync(path.join(__dirname,'../css/home-market-board.css'),'utf8');
+assert(main.includes('hff-selection-bar') && main.includes('selectHomeFuturesAtPointer'));
+assert(main.includes("dashboardSection.addEventListener('pointermove'") && main.includes("dashboardSection.addEventListener('click'"));
+assert(main.includes("flowPlot.setAttribute('data-no-swipe'"));
+assert(!main.includes('data-futures-time') && !main.includes('futuresWheel'));
+assert(css.includes('hff-interval-bar { stroke:none; }'));
+assert(css.includes('touch-action:pan-y'));
