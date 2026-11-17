@@ -1,6 +1,8 @@
 **2026-11-18 첫 화면 드래곤볼 배경 교체**
 
-- js/access-landing.js의 뮈렌 풍경을 img/landing-dragon-ball.png의 DRAGON BALL LEGENDS 공식 배포 초사이어인 손오공 이미지로 교체. 출처 https://dble.bn-ent.net/news/en/other/5204/ 및 권리자 표시, 원본 이미지 내 표기 보존. PC는 오른쪽 전체 이미지·왼쪽 안내문, 모바일은 중앙 cover와 하단 가독성 음영. 기존 로그인/비회원/권한 로직 보존.
+- 사용자 지적 후 수정: 세로 이미지 오른쪽 맞춤으로 PC 화면 대부분이 검게 남던 구도를 전체 cover로 수정. 실제 PC1440×900/모바일390×844 렌더링 확인, 로그인 모달/Esc/비회원 입장 통과. 하단 출처 중복도 간결하게 정리. master→Pages 즉시 배포.
+
+- js/access-landing.js의 뮈렌 풍경을 img/landing-dragon-ball.png의 DRAGON BALL LEGENDS 공식 배포 초사이어인 손오공 이미지로 교체. 출처 https://dble.bn-ent.net/news/en/other/5204/ 및 권리자 표시, 원본 이미지 내 표기 보존. PC는 화면 전체 cover·세로30% 초점, 모바일은 중앙 cover와 하단 가독성 음영. 기존 로그인/비회원/권한 로직 보존.
 - 검증: JS 구문·UTF-8, Edge1440×900/390×844 스크린샷 확인, 버튼 가시성·가로 넘침 없음·로그인 모달/Esc/비회원 입장 통과. master 직접 반영→Pages 즉시 배포, 운영 전파는 배포 후 확인. VM·실계좌·주문 변경 없음.
 
 **2026-11-18 국내 뉴스 높이·주간선물 상단 여백 정리**
