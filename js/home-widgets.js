@@ -177,7 +177,7 @@
     economic.style.height = '';
     // Match the domestic PC columns; US panels and stacked/mobile layouts keep natural height.
     var dashboard = market.closest('.home-dashboard');
-    if (market.closest('.home-editorial-page') && dashboard && dashboard.classList.contains('is-us-market')) return;
+    if (market.closest('.home-editorial-page') && (market.closest('body.m-tabs') || (dashboard && dashboard.classList.contains('is-us-market')))) return;
     var marketRect = market.getBoundingClientRect();
     var economicRect = economic.getBoundingClientRect();
     // Browser zoom changes the CSS viewport width. Only equalize cards while
