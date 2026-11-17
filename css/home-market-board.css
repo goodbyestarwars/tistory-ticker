@@ -465,7 +465,7 @@ body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-
 /* ── G. 공통 지표 타일 (2026-11-04 미국시장 개편, 9Pay 지표 타일 표준) ──
  * .ui-kpi-grid / .ui-kpi-tile / .ui-kpi-top / .ui-kpi-value-row / .ui-kpi-source / .ui-kpi-empty 는 다른 화면도 재사용하는 공통 클래스다.
  * 색은 기존 토큰(--num-up/--num-down, 다크는 --dk-*)만 쓰고 상승 빨강·하락 파랑 의미색을 유지한다. */
-body#tt-body-index .home-editorial-page :is(.home-night-content, #homeMarketAux, .home-futures-flow) {
+body#tt-body-index .home-editorial-page :is(.home-night-content, [data-home-global-panel], #homeMarketAux, .home-futures-flow) {
   --hmb-ink: rgb(var(--np-ink, 26, 26, 26));
   --hmb-mute: rgba(var(--np-ink, 26, 26, 26), .56);
   --hmb-faint: rgba(var(--np-ink, 26, 26, 26), .38);
@@ -473,11 +473,11 @@ body#tt-body-index .home-editorial-page :is(.home-night-content, #homeMarketAux,
   --hmb-chart-up: #e7aaa5; --hmb-chart-line: #b0bbc8; --hmb-chart-down: #9dbbe0; --hmb-chart-up-text: #ad706b; --hmb-chart-down-text: #44709f; --hmb-flat: rgba(var(--np-ink, 26, 26, 26), .22);
   min-width: 0; margin-top: var(--ui-section-gap);
 }
-html.dark body#tt-body-index .home-editorial-page :is(.home-night-content, #homeMarketAux, .home-futures-flow) {
+html.dark body#tt-body-index .home-editorial-page :is(.home-night-content, [data-home-global-panel], #homeMarketAux, .home-futures-flow) {
   --hmb-ink: var(--dk-text); --hmb-mute: var(--dk-sub); --hmb-faint: var(--dk-mute); --hmb-line: var(--dk-line);
   --hmb-chart-up: var(--dk-up); --hmb-chart-line: var(--dk-sub); --hmb-chart-down: var(--dk-down); --hmb-chart-up-text: var(--dk-up); --hmb-chart-down-text: var(--dk-down); --hmb-flat: var(--dk-mute);
 }
-body#tt-body-index .home-editorial-page :is(.home-night-content, #homeMarketAux, .home-futures-flow)[hidden],
+body#tt-body-index .home-editorial-page :is(.home-night-content, [data-home-global-panel], #homeMarketAux, .home-futures-flow)[hidden],
 body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, [data-home-global-panel], #homeMarketAux, .home-futures-pair) :is(.hmb2-core, .hus-rotation, .hgl)[hidden] { display: none; }
 body#tt-body-index .home-editorial-page .home-night-content .hmb-summary-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 12px; padding: 0; border: 0; background: transparent; }
 body#tt-body-index .home-editorial-page .home-night-content .hmb-summary-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }

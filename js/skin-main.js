@@ -982,7 +982,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       hmbCss.rel = 'stylesheet';
       document.head.appendChild(hmbCss);
     }
-    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261118-global-before-night';
+    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261118-global-spacing';
     hmbCss.setAttribute('data-home-market-board-css', '1');
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
