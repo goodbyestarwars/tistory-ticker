@@ -6,6 +6,10 @@
   var doc = global.document;
   /* 뉴스 제목에 직접 등장한 상장사만 표시한다. '테마 연관주' 추측이나 시세 조회는 하지 않는다. */
   var stockCatalog = null, stockCatalogMap = null, stockCatalogPanel = null;
+  // Keep verified people in one place, shared by company matching and keyword grouping.
+  var VERIFIED_PEOPLE = [
+    {name:'젠슨 황', market:'us', code:'NVDA', terms:['젠슨 황', '젠슨황', 'Jensen Huang']}
+  ];
   var STOCK_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
 
   function loadCatalog(url, name, attribute, timeout) {
@@ -69,7 +73,9 @@
       var terms = [row.name, row.symbol].concat(String(row.aliases || '').split(/\s+/).filter(function (word) {
         return word.length >= 5 && !/^(?:inc|corporation|technology|technologies|advanced|systems|company|group|global|spacemobile)$/i.test(word);
       }));
-      if (row.symbol === 'NVDA') terms = terms.concat(['젠슨 황', '젠슨황', 'Jensen Huang']);
+      VERIFIED_PEOPLE.forEach(function (person) {
+        if (person.market === 'us' && person.code === row.symbol) terms = terms.concat(person.terms);
+      });
       rows.push({ name: row.name, code: row.symbol, terms: terms, market: 'us' });
     });
     if (stockCatalogMap !== global.KRX_MAP || stockCatalogPanel !== global.StockSearchPanel) stockMatchesCache.clear();
@@ -128,6 +134,39 @@
     return result.slice();
   }
 
+  // For the cloud, distinguish a direct company mention from a person connected
+  // with that company. "Jensen Huang" alone must not inflate NVIDIA mentions.
+  function headlineEntities(item) {
+    if (!item) return {companies:[], people:[]};
+    var titles = [item.title, item.title_ko].filter(Boolean);
+    var candidates = stockCandidates(), matches = relatedStocks(item);
+    var people = VERIFIED_PEOPLE.reduce(function (found, person) {
+      var aliases = person.terms.filter(function (term) {
+        return titles.some(function (title) { return mentionAt(title, term) >= 0; });
+      });
+      if (!aliases.length) return found;
+      var linked = candidates.filter(function (row) { return row.code === person.code && row.market === person.market; })[0];
+      found.push({name:person.name, code:person.code, market:person.market,
+        companyName:linked ? linked.name : '', terms:aliases});
+      return found;
+    }, []);
+    var companies = matches.reduce(function (found, match) {
+      var row = candidates.filter(function (candidate) {
+        return candidate.code === match.code && candidate.market === match.market;
+      })[0];
+      if (!row) return found;
+      var peopleTerms = VERIFIED_PEOPLE.filter(function (person) {
+        return person.code === match.code && person.market === match.market;
+      }).reduce(function (all, person) { return all.concat(person.terms); }, []);
+      var terms = row.terms.filter(function (term) {
+        return term && !peopleTerms.some(function (personTerm) { return personTerm.toLowerCase() === term.toLowerCase(); })
+          && titles.some(function (title) { return mentionAt(title, term) >= 0; });
+      });
+      if (terms.length) found.push({name:row.name, code:row.code, market:row.market, terms:terms});
+      return found;
+    }, []);
+    return {companies:companies, people:people};
+  }
 
   // Display-only editorial filter. Raw provider headlines and history stay intact
   // so new classifications can be applied later without recollecting old feeds.
@@ -151,5 +190,5 @@
     return financial || (INDUSTRY_TERMS.test(title) && BUSINESS_TERMS.test(title));
   }
 
-  global.NineNewsStocks = { relatedStocks: relatedStocks, loadStockCatalog: loadStockCatalog, loadSectorCatalog:loadSectorCatalog, relatedSectors:relatedSectors, isMarketRelevant:isMarketRelevant };
+  global.NineNewsStocks = { relatedStocks: relatedStocks, loadStockCatalog: loadStockCatalog, loadSectorCatalog:loadSectorCatalog, relatedSectors:relatedSectors, isMarketRelevant:isMarketRelevant, headlineEntities:headlineEntities };
 })(window);
