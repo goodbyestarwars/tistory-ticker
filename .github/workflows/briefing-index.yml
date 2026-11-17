@@ -35,6 +35,7 @@ jobs:
         run: |
           node --check js/briefing-archive.js
           node --check js/skin-main.js
+          node test/test_briefing_archive.js
       - name: Read Tistory public category and article pages
         run: python scripts/build_briefing_index.py
       - name: Publish only when source-backed index changed
