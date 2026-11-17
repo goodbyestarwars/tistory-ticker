@@ -677,7 +677,7 @@ body#tt-body-index .home-editorial-page .home-futures-flow .ui-kpi-source { disp
 /* Linked futures cards retain the dashboard's equal two-column proportions. */
 body#tt-body-index .home-editorial-page .home-futures-pair { grid-column:1/-1; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items:start; gap: var(--ui-section-gap); margin-top: var(--ui-section-gap); }
 body#tt-body-index .home-editorial-page .home-futures-pair[hidden] { display: none; }
-body#tt-body-index .home-editorial-page .home-futures-pair > .ui-content-block { min-width: 0; margin-top: 0; padding: var(--ui-card-padding); }
+body#tt-body-index .home-editorial-page .home-futures-pair > :is(.ui-content-block, #homeMarketAux) { min-width: 0; margin-top: 0; padding: var(--ui-card-padding); }
 body#tt-body-index .home-editorial-page .home-futures-flow .hmb-summary-head { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
 body#tt-body-index .home-editorial-page .hff-controls { display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
 body#tt-body-index .home-editorial-page .hff-timeline { position:relative; height:80px; }
