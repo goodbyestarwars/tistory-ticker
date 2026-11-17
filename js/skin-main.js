@@ -398,7 +398,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     if (document.querySelector('script[data-main-news]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261116-free-official-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261118-finance-filter-v1';
     script.defer = true;
     script.setAttribute('data-main-news', '1');
     document.body.appendChild(script);
@@ -747,7 +747,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261118-futures-bars';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261116-free-official-v1';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261118-finance-filter-v1';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
 
     function isWeekendReportWindow() {
