@@ -2,7 +2,7 @@
  * 9Pay 비로그인 첫 화면(로그인 랜딩) (2026-11-11).
  * 비로그인 방문자가 한 브라우저 세션에서 처음 보는 화면 위에 마이클 조던 경기 사진과 함께 덮는다.
  * 상단 메뉴는 공개 4개 화면, [로그인]을 누르면 Google·네이버·카카오(블로그 관리자) 선택.
- * 배경은 Steve Lipofsky의 CC BY-SA 3.0 조던 경기 사진을 사용한다. 로딩 중에는 단색 배경을 유지한다.
+ * 배경은 2560×1920 조던 경기 사진을 사용한다. 로딩 중에는 단색 배경을 유지한다.
  * 판정은 NineAccess가 한다: 로그인한 사용자·관리자에게는 보이지 않고, 이 파일은 표시만 맡는다.
  * 카카오는 사이트 회원 로그인이 아니라 기존 티스토리 관리자 로그인(.nav-manage-btn)으로 연결한다.
  */
@@ -17,9 +17,7 @@
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);background:#10140f;overflow:hidden}' +
-    '.nl-photo{position:absolute;inset:0;overflow:hidden;background:#101318}' +
-    '.nl-photo:before{content:"";position:absolute;inset:-36px;background:url(https://upload.wikimedia.org/wikipedia/commons/f/f0/Jordan_by_Lipofsky_16577_%28high_quality%29.jpg) center/cover no-repeat;filter:blur(30px) brightness(.37) saturate(.75)}' +
-    '.nl-photo:after{content:"";position:absolute;top:0;bottom:0;right:3vw;width:min(58vw,860px);background:url(https://upload.wikimedia.org/wikipedia/commons/f/f0/Jordan_by_Lipofsky_16577_%28high_quality%29.jpg) center/contain no-repeat;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 92%,transparent)}' +
+    '.nl-photo{position:absolute;inset:0;background:#101318 url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-jordan-hq.jpg) center 20%/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,7,13,.64) 0%,rgba(3,7,13,.32) 42%,rgba(3,7,13,0) 74%),linear-gradient(0deg,rgba(3,7,13,.43) 0%,rgba(3,7,13,0) 48%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
     '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-weight:700}' +
@@ -56,7 +54,7 @@
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-note{margin-top:12px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72)}' +
     '@media (min-width:721px) and (max-height:500px){.nl-hero{bottom:130px}}' +
-    '@media (max-width:720px){.nl-photo:before{inset:-22px;background-position:55% center;filter:blur(22px) brightness(.32)}.nl-photo:after{top:50px;right:0;bottom:auto;left:0;width:100%;height:58vh;background-position:center top;background-size:contain;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 72%,transparent 99%);mask-image:linear-gradient(180deg,#000 0%,#000 72%,transparent 99%)}.nl-shade{background:linear-gradient(0deg,rgba(3,7,13,.95),rgba(3,7,13,.82) 34%,rgba(3,7,13,.16) 79%)}.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
+    '@media (max-width:720px){.nl-photo{background-position:43% top}.nl-shade{background:linear-gradient(0deg,rgba(3,7,13,.95),rgba(3,7,13,.82) 34%,rgba(3,7,13,.16) 79%)}.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
     '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-hero{bottom:max(190px,24vh);max-width:calc(100% - 40px)}.nl-actions{left:20px;right:20px;bottom:40px;flex-direction:column;gap:12px}.nl-btn{min-width:0;max-width:none;flex:none;width:100%;height:56px;padding:0 8px;font-size:15px}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -124,7 +122,7 @@
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
-      '<div class="nl-credit">사진: <a href="https://commons.wikimedia.org/wiki/File:Jordan_by_Lipofsky_16577_(high_quality).jpg" target="_blank" rel="noopener">Steve Lipofsky / Basketballphoto.com</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a> · 원본 인물 비율 유지 · 배경 흐림 처리</div>' +
+      '<div class="nl-credit">사진: Nathaniel S. Butler / Getty Images · <a href="https://www.thestreet.com/collectibles/michael-jordans-last-dance-jersey-record-breaking" target="_blank" rel="noopener">TheStreet</a></div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
