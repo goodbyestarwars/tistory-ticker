@@ -224,6 +224,10 @@
       + '</div>'
       + '<section class="mn-keywords" aria-label="뉴스 핵심 키워드"><h3>뉴스에서 반복된 키워드</h3>'
       + '<p data-mn-cloud-meta>현재 탭의 이번 주 월~일 기사 제목을 집계합니다.</p>'
+      + '<div class="mn-cloud-groups" role="group" aria-label="반복 키워드 종류">'
+      + '<button type="button" data-mn-cloud-group="all" aria-pressed="true">전체</button>'
+      + '<button type="button" data-mn-cloud-group="entity" aria-pressed="false">기업·인물</button>'
+      + '<button type="button" data-mn-cloud-group="topic" aria-pressed="false">시장·산업 이슈</button></div>'
       + '<div class="news-keyword-cloud" data-mn-cloud role="group" aria-label="반복 키워드"></div>'
       + '<details class="mn-keywords-all"><summary>전체 키워드·기사 수</summary><div data-mn-cloud-all></div></details>'
       + '<section class="mn-keywords-evidence" data-mn-cloud-evidence hidden aria-live="polite"></section>'
@@ -278,41 +282,96 @@
     if (label) label.textContent = loading ? '갱신 중' : '갱신';
   }
 
-  var cloudRenderToken = 0, cloudObserver = null;
+  var cloudRenderToken = 0, cloudObserver = null, cloudGroup = 'all';
   function renderKeywordCloud_(container, items, failed) {
     var token = ++cloudRenderToken;
     var area = container.querySelector('[data-mn-cloud]');
     if (!area) return;
     global.NineUI.loadKeywordCloud().then(function (shared) {
       if (token !== cloudRenderToken || !container.isConnected) return;
-      var model = shared.fromHeadlines(items, displayTitle, safeHref), selected = '';
+      // Company IDs and verified people come from the same shared matcher used
+      // by the home news; headline metadata is never modified.
+      var model = shared.fromHeadlines(items, displayTitle, safeHref, global.NineNewsStocks), selected = '';
       var all = container.querySelector('[data-mn-cloud-all]');
       var evidence = container.querySelector('[data-mn-cloud-evidence]');
-      evidence.replaceChildren(); evidence.hidden = true; all.replaceChildren();
+      var tabs = Array.prototype.slice.call(container.querySelectorAll('[data-mn-cloud-group]'));
+      var groupCounts = {
+        all:model.keywords.length,
+        entity:model.keywords.filter(function (w) { return w.group === 'entity'; }).length,
+        topic:model.keywords.filter(function (w) { return w.group === 'topic'; }).length
+      };
+      var labels = {all:'전체',entity:'기업·인물',topic:'시장·산업 이슈'};
+      evidence.replaceChildren(); evidence.hidden = true;
       container.querySelector('[data-mn-cloud-meta]').textContent =
         (VIEWS.filter(function (v) { return v.key === state.view; })[0] || VIEWS[0]).label
-        + ' · 이번 주 월~일 수집 기사 ' + model.articleCount + '건 · 제목에서 2건 이상 반복된 상위 ' + model.keywords.length
-        + '개 · 글자 크기=기사 수 (긍부정·시장 전체 언급량 아님)' + (failed.length ? ' · 일부 시장 수집 실패' : '');
+        + ' · 이번 주 월~일 수집 기사 ' + model.articleCount + '건 · 2건 이상 반복된 최대 80개 중 '
+        + model.keywords.length + '개' + (model.totalKeywords > 80 ? ' (전체 ' + model.totalKeywords + '개)' : '')
+        + ' · 기업·인물/시장 이슈 분리 · 글자 크기=기사 수 (긍부정 점수 아님)'
+        + (failed.length ? ' · 일부 시장 수집 실패' : '');
+      function kindLabel(word) {
+        return word.kind === 'company' ? '기업' : word.kind === 'person' ? '인물' : '이슈';
+      }
       function button(word) {
-        var b = document.createElement('button'); b.type = 'button'; b.textContent = word.text;
-        b.dataset.word = word.text; b.setAttribute('aria-pressed', String(selected === word.text));
-        b.setAttribute('aria-label', word.text + ' ' + word.count + '건, 근거 기사 보기'); b.title = word.text + ' · ' + word.count + '건';
+        var b = document.createElement('button'); b.type = 'button';
+        b.dataset.word = word.key || word.text;
+        b.setAttribute('aria-pressed', String(selected === b.dataset.word));
+        b.setAttribute('aria-label', kindLabel(word) + ' ' + word.text + ' ' + word.count + '건, 근거 기사 보기');
+        b.title = word.text + ' · ' + word.count + '건' +
+          (word.kind === 'person' && word.relation ? ' · ' + word.relation + ' 관련 인물' : '');
+        b.textContent = word.text;
         b.onclick = function () {
-          selected = word.text;
-          container.querySelectorAll('[data-word]').forEach(function (entry) { entry.setAttribute('aria-pressed', String(entry.dataset.word === selected)); });
+          selected = b.dataset.word;
+          container.querySelectorAll('[data-word]').forEach(function (entry) {
+            entry.setAttribute('aria-pressed', String(entry.dataset.word === selected));
+          });
           evidence.hidden = false;
-          evidence.innerHTML = '<h4>' + escapeHtml(word.text) + ' · ' + word.count + '건</h4><ul>'
-            + word.articles.map(function (a) { return '<li><a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(a.title) + '</a></li>'; }).join('') + '</ul>';
+          evidence.innerHTML = '<h4>' + escapeHtml(word.text) + ' · ' + word.count + '건'
+            + (word.kind === 'person' && word.relation ? ' · ' + escapeHtml(word.relation) + ' 관련 인물' : '')
+            + '</h4><ul>' + word.articles.map(function (a) {
+              return '<li><a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener noreferrer">'
+                + escapeHtml(a.title) + '</a></li>';
+            }).join('') + '</ul>';
         };
         return b;
       }
-      model.keywords.forEach(function (word) { var b = button(word); b.textContent += ' · ' + word.count; all.appendChild(b); });
-      function layout() { if (token === cloudRenderToken && area.isConnected) shared.layout(area, model.keywords, button); }
-      layout();
+      function activeWords() {
+        return cloudGroup === 'all' ? model.keywords
+          : model.keywords.filter(function (word) { return word.group === cloudGroup; });
+      }
+      function layout() {
+        if (token !== cloudRenderToken || !area.isConnected) return;
+        shared.layout(area, activeWords(), button);
+      }
+      function renderGroup() {
+        tabs.forEach(function (tab) {
+          var group = tab.getAttribute('data-mn-cloud-group');
+          tab.textContent = labels[group] + ' ' + (groupCounts[group] || 0);
+          tab.setAttribute('aria-pressed', String(cloudGroup === group));
+        });
+        all.replaceChildren();
+        activeWords().forEach(function (word) {
+          var b = button(word);
+          b.textContent = kindLabel(word) + ' · ' + word.text + ' · ' + word.count + '건';
+          all.appendChild(b);
+        });
+        evidence.hidden = true; evidence.replaceChildren(); selected = '';
+        layout();
+      }
+      tabs.forEach(function (tab) {
+        tab.onclick = function () {
+          var next = tab.getAttribute('data-mn-cloud-group');
+          if (next === cloudGroup) return;
+          cloudGroup = next;
+          renderGroup();
+        };
+      });
+      renderGroup();
       if (cloudObserver) cloudObserver.disconnect();
       if (global.ResizeObserver) {
         var width = area.clientWidth;
-        cloudObserver = new ResizeObserver(function () { if (width !== area.clientWidth) { width = area.clientWidth; layout(); } });
+        cloudObserver = new ResizeObserver(function () {
+          if (width !== area.clientWidth) { width = area.clientWidth; layout(); }
+        });
         cloudObserver.observe(area);
       }
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
