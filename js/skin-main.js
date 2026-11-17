@@ -3445,7 +3445,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (!document.querySelector('link[data-briefing-archive-css]')) {
         var archiveCss = document.createElement('link');
         archiveCss.rel = 'stylesheet';
-        archiveCss.href = archiveBase + 'css/briefing-archive.css';
+        archiveCss.href = archiveBase + 'css/briefing-archive.css?v=20261118-compact-search';
         archiveCss.setAttribute('data-briefing-archive-css', '1');
         document.head.appendChild(archiveCss);
       }
@@ -3455,7 +3455,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (window.NineBriefingArchive) initArchive();
       else {
         var archiveScript = document.createElement('script');
-        archiveScript.src = archiveBase + 'js/briefing-archive.js';
+        archiveScript.src = archiveBase + 'js/briefing-archive.js?v=20261118-compact-search';
         archiveScript.async = true;
         archiveScript.onload = initArchive;
         archiveScript.onerror = function () {

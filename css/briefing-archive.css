@@ -1,15 +1,13 @@
 /* 마켓 브리핑 검색 기록실 전용 스타일. 공통 폰트/토큰 재사용. */
 #briefing-search-app { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding: 0 0 28px; margin: 0; }
-#briefing-search-app .ba-top { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 16px; }
-#briefing-search-app .ba-eyebrow { font: 600 11px Pretendard, sans-serif; letter-spacing: .1em; color: var(--ui-text-muted, #777); margin: 0 0 6px; }
-#briefing-search-app h2 { font: 700 22px "Noto Serif KR", serif; margin: 0 0 6px; }
-#briefing-search-app .ba-top p:not(.ba-eyebrow) { font: 400 14px Pretendard, sans-serif; color: var(--ui-text-muted, #666); margin: 0; }
-#briefing-search-app .ba-index-state { font: 500 12px Pretendard, sans-serif; color: var(--ui-text-muted, #777); white-space: nowrap; }
-#briefing-search-app .ba-query { display: flex; align-items: stretch; gap: 8px; margin-bottom: 12px; }
+#briefing-search-app .ba-search-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 12px; }
+#briefing-search-app .ba-index-state { font: 500 12px Pretendard, sans-serif; color: var(--ui-text-muted, #777); white-space: nowrap; margin-left: auto; text-align: right; }
+#briefing-search-app .ba-query { display: flex; flex: 1 1 540px; width: 100%; max-width: 720px; min-width: 0; box-sizing: border-box; align-items: stretch; gap: 8px; margin: 0; }
 #briefing-search-app .ba-input { flex: 1; min-width: 0; border: 1px solid var(--ui-border, #ccc); background: var(--ui-surface, #fff); color: inherit; border-radius: 10px; padding: 12px 14px; font: 600 15px Pretendard, sans-serif; }
 #briefing-search-app .ba-submit { padding: 0 22px; background: var(--ui-text, #202020); color: var(--ui-surface, #fff); border: 0; border-radius: 10px; font: 600 14px Pretendard, sans-serif; cursor: pointer; }
 #briefing-search-app .ba-controls { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 20px; }
 #briefing-search-app .ba-controls label { font: 500 12px Pretendard, sans-serif; color: var(--ui-text-muted, #777); display: flex; flex-direction: column; gap: 5px; }
+#briefing-search-app .ba-controls .ba-month-control[hidden] { display: none !important; }
 #briefing-search-app .ba-controls input, #briefing-search-app .ba-controls select { border: 1px solid var(--ui-border, #ccc); border-radius: 9px; padding: 9px 10px; background: var(--ui-surface, #fff); color: inherit; font: 500 13px Pretendard, sans-serif; max-width: 180px; }
 #briefing-search-app .ba-reset { border: 0; padding: 10px; color: inherit; background: transparent; font: 500 13px Pretendard, sans-serif; cursor: pointer; }
 #briefing-search-app .ba-result-header { display: flex; justify-content: space-between; gap: 12px; align-items: center; border-bottom: 1px solid var(--ui-border, #ddd); padding: 0 0 12px; }
@@ -30,8 +28,9 @@
 #briefing-search-app .ba-footnote { font: 400 12px/1.7 Pretendard, sans-serif; color: var(--ui-text-muted, #777); margin: 22px 0 0; }
 #briefing-search-app.ba-fallback .ba-query { margin-bottom: 10px; }
 @media (max-width:720px) {
-  #briefing-search-app .ba-top { display: block; }
-  #briefing-search-app .ba-index-state { margin-top: 8px; white-space: normal; }
+  #briefing-search-app .ba-search-row { display: block; }
+  #briefing-search-app .ba-query { width: 100%; max-width: none; }
+  #briefing-search-app .ba-index-state { margin: 8px 0 0; text-align: left; white-space: normal; }
   #briefing-search-app .ba-controls { gap: 8px; }
   #briefing-search-app .ba-result-header { display: block; }
   #briefing-search-app .ba-result-header small { display: block; margin-top: 6px; }

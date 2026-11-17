@@ -22,3 +22,18 @@ const old = {...post,title:'기업 전망',stocks:[{name:'HMM',code:'011200',rol
 assert(score(old,q('현대상선')) > 0);
 assert(score(old,q('011200')) > 0);
 console.log('briefing search score tests passed');
+
+// Compact archive search UI: one masthead, accessible filters, responsive query width.
+const fs = require('fs');
+const path = require('path');
+const archiveSrc = fs.readFileSync(path.join(__dirname, '../js/briefing-archive.js'), 'utf8');
+const archiveCss = fs.readFileSync(path.join(__dirname, '../css/briefing-archive.css'), 'utf8');
+const template = archiveSrc.slice(archiveSrc.indexOf('    panel.innerHTML = '), archiveSrc.indexOf('    feed.insertBefore(panel, shelf);'));
+assert(!template.includes('MARKET BRIEFING LIBRARY') && !template.includes('<h2>전체 브리핑 검색</h2>'));
+assert(template.includes('ba-search-row') && template.includes('aria-label="전체 브리핑 검색"'));
+assert(template.includes('ba-month-control" hidden>'));
+assert(template.includes('ba-index-state') && template.includes('role="status"'));
+assert(archiveSrc.includes("var month = panel.querySelector('.ba-month')"));
+assert(archiveSrc.includes("month.addEventListener('change', update)"));
+assert(archiveCss.includes('max-width: 720px') && archiveCss.includes('.ba-query { width: 100%; max-width: none; }'));
+assert(archiveCss.includes('.ba-month-control[hidden] { display: none !important; }'));

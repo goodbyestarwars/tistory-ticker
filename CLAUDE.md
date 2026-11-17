@@ -46,7 +46,7 @@
 
 ## 마켓 브리핑 기록실 (2026-11-18)
 
-- 공개 티스토리 /category/마켓 브리핑은 기존 글·URL·홈 브리핑 캐러셀·페이지네이션을 보존한다. 전체 검색은 js/skin-main.js의 해당 카테고리 분기에서 js/briefing-archive.js와 css/briefing-archive.css를 지연 로드한다. 검색 색인이 없으면 기존 카드 선반과 현재 페이지 검색으로 축소하고 전체 검색이라고 표시하지 않는다.
+- 공개 티스토리 /category/마켓 브리핑은 기존 글·URL·홈 브리핑 캐러셀·페이지네이션을 보존한다. 전체 검색은 js/skin-main.js의 해당 카테고리 분기에서 js/briefing-archive.js와 css/briefing-archive.css를 지연 로드한다. 검색 화면은 상단 카테고리 제목을 재사용하여 중복 제목을 만들지 않고 PC 검색 폭 최대720px·모바일100%, 상태는 검색 행 옆에 둔다. 월별 필터는 UI만 숨기고 검색 로직은 보존한다(2026-11-18). 검색 색인이 없으면 기존 카드 선반과 현재 페이지 검색으로 축소하고 전체 검색이라고 표시하지 않는다.
 - 공개 카테고리 글은 scripts/build_briefing_index.py가 읽고 .github/workflows/briefing-index.yml이 매일 KST 03:35 및 코드 변경 시 data/briefing-index.js를 생성·Pages에 게시한다. 원문 HTML/시세 원본을 복제하지 않고 메타데이터·검색 단어만 넣는다. 종목명/코드는 공통 data/sectors-v3.js를 재사용하며 과거 사명/미국 대표 별칭만 명시적으로 더한다. 실제 언급한 종목과 산업 연관 종목은 구분한다.
 - 게시일, 본문이 명시한 기준일, 실제 사건일은 서로 다르다. 사건일을 게시일로 추정하거나 사후 결과로 과거 판단을 덮어쓰지 않는다. 산업·주제 태그는 탐색용 추출이며 공식 분류가 아니다. 파싱 불가 시 원문 공개 요약으로 부분 색인(coverage=excerpt), 누락·글 수 감소 시 보존한다. 전체 설계·검증은 docs/MARKET_BRIEFING_ARCHIVE.md.
 

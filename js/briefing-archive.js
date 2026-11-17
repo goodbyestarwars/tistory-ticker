@@ -72,14 +72,12 @@
     var panel = document.createElement('section');
     panel.id = 'briefing-search-app';
     panel.className = 'ba-app';
-    panel.innerHTML = '<div class="ba-top">' +
-      '<div><p class="ba-eyebrow">MARKET BRIEFING LIBRARY</p><h2>전체 브리핑 검색</h2>' +
-      '<p>종목명·종목코드·산업·사건·본문을 한 번에 찾습니다.</p></div>' +
-      '<div class="ba-index-state" role="status" aria-live="polite">전체 기록을 불러오는 중…</div></div>' +
+    panel.innerHTML = '<div class="ba-search-row">' +
       '<form class="ba-query" role="search" autocomplete="off">' +
       '<input type="search" class="ba-input" aria-label="전체 브리핑 검색" placeholder="예: 한화오션, 042660, 방산 해운, 2차전지" />' +
       '<button type="submit" class="ba-submit">검색</button></form>' +
-      '<div class="ba-controls"><label>월별 <input type="month" class="ba-month" aria-label="게시일 또는 기준일의 연월" /></label>' +
+      '<div class="ba-index-state" role="status" aria-live="polite">전체 기록을 불러오는 중…</div></div>' +
+      '<div class="ba-controls"><label class="ba-month-control" hidden>월별 <input type="month" class="ba-month" aria-label="게시일 또는 기준일의 연월" /></label>' +
       '<label>주제 <select class="ba-topic" aria-label="브리핑 주제"><option value="">전체 주제</option></select></label>' +
       '<label>정렬 <select class="ba-sort" aria-label="정렬 기준"><option value="recent">최신순</option><option value="relevance">관련도순</option><option value="oldest">오래된순</option></select></label>' +
       '<button type="button" class="ba-reset">초기화</button></div>' +
