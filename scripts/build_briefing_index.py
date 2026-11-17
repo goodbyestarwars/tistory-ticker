@@ -229,7 +229,13 @@ def entry(card, html, catalog):
     p = PostParser()
     p.feed(html)
     body = clean("".join(p.body))
-    if len(body) < 70: raise RuntimeError(f"본문 파싱 실패: {card['url']}")
+    coverage = "full"
+    if len(body) < 70:
+        # 일부 티스토리 글은 비정형 본문 HTML이다. 검색 누락/전체 실패보다
+        # 공개 목록의 실제 요약을 부분 색인하고 이를 명시적으로 표시한다.
+        body = card['summary']
+        coverage = "excerpt"
+    if len(body) < 70: raise RuntimeError(f"본문·요약 파싱 실패: {card['url']}")
     title = card["title"]
     summary = card["summary"] or body[:260]
     meta = clean("".join(p.date_text)) or card["date"]
@@ -261,7 +267,7 @@ def entry(card, html, catalog):
         "id": card["url"].rsplit("/",1)[-1],
         "url": card["url"], "title": title, "publishedAt": date_info,
         "referenceDate": extract_reference_date(body),
-        "summary": summary[:280],
+        "summary": summary[:280], "coverage": coverage,
         "industries": industries, "topics": topics, "stocks": stocks,
         "terms": tokenize(body)
     }
