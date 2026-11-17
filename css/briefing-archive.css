@@ -38,3 +38,6 @@
   #briefing-search-app .ba-title { font-size: 16px; }
   #briefing-search-app .ba-submit { padding: 0 13px; }
 }
+
+/* author display 규칙이 HTML hidden을 덮지 않게, 기존 목록/필터의 숨김을 확실히 처리한다. */
+.briefing-shelf[hidden], .feed > .pagination[hidden], #briefing-search-app .ba-controls[hidden], #briefing-search-app .ba-result-header[hidden], #briefing-search-app .ba-footnote[hidden], #briefing-search-app .ba-results[hidden] { display: none !important; }
