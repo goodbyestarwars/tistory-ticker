@@ -50,30 +50,73 @@ FOREIGN = {
     "Alphabet": "GOOGL", "Intel": "INTC", "Amazon": "AMZN",
     "Microsoft": "MSFT",
 }
+# 산업은 종목을 자동 생성하는 분류가 아니다. 각 글에 명시된 분야만 연결한다.
+# 에너지·전력 대분류 아래 원전 / 전력망 / 신재생은 서로 독립된 산업이다.
+INDUSTRY_GROUPS = {
+    "에너지·전력": ("원자력·원전", "전력·전력기기", "신재생에너지", "에너지·자원")
+}
 INDUSTRIES = {
     "반도체·AI": r"반도체|메모리|HBM|D램|낸드|AI.?반도체",
     "2차전지": r"2차전지|이차전지|배터리|양극재|음극재",
-    "제약·바이오": r"제약|바이오|임상시험|신약|항암제|mRNA",
-    "원자력·원전": r"원자력|원전|소형모듈원자로|\bSMR\b|핵연료",
+    "제약·바이오": r"제약|바이오|임상시험|임상\s*[123]상|신약|항암|암백신|mRNA",
+    "원자력·원전": r"원자력|원전|소형모듈원자로|소형\s*모듈\s*원자로|\bSMR\b|핵연료|우라늄",
+    "전력·전력기기": r"전력기기|송배전|변압기|전력망|배전망|전력\s*설비",
+    "신재생에너지": r"태양광|풍력|재생에너지|신재생|수소(?:경제|발전)",
+    "에너지·자원": r"원유|국제유가|천연가스|\bLNG\b|석탄",
     "방산": r"방산|방위산업|방위사업|잠수함|KDDX|무기체계",
     "해운": r"해운|해상운임|컨테이너선|벌크선|\bSCFI\b",
     "조선": r"조선업|조선주|조선소|선박건조|잠수함|KDDX",
-    "전력기기": r"전력기기|송배전|변압기|전력망",
     "자동차": r"자동차|완성차|전기차|모빌리티",
     "로봇": r"로봇|자동화",
     "우주항공": r"우주항공|우주개발|발사체|위성",
     "금융": r"금융주|은행주|보험주|증권사|은행업",
     "철강·화학": r"철강|철광석|석유화학|제철",
-    "에너지": r"원유|유가|태양광|풍력|수소경제|석탄",
 }
+# 제목을 우선하여 1~2개의 검증 가능한 주제를 선정한다.
+# 본문 초입의 주변 언급 때문에 기사 핵심 주제가 왜곡되는 문제를 피한다.
 TOPICS = {
-    "시장 흐름": r"코스피|코스닥|증시|시장급락|폭락|급등|서킷브레이커|사이드카",
-    "수급·자금": r"외국인|기관|수급|순매수|순매도|공매도|거래대금|유상증자",
-    "금리·환율": r"금리|환율|국채|연준|FOMC|달러|엔저",
-    "기업·실적": r"실적|영업이익|어닝|공시|상장|인수합병|IPO|계약",
-    "정책·경제": r"관세|정부|정책|규제|선거|인플레이션|물가|고용",
+    "재정·부채": r"국가채무|국가부채|정부\s*부채|미국\s*부채|재정적자|부채한도|국가재정|재정위기",
+    "가상자산": r"비트코인|이더리움|가상자산|암호화폐|스테이블코인|\bBTC\b|\bETH\b",
+    "연구·임상": r"임상\s*[123]상|임상시험|항암|암백신|mRNA|신약|바이오\s*연구",
+    "기업·사건": r"압수수색|고발|소송|의혹|상장\s*철회|기업\s*논란|법적\s*분쟁",
+    "금리·환율": r"금리|환율|국채|연준|FOMC|달러|엔저|엔화|원화|채권",
+    "수급·자금": r"외국인|기관|수급|순매수|순매도|공매도|거래대금|유상증자|리밸런싱|레버리지|청산",
+    "기업·실적": r"실적|영업이익|어닝|공시|상장|인수합병|합병|IPO|수주|배당|주주환원|자사주",
+    "정책·경제": r"관세|정부|정책|규제|선거|인플레이션|물가|고용|대통령",
+    "시장 흐름": r"코스피|코스닥|증시|시장급락|폭락|급등|서킷브레이커|사이드카|주가|반등",
     "해외 시장": r"미국증시|나스닥|다우|S&P.?500|일본증시|중국증시",
+    "산업 동향": r"산업\s*동향|산업\s*투자|산업\s*전망|데이터센터|전력\s*수요",
 }
+# 유행 테마는 안정된 산업 분류와 별도로 검색한다. 추측·수혜주 연결 금지.
+THEMES = {
+    "AI 데이터센터": r"(?:\bAI\b|인공지능).{0,14}데이터센터|데이터센터.{0,14}(?:\bAI\b|인공지능)",
+    "SMR": r"\bSMR\b|소형\s*모듈\s*원자로",
+    "전력 수요": r"전력\s*수요|전력\s*소비|전력난",
+    "원전 수출": r"원전.{0,8}수출|원자력.{0,8}수출",
+    "원전 건설": r"원전.{0,8}건설|신규\s*원전|원전\s*증설",
+    "원전 기자재": r"원전.{0,8}기자재|원자력.{0,8}기자재|원전.{0,8}부품",
+    "핵연료·우라늄": r"핵연료|우라늄",
+    "원전 해체·폐기물": r"원전.{0,8}해체|원전.{0,8}폐기물|방사성\s*폐기물",
+    "전력망": r"전력망|송배전|변압기",
+    "방산 수출": r"방산.{0,8}수출|방위산업.{0,8}수출",
+    "해운 운임": r"해상\s*운임|운임\s*지수|\bSCFI\b",
+    "비트코인": r"비트코인|\bBTC\b",
+    "mRNA": r"\bmRNA\b",
+}
+
+def classify_topics(title: str, summary: str):
+    in_title = [name for name, pattern in TOPICS.items() if re.search(pattern, title, flags=re.I)]
+    if in_title:
+        return in_title[:2]
+    in_summary = [name for name, pattern in TOPICS.items() if re.search(pattern, summary[:180], flags=re.I)]
+    return in_summary[:1] if in_summary else ["브리핑·해설"]
+
+def classify_facets(title: str, summary: str):
+    focus = title + " " + summary[:180]
+    industries = [name for name, pattern in INDUSTRIES.items() if re.search(pattern, focus, flags=re.I)]
+    themes = [name for name, pattern in THEMES.items() if re.search(pattern, focus, flags=re.I)]
+    return classify_topics(title, summary), industries, themes
+
 
 def clean(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
@@ -258,7 +301,6 @@ def entry(card, html, catalog):
             try: date_info = datetime(*map(int,d.groups())).date().isoformat()
             except ValueError: pass
     if not date_info: raise RuntimeError(f"게시일 파싱 실패: {card['url']}: {meta!r}")
-    focus = title + " " + body[:300]
     stocks = []
     for s in catalog:
         aliases = ALIASES.get(s["name"], [])
@@ -270,14 +312,13 @@ def entry(card, html, catalog):
                        "role":"primary" if title_match else "mentioned",
                        **({"aliases":aliases} if aliases else {})})
     stocks.sort(key=lambda s: (s["role"] != "primary", s["name"]))
-    industries = [k for k, pattern in INDUSTRIES.items() if re.search(pattern, focus, flags=re.I)]
-    topics = [k for k, pattern in TOPICS.items() if re.search(pattern, focus, flags=re.I)]
+    topics, industries, themes = classify_facets(title, summary)
     return {
         "id": card["url"].rsplit("/",1)[-1],
         "url": card["url"], "title": title, "publishedAt": date_info,
         "referenceDate": extract_reference_date(body),
         "summary": summary[:280], "coverage": coverage,
-        "industries": industries, "topics": topics, "stocks": stocks,
+        "industries": industries, "topics": topics, "themes": themes, "stocks": stocks,
         "terms": tokenize(body)
     }
 

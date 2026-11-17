@@ -44,6 +44,38 @@ class BriefingIndexTest(unittest.TestCase):
         self.assertNotIn("not_in_search", result["terms"])
         self.assertNotIn("NOT_INDEXED", result["summary"])
 
+    def test_faceted_topics_nuclear_and_verified_themes(self):
+        # Every document has a truthfully grounded subject or neutral fallback.
+        topics, industries, themes = b.classify_facets(
+            "AI 데이터센터 전력 수요 증가와 원전 SMR 수출", "송배전 변압기와 핵연료를 다룬 원전 건설 분석")
+        self.assertIn("원자력·원전", industries)
+        self.assertIn("전력·전력기기", industries)
+        self.assertNotIn("신재생에너지", industries)
+        self.assertIn("AI 데이터센터", themes)
+        self.assertIn("SMR", themes)
+        self.assertIn("전력 수요", themes)
+        self.assertIn("핵연료·우라늄", themes)
+        self.assertIn("원전 건설", themes)
+        self.assertLessEqual(len(topics), 2)
+
+        budget, _, bitcoin = b.classify_facets("미국 부채 40조 vs 비트코인 7만달러", "")
+        self.assertEqual(budget, ["재정·부채", "가상자산"])
+        self.assertIn("비트코인", bitcoin)
+        rates, _, _ = b.classify_facets("국채금리 다시 5%: 과거 데이터 분석", "")
+        self.assertEqual(rates, ["금리·환율"])
+        medical, sectors, _ = b.classify_facets("모더나 mRNA 암백신 임상 3상 성공", "")
+        self.assertEqual(medical, ["연구·임상"])
+        self.assertIn("제약·바이오", sectors)
+        neutral, no_industry, no_theme = b.classify_facets("트럼프 CNBC 인터뷰", "")
+        self.assertEqual(neutral, ["브리핑·해설"])
+        self.assertEqual(no_industry, [])
+        self.assertEqual(no_theme, [])
+        # '전력 수요' does not automatically imply grid-equipment manufacturers.
+        _, no_grid, _ = b.classify_facets("원전 전력 수요 증가", "")
+        self.assertIn("원자력·원전", no_grid)
+        self.assertNotIn("전력·전력기기", no_grid)
+        self.assertEqual(b.INDUSTRY_GROUPS["에너지·전력"][0], "원자력·원전")
+
     def test_alias_and_market_content_separation(self):
         self.assertTrue(b.mentioned("대우조선해양 방산", "대우조선해양"))
         self.assertFalse(b.mentioned("HMMW", "HMM"))

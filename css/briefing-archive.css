@@ -21,6 +21,13 @@
 #briefing-search-app .ba-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 #briefing-search-app .ba-tag, #briefing-search-app .ba-stock { border: 1px solid var(--ui-border, #ddd); color: inherit; background: transparent; border-radius: 6px; padding: 5px 8px; font: 500 12px Pretendard, sans-serif; }
 #briefing-search-app .ba-stock { cursor: pointer; }
+#briefing-search-app .ba-tag { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-align: left; }
+#briefing-search-app .ba-tag-kind { color: var(--ui-text-muted, #777); font: 500 10px/1.4 Pretendard, sans-serif; }
+#briefing-search-app .ba-tag-topic { background: color-mix(in srgb, var(--ui-text, #202020) 4%, transparent); }
+#briefing-search-app .ba-tag-industry { background: var(--ui-surface, #fff); }
+#briefing-search-app .ba-tag-theme { border-style: dashed; }
+#briefing-search-app .ba-tag:hover, #briefing-search-app .ba-stock:hover { border-color: currentColor; }
+#briefing-search-app .ba-tag:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 #briefing-search-app .ba-stock:hover, #briefing-search-app .ba-stock:focus-visible { outline: 1px solid currentColor; }
 #briefing-search-app .ba-more { display: block; margin: 18px auto 0; min-width: 130px; border: 1px solid var(--ui-border, #ccc); border-radius: 9px; background: var(--ui-surface, #fff); padding: 11px 20px; color: inherit; cursor: pointer; }
 #briefing-search-app .ba-more[hidden] { display: none; }

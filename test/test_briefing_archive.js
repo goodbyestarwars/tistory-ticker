@@ -37,3 +37,28 @@ assert(archiveSrc.includes("var month = panel.querySelector('.ba-month')"));
 assert(archiveSrc.includes("month.addEventListener('change', update)"));
 assert(archiveCss.includes('max-width: 720px') && archiveCss.includes('.ba-query { width: 100%; max-width: none; }'));
 assert(archiveCss.includes('.ba-month-control[hidden] { display: none !important; }'));
+
+
+// Subject / industry / theme / verified-primary company facets.
+const tags = global.NineBriefingArchive.tagHtml({
+  title:'AI 데이터센터 전력 수요와 원전', topics:['산업 동향','정책·경제'],
+  industries:['원자력·원전','전력·전력기기'],
+  themes:['AI 데이터센터','SMR'],
+  stocks:[{name:'두산에너빌리티',code:'034020',role:'primary'},
+          {name:'한전기술',code:'052690',role:'mentioned'}]
+});
+assert(tags.includes('data-briefing-topic="산업 동향"'));
+assert(tags.includes('data-briefing-search="원자력·원전"'));
+assert(tags.includes('data-briefing-search="SMR"'));
+assert(tags.includes('data-stock="034020"'));
+assert(!tags.includes('052690')); // mentioned stock remains searchable, not a featured badge
+const neutral = global.NineBriefingArchive.topicsOf({topics:[]});
+assert.deepEqual(neutral,['브리핑·해설']);
+assert(global.NineBriefingArchive.tagHtml({topics:[]}).includes('브리핑·해설'));
+assert(score({title:'기록',summary:'',industries:[],topics:[],themes:['SMR'],stocks:[]},q('SMR'))>0);
+assert(!global.NineBriefingArchive.tagHtml({topics:['<img onerror=1>']}).includes('<img'));
+const facetSource=fs.readFileSync(path.join(__dirname,'../js/briefing-archive.js'),'utf8');
+assert(facetSource.includes("topicTag.getAttribute('data-briefing-topic')"));
+assert(facetSource.includes("searchTag.getAttribute('data-briefing-search')"));
+assert(facetSource.includes('topicsOf(p).indexOf(t)'));
+console.log('subject / industry / theme / stock facet tests passed');

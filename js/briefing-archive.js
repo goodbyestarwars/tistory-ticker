@@ -34,11 +34,33 @@
       return { raw: norm(part), canonical: norm(real) };
     });
   }
+  function topicsOf(post) {
+    // Legacy records may have no detected subject. A neutral document tag is
+    // more truthful than inventing an event or claiming a related stock.
+    return Array.isArray(post.topics) && post.topics.length ? post.topics : ['브리핑·해설'];
+  }
+  function tagHtml(post) {
+    var tags = [];
+    function tag(kind, value, attr, prefix) {
+      if (!value) return;
+      tags.push('<button type="button" class="ba-tag ba-tag-'+kind+'" '+attr+'="'+safe(value)+'"'
+        +' aria-label="'+safe(prefix+' '+value+' 검색')+'"><span class="ba-tag-kind">'+safe(prefix)+'</span>'+safe(value)+'</button>');
+    }
+    topicsOf(post).slice(0, 2).forEach(function (t) { tag('topic', t, 'data-briefing-topic', '주제'); });
+    (post.industries || []).slice(0, 2).forEach(function (t) { tag('industry', t, 'data-briefing-search', '산업'); });
+    (post.themes || []).slice(0, 2).forEach(function (t) { tag('theme', t, 'data-briefing-search', '테마'); });
+    (post.stocks || []).filter(function (s) { return s.role === 'primary' && s.name && s.code; }).slice(0, 3)
+      .forEach(function (s) {
+        tags.push('<button type="button" class="ba-stock" data-stock="'+safe(s.code)+'"'
+          +' aria-label="'+safe(s.name+' 종목 검색')+'">'+safe(s.name)+' · '+safe(s.code)+'</button>');
+      });
+    return tags.join('');
+  }
   function score(post, tokens) {
     if (!tokens.length) return 1;
     var title = norm(post.title);
     var excerpt = norm(post.summary);
-    var topics = norm((post.topics || []).concat(post.industries || []).join(' '));
+    var topics = norm(topicsOf(post).concat(post.industries || [], post.themes || []).join(' '));
     var words = post.terms || [];
     var stocks = post.stocks || [];
     var total = 0;
@@ -98,17 +120,14 @@
     var pagination = feed.querySelector(':scope > .pagination');
     var index = null, shown = 0, matches = [];
     function resultCard(p) {
-      var chips = (p.stocks || []).filter(function (s) { return s.role === 'primary'; }).slice(0, 3);
-      var industries = (p.industries || []).slice(0, 3);
       var verified = /^https:\/\/ghlee\.tistory\.com\/\d+$/.test(p.url);
       var u = verified ? p.url : '';
       var html = '<article class="ba-item"><div class="ba-meta"><time datetime="' + safe(date(p.publishedAt)) + '">' + safe(date(p.publishedAt) || '게시일 미확인') + '</time>';
       if (p.referenceDate) html += '<span>본문 기준일 ' + safe(p.referenceDate) + '</span>';
       html += '</div><a class="ba-title" href="' + safe(u || '#') + '">' + safe(p.title) + '</a>' +
-        '<p class="ba-excerpt">' + safe(p.summary || '원문에서 내용을 확인하세요.') + '</p><div class="ba-tags">';
-      industries.forEach(function (x) { html += '<span class="ba-tag">' + safe(x) + '</span>'; });
-      chips.forEach(function (s) { html += '<button type="button" class="ba-stock" data-stock="' + safe(s.code || s.name) + '">' + safe(s.name) + (s.code ? ' · ' + safe(s.code) : '') + '</button>'; });
-      return html + '</div></article>';
+        '<p class="ba-excerpt">' + safe(p.summary || '원문에서 내용을 확인하세요.') + '</p><div class="ba-tags">' +
+        tagHtml(p) + '</div></article>';
+      return html;
     }
     function update() {
       if (!index) return;
@@ -120,7 +139,7 @@
       }).filter(function (x) {
         var p = x.post;
         return x.rank > 0 && (!m || date(p.publishedAt).slice(0,7) === m || date(p.referenceDate).slice(0,7) === m) &&
-          (!t || (p.topics || []).indexOf(t) !== -1);
+          (!t || topicsOf(p).indexOf(t) !== -1);
       });
       matches.sort(function (a,b) {
         if (sort.value === 'relevance' && b.rank !== a.rank) return b.rank-a.rank;
@@ -172,7 +191,7 @@
       shelf.hidden = true;
       if (pagination) pagination.hidden = true;
       var topics = {};
-      index.posts.forEach(function (p) { (p.topics || []).forEach(function (t) { topics[t] = true; }); });
+      index.posts.forEach(function (p) { topicsOf(p).forEach(function (t) { topics[t] = true; }); });
       Object.keys(topics).sort().forEach(function (t) {
         var opt = document.createElement('option'); opt.value = t; opt.textContent = t; topic.appendChild(opt);
       });
@@ -189,9 +208,15 @@
         input.value = ''; month.value = ''; topic.value = ''; sort.value = 'recent'; update(); input.focus();
       });
       results.addEventListener('click', function (e) {
-        var btn = e.target.closest('.ba-stock');
-        if (!btn) return;
-        input.value = btn.getAttribute('data-stock');
+        var topicTag = e.target.closest('[data-briefing-topic]');
+        var searchTag = e.target.closest('[data-briefing-search]');
+        var stockTag = e.target.closest('.ba-stock');
+        if (topicTag) {
+          input.value = ''; month.value = ''; topic.value = topicTag.getAttribute('data-briefing-topic');
+          sort.value = 'recent'; update(); return;
+        }
+        if (!searchTag && !stockTag) return;
+        input.value = searchTag ? searchTag.getAttribute('data-briefing-search') : stockTag.getAttribute('data-stock');
         month.value = ''; topic.value = ''; sort.value = 'relevance'; update();
         input.focus();
       });
@@ -199,5 +224,5 @@
       update();
     }).catch(fallback);
   }
-  global.NineBriefingArchive = { mount:mount, score:score };
+  global.NineBriefingArchive = { mount:mount, score:score, topicsOf:topicsOf, tagHtml:tagHtml };
 })(window);
