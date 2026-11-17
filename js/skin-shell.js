@@ -260,7 +260,7 @@
     if (newsStockLoad) return newsStockLoad;
     var scriptJob = global.NineNewsStocks ? Promise.resolve(global.NineNewsStocks) : new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/news-stock-matcher.js';
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/news-stock-matcher.js?v=20261118-finance-filter-v1';
       script.onload = function () { global.NineNewsStocks ? resolve(global.NineNewsStocks) : reject(new Error('News stock matcher unavailable')); };
       script.onerror = function () { script.remove(); reject(new Error('News stock matcher load failed')); };
       document.head.appendChild(script);
