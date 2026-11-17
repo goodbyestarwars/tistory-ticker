@@ -47,6 +47,12 @@ class BriefingIndexTest(unittest.TestCase):
     def test_alias_and_market_content_separation(self):
         self.assertTrue(b.mentioned("대우조선해양 방산", "대우조선해양"))
         self.assertFalse(b.mentioned("HMMW", "HMM"))
+        self.assertFalse(b.mentioned("한화오션", "한화"))
+        self.assertFalse(b.mentioned("우선협상대상자", "대상"))
+        self.assertFalse(b.mentioned("SK하이닉스", "SK"))
+        self.assertTrue(b.mentioned("$한화 결산 발표", "한화"))
+        self.assertTrue(b.mentioned("한화오션은 해군 잠수함 수주", "한화오션"))
+        self.assertTrue(b.mentioned("삼성전자는 외국인 매수", "삼성전자"))
         self.assertEqual(b.canonical_url("https://other.test/1234"), "")
         self.assertEqual(b.canonical_url("/1234?x=1"), "https://ghlee.tistory.com/1234")
         self.assertEqual(b.extract_reference_date("시장에 대해 이야기했다."), None)
