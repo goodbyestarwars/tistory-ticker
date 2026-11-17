@@ -78,6 +78,12 @@
   function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
   function safeHref(url) { return global.NineUI && global.NineUI.safeUrl ? global.NineUI.safeUrl(url) : (/^https?:\/\//i.test(String(url || '').trim()) ? String(url).trim() : ''); }
   function sourceNoteText() { return global.NineUI && global.NineUI.sourceNote ? global.NineUI.sourceNote('naver') : ''; }
+  // One display-only rule for main news and the public/member weekly home.
+  // API items, source diagnostics and persisted headline history remain untouched.
+  function relevantHeadline(item) {
+    var matcher = global.NineNewsStocks;
+    return !matcher || !matcher.isMarketRelevant || matcher.isMarketRelevant(item);
+  }
 
   /* 국내 공시는 YYYYMMDD로 오고 뉴스는 RFC 문자열로 온다(홈 뉴스 모듈과 같은 규약). */
   function parseDate(value) {
@@ -205,7 +211,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>이번 주 월~일 내 수집된 뉴스를 최신순으로 봅니다. 시장별 최대 50건이며 수집 범위에 따라 일부 날짜의 기사가 없을 수 있습니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + ' 한국은행·미국 연준 발표는 공식 발표 탭에서 구분해 봅니다.' + '</p>'
+      + '<p>이번 주 월~일 수집된 증권·경제 관련 뉴스를 최신순으로 봅니다. 원본은 보존하고 화면에서만 관련성을 선별합니다. 시장별 최대 50건이며 수집 범위에 따라 일부 날짜의 기사가 없을 수 있습니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.' + ' 한국은행·미국 연준 발표는 공식 발표 탭에서 구분해 봅니다.' + '</p>'
       + '<div class="mn-tabbar"><div class="mn-tabs" role="tablist" aria-label="주요 뉴스 구분">'
       + VIEWS.map(function (view) {
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key
@@ -246,7 +252,7 @@
       lists.sort(function (a,b) { return dateValue(b.pubDate)-dateValue(a.pubDate); });
       var items = lists.filter(function (item) {
         var at=dateValue(item.pubDate), url=safeHref(item.link), title=displayTitle(item).replace(/\s+/g,'').toLowerCase();
-        if (!at || at < window_.start || at >= window_.end || at > window_.now || !url || !title || seen[url] || seen[title]) return false;
+        if (!at || at < window_.start || at >= window_.end || at > window_.now || !url || !title || seen[url] || seen[title] || !relevantHeadline(item)) return false;
         seen[url]=seen[title]=true; return true;
       });
       return {items:items,failed:failed,window:window_};
@@ -320,7 +326,7 @@
     var updated = container.querySelector('[data-mn-updated]');
     var currentItems = [];
     MARKETS.forEach(function (market) {
-      currentItems = currentItems.concat(limitMarketRows(state.items.filter(function (item) { return item._market === market.key; })));
+      currentItems = currentItems.concat(limitMarketRows(state.items.filter(function (item) { return item._market === market.key && relevantHeadline(item); })));
     });
     currentItems.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
     var cryptoView = state.view === 'crypto';
@@ -448,6 +454,13 @@
         else renderNews_(container);
       });
     });
+    // Catalog/aliases load without blocking the news request. Reclassify the
+    // already fetched items as soon as the common matcher becomes ready.
+    if (global.NineUI && typeof global.NineUI.loadNewsStocks === 'function') {
+      global.NineUI.loadNewsStocks().then(function () {
+        if (state.container === container) renderCurrent_(container);
+      }).catch(function () { /* preserve the raw news list on catalog failure */ });
+    }
     refresh(container);
     if (state.timer) clearInterval(state.timer);
     state.timer = setInterval(function () { refresh(container); }, REFRESH_MS);
