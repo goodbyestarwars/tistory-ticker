@@ -129,5 +129,27 @@
   }
 
 
-  global.NineNewsStocks = { relatedStocks: relatedStocks, loadStockCatalog: loadStockCatalog, loadSectorCatalog:loadSectorCatalog, relatedSectors:relatedSectors };
+  // Display-only editorial filter. Raw provider headlines and history stay intact
+  // so new classifications can be applied later without recollecting old feeds.
+  // Reuse the existing listed-company/verified-alias matcher, not a new stock list.
+  var MARKET_TERMS = /(?:증시|주식|주가|지수|코스피|코스닥|나스닥|거래소|채권|국채|기준금리|금리|환율|원\/달러|물가|인플레이션|경제성장|경기침체|경기둔화|고용지표|실업률|외국인\s*(?:순매수|순매도)|기관\s*(?:순매수|순매도)|실적|영업이익|당기순이익|매출액|배당|기업공개|상장|증자|자사주|공모주|유상증자|인수합병|관세|무역전쟁|수출규제|보조금|설비투자|투자유치|수주계약|신용등급|파산|부도|유가|원자재\s*가격)|\b(?:stocks?|shares?|shareholders?|equities|nasdaq|wall street|s&p\s*500|dow jones|earnings?|revenues?|profits?|dividends?|investors?|investments?|fundrais(?:e|ing)|valuations?|ipo|bonds?|treasur(?:y|ies)|yields?|interest rates?|inflation|federal reserve|central bank|economic|economy|gdp|cpi|unemployment|tariffs?|export controls?|sanctions?|mergers?|acquisitions?|buyouts?|bankrupt(?:cy|cies)|securities|capex|crude oil|oil prices?)\b/i;
+  var INDUSTRY_TERMS = /(?:인공지능|반도체|데이터센터|전력망|원자력|원전|방산|조선|해운|이차전지|2차전지|배터리|제약|바이오|자동차|정유|철강|수출산업)|\b(?:artificial intelligence|ai|semiconductors?|chipmakers?|foundries|data\s*centers?|hbm|gpus?|cloud infrastructure|electric vehicles?|batter(?:y|ies)|pharma(?:ceutical)?|biotech|defense|shipbuilding|shipping|nuclear power|energy infrastructure)\b/i;
+  var BUSINESS_TERMS = /(?:투자|공급|수급|수요|생산|수출|수입|공장|증설|매출|실적|계약|경영|규제|정책|관세|시장|기업|업체|자금|자본|가격|감산|주문|위기|공급망|인수|합병)|\b(?:invest(?:s|ed|ment|ments|ing)?|fund(?:ing|s|ed)?|spend(?:ing|s)?|manufactur(?:e|ing)|produc(?:e|tion)|supply|demand|exports?|imports?|capacity|factory|factories|contracts?|regulat(?:ion|ory|ions)|policy|tariffs?|market|companies|business|industr(?:y|ies)|customers?|order(?:s|ed)?|prices?|sales|strategy|expansion|shortage)\b/i;
+  // Product reviews/how-to content is not financial reporting merely because a
+  // listed maker is named. Explicit financial reporting still passes.
+  var CONSUMER_TERMS = /(?:사용법|사용기|체험기|구매\s*가이드|제품\s*리뷰|앱\s*리뷰|게임\s*리뷰|추천\s*앱|핸즈온)|\b(?:hands.on|review|reviews|how.to|tutorial|buying guide|gift guide|best apps?|best phones?|product test|unboxing)\b/i;
+
+  function isMarketRelevant(item) {
+    if (!item) return false;
+    if (item.kind === 'disclosure' || item.official === true || item.sourceStatus === 'official-release'
+        || item.provider === 'SEC EDGAR') return true;
+    var title = [item.title, item.title_ko].filter(Boolean).join(' ').trim();
+    if (!title) return false;
+    var financial = MARKET_TERMS.test(title);
+    if (CONSUMER_TERMS.test(title) && !financial) return false;
+    if (relatedStocks(item).length) return true;
+    return financial || (INDUSTRY_TERMS.test(title) && BUSINESS_TERMS.test(title));
+  }
+
+  global.NineNewsStocks = { relatedStocks: relatedStocks, loadStockCatalog: loadStockCatalog, loadSectorCatalog:loadSectorCatalog, relatedSectors:relatedSectors, isMarketRelevant:isMarketRelevant };
 })(window);
