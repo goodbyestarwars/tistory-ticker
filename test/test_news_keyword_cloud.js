@@ -88,8 +88,8 @@ test('expanded mobile cloud keeps every item visible without a dropped word',()=
     };
   }
   const words=Array.from({length:80},(_,i)=>({text:'키워드'+String(i).padStart(2,'0'),count:80-i}));
-  w.NineKeywordCloud.layout(area,words,button);
+  w.NineKeywordCloud.layout(area,words,button,{packed:true});
   assert.equal(area.children.length,80);
   assert(area.children.every(el=>el.style.visibility==='visible'));
-  assert(parseFloat(area.style.height)>500);
+  assert(parseFloat(area.style.height)>500 && parseFloat(area.style.height)<1700);
 });
