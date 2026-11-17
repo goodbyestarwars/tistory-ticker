@@ -379,7 +379,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!document.querySelector('link[data-main-news-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20261116-free-official-v1';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20261118-entities80-v1';
       link.setAttribute('data-main-news-css', '1');
       document.head.appendChild(link);
     }
@@ -398,7 +398,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
     if (document.querySelector('script[data-main-news]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261118-finance-filter-v2';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261118-entities80-v1';
     script.defer = true;
     script.setAttribute('data-main-news', '1');
     document.body.appendChild(script);
