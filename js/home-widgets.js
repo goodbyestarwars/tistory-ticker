@@ -183,7 +183,7 @@
     // Browser zoom changes the CSS viewport width. Only equalize cards while
     // they are actually sharing the same grid row; stacked layouts stay fluid.
     if (!marketRect.width || !economicRect.width || Math.abs(marketRect.top - economicRect.top) > 2) return;
-    economic.style.height = Math.ceil(marketRect.height) + 'px';
+    economic.style.setProperty('height', Math.ceil(marketRect.height) + 'px', 'important');
   }
 
   function applyState(state) {

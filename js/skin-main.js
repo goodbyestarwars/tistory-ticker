@@ -742,8 +742,8 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20261004-econ-sp100-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261118-domestic-news-height')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261118-domestic-news-height';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261118-domestic-news-height-2')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261118-domestic-news-height-2';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261118-futures-direct-nav';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
