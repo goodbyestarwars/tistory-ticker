@@ -33,8 +33,11 @@
       button.style.setProperty('--nkc-delay', -(index % 9) * .83 + 's');
       button.style.setProperty('--nkc-duration', 6 + (index % 5) + 's');
       area.appendChild(button);
-      var size = min === max ? 22 : 14 + 30 * Math.sqrt((word.count - min) / (max - min));
-      if (width < 500) size = Math.min(size, 32);
+      var size = min === max ? 18 : 13 + 29 * Math.sqrt((word.count - min) / (max - min));
+      // The first ranked terms keep visual emphasis; lower ranks stay readable
+      // without turning an 80-word mobile overview into a long article.
+      if (width < 500) size = Math.min(size, index < 10 ? 30 : index < 30 ? 22 : 17);
+      else size = Math.min(size, index < 16 ? 40 : index < 40 ? 27 : 20);
       button.style.fontSize = size + 'px';
       button.style.fontWeight = index < 5 ? '700' : '500';
       button.style.position = 'absolute'; button.style.visibility = 'hidden';
