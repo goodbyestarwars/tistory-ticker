@@ -1,0 +1,47 @@
+name: Update public market briefing search index
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - scripts/build_briefing_index.py
+      - .github/workflows/briefing-index.yml
+  schedule:
+    # KST 03:35 daily. No resident process, no VM load.
+    - cron: '35 18 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: market-briefing-index
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate parser on known skin sample
+        run: python -m unittest discover -s test -p 'test_briefing_index.py'
+      - name: Read Tistory public category and article pages
+        run: python scripts/build_briefing_index.py
+      - name: Publish only when source-backed index changed
+        run: |
+          if git diff --quiet -- data/briefing-index.js && [ -f data/briefing-index.js ]; then
+            echo "No index changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/briefing-index.js
+          git commit -m "data(briefing): refresh public archive search index"
+          git pull --rebase origin master
+          git push origin HEAD:master
