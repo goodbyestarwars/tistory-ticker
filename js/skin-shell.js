@@ -243,7 +243,7 @@
     var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
     var scriptJob = global.NineKeywordCloud ? Promise.resolve() : new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = base + 'js/news-keyword-cloud.js?v=20261118-entities80-v1';
+      script.src = base + 'js/news-keyword-cloud.js?v=20261118-scatter80-v2';
       script.onload = function () { if (global.NineKeywordCloud) resolve(); else reject(new Error('Keyword cloud unavailable')); };
       script.onerror = function () { script.remove(); reject(new Error('Keyword cloud load failed')); };
       document.head.appendChild(script);
