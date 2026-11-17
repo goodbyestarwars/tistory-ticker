@@ -197,13 +197,22 @@ def stock_catalog():
     if len(catalog) < 100: raise RuntimeError("기존 종목 사전을 충분히 읽지 못함")
     return list(catalog.values())
 
+AMBIGUOUS_NAMES = {"대상", "한화", "SK", "LG", "CJ", "GS", "DB", "현대", "롯데", "LS"}
+KOREAN_PARTICLES = r"(?:은|는|이|가|의|을|를|에|에서|과|와|으로|로|도|만|들|측|까지|보다|주가|관련주|그룹)?"
+
 def mentioned(text, needle):
     if not needle: return False
-    # 영문 약어가 다른 영문 단어의 일부로 나타나는 경우는 제외
-    pat = re.escape(needle)
+    # 짧은 기업명은 일반어·그룹명과 충돌하므로 '$한화' 또는 명시적 코드처럼
+    # 표기된 경우만 종목으로 확정한다. 텍스트 검색에서는 일반 단어로 찾을 수 있다.
+    if needle in AMBIGUOUS_NAMES:
+        return re.search(r"(?<![가-힣A-Za-z0-9])\\$" + re.escape(needle) +
+                         r"(?![가-힣A-Za-z0-9])", text, flags=re.I) is not None
+    prefix = r"(?<![가-힣A-Za-z0-9])"
     if re.fullmatch(r"[A-Za-z0-9]+", needle):
-        pat = r"(?<![A-Za-z0-9])" + pat + r"(?![A-Za-z0-9])"
-    return re.search(pat, text, flags=re.I) is not None
+        suffix = r"(?![가-힣A-Za-z0-9])"
+    else:
+        suffix = KOREAN_PARTICLES + r"(?=[^가-힣A-Za-z0-9]|$)"
+    return re.search(prefix + re.escape(needle) + suffix, text, flags=re.I) is not None
 
 def extract_reference_date(body):
     # '기준일' 명시 자료만 메타데이터화한다. 작성일을 사건일로 추정하지 않는다.
