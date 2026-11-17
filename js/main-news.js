@@ -82,7 +82,7 @@
   // API items, source diagnostics and persisted headline history remain untouched.
   function relevantHeadline(item) {
     var matcher = global.NineNewsStocks;
-    return !matcher || !matcher.isMarketRelevant || matcher.isMarketRelevant(item);
+    return !!(matcher && matcher.isMarketRelevant && matcher.isMarketRelevant(item));
   }
 
   /* 국내 공시는 YYYYMMDD로 오고 뉴스는 RFC 문자열로 온다(홈 뉴스 모듈과 같은 규약). */
@@ -356,7 +356,7 @@
     if (!items.length) {
       list.innerHTML = failed.length
         ? '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>'
-        : '<p class="mn-state">'+(state.view === 'official' ? '이번 주에 수집된 공식 발표가 없습니다.' : '이번 주 월~일 뉴스가 없습니다.')+'</p>';
+        : '<p class="mn-state">'+(state.view === 'official' ? '이번 주에 수집된 공식 발표가 없습니다.' : (!global.NineNewsStocks ? '증권·경제 뉴스 분류 자료를 확인하는 중입니다.' : '이번 주 월~일 증권·경제 관련 뉴스가 없습니다.'))+'</p>';
       if (updated) updated.textContent = failed.length ? '갱신 실패 · 자동 재시도 예정' : '표시할 뉴스 없음';
       return;
     }
