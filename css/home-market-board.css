@@ -756,8 +756,8 @@ body#tt-body-index .home-editorial-page .home-futures-pair .hff-linked-readout {
 .home-futures-pair .hff-legend small { flex-basis:100%; font:400 10px/1.5 var(--font-ui); }
 .home-futures-pair .hff-plot-divider { stroke:var(--hmb-line); stroke-width:1; opacity:.65; }
 .home-futures-pair .hff-flow-line { fill:none; stroke:currentColor; stroke-width:1.65; }
-.home-futures-pair .hff-flow-dot { fill:currentColor; opacity:.8; }
-.home-futures-pair .hff-flow-dot.is-selected { r:1.6; opacity:1; }
+.home-futures-pair .hff-flow-dot { fill:none; stroke:currentColor; stroke-width:5; stroke-linecap:round; opacity:0; }
+.home-futures-pair .hff-flow-dot.is-selected { opacity:1; }
 .home-futures-pair .hff-interval-bar.hmb-investor-buy { fill:var(--chart-fill-up); }
 .home-futures-pair .hff-interval-bar.hmb-investor-sell { fill:var(--chart-fill-down); }
 .home-futures-pair .hff-interval-bar { opacity:.75; }

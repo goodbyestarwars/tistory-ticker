@@ -12,7 +12,7 @@ const chart=shared.futuresChart(rows,{date:'2026-11-13',actor:'foreign'});
 assert(chart.includes('hff-combined-plot'));assert(chart.includes('hff-flow-line'));assert(!chart.includes('hff-interval-bar'));
 assert(chart.includes('누적 순매수'));assert(chart.includes('선택 구간 증감'));
 assert.equal((chart.match(/hff-axis-scale/g)||[]).length,1);
-assert.equal((chart.match(/<circle data-futures-slot=/g)||[]).length,3);
+assert.equal((chart.match(/<path data-futures-slot=/g)||[]).length,3);
 assert.equal((chart.match(/<polyline/g)||[]).length,1);
 assert(!chart.includes('<rect'));assert(chart.includes('누적 +1,600계약'));
 const all=shared.futuresChart(rows,{date:'2026-11-13',actor:'all'});

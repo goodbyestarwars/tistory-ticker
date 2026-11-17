@@ -610,7 +610,7 @@
         if(!validAmount(r[k])){flush();prevSlot=null;return;}
         if(prevSlot!==null&&r.slot!==prevSlot+1)flush();
         var x=xOf(r.slot),y=50-r[k]/cm*45;points.push(x+','+y);
-        marks+='<circle data-futures-slot="'+r.slot+'" class="hff-flow-dot hff-actor-'+k+'" cx="'+x+'" cy="'+y+'" r="'+(actors.length===1?1.1:.75)+'"><title>'+esc(names[k]+' '+time(r.ts)+' 서버 관측 · 누적 '+fmt(r[k])+'계약')+'</title></circle>';
+        marks+='<path data-futures-slot="'+r.slot+'" class="hff-flow-dot hff-actor-'+k+'" d="M'+x+' '+y+'h0.001" vector-effect="non-scaling-stroke"><title>'+esc(names[k]+' '+time(r.ts)+' 서버 관측 · 누적 '+fmt(r[k])+'계약')+'</title></path>';
         prevSlot=r.slot;
       });
       flush();
