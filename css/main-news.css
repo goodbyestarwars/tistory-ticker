@@ -141,6 +141,11 @@ html.dark #main-news .mn-market--crypto { color: #c4b5fd; background: rgba(109, 
 #main-news .mn-keywords { margin:var(--ui-section-gap,20px) 0; color:var(--ui-ink); }
 #main-news .mn-keywords h3 { margin:0 0 8px; font-size:var(--ui-section-size,17px); }
 #main-news .mn-keywords p { margin:0 0 12px; font-size:12px; line-height:1.7; color:var(--ui-muted); }
+/* Editorial category switch: no badges/cards, only a quiet underline. */
+#main-news .mn-cloud-groups { display:flex; flex-wrap:wrap; gap:14px; margin:0 0 12px; border-bottom:1px solid var(--ui-rule); }
+#main-news .mn-cloud-groups button { padding:7px 2px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--ui-muted); font:600 12px/1.4 var(--font-ui); cursor:pointer; }
+#main-news .mn-cloud-groups button[aria-pressed="true"] { border-bottom-color:var(--ui-ink); color:var(--ui-ink); }
+#main-news .mn-cloud-groups button:focus-visible { outline:2px solid currentColor; outline-offset:3px; }
 #main-news .mn-keywords-all { margin-top:12px; font-size:12px; }
 #main-news .mn-keywords-all summary { cursor:pointer; }
 #main-news .mn-keywords-all > div { display:flex; flex-wrap:wrap; gap:6px; padding-top:10px; }
