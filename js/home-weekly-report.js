@@ -530,7 +530,7 @@
   function mainNewsModule() {
     if(global.MainNews)return Promise.resolve(global.MainNews);
     if(mainNewsReady)return mainNewsReady;
-    mainNewsReady=new Promise(function(resolve,reject){var tag=document.createElement('script');tag.src='https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261118-finance-filter-v2';tag.onload=function(){global.MainNews?resolve(global.MainNews):reject(new Error('news'));};tag.onerror=reject;document.head.appendChild(tag);});
+    mainNewsReady=new Promise(function(resolve,reject){var tag=document.createElement('script');tag.src='https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20261118-entities80-v1';tag.onload=function(){global.MainNews?resolve(global.MainNews):reject(new Error('news'));};tag.onerror=reject;document.head.appendChild(tag);});
     return mainNewsReady;
   }
   function renderWeeklyNews(mount) {
