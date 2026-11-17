@@ -93,3 +93,32 @@ test('expanded mobile cloud keeps every item visible without a dropped word',()=
   assert(area.children.every(el=>el.style.visibility==='visible'));
   assert(parseFloat(area.style.height)>500 && parseFloat(area.style.height)<1700);
 });
+
+
+test('expanded cloud is scattered in two dimensions, with zero overlaps at desktop and mobile widths',()=>{
+  const w={}, fakeDocument={createElement:()=>({textContent:''})};
+  vm.runInNewContext(fs.readFileSync('js/news-keyword-cloud.js','utf8'),{window:w,document:fakeDocument,Set,Map});
+  const labels='엔비디아 젠슨황 실적 삼성전자 AI 증시 달러 동반 붕괴 가격 뉴욕증시 시총 천피 투자자들 SK하이닉스 가능성 경고 규모 그룹 금리 기관 기술주 매도 다우 마이크론 수익 반도체 백신 반도체유출 빅테크 공매도 사임 정책 코스피 NVIDIA DISNEY ANTHROPIC DEPOT IPO NASDAQ 브로드컴 파산 금리인하 원달러 애플 마이크로소프트 오픈AI SK 현대차 기업경영 경영진 반등 전망 TSMC ASML AMD 메모리 전력 생산기술 배터리 이차전지 데이터센터 국채 채권 인플레이션 기술투자 기술실적 중국 일본 대만 지수 주요기업 하락장 투자금 공급망 투자자 투자시장 반도체장비 미국연준 매출 발표 혁신'.split(' ');
+  const words=labels.slice(0,80).map((text,i)=>({text,count:80-i}));
+  const button=word=>({
+    classList:{add(){}},
+    style:{setProperty(){}}, label:word.text,
+    replaceChildren(span){this.label=span.textContent;},
+    get offsetWidth(){const size=parseFloat(this.style.fontSize||'14'); return this.label.length*size*(/[가-힣]/.test(this.label)?0.88:0.61)+10;},
+    get offsetHeight(){return parseFloat(this.style.fontSize||'14')*1.27+7;}
+  });
+  [320,360,390,720,1325].forEach(width=>{
+    const area={clientWidth:width,style:{},children:[],replaceChildren(){this.children=[];},appendChild(el){this.children.push(el);}};
+    w.NineKeywordCloud.layout(area,words,button,{packed:true});
+    assert.equal(area.children.length,80,'no missing words at '+width);
+    const rects=area.children.map(el=>({x:parseFloat(el.style.left),y:parseFloat(el.style.top),w:el.offsetWidth,h:el.offsetHeight}));
+    const height=parseFloat(area.style.height);
+    assert(rects.every(r=>r.x>=0&&r.y>=0&&r.x+r.w<=width&&r.y+r.h<=height),'bounds at '+width);
+    for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
+      const a=rects[i],b=rects[j];
+      assert(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y),
+        'overlap between '+i+' and '+j+' at '+width);
+    }
+    assert(new Set(rects.map(r=>Math.round(r.y))).size>30,'not row-aligned at '+width);
+  });
+});
