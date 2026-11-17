@@ -13,7 +13,7 @@
     var labels = {
       SLOTS_FULL: '동시 보유 가능 종목 수가 가득 차 신규 매수하지 않음',
       '9PAY_BUDGET_OR_SLOTS_FULL': '9Pay 매수 예산 또는 보유 가능 종목 수 한도에 도달',
-      BUDGET_EXCEEDED: '매수 예산 한도 초과', HOLD_BUY: '오늘 신규 매수 보류', MANUAL_STOP: '사용자 중지 상태'
+      BUDGET_EXCEEDED: '매수 예산 한도 초과', MARKET_BUY_BLOCK: '시장 위험·지표 미확인으로 신규 매수 차단', HOLD_BUY: '오늘 신규 매수 보류', MANUAL_STOP: '사용자 중지 상태'
     };
     return labels[reason] || '상세 사유 해석 미등록 (기록 코드: ' + String(reason || '미제공') + ')';
   }
@@ -645,6 +645,40 @@
       + '<button type="button" class="at-ctl-btn is-go" data-ctl="resume"' + (ok && h.active && !c.pending ? '' : ' disabled') + '>보류 해제</button>';
   }
 
+
+  // 서버 에이전트의 실제 BUY 게이트 상태만 표시한다. 로컬 계산은 실주문 상태를 확정할 수 없다.
+  function marketGateHtml(c) {
+    var flags = (c.vm || {}).flags || {}, gate = c.received && flags.marketBuyGate;
+    var enabled = !!(gate && gate.enabled === true);
+    var blocked = enabled && gate.state === 'BLOCK';
+    var allowed = enabled && gate.state === 'ALLOW';
+    var titles = { MARKET_DECLINE: '하락장 기준 도달 · 오늘 신규 매수 중단',
+      DATA_UNAVAILABLE: '시장지표 미수신 · 신규 매수 차단',
+      DATA_STALE: '시장지표 지연 · 신규 매수 차단',
+      STATE_WRITE_FAILED: '안전 상태 저장 실패 · 신규 매수 차단',
+      WITHIN_LIMITS: '하락장 차단 기준 미도달' };
+    var title = !c.received ? 'VM 상태 확인 필요' : !enabled
+      ? '자동 차단 미적용 · 실계좌 승인 대기' : titles[gate.reason]
+      || (blocked ? '신규 매수 차단 중' : allowed ? '차단 기준 미도달' : '시장 위험 상태 확인 필요');
+    var rows = enabled && Array.isArray(gate.indices) ? gate.indices : [];
+    var indices = ['KOSPI', 'KOSDAQ'].map(function (name) {
+      var row = rows.find(function (v) { return v && v.symbol === name; });
+      var n = row && row.changeRate;
+      return '<div><small>' + name + ' 당일 등락률</small><b class="' + (typeof n === 'number' && n < 0 ? 'at-down' : '') + '">'
+        + (typeof n === 'number' && isFinite(n) ? esc((n > 0 ? '+' : '') + n.toFixed(2) + '%') : '미수신') + '</b></div>';
+    }).join('');
+    return '<div class="at-gate' + (blocked ? ' is-blocked' : '') + '" aria-live="polite">'
+      + '<div class="at-gate-top"><div><strong>시장 위험 제어 · 신규 매수</strong><p class="at-gate-state">'
+      + esc(title) + '</p></div><span class="at-gate-tag">' + (blocked ? '매수 차단' : allowed ? '조건 미해당' : '미적용·확인 필요') + '</span></div>'
+      + '<div class="at-gate-values">' + indices + '<div><small>판정 시각(KST)</small><b>'
+      + esc(enabled && gate.checkedAt ? String(gate.checkedAt).slice(0, 19).replace('T', ' ') : '미수신') + '</b></div></div>'
+      + '<p class="at-note">기준: 한 지수 -2.5% 이하 또는 양 지수 각각 -1.5% 이하. 한 번 발동하면 당일 신규 매수 차단 유지. 지표 결측·지연도 매수 차단.'
+      + ' 손절·청산과 수동 보류는 별도입니다. '
+      + (enabled ? '위 상태는 VM 에이전트가 전송한 자동 게이트 상태입니다. 다른 주문 제한도 계속 적용됩니다.'
+        : '실거래 자동 차단은 아직 활성화되지 않았습니다. 필요하면 기존 ‘오늘 신규 매수 보류’ 버튼을 사용할 수 있습니다.')
+      + '</p></div>';
+  }
+
   function controlHtml(c) {
     var vm = c.vm || {}, flags = vm.flags || {}, ledger = vm.ledger || {}, feed = vm.feed || {}, last = vm.lastResult || {};
     var timer = orMissing(vm.timerState, { enabled: '켜짐(다음 08:55 실행)', disabled: '꺼짐' });
@@ -664,6 +698,7 @@
       + '<div class="at-ctl-actions"><button type="button" class="at-ctl-btn is-go" data-ctl="start"' + (c.canStart && !busy ? '' : ' disabled') + '>시작</button>'
       + '<button type="button" class="at-ctl-btn is-stop" data-ctl="stop"' + (c.configured && !busy ? '' : ' disabled') + '>중지</button>'
       + '<span class="at-ctl-last">최근 명령: ' + esc(lastCmd) + (c.pending ? ' · 처리 대기 중' : '') + '</span></div>'
+      + marketGateHtml(c)
       + (startHint ? '<p class="at-note">' + esc(startHint) + '</p>' : '')
       + (lastError ? '<p class="at-error">' + esc(lastError) + '</p>' : '')
       + '<details class="at-more" data-act-more="ctlDetail"' + (activityOpen.ctlDetail ? ' open' : '') + '><summary>상세 상태·오늘 신규 매수 보류</summary>'
@@ -693,7 +728,10 @@
     if (!c.received) return { text: 'VM에서 상태를 받지 못했습니다 — 연결 확인 필요', bad: true };
     if ((vm.flags || {}).manualStop === true) return { text: '직접 중지됨 · 웹 [시작] 전까지 엔진·봇 주문 차단', bad: false };
     if (vm.serviceState === 'active' || vm.serviceState === 'activating') {
-      return { text: '실행 중' + (c.hold && c.hold.active ? ' · 오늘 신규 매수 보류' : ''), ok: true };
+      var g = (vm.flags || {}).marketBuyGate || {};
+      var marketBlocked = g.enabled === true && g.state === 'BLOCK';
+      return { text: '실행 중' + (marketBlocked ? ' · 시장 위험으로 신규 매수 차단' : '')
+        + (c.hold && c.hold.active ? ' · 오늘 신규 매수 보류' : ''), ok: !marketBlocked };
     }
     if ((vm.liveStatus || {}).state === 'AUTO_STOP_1400') return { text: '14:00 자동 종료' + next };
     if (vm.serviceState === 'failed') return { text: '비정상 종료 — 확인 필요' + (last.result ? ' (' + last.result + (last.exitStatus ? ' ' + last.exitStatus : '') + ')' : ''), bad: true };
