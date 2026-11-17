@@ -340,7 +340,7 @@
       }
       function layout() {
         if (token !== cloudRenderToken || !area.isConnected) return;
-        shared.layout(area, activeWords(), button);
+        shared.layout(area, activeWords(), button, {packed:true});
       }
       function renderGroup() {
         tabs.forEach(function (tab) {
