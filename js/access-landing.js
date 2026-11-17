@@ -1,8 +1,8 @@
 /**
  * 9Pay 비로그인 첫 화면(로그인 랜딩) (2026-11-11).
- * 비로그인 방문자가 한 브라우저 세션에서 처음 보는 화면 위에 스위스 뮈렌 풍경 사진과 함께 덮는다.
+ * 비로그인 방문자가 한 브라우저 세션에서 처음 보는 화면 위에 스위스 마터호른·리펠 호수 풍경 사진과 함께 덮는다.
  * 상단 메뉴는 공개 4개 화면, [로그인]을 누르면 Google·네이버·카카오(블로그 관리자) 선택.
- * 배경은 기존 1680×1120 스위스 뮈렌 실사진(약353KB)을 사용한다. 로딩 중에는 단색 배경을 유지한다.
+ * 배경은 2048×1536 스위스 마터호른·리펠 호수 실사진(약740KB)을 사용한다. 로딩 중에는 단색 배경을 유지한다.
  * 판정은 NineAccess가 한다: 로그인한 사용자·관리자에게는 보이지 않고, 이 파일은 표시만 맡는다.
  * 카카오는 사이트 회원 로그인이 아니라 기존 티스토리 관리자 로그인(.nav-manage-btn)으로 연결한다.
  */
@@ -17,7 +17,7 @@
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);background:#10140f;overflow:hidden}' +
-    '.nl-photo{position:absolute;inset:0;background:#101318 url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-murren.jpg) center 45%/cover no-repeat}' +
+    '.nl-photo{position:absolute;inset:0;background:#101318 url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-matterhorn-riffelsee.jpg) center 45%/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,7,13,.64) 0%,rgba(3,7,13,.32) 42%,rgba(3,7,13,0) 74%),linear-gradient(0deg,rgba(3,7,13,.43) 0%,rgba(3,7,13,0) 48%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
     '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-weight:700}' +
@@ -122,7 +122,7 @@
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
-      '<div class="nl-credit">스위스 뮈렌 · 사진: Ximonic (Simo Räsänen) · <a href="https://commons.wikimedia.org/wiki/File:View_to_Lauterbrunnen_valley_at_M%C3%BCrren,_Bern,_Switzerland,_2012_August.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> · 크기·용량 조정</div>' +
+      '<div class="nl-credit">스위스 마터호른·리펠 호수 · 사진: BECK François · <a href="https://commons.wikimedia.org/wiki/File:Matterhorn%2BRiffelsee.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> · 화면 비율에 맞춤</div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
