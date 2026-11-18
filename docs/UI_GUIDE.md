@@ -661,3 +661,13 @@ PC는 기존본문폭을 그대로 사용한 동일2열·동일카드높이(수�
 
 
 제목 띠 여백 점검(2026-11-15): 채워진 .ui-heading-band/.hrt-head는 공통 --ui-paragraph-gap의 절반을 위아래, --ui-card-padding을 좌우 여백으로 사용한다. 실시간 종목판은 제목·표 머리·종목 행 아래 구분선과 종목 링크 밑줄(hover/focus 포함)을 표시하지 않는다. 기존 행 높이·열 너비·시세 정렬과 키보드 초점 윤곽은 유지한다.
+
+## 2026-11-19 Soft UI(뉴모피즘) v1
+
+- 소유: `css/soft-ui.css`(라이트 전용). 로드: `js/skin-shell.js`가 style.css 뒤에 `<link id="nine-soft-ui-css">` 추가(skin.html 미수정). 다크모드는 기존 `--dk-*` 그대로.
+- 토큰: 배경 `--soft-bg #FEFDFA`, 카드 `--soft-card #FFF`, 강조 `--soft-accent #075759`, 본문 `--soft-ink #273332`, 테두리 `--soft-line #ECE8E1`, 상승 막대 `--bar-up #E8A39E`, 하락 막대 `--bar-down #86AEE1`, 보합 `--bar-flat`, 막대 위 글자 `--text-up/--text-down`.
+- 그림자: 양각 `--soft-raised`(카드)/`--soft-raised-sm`(버튼), 호버 `--soft-hover`, 음각 `--soft-inset`(입력창·선택·눌림), 포커스 `--soft-focus`. 모서리 카드 20px·컨트롤 14px.
+- 적용 범위 v1: 카드(.card 및 --ui-glass-* 소비처), 헤더 아이콘 버튼·검색창, 사이드 메뉴 선택 상태, 모달 모서리, 막대그래프(홈 시장보드·breadth·외국인·증시온도·미국옵션). 표·차트는 플랫 유지.
+- 막대 색은 `--chart-fill-up/down`(캔버스 차트 채움 토큰)과 분리한다. 새 막대 컴포넌트는 `--bar-up/--bar-down`을 쓴다.
+- 남은 범위(후속): 개별 화면의 하드코딩 색·그림자(검색기·전략검색·캘린더·대화방 등) 화면별 정리, 입력창/탭/페이지네이션/토스트의 전용 공통 클래스화.
+

@@ -154,6 +154,18 @@
   global.document.head.appendChild(tag);
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* 2026-11-19 Soft UI(뉴모피즘) 디자인 시스템: skin.html은 고정본이라 수정하지 않고 여기서 style.css 뒤에 로드한다.
+   라이트 모드 전용 토큰·컴포넌트 재정의(css/soft-ui.css). 문서: docs/UI_GUIDE.md '2026-11-19 Soft UI'. */
+(function (global) {
+  var d = global.document;
+  if (!d || d.getElementById('nine-soft-ui-css')) return;
+  var link = d.createElement('link');
+  link.id = 'nine-soft-ui-css';
+  link.rel = 'stylesheet';
+  link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/soft-ui.css?v=20261119-soft-ui-1';
+  d.head.appendChild(link);
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* NineUI: shared display primitives. Domain units remain explicit at call sites. */
 (function (global) {
   'use strict';
