@@ -8,7 +8,9 @@
   (3) 같은 날 오르지 않은 종목(대조군)과 비교해 lift = 상승 구간 비율 / 대조군 비율 을 본다.
 대조군이 핵심이다: 오른 종목에 흔한 특징이 안 오른 종목에도 똑같이 흔하면 공통 분모가 아니다.
 
-정의(초안, 사용자와 조정):
+정의 v2 기본 UNIT=atr: 상승 = 바닥 대비 >= 8 x ATR%, 실패 = < 3 x ATR% (변동성 단위, 정의가 변동성을 편들지 않게).
+  피처 lift는 ATR% 3분위 안 비교의 가중 평균(lift_volctl)도 함께 낸다. 모양 원형은 경로를 ATR 단위로 바꿔 크기 아닌 형태로 묶는다.
+정의 v1(UNIT=pct, 초안):
   RALLY_GAIN=0.30, RALLY_MAX_BARS=60 : 바닥 종가 대비 60봉 안 최고 종가 +30% 이상, 그 사이 바닥 종가 아래 마감 없음
   바닥 = 0차원 지속성 >= 2 x ATR14 인 저점(spring_index_study.persistent_extrema 재사용, 라벨링이라 전체 구간 사용)
   대조군(기본 CONTROL=trough) = 같은 기준의 의미 있는 바닥이었지만 RALLY_MAX_BARS 안 최고 상승이 FAIL_GAIN(10%) 미만에 그친 '실패한 바닥'.
@@ -40,6 +42,12 @@ K = int(os.environ.get('K', '6'))
 CTRL_PER_DAY = 20
 CONTROL = os.environ.get('CONTROL', 'trough')
 FAIL_GAIN = float(os.environ.get('FAIL_GAIN', '0.10'))
+# v2(2026-11-19): 변동성 단위 정의. v1은 바닥 조건(지속성 >= 2 x ATR)과 실패 기준(+10% 미만)이 충돌해
+# ATR 5% 이상 종목은 실패 바닥이 될 수 없었다 -> '변동성 큼 = 상승'이 정의에서 만들어졌다(실데이터 v1 확인).
+# UNIT=atr(기본): 상승 = 바닥 대비 최고 상승 >= RALLY_ATR x (ATR14/종가), 실패 = < FAIL_ATR x (ATR14/종가). UNIT=pct 는 v1.
+UNIT = os.environ.get('UNIT', 'atr')
+RALLY_ATR = float(os.environ.get('RALLY_ATR', '8'))
+FAIL_ATR = float(os.environ.get('FAIL_ATR', '3'))
 MIN_AMT = 3e9
 SEED = 7
 FEATURES = ('dd250', 'pos120', 'box60', 'drift60', 'ret20', 'ret60', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
@@ -73,15 +81,16 @@ def find_troughs(df):
             continue
         seg = c[i + 1:i + 1 + RALLY_MAX_BARS]
         if not len(seg):
-            out.append({'t0': i, 'peak': i, 'gain': 0.0, 'bars': 0})
+            out.append({'t0': i, 'peak': i, 'gain': 0.0, 'bars': 0, 'g_atr': 0.0})
             continue
         broke = np.where(seg < c[i])[0]
         seg = seg[:broke[0]] if len(broke) else seg
         if not len(seg):
-            out.append({'t0': i, 'peak': i, 'gain': 0.0, 'bars': 0})
+            out.append({'t0': i, 'peak': i, 'gain': 0.0, 'bars': 0, 'g_atr': 0.0})
             continue
         j = int(np.argmax(seg))
-        out.append({'t0': i, 'peak': i + 1 + j, 'gain': seg[j] / c[i] - 1, 'bars': j + 1})
+        g = seg[j] / c[i] - 1
+        out.append({'t0': i, 'peak': i + 1 + j, 'gain': g, 'bars': j + 1, 'g_atr': g / (atr[i] / c[i])})
     return out
 
 
@@ -89,7 +98,7 @@ def find_rallies(df):
     """바닥 T0 -> RALLY_MAX_BARS 안 최고 종가 +RALLY_GAIN 이상, 그 사이 바닥 종가 미만 마감 없음. 겹치면 앞 다리만."""
     rallies, busy_until = [], -1
     for r in find_troughs(df):
-        if r['t0'] > busy_until and r['gain'] >= RALLY_GAIN:
+        if r['t0'] > busy_until and (r['g_atr'] >= RALLY_ATR if UNIT == 'atr' else r['gain'] >= RALLY_GAIN):
             rallies.append(r)
             busy_until = r['peak']
     return rallies
@@ -126,8 +135,8 @@ def features(df, mret):
     return f, atr.values
 
 
-def path(c, i):
-    p = np.log(c[i - PRE + 1:i + 1] / c[i])
+def path(c, i, scale=1.0):
+    p = np.log(c[i - PRE + 1:i + 1] / c[i]) / scale
     return p if len(p) == PRE and np.isfinite(p).all() else None
 
 
@@ -156,7 +165,7 @@ def main(lab, out_path):
         f, atr = features(df, mret)
         feats[code] = (f, atr)
         if CONTROL == 'trough':
-            failed += [(code, r['t0']) for r in find_troughs(df) if r['gain'] < FAIL_GAIN]
+            failed += [(code, r['t0']) for r in find_troughs(df) if (r['g_atr'] < FAIL_ATR if UNIT == 'atr' else r['gain'] < FAIL_GAIN)]
         for r in find_rallies(df):
             rally_meta.append(dict(code=code, d=df.d.iat[r['t0']], gain=r['gain'], bars=r['bars'], t0=r['t0']))
             rally_days.setdefault(df.d.iat[r['t0']], set()).add(code)
@@ -192,10 +201,14 @@ def main(lab, out_path):
             continue
         df = data[code]
         c = df.c.values.astype(float)
-        p = path(c, i)
+        atrp = atr[i] / c[i] if np.isfinite(atr[i]) and atr[i] > 0 else np.nan
+        if not np.isfinite(atrp):
+            continue
+        # 모양은 크기(변동성)가 아니라 형태로 묶는다: 경로를 T0의 ATR%로 나눈 ATR 단위
+        p = path(c, i, atrp if UNIT == 'atr' else 1.0)
         if p is None:
             continue
-        rec = {'kind': kind, 'code': code, 'd': df.d.iat[i]}
+        rec = {'kind': kind, 'code': code, 'd': df.d.iat[i], 'atrp': atrp}
         for k in FEATURES[:-1]:
             rec[k] = f[k].iat[i]
         if np.isfinite(atr[i]) and atr[i] > 0:
@@ -205,7 +218,7 @@ def main(lab, out_path):
     t = pd.DataFrame(recs)
     P = np.array(paths)
     is_r = (t.kind == 'rally').values
-    res = {'params': dict(CONTROL=CONTROL, FAIL_GAIN=FAIL_GAIN, RALLY_GAIN=RALLY_GAIN, RALLY_MAX_BARS=RALLY_MAX_BARS, PRE=PRE, K=K, CTRL_PER_DAY=CTRL_PER_DAY, MIN_AMT=MIN_AMT),
+    res = {'params': dict(UNIT=UNIT, RALLY_ATR=RALLY_ATR, FAIL_ATR=FAIL_ATR, CONTROL=CONTROL, FAIL_GAIN=FAIL_GAIN, RALLY_GAIN=RALLY_GAIN, RALLY_MAX_BARS=RALLY_MAX_BARS, PRE=PRE, K=K, CTRL_PER_DAY=CTRL_PER_DAY, MIN_AMT=MIN_AMT),
            'counts': {'rallies': int(is_r.sum()), 'controls': int((~is_r).sum()), 'stocks': len(data),
                       'date_range': [str(t.d.min()), str(t.d.max())]}}
     rm = pd.DataFrame(rally_meta)
@@ -236,9 +249,26 @@ def main(lab, out_path):
             a = ((q == j) & is_r & ok).sum() / max((is_r & ok).sum(), 1)
             b = ((q == j) & ~is_r & ok).sum() / max((~is_r & ok).sum(), 1)
             cells.append({'q': j + 1, 'rally_share': round(a * 100, 1), 'lift': round(a / b, 2) if b else None})
+        # 변동성 통제: ATR% 3분위 안에서 같은 5분위 비율을 비교해 상승 구간 수로 가중 평균
+        vq = np.digitize(t.atrp, np.nanquantile(t.atrp, [1 / 3, 2 / 3]))
+        ctl = []
+        for j in range(5):
+            num = den = 0.0
+            for b in range(3):
+                m_r, m_c = is_r & ok & (vq == b), ~is_r & ok & (vq == b)
+                if m_r.sum() < 20 or m_c.sum() < 20:
+                    continue
+                a = ((q == j) & m_r).sum() / m_r.sum()
+                bb = ((q == j) & m_c).sum() / m_c.sum()
+                if bb > 0:
+                    num += m_r.sum() * a / bb
+                    den += m_r.sum()
+            ctl.append(round(float(num / den), 2) if den else None)
         lifts[k] = {'median_rally': round(float(x[is_r].median()), 4), 'median_control': round(float(x[~is_r].median()), 4),
-                    'quintiles': cells, 'max_lift': max(c['lift'] or 0 for c in cells)}
-    res['features'] = dict(sorted(lifts.items(), key=lambda kv: -(kv[1].get('max_lift') or kv[1].get('lift') or 0)))
+                    'quintiles': cells, 'max_lift': max(c['lift'] or 0 for c in cells), 'lift_volctl': ctl,
+                    'max_lift_volctl': max([v for v in ctl if v is not None] or [0])}
+    res['features'] = dict(sorted(lifts.items(), key=lambda kv: -(kv[1].get('max_lift_volctl') or kv[1].get('lift') or 0)))
+    res['atrp_median'] = {'rally': round(float(t.atrp[is_r].median()) * 100, 2), 'control': round(float(t.atrp[~is_r].median()) * 100, 2)}
     # 모양 원형: PCA(설명력) + k-평균, 같은 공간에서 상승/대조 비율
     Pc = P - P.mean(0)
     _, s, _ = np.linalg.svd(Pc, full_matrices=False)
@@ -250,16 +280,18 @@ def main(lab, out_path):
         a = ((lab_ == j) & is_r).sum() / max(is_r.sum(), 1)
         b = ((lab_ == j) & ~is_r).sum() / max((~is_r).sum(), 1)
         arche.append({'id': j, 'rally_share': round(a * 100, 1), 'control_share': round(b * 100, 1), 'lift': round(a / b, 2) if b else None,
-                      'path_pct_vs_T0': [round(float(np.exp(cent[j][i]) - 1) * 100, 1) for i in idx]})
+                      'n_min_side': int(min(((lab_ == j) & is_r).sum(), ((lab_ == j) & ~is_r).sum())),
+                      ('path_atr_vs_T0' if UNIT == 'atr' else 'path_pct_vs_T0'):
+                          [round(float(cent[j][i]), 1) if UNIT == 'atr' else round(float(np.exp(cent[j][i]) - 1) * 100, 1) for i in idx]})
     res['archetypes'] = sorted(arche, key=lambda x: -(x['lift'] or 0))
     json.dump(res, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1, default=str)
-    print(json.dumps({k: res[k] for k in ('params', 'counts', 'rally_shape', 'regime_source', 'by_regime', 'pca_explained')}, ensure_ascii=False))
-    print('모양 원형(상승 구간 비율 / 대조군 비율 / lift / T0 대비 직전 경로 %):')
+    print(json.dumps({k: res[k] for k in ('params', 'counts', 'rally_shape', 'atrp_median', 'regime_source', 'by_regime', 'pca_explained')}, ensure_ascii=False))
+    print('모양 원형(상승 비율 / 실패 비율 / lift / 적은 쪽 n / T0 대비 직전 경로, ATR 단위면 ATR 배수):')
     for a in res['archetypes']:
-        print(' ', a['id'], a['rally_share'], a['control_share'], a['lift'], a['path_pct_vs_T0'])
-    print('피처 lift 상위(최대 5분위 lift):')
-    for k, v in list(res['features'].items())[:10]:
-        print(' ', k, v.get('max_lift', v.get('lift')), v.get('median_rally'), v.get('median_control'))
+        print(' ', a['id'], a['rally_share'], a['control_share'], a['lift'], a['n_min_side'], a.get('path_atr_vs_T0') or a.get('path_pct_vs_T0'))
+    print('피처(변동성 통제 최대 lift / 통제 전 / 5분위별 통제 lift / 상승·실패 중앙값):')
+    for k, v in res['features'].items():
+        print(' ', k, v.get('max_lift_volctl', v.get('lift')), v.get('max_lift'), v.get('lift_volctl'), v.get('median_rally'), v.get('median_control'))
 
 
 if __name__ == '__main__':
