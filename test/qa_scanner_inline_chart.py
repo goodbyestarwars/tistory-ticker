@@ -83,6 +83,9 @@ async def main():
                     })()''')
                     assert result_box['commonClass'] and result_box['actual']==result_box['shared'],result_box
                     assert await evaluate('Array.from(document.querySelectorAll(".ps-state-actions")).every(el=>el.querySelectorAll("button").length===1 && !el.querySelector("details"))'),'one shared chart/evidence button per stock'
+                    # 기본 화면(전체)은 2026-11-14 '매수후보' 단순 카드: 종가·차트 버튼만. 기준 대비 표시는 숨겨진 상태 필터(관찰) 보기에 보존된다.
+                    assert await evaluate('!!document.querySelector(\'.ps-pick[data-code="005930"] .ps-pick-price\') && !document.querySelector(".ps-reference-change")')
+                    await evaluate('document.querySelector("[data-status=observation]").click()')
                     assert await evaluate('document.querySelector(\'.ps-state-row[data-code="005930"] .ps-reference-change\').textContent')=='기준 대비 +0.14%'
                     before=await evaluate('window.startY=scrollY;document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\').click();startY')
                     await wait_for('!!document.querySelector("#psChart canvas")')
@@ -141,6 +144,7 @@ async def main():
                     assert await evaluate('document.querySelector("[data-ps-volume]").disabled && qaChart.panes().length===1'),'missing volume must not be drawn as zero'
                     await evaluate('document.querySelector("#psClose").click()')
                     assert not await evaluate('qaErrors')
+                    await evaluate('document.querySelector("[data-status=observation]").click()')
                     await evaluate('var shapes=scan.shapeSelection.groups.liveFlow;shapes.find(r=>r.code==="000660").price=63000;var equal=shapes.find(r=>r.code==="035420");equal.price=70000;NineHttp.clearCache();PatternScan.refresh()')
                     await wait_for('document.querySelector(\'.ps-state-row[data-code="000660"] .ps-reference-change\')?.textContent==="기준 대비 -10.00%"')
                     assert await evaluate('!!document.querySelector(\'.ps-state-row[data-code="000660"] .ps-reference-change.ps-down\')')

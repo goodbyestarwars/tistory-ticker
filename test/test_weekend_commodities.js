@@ -7,7 +7,7 @@ function fixture() {
   const mount = {innerHTML:''},fxMount={innerHTML:''};
   const window = {}, document = {body:{contains:()=>true}};
   const source = fs.readFileSync('js/home-weekly-report.js','utf8').replace(
-    'global.HomeWeeklyReport = { init: init, syncContent: syncContent };',
+    /global\.HomeWeeklyReport = \{ init: init, syncContent: syncContent[^}]*\};/,
     'global.HomeWeeklyReport = {cards:commodityCards,load:loadWeekendCommodities,fx:loadOfficialFx};');
   const context = {window,document,URL,AbortController,setTimeout,clearTimeout,
     Date:class extends Date {static now(){return now;}},

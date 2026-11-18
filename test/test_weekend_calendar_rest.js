@@ -8,7 +8,7 @@ function home(now,events,fail=false){
   const calls=[],root={querySelector:s=>s==='[data-hwr-schedule]'?box:null};
   class FixedDate extends Date {constructor(...args){super(...(args.length?args:[now]));}static now(){return new Date(now).getTime();}}
   const window={StockCalendar:{fetchEvents:async(y,m)=>{calls.push([y,m]);if(fail)throw Error('offline');return events;},describe:e=>({kind:e.market==='us'?'미국':'한국',text:e.title})}};
-  vm.runInNewContext(source.replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };','global.HomeWeeklyReport = {range:scheduleWindow,day:calendarDay,load:loadNextWeekCalendar};'),{window,document:{body:{contains:()=>true}},Date:FixedDate,setTimeout,clearTimeout});
+  vm.runInNewContext(source.replace(/global\.HomeWeeklyReport = \{ init: init, syncContent: syncContent[^}]*\};/,'global.HomeWeeklyReport = {range:scheduleWindow,day:calendarDay,load:loadNextWeekCalendar};'),{window,document:{body:{contains:()=>true}},Date:FixedDate,setTimeout,clearTimeout});
   return {api:window.HomeWeeklyReport,root,title,list,calls};
 }
 test('KST week is current Monday–Saturday on weekdays; weekends target next week across month/year boundaries',()=>{
