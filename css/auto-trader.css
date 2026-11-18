@@ -345,3 +345,17 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
   #auto-trader .at-gate-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #auto-trader .at-gate-values > div:last-child { grid-column: 1 / -1; }
 }
+
+/* 보유 종목 매도·기록 삭제 확인 모달 */
+.at-modal-back { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; background: rgba(15,16,17,.45); }
+.at-modal { width: min(420px, calc(100vw - 32px)); padding: 22px; border-radius: 14px; background: var(--ui-card-surface, #fff); color: var(--at-ink, #1e1e1e); box-shadow: 0 18px 48px rgba(0,0,0,.25); display: grid; gap: 12px; }
+.at-modal h3 { margin: 0; font-size: 16px; }
+.at-modal p { margin: 0; font-size: 13px; line-height: 1.5; }
+.at-modal input[type=number] { width: 90px; height: 32px; padding: 0 8px; border: 1px solid var(--at-line, #ddd); border-radius: 8px; font: inherit; }
+.at-modal-act { display: flex; justify-content: flex-end; gap: 8px; }
+#auto-trader .at-mini.is-sell:not(:disabled) { border-color: #86AEE1; color: #3C6FB5; }
+#auto-trader .at-mini:disabled { opacity: .45; cursor: not-allowed; }
+.at-modal .at-mini { padding: 6px 14px; border: 1px solid #ccc; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; font-size: 12.5px; font-weight: 650; }
+.at-modal .at-ctl-btn { padding: 6px 16px; border: 1px solid #86AEE1; border-radius: 8px; background: #86AEE1; color: #fff; cursor: pointer; font-size: 12.5px; font-weight: 700; }
+.at-modal .at-ctl-btn:disabled { opacity: .45; cursor: not-allowed; }
+.at-modal .at-warn-text { color: #C0392B; }

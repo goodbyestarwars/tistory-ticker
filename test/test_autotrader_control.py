@@ -33,6 +33,33 @@ class ControlTest(unittest.TestCase):
     def seed(self, snap):
         ac._save({'snapshot': snap})
 
+    def test_sell_and_drop_need_capability_open_position_and_market_hours(self):
+        now = MON.replace(hour=10)
+        pos = [{'code': '068270', 'name': 'a', 'qty': 4, 'state': 'OPEN', 'buyDay': '2026-11-06', 'avg': 1},
+               {'code': '002350', 'name': 'b', 'qty': 2, 'state': 'PENDING', 'buyDay': '2026-11-18', 'avg': 1}]
+        def seed(caps):
+            ac._save({'snapshot': good(now, capabilities=caps), 'activity': {'positions': pos}})
+        seed([])
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('sell', 'admin', now, params={'code': '068270', 'qty': 1})
+        seed(['manual-sell-v1', 'position-drop-v1'])
+        for bad in ({'code': '068270', 'qty': 5}, {'code': '068270', 'qty': True}, {'code': '002350', 'qty': 1}, {'code': '111111', 'qty': 1}):
+            with self.assertRaises(ac.ControlError):
+                ac.queue_command('sell', 'admin', now, params=bad)
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('sell', 'admin', now.replace(hour=21), params={'code': '068270', 'qty': 1})
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('position-drop', 'admin', now, params={'code': '068270'})
+        queued = ac.queue_command('sell', 'admin', now, params={'code': '068270', 'qty': 4})
+        self.assertEqual(ac._load()['pending']['qty'], 4)
+        self.assertEqual(queued['action'], 'sell')
+
+    def test_drop_pending_position_only(self):
+        now = MON.replace(hour=10)
+        ac._save({'snapshot': good(now, capabilities=['position-drop-v1']),
+                  'activity': {'positions': [{'code': '002350', 'qty': 2, 'state': 'PENDING'}]}})
+        self.assertEqual(ac.queue_command('position-drop', 'admin', now, params={'code': '002350'})['action'], 'position-drop')
+
     def test_target_commands_require_fresh_capability_and_keep_exact_order_fields(self):
         now = MON.replace(hour=9)
         params = {'code': '005930', 'price': 70000, 'qty': 3, 'unexpected': True}

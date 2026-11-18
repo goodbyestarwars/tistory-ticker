@@ -1,7 +1,7 @@
 /* 자동매매(소유자 전용) 운영센터 - 사이트 서버(VM)의 제어 API(/autotrader/*)만 읽는다. 로컬 PC·접속 토큰은 쓰지 않는다.
  *
  * 인증은 서버가 /auth/google/me 와 같은 세션으로 판정한다(관리자 Google 계정만). 이 화면의 로그인 확인은 표시용일 뿐이다.
- * 현재 조작은 [시작]=수동 중지 해제·타이머 재등록·14시 전 Runner 실행, [중지]=영구 주문 차단(MANUAL_STOP)·Runner 정지·타이머 비활성 시도. 주문 버튼은 없다.
+ * 현재 조작은 [시작]=수동 중지 해제·타이머 재등록·14시 전 Runner 실행, [중지]=영구 주문 차단(MANUAL_STOP)·Runner 정지·타이머 비활성 시도. 보유 종목 [매도]·PENDING [기록 삭제] 버튼은 에이전트가 capability(manual-sell-v1·position-drop-v1)를 올리기 전에는 비활성이며, 클릭 시 확인 모달을 거친다.
  * 값은 VM 에이전트가 올린 것만 쓴다. 오래됐거나 읽지 못한 값은 '미수신'으로 두며 0·정상으로 바꾸지 않는다.
  *
  * 아래쪽 보유·주문·분석 표시 함수(holdingsHtml, ordersHtml 등)는 로컬 봇 연결을 걷어낸 뒤 데이터 원본이 없어 호출되지 않는다.
@@ -680,7 +680,7 @@
     return { text: '대기 중' + next };
   }
 
-  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제', 'target-add': '목표가 조건 등록', 'target-cancel': '목표가 조건 취소' };
+  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제', 'target-add': '목표가 조건 등록', 'target-cancel': '목표가 조건 취소', sell: '보유 종목 매도', 'position-drop': 'PENDING 기록 정리' };
   var LOG_RESULT = { QUEUED: '접수', DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)', REFUSED: '거부' };
   function logHtml(rows) {
     if (!rows || !rows.length) return '<h3 class="at-subhead">명령 기록</h3><p class="at-empty">아직 기록이 없습니다.</p>';
@@ -738,6 +738,61 @@
       if (lastControl && root && !busy && !(document.activeElement && document.activeElement.closest('[data-target-form], [data-alloc-form]'))) renderControl(lastControl);
     });
   }
+  // 보유 종목 수동 매도·PENDING 기록 정리. 에이전트가 capability(manual-sell-v1 / position-drop-v1)를 올리기 전에는 비활성이다.
+  // 실제 주문 여부·수량·시간 검증은 서버(autotrader_control.queue_command)와 에이전트가 최종 판정한다.
+  function posActionHtml(p, price) {
+    var caps = (lastControl && lastControl.vm && lastControl.vm.capabilities) || [];
+    var locked = busy || (lastControl && lastControl.pending);
+    var attrs = ' data-code="' + esc(p.code) + '" data-name="' + esc(p.name || '') + '" data-qty="' + (p.qty > 0 ? p.qty : 0) + '" data-price="' + (price > 0 ? price : 0) + '"';
+    if (p.state === 'OPEN') {
+      var ok = caps.indexOf('manual-sell-v1') >= 0 && !locked && p.qty > 0;
+      return '<button type="button" class="at-mini is-sell" data-pos-sell' + attrs + (ok ? '' : ' disabled') + (caps.indexOf('manual-sell-v1') >= 0 ? '' : ' title="에이전트가 아직 매도 기능을 지원하지 않습니다"') + '>매도</button>';
+    }
+    if (p.state === 'PENDING') {
+      var ok2 = caps.indexOf('position-drop-v1') >= 0 && !locked;
+      return '<button type="button" class="at-mini" data-pos-drop' + attrs + (ok2 ? '' : ' disabled') + (caps.indexOf('position-drop-v1') >= 0 ? '' : ' title="에이전트가 아직 기록 정리를 지원하지 않습니다"') + '>기록 삭제</button>';
+    }
+    return '';
+  }
+  function openPositionModal(kind, ds) {
+    var qty = Number(ds.qty) || 0, price = Number(ds.price) || 0, sell = kind === 'sell';
+    var back = document.createElement('div');
+    back.className = 'at-modal-back';
+    back.innerHTML = '<div class="at-modal" role="dialog" aria-modal="true" aria-label="' + (sell ? '보유 종목 매도 확인' : '기록 삭제 확인') + '">'
+      + '<h3>' + (sell ? '실계좌 매도 확인' : 'PENDING 기록 삭제 확인') + '</h3>'
+      + '<p><b>' + esc(ds.name) + '</b> <code>' + esc(ds.code) + '</code></p>'
+      + (sell
+        ? '<label>매도 수량 <input type="number" min="1" max="' + qty + '" step="1" value="' + qty + '" data-modal-qty> / 보유 ' + qty + '주</label>'
+          + '<p class="at-mute" data-modal-est></p><p class="at-warn-text">시장가로 즉시 주문하며 취소할 수 없습니다. 수수료·세금이 발생합니다.</p>'
+        : '<p>증권사 계좌에는 없는데 장부에만 남은 미확인(PENDING) 기록 <b>' + qty + '주</b>를 장부에서 지웁니다. 주문은 나가지 않습니다.</p>')
+      + '<div class="at-modal-act"><button type="button" class="at-mini" data-modal-cancel>취소</button>'
+      + '<button type="button" class="at-ctl-btn is-stop" data-modal-ok>' + (sell ? '시장가 매도 실행' : '기록 삭제') + '</button></div></div>';
+    document.body.appendChild(back);
+    var input = back.querySelector('[data-modal-qty]'), est = back.querySelector('[data-modal-est]'), ok = back.querySelector('[data-modal-ok]');
+    function close() { document.removeEventListener('keydown', onKey); if (back.parentNode) back.parentNode.removeChild(back); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    function valid() { var n = input ? Number(input.value) : 0; return !input || (Number.isInteger(n) && n >= 1 && n <= qty); }
+    function upd() {
+      ok.disabled = !valid();
+      if (est) est.textContent = valid() && price > 0 ? '예상 주문금액 약 ' + fmtWon(price * Number(input.value)) + '원 (현재가 ' + fmtPrice(price) + ' 기준)' : '';
+    }
+    if (input) input.addEventListener('input', upd);
+    upd();
+    document.addEventListener('keydown', onKey);
+    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+    back.querySelector('[data-modal-cancel]').addEventListener('click', close);
+    ok.addEventListener('click', function () {
+      if (!valid() || busy) return;
+      var body = sell ? { action: 'sell', code: ds.code, qty: Number(input.value) } : { action: 'position-drop', code: ds.code };
+      close();
+      busy = true; lastError = ''; renderControl(lastControl);
+      controlRequest('/autotrader/command', body).catch(function (e) {
+        lastError = e && e.status === 409 ? '서버가 명령을 거부했습니다(시간·상태·지원 여부 확인).' : '요청을 보내지 못했습니다.';
+        global.alert(lastError);
+      }).then(function () { busy = false; refresh(); });
+    });
+  }
+
   function positionsHtml(positions, quotes) {
     var buyTotal = 0, valueTotal = 0, priced = 0, unpriced = 0, asOf = '';
     var body = positions.map(function (p) {
@@ -753,7 +808,7 @@
         + '<td class="n ' + (chg == null ? '' : tone(chg)) + '">' + (chg == null ? '-' : pct(chg)) + '</td>'
         + '<td class="n">' + (value == null ? '-' : fmtWon(value)) + '</td>'
         + '<td class="n ' + tone(pnl) + '">' + signed(pnl) + '</td><td class="n ' + tone(rate) + '">' + pct(rate) + '</td>'
-        + '<td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td></tr>';
+        + '<td>' + esc(p.state) + '</td><td>' + esc(p.buyDay) + '</td><td>' + posActionHtml(p, price) + '</td></tr>';
     }).join('');
     var pnlTotal = priced ? valueTotal - buyTotal : null, rateTotal = buyTotal > 0 ? pnlTotal / buyTotal * 100 : null;
     function cell(label, val, cls) { return '<div><small>' + label + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</b></div>'; }
@@ -766,7 +821,7 @@
       + cell('총손익', signed(pnlTotal), tone(pnlTotal))
       + cell('총수익률', pct(rateTotal), tone(rateTotal))
       + '</section><div class="at-table-wrap"><table class="at-table at-pos"><thead><tr><th>종목명</th><th class="n">보유수량</th><th class="n">매입가(추정)</th><th class="n">현재가</th><th class="n">등락률</th>'
-      + '<th class="n">평가금액</th><th class="n">평가손익</th><th class="n">수익률</th><th>상태</th><th>매수일</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+      + '<th class="n">평가금액</th><th class="n">평가손익</th><th class="n">수익률</th><th>상태</th><th>매수일</th><th>관리</th></tr></thead><tbody>' + body + '</tbody></table></div>'
       + '<p class="at-note">' + note + '</p>';
   }
 
@@ -1179,6 +1234,9 @@
     if(decisionToggle)decisionToggle.addEventListener('click',function(){activityOpen.decisions=activityOpen.decisions === false;root.querySelector('[data-decision-body]').hidden=!activityOpen.decisions;decisionToggle.textContent=activityOpen.decisions?'접기':'펼치기';decisionToggle.setAttribute('aria-expanded',String(activityOpen.decisions));});
     root.querySelectorAll('[data-act-more]').forEach(function (more) {
       more.addEventListener('toggle', function () { activityOpen[more.getAttribute('data-act-more')] = more.open; });
+    });
+    root.querySelectorAll('[data-pos-sell],[data-pos-drop]').forEach(function (button) {
+      button.addEventListener('click', function () { openPositionModal(button.hasAttribute('data-pos-sell') ? 'sell' : 'drop', button.dataset); });
     });
     root.querySelectorAll('[data-ctl]').forEach(function (button) {
       button.addEventListener('click', function () {
