@@ -24,6 +24,7 @@ t일 종가까지만 사용(미래 참조 금지). 저점 지속성은 t까지�
    (events는 시각 보정 강도 I(t)가 아니라 전일 대비 누적 비율이므로 근사다.)
 기간: 기본 학습 2021-10~2023 / 검증 2024~2025-06 / 시험 2025-07~ (기존 연구와 같음).
   저장 일봉이 짧으면 환경변수로 바꾼다: SPRING_START=YYYYMMDD, SPRING_SPLIT=학습끝,검증끝 (예: 20250601 / 20251231,20260331).
+국면: SPRING_INDEX=<index_daily_history_KOSPI.json> 로 KOSPI 60일선 상승/횡보/하락을 나눠 보고(by_regime, up_sideways_by_period).
 실행: python spring_index_study.py <작업 폴더(cache/)> <out.json> [events.csv]
 """
 import csv
@@ -229,6 +230,26 @@ def load_events(path):
     return out
 
 
+def regime_by_date(dates, df_all):
+    """그날 종가까지 알 수 있는 시장 국면(미래 참조 없음).
+    지수: SPRING_INDEX(index_daily_history_KOSPI.json, rows[{date, close}])가 있으면 KOSPI, 없으면 유니버스 동일가중 지수.
+    상승 = 종가 > 60일선 & 60일선이 20거래일 전보다 높음, 하락 = 종가 < 60일선 & 60일선 하락, 나머지 = 횡보."""
+    path = os.environ.get('SPRING_INDEX')
+    src = 'KOSPI'
+    if path and os.path.exists(path):
+        rows = json.load(open(path, encoding='utf-8')).get('rows') or []
+        idx = pd.Series({str(r['date']).replace('-', '')[:8]: float(r['close']) for r in rows if r.get('close')}).sort_index()
+    else:
+        src = '유니버스 동일가중(지수 파일 없음)'
+        r = df_all.pivot_table(index='d', columns='code', values='close').sort_index().pct_change()
+        idx = (1 + r.mean(axis=1).fillna(0)).cumprod()
+    ma = idx.rolling(60).mean()
+    up = (idx > ma) & (ma > ma.shift(20))
+    dn = (idx < ma) & (ma < ma.shift(20))
+    reg = pd.Series(np.where(up, '상승', np.where(dn, '하락', '횡보')), index=idx.index).where(ma.notna())
+    return reg.reindex(dates).values, src
+
+
 def main(lab, out_path, events_path=None):
     warnings.filterwarnings('ignore')
     frames, geo = [], []
@@ -251,6 +272,7 @@ def main(lab, out_path, events_path=None):
     # 시장 영향 분리: 같은 날 유니버스 동일가중 평균 대비 초과수익(%p)
     df['ex20'] = df.ret20 - df.groupby('d').ret20.transform('mean')
     df['ex60'] = df.ret60 - df.groupby('d').ret60.transform('mean')
+    df['regime'], regime_src = regime_by_date(df.d.values, pd.concat(frames, ignore_index=True)[['d', 'code', 'close']])
     for k in ('vol_up', 'box60', 'sm60'):
         df['p_' + k] = df.groupby('d')[k].rank(pct=True)
     A = (df.p_vol_up >= .8) & (df.p_box60 <= .4) & (df.drift60 < .10)
@@ -264,6 +286,13 @@ def main(lab, out_path, events_path=None):
            'params': dict(LAM_BASE=LAM_BASE, K=K, BREAK_VOL=BREAK_VOL, PERSIST_ATR=PERSIST_ATR, FLOOR_TOL_ATR=FLOOR_TOL_ATR, WIN=WIN,
                           IGN_UNTIL=IGN_UNTIL, GAP_MAX=GAP_MAX, IGN_LEVEL=IGN_LEVEL, COST=COST),
            'groups': {name: {per: summarize(df[m & (df.period == per)]) for per in ('train', 'valid', 'test')} for name, m in conds.items()}}
+    # 사용자 원칙(2026-11-19): 하락장은 무엇을 해도 떨어진다 -> 상승·횡보 국면에서 벌 수 있는지가 판단 기준.
+    up_side = df.regime.isin(['상승', '횡보'])
+    res['regime_source'] = regime_src
+    res['regime_days'] = {k: int(v) for k, v in df.drop_duplicates('d').regime.value_counts(dropna=False).items()}
+    res['by_regime'] = {name: {rg: summarize(df[m & (df.regime == rg)]) for rg in ('상승', '횡보', '하락')} for name, m in conds.items()}
+    res['up_sideways_by_period'] = {name: {per: summarize(df[m & up_side & (df.period == per)]) for per in ('train', 'valid', 'test')}
+                                    for name, m in conds.items()}
     # 위험률 모형: S 후보 안에서 K일 내 분출 확률
     cand = df[S].copy()
     cand['p_sm60'] = cand.p_sm60.fillna(.5)
@@ -319,6 +348,9 @@ def main(lab, out_path, events_path=None):
     pd.set_option('display.width', 250)
     pd.set_option('display.max_rows', 80)
     print(pd.DataFrame(rows).set_index(['조건', '기간']))
+    rows = [dict(조건=k, 국면=rg, **v) for k, d in res['by_regime'].items() for rg, v in d.items()]
+    print('국면 기준:', regime_src, res['regime_days'])
+    print(pd.DataFrame(rows).set_index(['조건', '국면'])[['n', 'win20', 'ret20_mean', 'ex20_mean', 'ex20_t', 'brk_k']])
     for key in ('hazard', 'ignition_H'):
         if key in res:
             print(key, json.dumps(res[key], ensure_ascii=False)[:2000])

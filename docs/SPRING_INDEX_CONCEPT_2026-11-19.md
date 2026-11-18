@@ -116,7 +116,10 @@
 
 현재 결론(예비): 가설의 세 요소 중 실데이터에서 살아남은 것은 ② 바닥 상승뿐이고 효과는 작다(+0.3~1.1%p/20일). ①은 국면 의존이 크다. 가설 H(③)는 events.csv가 없어 미검증.
 
-다음 실행(v2): `SPRING_LAM_BASE=120 SPRING_START=20250620 SPRING_SPLIT=20251231,20260331`, 보고는 ex20/ex60·t값 중심.
+**평가 원칙(사용자 2026-11-19): 하락장은 무엇을 해도 떨어진다. 상승·횡보 국면에서 벌 수 있는지로 판단한다.**
+국면은 그날 종가까지 알 수 있는 값만 쓴다: KOSPI 종가 > 60일선 & 60일선 20일 전보다 상승 = 상승, 반대 = 하락, 나머지 = 횡보(`SPRING_INDEX`=Oracle `index_daily_history_KOSPI.json`, 없으면 유니버스 동일가중 지수). 결과는 `by_regime`(국면별)·`up_sideways_by_period`(상승+횡보만, 기간별). 국면 표시는 지연 지표라 하락 초입 진입을 다 막지 못한다(EDGE_FACTOR_STUDY 두 달 점검) → 실전 규칙은 '국면 진입 차단'과 '보유 중 국면 전환 시 청산'을 따로 검증해야 한다.
+
+다음 실행(v2): `SPRING_INDEX=<kiwoom-api 폴더>/index_daily_history_KOSPI.json SPRING_LAM_BASE=120 SPRING_START=20250620 SPRING_SPLIT=20251231,20260331`, 보고는 ex20/ex60·t값 중심.
 
 ## 6. 정직한 한계
 
