@@ -1,3 +1,7 @@
+**2026-11-19 푸터 링크 색 원복(사용자 지시)**
+
+- soft-ui.css에서 푸터 링크 색 규칙(라이트 강조색·np.np 덮어쓰기·다크 보조색)을 모두 제거해 푸터는 기존 style.css 규칙 그대로로 복귀. 로더 버전 갱신. master→Pages.
+
 **2026-11-19 푸터 링크 색 정정(홈 회사정보형 푸터)**
 
 - 홈 푸터 링크는 style.css np.np 레이어의 `color: rgb(var(--np-ink)) !important`가 고정하고 있어 이전 규칙이 적용되지 않았다. soft-ui.css에 같은 레이어·높은 명시도로 `--soft-accent`를 덮음(라이트 전용). 로더 버전 갱신. master→Pages.
