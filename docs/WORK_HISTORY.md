@@ -1,3 +1,8 @@
+**2026-11-18 사용자 선택 3번: 눈 덮인 라우터브루넨 로그인 배경**
+
+- 후보 미리보기 후 사용자가 선택한 Lauterbrunnen Village.jpg(Psramanuj/CC BY-SA3.0), 동일960×720 축소 사진을 저장소 자산으로 게시. 사진·크레딧·로더 버전만 변경, 인증/입장 동작 보존. 향후 배경은 미리보기 선택 후 적용하도록 CLAUDE.md 갱신.
+- 검증: 선택 사진 육안 확인·Commons 메타데이터·JS 구문·UTF-8·인증 함수 동일성 확인. master→Pages 즉시 배포 대상; 완료 여부와 CDN 응답은 배포 후 확인. 운영 PC/모바일 시각 실측은 별도, VM·계좌·주문 변경 없음.
+
 **2026-11-18 로그인 배경: 이전 사진 대신 새 마터호른·리펠 호수 사진**
 
 - 사용자가 이전에 쓴 뮈렌 사진 재사용을 거절해, 새 Commons 사진 Matterhorn+Riffelsee.jpg(BECK François/CC BY-SA4.0)를 img/landing-matterhorn-riffelsee.jpg에 추가. 원본2048×1536/739,438 bytes 그대로 보존, CSS cover만 적용. 사진가·원본·라이선스 링크 갱신, 이전 뮈렌/인터라켄 자산과 인증·버튼 동작은 보존.
