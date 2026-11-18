@@ -1660,7 +1660,7 @@
       +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.map(function(k){return k;}).join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'
       +plainLines(it).map(function(t){return '<p>'+escapeHtml(t)+'</p>';}).join('')
       +'</div>'
-      +'<div class="ps-state-quotes">'+(r.price==null?'가격 미수신':'종가 '+fmt(r.price))+'</div>'
+      +'<div class="ps-state-quotes">'+(r.price==null?'가격 미수신':'종가 '+fmt(r.price)+(Number.isFinite(Number(r.changeRate)) && r.changeRate!==null?' <span class="ps-rate '+chgClass(r.changeRate)+'">'+escapeHtml(chgSign(r.changeRate))+'</span>':''))+'</div>'
       +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기</button></div></article>';
   }
   function renderSimpleList(container,list,model,selection,known) {
