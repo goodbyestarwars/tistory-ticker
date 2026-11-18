@@ -426,22 +426,18 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
   html body :is(.ui-heading-band, .hrt-head) {
     padding: calc(var(--ui-paragraph-gap, 14px) / 2) var(--ui-card-padding, 18px) !important;
   }
-  /* The stock board is read by alignment and whitespace, without underlines. */
-  html body .home-realtime-board .hrt-table-wrap :is(thead th, tbody td, tbody tr),
+  /* Stock board: no vertical rules; rows separated by hairline horizontals (2026-11-18 user).
+     The line sits on the row so every column shares one edge. */
+  html body .home-realtime-board .hrt-table-wrap :is(thead th, tbody td),
   html body .home-realtime-board .hrt-head {
     border-bottom: 0 !important;
     border-image: none !important;
   }
-  /* Columns stay separated by hairline verticals (2026-11-18): continuous in the body,
-     a short centered tick in the header band so its rounded fill stays clean. */
-  html body .home-realtime-board .hrt-table-wrap tbody td:not(:first-child) {
-    border-left: 1px solid color-mix(in srgb, var(--ui-rule) 85%, transparent);
+  html body .home-realtime-board .hrt-table-wrap tbody tr {
+    border-bottom: 1px solid var(--ui-rule) !important;
   }
-  html body .home-realtime-board .hrt-table-wrap thead th:not(:first-child) {
-    background-image: linear-gradient(var(--ui-rule), var(--ui-rule));
-    background-repeat: no-repeat;
-    background-position: left center;
-    background-size: 1px 46%;
+  html body .home-realtime-board .hrt-table-wrap tbody tr:last-child {
+    border-bottom: 0 !important;
   }
   html body .home-realtime-board .hrt-stock a,
   html body .home-realtime-board .hrt-stock a:is(:hover, :focus-visible) {
