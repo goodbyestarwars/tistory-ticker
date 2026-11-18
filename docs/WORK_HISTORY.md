@@ -1,4 +1,7 @@
+**2026-11-19 검색기 매수후보 종가에 기준일 표시(사용자 지시)** — 카드 가격이 매수가로 오해되지 않도록 `js/pattern-scan.js` `simpleRowHtml`의 '종가'를 스캔 기준일 `selection.dataDate`(없으면 항목 `date`)로 'M/D 종가' 표기, 등락 칩에 'M/D 전일 대비 등락률' 툴팁. 날짜 미확인 시 '기준일 종가'(추정 금지). 데이터·판정 무변경. 검색기 브라우저 QA·스캐너 단위 테스트 통과. master→Pages.
+
 **2026-11-19 상승 구간 해부 2단계 도구** — 사용자 선택 3(조합 검증 먼저, 이후 일봉 밖 원인). `scripts/research/pullback_combo_study.py`: TREND·DIP·DRY·TRIO를 관측 가능한 신호일에 t+1 시가 매수, 기존 quietLeaderPullback(공통 auto-wave shapeOf TSV 재사용)과 exit-v1 매매·날짜 군집 t로 비교. `shape_edge_batch.js`에 START/CUTOFF 환경변수. 합성 데이터 확인, 실데이터 미측정.
+
 
 **2026-11-19 상승 구간 해부 v2 결과** — 변동성 단위 공정 비교(상승 1,680/실패 1,974)에서 모양 원형·피처 대부분 lift 1 근처로 구분력 약함. 남은 약한 방향(60일 추세 생존+20일선 아래 적당한 눌림+거래 마름)은 기존 quietLeaderPullback과 같은 그림 → 2단계는 이 조합의 관측 가능 진입 수익 검증. ret60 중복 피처 제거. 문서 `docs/RALLY_ANATOMY_STUDY_2026-11-19.md`.
 
