@@ -127,6 +127,62 @@ html:not(.dark) .site-footer-links a:hover,
 html:not(.dark) .site-footer-links button:hover,
 html:not(.dark) .site-footer-links a:focus-visible { color: #053F41; }
 
+/* ════════ 다크모드 — 모노크롬 글래스(검정·흰색 고대비) 2026-11-19 사용자 지시 ════════
+   기존 공식 다크 토큰(--dk-*)만 중립 회색으로 교체해 전체에 한 번에 적용한다(청회색 → 무채색).
+   주요 컨트롤(아이콘 버튼·선택 메뉴)은 흰 알약+검정 글자로 반전해 대비를 확보한다. 상승·하락색은 라이트 막대와 같은 계열. */
+html.dark {
+  --dk-bg: #0F1011;
+  --dk-card: #1A1B1D;
+  --dk-inner: #242527;
+  --dk-panel: #202123;
+  --dk-line: #2F3134;
+  --dk-text: #F5F5F4;
+  --dk-sub: #C4C5C7;
+  --dk-mute: #9C9EA2;
+  --dk-hover: #2B2C2F;
+  --dk-active: #3A3B3F;
+  --dk-up: #E8A39E;
+  --dk-down: #86AEE1;
+  --dk-flat: #AEB0B4;
+  --dk-up-rgb: 232, 163, 158;
+  --dk-down-rgb: 134, 174, 225;
+  --dk-ink-rgb: 245, 245, 244;
+  --ui-radius-card: 20px;
+  --ui-glass-sheen: none;
+  --ui-glass-edge: rgba(255, 255, 255, .06);
+  --ui-glass-shadow: 0 12px 32px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .05);
+  --ui-glass-floating-shadow: 0 20px 50px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+html.dark .card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-line);
+  border-radius: 20px;
+  box-shadow: var(--ui-glass-shadow);
+}
+html.dark .nav-icon-btn,
+html.dark .nav-dark-btn {
+  background: #F5F5F4;
+  border: 1px solid #F5F5F4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
+}
+html.dark .nav-icon-btn svg { stroke: #0F1011; }
+html.dark .nav-icon-btn:focus-visible,
+html.dark .nav-dark-btn:focus-visible { outline: 2px solid #F5F5F4; outline-offset: 3px; }
+html.dark .navbar .nav-search-input-wrap {
+  background: #000;
+  border: 1px solid var(--dk-line);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, .6);
+}
+html.dark .navbar .nav-search-input { color: var(--dk-text); }
+html.dark .navbar .nav-search-icon { color: var(--dk-text); }
+html.dark .nav-item { border-radius: 14px; }
+html.dark .nav-item:hover { background: var(--dk-hover); }
+html.dark .nav-item.active,
+html.dark .nav-item[aria-current="page"] { background: #F5F5F4; color: #0F1011; font-weight: 700; }
+html.dark .site-footer-links a,
+html.dark .site-footer-links button { color: var(--dk-mute); }
+html.dark .site-footer-links a:hover { color: var(--dk-text); }
+
 /* ── 접근성: 줄어든 모션·고대비에서는 그림자 효과 제거 ───── */
 @media (prefers-reduced-motion: reduce) {
   html:not(.dark) .nav-icon-btn, html:not(.dark) .nav-dark-btn { transition: none; }
