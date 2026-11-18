@@ -1,3 +1,5 @@
+**2026-11-19 스프링 지수 연구: 저장 기간 맞춤·Oracle 실측** — Oracle `ohlc_snapshot.db` 일봉 2024-06-24~(종목당 최대 585봉, 3,547종목 400봉+), 수급 2026-05-14~. 검증 스크립트에 SPRING_START/SPRING_SPLIT 환경변수와 기간 실제 범위 출력 추가. Oracle 메모리 23GB 실측으로 CLAUDE.md '1GB급' 정정(상시 프로세스 금지 원칙 유지).
+
 **2026-11-19 스프링 지수 연구 캐시 변환기** — Google VM에는 전종목 일봉 캐시가 없어(research.db 1MB) Oracle `ohlc_snapshot.db`를 SQLite 읽기 전용으로 종목별 변환하는 `scripts/research/spring_export_cache.py` 추가(`--stats` 범위 확인). 합성 DB로 변환→검증 스크립트 연결 확인. 운영 DB 쓰기·서비스 무변경.
 
 **2026-11-19 스프링 지수 초안값 확정·1차 검증 스크립트** — 사용자 "다 초안으로". `scripts/research/spring_index_study.py`: ① 매집(기존 정의+가격충격 λ60/λ250) ② 0차원 지속성 저점→아래쪽 볼록껍질 바닥선·쐐기 꼭짓점 ③ events.csv 결합 가설 H, 학습 기간 로지스틱 위험률(10일 내 분출)·검증/시험 보정표. 합성 데이터로 실행·기하 판정(상승/하락 저점) 확인만, 실데이터 결과 미측정(VM 연구 캐시 필요). 운영·검색기·주문 무변경.

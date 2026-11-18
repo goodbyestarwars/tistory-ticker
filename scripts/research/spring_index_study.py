@@ -21,7 +21,8 @@ t일 종가까지만 사용(미래 참조 금지). 저점 지속성은 t까지�
 ③ 가설 H: open_volume_export.py의 events.csv(시초 30분 누적 거래량 >= 전일 x 수준)를 전일 상태와 결합해
    S 상태 종목의 시초 폭발 vs 나머지의 순수익 비교. 감지 09:10 이하·갭 <= 8%·수준 >= 100%를 초안 필터로 쓴다.
    (events는 시각 보정 강도 I(t)가 아니라 전일 대비 누적 비율이므로 근사다.)
-기간: 학습 2021-10~2023 / 검증 2024~2025-06 / 시험 2025-07~ (기존 연구와 같음).
+기간: 기본 학습 2021-10~2023 / 검증 2024~2025-06 / 시험 2025-07~ (기존 연구와 같음).
+  저장 일봉이 짧으면 환경변수로 바꾼다: SPRING_START=YYYYMMDD, SPRING_SPLIT=학습끝,검증끝 (예: 20250601 / 20251231,20260331).
 실행: python spring_index_study.py <작업 폴더(cache/)> <out.json> [events.csv]
 """
 import csv
@@ -233,8 +234,10 @@ def main(lab, out_path, events_path=None):
         rows = np.where(((f.vol_up >= 1.2) & (f.box60 <= .35)).values | (np.arange(len(f)) % 5 == 0))[0]
         add_geometry(f, arrays, rows)
     df = pd.concat(frames, ignore_index=True)
-    df = df[(df.d >= '20211001') & (df.amt20 >= 3e9) & (df.close >= 1000) & df.ret20.notna() & df.vol_up.notna()]
-    df['period'] = np.select([df.d <= '20231231', df.d <= '20250630'], ['train', 'valid'], 'test')
+    start = os.environ.get('SPRING_START', '20211001')
+    split1, split2 = os.environ.get('SPRING_SPLIT', '20231231,20250630').split(',')
+    df = df[(df.d >= start) & (df.amt20 >= 3e9) & (df.close >= 1000) & df.ret20.notna() & df.vol_up.notna()]
+    df['period'] = np.select([df.d <= split1, df.d <= split2], ['train', 'valid'], 'test')
     for k in ('vol_up', 'box60', 'sm60'):
         df['p_' + k] = df.groupby('d')[k].rank(pct=True)
     A = (df.p_vol_up >= .8) & (df.p_box60 <= .4) & (df.drift60 < .10)
@@ -243,7 +246,8 @@ def main(lab, out_path, events_path=None):
     geo_rows = df.chain.notna()
     conds = {'아무 종목': df.index == df.index, '기하 계산 표본(5일 간격 포함)': geo_rows, '① A 매집': A, '② R 바닥 상승': R,
              'S = A & R (용수철)': S, 'S + 가격충격 낮음(lam_ratio<1)': S & (df.lam_ratio < 1)}
-    res = {'params': dict(K=K, BREAK_VOL=BREAK_VOL, PERSIST_ATR=PERSIST_ATR, FLOOR_TOL_ATR=FLOOR_TOL_ATR, WIN=WIN,
+    res = {'periods': {per: [str(df[df.period == per].d.min()), str(df[df.period == per].d.max())] for per in ('train', 'valid', 'test')},
+           'params': dict(K=K, BREAK_VOL=BREAK_VOL, PERSIST_ATR=PERSIST_ATR, FLOOR_TOL_ATR=FLOOR_TOL_ATR, WIN=WIN,
                           IGN_UNTIL=IGN_UNTIL, GAP_MAX=GAP_MAX, IGN_LEVEL=IGN_LEVEL, COST=COST),
            'groups': {name: {per: summarize(df[m & (df.period == per)]) for per in ('train', 'valid', 'test')} for name, m in conds.items()}}
     # 위험률 모형: S 후보 안에서 K일 내 분출 확률
