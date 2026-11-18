@@ -8,7 +8,7 @@ test('home paints Upbit while Binance is pending; USDT prices survive failures a
   const document={hidden:false,body:{contains:()=>true},addEventListener(){},removeEventListener(){}};
   const window={CryptoMarket:{quoteContractVersion:1,coins:[['BTC','비트코인']],fetchCoinQuotes:async()=>{coinCalls++;return[{symbol:'BTC',price:1000000,change_rate:0,updated_at:'2026-10-26T00:00:00Z'}];},fetchTokenQuotes:()=>{tokenCalls++;return tokenHandler();}}};
   const context={window,document,URL,AbortController,setTimeout,clearTimeout,setInterval:fn=>{intervals.push(fn);return 1;},clearInterval(){},fetch:()=>{throw Error('Unexpected domestic/extra API request');}};
-  const source=fs.readFileSync('js/home-weekly-report.js','utf8').replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };','global.HomeWeeklyReport = {live:loadWeekendLive};');
+  const source=fs.readFileSync('js/home-weekly-report.js','utf8').replace(/global\.HomeWeeklyReport = \{ init: init, syncContent: syncContent[^}]*\};/,'global.HomeWeeklyReport = {live:loadWeekendLive};');
   vm.runInNewContext(source,context);window.HomeWeeklyReport.live(root);await flush();
   assert.match(mount.innerHTML,/1,000,000원/);assert.match(mount.innerHTML,/상장 종목과 시세 확인 중/);
   resolveTokens({symbols:[['SAMSUNGUSDT','삼성전자'],['KODEX200USDT','KODEX 200']],items:[{symbol:'SAMSUNGUSDT',quoteAsset:'USDT',price:165,changeRate:1.2},{symbol:'KODEX200USDT',quoteAsset:'EUR',price:50,changeRate:2}],updatedAt:'2026-10-26T00:00:00Z'});await flush();
@@ -25,7 +25,7 @@ test('home paints Upbit while Binance is pending; USDT prices survive failures a
 test('home upgrades an already loaded legacy crypto module and retries a mismatched cached script',async()=>{
   const scripts=[],window={CryptoMarket:{fetchCoinQuotes(){},fetchTokenQuotes(){}}};
   const document={createElement:()=>({}),head:{appendChild:s=>scripts.push(s)}};
-  const source=fs.readFileSync('js/home-weekly-report.js','utf8').replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };','global.HomeWeeklyReport = {module:coinModule};');
+  const source=fs.readFileSync('js/home-weekly-report.js','utf8').replace(/global\.HomeWeeklyReport = \{ init: init, syncContent: syncContent[^}]*\};/,'global.HomeWeeklyReport = {module:coinModule};');
   vm.runInNewContext(source,{window,document,URL,AbortController,setTimeout,clearTimeout});
   const pending=window.HomeWeeklyReport.module();assert.equal(scripts.length,1);assert.match(scripts[0].src,/v=20261026-listed-quotes/);
   scripts[0].onload();await assert.rejects(pending,/contract/);

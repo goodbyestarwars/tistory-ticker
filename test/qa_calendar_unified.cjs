@@ -44,7 +44,7 @@ const assert = require('assert/strict');
    await input.fill('HOOD');
    await page.locator('[data-calendar-action="next"]').click();
    assert.equal(await input.inputValue(),'HOOD');
-   assert.ok((await page.locator('.sc-cal-title').innerText()).includes('11월'));
+   assert.ok((await page.locator('.sc-cal-title').getAttribute('aria-label')).includes('11월'));
    await page.locator('[data-calendar-action="previous"]').click();
    assert.equal(await input.inputValue(),'HOOD');
    await input.fill('');

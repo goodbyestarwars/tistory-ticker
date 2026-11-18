@@ -1652,16 +1652,31 @@
     if(won(sup))lines.push('바닥'+won(sup)+'을 깨면 판단이 틀린 것으로 봅니다'+(Number.isFinite(pos.supportRiskPct)?'(현재가 대비 '+pos.supportRiskPct.toFixed(1)+'%)':'')+'.');
     return lines.slice(0,3);
   }
+  // 2026-11-19 사용자 지시: 매수후보 행을 카드형으로 — 종가·등락을 이름 옆 크게, 바닥~저항 사이 현재 위치를 막대로 보여준다.
+  // 값은 기존 스캔 응답(price·changeRate·patternDetail.support/resistance)만 쓰고 결측은 추정하지 않는다.
+  function rangeGaugeHtml(price,sup,res) {
+    price=Number(price);sup=Number(sup);res=Number(res);
+    if(!(price>0 && sup>0 && res>sup))return '';
+    var raw=(price-sup)/(res-sup),pct=Math.max(0,Math.min(1,raw))*100;
+    var note=raw>1?'저항 위':raw<0?'바닥 아래':'';
+    return '<div class="ps-pick-gauge" role="img" aria-label="바닥 '+fmt(sup)+'원, 저항 '+fmt(res)+'원 사이에서 현재 '+Math.round(pct)+'% 위치'+(note?' ('+note+')':'')+'">'
+      +'<div class="ps-pick-gauge-track"><span class="ps-pick-gauge-fill" style="width:'+pct.toFixed(1)+'%"></span><span class="ps-pick-gauge-dot" style="left:'+pct.toFixed(1)+'%"></span></div>'
+      +'<div class="ps-pick-gauge-labels"><span>바닥 <b>'+fmt(sup)+'</b></span>'+(note?'<em>'+note+'</em>':'')+'<span>저항 <b>'+fmt(res)+'</b></span></div></div>';
+  }
   function simpleRowHtml(r,manual) {
     var it=r.classified[0].member.item,d=detailFor(it);
     var tags=(d.edgeSignals || []).filter(function(t){return t && EDGE_LABELS[t.key];}).map(function(t){return EDGE_LABELS[t.key];});
-    return '<article class="ps-state-row" data-code="'+escapeHtml(r.code)+'">'
-      +'<div class="ps-state-identity"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small>'
-      +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.map(function(k){return k;}).join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'
-      +plainLines(it).map(function(t){return '<p>'+escapeHtml(t)+'</p>';}).join('')
-      +'</div>'
-      +'<div class="ps-state-quotes">'+(r.price==null?'가격 미수신':'종가 '+fmt(r.price)+(Number.isFinite(Number(r.changeRate)) && r.changeRate!==null?' <span class="ps-rate '+chgClass(r.changeRate)+'">'+escapeHtml(chgSign(r.changeRate))+'</span>':''))+'</div>'
-      +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기</button></div></article>';
+    var rate=Number(r.changeRate),hasRate=r.changeRate!=null && r.changeRate!=='' && Number.isFinite(rate);
+    var quote=r.price==null?'<div class="ps-pick-quote is-missing">가격 미수신</div>'
+      :'<div class="ps-pick-quote"><span class="ps-pick-price">'+fmt(r.price)+'<small>원</small></span>'
+        +(hasRate?'<span class="ps-pick-rate '+chgClass(rate)+'">'+escapeHtml(chgSign(rate))+'</span>':'')
+        +'<span class="ps-pick-basis">종가</span></div>';
+    return '<article class="ps-state-row ps-pick" data-code="'+escapeHtml(r.code)+'">'
+      +'<div class="ps-pick-head"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small>'
+      +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'+quote+'</div>'
+      +'<ul class="ps-pick-lines">'+plainLines(it).map(function(t){return '<li>'+escapeHtml(t)+'</li>';}).join('')+'</ul>'
+      +'<div class="ps-pick-foot">'+rangeGaugeHtml(r.price,d.support,d.resistance)
+      +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기 →</button></div></div></article>';
   }
   function renderSimpleList(container,list,model,selection,known) {
     var current=function(r){var it=r.classified[0].member.item;return !it.track && !it._history;};

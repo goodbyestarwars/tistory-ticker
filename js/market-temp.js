@@ -3491,7 +3491,7 @@
         + '<b class="' + cls + '">' + pctText_(nr) + '</b><span class="mt-tm-say">' + stateWord(nr) + '</span></summary>'
         + '<dl class="mt-tm-ndetail">' + drow('야간 종가', Number(night.close).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
         + drow('주간 종가 대비', (night.change > 0 ? '+' : '') + Number(night.change).toFixed(2))
-        + drow('상태', '최종 마감') + drow('세션', ymdLabel_(night.sessionDate) + ' 저녁~다음 날 05:00') + drow('신호 계산', '반영됨') + '</dl></details></li>';
+        + drow('상태', '최종 마감') + drow('세션', ymdLabel_(night.sessionDate) + ' 저녁~다음 날 05:00') + drow('신호 계산', '반영됨') + drow('출처', 'KIS 야간선물') + '</dl></details></li>';
     } else {
       nightItem = '<li class="mt-tm-item mt-tm-nightcard is-none"><details class="mt-tm-nd"' + open + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
         + '<b class="mt-val-zero">시세 없음</b><span class="mt-tm-say">데이터 확인 중</span></summary>'

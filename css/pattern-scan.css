@@ -1121,3 +1121,34 @@ html.dark #pattern-scan .ps-status-filters [aria-pressed="true"] { background:va
 html.dark #pattern-scan .ps-state-badge[data-state="research"],html.dark #pattern-scan .ps-state-badge[data-state="expired"],html.dark #pattern-scan .ps-state-badge[data-state="excluded"] { color:var(--dk-mute); }
 @media(min-width:1000px) { #pattern-scan .ps-state-row { grid-template-columns:minmax(220px,1fr) minmax(240px,1fr) minmax(130px,.35fr); } #pattern-scan .ps-state-actions { justify-content:flex-end; } }
 @media(min-width:761px) and (max-width:999px) { #pattern-scan .ps-state-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } #pattern-scan .ps-state-actions { grid-column:1/-1; } }
+/* 매수후보 카드(2026-11-19): 이름 옆 큰 종가·등락 칩, 쉬운 설명 목록, 바닥~저항 위치 막대 */
+#pattern-scan .ps-state-row.ps-pick { display:flex; flex-direction:column; align-items:stretch; gap:10px; margin:0 0 12px; padding:16px 18px; background:var(--ui-surface,#fff); border:1px solid var(--ui-border,#ECE8E1); border-radius:var(--ui-radius-card,14px); box-shadow:var(--soft-raised,none); }
+#pattern-scan .ps-pick-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; }
+#pattern-scan .ps-pick-head .ps-state-stock strong { font-size:17px; }
+#pattern-scan .ps-pick-head .ps-state-stock small { color:var(--ui-muted,#64748b); }
+#pattern-scan .ps-pick-quote { display:flex; align-items:baseline; gap:8px; margin-left:auto; white-space:nowrap; }
+#pattern-scan .ps-pick-quote.is-missing { font-size:13px; color:var(--ui-muted,#64748b); }
+#pattern-scan .ps-pick-price { font:700 22px/1.2 var(--font-body,sans-serif); font-variant-numeric:tabular-nums; }
+#pattern-scan .ps-pick-price small { margin-left:2px; font-size:13px; font-weight:500; color:var(--ui-muted,#64748b); }
+#pattern-scan .ps-pick-rate { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; padding:3px 9px; border-radius:999px; background:var(--ui-subtle,#f3f4f6); }
+#pattern-scan .ps-pick-rate.ps-up { background:var(--chart-fill-up,#FAE8E7); }
+#pattern-scan .ps-pick-rate.ps-down { background:var(--chart-fill-down,#E4EDF8); }
+#pattern-scan .ps-pick-basis { font-size:12px; color:var(--ui-muted,#64748b); }
+#pattern-scan .ps-pick-lines { margin:0; padding:0 0 0 18px; display:grid; gap:4px; font-size:14px; line-height:1.6; }
+#pattern-scan .ps-pick-lines li { margin:0; padding:0; }
+#pattern-scan .ps-pick-foot { display:flex; align-items:center; justify-content:space-between; gap:8px 24px; flex-wrap:wrap; }
+#pattern-scan .ps-pick-gauge { flex:1 1 280px; max-width:460px; min-width:0; }
+#pattern-scan .ps-pick-gauge-track { position:relative; height:6px; border-radius:999px; background:var(--ui-subtle,#f1efe9); }
+#pattern-scan .ps-pick-gauge-fill { position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:var(--bar-up,#E8A39E); opacity:.55; }
+#pattern-scan .ps-pick-gauge-dot { position:absolute; top:50%; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; background:var(--num-up,#c8372d); box-shadow:0 0 0 2px var(--ui-surface,#fff); }
+#pattern-scan .ps-pick-gauge-labels { display:flex; justify-content:space-between; gap:8px; margin-top:6px; font-size:12px; color:var(--ui-muted,#64748b); font-variant-numeric:tabular-nums; }
+#pattern-scan .ps-pick-gauge-labels b { font-weight:600; color:var(--ui-text,#273332); }
+#pattern-scan .ps-pick-gauge-labels em { font-style:normal; font-weight:600; color:var(--num-up,#c8372d); }
+#pattern-scan .ps-pick .ps-state-actions { margin-left:auto; }
+#pattern-scan .ps-pick .ps-state-detail { padding:6px 14px; border:1px solid currentColor; border-radius:999px; font-weight:600; }
+html.dark #pattern-scan .ps-state-row.ps-pick { background:var(--dk-card); border-color:var(--dk-line); box-shadow:none; }
+html.dark #pattern-scan .ps-pick-head .ps-state-stock small,html.dark #pattern-scan .ps-pick-price small,html.dark #pattern-scan .ps-pick-basis,html.dark #pattern-scan .ps-pick-gauge-labels { color:var(--dk-mute); }
+html.dark #pattern-scan .ps-pick-gauge-labels b { color:var(--dk-text); }
+html.dark #pattern-scan .ps-pick-rate,html.dark #pattern-scan .ps-pick-gauge-track { background:var(--dk-line); }
+html.dark #pattern-scan .ps-pick-gauge-dot { box-shadow:0 0 0 2px var(--dk-card); }
+@media(max-width:720px) { #pattern-scan .ps-state-row.ps-pick { padding:14px; } #pattern-scan .ps-pick-quote { margin-left:0; width:100%; } #pattern-scan .ps-pick-price { font-size:20px; } #pattern-scan .ps-pick-gauge { flex-basis:100%; max-width:none; } #pattern-scan .ps-pick .ps-state-actions { width:100%; } #pattern-scan .ps-pick .ps-state-detail { width:100%; text-align:center; } }

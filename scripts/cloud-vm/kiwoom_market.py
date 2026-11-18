@@ -459,7 +459,7 @@ def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, tar
     return out[:target_days]
 
 
-def _merge_live_row(out, live_row, today_str):
+def _merge_live_row(out, live_row, today_str, now=None):
     """live_row(ka10059 장중 패치, _live_investor_row_from)를 out(KIS/키움 확정 일별
     목록, 최신일 우선)에 합친다. out에 이미 오늘 확정 행이 있으면(15:40 KST 이후 KIS
     TR이 열려 채워진 경우) 그 위에 live_row를 덮어써 갱신하고, 없으면 새 '당일' 행으로
@@ -473,7 +473,9 @@ def _merge_live_row(out, live_row, today_str):
         return
     if out and out[0]['date'] == today_str:
         confirmed_ind_net = out[0].get('ind_net')
-        if datetime.now(timezone(timedelta(hours=9))).strftime('%H%M') < '1540':
+        # 2026-11-13 정책: 15:40 KST 전 같은 날 개인 수급은 잠정 미집계. now는 테스트용 KST 시각 주입.
+        kst_now = now or datetime.now(timezone(timedelta(hours=9)))
+        if kst_now.strftime('%H%M') < '1540':
             confirmed_ind_net = None
         out[0].update(live_row)
         if live_row.get('ind_net') is None:
