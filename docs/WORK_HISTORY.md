@@ -1,3 +1,5 @@
+**2026-11-19 디자인 스냅샷 '윤미경 1' 저장(사용자 지시)** — 현재 디자인 완전판을 Git 태그 `design-yunmigyeong-1`(d8b6379)로 고정. 복구 절차·대상 파일은 `docs/DESIGN_SNAPSHOTS.md`. 코드 변경 없음.
+
 **2026-11-19 매도 규칙 에이전트와 일치** — 서버 sell: 평일 09:00~14:00만, 엔진 장부 종목은 전량만. 모달은 전량 고정. 에이전트 구현은 autotrader-private `feature/manual-sell-drop-20261119`(제어 에이전트는 요청 파일만, 실주문은 봇 `manual_ops.py`, `.env MANUAL_OPS_ENABLED=1`일 때만 활성). main 병합은 배포·봇 재시작을 유발하므로 사용자 승인 대기.
 
 **2026-11-19 자동매매 보유 종목 매도·PENDING 기록 삭제(사용자 승인)** — 화면: 보유 종목 표에 '관리' 열(OPEN=매도, PENDING=기록 삭제), 확인 모달(매도는 수량·예상금액·시장가 경고). 서버 `autotrader_control.py`: 명령 `sell`/`position-drop` 추가 — 에이전트 capability(`manual-sell-v1`/`position-drop-v1`)·신선한 상태·장부 포지션 일치·정규장(09:00~15:20)·수량 ≤ 보유를 검사. 에이전트(비공개 autotrader-private) 구현 전에는 버튼 비활성 → 실주문 없음. 테스트 2건 추가.
