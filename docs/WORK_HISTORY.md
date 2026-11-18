@@ -1,3 +1,5 @@
+**2026-11-19 실시간 종목판 세로 구분선(사용자 지시)** — 가로줄 없는 표의 열 구분을 위해 `css/ui-system.css`의 종목판 밑줄 제거 규칙 옆에 본문 열 사이 연한 세로 헤어라인(`--ui-rule` 85%), 머리줄은 둥근 띠를 깨지 않도록 가운데 짧은 눈금(46%)을 추가. 첫 열(종목) 왼쪽은 선 없음, 모바일 숨김 열·데이터 무변경. 정적 PC 렌더 스크린샷 확인, 운영 화면·다크 실측은 미확인. master→Pages.
+
 **2026-11-19 검색기 매수후보 종가에 기준일 표시(사용자 지시)** — 카드 가격이 매수가로 오해되지 않도록 `js/pattern-scan.js` `simpleRowHtml`의 '종가'를 스캔 기준일 `selection.dataDate`(없으면 항목 `date`)로 'M/D 종가' 표기, 등락 칩에 'M/D 전일 대비 등락률' 툴팁. 날짜 미확인 시 '기준일 종가'(추정 금지). 데이터·판정 무변경. 검색기 브라우저 QA·스캐너 단위 테스트 통과. master→Pages.
 
 **2026-11-19 상승 구간 해부 2단계 도구** — 사용자 선택 3(조합 검증 먼저, 이후 일봉 밖 원인). `scripts/research/pullback_combo_study.py`: TREND·DIP·DRY·TRIO를 관측 가능한 신호일에 t+1 시가 매수, 기존 quietLeaderPullback(공통 auto-wave shapeOf TSV 재사용)과 exit-v1 매매·날짜 군집 t로 비교. `shape_edge_batch.js`에 START/CUTOFF 환경변수. 합성 데이터 확인, 실데이터 미측정.
