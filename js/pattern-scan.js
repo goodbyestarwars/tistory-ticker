@@ -1663,14 +1663,16 @@
       +'<div class="ps-pick-gauge-track"><span class="ps-pick-gauge-fill" style="width:'+pct.toFixed(1)+'%"></span><span class="ps-pick-gauge-dot" style="left:'+pct.toFixed(1)+'%"></span></div>'
       +'<div class="ps-pick-gauge-labels"><span>바닥 <b>'+fmt(sup)+'</b></span>'+(note?'<em>'+note+'</em>':'')+'<span>저항 <b>'+fmt(res)+'</b></span></div></div>';
   }
-  function simpleRowHtml(r,manual) {
+  function simpleRowHtml(r,manual,dataDate) {
     var it=r.classified[0].member.item,d=detailFor(it);
     var tags=(d.edgeSignals || []).filter(function(t){return t && EDGE_LABELS[t.key];}).map(function(t){return EDGE_LABELS[t.key];});
+    // 2026-11-19 사용자 지시: 가격이 매수가로 오해되지 않게 기준일(M/D)을 붙인다. 기준일을 모르면 날짜를 지어내지 않는다.
+    var dm=/^(\d{4})-?(\d{2})-?(\d{2})/.exec(String(dataDate || it.date || '')),day=dm?Number(dm[2])+'/'+Number(dm[3]):'';
     var rate=Number(r.changeRate),hasRate=r.changeRate!=null && r.changeRate!=='' && Number.isFinite(rate);
     var quote=r.price==null?'<div class="ps-pick-quote is-missing">가격 미수신</div>'
       :'<div class="ps-pick-quote"><span class="ps-pick-price">'+fmt(r.price)+'<small>원</small></span>'
-        +(hasRate?'<span class="ps-pick-rate '+chgClass(rate)+'">'+escapeHtml(chgSign(rate))+'</span>':'')
-        +'<span class="ps-pick-basis">종가</span></div>';
+        +(hasRate?'<span class="ps-pick-rate '+chgClass(rate)+'" title="'+escapeHtml((day?day+' ':'')+'전일 대비 등락률')+'">'+escapeHtml(chgSign(rate))+'</span>':'')
+        +'<span class="ps-pick-basis">'+escapeHtml(day?day+' 종가':'기준일 종가')+'</span></div>';
     return '<article class="ps-state-row ps-pick" data-code="'+escapeHtml(r.code)+'">'
       +'<div class="ps-pick-head"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small>'
       +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'+quote+'</div>'
@@ -1690,7 +1692,7 @@
     detailNavItems=yes.concat(manual);
     var total=yes.length+manual.length;
     list.innerHTML=market+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
-      +(total?yes.map(function(r){return simpleRowHtml(r,false);}).join('')+manual.map(function(r){return simpleRowHtml(r,true);}).join('')
+      +(total?yes.map(function(r){return simpleRowHtml(r,false,selection && selection.dataDate);}).join('')+manual.map(function(r){return simpleRowHtml(r,true,selection && selection.dataDate);}).join('')
         :'<p class="ps-state-empty">'+(known?'오늘은 매수후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>');
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){
       var r=detailNavItems.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
