@@ -165,6 +165,7 @@ html.dark .nav-dark-btn {
   border: 1px solid #F5F5F4;
   box-shadow: 0 4px 12px rgba(0, 0, 0, .45);
 }
+html.dark .nav-icon-btn { color: #0F1011; } /* 모바일 로그아웃 버튼의 ::after 라벨이 흰 배경에서 보이도록 */
 html.dark .nav-icon-btn svg { stroke: #0F1011; }
 html.dark .nav-icon-btn:focus-visible,
 html.dark .nav-dark-btn:focus-visible { outline: 2px solid #F5F5F4; outline-offset: 3px; }
