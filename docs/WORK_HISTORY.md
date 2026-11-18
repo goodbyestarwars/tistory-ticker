@@ -1,3 +1,7 @@
+**2026-11-19 마켓 브리핑 제목 글꼴**
+
+- 마켓 브리핑 카테고리 제목(h1)이 고딕으로 보이던 원인: 명조 규칙이 예전 `.briefing-search` 구조 기준이라 현재 `#briefing-search-app`에 불일치. css/briefing-archive.css에 np.np 레이어 규칙 추가(Noto Serif KR 700, 크기는 기존 토큰), 로더 버전 갱신. master→Pages.
+
 **2026-11-19 Soft UI(뉴모피즘) 디자인 시스템 v1**
 
 - 신규 css/soft-ui.css(라이트 전용): 웜화이트 `#FEFDFA`·강조 `#075759`·본문 `#273332`, 양각/음각/호버/포커스 그림자 토큰, 상승 `#E8A39E`·하락 `#86AEE1` 막대 토큰. 기존 --ui-glass-* 토큰 재정의로 카드 일괄 적용, 헤더 버튼·검색창·메뉴 선택·막대그래프 덮어쓰기. js/skin-shell.js가 로드(skin.html 미수정). 표·차트 플랫, 다크모드·데이터·권한 로직 무변경. 개별 화면 정리는 후속. master→Pages, 운영 실측 별도.

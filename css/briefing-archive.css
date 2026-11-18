@@ -47,3 +47,13 @@
 
 /* author display 규칙이 HTML hidden을 덮지 않게, 기존 목록/필터의 숨김을 확실히 처리한다. */
 .briefing-shelf[hidden], .feed > .pagination[hidden], #briefing-search-app .ba-controls[hidden], #briefing-search-app .ba-result-header[hidden], #briefing-search-app .ba-footnote[hidden], #briefing-search-app .ba-results[hidden] { display: none !important; }
+
+/* 2026-11-19 사용자 지시: 마켓 브리핑 제목은 사이트 제목 글꼴(Noto Serif KR 700)을 쓴다.
+   기존 style.css의 같은 규칙은 예전 .briefing-search 구조를 기준으로 해 현재 #briefing-search-app에는 맞지 않았다.
+   style.css의 !important 글꼴 규칙이 np.np 레이어에 있으므로 같은 레이어에 둔다. 크기(--ui-title-size)는 기존 규칙 그대로. */
+@layer np.np {
+  html body .feed:has(> #briefing-search-app) > .category-masthead h1 {
+    font-family: var(--font-serif) !important;
+    font-weight: 700 !important;
+  }
+}

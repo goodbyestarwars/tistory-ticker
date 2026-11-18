@@ -3445,7 +3445,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (!document.querySelector('link[data-briefing-archive-css]')) {
         var archiveCss = document.createElement('link');
         archiveCss.rel = 'stylesheet';
-        archiveCss.href = archiveBase + 'css/briefing-archive.css?v=20261118-archive-facets';
+        archiveCss.href = archiveBase + 'css/briefing-archive.css?v=20261119-title-serif';
         archiveCss.setAttribute('data-briefing-archive-css', '1');
         document.head.appendChild(archiveCss);
       }
