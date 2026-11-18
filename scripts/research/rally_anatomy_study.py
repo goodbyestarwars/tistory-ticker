@@ -50,7 +50,7 @@ RALLY_ATR = float(os.environ.get('RALLY_ATR', '8'))
 FAIL_ATR = float(os.environ.get('FAIL_ATR', '3'))
 MIN_AMT = 3e9
 SEED = 7
-FEATURES = ('dd250', 'pos120', 'box60', 'drift60', 'ret20', 'ret60', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
+FEATURES = ('dd250', 'pos120', 'box60', 'drift60', 'ret20', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
             'atr_ratio', 'c_ma20', 'c_ma60', 'c_ma120', 'ma60_slope', 'rising')
 
 
@@ -115,7 +115,7 @@ def features(df, mret):
     f['box60'] = (cs.rolling(60).max() - cs.rolling(60).min()) / cs
     f['drift60'] = cs / cs.shift(60) - 1
     f['ret20'] = cs / cs.shift(20) - 1
-    f['ret60'] = f['drift60']
+    f['ret60'] = f['drift60']  # rs60 계산용. 피처 목록에서는 drift60과 같은 값이라 뺀다(v2 실데이터에서 중복 확인)
     r = cs.pct_change()
     m = pd.Series(df.d.map(mret).values)
     f['rs60'] = f.ret60 - ((1 + m).rolling(60).apply(np.prod, raw=True) - 1)
