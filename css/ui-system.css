@@ -432,6 +432,17 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
     border-bottom: 0 !important;
     border-image: none !important;
   }
+  /* Columns stay separated by hairline verticals (2026-11-18): continuous in the body,
+     a short centered tick in the header band so its rounded fill stays clean. */
+  html body .home-realtime-board .hrt-table-wrap tbody td:not(:first-child) {
+    border-left: 1px solid color-mix(in srgb, var(--ui-rule) 85%, transparent);
+  }
+  html body .home-realtime-board .hrt-table-wrap thead th:not(:first-child) {
+    background-image: linear-gradient(var(--ui-rule), var(--ui-rule));
+    background-repeat: no-repeat;
+    background-position: left center;
+    background-size: 1px 46%;
+  }
   html body .home-realtime-board .hrt-stock a,
   html body .home-realtime-board .hrt-stock a:is(:hover, :focus-visible) {
     text-decoration: none !important;
