@@ -44,6 +44,7 @@
       label: '투자도구',
       children: [
         { href: '/page/stock-search?tool=independent-chart', label: '독립 차트' },
+        { href: '#averaging-calculator', label: '물타기 계산기', tool: 'averaging' },
         { href: '#nasdaq-fx-calculator', label: '미국주식 환율 계산기', tool: 'nasdaqFx' }
       ]
     },

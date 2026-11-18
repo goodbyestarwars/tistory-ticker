@@ -1,3 +1,7 @@
+**2026-11-19 물타기 계산기 메뉴 복구**
+
+- 2026-11-15에 숨긴 투자도구 > 물타기 계산기를 js/skin-menu.js 메뉴 항목으로 복구(독립 차트 아래, tool:'averaging'). 기존 openAveraging·접근 게이트(#averaging-calculator)·저장 계약 무변경. CLAUDE.md 문구 정정. JS 구문 확인. master→Pages.
+
 **2026-11-19 마켓 브리핑 제목 글꼴**
 
 - 마켓 브리핑 카테고리 제목(h1)이 고딕으로 보이던 원인: 명조 규칙이 예전 `.briefing-search` 구조 기준이라 현재 `#briefing-search-app`에 불일치. css/briefing-archive.css에 np.np 레이어 규칙 추가(Noto Serif KR 700, 크기는 기존 토큰), 로더 버전 갱신. master→Pages.
