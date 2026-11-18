@@ -104,7 +104,6 @@
 
   function build(naverConfigured) {
     root.innerHTML = '<div class="nl-layout"><div class="nl-login-panel">' +
-      '<h1 class="nl-title">시장을 보는 나만의 시선</h1>' +
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div></div>' +
