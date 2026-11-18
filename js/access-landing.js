@@ -27,9 +27,8 @@
     '.nl-btn.primary{background:#07535b;color:#fff}.nl-btn.primary:hover{background:#09616a}' +
     '.nl-btn.ghost{background:#f4ebdc;border-color:#ded1bb;color:#292721}.nl-btn.ghost:hover{background:#ebe0cd}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:2px solid #07535b;outline-offset:3px}' +
-    '.nl-visual{min-width:0;margin:0;align-self:center;overflow:hidden;border-radius:14px;background:#142c39}' +
-    '.nl-photo{display:block;width:100%;height:auto;aspect-ratio:1280/853;object-fit:contain}' +
-    '.nl-credit{padding:8px 12px;color:#e4edf0;font-size:11px;line-height:1.5;text-align:right}.nl-credit a{color:inherit;text-decoration:underline}' +
+    '.nl-visual{position:relative;min-width:0;margin:0;align-self:stretch;overflow:hidden;border-radius:14px;background:#efe4cd;aspect-ratio:700/760}' +
+    '.nl-sketch{position:absolute;inset:0;width:100%;height:100%;display:block}' +
     '.nl-modal{position:fixed;inset:0;color:#292721;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(25,29,28,.48)}' +
     '.nl-modal[hidden]{display:none}' +
     '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:20px;background:#f7f0e4;border:1px solid #fff8ed;box-shadow:0 22px 60px rgba(36,25,16,.32)}' +
@@ -42,7 +41,7 @@
     '.nl-google,.nl-google:visited{background:#07535b;color:#fff}.nl-google:hover{background:#09616a;color:#fff}.nl-google i{background:#f1f3f4;color:#4285f4}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-card .nl-note{margin:14px 0 0;font-size:12px;line-height:1.5;color:#554d40}' +
-    '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}';
+    '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1;aspect-ratio:700/520}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function markSeen() { try { global.sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* 저장소 차단 */ } }
@@ -102,19 +101,87 @@
     }
   }
 
+  /* 2026-11-19 사용자 선택 시안: 양피지 위 설계도 스케치(코드로 그린 원본 — 외부 이미지·저작물 없음).
+     동심원·십자선·캔들·이동평균·정규분포와 손글씨 수식. 상승 #E8A39E·하락 #86AEE1·강조 #075759.
+     손글씨 글꼴은 사용 글자만 Google Fonts(Nanum Pen Script)에서 받고, 실패하면 명조(--font-serif)로 대체된다. */
+  var NOTES = [
+    [130, 64, 'σ = √( Σ (rᵢ − μ)² / n )', 22, 0], [130, 128, 'E[R] = Rf + β ( Rm − Rf )', 20, 0],
+    [392, 150, 'Sharpe = (Rp − Rf) / σp', 20, 6], [412, 206, 'CAGR = (V₁/V₀)^(1/n) − 1', 19, 6],
+    [440, 602, 'd₁ = [ ln(S/K) + (r+σ²/2)T ] / σ√T', 17, -4], [132, 610, '∫ f(x) dx = 1', 22, 0],
+    [120, 742, 'P(x) = 1/(σ√2π) · e^(−(x−μ)²/2σ²)', 18, 0], [602, 300, '가격 = 가치 ± 심리', 20, 90],
+    [96, 330, '수급 → 추세 → 위치', 20, -90], [250, 364, '변동성 ↓  /  거래량 ↑', 18, 0],
+    [470, 372, 'R² = 0.87', 18, -12], [180, 540, '지지 · 저항', 20, -8]
+  ];
+  function drawSketch(svg) {
+    if (!svg || svg.getAttribute('data-drawn')) return;
+    svg.setAttribute('data-drawn', '1');
+    try {
+      if (!doc.getElementById('nl-hand-font')) {
+        var lk = doc.createElement('link');
+        lk.id = 'nl-hand-font'; lk.rel = 'stylesheet';
+        lk.href = 'https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap&text=' + encodeURIComponent(NOTES.map(function (n) { return n[2]; }).join(''));
+        doc.head.appendChild(lk);
+      }
+    } catch (e) { /* 글꼴 실패 시 대체 글꼴 */ }
+    var NS = 'http://www.w3.org/2000/svg', seed = 7;
+    function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    function el(n, a, p) { var e = doc.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+    var defs = el('defs', {});
+    defs.innerHTML =
+      '<filter id="nlWob" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/></filter>' +
+      '<filter id="nlWash" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.05" numOctaves="3" seed="9" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="26"/><feGaussianBlur stdDeviation="2.2"/></filter>' +
+      '<filter id="nlPaper"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="5"/><feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.22  0 0 0 .22 0"/></filter>' +
+      '<radialGradient id="nlVig" cx="50%" cy="48%" r="75%"><stop offset="60%" stop-color="#EFE4CD" stop-opacity="0"/><stop offset="100%" stop-color="#C9B48A" stop-opacity=".55"/></radialGradient>';
+    el('rect', { width: 700, height: 760, fill: '#EFE4CD' });
+    el('rect', { width: 700, height: 760, filter: 'url(#nlPaper)' });
+    el('path', { d: 'M120 90 C170 200 90 300 150 420 C200 540 120 640 170 720 L215 720 C170 620 250 520 200 410 C150 300 230 190 170 90Z', fill: '#86AEE1', opacity: '.55', filter: 'url(#nlWash)' });
+    el('path', { d: 'M520 520 C560 580 500 650 560 730 L590 730 C540 650 600 580 560 520Z', fill: '#E8A39E', opacity: '.5', filter: 'url(#nlWash)' });
+    var g = el('g', { filter: 'url(#nlWob)', fill: 'none', stroke: '#2c2a25', 'stroke-linecap': 'round' });
+    [[40, 95, 660, 95], [40, 665, 660, 665], [110, 30, 110, 735], [585, 30, 585, 735], [350, 20, 350, 745], [40, 380, 660, 380]].forEach(function (l, i) {
+      el('line', { x1: l[0], y1: l[1], x2: l[2], y2: l[3], 'stroke-width': i < 4 ? .8 : .6, opacity: .55 }, g);
+    });
+    var cx = 350, cy = 380;
+    [60, 110, 165, 225, 290].forEach(function (r, i) { el('circle', { cx: cx, cy: cy, r: r + rnd() * 3, 'stroke-width': i === 4 ? 1.5 : .8, opacity: .75 }, g); });
+    for (var a = 0; a < 360; a += 15) {
+      var rad = a * Math.PI / 180, r2 = 290 + (a % 45 === 0 ? 60 : 20);
+      el('line', { x1: cx + Math.cos(rad) * 60, y1: cy + Math.sin(rad) * 60, x2: cx + Math.cos(rad) * r2, y2: cy + Math.sin(rad) * r2, 'stroke-width': .5, opacity: .4 }, g);
+    }
+    var x = 140, p = 420;
+    for (var i = 0; i < 19; i++) {
+      var up = rnd() > .42, body = 18 + rnd() * 42, wick = 12 + rnd() * 22, open = p, close = up ? p - body : p + body;
+      p = Math.max(240, Math.min(520, close + (rnd() - .5) * 10));
+      var top = Math.min(open, close), bot = Math.max(open, close);
+      el('line', { x1: x, y1: top - wick, x2: x, y2: bot + wick * .8, 'stroke-width': 1.3 }, g);
+      el('rect', { x: x - 7, y: top, width: 14, height: Math.max(bot - top, 4), 'stroke-width': 1.1, fill: up ? '#E8A39E' : '#86AEE1', 'fill-opacity': .8 }, g);
+      x += 24 + rnd() * 3;
+    }
+    var d = 'M130 430'; for (var t = 0; t <= 10; t++) d += ' L' + (130 + t * 52) + ' ' + (410 - Math.sin(t * .7) * 55 - t * 6);
+    el('path', { d: d, 'stroke-width': 1.6, stroke: '#075759', opacity: .9 }, g);
+    var nd = 'M130 700'; for (var k = 0; k <= 60; k++) { var z = (k - 30) / 10; nd += ' L' + (130 + k * 7) + ' ' + (700 - Math.exp(-z * z / 2) * 70); }
+    el('path', { d: nd, 'stroke-width': 1.2, opacity: .8 }, g);
+    el('line', { x1: 340, y1: 700, x2: 340, y2: 630, 'stroke-width': .7, 'stroke-dasharray': '3 4' }, g);
+    var tg = el('g', { fill: '#2c2a25', opacity: .85, filter: 'url(#nlWob)' });
+    NOTES.forEach(function (n) {
+      var tx = el('text', { x: n[0], y: n[1], 'font-family': "'Nanum Pen Script',var(--font-serif,'Noto Serif KR'),serif", 'font-size': n[3], transform: 'rotate(' + n[4] + ' ' + n[0] + ' ' + n[1] + ')' }, tg);
+      tx.textContent = n[2];
+    });
+    for (var j = 0; j < 26; j++) { var yy = 150 + j * 18 + rnd() * 6, xx = 598 + rnd() * 10; el('line', { x1: xx, y1: yy, x2: xx + 30 + rnd() * 50, y2: yy + rnd() * 2, 'stroke-width': .5, opacity: .35, stroke: '#2c2a25' }, g); }
+    el('rect', { width: 700, height: 760, fill: 'url(#nlVig)' });
+  }
+
   function build(naverConfigured) {
     root.innerHTML = '<div class="nl-layout"><div class="nl-login-panel">' +
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div></div>' +
-      '<figure class="nl-visual"><img class="nl-photo" src="https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Lauterbrunnen_-_Staubbachfall.jpg/1280px-Lauterbrunnen_-_Staubbachfall.jpg" alt="라우터브루넨 마을과 슈타우바흐 폭포" width="1280" height="853">' +
-      '<figcaption class="nl-credit">사진: Noel Reynolds · <a href="https://commons.wikimedia.org/wiki/File:Lauterbrunnen_-_Staubbachfall.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a></figcaption></figure></div>' +
+      '<figure class="nl-visual" aria-hidden="true"><svg class="nl-sketch" viewBox="0 0 700 760" preserveAspectRatio="xMidYMid slice"></svg></figure></div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
       '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
       '<p class="nl-note">티스토리 글·댓글 관리는 별도 블로그 관리에서 이용합니다.</p>' +
       '</section></div>';
+    drawSketch(root.querySelector('.nl-sketch'));
     root.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null;
       if (!t) return;
