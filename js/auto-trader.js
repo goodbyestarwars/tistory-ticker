@@ -1117,18 +1117,7 @@
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
-    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c) + allocPreviewHtml();
-    var allocForm = root.querySelector('[data-alloc-form]');
-    if (allocForm) {
-      var onAllocInput = function (event) {
-        if (!event.target.name) return;
-        allocDraft[event.target.name] = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
-        root.querySelector('[data-alloc-out]').innerHTML = allocTableHtml(allocDraft);
-      };
-      allocForm.addEventListener('input', onAllocInput);
-      allocForm.addEventListener('change', onAllocInput);
-      allocForm.addEventListener('submit', function (event) { event.preventDefault(); });
-    }
+    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
     var targetForm = root.querySelector('[data-target-form]');
     if (targetForm) {
       bindTargetSymbolSearch(targetForm);
