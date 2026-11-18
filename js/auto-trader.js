@@ -27,10 +27,6 @@
   var root = null;
   var typeFilter = '';
   var anaCache = {};
-  var scheduleCache = null;
-  var scheduleCacheAt = 0;
-  var schedulePromise = null;
-  var scheduleExpanded = false;
   var activityOpen = { orders: false, candidates: false };   // 접힘 상태는 갱신(다시 그리기)에도 유지한다
 
   function esc(value) { return global.NineUI.escapeHtml(value); }
@@ -47,60 +43,6 @@
     return isNaN(date.getTime()) ? String(value) : date.toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16);
   }
 
-  function scheduleHtml(items) {
-    var rows = (items || []).map(function (j) {
-      return '<tr><td>' + esc(j.group) + '</td><td>' + esc(j.name) + '</td><td>' + esc(j.state || '미확인')
-        + '</td><td>' + esc(scheduleTime(j.lastSuccessAt))
-        + '</td><td>' + esc(j.nextRunAt ? scheduleTime(j.nextRunAt) : j.state === '의도적 비활성화' ? '없음' : j.id === 'deploy' ? '5분 간격' : '변경 시') + '</td></tr>';
-    }).join('');
-    return '<section class="at-box at-orders-wide"><div class="at-hd"><h3>갱신·스케줄 상태</h3><span>시각 KST · 작업 결과 기준 · 계좌 정보 제외</span></div>'
-      + '<details data-schedule-details' + (scheduleExpanded ? ' open' : '') + '><summary>사이트 · Actions · GAS · VM 확인</summary><div class="at-month-wrap"><table><thead><tr><th>영역</th><th>작업</th><th>상태</th><th>마지막 성공</th><th>다음 실행</th></tr></thead><tbody>'
-      + (rows || '<tr><td colspan="5">상태를 확인하는 중입니다.</td></tr>') + '</tbody></table></div></details></section>';
-  }
-
-  function loadSchedules() {
-    if (scheduleCache && Date.now() - scheduleCacheAt < 600000) return Promise.resolve(scheduleCache);
-    if (schedulePromise) return schedulePromise;
-    var gh = 'https://api.github.com/repos/goodbyestarwars/tistory-ticker/actions/workflows/';
-    var workflows = [
-      { id: 379360767, name: 'DCF 공시', next: '매시 :17·:47' },
-      { id: 377890694, name: '5년 차트', next: '토 09:15' },
-      { id: 333930783, name: 'GAS 배포', next: '변경 시' },
-      { id: 308765062, name: 'Pages 배포', next: '변경 시' }
-    ];
-    schedulePromise = Promise.all([
-      getJson(VM + '/health/schedules').catch(function () { return { jobs: [] }; }),
-      Promise.all(workflows.map(function (w) {
-        return getJson(gh + w.id + '/runs?per_page=10').then(function (res) {
-          var run = (res.workflow_runs || [])[0];
-          var lastGood = (res.workflow_runs || []).filter(function (item) { return item.conclusion === 'success'; })[0];
-          var lateChart = false;
-          if (w.name === '5년 차트' && run && run.event === 'schedule' && run.created_at) {
-            var chartDate = new Date(run.created_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
-            lateChart = Date.parse(run.created_at) - Date.parse(chartDate + 'T00:15:00Z') > 3600000;
-          }
-          return { group: w.name === 'GAS 배포' ? 'GAS' : '사이트', name: w.name,
-            state: !run ? '미확인' : run.conclusion === 'success' ? lateChart ? '지연' : '정상' : run.conclusion === 'failure' ? '오류' : '지연',
-            lastSuccessAt: lastGood ? lastGood.updated_at : null, nextRunAt: w.next };
-        }).catch(function () { return { group: '사이트', name: w.name, state: '미확인', nextRunAt: w.next }; });
-      })),
-      getJson('https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec?codes=005930')
-        .then(function () { return { group: 'GAS', name: '시세 프록시 응답', state: '정상', lastSuccessAt: new Date().toISOString(), nextRunAt: '요청 시' }; })
-        .catch(function () { return { group: 'GAS', name: '시세 프록시 응답', state: '미확인', nextRunAt: '요청 시' }; })
-    ]).then(function (out) {
-      var items = [{ group: '사이트', name: '운영 화면', state: '정상', lastSuccessAt: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }), nextRunAt: '요청 시' }];
-      (out[1] || []).forEach(function (j) { items.push(j); });
-      items.push(out[2]);
-      var vmSchedule = out[0].data || out[0];
-      (vmSchedule.jobs || []).forEach(function (j) { items.push(Object.assign({ group: 'VM' }, j)); });
-      if (!(vmSchedule.jobs || []).length) items.push({ group: 'VM', name: 'systemd', state: '미확인' });
-      scheduleCache = items;
-      scheduleCacheAt = Date.now();
-      schedulePromise = null;
-      return items;
-    }, function () { schedulePromise = null; return []; });
-    return schedulePromise;
-  }
 
   var TYPE_LABEL = { SIGNAL: '신호', SELL_SENT: '매도 전송', POSITION_CLOSED: '보유 종료', SKIP: '건너뜀',
     ERROR: '오류', CRITICAL: '긴급', START: '시작', STOP: '정지', RESUME: '재개', WATCH_ADD: '감시 추가', WATCH_REMOVE: '감시 해제',
@@ -1175,7 +1117,7 @@
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
-    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c) + allocPreviewHtml() + scheduleHtml(scheduleCache);
+    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c) + allocPreviewHtml();
     var allocForm = root.querySelector('[data-alloc-form]');
     if (allocForm) {
       var onAllocInput = function (event) {
@@ -1237,8 +1179,6 @@
         sendTargetCommand({ action: 'target-cancel', code: button.getAttribute('data-target-cancel') });
       });
     });
-    var details = root.querySelector('[data-schedule-details]');
-    if (details) details.addEventListener('toggle', function () { scheduleExpanded = details.open; });
     var day = root.querySelector('[data-trade-day]');
     if (day) day.addEventListener('change', function () { if (day.value) reviewDay = day.value; renderControl(lastControl); });
     var orderDate = root.querySelector('[data-order-day]');
@@ -1268,9 +1208,7 @@
     if (!root) return;
     controlRequest('/autotrader/status').then(function (c) {
       lastError = lastError && busy ? lastError : '';
-      var hadSchedules = !!scheduleCache;
       renderControl(c);
-      if (!hadSchedules) loadSchedules().then(function () { renderControl(lastControl); });
     }).catch(function (e) {
       root.innerHTML = '<section class="at-card at-ctl"><h2>자동매매 운영센터</h2><p class="at-error">'
         + (e && e.status === 403 ? '관리자 Google 로그인이 필요합니다. 사이트에서 Google 관리자 계정으로 로그인한 뒤 새로고침하세요.' : '서버에서 상태를 읽지 못했습니다(미수신).') + '</p></section>';
