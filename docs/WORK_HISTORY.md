@@ -1,3 +1,5 @@
+**2026-11-19 스프링 지수 1차 실데이터 결과·v2 보정** — Oracle 실행 결과(14개월, 시험 급락장)를 컨셉 문서 7절에 기록: ② 바닥 상승만 세 기간 모두 기준선 대비 +0.3~1.1%p, ①·S는 하락장 악화. v2: 바닥선 Theil–Sen 교체(v1 마지막 변 연장 결함), 초과수익 ex20/ex60·t값 추가, λ 기준 `SPRING_LAM_BASE`. 합성 데이터 실행 확인, 실데이터 v2 미측정.
+
 **2026-11-19 스프링 지수 연구: 저장 기간 맞춤·Oracle 실측** — Oracle `ohlc_snapshot.db` 일봉 2024-06-24~(종목당 최대 585봉, 3,547종목 400봉+), 수급 2026-05-14~. 검증 스크립트에 SPRING_START/SPRING_SPLIT 환경변수와 기간 실제 범위 출력 추가. Oracle 메모리 23GB 실측으로 CLAUDE.md '1GB급' 정정(상시 프로세스 금지 원칙 유지).
 
 **2026-11-19 스프링 지수 연구 캐시 변환기** — Google VM에는 전종목 일봉 캐시가 없어(research.db 1MB) Oracle `ohlc_snapshot.db`를 SQLite 읽기 전용으로 종목별 변환하는 `scripts/research/spring_export_cache.py` 추가(`--stats` 범위 확인). 합성 DB로 변환→검증 스크립트 연결 확인. 운영 DB 쓰기·서비스 무변경.

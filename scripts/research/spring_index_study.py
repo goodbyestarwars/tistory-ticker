@@ -14,9 +14,10 @@ t일 종가까지만 사용(미래 참조 금지). 저점 지속성은 t까지�
 ① 매집: vol_up·box60·drift60·dry10·sm60(accumulation_lead_study와 같은 정의) + 가격 충격 비율
    lam_ratio = λ60/λ250, λ = cov(|r|, rv)/var(rv) (rv = 거래량/120봉 중앙값, |r| = 일간 절대 수익률)
 ② 바닥선: 최근 120봉 저가에서 지속성 저점 -> 아래쪽 볼록 껍질의 연속 상승 변들. 마지막 변을 t까지 연장 = 바닥선 F.
-   rising = 마지막 변 기울기 > 0 & 상승 사슬의 저점 >= 3. 위쪽(고가) 껍질로 U, 폭 W = U - F, 꼭짓점까지 일수 apex.
+   v2: 마지막 상승 사슬 저점들의 Theil-Sen 기울기 + 아래쪽 받침 절편 = 바닥선. rising = 기울기 > 0 & 접점 >= 3.
+   λ 기준 기간은 SPRING_LAM_BASE(기본 250, 저장 일봉이 짧으면 120). 위쪽(고가) 껍질로 U, 폭 W = U - F, 꼭짓점까지 일수 apex.
 상태: A(매집) = vol_up 상위20% & box60 하위40% & drift60 < 10% (날짜별 백분위), R = rising, S = A & R.
-결과: 진입 t+1 시가, 20/60거래일 뒤 수익(비용 0.7%), K일 내 분출, 20일 내 바닥선 이탈, 분출까지 대기일.
+결과: 진입 t+1 시가, 20/60거래일 뒤 수익(비용 0.7%)·같은 날 유니버스 평균 대비 초과수익(ex20/ex60, t값), K일 내 분출, 20일 내 바닥선 이탈, 분출까지 대기일.
 위험률: 학습 기간 로지스틱 회귀(K일 내 분출) -> 검증·시험에서 확률 10분위 보정표와 상위 10% 성과.
 ③ 가설 H: open_volume_export.py의 events.csv(시초 30분 누적 거래량 >= 전일 x 수준)를 전일 상태와 결합해
    S 상태 종목의 시초 폭발 vs 나머지의 순수익 비교. 감지 09:10 이하·갭 <= 8%·수준 >= 100%를 초안 필터로 쓴다.
@@ -43,6 +44,7 @@ WIN = 120
 IGN_UNTIL = 910
 GAP_MAX = 8.0
 IGN_LEVEL = 100
+LAM_BASE = int(os.environ.get('SPRING_LAM_BASE', '250'))
 FEATURES = ('lam_ratio', 'dry10', 'p_sm60', 'apex', 'floor_slope')
 
 
@@ -89,14 +91,20 @@ def floor_geometry(lo, hi, atr):
     hull = lower_hull(idx, lo[idx])
     if len(hull) < 2:
         return False, np.nan, np.nan, np.nan, 0
-    (x0, y0), (x1, y1) = hull[-2], hull[-1]
-    slope = (y1 - y0) / (x1 - x0)
     j = len(hull) - 1
     while j > 0 and hull[j][1] > hull[j - 1][1]:
         j -= 1
     start = hull[j][0]
-    chain = sum(1 for i in idx if i >= start and lo[i] - (y1 + slope * (i - x1)) <= 0.5 * atr)
-    floor = y1 + slope * (n - 1 - x1)
+    pts = [(i, lo[i]) for i in idx if i >= start]
+    if len(pts) < 2:
+        return False, np.nan, np.nan, np.nan, len(pts)
+    # v2(2026-11-19): 볼록 껍질 마지막 변은 가장 가파른 변이라 앞으로 늘리면 바닥선이 과하게 올라간다.
+    # 상승 사슬의 저점 전체로 Theil-Sen(쌍별 기울기 중앙값)과 아래쪽 받침(잔차 최솟값) 절편을 쓴다.
+    slopes = [(b[1] - a[1]) / (b[0] - a[0]) for k, a in enumerate(pts) for b in pts[k + 1:] if b[0] != a[0]]
+    slope = float(np.median(slopes))
+    base = min(y - slope * x for x, y in pts)
+    chain = sum(1 for x, y in pts if y - (base + slope * x) <= 0.5 * atr)
+    floor = base + slope * (n - 1)
     rising = slope > 0 and chain >= 3
     hidx = persistent_extrema(-hi, PERSIST_ATR * atr)
     apex = np.nan
@@ -138,7 +146,7 @@ def frame(code, data):
     f['sm60'] = df.sm.rolling(60).sum() / vs.rolling(60).sum()
     absr = np.abs(np.r_[np.nan, c[1:] / c[:-1] - 1])
     rv = v / np.where(med120 > 0, med120, np.nan)
-    f['lam_ratio'] = rolling_lambda(absr, rv, 60) / rolling_lambda(absr, rv, 250)
+    f['lam_ratio'] = rolling_lambda(absr, rv, 60) / rolling_lambda(absr, rv, LAM_BASE)
     atr = atr14(h, l, c)
     top60 = cs.shift(1).rolling(60).max().values
     brk = (c > top60) & (v >= BREAK_VOL * med120)
@@ -200,6 +208,8 @@ def summarize(g):
     ok = g.ret60.notna()
     return {'n': int(len(g)), 'win20': round(float((g.ret20 > 0).mean()) * 100, 1), 'win60': round(float((g.ret60[ok] > 0).mean()) * 100, 1),
             'ret20_mean': round(float(g.ret20.mean()) * 100, 2), 'ret60_med': round(float(g.ret60.median()) * 100, 2),
+            'ex20_mean': round(float(g.ex20.mean()) * 100, 2), 'ex60_mean': round(float(g.ex60.mean()) * 100, 2),
+            'ex20_t': round(float(g.ex20.mean() / (g.ex20.std() / np.sqrt(max(len(g), 1)))), 2) if len(g) > 2 and g.ex20.std() > 0 else None,
             'brk_k': round(float(g.brk_k.mean()) * 100, 1), 'wait_med': None if g.wait.notna().sum() == 0 else float(g.wait.median()),
             'floor_break20': None if g.floor_break20.notna().sum() == 0 else round(float(g.floor_break20.mean()) * 100, 1)}
 
@@ -238,6 +248,9 @@ def main(lab, out_path, events_path=None):
     split1, split2 = os.environ.get('SPRING_SPLIT', '20231231,20250630').split(',')
     df = df[(df.d >= start) & (df.amt20 >= 3e9) & (df.close >= 1000) & df.ret20.notna() & df.vol_up.notna()]
     df['period'] = np.select([df.d <= split1, df.d <= split2], ['train', 'valid'], 'test')
+    # 시장 영향 분리: 같은 날 유니버스 동일가중 평균 대비 초과수익(%p)
+    df['ex20'] = df.ret20 - df.groupby('d').ret20.transform('mean')
+    df['ex60'] = df.ret60 - df.groupby('d').ret60.transform('mean')
     for k in ('vol_up', 'box60', 'sm60'):
         df['p_' + k] = df.groupby('d')[k].rank(pct=True)
     A = (df.p_vol_up >= .8) & (df.p_box60 <= .4) & (df.drift60 < .10)
@@ -246,8 +259,9 @@ def main(lab, out_path, events_path=None):
     geo_rows = df.chain.notna()
     conds = {'아무 종목': df.index == df.index, '기하 계산 표본(5일 간격 포함)': geo_rows, '① A 매집': A, '② R 바닥 상승': R,
              'S = A & R (용수철)': S, 'S + 가격충격 낮음(lam_ratio<1)': S & (df.lam_ratio < 1)}
-    res = {'periods': {per: [str(df[df.period == per].d.min()), str(df[df.period == per].d.max())] for per in ('train', 'valid', 'test')},
-           'params': dict(K=K, BREAK_VOL=BREAK_VOL, PERSIST_ATR=PERSIST_ATR, FLOOR_TOL_ATR=FLOOR_TOL_ATR, WIN=WIN,
+    res = {'note': 'floor_break20은 바닥 상승(R) 판정 행에서만 계산된다. R을 포함하지 않는 그룹의 값도 그 안의 R 행 평균이라 그룹 간 비교 지표가 아니다.',
+           'periods': {per: [str(df[df.period == per].d.min()), str(df[df.period == per].d.max())] for per in ('train', 'valid', 'test')},
+           'params': dict(LAM_BASE=LAM_BASE, K=K, BREAK_VOL=BREAK_VOL, PERSIST_ATR=PERSIST_ATR, FLOOR_TOL_ATR=FLOOR_TOL_ATR, WIN=WIN,
                           IGN_UNTIL=IGN_UNTIL, GAP_MAX=GAP_MAX, IGN_LEVEL=IGN_LEVEL, COST=COST),
            'groups': {name: {per: summarize(df[m & (df.period == per)]) for per in ('train', 'valid', 'test')} for name, m in conds.items()}}
     # 위험률 모형: S 후보 안에서 K일 내 분출 확률
