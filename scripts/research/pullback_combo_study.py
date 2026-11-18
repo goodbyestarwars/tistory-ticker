@@ -6,7 +6,7 @@
 여기서는 바닥을 사후에 고르지 않는다. 신호일 t 종가까지의 값으로만 조건을 판정하고 t+1 시가에 산다.
 
 조건(t 종가까지, 날짜별 백분위는 그날 전 종목 기준):
-  TREND  60일선 기울기(20일 전 대비) 날짜 백분위 >= 0.6 이고 60봉 수익률 > 0
+  TREND  60일선 기울기(20일 전 대비) 날짜 백분위 >= 0.6 이고 과거 60봉 수익률(mom60, t 종가까지) > 0
   DIP    (종가/20일선 - 1) / (ATR14/종가) 가 -3 ~ -1 ATR (적당한 눌림; 해부 v2에서 가장 깊은 쪽·얕은 쪽은 불리)
   DRY    최근 10봉 거래량 중앙값 / 60봉 중앙값 날짜 백분위 <= 0.3
   TRIO   TREND & DIP & DRY,  TRIO_TURN = TRIO & 당일 양봉 마감(종가 > 전일 종가, 반등 시작 관측)
@@ -44,7 +44,9 @@ def frame(code, px, mret):
     atr = atr14(h, l, c)
     ma20, ma60 = cs.rolling(20).mean(), cs.rolling(60).mean()
     f['ma60_slope'] = ma60 / ma60.shift(20) - 1
-    f['ret60'] = cs / cs.shift(60) - 1
+    # v1 버그(2026-11-19): 과거 60봉 수익률을 'ret60'에 넣고 아래에서 같은 이름에 미래 60일 수익률을 덮어써
+    # TREND가 미래 수익을 조건으로 썼다. 과거 값은 mom60으로 분리한다.
+    f['mom60'] = cs / cs.shift(60) - 1
     f['dip_atr'] = (cs / ma20 - 1) / (atr / c)
     f['dry10'] = vs.rolling(10).median() / vs.rolling(60).median()
     r = cs.pct_change()
@@ -101,7 +103,7 @@ def stats(g, trades=True):
     daily = g.groupby('d').ex20.mean()
     out = {'n': int(len(g)), 'days': int(daily.size), 'win20': round(float((g.ret20 > 0).mean()) * 100, 1),
            'ret20': round(float(g.ret20.mean()) * 100, 2), 'ex20': round(float(g.ex20.mean()) * 100, 2),
-           'ex20_t_by_date': round(float(daily.mean() / (daily.std() / np.sqrt(daily.size))), 2) if daily.size > 2 and daily.std() > 0 else None,
+           'ex20_t_by_date': round(float(daily.mean() / (daily.std() / np.sqrt(daily.size))), 2) if daily.size > 2 and daily.std() > 1e-9 else None,
            'ex60': round(float(g.ex60.mean()) * 100, 2)}
     if trades:
         t = dedupe(g)
@@ -149,7 +151,7 @@ def main(lab, shape_tsv, out_path):
     df['p_quiet'] = df.groupby('d').quiet_raw.rank(pct=True)
     long = closes.stack().rename('close').reset_index().rename(columns={'level_0': 'd', 'level_1': 'code'})
     df['regime'], src = regime_by_date(df.d.values, long)
-    TREND = (df.p_ma60_slope >= .6) & (df.ret60 > 0)
+    TREND = (df.p_ma60_slope >= .6) & (df.mom60 > 0)
     DIP = df.dip_atr.between(-3, -1)
     DRY = df.p_dry10 <= .3
     TRIO = TREND & DIP & DRY
