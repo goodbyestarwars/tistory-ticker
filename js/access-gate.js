@@ -220,7 +220,7 @@
     if (global.NineLanding) { fn(global.NineLanding); return; }
     if (!landingTag) {
       landingTag = doc.createElement('script');
-      landingTag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-landing.js?v=20261119-login-panel';
+      landingTag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-landing.js?v=20261119-cream-login';
       (doc.head || doc.documentElement).appendChild(landingTag);
     }
     landingTag.addEventListener('load', function () { if (global.NineLanding) fn(global.NineLanding); });

@@ -16,23 +16,23 @@
 
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
-    '.nl{position:fixed;inset:0;z-index:2147000000;box-sizing:border-box;display:flex;overflow:auto;padding:clamp(16px,4vw,56px);background:#e7edf0;color:#142c39;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif)}' +
-    '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(280px, .8fr) minmax(0, 1.2fr);width:min(1140px,100%);margin:auto;background:#fff;border:1px solid #d7e0e6;border-radius:22px;padding:10px;box-shadow:0 20px 70px rgba(24,51,66,.13)}' +
+    '.nl{position:fixed;inset:0;z-index:2147000000;box-sizing:border-box;display:flex;overflow:auto;padding:clamp(16px,4vw,56px);background:#eee8dc;color:#24231f;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif)}' +
+    '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(280px, .8fr) minmax(0, 1.2fr);width:min(1140px,100%);margin:auto;background:#f7f0e4;border:1px solid #fff8ed;border-radius:22px;padding:10px;box-shadow:0 18px 45px rgba(93,69,37,.19)}' +
     '.nl-login-panel{display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vw,56px)}' +
-    '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-size:18px;font-weight:700;margin-bottom:32px;color:#316371}' +
-    '.nl-title{margin:0;font-family:"Noto Sans KR Site",var(--font-ui,sans-serif);font-size:clamp(24px,3vw,36px);line-height:1.3;letter-spacing:-.04em}' +
-    '.nl-sub{margin:12px 0 26px;font-size:15px;line-height:1.65;color:#405866;word-break:keep-all}' +
+    '.nl-logo{font-family:var(--font-serif,"Noto Serif KR Site",Georgia,serif);font-size:18px;font-weight:700;margin-bottom:32px;color:#292721}' +
+    '.nl-title,.nl-sub{font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);font-size:15px;line-height:1.65}.nl-title{margin:0;font-weight:600}' +
+    '.nl-sub{margin:12px 0 26px;color:#554d40;word-break:keep-all}' +
     '.nl-actions{display:grid;gap:10px}' +
-    '.nl-btn{box-sizing:border-box;width:100%;min-height:48px;border:1px solid #183b4a;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;padding:10px 14px}' +
-    '.nl-btn.primary{background:#183b4a;color:#fff}.nl-btn.primary:hover{background:#275769}' +
-    '.nl-btn.ghost{background:#fff;color:#183b4a}.nl-btn.ghost:hover{background:#edf4f6}' +
+    '.nl-btn{box-sizing:border-box;width:100%;min-height:48px;border:1px solid #07535b;border-radius:12px;box-shadow:0 4px 10px rgba(93,69,37,.15),inset 0 1px rgba(255,255,255,.35);font:inherit;font-weight:700;cursor:pointer;padding:10px 14px}' +
+    '.nl-btn.primary{background:#07535b;color:#fff}.nl-btn.primary:hover{background:#09616a}' +
+    '.nl-btn.ghost{background:#f4ebdc;border-color:#ded1bb;color:#292721}.nl-btn.ghost:hover{background:#ebe0cd}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #b36808;outline-offset:2px}' +
     '.nl-visual{min-width:0;margin:0;align-self:center;overflow:hidden;border-radius:14px;background:#142c39}' +
     '.nl-photo{display:block;width:100%;height:auto;aspect-ratio:1280/853;object-fit:contain}' +
     '.nl-credit{padding:8px 12px;color:#e4edf0;font-size:11px;line-height:1.5;text-align:right}.nl-credit a{color:inherit;text-decoration:underline}' +
     '.nl-modal{position:fixed;inset:0;color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
     '.nl-modal[hidden]{display:none}' +
-    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:#183b4a;border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
+    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:#07535b;border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
     '.nl-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:0;background:none;color:#fff;font-size:26px;line-height:1;cursor:pointer}' +
     '.nl-card h2{margin:0 0 8px;font-size:clamp(24px,3.4vw,32px);font-weight:800}' +
     '.nl-card p{margin:0 0 20px;font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.88)}' +
