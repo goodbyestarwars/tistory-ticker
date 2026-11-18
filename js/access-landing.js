@@ -16,34 +16,23 @@
 
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
-    '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);background:#101318;height:100vh;height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;overflow:auto;isolation:isolate}' +
-    '.nl-photo{position:absolute;inset:0;background:#101318 url(https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Lauterbrunnen_-_Staubbachfall.jpg/1280px-Lauterbrunnen_-_Staubbachfall.jpg) center/contain no-repeat;z-index:-2}' +
-    '.nl-shade{position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(3,7,13,.64) 0%,rgba(3,7,13,.32) 42%,rgba(3,7,13,0) 74%),linear-gradient(0deg,rgba(3,7,13,.43) 0%,rgba(3,7,13,0) 48%)}' +
-    '.nl-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
-    '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-weight:700}' +
-    '.nl-logo{color:#fff;text-decoration:none;font-size:26px;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(0,0,0,.35)}' +
-    '.nl-nav{display:flex;align-items:center;gap:clamp(14px,2.4vw,34px);flex-wrap:wrap;justify-content:flex-end}' +
-    '.nl-nav a,.nl-nav button{color:#fff;font:inherit;font-size:15px;font-weight:600;text-decoration:none;background:none;border:0;padding:6px 2px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.4);opacity:.92}' +
-    '.nl-nav a:hover,.nl-nav button:hover{opacity:1;text-decoration:underline;text-underline-offset:6px}' +
-    '.nl-nav .nl-login{padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}' +
-    '.nl-hero{margin:auto clamp(20px,5vw,80px) 0;max-width:760px}' +
-    '.nl-badge{display:inline-block;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-bottom:18px}' +
-    '.nl-title{margin:0;font-size:clamp(30px,5vw,64px);line-height:1.2;letter-spacing:-.01em;text-shadow:0 4px 30px rgba(0,0,0,.35)}' +
-    '.nl-sub{margin:18px 0 28px;font-size:clamp(17px,1.65vw,20px);line-height:1.55;font-weight:600;color:rgba(255,255,255,.92);text-shadow:0 2px 14px rgba(0,0,0,.4);max-width:520px}' +
-    '.nl-cta{display:inline-flex;align-items:center;gap:10px;font:inherit;font-size:16px;font-weight:700;color:#16324f;background:rgba(255,255,255,.94);border:0;border-radius:999px;padding:14px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
-    '.nl-cta:hover{background:#fff}' +
-    '.nl-actions{margin:0 clamp(20px,5vw,80px) 10px;display:flex;gap:14px;flex-wrap:wrap}' +
-    '.nl-btn{box-sizing:border-box;min-width:210px;max-width:250px;height:64px;padding:0 28px;border-radius:0;font:inherit;font-size:18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:1 1 200px}' +
-    '.nl-btn.primary{background:#fff;color:#16324f;border:2px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,.28)}' +
-    '.nl-btn.primary:hover{background:#eaf1fb}' +
-    '.nl-btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:2px solid rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}' +
-    '.nl-btn.ghost:hover{background:rgba(255,255,255,.26)}' +
-    '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}' +
-    '.nl-credit{font-family:system-ui,"Malgun Gothic",sans-serif;margin:0 clamp(12px,3vw,40px) max(10px,env(safe-area-inset-bottom));font-size:10px;text-align:right;color:rgba(255,255,255,.85);text-decoration:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}' +
-    '.nl-credit a{color:inherit;text-decoration:underline;text-underline-offset:2px}.nl-credit a:hover{color:#fff}' +
-    '.nl-modal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
+    '.nl{position:fixed;inset:0;z-index:2147000000;box-sizing:border-box;display:flex;overflow:auto;padding:clamp(16px,4vw,56px);background:#e7edf0;color:#142c39;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif)}' +
+    '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(280px, .8fr) minmax(0, 1.2fr);width:min(1140px,100%);margin:auto;background:#fff;border:1px solid #d7e0e6;border-radius:22px;padding:10px;box-shadow:0 20px 70px rgba(24,51,66,.13)}' +
+    '.nl-login-panel{display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vw,56px)}' +
+    '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-size:18px;font-weight:700;margin-bottom:32px;color:#316371}' +
+    '.nl-title{margin:0;font-family:"Noto Sans KR Site",var(--font-ui,sans-serif);font-size:clamp(24px,3vw,36px);line-height:1.3;letter-spacing:-.04em}' +
+    '.nl-sub{margin:12px 0 26px;font-size:15px;line-height:1.65;color:#405866;word-break:keep-all}' +
+    '.nl-actions{display:grid;gap:10px}' +
+    '.nl-btn{box-sizing:border-box;width:100%;min-height:48px;border:1px solid #183b4a;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;padding:10px 14px}' +
+    '.nl-btn.primary{background:#183b4a;color:#fff}.nl-btn.primary:hover{background:#275769}' +
+    '.nl-btn.ghost{background:#fff;color:#183b4a}.nl-btn.ghost:hover{background:#edf4f6}' +
+    '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #b36808;outline-offset:2px}' +
+    '.nl-visual{min-width:0;margin:0;align-self:center;overflow:hidden;border-radius:14px;background:#142c39}' +
+    '.nl-photo{display:block;width:100%;height:auto;aspect-ratio:1280/853;object-fit:contain}' +
+    '.nl-credit{padding:8px 12px;color:#e4edf0;font-size:11px;line-height:1.5;text-align:right}.nl-credit a{color:inherit;text-decoration:underline}' +
+    '.nl-modal{position:fixed;inset:0;color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
     '.nl-modal[hidden]{display:none}' +
-    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:transparent;border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
+    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:#183b4a;border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
     '.nl-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:0;background:none;color:#fff;font-size:26px;line-height:1;cursor:pointer}' +
     '.nl-card h2{margin:0 0 8px;font-size:clamp(24px,3.4vw,32px);font-weight:800}' +
     '.nl-card p{margin:0 0 20px;font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.88)}' +
@@ -53,8 +42,7 @@
     '.nl-google{background:#fff;color:#1f2937}.nl-google i{background:#f1f3f4;color:#4285f4}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-note{margin-top:12px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72)}' +
-    '@media (max-width:720px){.nl-shade{background:linear-gradient(0deg,rgba(3,7,13,.95),rgba(3,7,13,.82) 34%,rgba(3,7,13,.16) 79%)}.nl-top{padding:16px 16px;align-items:flex-start}.nl-logo{font-size:22px}.nl-nav{gap:10px 14px}' +
-    '.nl-nav a,.nl-nav button{font-size:13.5px}.nl-sub{margin-bottom:14px}.nl-actions{flex-direction:column;gap:10px}.nl-btn{min-width:0;max-width:none;flex:none;width:100%;height:56px;padding:0 8px;font-size:15px}}';
+    '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function markSeen() { try { global.sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* 저장소 차단 */ } }
@@ -115,13 +103,14 @@
   }
 
   function build(naverConfigured) {
-    root.innerHTML = '<div class="nl-photo"></div><div class="nl-shade"></div>' +
-      '<div class="nl-top"><span class="nl-logo" style="font-family:Noto Serif KR Site,var(--font-serif,serif)!important;font-weight:700!important">ㄱㅖ조 ㅏ심폐소생술</span></div>' +
-      '<div class="nl-hero"><span class="nl-badge">시장을 보는 나만의 시선</span>' +
-      '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p></div>' +
+    root.innerHTML = '<div class="nl-layout"><div class="nl-login-panel">' +
+      '<div class="nl-logo">ㄱㅖ조 ㅏ심폐소생술</div>' +
+      '<h1 class="nl-title">시장을 보는 나만의 시선</h1>' +
+      '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
-      '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
-      '<div class="nl-credit">스위스 라우터브루넨 슈타우바흐 폭포 · 사진: Noel Reynolds · <a href="https://commons.wikimedia.org/wiki/File:Lauterbrunnen_-_Staubbachfall.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a> · 원본 비율 유지</div>' +
+      '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div></div>' +
+      '<figure class="nl-visual"><img class="nl-photo" src="https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Lauterbrunnen_-_Staubbachfall.jpg/1280px-Lauterbrunnen_-_Staubbachfall.jpg" alt="라우터브루넨 마을과 슈타우바흐 폭포" width="1280" height="853">' +
+      '<figcaption class="nl-credit">사진: Noel Reynolds · <a href="https://commons.wikimedia.org/wiki/File:Lauterbrunnen_-_Staubbachfall.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a></figcaption></figure></div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
