@@ -19,6 +19,7 @@
 피처(T0 종가까지만): 250(가용 120+)봉 고점 대비 낙폭, 120봉 위치, 60봉 박스폭·위치변화, 직전 20/60봉 수익률, 시장 대비 60봉 상대강도,
   거래량 체제(60/이전120 중앙값)·최근 마름(10/60), 고유 변동성 60, 상승일 거래량 비중 20, ATR14/ATR60, 20/60/120일선 대비, 60일선 기울기,
   바닥 상승(spring floor_geometry, 120봉). 날짜별 백분위 5분위로 비교한다.
+2단계 수급 피처(2026-11-19, 캐시에 flow·소진율이 있을 때): f20·o20(20일 외국인/기관 순매수/거래량), fo60, dfr20(외국인 소진율 20일 변화). 결측은 lift 계산에서 빠진다.
 주의(관측 가능성): T0는 지나고 나서야 바닥으로 확정된다. 이 연구는 '무엇이 공통인가'를 찾는 1단계이며, 실전 규칙은
   공통 분모를 T0 이후 관측 가능한 시점(예: 바닥 +5% 회복)에 다시 대조군과 검증하는 2단계가 필요하다.
 실행: python rally_anatomy_study.py <작업 폴더(cache/)> <out.json>
@@ -34,6 +35,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from spring_index_study import atr14, floor_geometry, persistent_extrema, regime_by_date  # noqa: E402
+from pullback_combo_study import flow_cols  # noqa: E402
 
 RALLY_GAIN = float(os.environ.get('RALLY_GAIN', '0.30'))
 RALLY_MAX_BARS = int(os.environ.get('RALLY_MAX_BARS', '60'))
@@ -50,7 +52,7 @@ RALLY_ATR = float(os.environ.get('RALLY_ATR', '8'))
 FAIL_ATR = float(os.environ.get('FAIL_ATR', '3'))
 MIN_AMT = 3e9
 SEED = 7
-FEATURES = ('dd250', 'pos120', 'box60', 'drift60', 'ret20', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
+FEATURES = ('f20', 'o20', 'fo60', 'dfr20', 'dd250', 'pos120', 'box60', 'drift60', 'ret20', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
             'atr_ratio', 'c_ma20', 'c_ma60', 'c_ma120', 'ma60_slope', 'rising')
 
 
@@ -58,9 +60,15 @@ def load(lab):
     out = {}
     for fn in sorted(os.listdir(os.path.join(lab, 'cache'))):
         if fn.endswith('.json'):
-            px = [r for r in json.load(open(os.path.join(lab, 'cache', fn), encoding='utf-8'))['px'] if r[1] > 0 and r[4] > 0]
+            raw = json.load(open(os.path.join(lab, 'cache', fn), encoding='utf-8'))
+            px = [r for r in raw['px'] if r[1] > 0 and r[4] > 0]
             if len(px) >= PRE + 130:
-                out[fn[:-5]] = pd.DataFrame([r[:6] for r in px], columns=['d', 'o', 'h', 'l', 'c', 'v'])
+                df = pd.DataFrame([r[:6] for r in px], columns=['d', 'o', 'h', 'l', 'c', 'v'])
+                fr = [r[6] if len(r) > 6 else None for r in px]
+                fl = flow_cols(list(df.d), df.v.values.astype(float), raw.get('flow'), fr if any(x is not None for x in fr) else None)
+                for k in fl.columns:
+                    df[k] = fl[k].values
+                out[fn[:-5]] = df
     return out
 
 
@@ -132,6 +140,8 @@ def features(df, mret):
     ma60 = cs.rolling(60).mean()
     f['ma60_slope'] = ma60 / ma60.shift(20) - 1
     f['rising'] = np.nan
+    for k in ('f20', 'o20', 'fo60', 'dfr20'):
+        f[k] = df[k].values if k in df else np.nan
     return f, atr.values
 
 
