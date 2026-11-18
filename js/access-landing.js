@@ -26,22 +26,22 @@
     '.nl-btn{box-sizing:border-box;width:100%;min-height:48px;border:1px solid #07535b;border-radius:12px;box-shadow:0 4px 10px rgba(93,69,37,.15),inset 0 1px rgba(255,255,255,.35);font:inherit;font-weight:700;cursor:pointer;padding:10px 14px}' +
     '.nl-btn.primary{background:#07535b;color:#fff}.nl-btn.primary:hover{background:#09616a}' +
     '.nl-btn.ghost{background:#f4ebdc;border-color:#ded1bb;color:#292721}.nl-btn.ghost:hover{background:#ebe0cd}' +
-    '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:3px solid #b36808;outline-offset:2px}' +
+    '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:2px solid #07535b;outline-offset:3px}' +
     '.nl-visual{min-width:0;margin:0;align-self:center;overflow:hidden;border-radius:14px;background:#142c39}' +
     '.nl-photo{display:block;width:100%;height:auto;aspect-ratio:1280/853;object-fit:contain}' +
     '.nl-credit{padding:8px 12px;color:#e4edf0;font-size:11px;line-height:1.5;text-align:right}.nl-credit a{color:inherit;text-decoration:underline}' +
-    '.nl-modal{position:fixed;inset:0;color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,20,38,.62)}' +
+    '.nl-modal{position:fixed;inset:0;color:#292721;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(25,29,28,.48)}' +
     '.nl-modal[hidden]{display:none}' +
-    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:0;background:#07535b;border:1px solid rgba(255,255,255,.4);box-shadow:0 30px 80px rgba(0,0,0,.5)}' +
-    '.nl-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:0;background:none;color:#fff;font-size:26px;line-height:1;cursor:pointer}' +
-    '.nl-card h2{margin:0 0 8px;font-size:clamp(24px,3.4vw,32px);font-weight:800}' +
-    '.nl-card p{margin:0 0 20px;font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.88)}' +
-    '.nl-pv{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:18px 20px;border:0;border-radius:0;font:inherit;font-size:17px;font-weight:700;cursor:pointer;text-align:left;text-decoration:none;box-sizing:border-box}' +
+    '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:20px;background:#f7f0e4;border:1px solid #fff8ed;box-shadow:0 22px 60px rgba(36,25,16,.32)}' +
+    '.nl-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border:1px solid #ded1bb;border-radius:50%;background:#f4ebdc;color:#07535b;font-size:26px;line-height:1;cursor:pointer}' +
+    '.nl-card:focus{outline:none}.nl-card h2{margin:0 44px 8px 0;font-size:clamp(22px,3.4vw,28px);font-weight:800}' +
+    '.nl-card p{margin:0 0 20px;font-size:14.5px;line-height:1.6;color:#554d40}' +
+    '.nl-pv{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:14px 16px;border:1px solid #07535b;border-radius:12px;box-shadow:0 4px 10px rgba(93,69,37,.15);font:inherit;font-size:17px;font-weight:700;cursor:pointer;text-align:left;text-decoration:none;box-sizing:border-box}' +
     '.nl-pv i{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-style:normal;font-weight:800;font-size:14px;flex:none}' +
     '.nl-pv small{display:block;font-size:11.5px;font-weight:500;opacity:.7}' +
-    '.nl-google{background:#fff;color:#1f2937}.nl-google i{background:#f1f3f4;color:#4285f4}' +
+    '.nl-google,.nl-google:visited{background:#07535b;color:#fff}.nl-google:hover{background:#09616a;color:#fff}.nl-google i{background:#f1f3f4;color:#4285f4}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
-    '.nl-note{margin-top:12px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72)}' +
+    '.nl-card .nl-note{margin:14px 0 0;font-size:12px;line-height:1.5;color:#554d40}' +
     '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -72,7 +72,7 @@
     var modal = root.querySelector('.nl-modal');
     lastFocus = doc.activeElement;
     modal.hidden = false;
-    var first = modal.querySelector('.nl-pv'); if (first) first.focus();
+    modal.querySelector('.nl-card').focus();
   }
   /* 비회원 입장: 인증 없이 공개 화면(비회원 홈)으로. 인증된 사용자가 아니다. */
   function enterGuest() {
@@ -97,7 +97,7 @@
       var items = focusables(modal);
       if (!items.length) return;
       var first = items[0], last = items[items.length - 1];
-      if (e.shiftKey && doc.activeElement === first) { e.preventDefault(); last.focus(); }
+      if (e.shiftKey && (doc.activeElement === first || doc.activeElement === modal.querySelector('.nl-card'))) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && doc.activeElement === last) { e.preventDefault(); first.focus(); }
     }
   }
@@ -111,7 +111,7 @@
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div></div>' +
       '<figure class="nl-visual"><img class="nl-photo" src="https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Lauterbrunnen_-_Staubbachfall.jpg/1280px-Lauterbrunnen_-_Staubbachfall.jpg" alt="라우터브루넨 마을과 슈타우바흐 폭포" width="1280" height="853">' +
       '<figcaption class="nl-credit">사진: Noel Reynolds · <a href="https://commons.wikimedia.org/wiki/File:Lauterbrunnen_-_Staubbachfall.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a></figcaption></figure></div>' +
-      '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
+      '<div class="nl-modal" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
       '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
