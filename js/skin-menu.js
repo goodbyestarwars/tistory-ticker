@@ -411,6 +411,11 @@
     // 로고 이미지는 js/skin-shell.js의 refreshBrandIcon()이 맡는다(여기서 덮어쓰면
     // skin.html의 아이콘과 겹쳐 깜빡였다 - 2026-09-05).
 
+    // 2026-11-19 사용자 지시: 송골매 로고 이미지가 맨 앞 'ㄱ'을 대신하므로 로고 문구에서 'ㄱ'만 제거한다.
+    // skin.html은 고정본이라 수정하지 않고 런타임에서 처리한다(CLAUDE.md 참고).
+    var brandName = document.querySelector('.nav-logo-name');
+    if (brandName && brandName.textContent.charAt(0) === '\u3131') brandName.textContent = brandName.textContent.slice(1);
+
     if (mount) {
       selectedGroupIndex = activeGroupIndex();
       renderMenu(mount);

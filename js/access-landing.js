@@ -20,7 +20,7 @@
     '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(280px, .8fr) minmax(0, 1.2fr);width:min(1140px,100%);margin:auto;background:#f7f0e4;border:1px solid #fff8ed;border-radius:22px;padding:10px;box-shadow:0 18px 45px rgba(93,69,37,.19)}' +
     '.nl-login-panel{display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vw,56px)}' +
     '.nl-logo{font-size:18px;font-weight:700;margin-bottom:32px;color:#292721}' +
-    '.nl-title,.nl-sub{font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);font-size:15px;line-height:1.65}.nl-title{margin:0;font-weight:600}' +
+    '.nl-title,.nl-sub{font-family:inherit;font-size:16px;line-height:1.65}.nl-title{margin:0;font-weight:600}' +
     '.nl-sub{margin:12px 0 26px;color:#554d40;word-break:keep-all}' +
     '.nl-actions{display:grid;gap:10px}' +
     '.nl-btn{box-sizing:border-box;width:100%;min-height:48px;border:1px solid #07535b;border-radius:12px;box-shadow:0 4px 10px rgba(93,69,37,.15),inset 0 1px rgba(255,255,255,.35);font:inherit;font-weight:700;cursor:pointer;padding:10px 14px}' +
@@ -104,7 +104,6 @@
 
   function build(naverConfigured) {
     root.innerHTML = '<div class="nl-layout"><div class="nl-login-panel">' +
-      '<div class="nl-logo" style="font-family:var(--font-serif,serif)!important">ㄱㅖ조 ㅏ심폐소생술</div>' +
       '<h1 class="nl-title">시장을 보는 나만의 시선</h1>' +
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
