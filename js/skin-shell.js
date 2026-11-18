@@ -162,7 +162,7 @@
   var link = d.createElement('link');
   link.id = 'nine-soft-ui-css';
   link.rel = 'stylesheet';
-  link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/soft-ui.css?v=20261119-soft-ui-1';
+  link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/soft-ui.css?v=20261119-soft-ui-2';
   d.head.appendChild(link);
 })(typeof window !== 'undefined' ? window : globalThis);
 

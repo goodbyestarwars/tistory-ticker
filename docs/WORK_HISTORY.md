@@ -1,3 +1,7 @@
+**2026-11-19 푸터 링크 강조색**
+
+- 푸터 링크(서비스 이용약관·개인정보처리방침 등) 글자색을 강조색 `--soft-accent #075759`로 변경(라이트 전용, hover `#053F41`). css/soft-ui.css, 로더 버전 갱신. master→Pages.
+
 **2026-11-19 물타기 계산기 메뉴 복구**
 
 - 2026-11-15에 숨긴 투자도구 > 물타기 계산기를 js/skin-menu.js 메뉴 항목으로 복구(독립 차트 아래, tool:'averaging'). 기존 openAveraging·접근 게이트(#averaging-calculator)·저장 계약 무변경. CLAUDE.md 문구 정정. JS 구문 확인. master→Pages.

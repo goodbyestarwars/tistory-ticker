@@ -118,6 +118,15 @@ html:not(.dark) .home-disclosure-modal-panel {
   border: 1px solid var(--soft-line);
 }
 
+/* ── 푸터 링크(서비스 이용약관 등): 강조색 ─────────────── */
+html:not(.dark) .site-footer-links a,
+html:not(.dark) .site-footer-links button,
+html:not(.dark) body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+html:not(.dark) body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button { color: var(--soft-accent); }
+html:not(.dark) .site-footer-links a:hover,
+html:not(.dark) .site-footer-links button:hover,
+html:not(.dark) .site-footer-links a:focus-visible { color: #053F41; }
+
 /* ── 접근성: 줄어든 모션·고대비에서는 그림자 효과 제거 ───── */
 @media (prefers-reduced-motion: reduce) {
   html:not(.dark) .nav-icon-btn, html:not(.dark) .nav-dark-btn { transition: none; }
