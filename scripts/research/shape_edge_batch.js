@@ -6,7 +6,8 @@
 const fs = require('node:fs'), path = require('node:path');
 const AW = require('../../js/auto-wave.js');
 const [lab, out, stepArg] = process.argv.slice(2);
-const STEP = Number(stepArg) || 1, WINS = [40, 80, 120], START = 250, CUTOFF = '20261113';
+// START/CUTOFF는 환경변수로 바꿀 수 있다(2026-11-19: Oracle 일봉 585봉이라 START=120으로 120봉 모양부터 사용).
+const STEP = Number(stepArg) || 1, WINS = [40, 80, 120], START = Number(process.env.START) || 250, CUTOFF = process.env.CUTOFF || '20261113';
 const fd = fs.openSync(out, 'w');
 fs.writeSync(fd, ['code', 'd'].concat(...WINS.map(w => ['t' + w, 's' + w, 'c' + w, 'h' + w])).join('\t') + '\n');
 const files = fs.readdirSync(path.join(lab, 'cache')).filter(f => f.endsWith('.json')).sort();
