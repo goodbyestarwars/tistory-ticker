@@ -1676,7 +1676,7 @@
       +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'+quote+'</div>'
       +'<ul class="ps-pick-lines">'+plainLines(it).map(function(t){return '<li>'+escapeHtml(t)+'</li>';}).join('')+'</ul>'
       +'<div class="ps-pick-foot">'+rangeGaugeHtml(r.price,d.support,d.resistance)
-      +'<button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기 →</button></div></article>';
+      +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기 →</button></div></div></article>';
   }
   function renderSimpleList(container,list,model,selection,known) {
     var current=function(r){var it=r.classified[0].member.item;return !it.track && !it._history;};

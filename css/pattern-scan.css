@@ -1144,10 +1144,11 @@ html.dark #pattern-scan .ps-state-badge[data-state="research"],html.dark #patter
 #pattern-scan .ps-pick-gauge-labels { display:flex; justify-content:space-between; gap:8px; margin-top:6px; font-size:12px; color:var(--ui-muted,#64748b); font-variant-numeric:tabular-nums; }
 #pattern-scan .ps-pick-gauge-labels b { font-weight:600; color:var(--ui-text,#273332); }
 #pattern-scan .ps-pick-gauge-labels em { font-style:normal; font-weight:600; color:var(--num-up,#c8372d); }
-#pattern-scan .ps-pick .ps-state-detail { margin-left:auto; padding:6px 14px; border:1px solid currentColor; border-radius:999px; font-weight:600; }
+#pattern-scan .ps-pick .ps-state-actions { margin-left:auto; }
+#pattern-scan .ps-pick .ps-state-detail { padding:6px 14px; border:1px solid currentColor; border-radius:999px; font-weight:600; }
 html.dark #pattern-scan .ps-state-row.ps-pick { background:var(--dk-card); border-color:var(--dk-line); box-shadow:none; }
 html.dark #pattern-scan .ps-pick-head .ps-state-stock small,html.dark #pattern-scan .ps-pick-price small,html.dark #pattern-scan .ps-pick-basis,html.dark #pattern-scan .ps-pick-gauge-labels { color:var(--dk-mute); }
 html.dark #pattern-scan .ps-pick-gauge-labels b { color:var(--dk-text); }
 html.dark #pattern-scan .ps-pick-rate,html.dark #pattern-scan .ps-pick-gauge-track { background:var(--dk-line); }
 html.dark #pattern-scan .ps-pick-gauge-dot { box-shadow:0 0 0 2px var(--dk-card); }
-@media(max-width:720px) { #pattern-scan .ps-state-row.ps-pick { padding:14px; } #pattern-scan .ps-pick-quote { margin-left:0; width:100%; } #pattern-scan .ps-pick-price { font-size:20px; } #pattern-scan .ps-pick-gauge { flex-basis:100%; max-width:none; } #pattern-scan .ps-pick .ps-state-detail { width:100%; text-align:center; } }
+@media(max-width:720px) { #pattern-scan .ps-state-row.ps-pick { padding:14px; } #pattern-scan .ps-pick-quote { margin-left:0; width:100%; } #pattern-scan .ps-pick-price { font-size:20px; } #pattern-scan .ps-pick-gauge { flex-basis:100%; max-width:none; } #pattern-scan .ps-pick .ps-state-actions { width:100%; } #pattern-scan .ps-pick .ps-state-detail { width:100%; text-align:center; } }

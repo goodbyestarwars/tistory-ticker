@@ -4,6 +4,7 @@ import sys
 import time
 import unittest
 from unittest import mock
+from datetime import datetime, timedelta, timezone
 
 CLOUD_VM_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm'))
 if CLOUD_VM_DIR not in sys.path:
@@ -90,10 +91,20 @@ class MergeLiveRowTests(unittest.TestCase):
         out = [{'date': '2026-08-03', 'close': 10000, 'ind_net': -300.0, 'foreign_net': 100.0, 'inst_net': 50.0}]
         live_row = {'close': 10100.0, 'change_pct': 1.0, 'volume': 5000.0,
                     'inst_net': 60.0, 'foreign_net': 120.0, 'ind_net': None}
-        kiwoom_market._merge_live_row(out, live_row, '2026-08-03')
+        after_close = datetime(2026, 8, 3, 16, 0, tzinfo=timezone(timedelta(hours=9)))
+        kiwoom_market._merge_live_row(out, live_row, '2026-08-03', now=after_close)
         self.assertEqual(out[0]['ind_net'], -300.0)
         self.assertEqual(out[0]['foreign_net'], 120.0)
         self.assertEqual(out[0]['inst_net'], 60.0)
+
+    def test_same_day_ind_net_before_1540_stays_provisional(self):
+        # 15:40 KST 전에는 같은 날 개인 값을 확정으로 승격하지 않는다(2026-11-13 정책).
+        out = [{'date': '2026-08-03', 'close': 10000, 'ind_net': 0.0, 'foreign_net': 100.0, 'inst_net': 50.0}]
+        live_row = {'close': 10100.0, 'inst_net': 60.0, 'foreign_net': 120.0, 'ind_net': None}
+        intraday = datetime(2026, 8, 3, 10, 30, tzinfo=timezone(timedelta(hours=9)))
+        kiwoom_market._merge_live_row(out, live_row, '2026-08-03', now=intraday)
+        self.assertIsNone(out[0]['ind_net'])
+        self.assertEqual(out[0]['foreign_net'], 120.0)
         self.assertEqual(out[0]['close'], 10100.0)
 
     def test_inserts_new_row_when_no_confirmed_row_for_today(self):
