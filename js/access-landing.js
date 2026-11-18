@@ -17,7 +17,7 @@
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;color:#fff;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif);background:#10140f;overflow:hidden}' +
-    '.nl-photo{position:absolute;inset:0;background:#101318 url(https://goodbyestarwars.github.io/tistory-ticker/img/landing-lauterbrunnen-snow.jpg) center 45%/cover no-repeat}' +
+    '.nl-photo{position:absolute;inset:0;background:#101318 url(https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Lauterbrunnen_-_Staubbachfall.jpg/1280px-Lauterbrunnen_-_Staubbachfall.jpg) center 45%/cover no-repeat}' +
     '.nl-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,7,13,.64) 0%,rgba(3,7,13,.32) 42%,rgba(3,7,13,0) 74%),linear-gradient(0deg,rgba(3,7,13,.43) 0%,rgba(3,7,13,0) 48%)}' +
     '.nl-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px clamp(20px,6vw,96px)}' +
     '.nl-logo{font-family:"Noto Serif KR Site",var(--font-serif,serif);font-weight:700}' +
@@ -122,7 +122,7 @@
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p></div>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div>' +
-      '<div class="nl-credit">스위스 라우터브루넨 눈 덮인 마을 · 사진: Psramanuj · <a href="https://commons.wikimedia.org/wiki/File:Lauterbrunnen_Village.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a> · 미리보기와 같은 축소 사진 · 화면 비율에 맞춤</div>' +
+      '<div class="nl-credit">스위스 라우터브루넨 슈타우바흐 폭포 · 사진: Noel Reynolds · <a href="https://commons.wikimedia.org/wiki/File:Lauterbrunnen_-_Staubbachfall.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a> · 화면 비율에 맞춤</div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
