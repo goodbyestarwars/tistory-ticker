@@ -274,8 +274,10 @@ def queue_command(action, account, now=None, params=None):
                 qty = params.get('qty')
                 if type(qty) is not int or not 1 <= qty <= (held[0].get('qty') or 0):
                     raise ControlError(400, '매도 수량은 보유 수량 이내의 양의 정수여야 합니다.')
-                if not (market_calendar.is_kr_trading_day(now) and 9 <= now.hour < 15 and (now.hour, now.minute) <= (15, 20)):
-                    raise ControlError(409, '정규장(09:00~15:20)에만 매도할 수 있습니다.')
+                if not (market_calendar.is_kr_trading_day(now) and 9 <= now.hour < 14):
+                    raise ControlError(409, '주문 게이트가 열린 평일 09:00~14:00에만 매도할 수 있습니다.')
+                if qty != held[0].get('qty'):
+                    raise ControlError(400, '엔진 장부 종목은 전량만 매도할 수 있습니다.')
                 command.update(qty=qty)
             elif held[0].get('state') != 'PENDING':
                 raise ControlError(409, 'PENDING 기록만 정리할 수 있습니다.')

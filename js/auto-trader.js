@@ -762,8 +762,8 @@
       + '<h3>' + (sell ? '실계좌 매도 확인' : 'PENDING 기록 삭제 확인') + '</h3>'
       + '<p><b>' + esc(ds.name) + '</b> <code>' + esc(ds.code) + '</code></p>'
       + (sell
-        ? '<label>매도 수량 <input type="number" min="1" max="' + qty + '" step="1" value="' + qty + '" data-modal-qty> / 보유 ' + qty + '주</label>'
-          + '<p class="at-mute" data-modal-est></p><p class="at-warn-text">시장가로 즉시 주문하며 취소할 수 없습니다. 수수료·세금이 발생합니다.</p>'
+        ? '<p>매도 수량 <b>' + qty + '주 (전량)</b> <input type="hidden" value="' + qty + '" data-modal-qty></p>'
+          + '<p class="at-mute" data-modal-est></p><p class="at-warn-text">시장가로 즉시 주문하며 취소할 수 없습니다. 수수료·세금이 발생하며, 주문 가능 시간은 평일 09:00~14:00입니다.</p>'
         : '<p>증권사 계좌에는 없는데 장부에만 남은 미확인(PENDING) 기록 <b>' + qty + '주</b>를 장부에서 지웁니다. 주문은 나가지 않습니다.</p>')
       + '<div class="at-modal-act"><button type="button" class="at-mini" data-modal-cancel>취소</button>'
       + '<button type="button" class="at-ctl-btn is-stop" data-modal-ok>' + (sell ? '시장가 매도 실행' : '기록 삭제') + '</button></div></div>';

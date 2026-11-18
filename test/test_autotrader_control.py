@@ -43,13 +43,15 @@ class ControlTest(unittest.TestCase):
         with self.assertRaises(ac.ControlError):
             ac.queue_command('sell', 'admin', now, params={'code': '068270', 'qty': 1})
         seed(['manual-sell-v1', 'position-drop-v1'])
-        for bad in ({'code': '068270', 'qty': 5}, {'code': '068270', 'qty': True}, {'code': '002350', 'qty': 1}, {'code': '111111', 'qty': 1}):
+        for bad in ({'code': '068270', 'qty': 5}, {'code': '068270', 'qty': 3}, {'code': '068270', 'qty': True}, {'code': '002350', 'qty': 1}, {'code': '111111', 'qty': 1}):
             with self.assertRaises(ac.ControlError):
                 ac.queue_command('sell', 'admin', now, params=bad)
         with self.assertRaises(ac.ControlError):
-            ac.queue_command('sell', 'admin', now.replace(hour=21), params={'code': '068270', 'qty': 1})
+            ac.queue_command('sell', 'admin', now.replace(hour=21), params={'code': '068270', 'qty': 4})
         with self.assertRaises(ac.ControlError):
             ac.queue_command('position-drop', 'admin', now, params={'code': '068270'})
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('sell', 'admin', now.replace(hour=14), params={'code': '068270', 'qty': 4})
         queued = ac.queue_command('sell', 'admin', now, params={'code': '068270', 'qty': 4})
         self.assertEqual(ac._load()['pending']['qty'], 4)
         self.assertEqual(queued['action'], 'sell')
