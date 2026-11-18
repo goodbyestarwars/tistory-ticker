@@ -17,7 +17,7 @@
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;box-sizing:border-box;display:flex;overflow:auto;padding:clamp(16px,4vw,56px);background:#eee8dc;color:#24231f;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif)}' +
-    '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(280px, .8fr) minmax(0, 1.2fr);width:min(1140px,100%);margin:auto;background:#f7f0e4;border:1px solid #fff8ed;border-radius:22px;padding:10px;box-shadow:0 18px 45px rgba(93,69,37,.19)}' +
+    '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(280px, .62fr) minmax(0, 1.9fr);width:min(1360px,100%);margin:auto;background:#f7f0e4;border:1px solid #fff8ed;border-radius:22px;padding:10px;box-shadow:0 18px 45px rgba(93,69,37,.19)}' +
     '.nl-login-panel{display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vw,56px)}' +
     '.nl-logo{font-size:18px;font-weight:700;margin-bottom:32px;color:#292721}' +
     '.nl-title,.nl-sub{font-family:inherit;font-size:16px;font-weight:700;line-height:1.65}.nl-title{margin:0}' +
@@ -27,7 +27,7 @@
     '.nl-btn.primary{background:#07535b;color:#fff}.nl-btn.primary:hover{background:#09616a}' +
     '.nl-btn.ghost{background:#f4ebdc;border-color:#ded1bb;color:#292721}.nl-btn.ghost:hover{background:#ebe0cd}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:2px solid #07535b;outline-offset:3px}' +
-    '.nl-visual{position:relative;min-width:0;margin:0;align-self:stretch;overflow:hidden;border-radius:14px;background:#efe4cd;aspect-ratio:700/760}' +
+    '.nl-visual{position:relative;min-width:0;margin:0;align-self:stretch;overflow:hidden;border-radius:14px;background:#efe4cd;aspect-ratio:1000/640}' +
     '.nl-sketch{position:absolute;inset:0;width:100%;height:100%;display:block}' +
     '.nl-modal{position:fixed;inset:0;color:#292721;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(25,29,28,.48)}' +
     '.nl-modal[hidden]{display:none}' +
@@ -41,7 +41,7 @@
     '.nl-google,.nl-google:visited{background:#07535b;color:#fff}.nl-google:hover{background:#09616a;color:#fff}.nl-google i{background:#f1f3f4;color:#4285f4}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-card .nl-note{margin:14px 0 0;font-size:12px;line-height:1.5;color:#554d40}' +
-    '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1;aspect-ratio:700/520}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}';
+    '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1;aspect-ratio:1000/620}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function markSeen() { try { global.sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* 저장소 차단 */ } }
@@ -104,13 +104,14 @@
   /* 2026-11-19 사용자 선택 시안: 양피지 위 설계도 스케치(코드로 그린 원본 — 외부 이미지·저작물 없음).
      동심원·십자선·캔들·이동평균·정규분포와 손글씨 수식. 상승 #E8A39E·하락 #86AEE1·강조 #075759.
      손글씨 글꼴은 사용 글자만 Google Fonts(Nanum Pen Script)에서 받고, 실패하면 명조(--font-serif)로 대체된다. */
+  /* 수식은 손글씨(Nanum Pen Script, 사용 글자만 Google Fonts), 한글 메모는 사이트 명조(--font-serif)로 반듯하게 쓴다. */
   var NOTES = [
-    [130, 64, 'σ = √( Σ (rᵢ − μ)² / n )', 22, 0], [130, 128, 'E[R] = Rf + β ( Rm − Rf )', 20, 0],
-    [392, 150, 'Sharpe = (Rp − Rf) / σp', 20, 6], [412, 206, 'CAGR = (V₁/V₀)^(1/n) − 1', 19, 6],
-    [440, 602, 'd₁ = [ ln(S/K) + (r+σ²/2)T ] / σ√T', 17, -4], [132, 610, '∫ f(x) dx = 1', 22, 0],
-    [120, 742, 'P(x) = 1/(σ√2π) · e^(−(x−μ)²/2σ²)', 18, 0], [602, 300, '가격 = 가치 ± 심리', 20, 90],
-    [96, 330, '수급 → 추세 → 위치', 20, -90], [250, 364, '변동성 ↓  /  거래량 ↑', 18, 0],
-    [470, 372, 'R² = 0.87', 18, -12], [180, 540, '지지 · 저항', 20, -8]
+    [60, 56, 'σ = √( Σ (rᵢ − μ)² / n )', 24, 0, 'm'], [60, 108, 'E[R] = Rf + β ( Rm − Rf )', 22, 0, 'm'],
+    [640, 70, 'Sharpe = (Rp − Rf) / σp', 24, 0, 'm'], [668, 118, 'CAGR = (V₁/V₀)^(1/n) − 1', 22, 0, 'm'],
+    [560, 604, 'd₁ = [ ln(S/K) + (r+σ²/2)T ] / σ√T', 20, 0, 'm'], [60, 604, '∫ f(x) dx = 1', 24, 0, 'm'],
+    [60, 632, 'P(x) = 1/(σ√2π) · e^(−(x−μ)²/2σ²)', 19, 0, 'm'], [760, 330, 'R² = 0.87', 20, 0, 'm'],
+    [330, 168, '수급 → 추세 → 위치', 15, 0, 'k'], [540, 150, '가격 = 가치 ± 심리', 15, 0, 'k'],
+    [770, 520, '변동성 ↓ · 거래량 ↑', 15, 0, 'k'], [175, 515, '지지 · 저항', 15, 0, 'k']
   ];
   function drawSketch(svg) {
     if (!svg || svg.getAttribute('data-drawn')) return;
@@ -119,54 +120,55 @@
       if (!doc.getElementById('nl-hand-font')) {
         var lk = doc.createElement('link');
         lk.id = 'nl-hand-font'; lk.rel = 'stylesheet';
-        lk.href = 'https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap&text=' + encodeURIComponent(NOTES.map(function (n) { return n[2]; }).join(''));
+        lk.href = 'https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap&text=' + encodeURIComponent(NOTES.filter(function (n) { return n[5] === 'm'; }).map(function (n) { return n[2]; }).join(''));
         doc.head.appendChild(lk);
       }
     } catch (e) { /* 글꼴 실패 시 대체 글꼴 */ }
-    var NS = 'http://www.w3.org/2000/svg', seed = 7;
+    var NS = 'http://www.w3.org/2000/svg', W = 1000, H = 640, seed = 7;
     function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
     function el(n, a, p) { var e = doc.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
     var defs = el('defs', {});
     defs.innerHTML =
-      '<filter id="nlWob" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/></filter>' +
+      '<filter id="nlWob" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3"/></filter>' +
       '<filter id="nlWash" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.05" numOctaves="3" seed="9" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="26"/><feGaussianBlur stdDeviation="2.2"/></filter>' +
       '<filter id="nlPaper"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="5"/><feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.22  0 0 0 .22 0"/></filter>' +
-      '<radialGradient id="nlVig" cx="50%" cy="48%" r="75%"><stop offset="60%" stop-color="#EFE4CD" stop-opacity="0"/><stop offset="100%" stop-color="#C9B48A" stop-opacity=".55"/></radialGradient>';
-    el('rect', { width: 700, height: 760, fill: '#EFE4CD' });
-    el('rect', { width: 700, height: 760, filter: 'url(#nlPaper)' });
-    el('path', { d: 'M120 90 C170 200 90 300 150 420 C200 540 120 640 170 720 L215 720 C170 620 250 520 200 410 C150 300 230 190 170 90Z', fill: '#86AEE1', opacity: '.55', filter: 'url(#nlWash)' });
-    el('path', { d: 'M520 520 C560 580 500 650 560 730 L590 730 C540 650 600 580 560 520Z', fill: '#E8A39E', opacity: '.5', filter: 'url(#nlWash)' });
+      '<radialGradient id="nlVig" cx="50%" cy="50%" r="78%"><stop offset="62%" stop-color="#EFE4CD" stop-opacity="0"/><stop offset="100%" stop-color="#C9B48A" stop-opacity=".5"/></radialGradient>';
+    el('rect', { width: W, height: H, fill: '#EFE4CD' });
+    el('rect', { width: W, height: H, filter: 'url(#nlPaper)' });
+    el('path', { d: 'M90 60 C130 150 60 240 110 330 C150 420 80 500 120 590 L160 590 C120 500 190 420 150 330 C110 240 180 150 135 60Z', fill: '#86AEE1', opacity: '.5', filter: 'url(#nlWash)' });
+    el('path', { d: 'M850 400 C885 450 835 510 880 580 L910 580 C865 510 915 450 880 400Z', fill: '#E8A39E', opacity: '.5', filter: 'url(#nlWash)' });
     var g = el('g', { filter: 'url(#nlWob)', fill: 'none', stroke: '#2c2a25', 'stroke-linecap': 'round' });
-    [[40, 95, 660, 95], [40, 665, 660, 665], [110, 30, 110, 735], [585, 30, 585, 735], [350, 20, 350, 745], [40, 380, 660, 380]].forEach(function (l, i) {
+    [[30, 78, 970, 78], [30, 580, 970, 580], [48, 20, 48, 620], [952, 20, 952, 620], [500, 16, 500, 624], [30, 330, 970, 330]].forEach(function (l, i) {
       el('line', { x1: l[0], y1: l[1], x2: l[2], y2: l[3], 'stroke-width': i < 4 ? .8 : .6, opacity: .55 }, g);
     });
-    var cx = 350, cy = 380;
-    [60, 110, 165, 225, 290].forEach(function (r, i) { el('circle', { cx: cx, cy: cy, r: r + rnd() * 3, 'stroke-width': i === 4 ? 1.5 : .8, opacity: .75 }, g); });
+    var cx = 500, cy = 330;
+    [50, 95, 142, 192, 245].forEach(function (r, i) { el('circle', { cx: cx, cy: cy, r: r + rnd() * 3, 'stroke-width': i === 4 ? 1.5 : .8, opacity: .75 }, g); });
     for (var a = 0; a < 360; a += 15) {
-      var rad = a * Math.PI / 180, r2 = 290 + (a % 45 === 0 ? 60 : 20);
-      el('line', { x1: cx + Math.cos(rad) * 60, y1: cy + Math.sin(rad) * 60, x2: cx + Math.cos(rad) * r2, y2: cy + Math.sin(rad) * r2, 'stroke-width': .5, opacity: .4 }, g);
+      var rad = a * Math.PI / 180, r2 = 245 + (a % 45 === 0 ? 70 : 24);
+      el('line', { x1: cx + Math.cos(rad) * 50, y1: cy + Math.sin(rad) * 50, x2: cx + Math.cos(rad) * r2, y2: cy + Math.sin(rad) * r2, 'stroke-width': .5, opacity: .4 }, g);
     }
-    var x = 140, p = 420;
-    for (var i = 0; i < 19; i++) {
-      var up = rnd() > .42, body = 18 + rnd() * 42, wick = 12 + rnd() * 22, open = p, close = up ? p - body : p + body;
-      p = Math.max(240, Math.min(520, close + (rnd() - .5) * 10));
+    var x = 140, p = 360;
+    for (var i = 0; i < 24; i++) {
+      var up = rnd() > .42, body = 16 + rnd() * 38, wick = 10 + rnd() * 20, open = p, close = up ? p - body : p + body;
+      p = Math.max(220, Math.min(430, close + (rnd() - .5) * 10));
       var top = Math.min(open, close), bot = Math.max(open, close);
       el('line', { x1: x, y1: top - wick, x2: x, y2: bot + wick * .8, 'stroke-width': 1.3 }, g);
       el('rect', { x: x - 7, y: top, width: 14, height: Math.max(bot - top, 4), 'stroke-width': 1.1, fill: up ? '#E8A39E' : '#86AEE1', 'fill-opacity': .8 }, g);
-      x += 24 + rnd() * 3;
+      x += 30 + rnd() * 3;
     }
-    var d = 'M130 430'; for (var t = 0; t <= 10; t++) d += ' L' + (130 + t * 52) + ' ' + (410 - Math.sin(t * .7) * 55 - t * 6);
+    var d = 'M130 372'; for (var t = 0; t <= 14; t++) d += ' L' + (130 + t * 55) + ' ' + (360 - Math.sin(t * .55) * 48 - t * 4);
     el('path', { d: d, 'stroke-width': 1.6, stroke: '#075759', opacity: .9 }, g);
-    var nd = 'M130 700'; for (var k = 0; k <= 60; k++) { var z = (k - 30) / 10; nd += ' L' + (130 + k * 7) + ' ' + (700 - Math.exp(-z * z / 2) * 70); }
+    var nd = 'M300 566'; for (var k = 0; k <= 70; k++) { var z = (k - 35) / 11; nd += ' L' + (300 + k * 6.5) + ' ' + (566 - Math.exp(-z * z / 2) * 66); }
     el('path', { d: nd, 'stroke-width': 1.2, opacity: .8 }, g);
-    el('line', { x1: 340, y1: 700, x2: 340, y2: 630, 'stroke-width': .7, 'stroke-dasharray': '3 4' }, g);
-    var tg = el('g', { fill: '#2c2a25', opacity: .85, filter: 'url(#nlWob)' });
+    el('line', { x1: 527, y1: 566, x2: 527, y2: 500, 'stroke-width': .7, 'stroke-dasharray': '3 4' }, g);
+    var tg = el('g', { fill: '#2c2a25', opacity: .86 });
     NOTES.forEach(function (n) {
-      var tx = el('text', { x: n[0], y: n[1], 'font-family': "'Nanum Pen Script',var(--font-serif,'Noto Serif KR'),serif", 'font-size': n[3], transform: 'rotate(' + n[4] + ' ' + n[0] + ' ' + n[1] + ')' }, tg);
+      var hand = n[5] === 'm';
+      var tx = el('text', { x: n[0], y: n[1], 'font-family': hand ? "'Nanum Pen Script',var(--font-serif,'Noto Serif KR'),serif" : "var(--font-serif,'Noto Serif KR'),serif", 'font-size': n[3], 'font-weight': hand ? 400 : 700, 'letter-spacing': hand ? 0 : '.02em' }, tg);
       tx.textContent = n[2];
     });
-    for (var j = 0; j < 26; j++) { var yy = 150 + j * 18 + rnd() * 6, xx = 598 + rnd() * 10; el('line', { x1: xx, y1: yy, x2: xx + 30 + rnd() * 50, y2: yy + rnd() * 2, 'stroke-width': .5, opacity: .35, stroke: '#2c2a25' }, g); }
-    el('rect', { width: 700, height: 760, fill: 'url(#nlVig)' });
+    for (var j = 0; j < 22; j++) { var yy = 140 + j * 18 + rnd() * 6, xx = 960 - rnd() * 6; el('line', { x1: xx - 40 - rnd() * 40, y1: yy, x2: xx, y2: yy + rnd() * 2, 'stroke-width': .5, opacity: .3, stroke: '#2c2a25' }, g); }
+    el('rect', { width: W, height: H, fill: 'url(#nlVig)' });
   }
 
   function build(naverConfigured) {
@@ -174,7 +176,7 @@
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div></div>' +
-      '<figure class="nl-visual" aria-hidden="true"><svg class="nl-sketch" viewBox="0 0 700 760" preserveAspectRatio="xMidYMid slice"></svg></figure></div>' +
+      '<figure class="nl-visual" aria-hidden="true"><svg class="nl-sketch" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid slice"></svg></figure></div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
