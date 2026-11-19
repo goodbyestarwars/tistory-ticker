@@ -85,6 +85,13 @@ async def main():
                     assert await evaluate('Array.from(document.querySelectorAll(".ps-state-actions")).every(el=>el.querySelectorAll("button").length===1 && !el.querySelector("details"))'),'one shared chart/evidence button per stock'
                     # 기본 화면(전체)은 2026-11-14 '매수후보' 단순 카드: 종가·차트 버튼만. 기준 대비 표시는 숨겨진 상태 필터(관찰) 보기에 보존된다.
                     assert await evaluate('!!document.querySelector(\'.ps-pick[data-code="005930"] .ps-pick-price\') && !document.querySelector(".ps-reference-change")')
+                    # 2026-11-19: 카드는 공통 실시간 조회로 현재가와 기준일 종가 대비 %를 보여준다. 시세가 없으면 기준일 종가 그대로.
+                    scan_price=await evaluate('Number(document.querySelector(\'.ps-pick[data-code="005930"]\').dataset.scanPrice)')
+                    await evaluate('window.qaQuotes=[{code:"005930",price:'+str(round(scan_price*1.05))+',changeRate:1.2,market_state:"regular"}];NineHttp.clearCache();PatternScan.refresh()')
+                    await wait_for('/현재가 · .*종가 .*원 대비/.test(document.querySelector(\'.ps-pick[data-code="005930"] .ps-pick-basis\')?.textContent||"")')
+                    expected='+'+format(round((round(scan_price*1.05)/scan_price-1)*100,2),'.2f')+'%'
+                    assert await evaluate('document.querySelector(\'.ps-pick[data-code="005930"] .ps-pick-rate\').textContent')==expected
+                    await evaluate('window.qaQuotes=null')
                     await evaluate('document.querySelector("[data-status=observation]").click()')
                     assert await evaluate('document.querySelector(\'.ps-state-row[data-code="005930"] .ps-reference-change\').textContent')=='기준 대비 +0.14%'
                     before=await evaluate('window.startY=scrollY;document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\').click();startY')
