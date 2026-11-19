@@ -27,6 +27,9 @@
   rs120 = 120봉 수익률(날짜 백분위), up_low120 = 종가 / 120봉 최저가 - 1, nh250 = 종가 > 직전 250봉 최고가(52주 신고가 돌파).
   업종 = WICS industry(<작업 폴더>/wics.json 또는 WICS_FILE, 현재 분류 고정 - 과거 재분류 미반영 한계).
   업종 강도 = 그날 같은 업종(유동성 통과 5종목 이상) mom60 평균의 업종 간 백분위, 주도주 = 그 업종 안 20일 거래대금 1~2위.
+6단계(2026-11-19): GATE_INDEX(KOSPI rows[{date, close}])가 있으면 KOSPI 기준 시장 관문별 표 gate_<이름>을 추가한다(그날 종가까지).
+  K60 = KOSPI 60일선 규칙(기존 regime_by_date와 같은 식)의 상승+횡보, K60_UP = 그 상승만,
+  K200 = KOSPI 종가 > 200일선 이고 200일선이 20거래일 전보다 높음.
 실행: python pullback_combo_study.py <작업 폴더(cache/)> <shape.tsv> <out.json>   (SPRING_START, SPRING_SPLIT, SPRING_INDEX 공용)
 """
 import json
@@ -224,6 +227,17 @@ def frame(code, px, mret, flow=None, earn=None, events=None):
     return f
 
 
+def kospi_gates(dates, path):
+    """KOSPI 관문(2026-11-19 6단계). 그날 종가까지의 지수만 쓴다. 지수 날짜가 없는 날은 False."""
+    rows = json.load(open(path, encoding='utf-8')).get('rows') or []
+    idx = pd.Series({str(r['date']).replace('-', '')[:8]: float(r['close']) for r in rows if r.get('close')}).sort_index()
+    m60, m200 = idx.rolling(60).mean(), idx.rolling(200).mean()
+    up60 = (idx > m60) & (m60 > m60.shift(20))
+    dn60 = (idx < m60) & (m60 < m60.shift(20))
+    g = {'K60': (~dn60) & m60.notna(), 'K60_UP': up60, 'K200': (idx > m200) & (m200 > m200.shift(20))}
+    return {k: v.reindex(dates).fillna(False).astype(bool).values for k, v in g.items()}
+
+
 def dedupe(g):
     """같은 종목 보유 중 재진입 금지: 신호일 + 보유일수 안의 다음 신호는 버린다."""
     keep, until = [], {}
@@ -347,6 +361,11 @@ def main(lab, shape_tsv, out_path):
            'periods': {p: [str(df[df.period == p].d.min()), str(df[df.period == p].d.max())] for p in ('train', 'valid', 'test')},
            'all_regimes': {k: {p: stats(df[m & (df.period == p)]) for p in ('train', 'valid', 'test')} for k, m in groups.items()},
            'up_sideways': {k: {p: stats(df[m & up_side & (df.period == p)]) for p in ('train', 'valid', 'test')} for k, m in groups.items()}}
+    gate_path = os.environ.get('GATE_INDEX')
+    if gate_path and os.path.exists(gate_path):
+        for name, gm in kospi_gates(df.d.values, gate_path).items():
+            res['gate_' + name] = {k: {p: stats(df[m & gm & (df.period == p)]) for p in ('train', 'valid', 'test')} for k, m in groups.items()}
+            res['gate_' + name + '_days'] = {p: int(df[gm & (df.period == p)].d.nunique()) for p in ('train', 'valid', 'test')}
     json.dump(res, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1, default=str)
     print('국면:', src, '· 모양 TSV 적용률 %:', res['shape_coverage'], '· 기간:', res['periods'])
     cols = ['n', 'days', 'win20', 'ex20', 'ex20_t_by_date', 'ex60', 'trades', 'trade_win', 'trade_avg', 'payoff', 'pf', 'max_loss_streak']
