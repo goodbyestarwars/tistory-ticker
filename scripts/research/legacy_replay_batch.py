@@ -14,11 +14,19 @@ sys.path.insert(0, os.path.join(HERE, '..', 'cloud-vm'))
 import pattern_detect as pd_  # noqa: E402
 
 WIN = 300
+# 2026-11-20: SCANNERS 환경변수로 재현할 검색기를 고른다(기본은 자동매매 4개). risingLows는 운영 scan과 같은 조건(창 120봉 이상, 돌파 전).
+SCANNERS = tuple(x for x in os.environ.get('SCANNERS', 'pullback,maCloudBreakout,doubleBottom,invHeadShoulders').split(',') if x)
 CUTOFF = os.environ.get('CUTOFF', '20261113')
 
 
 def detect_all(daily):
     out = []
+    if 'risingLows' in SCANNERS and len(daily) >= pd_.RISING_LOWS_WINDOW + pd_.RISING_LOWS_DECLINE_LOOKBACK:
+        rl = pd_.detect_rising_lows(daily)
+        if rl and not rl['breakout']:
+            out.append(('risingLows', rl.get('score')))
+    if not set(SCANNERS) & {'pullback', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders'}:
+        return out
     if len(daily) >= pd_.PULLBACK_MIN_DAYS:
         pb = pd_.detect_pullback(daily)
         if pb and pd_.pattern_grade(pb['score'], pd_.PULLBACK_MIN_SCORE):
@@ -58,7 +66,8 @@ def main(lab, out, shard=0, shards=1):
             if bars and pd_.is_excluded_stock(stock, bars):
                 n += 1
                 continue
-            for i in range(pd_.MA_CLOUD_MIN_DAYS - 1, len(bars)):
+            start = (pd_.RISING_LOWS_WINDOW + pd_.RISING_LOWS_DECLINE_LOOKBACK if SCANNERS == ('risingLows',) else pd_.MA_CLOUD_MIN_DAYS) - 1
+            for i in range(start, len(bars)):
                 window = bars[max(0, i - WIN + 1):i + 1]
                 for key, score in detect_all(window):
                     fo.write('%s\t%s\t%s\t%s\n' % (code, px[i][0], key, '' if score is None else score))
