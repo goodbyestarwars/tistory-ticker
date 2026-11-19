@@ -50,6 +50,25 @@ class MomentumColumns(unittest.TestCase):
         self.assertFalse(f.nh250.iloc[:250].any())
 
 
+class KospiGates(unittest.TestCase):
+    """6단계(2026-11-19): 관문은 그날 종가까지의 지수만 쓴다."""
+
+    def test_gate_ignores_future_index(self):
+        import json
+        import tempfile
+        px = bars(400)
+        rows = [{'date': r[0], 'close': r[4]} for r in px]
+        dates = np.array([r[0] for r in px])
+        with tempfile.TemporaryDirectory() as td:
+            a, b = os.path.join(td, 'a.json'), os.path.join(td, 'b.json')
+            json.dump({'rows': rows}, open(a, 'w'))
+            json.dump({'rows': rows[:300]}, open(b, 'w'))
+            ga, gb = P.kospi_gates(dates[:300], a), P.kospi_gates(dates[:300], b)
+        for k in ga:
+            self.assertTrue((ga[k] == gb[k]).all(), k)
+        self.assertFalse(ga['K200'][:200].any())
+
+
 class EarningsPointInTime(unittest.TestCase):
     """3단계 실적(2026-11-19): 접수일 당일까지는 그 보고서를 쓰지 않고, 미래 보고서가 과거 값을 바꾸지 않는다."""
 
