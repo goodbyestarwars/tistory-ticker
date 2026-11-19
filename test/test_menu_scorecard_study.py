@@ -78,5 +78,44 @@ class Scorecard(unittest.TestCase):
                          [None, 'train', 'valid', 'test', None])
 
 
+class LegacyLive(unittest.TestCase):
+    def setUp(self):
+        try:
+            import legacy_scorecard_study as L
+        except Exception as error:
+            self.skipTest('research deps missing: %s' % error)
+        self.L = L
+
+    def arr(self, rows):
+        return [np.array(x, dtype=float) for x in zip(*rows)]
+
+    def test_stop_gap_and_trail(self):
+        L = self.L
+        # 신호 0, 진입 1일 시가 100. 2일 저가 96.5 -> -3% 손절 97
+        o, h, l, c = self.arr([(100, 101, 99, 100), (100, 101, 99, 100), (99, 99, 96.5, 98)])
+        r, d = L.live_exit(o, h, l, c, 0)
+        self.assertAlmostEqual(r, 0.97 - 1 - L.M.COST)
+        # 갭 하락 90 시가 -> 비상 손절은 시가
+        o, h, l, c = self.arr([(100, 101, 99, 100), (100, 101, 99, 100), (90, 91, 89, 90)])
+        self.assertAlmostEqual(L.live_exit(o, h, l, c, 0)[0], 0.90 - 1 - L.M.COST)
+        # +3% 고점 104 뒤 저가 101.3(104*0.975=101.4) -> 추적 매도 101.4
+        o, h, l, c = self.arr([(100, 100, 100, 100), (100, 104, 100, 103.5), (103, 103.5, 101.3, 102)])
+        self.assertAlmostEqual(L.live_exit(o, h, l, c, 0)[0], 104 * 0.975 / 100 - 1 - L.M.COST)
+
+    def test_open_position_is_none(self):
+        o, h, l, c = self.arr([(100, 101, 99.5, 100)] * 10)
+        self.assertIsNone(self.L.live_exit(o, h, l, c, 0))
+
+    def test_engine_gate(self):
+        L = self.L
+        n = 25
+        c = np.linspace(10000, 11000, n); o = c.copy(); h = c * 1.02; l = c * 0.99; v = np.full(n, 200000.0)
+        self.assertTrue(L.engine_ok(o, h, l, c, v, 23))
+        self.assertFalse(L.engine_ok(o, h, l, c, np.full(n, 1000.0), 23), '거래대금 10억 미만')
+        o2 = o.copy(); o2[24] = c[23] * 1.03
+        self.assertFalse(L.engine_ok(o2, h, l, c, v, 23), '+2% 이상 갭 추격 금지')
+        self.assertFalse(L.engine_ok(o, h, l, c[::-1].copy(), v, 23), '20일 평균 아래')
+
+
 if __name__ == '__main__':
     unittest.main()
