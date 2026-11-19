@@ -6,7 +6,7 @@
 
 **2026-11-19 상승 구간 해부 4단계 결과(공시 사건)** — 미리 정한 기준 3개 모두 불통과 → 검색기 변경 없음. ① 상승 출발 전후 사건 lift 최대 1.22(공급계약 6.2% 대 5.1%). ② 잠정실적·공급계약·전체 긍정 반응 매매 모두 학습 PF 0.73~0.82. ③ QLP&EV_UP20 검증 ex20 +2.41 < +3.49·매매 39~40건. 첫 수집에서 자사주·증자(주요사항보고서 B001)가 빠진 설계 누락을 발견해 `fetch_dart_events_cache.py`에 B001 추가 후 재실행(기준 무변경, 판정 동일). 사후 관찰: 무상증자 세 기간 플러스지만 표본 19건. 문서 `docs/RALLY_ANATOMY_STUDY_2026-11-19.md` '4단계 결과·판정'.
 
-**2026-11-20 모바일 로그인 랜딩 스케치 미표시 보완(사용자 지적)** — `.nl-visual`은 CSS `aspect-ratio`로만 높이를 얻고 SVG는 absolute라, 미지원 브라우저(iOS 15 미만 Safari·구형 삼성 인터넷)에서 높이 0으로 사라짐. 운영 화면에서 aspect-ratio 제거 시 높이 0, `padding-top` 보완 시 원래 높이(375px 기준 199.8px)와 동일함을 확인. `js/access-landing.js`에 `@supports not (aspect-ratio)` 보완만 추가(지원 브라우저 무영향). 실제 사용자 기기 재확인은 미완료.
+**2026-11-20 모바일 로그인 랜딩 스케치 미표시 보완(사용자 지적)** — `.nl-visual`은 CSS `aspect-ratio`로만 높이를 얻고 SVG는 absolute라, 미지원 브라우저(iOS 15 미만 Safari·구형 삼성 인터넷)에서 높이 0으로 사라짐. 운영 화면에서 aspect-ratio 제거 시 높이 0, `padding-top` 보완 시 원래 높이(375px 기준 199.8px)와 동일함을 확인. `js/access-landing.js`에 `@supports not (aspect-ratio)` 보완만 추가(지원 브라우저 무영향). 이후 사용자 iPhone 최신 Safari에서도 미표시 확인 → WebKit은 그리드 `align-self:stretch`가 aspect-ratio보다 우선해 높이 0. 720px 이하는 `align-self:start; height:0; padding-top:62%`로 엔진 무관하게 확보(PR #1236), PC 규칙 무변경. 로컬 WebKit 미설치로 Safari 직접 재현은 못 했고 실기기 확인 필요.
 
 **2026-11-19 매수후보 카드에 현재가·기준일 종가 대비 등락(사용자 지시)** — 카드가 스캔 기준일(전 거래일) 종가만 보여 추천 이후 움직임을 알 수 없던 문제. `js/pattern-scan.js`: 기존 공통 `patchLivePrices`(`NineAPI.domesticQuotes`, 30초 캐시)를 `.ps-pick` 카드에도 적용 — 큰 가격은 시세, 배지는 기준일 종가 대비 %, 보조 문구 '현재가/NXT 시간외가/최근 종가 · M/D 종가 N원 대비', 바닥~저항 막대도 시세 위치로 갱신. 시세 실패 시 기존 기준일 종가 표시 유지(날짜 추정 없음). `css/pattern-scan.css` 모바일 줄바꿈. 검증: `qa_scanner_inline_chart.py` 4케이스(카드 시세 반영 단언 추가), 공개 상태·대시보드 테스트 통과.
 

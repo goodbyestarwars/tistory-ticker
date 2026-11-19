@@ -41,10 +41,10 @@
     '.nl-google,.nl-google:visited{background:#07535b;color:#fff}.nl-google:hover{background:#09616a;color:#fff}.nl-google i{background:#f1f3f4;color:#4285f4}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-card .nl-note{margin:14px 0 0;font-size:12px;line-height:1.5;color:#554d40}' +
-    '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1;aspect-ratio:1000/620}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}' +
-    // aspect-ratio 미지원 모바일 브라우저(iOS 15 미만 Safari·구형 삼성 인터넷 등)에서는 SVG가 absolute라 높이가 0이 되어
-    // 스케치가 사라진다. 같은 비율을 padding-top으로 확보한다(지원 브라우저는 영향 없음).
-    '@supports not (aspect-ratio:1/1){.nl-visual{height:0;padding-top:64%}@media (max-width:720px){.nl-visual{padding-top:62%}}}';
+    '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1;align-self:start;aspect-ratio:auto;height:0;padding-top:62%}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}' +
+    // 모바일 한 열 배치는 위 미디어쿼리에서 padding-top 비율로 높이를 확보한다. iOS Safari(WebKit)는 그리드 stretch가
+    // aspect-ratio보다 우선해 SVG(absolute)만 있는 칸이 높이 0이 됐다(2026-11-20 실기기 확인). 아래는 미지원 브라우저의 PC 보완.
+    '@supports not (aspect-ratio:1/1){.nl-visual{height:0;padding-top:64%}}';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function markSeen() { try { global.sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* 저장소 차단 */ } }
