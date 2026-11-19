@@ -9,7 +9,7 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scripts', 'research'))
 import pullback_combo_study as P  # noqa: E402
 
-COLS = ['ma60_slope', 'mom60', 'dip_atr', 'dry10', 'amt20', 'ivol60', 'upvol20', 'upday']
+COLS = ['ma60_slope', 'mom60', 'dip_atr', 'dry10', 'amt20', 'ivol60', 'upvol20', 'upday', 'rs120', 'up_low120', 'nh250']
 
 
 def bars(n=400, seed=3):
@@ -35,6 +35,19 @@ class LookAhead(unittest.TestCase):
         c = np.array([r[4] for r in bars()])
         self.assertAlmostEqual(f.mom60.iat[200], c[200] / c[140] - 1, places=9)
         self.assertNotAlmostEqual(f.mom60.iat[200], f.ret60.iat[200], places=6)
+
+
+class MomentumColumns(unittest.TestCase):
+    """5단계(2026-11-19): 신고가는 직전 250봉 고가만 비교(당일 고가·미래 제외)."""
+
+    def test_new_high_uses_prior_bars_only(self):
+        px = bars()
+        f = P.frame('x', px, {})
+        h = np.array([r[2] for r in px])
+        c = np.array([r[4] for r in px])
+        for i in (260, 320, 399):
+            self.assertEqual(bool(f.nh250.iat[i]), bool(c[i] > h[i - 250:i].max()))
+        self.assertFalse(f.nh250.iloc[:250].any())
 
 
 class EarningsPointInTime(unittest.TestCase):
