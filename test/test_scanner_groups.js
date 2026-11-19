@@ -4,7 +4,8 @@ const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
 const source=fs.readFileSync('js/pattern-scan.js','utf8');
 const ctx={window:{},document:{readyState:'loading',addEventListener(){}},console};vm.runInNewContext(source,ctx);
 const api=ctx.window.PatternScan, menus=api.menuTabs, merge=api.mergeScannerRows;
-assert.equal(menus.length,5);assert.deepEqual(JSON.parse(JSON.stringify(menus.map(m=>m.sources.length))),[2,2,4,3,1]);
+// 2026-11-20: 주도주 조용한 눌림 독립 메뉴(이전 수치 검색기 없음) 추가로 6개.
+assert.equal(menus.length,6);assert.deepEqual(JSON.parse(JSON.stringify(menus.map(m=>m.sources.length))),[2,2,4,3,0,1]);
 assert.ok(!menus.some(m=>m.key==='openingGap'));assert.ok(source.includes('key===historySource'));assert.ok(source.includes("scannerKey(activeTab)"));
 const keys=['ninepayLive','volumeBreakout','shortTermMaBreakout','angleMomentum','risingLows','doubleBottom','invHeadShoulders','boxRangeLow','pullback','firstPullbackBreakout','gongpasan','longTermQuality'];
 const entries=keys.map(key=>({key,items:[{code:'005930',name:'same',patternDetail:{status:'READY'}}]}));

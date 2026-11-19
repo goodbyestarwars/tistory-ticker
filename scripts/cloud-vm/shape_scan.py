@@ -16,7 +16,9 @@ import exit_plan
 import pattern_detect as pd
 
 VERSION = 'shape-selection-v1'
-GROUPS = ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'longTermQuality')
+GROUPS = ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'longTermQuality', 'leaderPullback')
+# 2026-11-20 독립 메뉴 leaderPullback(주도주 조용한 눌림)은 추가 키다. 이전 스냅샷에 없으면 빈 목록으로 채워 다른 메뉴를 막지 않는다.
+OPTIONAL_GROUPS = ('leaderPullback',)
 TRACK_PREFIX = 'pattern:shape:'
 BENCHMARKS = ('KOSPI', 'KOSDAQ')
 EDGE_PREFIX = 'pattern:edge:'
@@ -216,6 +218,10 @@ def public_snapshot(snapshot, now=None, basis=None):
         return None
     import copy
     out = copy.deepcopy(snapshot)
+    for name in ('groups', 'extended', 'research'):
+        if isinstance(out.get(name), dict):
+            for key in OPTIONAL_GROUPS:
+                out[name].setdefault(key, [])
     if not isinstance(out.get('groups'), dict) or any(not isinstance(out['groups'].get(k), list) for k in GROUPS):
         return None
     for name in ('extended', 'research'):

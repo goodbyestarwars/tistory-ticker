@@ -14,6 +14,14 @@
 
 판정식·임계값을 이 대장에 다시 정의하지 않는다. 현재 기준은 코드와 원본 명세에 두고, 이곳에는 변경 이유·버전 관계·비교 결과·남은 검증을 남긴다.
 
+## 메뉴 분리: SCN-20261120-MENU
+
+- 대상: 주도주 조용한 눌림 후보의 위치. 선정·승격·관찰 구간 판정·업종 1종목 규칙은 불변.
+- 이전→이후: `groups/research.pullbackRebreak`(눌림·재돌파 메뉴 안) → 독립 메뉴 `groups/research.leaderPullback`(스윙 탭 '주도주 조용한 눌림'). 관찰 구간·업종 중복 행은 이 메뉴에만 '매수 안 함'으로 표시.
+- 추적: `pattern:edge:quietLeaderPullback` 유지(키 불변), `pattern:shape-v2:leaderPullback`은 승격·연구 행 제외라 0건.
+- 호환: `shape_scan.py public_snapshot`이 이전 스냅샷에 없는 `leaderPullback`을 빈 목록으로 채움. 자동매매 후보 수집기는 두 위치를 모두 읽음(비공개 PR #5).
+- 상태: 코드·로컬 검증 완료, 운영 재선정·화면 실측은 배포 뒤 확인.
+
 ## 매도 기준 변경: SCN-20261120-EXIT
 
 - 대상: 주도주 조용한 눌림(`quietLeaderPullback`) 후보의 표시 매도 기준과 별도 성과 집계. 매수 선정·승격 관문·`groups` 구성은 불변.

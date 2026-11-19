@@ -1152,8 +1152,3 @@ html.dark #pattern-scan .ps-pick-gauge-labels b { color:var(--dk-text); }
 html.dark #pattern-scan .ps-pick-rate,html.dark #pattern-scan .ps-pick-gauge-track { background:var(--dk-line); }
 html.dark #pattern-scan .ps-pick-gauge-dot { box-shadow:0 0 0 2px var(--dk-card); }
 @media(max-width:720px) { #pattern-scan .ps-state-row.ps-pick { padding:14px; } #pattern-scan .ps-pick-quote { margin-left:0; justify-content:start; justify-items:start; } #pattern-scan .ps-pick-price { font-size:20px; } #pattern-scan .ps-pick-gauge { flex-basis:100%; max-width:none; } #pattern-scan .ps-pick .ps-state-actions { width:100%; } #pattern-scan .ps-pick .ps-state-detail { width:100%; text-align:center; } }
-/* 2026-11-20 주도주 조용한 눌림 상자(눌림·재돌파 탭). 기존 후보 카드 토큰을 재사용한다. */
-#pattern-scan .ps-leader-box { margin:0 0 16px; padding:16px 18px; background:var(--ui-surface,#fff); border:1px solid var(--ui-border,#ECE8E1); border-radius:var(--ui-radius-card,14px); box-shadow:var(--soft-raised,none); }
-#pattern-scan .ps-leader-box h3 { margin:0 0 6px; }
-#pattern-scan .ps-leader-line { margin:6px 0 0; font-size:13px; line-height:1.7; }
-#pattern-scan .ps-leader-line small { color:var(--ui-muted,#64748b); }

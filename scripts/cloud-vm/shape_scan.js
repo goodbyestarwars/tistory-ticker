@@ -1,6 +1,7 @@
 'use strict';
 // One bounded Node worker per existing daily scan; shared browser engine, no provider calls.
 // argv[2]: stock JSONL, argv[3] (optional): {KOSPI:[{date,close}], KOSDAQ:[...]} stored index closes.
+// 2026-11-20(2): 주도주 조용한 눌림을 독립 메뉴 leaderPullback으로 분리(사용자 지시: 기존과 같은 검색기 메뉴).
 // 2026-11-20: 주도주 조용한 눌림 매도 기준 exit-v2(60일선 보호·최대 250거래일, docs/RALLY_ANATOMY_STUDY_2026-11-19.md 7단계).
 // 2026-11-14: quiet-v1 표시·quietLeaderPullback 연구 태그(docs/EDGE_FACTOR_STUDY_2026-11-13.md). 이 주석 갱신 배포로 장외 모양 선정 재계산을 다시 실행한다(deploy_check.sh).
 const fs=require('node:fs'),readline=require('node:readline');
@@ -17,7 +18,7 @@ const EDGE={
  // 2026-11-14 docs/EDGE_FACTOR_STUDY_2026-11-13.md: 대형 주도 + 120봉 상승 뒤 눌림 + 조용함.
  timeLagAccumulation:{group:'longTermQuality',label:'시간차 매집',horizon:'최대 120거래일',
    note:'60일 거래량이 늘었는데 주가는 박스에 머묾 · 최근 10일 거래 마름 · 외국인+기관 60일 순매수 상위 30%'},
- quietLeaderPullback:{group:'pullbackRebreak',label:'주도주 조용한 눌림',horizon:'최대 250거래일',
+ quietLeaderPullback:{group:'leaderPullback',label:'주도주 조용한 눌림',horizon:'최대 250거래일',
    note:'거래대금 상위 15% · 120봉 상승 뒤 눌림/반등 · 조용함 상위 30%(낮은 고유 변동성·상승일 거래량 쏠림 없음)'}
 };
 // Exit plan shown with the research tag. exit-v2(2026-11-20 사용자 승인): 매도 규칙 54개 중 학습 기간(2021~2023) PF 최고 규칙,
@@ -31,7 +32,7 @@ const pctRank=values=>{const idx=values.map((v,i)=>[v,i]).filter(x=>Number.isFin
   const out=new Array(values.length).fill(null);idx.forEach((x,k)=>{out[x[1]]=(k+1)/idx.length;});return out;};
 const RESMOM_TOP=.4;
 (async()=>{
- const keys=['liveFlow','trendBreakout','bottomFormation','pullbackRebreak','longTermQuality'];
+ const keys=['liveFlow','trendBreakout','bottomFormation','pullbackRebreak','longTermQuality','leaderPullback'];
  const groups={},observed={},extended={},research={},filteredOut={};
  for(const key of keys){groups[key]=[];observed[key]=[];extended[key]=[];research[key]=[];filteredOut[key]=0;}
  let benchmarks=null;

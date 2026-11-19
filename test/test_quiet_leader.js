@@ -28,7 +28,7 @@ try{
   const kospi=base.map((_,i)=>({date:day(i),close:3000-i})),kosdaq=base.map((_,i)=>({date:day(i),close:900}));
   fs.writeFileSync(bench,JSON.stringify({KOSPI:kospi,KOSDAQ:kosdaq}));
   const out=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file,bench],{encoding:'utf8'}));
-  const tagged=out.research.pullbackRebreak.filter(r=>r.patternDetail.edgeSignals.some(t=>t.key==='quietLeaderPullback'));
+  const tagged=out.research.leaderPullback.filter(r=>r.patternDetail.edgeSignals.some(t=>t.key==='quietLeaderPullback'));
   assert.deepStrictEqual(tagged.map(r=>r.code),['000010'],'거래대금 상위·조용함 상위·120봉 눌림만 태그');
   const d=tagged[0].patternDetail;
   assert.strictEqual(d.orderAuthorized,false);assert.strictEqual(d.observationOnly,true);
@@ -52,11 +52,11 @@ try{
   fs.writeFileSync(file,rows2.map(r=>JSON.stringify(Object.assign({financialScreen:{passed:false}},r))).join('\n')+'\n');
   fs.writeFileSync(bench,JSON.stringify({KOSPI:rising,KOSDAQ:kosdaq}));
   const up=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file,bench],{encoding:'utf8'}));
-  const prom=up.groups.pullbackRebreak.filter(r=>r.patternDetail.promotedEdge);
+  const prom=up.groups.leaderPullback.filter(r=>r.patternDetail.promotedEdge);
   const bank=prom.filter(r=>r.patternDetail.industry==='은행');
   assert.strictEqual(bank.length,1,'같은 업종(은행)은 1종목만 승격');
   assert.strictEqual(bank[0].patternDetail.listKind,'primary');assert.strictEqual(bank[0].patternDetail.orderAuthorized,false);
-  assert.ok(up.research.pullbackRebreak.some(r=>r.patternDetail.industryDuplicate===true),'업종 중복은 연구에만');
+  assert.ok(up.research.leaderPullback.some(r=>r.patternDetail.industryDuplicate===true),'업종 중복은 연구에만');
   fs.writeFileSync(file,rows.map(r=>JSON.stringify(Object.assign({financialScreen:{passed:false}},r))).join('\n')+'\n');
   // 지수 자료가 없으면 쉬기 판정은 null(미확인)
   const out2=JSON.parse(cp.execFileSync(process.execPath,['scripts/cloud-vm/shape_scan.js',file],{encoding:'utf8'}));
@@ -66,7 +66,9 @@ try{
 // 3) 화면: 연구 태그 설명·조용함 표시 문구
 const src=fs.readFileSync('js/pattern-scan.js','utf8');
 assert.ok(/quietLeaderPullback:'주도주 조용한 눌림'/.test(src));
-assert.ok(/pullbackRebreak:\['rsHighResidual','quietLeaderPullback'\]/.test(src));
+assert.ok(/pullbackRebreak:\['rsHighResidual'\],leaderPullback:\['quietLeaderPullback'\]/.test(src));
+assert.ok(/\{key:'leaderPullback',label:'주도주 조용한 눌림'/.test(src),'독립 메뉴');
+assert.ok(/swing: \['bottomFormation', 'pullbackRebreak', 'leaderPullback'\]/.test(src),'스윙 묶음에 메뉴');
 assert.ok(/기본 후보에서 제외합니다/.test(src),'조용함 하위 30% 제외 안내');
 assert.ok(!/quietHtml/.test(src),'조용함 배지는 화면에 표시하지 않음');
 assert.ok(/function renderSimpleList/.test(src) && /자세히 보기/.test(src),'간단 화면 + 자세히 보기 접기');
