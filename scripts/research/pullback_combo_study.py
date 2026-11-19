@@ -273,7 +273,8 @@ def stats(g, trades=True):
     return out
 
 
-def main(lab, shape_tsv, out_path):
+def prepare(lab, shape_tsv):
+    """표·그룹 준비(7단계 exit_rule_study가 재사용, 2026-11-19)."""
     warnings.filterwarnings('ignore')
     data, flows = {}, {}
     earn = load_earn(os.environ.get('EARN_FILE', os.path.join(lab, 'earn.json')))
@@ -356,6 +357,12 @@ def main(lab, shape_tsv, out_path):
                        'SEC_LEAD & MOM': LEAD & MOM})
         groups = {k: m.values if hasattr(m, 'values') else m for k, m in groups.items()}
     up_side = df.regime.isin(['상승', '횡보'])
+    return df, groups, up_side, data, src
+
+
+def main(lab, shape_tsv, out_path):
+    warnings.filterwarnings('ignore')
+    df, groups, up_side, data, src = prepare(lab, shape_tsv)
     res = {'regime_source': src, 'shape_coverage': round(float(df.t120.notna().mean()) * 100, 1),
            'earn_coverage': round(float(df.e_op_sym.notna().mean()) * 100, 1),
            'periods': {p: [str(df[df.period == p].d.min()), str(df[df.period == p].d.max())] for p in ('train', 'valid', 'test')},
