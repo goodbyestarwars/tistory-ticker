@@ -42,7 +42,7 @@ body.learn-page .etf-summary { margin-top:16px; }
 </style>
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
   <div class="learn-search" id="learn-search"></div>
 
@@ -56,6 +56,12 @@ body.learn-page .etf-summary { margin-top:16px; }
   <b>ETF(Exchange Traded Fund, 상장지수펀드)</b>다. 이 글은 개인 투자자가 ETF를 살 때 실제로 돈이 새는 자리와
   함정을 중심으로 정리하고, 뒤에서는 국내 거래소에 상장된 ETF를 투자 관점별로 비교한다. 그림 속 숫자는 이해를 돕는 예시이고 실제 시세나 수익 예측이 아니다.</p>
 
+  
+  <div class="in-facts">
+    <div class="in-fact"><span>ETF는</span><strong>종목 바구니</strong></div>
+    <div class="in-fact"><span>실제 가치</span><strong>NAV</strong></div>
+    <div class="in-fact"><span>2배 레버리지가 따라가는 것</span><strong>하루 등락</strong></div>
+  </div>
   </section>
   <section class="learn-sec">
   <h2 id="sec-1">ETF는 무엇인가 - 여러 종목이 든 바구니를 한 종목처럼 산다</h2>
@@ -605,6 +611,13 @@ body.learn-page .etf-summary { margin-top:16px; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 바구니 속 주식의 가치(NAV)는 10,000원인데 ETF가 10,050원에 거래된다. 괴리율은?</summary><p>50 ÷ 10,000 = 0.5%다. 지금 사면 실제 가치보다 0.5% 비싸게 사는 셈이다.</p></details>
+  <details class="in-quiz"><summary>2. 지수가 하루는 +10%, 다음 날은 -10%였다. 2배 레버리지 ETF는?</summary><p>지수는 100 → 110 → 99로 1% 내렸다. 2배 레버리지는 100 → 120 → 96으로 4% 내렸다. 2배가 아니라 더 많이 깎였다.</p></details>
+  <details class="in-quiz"><summary>3. 1,000만 원을 1년 넣을 때 보수가 0.5%인 ETF와 0.05%인 ETF의 차이는?</summary><p>5만 원과 5천 원이다. 한 해는 작아 보여도 20년 쌓이면 차이가 커진다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="etf-advanced">
   <h2 id="etf-advanced">심화 연구실 · ETF가 지수를 따라가는 메커니즘</h2>
   <p>ETF 가격이 순자산가치(NAV) 근처에 머무는 이유 중 하나는 지정참가회사(AP) 등의 <b>설정·환매</b>과 시장조성 활동이다. 하지만 해외 기초자산 시장이 닫혔거나 변동성이 커진 날은 추정 NAV 자체가 불확실하므로 괴리율만으로 반드시 차익거래가 가능하다고 판단할 수 없다.</p>

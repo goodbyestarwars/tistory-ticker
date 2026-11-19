@@ -19,7 +19,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
   <div class="learn-search" id="learn-search"></div>
 
@@ -30,6 +30,12 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>뉴스에서 "국채금리가 올랐다"는 말이 나오면 주식시장이 같이 흔들리는 걸 자주 본다. 그런데 채권이 정확히
   뭘 사고파는 건지, 금리가 오르면 왜 채권 가격은 내려가는지는 막상 설명하기 어렵다. 채권의 구조와 금리·가격 관계를 이해하면, 채권시장 소식이 주식시장에 어떤 영향을 주는지도 따져볼 수 있다.</p>
 
+  
+  <div class="in-facts">
+    <div class="in-fact"><span>채권 가격과 금리</span><strong>반대로</strong></div>
+    <div class="in-fact"><span>금리에 더 민감한 것</span><strong>긴 만기</strong></div>
+    <div class="in-fact"><span>믿기 어려운 회사일수록</span><strong>높은 금리</strong></div>
+  </div>
   </section>
   <section class="learn-sec">
   <h2 id="sec-1">채권은 무엇인가 - 나라·회사에 돈을 빌려주는 증서</h2>
@@ -294,6 +300,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 1년 뒤 10,300원을 받는 채권이 있다. 요즘 금리가 3%면 오늘 값은 10,000원이다. 금리가 5%로 오르면?</summary><p>10,300 ÷ 1.05 = 약 9,810원이다. 같은 돈을 받는 채권인데 금리가 오르니 오늘 값은 내려간다.</p></details>
+  <details class="in-quiz"><summary>2. 금리가 1%p 오를 때 1년 만기 채권과 10년 만기 채권 중 어느 쪽 값이 더 많이 떨어질까?</summary><p>10년 만기다. 낮은 이자에 묶여 있는 기간이 길수록 손해가 커진다. 이것을 재는 숫자가 듀레이션이다.</p></details>
+  <details class="in-quiz"><summary>3. 같은 3년 만기인데 국채는 연 3%, 어떤 회사채는 연 6%다. 3%p 차이는 왜 생길까?</summary><p>회사가 돈을 못 갚을 위험에 대한 값이다. 이 차이를 신용스프레드라 하고, 신용등급이 낮을수록 커진다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="bond-advanced">
   <h2 id="bond-advanced">심화 연구실 · 채권의 가격은 금리 하나로 결정되지 않는다</h2>
   <p>채권의 가격은 약속된 현금흐름을 시점별 할인율로 나눈 합이다. 실무에서는 <b>듀레이션, 볼록성(convexity), 만기별 금리 민감도, 신용 스프레드, 유동성 프리미엄</b>을 구분한다. 쿠폰이 같은 채권도 만기와 수익률곡선 모양에 따라 금리 변화에 다른 반응을 보인다.</p>
