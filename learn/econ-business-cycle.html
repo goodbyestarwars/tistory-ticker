@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>4장 경기변동과 실업 · 경제 이야기</title>
-<meta name="description" content="경기순환의 네 국면과 완전고용·실업률 계산의 함정, 명목임금과 실질임금의 차이를 일상 예시로 설명한다." />
+<meta name="description" content="동네 식당 손님 수와 마을 100명으로 경기순환, 실업률 계산, 완전고용, 실질임금, 정부와 한국은행의 대응을 쉽게 설명한다." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
@@ -19,7 +19,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap econ-page">
   <div class="legal-backs">
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
@@ -27,125 +27,177 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-search" id="learn-search"></div>
 
   <h1>4장 · 경기변동과 실업</h1>
-  <p class="legal-effective-date">완전고용은 실업률 0%가 아니다</p>
+  <p class="legal-effective-date">장사가 잘되는 해와 안되는 해가 번갈아 오는 이유, 실업률 0%가 목표가 아닌 이유</p>
 
   <section class="learn-sec learn-sec--intro">
-  <p>아줌마 남편의 회사 상여금이 어느 해엔 두둑했다가, 어느 해엔 아예 안 나올 때가 있다. 학생들이
-  체감하는 취업 문도 어느 해엔 넓었다가 어느 해엔 좁아진다. 경기는 늘 일정하지 않고 호황과 불황을
-  오가는데, 이 흐름을 <b>경기순환</b>이라 부른다. 호황과 불황은 반복되지만 언제 얼마나 크게 바뀔지는 일정하지 않다.</p>
+  <p>동네 치킨집을 떠올려 보자. 어떤 해에는 저녁마다 자리가 꽉 차서 아르바이트생을 두 명 더 뽑는다.
+  어떤 해에는 손님이 줄어 사장님 혼자 가게를 지킨다. 치킨 맛은 그대로인데 왜 이럴까? 동네 사람들의 주머니
+  사정이 좋아졌다 나빠졌다 하기 때문이다. 나라 전체의 이런 오르내림을 <b>경기</b>라 하고, 좋아졌다 나빠졌다를
+  되풀이하는 것을 <b>경기순환</b>이라 한다.</p>
+  </section>
 
+  <section class="learn-sec">
+  <h2 id="sec-1">경기는 물결처럼 움직인다</h2>
   <figure class="learn-fig">
-    <svg viewBox="0 0 420 210" role="img" aria-label="경기순환: 회복에서 호황으로 올랐다가 후퇴를 거쳐 불황으로 내려간 뒤 다시 회복하는 물결 모양 그래프">
-      <text class="fig-sub" x="0" y="14">경제 활동 수준</text>
-      <path class="fig-dash" d="M0 140 L420 140" />
-      <path class="fig-ink-line" d="M0 140 L60 100 L120 50 L180 80 L240 140 L300 180 L360 140 L420 90" />
-      <text class="fig-ink" x="94" y="38" font-size="12">호황</text>
-      <text class="fig-ink" x="176" y="66" font-size="12">후퇴</text>
-      <text class="fig-ink" x="272" y="196" font-size="12">불황</text>
-      <text class="fig-ink" x="336" y="112" font-size="12">회복</text>
-      <text class="fig-sub" x="380" y="204">시간 →</text>
+    <svg viewBox="0 0 420 220" role="img" aria-label="경기순환 그래프: 회복에서 호황으로 올랐다가 후퇴를 거쳐 불황으로 내려간 뒤 다시 회복한다. 점선은 조금씩 오르는 장기 추세선이다">
+      <text class="fig-sub" x="0" y="14">나라 전체의 경제 활동</text>
+      <path class="fig-dash" d="M0 160 L420 110" />
+      <path class="fig-ink-line" d="M0 160 C40 150 70 70 120 62 C170 56 190 120 240 160 C280 190 320 170 360 130 C385 108 405 92 420 86" />
+      <circle class="fig-up" cx="120" cy="62" r="5" />
+      <text class="fig-up" x="98" y="48" font-size="13">호황</text>
+      <text class="fig-ink" x="204" y="92" font-size="13">후퇴</text>
+      <circle class="fig-down" cx="282" cy="177" r="5" />
+      <text class="fig-down" x="266" y="202" font-size="13">불황</text>
+      <text class="fig-ink" x="352" y="164" font-size="13">회복</text>
+      <text class="fig-sub" x="360" y="214">시간 →</text>
+      <text class="fig-sub" x="250" y="112">장기 추세</text>
     </svg>
-    <figcaption>회복 → 호황 → 후퇴 → 불황이 반복되는 게 경기순환이다. 점선은 장기 성장 추세선이다.</figcaption>
+    <figcaption>회복 → 호황 → 후퇴 → 불황이 되풀이된다. 언제, 얼마나 크게 바뀔지는 해마다 다르다.</figcaption>
   </figure>
 
-  </section>
-  <section class="learn-sec">
-  <h2 id="sec-1">실업률 0%는 목표가 아니다</h2>
-  <p>"완전고용"이라고 하면 실업자가 아예 없는 상태를 떠올리기 쉽지만, 실제로는 그렇지 않다.</p>
-
-  <ul>
-    <li><b>학생</b> 대학을 갓 졸업하고 첫 직장을 구하는 중인 사람 - 능력이 없어서가 아니라 원서를
-    넣고 면접을 보는 그 몇 달의 "과정"에 있는 것이다(마찰적 실업).</li>
-    <li><b>아줌마</b> 지금 직장을 그만두고 더 나은 곳으로 이직을 준비 중인 사람도 마찬가지다.</li>
-    <li>스키장이 겨울에만 사람을 뽑는 것처럼, 계절적으로 일이 없는 업종의 근로자(계절적 실업)도
-    있다.</li>
-  </ul>
-
-  <div class="learn-note">
-    <b>완전고용의 진짜 뜻</b> 이런 "자연스러운" 실업(마찰적·계절적 실업)은 경기가 아무리 좋아도 항상
-    존재한다. 그래서 경제학에서 말하는 완전고용은 이런 자연실업만 남고, 경기가 나빠서 생기는 실업
-    (경기적 실업)은 없는 상태를 뜻한다. 흔히 실업률 3~4% 정도를 완전고용에 가깝다고 본다 - 실업률 0%가
-    아니다.
-  </div>
-
-  </section>
-  <section class="learn-sec">
-  <h2 id="sec-2">실업률은 어떻게 계산할까</h2>
-  <p>여기서 흔히 오해하는 부분이 있다. 실업률의 분모는 '전체 국민'이 아니라 <b>경제활동인구</b>(일할
-  의사와 능력이 있는 사람)다. 즉, 취업을 아예 포기하고 구직활동도 안 하는 '구직단념자'는 실업자로
-  잡히지 않고 통계에서 빠진다. 그래서 실제 체감 고용 상황보다 공식 실업률이 낮게 나오는 경우가 종종
-  있다.</p>
-
-  <div class="learn-note">
-    <b>학생 관점 - 통계에 안 잡히는 "쉬었음" 청년</b> 취업 준비를 하다 지쳐서 당분간 구직을 쉬기로 한
-    친구가 있다고 하자. 이 친구는 "일할 의사가 있는 사람"으로 분류되지 않아 실업자 수에도 안 잡히고,
-    그렇다고 취업자도 아니다. 공식 실업률만 보면 이런 친구들의 존재가 드러나지 않는다 - 통계 하나만
-    보고 "요즘 취업 잘되나 보다"고 단정하면 안 되는 이유다.
-  </div>
-
-  </section>
-  <section class="learn-sec">
-  <h2 id="sec-3">명목임금 vs 실질임금</h2>
-  <p>임금은 노동생산성, 생계비, 노동시장의 수요·공급이 함께 작용해 결정된다. 여기서 꼭 구분해야 할
-  게 있다.</p>
-
   <table class="learn-table">
-    <thead><tr><th>구분</th><th>뜻</th><th>예시(가상값)</th></tr></thead>
+    <thead><tr><th>국면</th><th>동네 치킨집</th><th>일자리</th><th>흔히 보이는 일</th></tr></thead>
     <tbody>
-      <tr><td>명목임금</td><td>통장에 찍히는 실제 금액</td><td>월급 300만 원 → 315만 원(+5%)</td></tr>
-      <tr><td>실질임금</td><td>그 돈으로 실제 살 수 있는 물건의 양</td><td>같은 기간 물가가 +7%면, 명목은 늘었어도 실질은 오히려 줄어든 것</td></tr>
+      <tr><td>호황</td><td>자리가 꽉 찬다</td><td>사람을 더 뽑는다</td><td>물가가 오르기 쉽다</td></tr>
+      <tr><td>후퇴</td><td>손님이 슬슬 준다</td><td>새로 뽑는 걸 멈춘다</td><td>회사 보너스가 줄어든다</td></tr>
+      <tr><td>불황</td><td>빈자리가 많다</td><td>일자리를 잃는 사람이 늘어난다</td><td>정부와 한국은행이 돕기 시작한다</td></tr>
+      <tr><td>회복</td><td>단골이 돌아온다</td><td>다시 조금씩 뽑는다</td><td>가게들이 문을 다시 넓힌다</td></tr>
     </tbody>
   </table>
-
-  <p>뉴스에서 "임금이 올랐는데 살림은 더 팍팍해졌다"는 얘기가 나오는 게 바로 이 명목-실질 간의 괴리
-  때문이다. 아줌마가 "분명 남편 월급은 올랐는데 왜 쓸 돈은 그대로지?"라고 느낀다면, 십중팔구 물가
-  상승률이 임금 상승률을 앞지른 경우다.</p>
-
-  <div class="learn-note">
-    <b>개미 관점 - 경기민감주 vs 경기방어주</b> 회사도 이 경기순환을 탄다. 건설·철강·반도체처럼 경기가
-    좋을 때 실적이 크게 늘고 나쁠 때 크게 주는 업종을 "경기민감주", 음식료·통신처럼 경기와 상관없이
-    꾸준히 소비되는 업종을 "경기방어주"라 부른다. 지금이 경기순환의 어느 국면에 가까운지에 대한
-    판단(사후 확인이 아니라 참고 정도로만)이 업종을 고를 때 참고 정보가 되는 이유다.
-  </div>
-
+  <p>왜 이렇게 오르내릴까? 사람들이 돈을 많이 쓰면 가게가 바빠지고, 가게가 사람을 더 뽑으면 월급 받는
+  사람이 늘어 다시 돈을 쓴다. 반대로 걱정이 커져 다들 지갑을 닫으면 가게가 한가해지고 일자리가 줄어 또
+  지갑을 닫는다. 기름값이 갑자기 뛰거나 큰 병이 퍼지는 것처럼 밖에서 오는 충격도 물결을 만든다.</p>
   </section>
+
   <section class="learn-sec">
-  <h2 id="sec-4">정부와 한국은행은 그냥 지켜보지 않는다</h2>
-  <p>경기가 너무 뜨겁거나(과열) 너무 차가우면(불황) 정부와 한국은행이 개입한다. 크게 두 가지 도구를
-  쓴다.</p>
+  <h2 id="sec-2">실업률은 어떻게 셀까 · 마을 100명으로 계산하기</h2>
+  <p>열다섯 살 이상 주민이 100명인 마을이 있다고 하자.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="15세 이상 100명 중 일하는 사람 57명, 일을 찾는 사람 3명, 학생·주부·은퇴·쉬는 사람 40명. 실업률은 3을 60으로 나눈 5퍼센트">
+      <text class="fig-ink" x="0" y="18">15세 이상 주민 100명</text>
+      <rect class="fig-bar" x="0" y="34" width="239" height="40" rx="4" />
+      <text class="fig-on-strong" x="12" y="59">일하는 사람 57명</text>
+      <rect class="fig-up" x="241" y="34" width="13" height="40" />
+      <rect class="fig-soft2" x="256" y="34" width="164" height="40" rx="4" />
+      <text class="fig-ink" x="266" y="59">학생·은퇴 등 40명</text>
+      <path class="fig-ink-line" d="M247 78 V96" />
+      <text class="fig-up" x="196" y="112" font-size="13">일을 찾는 사람 3명</text>
+      <path class="fig-ink-line" d="M0 130 H254" />
+      <path class="fig-ink-line" d="M0 124 V136 M254 124 V136" />
+      <text class="fig-sub" x="46" y="154">경제활동인구 60명(일하거나 일을 찾는 사람)</text>
+      <text class="fig-ink" x="0" y="182">실업률 = 3 ÷ 60 = 5%</text>
+    </svg>
+    <figcaption>실업률은 100명이 아니라 60명으로 나눈다. 일할 생각이 있는 사람 가운데 일을 못 구한 사람의 비율이다. 가상 숫자.</figcaption>
+  </figure>
 
   <table class="learn-table">
-    <thead><tr><th>도구</th><th>불황일 때</th><th>과열일 때</th></tr></thead>
+    <thead><tr><th>이름</th><th>누구</th><th>마을 예</th></tr></thead>
     <tbody>
-      <tr><td>재정정책(정부)</td><td>세금을 깎거나 지출을 늘려 돈을 푼다</td><td>세금을 늘리거나 지출을 줄인다</td></tr>
-      <tr><td>통화정책(한국은행)</td><td>기준금리를 내려 대출을 쉽게 한다</td><td>기준금리를 올려 대출을 조인다</td></tr>
+      <tr><td>취업자</td><td>돈을 받고 일한 사람</td><td>57명</td></tr>
+      <tr><td>실업자</td><td>최근 4주 동안 일을 찾아다녔고, 일이 생기면 바로 할 수 있는 사람</td><td>3명</td></tr>
+      <tr><td>비경제활동인구</td><td>학생, 집안일만 하는 사람, 은퇴한 사람, 그냥 쉬고 있는 사람</td><td>40명</td></tr>
     </tbody>
   </table>
 
   <div class="learn-note">
-    <b>아줌마 관점 - 재난지원금과 금리 인하가 같이 오는 이유</b> 불황이 심할 때 정부가 지원금을 풀고,
-    동시에 한국은행이 기준금리를 내리는 뉴스를 함께 보는 경우가 많다. 지원금(재정정책)은 당장 지갑에
-    돈을 넣어 소비를 늘리고, 금리 인하(통화정책)는 대출 이자 부담을 줄여 씀씀이·투자를 늘리도록
-    유도한다 - 둘 다 "식어버린 소비·투자에 온기를 넣는" 같은 목적을 서로 다른 통로로 하는 것이다.
+    <b>학생 관점 · 통계에 안 잡히는 형</b> 취업 준비를 하다 지쳐서 몇 달째 원서를 안 내고 쉬는 형이 있다.
+    이 형은 일을 찾지 않았으니 실업자가 아니다. 비경제활동인구로 빠진다. 이런 사람이 늘면 실업률은
+    오히려 내려갈 수도 있다. 실업률 하나만 보고 "요즘 취업이 잘된다"고 말하면 안 되는 이유다.
+    그래서 고용률(15세 이상 인구 가운데 일하는 사람의 비율, 마을에서는 57%)을 함께 본다.
   </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">실업자에도 여러 종류가 있다</h2>
+  <table class="learn-table">
+    <thead><tr><th>종류</th><th>왜 생기나</th><th>예</th><th>경기가 좋아지면?</th></tr></thead>
+    <tbody>
+      <tr><td>마찰적 실업</td><td>더 맞는 일을 찾는 중이라서</td><td>졸업하고 첫 직장을 고르는 누나, 이직 준비 중인 엄마</td><td>그래도 남는다</td></tr>
+      <tr><td>계절적 실업</td><td>철마다 일이 있다 없다 해서</td><td>겨울에만 문을 여는 스키장 직원</td><td>그래도 남는다</td></tr>
+      <tr><td>구조적 실업</td><td>기술이 바뀌어 하던 일이 사라져서</td><td>무인 계산대가 늘어 줄어든 계산원 자리</td><td>새 기술을 배워야 줄어든다</td></tr>
+      <tr><td>경기적 실업</td><td>경기가 나빠 회사가 사람을 줄여서</td><td>불황에 공장이 일감을 줄임</td><td>줄어든다</td></tr>
+    </tbody>
+  </table>
+  <p>경기가 아무리 좋아도 마찰적·계절적 실업은 남는다. 그래서 경제학에서 말하는 <b>완전고용</b>은 실업률
+  0%가 아니다. 경기 때문에 생기는 실업만 없는 상태를 말한다. 우리나라 실업률은 2000년대 이후 한 해 평균으로 대체로 3% 안팎이었다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">월급이 올랐는데 왜 살림은 그대로일까 · 실질임금</h2>
+  <p>통장에 찍히는 월급을 <b>명목임금</b>, 그 돈으로 실제 살 수 있는 물건의 양을 <b>실질임금</b>이라 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>작년</th><th>올해</th><th>변화</th></tr></thead>
+    <tbody>
+      <tr><td>월급(명목임금)</td><td>300만 원</td><td>312만 원</td><td>+4%</td></tr>
+      <tr><td>장바구니 한 번 값</td><td>10만 원</td><td>10만 6천 원</td><td>+6%</td></tr>
+      <tr><td>월급으로 채우는 장바구니 수(실질임금)</td><td>30번</td><td>약 29.4번</td><td>약 -2%</td></tr>
+    </tbody>
+  </table>
+  <p>월급 숫자는 늘었지만 물가가 더 빨리 올라 살 수 있는 양은 줄었다. "월급은 올랐는데 쓸 돈이 없다"는 말이
+  여기서 나온다. 직접 계산해 보고 싶으면 3장의 계산기를 써 보자.</p>
 
   <div class="learn-note">
-    <b>학생 관점 - 금리가 오르면 왜 취업이 더 어려워질까</b> 기준금리가 오르면 기업의 대출 이자 부담이
-    커진다. 신규 투자·채용에 쓸 돈이 그만큼 빠듯해지고, 그러면 채용 규모부터 줄이는 경우가 많다.
-    "금리가 오른다"는 뉴스가 당장 내 통장과 상관없어 보여도, 몇 달 뒤 취업 시장 분위기로 이어질 수
-    있는 이유다.
+    <b>개미 관점 · 경기를 타는 회사, 덜 타는 회사</b> 건설·철강·반도체처럼 경기가 좋을 때 실적이 크게 늘고
+    나쁠 때 크게 줄어드는 업종을 경기민감주라고 부른다. 라면·통신·전기처럼 경기와 상관없이 늘 쓰는 업종은
+    경기방어주라고 부른다. 다만 지금이 물결의 어디쯤인지는 지나고 나서야 확실히 알 수 있다.
   </div>
-
-
   </section>
-<section class="learn-deep" aria-labelledby="econ-cycle-deep"><h2 id="econ-cycle-deep">심화 연구실 · 경기 순환은 정해진 시계처럼 반복되지 않는다</h2>
-<p>경기는 잠재 생산능력과 실제 생산의 차이, 기업 투자와 재고 순환, 소비·고용·신용 여건의 변화를 통해 연구한다. GDP 성장률이 양수여도 잠재 성장률보다 낮으면 생산 갭이 악화할 수 있다.</p>
-<div class="learn-lab"><h3>가상 사례 · 명목과 실질 성장의 차이</h3><p>한 경제의 상품 생산량이 전년보다 2% 늘고 평균 가격이 5% 상승했다고 하자. 단순 단일 상품 가정에서는 명목 생산액이 1.02 × 1.05 − 1 = <b>7.1%</b> 상승한다. 실질 생산 증가 2%와 혼동하지 않는다.</p><p class="learn-math">명목 성장률 = (1 + 실질 성장률) × (1 + 가격 변화율) − 1</p></div>
-<div class="learn-grid"><div><h3>실업과 경기</h3><p>오쿤의 법칙은 성장과 실업률 변화 사이의 경험적 관계다. 계수는 국가와 시기, 노동생산성 변화에 따라 달라지는 추정값이지 자연법칙이 아니다.</p></div><div><h3>선행·동행·후행</h3><p>주가와 신규 주문은 때로 선행하고 생산과 고용은 뒤늦게 반영되기도 한다. 관측치의 최초 발표 시점을 남겨야 사후 수정치로 미래를 맞힌 착각을 피할 수 있다.</p></div></div></section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">정부와 한국은행은 그냥 보고만 있지 않는다</h2>
+  <p>물결이 너무 높거나 너무 깊으면 사람들이 힘들어진다. 그래서 정부와 한국은행이 물결을 고르게 하려고 손을 쓴다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 180" role="img" aria-label="불황에는 정부가 돈을 더 쓰고 한국은행이 금리를 내려 경기를 데우고, 과열에는 반대로 식힌다">
+      <rect class="fig-soft" x="0" y="0" width="205" height="170" rx="8" />
+      <text class="fig-down" x="14" y="26" font-size="14">불황일 때 · 데우기</text>
+      <text class="fig-ink" x="14" y="58" font-size="13">정부</text>
+      <text class="fig-sub" x="14" y="78">세금을 깎거나 돈을 더 쓴다</text>
+      <text class="fig-ink" x="14" y="110" font-size="13">한국은행</text>
+      <text class="fig-sub" x="14" y="130">기준금리를 내린다</text>
+      <text class="fig-sub" x="14" y="150">→ 빌리기 쉬워진다</text>
+      <rect class="fig-soft2" x="215" y="0" width="205" height="170" rx="8" />
+      <text class="fig-up" x="229" y="26" font-size="14">과열일 때 · 식히기</text>
+      <text class="fig-ink" x="229" y="58" font-size="13">정부</text>
+      <text class="fig-sub" x="229" y="78">씀씀이를 줄인다</text>
+      <text class="fig-ink" x="229" y="110" font-size="13">한국은행</text>
+      <text class="fig-sub" x="229" y="130">기준금리를 올린다</text>
+      <text class="fig-sub" x="229" y="150">→ 빌리기 어려워진다</text>
+    </svg>
+    <figcaption>정부가 쓰는 방법을 재정정책, 한국은행이 금리로 쓰는 방법을 통화정책이라 한다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>학생 관점 · 금리가 오르면 왜 취업이 어려워질까</b> 기준금리가 오르면 회사가 빌린 돈의 이자가 늘어난다.
+    공장을 새로 짓거나 사람을 뽑을 돈이 빠듯해진다. 그래서 금리가 오른다는 뉴스는 몇 달 뒤 채용 공고 수로
+    이어지기도 한다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 마을 15세 이상 200명 중 일하는 사람 114명, 일을 찾는 사람 6명이다. 실업률은?</summary><p>경제활동인구 = 114 + 6 = 120명. 실업률 = 6 ÷ 120 = 5%다. 200명으로 나누지 않는다.</p></details>
+  <details class="in-quiz"><summary>2. 일을 찾던 3명이 지쳐서 구직을 그만두었다. 실업률은 어떻게 될까?</summary><p>실업자 0명, 경제활동인구 57명이 되어 실업률은 0%로 내려간다. 일자리는 하나도 늘지 않았는데 숫자만 좋아 보인다. 고용률은 57%로 그대로다.</p></details>
+  <details class="in-quiz"><summary>3. 실업률 0%를 만들면 가장 좋은 걸까?</summary><p>더 맞는 일을 고르는 사람(마찰적 실업)까지 없애려면 아무 일이나 바로 잡게 해야 한다. 그래서 0%는 목표가 아니다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="econ-cycle-deep">
+  <h2 id="econ-cycle-deep">한 걸음 더 · 경기는 무엇으로 재나</h2>
+  <p>경기를 한 숫자로 재기는 어렵다. 그래서 여러 신호를 함께 본다.</p>
+  <table class="learn-table">
+    <thead><tr><th>신호</th><th>무엇을 보나</th><th>언제쯤 움직이나</th></tr></thead>
+    <tbody>
+      <tr><td>경제성장률(GDP)</td><td>나라 전체가 만든 것이 얼마나 늘었나 (8장)</td><td>분기마다 발표</td></tr>
+      <tr><td>고용률·실업률</td><td>일하는 사람과 일을 찾는 사람</td><td>경기보다 조금 늦게</td></tr>
+      <tr><td>경기선행지수</td><td>주가, 기계 주문, 건설 수주처럼 미리 움직이는 것들을 모은 숫자</td><td>경기보다 앞서서</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">어른을 위한 덧붙임: 실업률은 계절에 따라 출렁여서 보통 계절 요인을 뺀(계절조정) 숫자와 작년 같은 달 숫자를 함께 본다. 경기의 꼭대기와 바닥은 한참 지난 뒤에 공식적으로 정해진다.</p>
+  </section>
 
   <h2>한 줄 정리</h2>
-  <p>경기를 볼 때는 생산과 고용이 어느 단계에 있는지 함께 봐야 한다. 월급이 올랐다는 뉴스는 같은 기간
-  물가 상승률과 비교해야 실제 구매력이 늘었는지 판단할 수 있다.</p>
+  <p>경기는 호황과 불황을 오가는 물결이다. 실업률은 일할 생각이 있는 사람 가운데 일을 못 구한 사람의 비율이고,
+  일을 고르는 사람은 늘 있으니 완전고용도 0%가 아니다. 월급은 물가와 함께 봐야 진짜 크기(실질임금)가 보인다.</p>
 
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-inflation.html">← 3장 물가와 인플레이션</a>

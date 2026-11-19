@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>2장 보이지 않는 손 · 경제 이야기</title>
-<meta name="description" content="수요·공급과 시장가격이 스스로 맞아가는 원리를 명절 기차표, 전통시장 흥정 같은 일상 예시로 설명한다." />
+<meta name="description" content="학교 앞 붕어빵 가게의 숫자로 수요·공급·균형가격, 가격을 묶을 때 생기는 일, 경쟁과 독점을 쉽게 설명한다." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
@@ -19,7 +19,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap econ-page">
   <div class="legal-backs">
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
@@ -27,117 +27,196 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-search" id="learn-search"></div>
 
   <h1>2장 · 보이지 않는 손</h1>
-  <p class="legal-effective-date">명절 기차표는 왜 매진되고, 전통시장 흥정은 왜 되는가</p>
+  <p class="legal-effective-date">아무도 정해 주지 않았는데 붕어빵 값은 어떻게 정해질까</p>
 
   <section class="learn-sec learn-sec--intro">
-  <p>명절만 되면 기차표 예매창이 열리자마자 매진된다. 표값은 그대로인데 사려는 사람이 훨씬 많아서
-  생기는 일이다. 만약 표값을 자유롭게 올릴 수 있다면 어떨까 - 값이 오르는 만큼 "그 가격이면 버스
-  타지" 하며 일부는 포기하고, 정말 급한 사람만 남는다. 이렇게 <b>가격이라는 신호 하나로 사려는 사람
-  수와 팔 수 있는 양이 스스로 맞춰지는 것</b>을 애덤 스미스는 "보이지 않는 손"이라 불렀다.</p>
-
+  <p>겨울이 되면 학교 앞에 붕어빵 가게가 생긴다. 아저씨가 한 개에 500원을 받으면 줄이 길게 늘어서고
+  금방 다 팔린다. 2,000원을 받으면 사 먹는 아이가 거의 없어 붕어빵이 식어 간다. 아저씨는 며칠 장사를
+  해 보며 값을 고치고, 결국 줄도 너무 길지 않고 붕어빵도 남지 않는 값을 찾아낸다.</p>
+  <p>누가 시킨 것도 아닌데 값이 저절로 알맞게 맞춰진다. 250년쯤 전 영국의 경제학자 애덤 스미스는 이것을
+  <b>보이지 않는 손</b>이라고 불렀다. 그 손의 정체는 가격이다.</p>
   </section>
+
   <section class="learn-sec">
-  <h2 id="sec-1">수요와 공급이 만나는 자리</h2>
-  <p>가격이 비싸지면 사려는 사람(수요)은 줄고, 팔려는 사람(공급)은 늘어난다. 반대로 가격이 싸지면
-  사려는 사람은 늘고 팔려는 사람은 준다. 이 둘이 만나는 지점에서 가격과 거래량이 자연스럽게
-  정해진다.</p>
+  <h2 id="sec-1">사려는 마음(수요)과 팔려는 마음(공급)</h2>
+  <p>붕어빵 값에 따라 아이들이 사려는 개수와 아저씨가 굽고 싶은 개수가 어떻게 달라지는지 표로 적어 보자.</p>
 
-  <figure class="learn-fig">
-    <svg viewBox="0 0 420 240" role="img" aria-label="수요 곡선과 공급 곡선이 교차하는 지점에서 균형가격과 균형거래량이 정해지는 그래프">
-      <path class="fig-line" d="M40 20 L40 200" />
-      <path class="fig-line" d="M40 200 L390 200" />
-      <text class="fig-sub" x="10" y="26">가격</text>
-      <text class="fig-sub" x="330" y="216">수량(거래량)</text>
-
-      <path class="fig-ink-line" d="M50 30 L370 190" />
-      <text class="fig-ink" x="300" y="175" font-size="12">수요</text>
-
-      <path class="fig-down-line" d="M50 190 L370 30" />
-      <text class="fig-ink" x="300" y="45" font-size="12">공급</text>
-
-      <path class="fig-dash" d="M210 110 L210 200" />
-      <path class="fig-dash" d="M40 110 L210 110" />
-      <circle class="fig-marker" cx="210" cy="110" r="4" />
-      <text class="fig-sub" x="44" y="104">균형가격</text>
-      <text class="fig-sub" x="170" y="218">균형거래량</text>
-    </svg>
-    <figcaption>수요 곡선(사려는 사람)과 공급 곡선(팔려는 사람)이 만나는 자리에서 가격이 자연스럽게 정해진다.</figcaption>
-  </figure>
-
-  <div class="learn-note">
-    <b>아줌마 관점 - 전통시장 흥정이 되는 이유</b> 대형마트는 정찰제라 가격을 못 깎지만, 전통시장에서
-    "배추 한 포기 더 주세요"가 통하는 건 상인마다 사정이 달라서다. 마감 시간이 다가와 오늘 안에 팔아야
-    하는 상인은 값을 낮춰서라도 팔려 하고(공급이 그 순간 늘어나는 것과 같은 효과), 손님이 "그 가격이면
-    다른 가게 가겠다"고 하면 그 자리에서 가격이 다시 맞춰진다 - 이게 바로 수요·공급이 실시간으로
-    조정되는 살아있는 예다.
-  </div>
-
-  </section>
-  <section class="learn-sec">
-  <h2 id="sec-2">거래는 양쪽 모두를 이롭게 한다</h2>
-  <p>시장에서 거래가 이루어졌다는 건 파는 사람도 사는 사람도 그 거래가 자신에게 이득이라고 판단했다는
-  뜻이다. 만 원짜리 물건이 만 원에 팔렸다면, 파는 사람은 "물건보다 만 원이 낫다"고, 사는 사람은
-  "만 원보다 물건이 낫다"고 생각한 것이다. 강요 없이 자발적으로 이루어지는 거래는 이렇게 양쪽 모두를
-  더 낫게 만든다.</p>
-
-  </section>
-  <section class="learn-sec">
-  <h2 id="sec-3">전제조건은 '경쟁'이다</h2>
-  <p>이 자율 조정이 제대로 작동하려면 파는 사람도 사는 사람도 여럿이어야 한다.</p>
-
-  <div class="learn-note">
-    <b>학생 관점 - 편의점이 하나뿐인 동네</b> 학교 앞에 편의점이 세 곳이면 삼각김밥 값이 오르면 학생들이
-    다른 곳으로 옮겨가니 가격이 쉽게 못 오른다. 그런데 시골 동네에 편의점이 딱 하나뿐이라면 얘기가
-    다르다. 그 편의점은 굳이 가격을 낮출 이유가 없고, 오히려 물건을 조금 덜 들여놔도(공급을 줄여도)
-    학생들은 다른 선택지가 없어 살 수밖에 없다. 이런 상태를 <b>독점</b>이라 부르고, 시장경제가 건강하게
-    작동하려면 '경쟁'이라는 전제가 꼭 필요한 이유가 여기 있다.
-  </div>
-
-  </section>
-  <section class="learn-sec">
-  <h2 id="sec-4">가격을 억지로 묶으면 무슨 일이 생길까</h2>
-  <p>정부가 "너무 비싸다"며 가격에 상한선을 그으면 어떻게 될까. 시장가격보다 낮게 <b>가격상한제</b>를
-  두면, 그 가격에 팔겠다는 공급자는 줄고 사겠다는 사람은 늘어 <b>공급 부족</b>이 생긴다. 반대로
-  시장가격보다 높게 <b>가격하한제</b>(최저임금이 대표적)를 두면, 그 가격에 사겠다는 쪽(일자리라면
-  고용주)이 줄어 <b>초과공급</b>(구직자 대비 일자리 부족)이 생길 수 있다.</p>
-
-  <div class="learn-note">
-    <b>학생 관점 - 최저임금과 아르바이트 자리</b> 최저임금이 오르면 시급을 받는 학생 입장에선 반갑다.
-    하지만 이건 가격하한제이기도 하다 - 편의점 사장님이 감당할 수 있는 인건비를 넘어서면, 사람을 덜
-    쓰거나 근무시간을 줄이는 식으로 반응할 수 있다. "최저임금을 올리면 모두에게 좋다"가 아니라
-    "누군가는 이득, 누군가는 일자리 자체를 못 구할 수 있다"는 양면이 있는 이유다.
-  </div>
-
-  <div class="learn-note">
-    <b>아줌마 관점 - 전월세 상한제</b> 전셋값이 급등할 때 정부가 임대료 상승 폭에 상한을 두는 경우가
-    있다. 세입자 입장에선 당장 부담이 줄지만, 집주인이 "이 가격엔 안 내놓겠다"며 매물을 거둬들이면
-    시중에 나온 전셋집 자체가 줄어드는 부작용이 생길 수 있다 - 가격을 누르면 대개 그 대가로 "구하기
-    어려움"이 어딘가에서 나타난다.
-  </div>
-
-  </section>
-  <section class="learn-sec">
-  <h2 id="sec-5">시장을 움직이는 네 주체</h2>
   <table class="learn-table">
-    <thead><tr><th>주체</th><th>역할</th><th>예시</th></tr></thead>
+    <thead><tr><th>한 개 값</th><th>아이들이 사려는 개수(수요)</th><th>아저씨가 굽고 싶은 개수(공급)</th><th>어떻게 되나</th></tr></thead>
     <tbody>
-      <tr><td>가계</td><td>소비의 주체, 노동력을 공급</td><td>아줌마가 월급 받아 장 보기, 학생이 아르바이트로 용돈 벌기</td></tr>
-      <tr><td>기업</td><td>생산의 주체, 이윤을 추구</td><td>원자재 사서 제품 만들어 팔기</td></tr>
-      <tr><td>정부</td><td>시장 실패를 보완, 조세·재정 운용</td><td>세금 걷어 도로·국방 서비스 제공</td></tr>
-      <tr><td>해외부문</td><td>수출입, 외국 자본의 유출입</td><td>반도체 수출, 외국인의 국내 주식 매수('주식 이야기' 4장에서 다룬 "외국인")</td></tr>
+      <tr><td>500원</td><td>40개</td><td>10개</td><td>30개 모자람 · 줄이 길다</td></tr>
+      <tr><td>1,000원</td><td>25개</td><td>25개</td><td>딱 맞음</td></tr>
+      <tr><td>1,500원</td><td>10개</td><td>40개</td><td>30개 남음 · 붕어빵이 식는다</td></tr>
     </tbody>
   </table>
+  <p class="in-small">하루 오후 기준 가상 숫자다.</p>
 
+  <ul>
+    <li><b>값이 오르면 사려는 개수는 줄어든다.</b> 용돈은 그대로인데 붕어빵이 비싸지면 떡볶이를 사 먹는 아이가 생긴다.</li>
+    <li><b>값이 오르면 굽고 싶은 개수는 늘어난다.</b> 한 개를 팔아 남는 돈이 많아지니 아저씨는 반죽을 더 준비한다.</li>
+  </ul>
 
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 250" role="img" aria-label="붕어빵 수요곡선과 공급곡선. 500원일 때 30개가 모자라고, 두 곡선이 만나는 1000원 25개에서 가격이 정해진다">
+      <path class="fig-line" d="M50 30 V210 H410" />
+      <text class="fig-sub" x="0" y="24">값(원)</text>
+      <text class="fig-sub" x="340" y="240">개수 →</text>
+      <text class="fig-sub" x="12" y="169">500</text>
+      <text class="fig-sub" x="6" y="124">1,000</text>
+      <text class="fig-sub" x="6" y="79">1,500</text>
+      <path class="fig-ink-line" d="M56 48 L326 183" />
+      <text class="fig-ink" x="330" y="196">수요</text>
+      <path class="fig-down-line" d="M74 183 L344 48" />
+      <text class="fig-ink" x="350" y="52">공급</text>
+      <path class="fig-dash" d="M50 120 H200 V210" />
+      <circle class="fig-marker" cx="200" cy="120" r="5" />
+      <text class="fig-ink" x="60" y="112">딱 맞는 값</text>
+      <text class="fig-sub" x="186" y="226">25개</text>
+      <path class="fig-up-line" d="M110 165 H290" />
+      <text class="fig-up" x="128" y="184" font-size="12">500원이면 30개 모자람</text>
+    </svg>
+    <figcaption>두 선이 만나는 곳(1,000원, 25개)을 균형가격이라 한다. 값이 이보다 낮으면 모자라고, 높으면 남는다.</figcaption>
+  </figure>
+
+  <p>값이 500원이면 사려는 아이는 많은데 붕어빵이 모자란다. 아저씨는 "값을 좀 올려도 되겠다"고 생각한다.
+  1,500원이면 붕어빵이 남으니 값을 내린다. 이렇게 모자라면 오르고 남으면 내리다가, <b>사려는 개수와 파는
+  개수가 같아지는 값</b>에서 멈춘다. 이 값을 균형가격이라 한다.</p>
   </section>
-<section class="learn-deep" aria-labelledby="econ-market-deep"><h2 id="econ-market-deep">심화 연구실 · 수요의 탄력성이 세금을 누가 내는지 바꾼다</h2>
-<p>시장가격은 수요량과 공급량이 맞는 지점에서 결정되지만 실제 경제에는 세금, 보조금, 시장지배력, 정보비대칭, 외부효과가 있다. 정부가 판매자에게 세금을 부과했다고 해서 판매자만 최종 부담하는 것은 아니다.</p>
-<div class="learn-lab"><h3>가상 사례 · 세금 1,000원을 어떻게 나눠 부담할까</h3><p>어떤 상품에 1,000원 세금을 붙인 뒤 구매자 지불 가격이 700원 오르고 생산자가 받는 세후 가격이 300원 낮아졌다고 가정하자. 이때 부담은 구매자 700원, 생산자 300원이다. 이는 세금 부과 주체가 아니라 수요·공급의 가격 탄력성이 결정한다.</p><p class="learn-math">구매자 부담 700원 + 판매자 부담 300원 = 거래 1단위당 세금 1,000원</p><p>탄력성이 매우 낮은 쪽이 상대적으로 더 많이 부담하는 경향이 있다. 실제 시장에서는 경쟁 구조와 계약 관행도 작용한다.</p></div>
-<div class="learn-grid"><div><h3>외부효과</h3><p>오염처럼 거래 당사자 외의 사람에게 비용이 발생하면 시장가격만으로 사회적 비용을 모두 반영하지 못한다.</p></div><div><h3>시장지배력</h3><p>한 기업이 가격에 영향을 줄 수 있다면 완전경쟁시장의 수요·공급 교차점만으로 가격을 설명하기 어렵다.</p></div></div></section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">선이 통째로 움직일 때</h2>
+  <p>값이 아닌 다른 일이 생기면 그래프의 선이 통째로 옮겨 간다. 아주 추운 날에는 같은 1,000원이어도
+  붕어빵을 찾는 아이가 늘어난다. 수요 선이 오른쪽으로 밀려나고, 새로 만나는 점에서 값도 개수도 올라간다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 250" role="img" aria-label="추운 날 수요곡선이 오른쪽으로 이동해 균형이 1000원 25개에서 1200원 31개로 바뀐다">
+      <path class="fig-line" d="M50 30 V210 H410" />
+      <text class="fig-sub" x="0" y="24">값(원)</text>
+      <text class="fig-sub" x="340" y="240">개수 →</text>
+      <path class="fig-dash" d="M56 48 L326 183" />
+      <text class="fig-sub" x="292" y="200">평소 수요</text>
+      <path class="fig-up-line" d="M128 48 L398 183" />
+      <text class="fig-up" x="140" y="40" font-size="12">추운 날 수요</text>
+      <path class="fig-down-line" d="M74 183 L344 48" />
+      <text class="fig-ink" x="350" y="52">공급</text>
+      <circle class="fig-marker" cx="200" cy="120" r="4" />
+      <text class="fig-sub" x="120" y="128">1,000원·25개</text>
+      <circle class="fig-up" cx="236" cy="102" r="5" />
+      <text class="fig-ink" x="244" y="98">1,200원·31개</text>
+    </svg>
+    <figcaption>추위가 사려는 마음을 키우자 값(1,000→1,200원)과 팔리는 개수(25→31개)가 함께 올랐다. 가상 예시.</figcaption>
+  </figure>
+
+  <table class="learn-table">
+    <thead><tr><th>무슨 일이 생겼나</th><th>움직이는 선</th><th>값</th><th>팔리는 개수</th></tr></thead>
+    <tbody>
+      <tr><td>한파가 왔다</td><td>수요가 늘어남</td><td>오름</td><td>늘어남</td></tr>
+      <tr><td>방학이라 학생이 없다</td><td>수요가 줄어듦</td><td>내림</td><td>줄어듦</td></tr>
+      <tr><td>밀가루·팥 값이 올랐다</td><td>공급이 줄어듦</td><td>오름</td><td>줄어듦</td></tr>
+      <tr><td>옆에 붕어빵 가게가 하나 더 생겼다</td><td>공급이 늘어남</td><td>내림</td><td>늘어남</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">값이 올라도 덜 줄어드는 물건 · 탄력성</h2>
+  <p>아이스크림 값이 두 배가 되면 많은 사람이 안 사 먹는다. 다른 간식이 많으니까. 그런데 소금이나 감기약
+  값이 두 배가 돼도 꼭 필요한 만큼은 산다. 값이 변할 때 사려는 양이 얼마나 크게 바뀌는지를
+  <b>탄력성</b>이라 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>값이 10% 오르면</th><th>왜</th></tr></thead>
+    <tbody>
+      <tr><td>아이스크림, 영화표</td><td>사는 양이 크게 준다(탄력적)</td><td>대신할 것이 많다, 안 사도 산다</td></tr>
+      <tr><td>쌀, 소금, 약, 버스비</td><td>사는 양이 조금만 준다(비탄력적)</td><td>꼭 필요하다, 대신할 것이 적다</td></tr>
+    </tbody>
+  </table>
+  <p>그래서 꼭 필요한 물건의 값이 갑자기 오르면 살림이 더 빠듯해진다. 안 사고 버틸 수가 없기 때문이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">값을 억지로 묶으면 생기는 일</h2>
+  <p>"붕어빵이 너무 비싸다, 500원만 받아라"고 법으로 정하면 어떻게 될까. 표에서 보듯 500원에는 아저씨가
+  10개만 굽고 아이들은 40개를 원한다. 줄이 끝없이 늘어서고, 30명은 줄만 서다가 빈손으로 돌아간다.
+  이렇게 균형보다 낮게 묶은 값을 <b>가격 상한</b>이라 한다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 150" role="img" aria-label="값을 500원으로 묶으면 원하는 사람 40명 중 10명만 사고 30명은 못 산다">
+      <text class="fig-ink" x="0" y="18">500원으로 묶었을 때 줄 선 40명</text>
+      <g>
+        <rect class="fig-bar" x="0" y="34" width="105" height="34" rx="4" />
+        <text class="fig-on-strong" x="14" y="56">10명만 삼</text>
+        <rect class="fig-soft2" x="110" y="34" width="310" height="34" rx="4" />
+        <text class="fig-ink" x="124" y="56">30명은 줄만 서고 빈손</text>
+      </g>
+      <text class="fig-sub" x="0" y="96">값이 싸져도 붕어빵이 늘지 않으면</text>
+      <text class="fig-sub" x="0" y="116">누가 먹을지는 줄 서는 시간이나 운으로 정해진다</text>
+    </svg>
+    <figcaption>가격 상한은 값을 낮추지만, 물건이 모자라는 문제를 함께 만든다.</figcaption>
+  </figure>
+
+  <p>반대로 균형보다 높게 바닥을 정하는 것을 <b>가격 하한</b>이라 한다. 최저임금이 대표적이다. 일하는
+  사람은 시급이 오르니 좋다. 하지만 가게 주인이 감당하기 어려울 만큼 오르면 사람을 덜 뽑거나 일하는 시간을
+  줄일 수 있다. 얼마나 그런 일이 생기는지는 나라와 시기마다 달라서 경제학자들도 지금껏 따지고 있다.
+  가격을 묶으면 반드시 어딘가에 대가가 생긴다는 점만 기억해 두자.</p>
+
+  <div class="learn-note">
+    <b>아줌마 관점 · 명절 기차표</b> 명절 기차표는 평소 값과 거의 같다. 그래서 예매가 열리자마자 매진되고,
+    표를 못 구한 사람은 새벽부터 접속 대기를 한다. 값 대신 <b>시간과 운</b>으로 표를 나누는 것이다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">보이지 않는 손이 잘 움직이려면 · 경쟁</h2>
+  <p>학교 앞에 붕어빵 가게가 세 곳이면, 한 곳이 값을 올리면 아이들은 옆 가게로 간다. 그래서 값을 함부로
+  못 올린다. 그런데 동네에 가게가 딱 하나뿐이면 이야기가 다르다. 값을 올려도 갈 데가 없으니 아이들은
+  비싸도 사야 한다. 파는 곳이 하나뿐인 상태를 <b>독점</b>이라 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>가게가 여럿(경쟁)</th><th>가게가 하나(독점)</th></tr></thead>
+    <tbody>
+      <tr><td>값</td><td>올리기 어렵다</td><td>올려도 손님이 남는다</td></tr>
+      <tr><td>맛·서비스</td><td>손님을 뺏기지 않으려고 노력한다</td><td>나빠져도 손님이 떠나지 못한다</td></tr>
+      <tr><td>나라가 하는 일</td><td>대체로 지켜본다</td><td>공정거래위원회가 감시하고 규칙을 둔다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">거래하면 양쪽 다 이득이다</h2>
+  <p>1,000원을 내고 붕어빵을 산 아이는 "1,000원보다 붕어빵이 낫다"고 생각했다. 판 아저씨는 "붕어빵보다
+  1,000원이 낫다"고 생각했다. 둘 다 원해서 바꿨으니 둘 다 전보다 기분이 좋다. 누가 억지로 시키지 않은
+  거래는 양쪽을 모두 낫게 만든다.</p>
+  <table class="learn-table">
+    <thead><tr><th>시장을 움직이는 주인공</th><th>하는 일</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td>가계(우리 집)</td><td>일해서 돈을 벌고, 물건을 산다</td><td>엄마가 월급으로 장보기, 학생이 아르바이트</td></tr>
+      <tr><td>기업(회사·가게)</td><td>물건을 만들어 판다</td><td>붕어빵 가게, 과자 회사</td></tr>
+      <tr><td>정부</td><td>세금을 걷어 모두에게 필요한 일을 한다</td><td>도로, 학교, 경찰 (7장)</td></tr>
+      <tr><td>외국</td><td>물건과 돈이 나라 밖과 오간다</td><td>반도체 수출, 외국인의 주식 투자 (6장)</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 여름에 비가 많이 와서 배추가 잘 안 자랐다. 배춧값은 어떻게 될까?</summary><p>배추가 적게 나와 공급이 줄어든다. 사려는 사람은 그대로라 값이 오른다.</p></details>
+  <details class="in-quiz"><summary>2. 인기 가수 콘서트 표가 정가 10만 원인데 금방 매진됐다. 무엇을 알 수 있을까?</summary><p>10만 원이 균형가격보다 낮다는 뜻이다. 그 값에 사려는 사람이 좌석보다 훨씬 많다. 그래서 웃돈을 받는 되팔이가 생기기도 한다.</p></details>
+  <details class="in-quiz"><summary>3. 버스비가 올랐는데 버스 타는 사람이 거의 안 줄었다. 버스는 탄력적일까, 비탄력적일까?</summary><p>비탄력적이다. 학교와 회사에 가려면 타야 하고 대신할 방법이 많지 않기 때문이다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="econ-market-deep">
+  <h2 id="econ-market-deep">한 걸음 더 · 세금은 누가 낼까</h2>
+  <p>붕어빵 한 개에 세금 100원을 붙이고 "아저씨가 내라"고 정했다고 하자. 그러면 아저씨만 100원을 손해 볼까?
+  실제로는 값이 조금 올라 아이들도 일부를 나눠 낸다. 예를 들어 값이 1,000원에서 1,070원이 되고 아저씨 손에
+  남는 돈이 1,000원에서 970원이 되면, 아이들이 70원, 아저씨가 30원을 낸 것이다.</p>
+  <p class="learn-math">아이들 70원 + 아저씨 30원 = 세금 100원</p>
+  <p>누가 더 많이 내느냐는 법이 아니라 <b>누가 덜 피할 수 있느냐</b>로 정해진다. 붕어빵 말고는 먹을 게 없는
+  쪽이 더 많이 낸다. 세금 이야기는 7장에서 이어 간다.</p>
+  <p class="in-small">어른을 위한 덧붙임: 오염처럼 거래하지 않은 사람에게 피해가 가는 일(외부효과), 파는 쪽이 값을 정할 힘이 있는 시장에서는 두 선이 만나는 점만으로 값을 설명하기 어렵다.</p>
+  </section>
 
   <h2>한 줄 정리</h2>
-  <p>경쟁시장에서는 사고파는 사람이 제시하는 가격과 수량이 맞춰지는 과정에서 거래가격이 형성된다.
-  독점이나 외부효과가 있으면 그 가격만으로 자원 배분의 결과를 설명할 수 없다.</p>
+  <p>모자라면 값이 오르고 남으면 값이 내린다. 그렇게 사려는 양과 팔려는 양이 같아지는 값이 균형가격이다.
+  가격을 억지로 묶으면 줄서기나 일자리처럼 다른 곳에 대가가 생긴다. 이 손이 잘 움직이려면 경쟁이 있어야 한다.</p>
 
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-choice.html">← 1장 선택과 기회비용</a>
