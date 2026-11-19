@@ -12,6 +12,7 @@ import tempfile
 from datetime import datetime, timezone
 import db_schema
 import daily_scan_cache
+import exit_plan
 import pattern_detect as pd
 
 VERSION = 'shape-selection-v1'
@@ -166,6 +167,11 @@ def refresh():
             extended = worker.get('extended') or {key: [] for key in GROUPS}
             research = worker.get('research') or {key: [] for key in GROUPS}
             quiet = worker.get('quiet') or dict(version='quiet-v1', role='advisory', status='missing')
+            try:
+                # 2026-11-20 매도 기준 추적: 기존 연구 태그 포착 기록을 읽어 exit-v1/v2를 따로 집계(읽기 전용).
+                exit_tracking = {'quietLeaderPullback': exit_plan.track_summary(conn, EDGE_PREFIX + 'quietLeaderPullback')}
+            except Exception as error:
+                exit_tracking = {'quietLeaderPullback': dict(version='exit-tracking-v1', status='error', error=type(error).__name__)}
     finally:
         conn.close()
     at = datetime.now(timezone.utc).isoformat()
@@ -177,7 +183,8 @@ def refresh():
     snapshot = dict(version=VERSION, mode='observation', orderAuthorized=False, status='ok',
                     scannedAt=at, dataDate=basis, coverage=coverage, groups=groups,
                     relativeStrength=relative_strength, edgeSignals=edge_signals,
-                    strategyVersion=worker.get('strategyVersion'), extended=extended, research=research, quiet=quiet)
+                    strategyVersion=worker.get('strategyVersion'), extended=extended, research=research, quiet=quiet,
+                    exitTracking=exit_tracking)
     def apply(cache):
         if cache.get('dataDate') != original.get('dataDate') or cache.get('generatedAt') != original.get('generatedAt'):
             raise ValueError('Daily snapshot changed during shape scan')

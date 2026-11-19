@@ -32,7 +32,8 @@ try{
   assert.deepStrictEqual(tagged.map(r=>r.code),['000010'],'거래대금 상위·조용함 상위·120봉 눌림만 태그');
   const d=tagged[0].patternDetail;
   assert.strictEqual(d.orderAuthorized,false);assert.strictEqual(d.observationOnly,true);
-  assert.strictEqual(d.exitPlan.stopLossPct,-10);assert.strictEqual(d.exitPlan.maxHoldDays,60);
+  assert.strictEqual(d.exitPlan.stopLossPct,-10);assert.strictEqual(d.exitPlan.maxHoldDays,250);
+  assert.strictEqual(d.exitPlan.version,'exit-v2');assert.ok(/60일선/.test(d.exitPlan.takeProfit),'매도 기준은 60일선 보호');
   assert.strictEqual(d.exitPlan.marketRestActive,true,'하락 중인 KOSPI는 60일선 아래 → 쉬기 구간');
   assert.strictEqual(d.quiet.band,'quiet');
   assert.strictEqual(out.edgeSignals.counts.quietLeaderPullback,1);
