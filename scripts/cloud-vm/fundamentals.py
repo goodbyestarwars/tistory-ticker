@@ -269,6 +269,8 @@ def fetch_latest_quarter(api_key, corp_code, current_year=None):
             'revenue_yoy_pct': pct_change(revenue, revenue_prior),
             'operating_income_yoy_pct': pct_change(op, op_prior),
             'net_income_yoy_pct': pct_change(net, net_prior),
+            # 2026-11-20: 실적 개선 판정(earn_signal)이 적자 기간에도 대칭 변화를 정확히 계산하도록 전년 같은 기간 원값을 보존한다.
+            'operating_income_prior': op_prior,
             # 기존 최근 분기(단독 3개월)와 별개로 올해 누적 실적을 함께 보존한다.
             # 전년 사업보고서 등 다른 연도/연간 자료를 올해로 오인하지 않는다.
             'ytd': build_current_year_ytd(rows, yr, reprt_code) if yr == y else None,
