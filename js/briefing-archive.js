@@ -184,7 +184,8 @@
       form.addEventListener('submit', function (e) { e.preventDefault(); filter(); });
       if (error && global.console) console.warn('[BriefingArchive]', error.message || error);
     }
-    load(BASE + 'data/briefing-index.js').then(function () {
+    // 색인 파일 주소가 고정이면 브라우저가 이전 색인을 다시 써서 새 글이 늦게 보인다. 10분 단위로 주소를 바꿔 새로 받는다.
+    load(BASE + 'data/briefing-index.js?v=' + Math.floor(Date.now() / 600000)).then(function () {
       index = global.NINE_BRIEFING_INDEX;
       if (!index || index.schemaVersion !== 1 || !Array.isArray(index.posts) || !index.posts.length) {
         throw new Error('검색 색인 계약 오류');

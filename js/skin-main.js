@@ -3455,7 +3455,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (window.NineBriefingArchive) initArchive();
       else {
         var archiveScript = document.createElement('script');
-        archiveScript.src = archiveBase + 'js/briefing-archive.js?v=20261118-archive-facets';
+        archiveScript.src = archiveBase + 'js/briefing-archive.js?v=20261120-new-post';
         archiveScript.async = true;
         archiveScript.onload = initArchive;
         archiveScript.onerror = function () {
@@ -3715,6 +3715,10 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var tmp = document.createElement('div');
     tmp.innerHTML = raw;
     raw = tmp.textContent.replace(/\r\n|\r/g, '\n').trim();
+    /* ③-1 티스토리 요약은 글 맨 앞 HTML 주석(작업 메모)까지 글자로 담는다(2026-11-20 1315번 "HTML 모드에 붙여 넣으세요…").
+       요약 앞부분에 주석 끝 표시(-->)가 있으면 그 앞을 버리고 실제 본문부터 보인다. */
+    var commentEnd = raw.indexOf('-->');
+    if (commentEnd !== -1 && commentEnd < 1200) raw = raw.slice(commentEnd + 3).trim();
     /* ④ 중복 텍스트 제거 */
     if (raw.length > 20) {
       var check = raw.slice(0, 30);
