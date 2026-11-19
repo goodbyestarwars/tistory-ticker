@@ -23,6 +23,10 @@
   EARN(영업이익 YoY 상위30%)·EARN_REV(매출 YoY 상위30%)·TURN(흑자 전환)·EARN_FRESH(EARN & 접수 20거래일 이내)와 QLP 결합을 추가한다.
 4단계(2026-11-19): <작업 폴더>/events.json(fetch_dart_events_cache.py, EVENTS_FILE)이 있으면 공시 사건 그룹을 추가한다.
   신호일 = 접수일(휴장이면 다음 거래일) j의 다음 거래일 s. 반응 = (c[s]/c[j-1]-1)/(ATR14[j-1]/c[j-1]) (2일, ATR 배수). s+1 시가 매수.
+5단계(2026-11-19): 오르기 시작한 뒤 따라붙기·업종 먼저. t 종가까지:
+  rs120 = 120봉 수익률(날짜 백분위), up_low120 = 종가 / 120봉 최저가 - 1, nh250 = 종가 > 직전 250봉 최고가(52주 신고가 돌파).
+  업종 = WICS industry(<작업 폴더>/wics.json 또는 WICS_FILE, 현재 분류 고정 - 과거 재분류 미반영 한계).
+  업종 강도 = 그날 같은 업종(유동성 통과 5종목 이상) mom60 평균의 업종 간 백분위, 주도주 = 그 업종 안 20일 거래대금 1~2위.
 실행: python pullback_combo_study.py <작업 폴더(cache/)> <shape.tsv> <out.json>   (SPRING_START, SPRING_SPLIT, SPRING_INDEX 공용)
 """
 import json
@@ -174,6 +178,9 @@ def frame(code, px, mret, flow=None, earn=None, events=None):
     f['ivol60'] = (r - m).rolling(60).std()
     f['upvol20'] = vs.where(cs > cs.shift(1), 0).rolling(20).sum() / vs.rolling(20).sum()
     f['upday'] = c > np.r_[np.nan, c[:-1]]
+    f['rs120'] = cs / cs.shift(120) - 1
+    f['up_low120'] = cs / pd.Series(l).rolling(120).min() - 1
+    f['nh250'] = (cs > pd.Series(h).shift(1).rolling(250).max()).values
     fr = [r[6] if len(r) > 6 else None for r in px]
     fl = flow_cols(list(df.d), v, flow, fr if any(x is not None for x in fr) else None)
     for k in fl.columns:
@@ -257,6 +264,7 @@ def main(lab, shape_tsv, out_path):
     data, flows = {}, {}
     earn = load_earn(os.environ.get('EARN_FILE', os.path.join(lab, 'earn.json')))
     events = load_events(os.environ.get('EVENTS_FILE', os.path.join(lab, 'events.json')))
+    wics = load_events(os.environ.get('WICS_FILE', os.path.join(lab, 'wics.json'))) or {}
     for fn in sorted(os.listdir(os.path.join(lab, 'cache'))):
         if fn.endswith('.json'):
             px = [r for r in json.load(open(os.path.join(lab, 'cache', fn), encoding='utf-8'))['px'] if r[1] > 0 and r[4] > 0]
@@ -279,7 +287,7 @@ def main(lab, shape_tsv, out_path):
     df['period'] = np.select([df.d <= split1, df.d <= split2], ['train', 'valid'], 'test')
     df['ex20'] = df.ret20 - df.groupby('d').ret20.transform('mean')
     df['ex60'] = df.ret60 - df.groupby('d').ret60.transform('mean')
-    for k in ('ma60_slope', 'dry10', 'amt20', 'ivol60', 'upvol20', 'f20', 'o20', 'fo60', 'dfr20', 'e_op_sym', 'e_rev_yoy'):
+    for k in ('ma60_slope', 'dry10', 'amt20', 'ivol60', 'upvol20', 'f20', 'o20', 'fo60', 'dfr20', 'e_op_sym', 'e_rev_yoy', 'rs120'):
         df['p_' + k] = df.groupby('d')[k].rank(pct=True)
     df['quiet_raw'] = (1 - df.p_ivol60) + (1 - df.p_upvol20)
     df['p_quiet'] = df.groupby('d').quiet_raw.rank(pct=True)
@@ -317,6 +325,22 @@ def main(lab, shape_tsv, out_path):
                        'EV_BUYBACK 자사주 취득': df.ev_buyback.notna(), 'EV_BONUS 무상증자': df.ev_bonus.notna(),
                        'EV_FACILITY 시설투자': df.ev_facility.notna(), 'EV_RIGHTS 유상증자(참고)': df.ev_rights.notna(),
                        'EV_ANY_UP 사건 긍정반응': ANY_UP, 'QLP & EV_UP20 최근20일 긍정사건': QLP & (df.ev_up20 == 1)})
+    # 5단계(2026-11-19): 오르기 시작한 뒤 따라붙기 + 주도 업종의 주도주.
+    if wics:
+        df['ind'] = df.code.map(lambda x: (wics.get(x) or {}).get('industry'))
+        g = df[df.ind.notna()].groupby(['d', 'ind'])
+        ind = g.mom60.agg(['mean', 'size']).reset_index()
+        ind = ind[ind['size'] >= 5]
+        ind['p_ind'] = ind.groupby('d')['mean'].rank(pct=True)
+        df = df.merge(ind[['d', 'ind', 'p_ind']], on=['d', 'ind'], how='left')
+        df['lead'] = df.groupby(['d', 'ind']).amt20.rank(ascending=False, method='first')
+        MOM = (df.up_low120 >= .3) & (df.p_rs120 >= .9)
+        NH = df.nh250 == True  # noqa: E712
+        LEAD = (df.p_ind >= .8) & (df.lead <= 2)
+        groups.update({'MOM 저점+30% & RS120 상위10%': MOM, 'NH 52주 신고가 돌파': NH, 'MOM & NH': MOM & NH,
+                       'SEC_LEAD 주도업종 주도주': LEAD, 'SEC_LEAD & NH 주도업종 주도주 신고가': LEAD & NH,
+                       'SEC_LEAD & MOM': LEAD & MOM})
+        groups = {k: m.values if hasattr(m, 'values') else m for k, m in groups.items()}
     up_side = df.regime.isin(['상승', '횡보'])
     res = {'regime_source': src, 'shape_coverage': round(float(df.t120.notna().mean()) * 100, 1),
            'earn_coverage': round(float(df.e_op_sym.notna().mean()) * 100, 1),
