@@ -197,7 +197,7 @@
   var activeGroup = 'short';
   var publicView = 'all';
   var SCANNER_GROUPS = {
-    short: ['liveFlow', 'trendBreakout'], swing: ['bottomFormation', 'pullbackRebreak'], long: ['longTermQuality']
+    short: ['liveFlow', 'trendBreakout'], swing: ['bottomFormation', 'pullbackRebreak', 'leaderPullback'], long: ['longTermQuality']
   };
   // Original descriptors/detectors remain available; only the menu is consolidated.
   var MENU_TABS = [
@@ -205,12 +205,14 @@
     {key:'trendBreakout',label:'추세 돌파',sources:['shortTermMaBreakout','angleMomentum']},
     {key:'bottomFormation',label:'바닥 형성',sources:['risingLows','doubleBottom','invHeadShoulders','boxRangeLow']},
     {key:'pullbackRebreak',label:'눌림·재돌파',sources:['pullback','firstPullbackBreakout','gongpasan']},
+    // 2026-11-20 사용자 지시: 주도주 조용한 눌림을 기존 메뉴와 같은 독립 검색기로. 이전 수치 검색기가 없어 이력은 연구 추적 키를 쓴다.
+    {key:'leaderPullback',label:'주도주 조용한 눌림',sources:[]},
     {key:'longTermQuality',label:'224일선·구름대 + 재무',sources:['longTermQuality']}
   ];
   function groupFor(key) { return MENU_TABS.filter(function(t){return t.key === key;})[0]; }
   // 2026-11-08 고점 기준 연구 태그(edge-v1): 기존 메뉴 안 관찰 표시, 개별 추적 키 pattern:edge:<key>.
   // 2026-11-14 주도주 조용한 눌림(quietLeaderPullback) 추가: 한 메뉴에 연구 태그가 여럿일 수 있다.
-  var EDGE_TAGS={liveFlow:['gapVolumeClose'],trendBreakout:['surgeNextDay'],pullbackRebreak:['rsHighResidual','quietLeaderPullback'],longTermQuality:['timeLagAccumulation']};
+  var EDGE_TAGS={liveFlow:['gapVolumeClose'],trendBreakout:['surgeNextDay'],pullbackRebreak:['rsHighResidual'],leaderPullback:['quietLeaderPullback'],longTermQuality:['timeLagAccumulation']};
   var EDGE_LABELS={gapVolumeClose:'갭·거래량 5배·강마감',surgeNextDay:'급등 다음날 시가 관찰',rsHighResidual:'2~3주 내 갈 길',quietLeaderPullback:'주도주 조용한 눌림',timeLagAccumulation:'시간차 매집'};
   var EDGE_DESC={gapVolumeClose:'전일 고가 위 갭(+2% 이상)·전일까지 우상향·거래량 전일 5배 이상·+10~29% 마감. 종가 확인 뒤 1~5거래일 고점 관찰(상한가 마감은 체결이 어려워 제외).',
     surgeNextDay:'당일 +20% 이상 마감. 다음 거래일 시가 기준으로 1~5거래일 고점 관찰.',
@@ -390,7 +392,7 @@
         var phaseTab = container.querySelector('[data-view=\"new\"]');
         if (phaseTab && phaseTab.firstChild) phaseTab.firstChild.nodeValue = activeTab === 'liveFlow' ? '2차 신호 ' : '신규 포착 ';
         var grouped = groupFor(activeTab);
-        if (grouped) { historySource = grouped.sources.filter(function(k){return k !== 'ninepayLive';})[0]; trackView = 'all'; scanPerformanceData = null; }
+        if (grouped) { historySource = grouped.sources.filter(function(k){return k !== 'ninepayLive';})[0] || ((EDGE_TAGS[activeTab] || [])[0] ? 'edge:' + EDGE_TAGS[activeTab][0] : historySource); trackView = 'all'; scanPerformanceData = null; }
         container.querySelectorAll('.ps-view-tab').forEach(function(b){var on=b.getAttribute('data-view')===trackView;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});
         renderTabDesc(container);
         updateMeta(container);
@@ -1448,8 +1450,9 @@
       trendBreakout:'하락 고점 연결 저항 또는 최근 고점 저항을 종가로 회복하는 흐름을 찾습니다.',
       bottomFormation:'하락 뒤 저점이 반복 지지되고 변동폭이 줄거나 저점이 높아지는 바닥을 찾습니다.',
       pullbackRebreak:'선행 상승 뒤 조정 거래량·봉 변동폭이 줄고 저점이 유지되는 눌림과 반등을 찾습니다.',
+      leaderPullback:'거래대금 상위 15% 대형 주도주가 120봉 상승 뒤 조용히 쉬는 눌림/반등을 찾습니다. KOSPI가 60일선 위인 날만 매수후보로 올리고 같은 업종은 1종목입니다.',
       longTermQuality:'장기 저점 지지·가격 응축·저항 회복 모양을 먼저 찾고 기존 재무 관문을 확인합니다.'};
-    shortPurpose={liveFlow:'가격 지지·거래량 재확장 모양',trendBreakout:'고점 연결 저항 회복 모양',bottomFormation:'반복 저점 지지·바닥 모양',pullbackRebreak:'상승 뒤 눌림·반등 모양',longTermQuality:'장기 지지·응축 모양 + 재무 확인'};
+    shortPurpose={liveFlow:'가격 지지·거래량 재확장 모양',trendBreakout:'고점 연결 저항 회복 모양',bottomFormation:'반복 저점 지지·바닥 모양',pullbackRebreak:'상승 뒤 눌림·반등 모양',leaderPullback:'대형 주도주 조용한 눌림',longTermQuality:'장기 지지·응축 모양 + 재무 확인'};
     box.innerHTML='<p>기본 후보: 준비 구간 → 첫 구조 변화 → 현재 위치를 먼저 확인합니다. 상대강도·거래량은 보조 근거이며, 추격·확장과 연구는 별도 목록입니다. 일봉 모양 관찰이며 실시간 매수 신호가 아닙니다.</p><details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
       +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 상태 안에서는 준비된 구조의 모양·현재 위치를 우선 정렬합니다. 기본 후보는 전체 저장 일봉에서 모양으로 새로 선정합니다. 기존 수치 검색 이력과 실시간 A/B·주문 경로는 개별 검색기 기록에서 별도로 유지합니다.</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
       +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
@@ -1679,10 +1682,23 @@
       +' data-sup="'+escapeHtml(d.support==null?'':d.support)+'" data-res="'+escapeHtml(d.resistance==null?'':d.resistance)+'"':'';
     return '<article class="ps-state-row ps-pick" data-code="'+escapeHtml(r.code)+'"'+basisAttr+'>'
       +'<div class="ps-pick-head"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small>'
-      +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'+quote+'</div>'
+      +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.join(' · ') || '연구 조건')+'">'+(d.restHidden?'관찰 구간 · 매수 안 함':d.industryDuplicate?'같은 업종 중복 · 매수 안 함':'수동 점검 필요')+'</span>':'')+'</div>'+quote+'</div>'
       +'<ul class="ps-pick-lines">'+plainLines(it).map(function(t){return '<li>'+escapeHtml(t)+'</li>';}).join('')+'</ul>'
       +'<div class="ps-pick-foot">'+rangeGaugeHtml(r.price,d.support,d.resistance)
       +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기 →</button></div></div></article>';
+  }
+  // 2026-11-20 주도주 조용한 눌림 메뉴: 매도 기준과 exit-v1/v2 실제 추적(shapeSelection.exitTracking)만 서버 값으로 덧붙인다.
+  function leaderInfoHtml(selection) {
+    if(activeTab!=='leaderPullback' || !selection)return '';
+    var plan=null;
+    ['groups','research'].forEach(function(b){((selection[b] || {}).leaderPullback || []).forEach(function(r){plan=plan || detailFor(r).exitPlan;});});
+    var exit=plan?'손절 '+escapeHtml(String(plan.stopLossPct))+'% · '+escapeHtml(plan.takeProfit || '')+' · 최대 '+escapeHtml(String(plan.maxHoldDays))+'거래일'
+      :'손절 -10% · +10% 도달 뒤 종가가 60일선 아래면 다음 거래일 시가 매도 · 최대 250거래일';
+    var t=((selection.exitTracking || {}).quietLeaderPullback) || null,track='';
+    var v=function(x){if(!x)return '-';return (x.closed?'끝난 '+x.closed+'건 · 승률 '+(x.winPct!=null?x.winPct+'%':'-')+' · 평균 '+(x.avgPct!=null?x.avgPct+'%':'-'):'끝난 매매 없음')
+      +(x.open?' · 보유 중 '+x.open+'건 평균 '+(x.openAvgPct!=null?x.openAvgPct+'%':'-'):'');};
+    if(t && t.rules)track='<p class="ps-state-meaning"><b>실제 추적</b> · '+escapeHtml(String(t.since || '-'))+'부터 포착 '+escapeHtml(String(t.signals))+'건 · 수수료 0.7% 차감 · '+v(t.rules['exit-v2'])+'</p>';
+    return '<p class="ps-state-meaning"><b>매도 기준</b> · '+exit+'</p>'+track;
   }
   function renderSimpleList(container,list,model,selection,known) {
     var current=function(r){var it=r.classified[0].member.item;return !it.track && !it._history;};
@@ -1690,12 +1706,12 @@
     var promoted=function(r){return r.members.some(function(m){return detailFor(m.item).promotedEdge;});};
     var yes=model.rows.filter(function(r){return ['confirmed','observation'].indexOf(r.publicStatus.key)>=0;})
       .sort(function(a,b){return (promoted(b)?1:0)-(promoted(a)?1:0);});
-    var manual=model.rows.filter(function(r){return r.publicStatus.key==='research' && current(r) && !detailFor(r.classified[0].member.item).restHidden;});
+    var manual=model.rows.filter(function(r){return r.publicStatus.key==='research' && current(r) && (activeTab==='leaderPullback' || !detailFor(r.classified[0].member.item).restHidden);});
     var q=selection && selection.quiet || {},market=q.marketRest===true?'<p class="ps-state-meaning"><b>관찰 구간</b> · 시장이 약해 새로 사지 않고 지켜보는 중 (KOSPI 60일선 아래)</p>'
       :q.marketRest===false?'<p class="ps-state-meaning"><b>매수 검토 구간</b> · KOSPI 60일선 위</p>':'';
     detailNavItems=yes.concat(manual);
     var total=yes.length+manual.length;
-    list.innerHTML=market+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
+    list.innerHTML=market+leaderInfoHtml(selection)+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
       +(total?yes.map(function(r){return simpleRowHtml(r,false,selection && selection.dataDate);}).join('')+manual.map(function(r){return simpleRowHtml(r,true,selection && selection.dataDate);}).join('')
         :'<p class="ps-state-empty">'+(known?'오늘은 매수후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>');
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){

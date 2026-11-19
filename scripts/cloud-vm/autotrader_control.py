@@ -28,7 +28,10 @@ TARGET_ACTIONS = ('target-add', 'target-cancel')
 # 2026-11-19 보유 종목 수동 매도·PENDING 장부 정리. 에이전트가 capability를 올리기 전에는 접수하지 않는다(비활성).
 POSITION_ACTIONS = ('sell', 'position-drop')
 POSITION_CAPABILITY = {'sell': 'manual-sell-v1', 'position-drop': 'position-drop-v1'}
-ACTIONS = ('start', 'stop', 'hold', 'resume') + TARGET_ACTIONS + POSITION_ACTIONS
+# 2026-11-20 주도주 조용한 눌림 전용 칸 켜기/끄기·금액·종목 수(에이전트가 설정 파일만 원자 저장, 주문 경로 아님).
+LEADER_ACTION = 'leader-config'
+LEADER_CAPABILITY = 'leader-pullback-v1'
+ACTIONS = ('start', 'stop', 'hold', 'resume') + TARGET_ACTIONS + POSITION_ACTIONS + (LEADER_ACTION,)
 HOLD_SCOPE = 'buy'            # 신규 매수만 보류한다. 보유분 청산 점검은 막지 않는다.
 HOLD_CAPABILITY = 'hold'      # 에이전트가 snapshot.capabilities에 이 값을 올려야 hold/resume을 접수한다.
 STALE_AFTER_SEC = 90        # 에이전트는 20초 주기. 이보다 오래되면 미수신으로 본다.
@@ -285,6 +288,18 @@ def queue_command(action, account, now=None, params=None):
                 command.update(qty=qty)
             elif held[0].get('state') != 'PENDING':
                 raise ControlError(409, 'PENDING 기록만 정리할 수 있습니다.')
+        if action == LEADER_ACTION:
+            snapshot = state.get('snapshot') or {}
+            age = _fresh(snapshot, now)
+            if age is None or age > STALE_AFTER_SEC or LEADER_CAPABILITY not in (snapshot.get('capabilities') or []):
+                raise ControlError(409, '에이전트가 이 기능을 지원하지 않거나 상태가 지연됐습니다.')
+            params = params or {}
+            on, per, mx = params.get('on'), params.get('perStock'), params.get('maxStocks')
+            if type(on) is not bool or type(per) is not int or type(mx) is not int:
+                raise ControlError(400, '설정 값 형식 오류')
+            if not 100_000 <= per <= 2_000_000 or per % 10_000 or not 1 <= mx <= 3:
+                raise ControlError(400, '종목당 상한은 10만~200만 원(1만 원 단위), 종목 수는 1~3개입니다.')
+            command.update(on=on, perStock=per, maxStocks=mx)
         if action == 'hold':
             command['day'] = now.strftime('%Y-%m-%d')    # 에이전트는 이 날짜의 플래그만 쓴다(자정 이후 자동 무효).
             command['scope'] = HOLD_SCOPE
@@ -470,6 +485,6 @@ def agent_sync(payload, now=None):
                     state['last']['code'] = pending['code']
                 state['pending'] = None
             else:
-                command = {key: pending[key] for key in ('id', 'action', 'day', 'scope', 'code', 'price', 'qty') if key in pending}
+                command = {key: pending[key] for key in ('id', 'action', 'day', 'scope', 'code', 'price', 'qty', 'on', 'perStock', 'maxStocks') if key in pending}
         _save(state)
     return {'command': command}
