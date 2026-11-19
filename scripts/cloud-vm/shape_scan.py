@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import db_schema
 import daily_scan_cache
 import exit_plan
+import earn_signal
 import pattern_detect as pd
 
 VERSION = 'shape-selection-v1'
@@ -23,6 +24,25 @@ TRACK_PREFIX = 'pattern:shape:'
 BENCHMARKS = ('KOSPI', 'KOSDAQ')
 EDGE_PREFIX = 'pattern:edge:'
 EDGE_KEYS = ('surgeNextDay', 'gapVolumeClose', 'rsHighResidual', 'quietLeaderPullback', 'timeLagAccumulation')
+# 2026-11-20 관찰 전용: 주도주 조용한 눌림 중 최근 분기 실적 개선(earn_signal EARN) 종목만 따로 쌓는다(연구 'QLP & EARN').
+EARN_TRACK = 'quietLeaderPullbackEarn'
+
+
+def tag_earn(buckets, funds, basis):
+    """주도주 조용한 눌림 행에 patternDetail.earn을 붙인다. 표시·선정·주문에는 쓰지 않는다."""
+    try:
+        table = earn_signal.earn_table(funds, basis)
+    except Exception:
+        return dict(version='earn-v1', status='error')
+    tagged = 0
+    for bucket in buckets:
+        for items in (bucket or {}).values():
+            for r in items or []:
+                d = r.get('patternDetail') or {}
+                if any((t or {}).get('key') == 'quietLeaderPullback' for t in d.get('edgeSignals') or []):
+                    d['earn'] = dict(table.get(r.get('code')) or {'improved': None}, version='earn-v1', observationOnly=True)
+                    tagged += 1
+    return dict(version='earn-v1', status='ok', ranked=len(table), tagged=tagged, pctCut=earn_signal.EARN_PCT)
 
 
 def record_tracks(snapshot, conn=None):
@@ -53,6 +73,9 @@ def record_tracks(snapshot, conn=None):
                     if r.get('code') not in seen and any(t.get('key') == edge for t in tags):
                         seen.add(r.get('code')); rows.append(r)
             out[EDGE_PREFIX + edge] = pattern_tracker.record_new(conn, snapshot['dataDate'], EDGE_PREFIX + edge, rows)
+            if edge == 'quietLeaderPullback':
+                earn_rows = [r for r in rows if ((r.get('patternDetail') or {}).get('earn') or {}).get('improved') is True]
+                out[EDGE_PREFIX + EARN_TRACK] = pattern_tracker.record_new(conn, snapshot['dataDate'], EDGE_PREFIX + EARN_TRACK, earn_rows)
         return out
     finally:
         if own:
@@ -169,9 +192,11 @@ def refresh():
             extended = worker.get('extended') or {key: [] for key in GROUPS}
             research = worker.get('research') or {key: [] for key in GROUPS}
             quiet = worker.get('quiet') or dict(version='quiet-v1', role='advisory', status='missing')
+            earn = tag_earn((groups, observed, research), funds, basis)
             try:
                 # 2026-11-20 매도 기준 추적: 기존 연구 태그 포착 기록을 읽어 exit-v1/v2를 따로 집계(읽기 전용).
-                exit_tracking = {'quietLeaderPullback': exit_plan.track_summary(conn, EDGE_PREFIX + 'quietLeaderPullback')}
+                exit_tracking = {'quietLeaderPullback': exit_plan.track_summary(conn, EDGE_PREFIX + 'quietLeaderPullback'),
+                                 EARN_TRACK: exit_plan.track_summary(conn, EDGE_PREFIX + EARN_TRACK)}
             except Exception as error:
                 exit_tracking = {'quietLeaderPullback': dict(version='exit-tracking-v1', status='error', error=type(error).__name__)}
     finally:
@@ -186,7 +211,7 @@ def refresh():
                     scannedAt=at, dataDate=basis, coverage=coverage, groups=groups,
                     relativeStrength=relative_strength, edgeSignals=edge_signals,
                     strategyVersion=worker.get('strategyVersion'), extended=extended, research=research, quiet=quiet,
-                    exitTracking=exit_tracking)
+                    exitTracking=exit_tracking, earn=earn)
     def apply(cache):
         if cache.get('dataDate') != original.get('dataDate') or cache.get('generatedAt') != original.get('generatedAt'):
             raise ValueError('Daily snapshot changed during shape scan')
