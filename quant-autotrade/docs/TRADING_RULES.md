@@ -1,5 +1,15 @@
 # 자동매매 매매규칙 — 단일 기준 문서
 
+## 2026-11-20 주도주 조용한 눌림 전용 칸 (코드 준비, 기본 꺼짐, 운영 미적용)
+
+비공개 `goodbyestarwars/autotrader-private` PR #4(`feature/leader-pullback-slot`)에서 구현했다. 사용자 승인 기본값이며, 켜기 전까지 실계좌 주문은 바뀌지 않는다.
+
+- 후보: 검색기 정식 매수후보 `quietLeaderPullback`(주도주 조용한 눌림, `/pattern-scan` `shapeSelection.groups.pullbackRebreak`의 `promotedEdge`)만. 서버가 KOSPI 60일선 아래·업종 중복일 때 승격하지 않는 판정을 그대로 따른다.
+- 켜기: Google VM 환경변수 `LEADER_PULLBACK_LIVE=1`. 기존 칸(단타·스윙)과 별도로 **1종목·종목당 50만 원**. 기존 칸이 아직 쓰지 않은 예산과 유보현금 10만 원은 남긴다.
+- 매수: 전 거래일 확정 후보, 다음 거래일 지정가. 기준가 +2% 이상이면 추격하지 않는다.
+- 매도(exit-v2, [7단계 연구](../../docs/RALLY_ANATOMY_STUDY_2026-11-19.md)): 손절 매입가 **-10% 즉시** · **+10%에 한 번 닿은 뒤 확정 종가가 60일선 아래면 다음 거래일 첫 점검에 매도** · 최대 **250거래일**. 이 칸 종목에는 아래 5절의 -3%/-5%/추적 매도를 쓰지 않는다.
+- order_guard·MANUAL_STOP·HOLD_BUY·14:00 종료·계좌 승인은 그대로다. 비공개 PR 병합·VM 반영·환경변수 설정·재시작은 별도 승인 뒤 장외에만 한다.
+
 ## 2026-11-18 하락장 신규 매수 차단 (승인 전 코드 준비, 운영 미적용)
 
 비공개 `goodbyestarwars/autotrader-private` 초안 PR #2(`feature/market-buy-gate-20261118`)에서만 구현한 주문 위험 게이트다. 운영 Google VM 실계좌에는 아직 적용되지 않았다. 기본 `MARKET_BUY_GATE_ENABLED` 미설정/OFF다.

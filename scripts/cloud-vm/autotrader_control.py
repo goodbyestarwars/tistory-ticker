@@ -326,7 +326,8 @@ def _candidate_rows(rows):
     return out
 
 
-_DECISION_SCANNERS = {'pullback', 'doubleBottom', 'invHeadShoulders', 'maCloudBreakout', '9Pay intraday'}
+# 2026-11-20: 주도주 조용한 눌림 전용 칸(비공개 에이전트 PR #4, 기본 꺼짐) 판단 로그 표시용.
+_DECISION_SCANNERS = {'pullback', 'doubleBottom', 'invHeadShoulders', 'maCloudBreakout', '9Pay intraday', 'quietLeaderPullback'}
 _DECISION_INTS = ('rank', 'ranked_total', 'slots_used', 'candidates', 'confirm_hits')
 _DECISION_NUMBERS = ('base', 'entry_vs_base_pct', 'avg', 'gain_pct', 'net_gain_pct',
                      'peak_gain_pct', 'signal_price', 'checked_price')
