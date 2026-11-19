@@ -1688,6 +1688,25 @@
       +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기 →</button></div></div></article>';
   }
   // 2026-11-20 주도주 조용한 눌림 메뉴: 매도 기준과 exit-v1/v2 실제 추적(shapeSelection.exitTracking)만 서버 값으로 덧붙인다.
+  // 2026-11-20 사용자 지시(성적표 1번 "화면에 표시"): 메뉴별 과거 5년 성적 한 줄. 수치는 연구 결과를 그대로 옮긴 고정값이며
+  // 원문은 docs/SCANNER_MENU_SCORECARD_2026-11-20.md(기존 5개, 20거래일 보유·아무 종목 대비 %p)와
+  // docs/RALLY_ANATOMY_STUDY_2026-11-19.md 7단계(주도주, 60일선 매도 1건당 평균)다. 미래 수익 보장이 아니다.
+  var MENU_SCORECARD={
+    liveFlow:{ex:[-0.91,-0.33,0.06],grade:'우위 없음'},
+    trendBreakout:{ex:[0.11,-0.21,0.80],grade:'우위 약함'},
+    bottomFormation:{ex:[-0.92,-0.81,-0.27],grade:'우위 없음'},
+    pullbackRebreak:{ex:[-2.22,-0.24,-1.03],grade:'우위 없음'},
+    longTermQuality:{ex:[-0.58,0.27,1.03],grade:'우위 약함',note:'재무 조건 제외 근사'},
+    leaderPullback:{avg:[10.28,9.56],grade:'검증 통과'}
+  };
+  function scorecardHtml() {
+    var s=MENU_SCORECARD[activeTab];if(!s)return '';
+    var sg=function(v){return (v>0?'+':'')+v.toFixed(1);};
+    var body=s.avg?'60일선 매도 기준 1건당 평균 '+sg(s.avg[0])+'% (2024~2025.6) · '+sg(s.avg[1])+'% (2025.7~)'
+      :'다음 날 사서 20거래일 보유 시 아무 종목보다 1건당 '+s.ex.map(sg).join(' / ')+'%p (2021~23 / 2024~25.6 / 2025.7~)';
+    return '<p class="ps-state-meaning ps-scorecard"><b>과거 5년 성적 · '+escapeHtml(s.grade)+'</b> · '+body
+      +(s.note?' · '+escapeHtml(s.note):'')+' · 수수료 0.7% 차감, 미래 수익 보장 아님</p>';
+  }
   function leaderInfoHtml(selection) {
     if(activeTab!=='leaderPullback' || !selection)return '';
     var plan=null;
@@ -1711,7 +1730,7 @@
       :q.marketRest===false?'<p class="ps-state-meaning"><b>매수 검토 구간</b> · KOSPI 60일선 위</p>':'';
     detailNavItems=yes.concat(manual);
     var total=yes.length+manual.length;
-    list.innerHTML=market+leaderInfoHtml(selection)+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
+    list.innerHTML=market+scorecardHtml()+leaderInfoHtml(selection)+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
       +(total?yes.map(function(r){return simpleRowHtml(r,false,selection && selection.dataDate);}).join('')+manual.map(function(r){return simpleRowHtml(r,true,selection && selection.dataDate);}).join('')
         :'<p class="ps-state-empty">'+(known?'오늘은 매수후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>');
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){
