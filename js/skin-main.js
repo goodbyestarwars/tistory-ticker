@@ -248,7 +248,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     host.appendChild(mount);
   }
   var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/auto-trader.css?v=20261118-market-gate'; document.head.appendChild(css);
-  var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261118-market-gate'; script.setAttribute('data-auto-trader-page', '1');
+  var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261119-pos-drop'; script.setAttribute('data-auto-trader-page', '1');
   script.onerror = function () { mount.textContent = '자동매매 화면을 불러오지 못했습니다. 새로고침하세요.'; };
   document.body.appendChild(script);
 }());

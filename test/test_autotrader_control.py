@@ -138,6 +138,27 @@ class ControlTest(unittest.TestCase):
             ac.queue_command('stop', 'a@b.c', MON)
         self.assertEqual(cm.exception.status, 409)
 
+    def test_drop_done_removes_row_and_reports_code(self):
+        now = MON.replace(hour=10)
+        pos = [{'code': '002350', 'qty': 2, 'state': 'PENDING'}, {'code': '068270', 'qty': 4, 'state': 'OPEN'}]
+        ac._save({'snapshot': good(now, capabilities=['position-drop-v1']), 'activity': {'positions': pos}})
+        cmd = ac.queue_command('position-drop', 'admin', now, params={'code': '002350'})
+        self.assertEqual(ac.public_status(now)['pending']['code'], '002350')
+        ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1']), 'ack': {'id': cmd['id'], 'ok': True}}, now)
+        st = ac.public_status(now)
+        self.assertEqual([p['code'] for p in st['activity']['positions']], ['068270'])
+        self.assertEqual((st['lastCommand']['result'], st['lastCommand']['code']), ('DONE', '002350'))
+
+    def test_drop_failed_keeps_row_and_reason(self):
+        now = MON.replace(hour=10)
+        ac._save({'snapshot': good(now, capabilities=['position-drop-v1']),
+                  'activity': {'positions': [{'code': '002350', 'qty': 2, 'state': 'PENDING'}]}})
+        cmd = ac.queue_command('position-drop', 'admin', now, params={'code': '002350'})
+        ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1']), 'ack': {'id': cmd['id'], 'ok': False, 'reason': 'broker holds'}}, now)
+        st = ac.public_status(now)
+        self.assertEqual(len(st['activity']['positions']), 1)
+        self.assertEqual((st['lastCommand']['result'], st['lastCommand']['code'], st['lastCommand']['reason']), ('FAILED', '002350', 'broker holds'))
+
     def test_agent_roundtrip_ack_clears_pending(self):
         cmd = ac.queue_command('stop', 'a@b.c', MON)
         out = ac.agent_sync({'snapshot': good(MON)}, MON)

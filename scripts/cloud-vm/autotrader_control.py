@@ -206,7 +206,9 @@ def public_status(now=None):
                                                                            if now.year in KNOWN_CALENDAR_YEARS else None),
             'activity': state.get('activity') if received else None,
             'vm': view, 'startBlockers': blockers, 'canStart': not blockers and not pending,
-            'pending': {'id': pending['id'], 'action': pending['action']} if pending else None,
+            'pending': dict({'id': pending['id'], 'action': pending['action']},
+                            **({'code': pending['code']} if pending['action'] in POSITION_ACTIONS and pending.get('code') else {}))
+                       if pending else None,
             'hold': hold, 'log': recent_log(),
             'lastCommand': state.get('last')}
 
@@ -429,6 +431,13 @@ def agent_sync(payload, now=None):
             result = 'DONE' if ack.get('ok') else 'FAILED'
             state['last'] = {'action': pending['action'], 'result': result, 'at': now.isoformat(timespec='seconds'),
                              'reason': str(ack.get('reason') or '')[:200]}
+            if pending['action'] in POSITION_ACTIONS and pending.get('code'):
+                state['last']['code'] = pending['code']
+            # 기록 정리가 완료되면 저장된 활동에서도 해당 PENDING 행을 바로 뺀다(다음 동기화가 다시 보고하면 그대로 표시).
+            if result == 'DONE' and pending['action'] == 'position-drop' and isinstance(state.get('activity'), dict):
+                rows = state['activity'].get('positions') or []
+                state['activity']['positions'] = [r for r in rows
+                                                  if not (r.get('code') == pending.get('code') and r.get('state') == 'PENDING')]
             audit(pending.get('account'), pending['action'], result, ack.get('reason') or '')
             state['pending'] = pending = None
         command = None
@@ -437,6 +446,8 @@ def agent_sync(payload, now=None):
                 audit(pending.get('account'), pending['action'], 'EXPIRED', pending.get('id'))
                 state['last'] = {'action': pending['action'], 'result': 'EXPIRED',
                                  'at': now.isoformat(timespec='seconds'), 'reason': '에이전트가 시간 안에 가져가지 못함'}
+                if pending['action'] in POSITION_ACTIONS and pending.get('code'):
+                    state['last']['code'] = pending['code']
                 state['pending'] = None
             else:
                 command = {key: pending[key] for key in ('id', 'action', 'day', 'scope', 'code', 'price', 'qty') if key in pending}
