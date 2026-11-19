@@ -35,7 +35,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from spring_index_study import atr14, floor_geometry, persistent_extrema, regime_by_date  # noqa: E402
-from pullback_combo_study import flow_cols  # noqa: E402
+from pullback_combo_study import EARN_KEYS, earn_cols, flow_cols, load_earn  # noqa: E402
 
 RALLY_GAIN = float(os.environ.get('RALLY_GAIN', '0.30'))
 RALLY_MAX_BARS = int(os.environ.get('RALLY_MAX_BARS', '60'))
@@ -52,12 +52,13 @@ RALLY_ATR = float(os.environ.get('RALLY_ATR', '8'))
 FAIL_ATR = float(os.environ.get('FAIL_ATR', '3'))
 MIN_AMT = 3e9
 SEED = 7
-FEATURES = ('f20', 'o20', 'fo60', 'dfr20', 'dd250', 'pos120', 'box60', 'drift60', 'ret20', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
+FEATURES = ('e_op_sym', 'e_rev_yoy', 'e_opm_chg', 'e_turn', 'f20', 'o20', 'fo60', 'dfr20', 'dd250', 'pos120', 'box60', 'drift60', 'ret20', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
             'atr_ratio', 'c_ma20', 'c_ma60', 'c_ma120', 'ma60_slope', 'rising')
 
 
 def load(lab):
     out = {}
+    earn = load_earn(os.environ.get('EARN_FILE', os.path.join(lab, 'earn.json')))
     for fn in sorted(os.listdir(os.path.join(lab, 'cache'))):
         if fn.endswith('.json'):
             raw = json.load(open(os.path.join(lab, 'cache', fn), encoding='utf-8'))
@@ -68,6 +69,9 @@ def load(lab):
                 fl = flow_cols(list(df.d), df.v.values.astype(float), raw.get('flow'), fr if any(x is not None for x in fr) else None)
                 for k in fl.columns:
                     df[k] = fl[k].values
+                ec = earn_cols(list(df.d), earn.get(fn[:-5]))
+                for k in ec.columns:
+                    df[k] = ec[k].values
                 out[fn[:-5]] = df
     return out
 
@@ -140,7 +144,7 @@ def features(df, mret):
     ma60 = cs.rolling(60).mean()
     f['ma60_slope'] = ma60 / ma60.shift(20) - 1
     f['rising'] = np.nan
-    for k in ('f20', 'o20', 'fo60', 'dfr20'):
+    for k in ('f20', 'o20', 'fo60', 'dfr20') + EARN_KEYS:
         f[k] = df[k].values if k in df else np.nan
     return f, atr.values
 
@@ -251,6 +255,19 @@ def main(lab, out_path):
             continue
         ok = x.notna()
         if ok.sum() < 50:
+            continue
+        if k == 'e_turn':  # 0/1 피처: 5분위 대신 비율 비교, ATR% 3분위 통제
+            vq = np.digitize(t.atrp, np.nanquantile(t.atrp, [1 / 3, 2 / 3]))
+            a, b = x[is_r & ok].mean(), x[~is_r & ok].mean()
+            num = den = 0.0
+            for g in range(3):
+                m_r, m_c = is_r & ok & (vq == g), ~is_r & ok & (vq == g)
+                if m_r.sum() >= 20 and m_c.sum() >= 20 and x[m_c].mean() > 0:
+                    num += m_r.sum() * x[m_r].mean() / x[m_c].mean()
+                    den += m_r.sum()
+            lifts[k] = {'rally_share': round(float(a) * 100, 1), 'control_share': round(float(b) * 100, 1),
+                        'lift': round(float(a / b), 2) if b else None, 'max_lift_volctl': round(float(num / den), 2) if den else None,
+                        'n_rally': int((is_r & ok).sum()), 'n_control': int((~is_r & ok).sum())}
             continue
         edges = np.nanquantile(x[ok & ~is_r], [.2, .4, .6, .8])
         q = np.digitize(x, edges)

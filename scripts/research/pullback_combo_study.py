@@ -19,6 +19,8 @@
   같은 종목은 보유 중 재진입 금지(독립 매매). 승률·평균·손익비·Profit Factor·최대 연속 손실.
 국면: SPRING_INDEX(KOSPI) 60일선 상승/횡보/하락. 사용자 원칙 '하락장은 무엇을 해도 떨어진다' -> 상승+횡보 진입만 따로 보고.
 2단계(2026-11-19): 캐시에 flow(외국인·기관·개인 순매수)와 px[6] 외국인 소진율이 있으면 FLOW·FOREIGN·ORGAN·FR 및 QLP 결합 그룹을 추가한다.
+3단계(2026-11-19): <작업 폴더>/earn.json(fetch_dart_quarterly_cache.py, 환경변수 EARN_FILE로 변경)이 있으면 DART 분기 실적 그룹
+  EARN(영업이익 YoY 상위30%)·EARN_REV(매출 YoY 상위30%)·TURN(흑자 전환)·EARN_FRESH(EARN & 접수 20거래일 이내)와 QLP 결합을 추가한다.
 실행: python pullback_combo_study.py <작업 폴더(cache/)> <shape.tsv> <out.json>   (SPRING_START, SPRING_SPLIT, SPRING_INDEX 공용)
 """
 import json
@@ -56,7 +58,49 @@ def flow_cols(dates, v, flow, fr=None):
     return out
 
 
-def frame(code, px, mret, flow=None):
+EARN_KEYS = ('e_op_sym', 'e_rev_yoy', 'e_opm_chg', 'e_turn', 'e_age')
+EARN_STALE = 200  # 가용일 뒤 이 거래일이 지나면 최신 실적이 아니라 결측으로 본다(다음 보고서 누락)
+
+
+def load_earn(path):
+    """fetch_dart_quarterly_cache.py build 결과(earn.json). 없으면 빈 dict."""
+    if path and os.path.exists(path):
+        return json.load(open(path, encoding='utf-8'))
+    return {}
+
+
+def earn_cols(dates, rows):
+    """3단계 실적 피처(2026-11-19). rows: [[접수일, 연도, 보고서, fs, rev, rev_p, op, op_p, ni, ni_p], ...] 접수일 오름차순.
+    t일에는 접수일 < t 인 마지막 보고서만 쓴다(접수일 당일 장후 공시 가능성 때문에 다음 날부터).
+    e_op_sym  = 영업이익 3개월 전년 동기 대비 대칭 변화 (a-b)/((|a|+|b|)/2), -2~2 (적자 기저에도 안정)
+    e_rev_yoy = 매출 3개월 전년 동기 대비 증가율 (전년 매출 > 0일 때)
+    e_opm_chg = 영업이익률 변화 %p (op/rev - op_p/rev_p)
+    e_turn    = 영업이익 흑자 전환(전년 동기 <= 0 이고 이번 > 0) 1/0
+    e_age     = 그 보고서가 알려진 뒤 지난 거래일 수(0 = 접수 다음 날)"""
+    n = len(dates)
+    out = pd.DataFrame(index=range(n), columns=list(EARN_KEYS), dtype=float)
+    if not rows:
+        return out
+    j, cur, since = 0, None, None
+    for i, d in enumerate(dates):
+        while j < len(rows) and rows[j][0] < d:
+            cur, since = rows[j], i
+            j += 1
+        if cur is None or i - since > EARN_STALE:
+            continue
+        rev, rev_p, op, op_p = cur[4], cur[5], cur[6], cur[7]
+        if op is not None and op_p is not None and (abs(op) + abs(op_p)) > 0:
+            out.iat[i, 0] = (op - op_p) / ((abs(op) + abs(op_p)) / 2)
+            out.iat[i, 3] = 1.0 if (op_p <= 0 < op) else 0.0
+        if rev is not None and rev_p is not None and rev_p > 0:
+            out.iat[i, 1] = rev / rev_p - 1
+            if op is not None and op_p is not None and rev > 0:
+                out.iat[i, 2] = (op / rev - op_p / rev_p) * 100
+        out.iat[i, 4] = i - since
+    return out
+
+
+def frame(code, px, mret, flow=None, earn=None):
     df = pd.DataFrame([r[:6] for r in px], columns=['d', 'o', 'h', 'l', 'c', 'v'])
     o, h, l, c, v = (df[k].values.astype(float) for k in 'ohlcv')
     cs, vs = pd.Series(c), pd.Series(v)
@@ -79,6 +123,9 @@ def frame(code, px, mret, flow=None):
     fl = flow_cols(list(df.d), v, flow, fr if any(x is not None for x in fr) else None)
     for k in fl.columns:
         f[k] = fl[k].values
+    ec = earn_cols(list(df.d), earn)
+    for k in ec.columns:
+        f[k] = ec[k].values
     n = len(c)
     res = np.full((n, 4), np.nan)
     trade = [None] * n
@@ -149,6 +196,7 @@ def stats(g, trades=True):
 def main(lab, shape_tsv, out_path):
     warnings.filterwarnings('ignore')
     data, flows = {}, {}
+    earn = load_earn(os.environ.get('EARN_FILE', os.path.join(lab, 'earn.json')))
     for fn in sorted(os.listdir(os.path.join(lab, 'cache'))):
         if fn.endswith('.json'):
             px = [r for r in json.load(open(os.path.join(lab, 'cache', fn), encoding='utf-8'))['px'] if r[1] > 0 and r[4] > 0]
@@ -159,7 +207,7 @@ def main(lab, shape_tsv, out_path):
     mret = closes.pct_change().mean(axis=1).to_dict()
     frames = []
     for code, px in data.items():
-        f = frame(code, px, mret, flows.get(code))
+        f = frame(code, px, mret, flows.get(code), earn.get(code))
         f['i_'] = np.arange(len(f))
         frames.append(f)
     df = pd.concat(frames, ignore_index=True)
@@ -171,7 +219,7 @@ def main(lab, shape_tsv, out_path):
     df['period'] = np.select([df.d <= split1, df.d <= split2], ['train', 'valid'], 'test')
     df['ex20'] = df.ret20 - df.groupby('d').ret20.transform('mean')
     df['ex60'] = df.ret60 - df.groupby('d').ret60.transform('mean')
-    for k in ('ma60_slope', 'dry10', 'amt20', 'ivol60', 'upvol20', 'f20', 'o20', 'fo60', 'dfr20'):
+    for k in ('ma60_slope', 'dry10', 'amt20', 'ivol60', 'upvol20', 'f20', 'o20', 'fo60', 'dfr20', 'e_op_sym', 'e_rev_yoy'):
         df['p_' + k] = df.groupby('d')[k].rank(pct=True)
     df['quiet_raw'] = (1 - df.p_ivol60) + (1 - df.p_upvol20)
     df['p_quiet'] = df.groupby('d').quiet_raw.rank(pct=True)
@@ -193,8 +241,16 @@ def main(lab, shape_tsv, out_path):
                        'ORGAN 기관 20일 순매수 상위30%': df.p_o20 >= .7, 'QLP & FLOW': QLP & FLOW})
     if df.dfr20.notna().any():
         groups.update({'FR 외국인 소진율 20일 증가 상위30%': FFR, 'QLP & FR': QLP & FFR})
+    # 3단계 실적(2026-11-19): 접수 다음 날부터 쓰는 DART 분기 실적. 실적 자료가 있는 종목·날만 해당.
+    if df.e_op_sym.notna().any():
+        EARN = df.p_e_op_sym >= .7
+        EARN_FRESH = EARN & (df.e_age <= 20)
+        groups.update({'EARN 영업이익 YoY 상위30%': EARN, 'EARN_REV 매출 YoY 상위30%': df.p_e_rev_yoy >= .7,
+                       'TURN 영업이익 흑자전환': df.e_turn == 1, 'EARN_FRESH 실적개선 접수 20일 이내': EARN_FRESH,
+                       'QLP & EARN': QLP & EARN, 'QLP & EARN_FRESH': QLP & EARN_FRESH})
     up_side = df.regime.isin(['상승', '횡보'])
     res = {'regime_source': src, 'shape_coverage': round(float(df.t120.notna().mean()) * 100, 1),
+           'earn_coverage': round(float(df.e_op_sym.notna().mean()) * 100, 1),
            'periods': {p: [str(df[df.period == p].d.min()), str(df[df.period == p].d.max())] for p in ('train', 'valid', 'test')},
            'all_regimes': {k: {p: stats(df[m & (df.period == p)]) for p in ('train', 'valid', 'test')} for k, m in groups.items()},
            'up_sideways': {k: {p: stats(df[m & up_side & (df.period == p)]) for p in ('train', 'valid', 'test')} for k, m in groups.items()}}

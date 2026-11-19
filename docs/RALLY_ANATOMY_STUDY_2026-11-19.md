@@ -103,3 +103,16 @@
 3. **QLP&FLOW·QLP&FR이 QLP보다 세 기간 모두 나은가 — 불통과.** QLP&FLOW는 학습·시험에서 ex20·PF 모두 QLP보다 나쁨. QLP&FR은 PF는 세 기간 모두 높지만(0.98/2.59/2.51) 시험 ex20이 낮다(+4.25 대 +4.77) — 사후 관찰일 뿐 기준 통과가 아니다.
 - **결론: 검색기 변경 없음(승인 요청 대상 아님).** 수급 상위는 약한 초과수익(+0.4~1.7%p)이 있으나 상승 구간을 가르는 힘은 약하고, QLP에 더해도 일관된 개선이 없다. QLP는 5년에서도 시장 대비 초과수익은 일관되나 하락기 절대 손익은 손실이다.
 - 한계: ex20 t는 날짜 군집 t, 같은 날 표본 겹침·다중 비교 미보정, 상장폐지 없음(생존편향), 비용 0.7% 단일 가정. 캐시·결과 파일은 Oracle 홈에만 둔다(Git 미업로드).
+
+## 3단계 설계 — 실적(DART 분기) (2026-11-19 사용자 승인 "검증해 승인할께")
+- 데이터: `scripts/research/fetch_dart_quarterly_cache.py`가 DART 다중회사 주요계정(`fnlttMultiAcnt`, 100개 회사씩)으로 2020~2026 분기·반기·사업보고서의 매출·영업이익·순이익(3개월, 전년 동기)을 Oracle `~/lab5y/dart_raw`·`earn.json`에 받는다. 키는 Oracle 기존 비공개 `.env`만 사용(출력·복제 없음), 공통 `scripts/cloud-vm/dart_client.py` 전송·corp_code 매핑 재사용(VM 코드 무변경). 4분기 3개월 = 연간 − 3분기 누적. 연결 우선, 없으면 별도.
+- 관측 시점: 정기보고서 **접수일 다음 날**부터 사용(`earn_cols`). 잠정실적 공시보다 늦어 발표 직후 반응은 놓치는 보수적 검증이다. 200거래일 넘게 새 보고서가 없으면 결측.
+- 피처: `e_op_sym`(영업이익 3개월 전년 동기 대칭 변화, −2~2) · `e_rev_yoy`(매출 YoY) · `e_opm_chg`(영업이익률 변화 %p) · `e_turn`(흑자 전환) · `e_age`(알려진 뒤 거래일).
+- 그룹(combo): EARN(`e_op_sym` 날짜 백분위 ≥ 0.7) · EARN_REV(`e_rev_yoy` ≥ 0.7) · TURN · EARN_FRESH(EARN & `e_age` ≤ 20) · QLP & EARN · QLP & EARN_FRESH. rally는 같은 피처의 변동성 통제 lift.
+- 미래 비참조 테스트: `test/test_pullback_combo_study.py`(접수일 당일 미사용, 뒤 보고서가 과거 값 불변, 4분기 계산·연결 우선·결측 유지).
+- **미리 정한 판정 기준(결과 보기 전, 바꾸지 않음)** — 모두 상승+횡보 진입, 학습/검증/시험 세 기간:
+  1. 실적 효과: rally에서 `e_op_sym`·`e_rev_yoy`·`e_opm_chg`·`e_turn` 중 하나 이상 변동성 통제 lift(`max_lift_volctl`) ≥ 1.5 **그리고** 그 피처에 해당하는 combo 그룹(e_op_sym→EARN, e_rev_yoy→EARN_REV, e_turn→TURN, e_opm_chg→해당 없음이면 EARN)이 세 기간 모두 기준선 대비 ex20 플러스.
+  2. 단독 매매: EARN 또는 EARN_FRESH가 세 기간 모두 PF ≥ 1.2.
+  3. QLP 개선: QLP & EARN 또는 QLP & EARN_FRESH가 세 기간 모두 QLP 단독보다 ex20과 PF가 **둘 다** 높고, 매매 수가 기간마다 50건 이상.
+  - (3) 통과 시에만 검색기 반영안을 별도 승인 요청(`docs/SCANNER_CHANGELOG.md` 절차). 실계좌·자동매매와 무관.
+- 결과: 미측정.
