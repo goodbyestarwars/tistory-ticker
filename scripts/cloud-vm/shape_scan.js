@@ -1,6 +1,7 @@
 'use strict';
 // One bounded Node worker per existing daily scan; shared browser engine, no provider calls.
 // argv[2]: stock JSONL, argv[3] (optional): {KOSPI:[{date,close}], KOSDAQ:[...]} stored index closes.
+// 2026-11-20: 주도주 조용한 눌림 매도 기준 exit-v2(60일선 보호·최대 250거래일, docs/RALLY_ANATOMY_STUDY_2026-11-19.md 7단계).
 // 2026-11-14: quiet-v1 표시·quietLeaderPullback 연구 태그(docs/EDGE_FACTOR_STUDY_2026-11-13.md). 이 주석 갱신 배포로 장외 모양 선정 재계산을 다시 실행한다(deploy_check.sh).
 const fs=require('node:fs'),readline=require('node:readline');
 const AW=require('../../js/auto-wave.js');
@@ -16,12 +17,13 @@ const EDGE={
  // 2026-11-14 docs/EDGE_FACTOR_STUDY_2026-11-13.md: 대형 주도 + 120봉 상승 뒤 눌림 + 조용함.
  timeLagAccumulation:{group:'longTermQuality',label:'시간차 매집',horizon:'최대 120거래일',
    note:'60일 거래량이 늘었는데 주가는 박스에 머묾 · 최근 10일 거래 마름 · 외국인+기관 60일 순매수 상위 30%'},
- quietLeaderPullback:{group:'pullbackRebreak',label:'주도주 조용한 눌림',horizon:'최대 60거래일',
+ quietLeaderPullback:{group:'pullbackRebreak',label:'주도주 조용한 눌림',horizon:'최대 250거래일',
    note:'거래대금 상위 15% · 120봉 상승 뒤 눌림/반등 · 조용함 상위 30%(낮은 고유 변동성·상승일 거래량 쏠림 없음)'}
 };
-// Exit plan shown with the research tag (backtest 2024~2025: 10번 중 5~6번 이익, 이익 평균 +17%, 손실 평균 -9%).
-const EXIT_PLAN={version:'exit-v1',stopLossPct:-10,takeProfit:'+10% 도달 뒤 종가가 20일선 아래면 다음 거래일 시가 매도',
-  maxHoldDays:60,marketRest:'KOSPI 종가가 60일선 아래면 신규 매수 쉬기',observationOnly:true};
+// Exit plan shown with the research tag. exit-v2(2026-11-20 사용자 승인): 매도 규칙 54개 중 학습 기간(2021~2023) PF 최고 규칙,
+// 검증 2024~2025.6 PF 3.49·평균 +10.3%, 시험 2025.7~ PF 3.27·평균 +9.6%(기존 exit-v1 2.34·2.41). 계산은 exit_plan.py와 같다.
+const EXIT_PLAN={version:'exit-v2',stopLossPct:-10,takeProfit:'+10% 도달 뒤 종가가 60일선 아래면 다음 거래일 시가 매도',
+  maxHoldDays:250,marketRest:'KOSPI 종가가 60일선 아래면 신규 매수 쉬기',observationOnly:true};
 const QUIET={top:.7,noisy:.3,leader:.85};
 // 시간차 매집 E 조건(연구와 같은 날짜별 백분위): volUp 상위20%·box60 하위40%·drift60<10%·dry10 하위30%·sm60 상위30%.
 const ACCUM={volUp:.8,box:.4,drift:.10,dry:.3,sm:.7};

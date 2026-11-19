@@ -216,7 +216,7 @@
     surgeNextDay:'당일 +20% 이상 마감. 다음 거래일 시가 기준으로 1~5거래일 고점 관찰.',
     rsHighResidual:'KOSPI·KOSDAQ 두 지수 대비 비율선이 60일 신고가이고, 지수 영향을 뺀 20일 잔차 모멘텀이 그날 전 종목 상위 40%. 10~15거래일 고점 관찰.',
     timeLagAccumulation:'최근 60일 거래량이 이전보다 크게 늘었는데 주가는 좁은 박스에 머물고, 최근 10일 거래가 마르며, 그 기간 외국인+기관이 순매수(거래량 대비 상위 30%)한 종목. 연구(2021~2026): 120일 뒤 수익 100개 중 43/51/78(기준 31/38/38), 표본 적음·하락장 효과 없음. 기존 중장기 재무 관문 통과 종목만.',
-    quietLeaderPullback:'거래대금 상위 15% 대형 주도주가 120봉 상승 뒤 저점을 높이며 쉬는 중(눌림/반등)이고, 조용함(낮은 고유 변동성·상승일 거래량 쏠림 없음)이 그날 상위 30%. 과거 검증(2024~2025): 손절 -10%·+10% 뒤 20일선 이탈 익절로 10번 중 5~6번 이익, 이익 평균 +17%·손실 평균 -9%. 하락장(2022~2023)은 손실.'};
+    quietLeaderPullback:'거래대금 상위 15% 대형 주도주가 120봉 상승 뒤 저점을 높이며 쉬는 중(눌림/반등)이고, 조용함(낮은 고유 변동성·상승일 거래량 쏠림 없음)이 그날 상위 30%. 매도 기준: 손절 -10%, +10% 오른 뒤 종가가 60일선 아래면 다음 날 시가 매도, 최대 250거래일. 과거 검증(2024~2026.8, 수수료 0.7% 차감): 10번 중 5~6번 이익, 매매 1건 평균 +10% 안팎(이전 20일선 기준은 +6% 안팎). 하락장(2021~2023)은 거의 본전.'};
   function exitPlanHtml(item){var x=detailFor(item).exitPlan;if(!x)return '';
     return '<small>손절 '+escapeHtml(String(x.stopLossPct))+'% · 익절 '+escapeHtml(x.takeProfit)+' · 최대 '+escapeHtml(String(x.maxHoldDays))+'거래일 · '+escapeHtml(x.marketRest)+(x.marketRestActive===true?' (현재 쉬기 구간)':x.marketRestActive===false?' (현재 아님)':'')+'</small>';}
   // 조용함(quiet-v1)은 서버에서 하위 30%를 후보에서 빼는 데만 쓰고 화면에는 표시하지 않는다(2026-11-14 사용자 지시).
@@ -1638,7 +1638,7 @@
     gapVolumeClose:['전날 고가 위로 갭 상승해 거래량이 전날의 5배 이상 붙으며 강하게 마감했습니다.','1~5일 짧게 보는 단타 후보입니다. 다음 날 시가가 너무 높으면 추격하지 않습니다.'],
     rsHighResidual:['KOSPI·KOSDAQ보다 강한 흐름이 최근 60일 중 가장 높은 수준입니다.','2~3주 정도 보는 후보입니다.'],
     timeLagAccumulation:['거래량은 늘었는데 주가는 박스에 묶여 있고, 그동안 외국인·기관이 사 모았습니다(시간차 매집).','최근 거래가 말라 팔 물량이 줄어든 상태입니다. 2~6개월 보는 중장기 후보입니다.'],
-    quietLeaderPullback:['거래가 많은 대형 주도주가 크게 오른 뒤 조용히 쉬고 있습니다.','손절 -10%, +10% 오른 뒤 20일선 아래로 내려오면 매도하는 기준으로 봅니다.']};
+    quietLeaderPullback:['거래가 많은 대형 주도주가 크게 오른 뒤 조용히 쉬고 있습니다.','손절 -10%, +10% 오른 뒤 60일선 아래로 내려오면 매도하는 기준으로 봅니다.']};
   function plainLines(item) {
     var edge=(detailFor(item).edgeSignals || []).filter(function(t){return t && PLAIN_EDGES[t.key];})[0];
     if((detailFor(item).edgeOnly || detailFor(item).promotedEdge) && edge)return PLAIN_EDGES[edge.key].slice();
