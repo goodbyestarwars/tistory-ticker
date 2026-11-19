@@ -1227,7 +1227,9 @@
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
-    root.innerHTML = controlHtml(c) + leaderHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
+    // 2026-11-20 사용자 지시("사용자 측면에서 불편, 없어도 된다"): 주도주 조용한 눌림 칸 카드는 화면에서 뺀다. 칸은 내부 설정으로 켜져 자동 매수·매도한다.
+    // leaderHtml·leader-config 명령 경로는 보존(다시 표시하거나 설정을 바꿀 때 재사용).
+    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
     var targetForm = root.querySelector('[data-target-form]');
     if (targetForm) {
       bindTargetSymbolSearch(targetForm);
