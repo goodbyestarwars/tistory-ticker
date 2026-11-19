@@ -19,7 +19,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
   <div class="learn-search" id="learn-search"></div>
 
@@ -31,6 +31,12 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   미국은 <b>거래 시간과 지수 산출 방식, 가격 변동을 통제하는 규칙</b>이 다르다. 한국 시각으로 날짜가
   바뀌는 동안 실적 발표와 옵션 거래가 이어진다는 점도 알아야 한다.</p>
 
+  
+  <div class="in-facts">
+    <div class="in-fact"><span>정규장(서머타임, 한국시간)</span><strong>22:30~05:00</strong></div>
+    <div class="in-fact"><span>하루 가격 제한</span><strong>없음</strong></div>
+    <div class="in-fact"><span>0DTE 옵션의 만기</span><strong>오늘</strong></div>
+  </div>
   </section>
   <section class="learn-sec">
   <h2 id="sec-1">시차부터 맞춰야 한다</h2>
@@ -299,7 +305,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h3>오른쪽 칸 · 옵션 감마</h3>
   <p><b>제목: 0DTE 옵션 감마 / 옵션 감마 · 만기 11-09</b> - 오늘이 만기인 옵션이 있으면 제목이 <b>0DTE 옵션 감마</b>가 되고,
   없으면 가장 가까운 만기 날짜가 붙는다. 개별 종목은 대부분 금요일에만 만기가 있어서 다른 요일에는 다음 만기를 보여 준다.
-  "오늘 만기 옵션이 없어 가장 가까운 만기 기준으로 보여 드립니다 · 서비스 정상"이라는 노란 안내는 고장이 아니라
+  오늘 만기 옵션이 없어 가장 가까운 만기 기준으로 보여 준다는 노란 안내("서비스 정상" 표시가 함께 나온다)는 고장이 아니라
   이 상황을 알리는 문구다.</p>
   <p><b>감마는 OI(전일) 기준</b> - 미결제약정은 청산소가 밤사이 한 번 집계한다. 그래서 오늘 장중에 새로 쌓인 계약은 막대에
   반영되지 않는다. 오늘 생긴 움직임은 옆의 거래량과 '신규' 표시로 따로 본다.</p>
@@ -525,6 +531,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 서머타임이 끝난 겨울에는 미국 정규장이 한국시간 몇 시에 열릴까?</summary><p>시차가 13시간에서 14시간으로 늘어 한 시간 늦은 밤 23:30에 열리고 새벽 06:00에 끝난다.</p></details>
+  <details class="in-quiz"><summary>2. 한국 주식은 하루 ±30%가 한계다. 미국 주식도 그럴까?</summary><p>미국은 하루 가격제한폭이 없다. 실적 발표 다음 날 30% 넘게 움직이는 종목도 있다.</p></details>
+  <details class="in-quiz"><summary>3. 달러로 10% 오른 미국 주식을 팔았는데, 그사이 환율이 5% 떨어졌다. 원화로는?</summary><p>1.10 × 0.95 = 1.045라서 원화로는 약 4.5%만 남는다. 미국 주식의 원화 수익은 주가와 환율을 함께 본다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="us-advanced">
   <h2 id="us-advanced">심화 연구실 · 미국 시장의 지수와 옵션을 같은 숫자로 보면 안 된다</h2>
   <p>S&amp;P 500은 대체로 유통주식수 조정 시가총액 가중 지수인 반면, 다우지수는 <b>주가 가중</b>이다. 나스닥 종합지수는 나스닥 상장 종목 중심의 시장 지수다. 지수 변화를 비교할 때 <b>구성 종목, 가중 방식, 통화, 배당 재투자 여부</b>를 먼저 맞춰야 한다.</p>

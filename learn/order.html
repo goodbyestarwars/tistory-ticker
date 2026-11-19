@@ -18,7 +18,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <div class="legal-backs">
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
@@ -27,6 +27,14 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <h1>2장 · 주문과 체결</h1>
   <p class="legal-effective-date">호가창 읽는 법, 지정가와 시장가, 체결 순서, 거래에 붙는 비용</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <div class="in-facts">
+    <div class="in-fact"><span>체결 순서</span><strong>가격 → 시간</strong></div>
+    <div class="in-fact"><span>바로 사고 싶을 때</span><strong>시장가</strong></div>
+    <div class="in-fact"><span>사고팔 때마다</span><strong>비용이 붙는다</strong></div>
+  </div>
+  </section>
 
   <section class="learn-sec">
   <h2 id="sec-1">호가창은 중고 거래 게시판이다</h2>
@@ -208,6 +216,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 파는 줄에 10,100원 100주, 10,150원 200주가 있다. 시장가로 150주를 사면?</summary><p>먼저 10,100원 100주를 다 사고, 모자란 50주는 10,150원에 산다. 평균 값은 약 10,117원으로, 맨 앞 가격보다 조금 비싸다.</p></details>
+  <details class="in-quiz"><summary>2. 나와 친구가 똑같이 10,000원에 사겠다고 주문을 넣었다. 파는 사람이 한 명뿐이면 누가 먼저 살까?</summary><p>값이 같으면 먼저 주문을 넣은 사람이 먼저다. 그래서 체결 순서는 "가격이 먼저, 같으면 시간"이다.</p></details>
+  <details class="in-quiz"><summary>3. 한 번 사고팔 때 비용이 0.25%라면, 1년에 세 번 사고팔 때 원금의 몇 %가 나갈까?</summary><p>0.25% × 3 = 0.75%다. 한 번은 작아 보여도 자주 거래하면 쌓인다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="advanced-order">
   <h2 id="advanced-order">심화 연구실 · 실제 체결비용은 주문가격보다 복잡하다</h2>
   <p>전문 거래 분석에서는 주문을 넣은 순간의 가격과 최종 체결가격을 구별한다. 주문이 여러 호가 단계에 걸쳐 체결되면 <b>평균체결가격(VWAP)</b>이 달라진다. 최우선호가만 보고 매수금액을 계산하면 시장 충격과 <b>실행손실(implementation shortfall)</b>을 놓치기 쉽다.</p>
