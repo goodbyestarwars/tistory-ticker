@@ -1673,7 +1673,11 @@
       :'<div class="ps-pick-quote"><span class="ps-pick-price">'+fmt(r.price)+'<small>원</small></span>'
         +(hasRate?'<span class="ps-pick-rate '+chgClass(rate)+'" title="'+escapeHtml((day?day+' ':'')+'전일 대비 등락률')+'">'+escapeHtml(chgSign(rate))+'</span>':'')
         +'<span class="ps-pick-basis">'+escapeHtml(day?day+' 종가':'기준일 종가')+'</span></div>';
-    return '<article class="ps-state-row ps-pick" data-code="'+escapeHtml(r.code)+'">'
+    // 2026-11-19 사용자 지시: 추천을 본 날 기준일 종가만 보이면 그 뒤 얼마나 움직였는지 알 수 없다.
+    // 기준일 종가는 비교 기준으로 남기고, 공통 실시간 조회(patchLivePrices)가 오면 현재가와 기준 대비 %로 바꾼다.
+    var basisAttr=r.price!=null && Number(r.price)>0?' data-scan-price="'+escapeHtml(r.price)+'" data-scan-day="'+escapeHtml(day)+'"'
+      +' data-sup="'+escapeHtml(d.support==null?'':d.support)+'" data-res="'+escapeHtml(d.resistance==null?'':d.resistance)+'"':'';
+    return '<article class="ps-state-row ps-pick" data-code="'+escapeHtml(r.code)+'"'+basisAttr+'>'
       +'<div class="ps-pick-head"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small>'
       +(manual?'<span class="ps-state-badge" title="'+escapeHtml(tags.join(' · ') || '연구 조건')+'">수동 점검 필요</span>':'')+'</div>'+quote+'</div>'
       +'<ul class="ps-pick-lines">'+plainLines(it).map(function(t){return '<li>'+escapeHtml(t)+'</li>';}).join('')+'</ul>'
@@ -1700,6 +1704,7 @@
       if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){closeDetail(container);return;}
       openDetail(container,Object.assign({},m.item,{_sourceKey:m.key,_publicMembers:r.classified,_publicMemberIndex:0}));
     });});
+    if(total)patchLivePrices(container);
   }
   function renderLegacyUnifiedList(container) {
     var list=container.querySelector('#psList');
@@ -2046,10 +2051,30 @@
     meta.className = 'ps-price-basis-note' + (live ? '' : ' is-stale');
   }
 
+  // 매수후보 카드: 큰 가격은 지금 시세, 배지는 기준일 종가 대비 등락. 시세 날짜 필드가 없으므로
+  // 날짜를 지어내지 않고 세션(장중/시간외/장 마감 뒤)으로만 밝힌다.
+  function applyPickQuote(row, live) {
+    var quote = row.querySelector('.ps-pick-quote');
+    var scanPrice = Number(row.getAttribute('data-scan-price'));
+    var gap = gapPercent(Number(live.price), scanPrice);
+    if (!quote || gap == null) return;
+    var day = row.getAttribute('data-scan-day');
+    var session = live.market_state === 'regular' ? '현재가'
+      : (live.price_session === 'post' || live.price_session === 'pre') ? 'NXT 시간외가' : '최근 종가';
+    var rounded = Math.round(gap * 100) / 100;
+    quote.innerHTML = '<span class="ps-pick-price">' + fmt(live.price) + '<small>원</small></span>'
+      + '<span class="ps-pick-rate ' + chgClass(rounded) + '" title="' + escapeHtml((day ? day + ' ' : '기준일 ') + '종가 대비 등락률') + '">' + escapeHtml(chgSign(rounded)) + '</span>'
+      + '<span class="ps-pick-basis">' + escapeHtml(session + ' · ' + (day ? day + ' ' : '기준일 ') + '종가 ' + fmt(scanPrice) + '원 대비') + '</span>';
+    var gauge = row.querySelector('.ps-pick-gauge');
+    var next = rangeGaugeHtml(live.price, row.getAttribute('data-sup'), row.getAttribute('data-res'));
+    if (gauge && next) gauge.outerHTML = next;
+  }
+
   function applyLiveQuotes(container, items, byCode) {
     Array.prototype.forEach.call(items, function (row) {
       var live = byCode[row.getAttribute('data-code')];
       if (!live || live.price == null || isNaN(live.price)) return;
+      if (row.classList.contains('ps-pick')) { applyPickQuote(row, live); return; }
       var quote = row.querySelector('.ps-quote');
       if (!quote) return;
       var scanPrice = Number(quote.getAttribute('data-scan-price'));
@@ -2067,7 +2092,7 @@
   }
 
   function patchLivePrices(container) {
-    var rows = container.querySelectorAll('.ps-item[data-code]');
+    var rows = container.querySelectorAll('.ps-item[data-code], .ps-pick[data-code]');
     if (!rows.length) return;
     var fresh = {};
     var missing = [];
@@ -2097,7 +2122,7 @@
             liveQuoteCache[String(d.code)] = { data: d, at: Date.now() };
           });
           if (seq !== liveQuoteSeq) return;   // 그사이 탭이 바뀌었다 - 늦은 응답은 버린다
-          applyLiveQuotes(container, container.querySelectorAll('.ps-item[data-code]'), byCode);
+          applyLiveQuotes(container, container.querySelectorAll('.ps-item[data-code], .ps-pick[data-code]'), byCode);
           markPriceBasis(container, true);
         })
         .catch(function () {
