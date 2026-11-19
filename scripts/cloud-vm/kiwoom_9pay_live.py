@@ -20,6 +20,10 @@ RANK_INTERVAL = 60  # at most two Kiwoom REST ranking calls per minute
 KIS_INTERVAL = 30   # reads existing in-memory KIS samples; no API calls
 MAX_CODES = 20      # reserve at least 80 of hub's default 100 slots for existing users
 LOG_PATH = os.path.join(os.path.dirname(__file__), 'kiwoom_9pay_research.jsonl')
+# 2026-11-20 단타 검증용 보존 기록(사용자 지시 "진행해"): 1MiB 회전 로그와 별도로 신호·결과·단계만 월별 파일에 지우지 않고 쌓는다.
+# 5초 순위 기록은 넣지 않아 하루 수 KB 수준이다. 판정 기준은 docs/NINEPAY_DAYTRADE_VALIDATION_2026-11-20.md.
+ARCHIVE_DIR = os.path.dirname(__file__)
+ARCHIVE_TYPES = ('signal', 'outcome', 'stage')
 STATE_PATH = os.path.join(os.path.dirname(__file__), 'kiwoom_9pay_state.json')
 _lock = threading.Lock()
 _thread = None
@@ -177,6 +181,21 @@ def _record(record):
             file.write(json.dumps(record, ensure_ascii=False, separators=(',', ':')) + '\n')
     except OSError:
         logger.exception('9Pay research log write failed')
+    _archive(record)
+
+
+def _archive(record):
+    """검증용 보존 기록(월별 파일, 회전·삭제 없음). 실패해도 관측을 멈추지 않는다."""
+    if record.get('type') not in ARCHIVE_TYPES:
+        return
+    if record.get('type') == 'stage' and not (record.get('first70At') or record.get('signalAt')):
+        return  # 70% 유입 전 단계 변화는 기준선(70% 도달·미신호)에 쓰지 않는다.
+    try:
+        month = datetime.now(KST).strftime('%Y%m')
+        with open(os.path.join(ARCHIVE_DIR, 'kiwoom_9pay_signals_%s.jsonl' % month), 'a', encoding='utf-8') as file:
+            file.write(json.dumps(record, ensure_ascii=False, separators=(',', ':')) + '\n')
+    except OSError:
+        logger.exception('9Pay archive write failed')
 
 
 @scan_observation.measured('kiwoom.amount_rank')
@@ -362,6 +381,8 @@ async def _run(appkey, secretkey):
                         _record({'type': 'outcome', 'code': code, 'at': now,
                                  'signalAt': track.signal_at, 'mfePct': track.mfe_pct,
                                  'maePct': track.mae_pct,
+                                 # 2026-11-20: 매도 규칙 재현용 5분 간격 가격 경로
+                                 'signalPrice': track.signal_price, 'lastPrice': track.last_price or None,
                                  'gapCount': track.gap_count, 'maxGapSec': track.max_gap_sec,
                                  'lastSampleAt': track.last_at})
                 _persist(ws, day)
