@@ -627,7 +627,7 @@
     var service = orMissing(vm.serviceState, { active: '실행 중', inactive: '대기', failed: '실패', activating: '시작 중' });
     var link = c.received ? '수신 · ' + c.ageSec + '초 전' : '미수신' + (c.ageSec != null ? ' · 마지막 ' + c.ageSec + '초 전' : '');
     var approval = flags.approval ? (flags.approval.present ? '있음' + (flags.approval.date ? ' (' + flags.approval.date + '~)' : '') : '없음') : '미수신';
-    var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지', hold: '오늘 신규 매수 보류', resume: '보류 해제' }[c.lastCommand.action] || LOG_ACTION[c.lastCommand.action] || c.lastCommand.action) + (c.lastCommand.code ? ' ' + c.lastCommand.code : '') + ' ' + ({ DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
+    var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지', hold: '오늘 신규 매수 보류', resume: '보류 해제' }[c.lastCommand.action] || LOG_ACTION[c.lastCommand.action] || c.lastCommand.action) + (c.lastCommand.code ? ' ' + c.lastCommand.code : '') + ' ' + ({ DONE: '완료', ACCEPTED: '접수(봇 처리 대기)', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
       + ' · ' + String(c.lastCommand.at || '').slice(5, 16).replace('T', ' ') + (c.lastCommand.reason ? ' · ' + c.lastCommand.reason : '') : '없음';
     var blockers = c.startBlockers || [];
     var st = statusLine(c);
@@ -681,7 +681,7 @@
   }
 
   var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제', 'target-add': '목표가 조건 등록', 'target-cancel': '목표가 조건 취소', sell: '보유 종목 매도', 'position-drop': 'PENDING 기록 정리' };
-  var LOG_RESULT = { QUEUED: '접수', DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)', REFUSED: '거부' };
+  var LOG_RESULT = { QUEUED: '접수', ACCEPTED: '봇 처리 대기', DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)', REFUSED: '거부' };
   function logHtml(rows) {
     if (!rows || !rows.length) return '<h3 class="at-subhead">명령 기록</h3><p class="at-empty">아직 기록이 없습니다.</p>';
     return '<h3 class="at-subhead">명령 기록 <small>최근 ' + rows.length + '건</small></h3><ul class="at-ctl-log">' + rows.map(function (r) {
@@ -744,14 +744,18 @@
     var caps = (lastControl && lastControl.vm && lastControl.vm.capabilities) || [];
     var locked = busy || (lastControl && lastControl.pending);
     var attrs = ' data-code="' + esc(p.code) + '" data-name="' + esc(p.name || '') + '" data-qty="' + (p.qty > 0 ? p.qty : 0) + '" data-price="' + (price > 0 ? price : 0) + '"';
+    var pend = lastControl && lastControl.pending, lc = lastControl && lastControl.lastCommand;
     if (p.state === 'OPEN') {
+      // ACCEPTED = 에이전트 접수 후 봇의 처리 결과 대기. 실패·미처리는 봇이 남긴 사유를 행에 표시한다.
+      if ((pend && pend.action === 'sell' && pend.code === p.code) || (lc && lc.action === 'sell' && lc.code === p.code && lc.result === 'ACCEPTED')) return '<span class="at-mute">매도 처리 중…</span>';
+      var sellNote = lc && lc.action === 'sell' && lc.code === p.code && (lc.result === 'FAILED' || lc.result === 'EXPIRED')
+        ? '<br><small class="at-warn-text">' + esc((lc.result === 'FAILED' ? '매도 실패' : '미처리') + (lc.reason ? ' · ' + lc.reason : '')) + '</small>' : '';
       var ok = caps.indexOf('manual-sell-v1') >= 0 && !locked && p.qty > 0;
-      return '<button type="button" class="at-mini is-sell" data-pos-sell' + attrs + (ok ? '' : ' disabled') + (caps.indexOf('manual-sell-v1') >= 0 ? '' : ' title="에이전트가 아직 매도 기능을 지원하지 않습니다"') + '>매도</button>';
+      return '<button type="button" class="at-mini is-sell" data-pos-sell' + attrs + (ok ? '' : ' disabled') + (caps.indexOf('manual-sell-v1') >= 0 ? '' : ' title="에이전트가 아직 매도 기능을 지원하지 않습니다"') + '>매도</button>' + sellNote;
     }
     if (p.state === 'PENDING') {
-      // 이 종목의 기록 정리 명령 상태: 처리 중 / 실패·미처리 사유 / 완료 응답 뒤에도 VM이 다시 보고함.
-      var pend = lastControl && lastControl.pending, lc = lastControl && lastControl.lastCommand;
-      if (pend && pend.action === 'position-drop' && pend.code === p.code) return '<span class="at-mute">삭제 처리 중…</span>';
+      // 이 종목의 기록 정리 명령 상태: 처리 중(접수·봇 결과 대기 포함) / 실패·미처리 사유 / 완료 응답 뒤에도 VM이 다시 보고함.
+      if ((pend && pend.action === 'position-drop' && pend.code === p.code) || (lc && lc.action === 'position-drop' && lc.code === p.code && lc.result === 'ACCEPTED')) return '<span class="at-mute">삭제 처리 중…</span>';
       var note = '';
       if (lc && lc.action === 'position-drop' && lc.code === p.code) {
         if (lc.result === 'DONE') return '<span class="at-warn-text" title="삭제 완료 응답 뒤에도 VM 장부가 이 기록을 다시 보냈습니다. VM 장부 확인이 필요합니다.">삭제 완료 응답 · VM 장부에 남아 있음</span>';
