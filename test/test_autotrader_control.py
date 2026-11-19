@@ -85,6 +85,22 @@ class ControlTest(unittest.TestCase):
         self.assertNotIn('price', command)
         self.assertNotIn('qty', command)
 
+    def test_leader_config_needs_capability_and_valid_values(self):
+        now = MON
+        params = {'on': True, 'perStock': 500000, 'maxStocks': 1}
+        self.seed(good(now))
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('leader-config', 'admin', now, params=params)
+        snapshot = good(now, capabilities=['leader-pullback-v1'])
+        self.seed(snapshot)
+        for bad in ({'on': 1, 'perStock': 500000, 'maxStocks': 1}, {'on': True, 'perStock': 50000, 'maxStocks': 1},
+                    {'on': True, 'perStock': 505000, 'maxStocks': 1}, {'on': True, 'perStock': 500000, 'maxStocks': 4}):
+            with self.assertRaises(ac.ControlError):
+                ac.queue_command('leader-config', 'admin', now, params=bad)
+        queued = ac.queue_command('leader-config', 'admin', now, params=dict(params, extra='x'))
+        command = ac.agent_sync({'snapshot': snapshot}, now)['command']
+        self.assertEqual(command, {'id': queued['id'], 'action': 'leader-config', 'on': True, 'perStock': 500000, 'maxStocks': 1})
+
     def test_start_allowed_only_when_everything_is_known_and_clear(self):
         self.assertEqual(ac.start_blockers(good(MON), MON), [])
 

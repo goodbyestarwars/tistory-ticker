@@ -1684,6 +1684,36 @@
       +'<div class="ps-pick-foot">'+rangeGaugeHtml(r.price,d.support,d.resistance)
       +'<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트 보기 →</button></div></div></article>';
   }
+  // 2026-11-20 사용자 지시("UI에 없는데"): 눌림·재돌파 탭에 주도주 조용한 눌림 상자를 늘 둔다.
+  // 관찰 구간(KOSPI 60일선 아래)에는 매수후보로 올리지 않는 기존 판정은 그대로이며, 조건에 맞은 종목은 '관찰'로만 보여준다.
+  // 매도 기준(exitPlan)과 exit-v1/v2 실제 추적 결과(shapeSelection.exitTracking)는 서버 값만 쓰고 지어내지 않는다.
+  function leaderBoxHtml(selection) {
+    if(activeTab!=='pullbackRebreak' || !selection)return '';
+    var q=selection.quiet || {},rest=q.marketRest;
+    var tagged=function(r){return ((detailFor(r).edgeSignals) || []).some(function(t){return t && t.key==='quietLeaderPullback';});};
+    var buys=((selection.groups || {}).pullbackRebreak || []).filter(function(r){return detailFor(r).promotedEdge && tagged(r);});
+    var watch=((selection.research || {}).pullbackRebreak || []).filter(tagged);
+    var plan=(buys.concat(watch).map(function(r){return detailFor(r).exitPlan;}).filter(Boolean)[0]) || null;
+    var state=rest===true?'<b>관찰 구간</b> · KOSPI가 60일선 아래라 지금은 새로 사지 않습니다'
+      :rest===false?'<b>매수 검토 구간</b> · KOSPI 60일선 위':'시장 구간 확인 전';
+    var names=function(rows){return rows.map(function(r){return escapeHtml(r.name || r.code)+' <small>'+escapeHtml(String(r.code || ''))+'</small>';}).join(' · ');};
+    var pick=buys.length?'<p class="ps-leader-line">매수후보: '+names(buys)+'</p>':'';
+    var obs=watch.length?'<p class="ps-leader-line">조건에 맞아 관찰 중: '+names(watch)+(rest===true?' <small>(관찰 구간이라 매수후보 아님)</small>':'')+'</p>':'';
+    var none=!buys.length && !watch.length?'<p class="ps-leader-line ps-state-empty">오늘 조건에 맞은 종목이 없습니다.</p>':'';
+    var exit=plan?'손절 '+escapeHtml(String(plan.stopLossPct))+'% · '+escapeHtml(plan.takeProfit || '')+' · 최대 '+escapeHtml(String(plan.maxHoldDays))+'거래일'
+      :'손절 -10% · +10% 도달 뒤 종가가 60일선 아래면 다음 거래일 시가 매도 · 최대 250거래일';
+    var t=((selection.exitTracking || {}).quietLeaderPullback) || null,track='';
+    if(t && t.rules){
+      var v=function(x){if(!x)return '-';var a=x.closed?('끝난 '+x.closed+'건 · 승률 '+(x.winPct!=null?x.winPct+'%':'-')+' · 평균 '+(x.avgPct!=null?x.avgPct+'%':'-')+' · PF '+(x.pf!=null?x.pf:'-')):'끝난 매매 없음';
+        return a+(x.open?' · 보유 중 '+x.open+'건 평균 '+(x.openAvgPct!=null?x.openAvgPct+'%':'-'):'');};
+      track='<p class="ps-leader-line"><small>실제 추적('+escapeHtml(String(t.since || '-'))+'부터 포착 '+escapeHtml(String(t.signals))+'건, 수수료 0.7% 차감)</small><br>'
+        +'새 매도 기준(60일선): '+v(t.rules['exit-v2'])+'<br>이전 기준(20일선): '+v(t.rules['exit-v1'])+'</p>';
+    }else if(t && t.status==='error'){track='<p class="ps-leader-line"><small>추적 결과를 계산하지 못했습니다.</small></p>';}
+    return '<section class="ps-leader-box" aria-label="주도주 조용한 눌림"><h3>주도주 조용한 눌림</h3>'
+      +'<p class="ps-state-meaning">'+state+'</p>'+pick+obs+none
+      +'<p class="ps-leader-line"><small>매도 기준</small> '+exit+'</p>'+track
+      +'<p class="ps-leader-line"><small>연구 관찰 · 주문 신호 아님</small></p></section>';
+  }
   function renderSimpleList(container,list,model,selection,known) {
     var current=function(r){var it=r.classified[0].member.item;return !it.track && !it._history;};
     // 승격된 주도주 조용한 눌림(promotedEdge)을 맨 위에, 쉬기 구간에 숨긴 연구(restHidden)는 표시하지 않는다.
@@ -1695,7 +1725,7 @@
       :q.marketRest===false?'<p class="ps-state-meaning"><b>매수 검토 구간</b> · KOSPI 60일선 위</p>':'';
     detailNavItems=yes.concat(manual);
     var total=yes.length+manual.length;
-    list.innerHTML=market+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
+    list.innerHTML=market+leaderBoxHtml(selection)+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
       +(total?yes.map(function(r){return simpleRowHtml(r,false,selection && selection.dataDate);}).join('')+manual.map(function(r){return simpleRowHtml(r,true,selection && selection.dataDate);}).join('')
         :'<p class="ps-state-empty">'+(known?'오늘은 매수후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>');
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){

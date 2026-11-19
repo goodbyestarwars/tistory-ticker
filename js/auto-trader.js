@@ -682,7 +682,7 @@
     return { text: '대기 중' + next };
   }
 
-  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제', 'target-add': '목표가 조건 등록', 'target-cancel': '목표가 조건 취소', sell: '보유 종목 매도', 'position-drop': 'PENDING 기록 정리' };
+  var LOG_ACTION = { start: '시작', stop: '중지', hold: '신규 매수 보류', resume: '보류 해제', 'target-add': '목표가 조건 등록', 'target-cancel': '목표가 조건 취소', sell: '보유 종목 매도', 'position-drop': 'PENDING 기록 정리', 'leader-config': '주도주 칸 설정' };
   var LOG_RESULT = { QUEUED: '접수', ACCEPTED: '봇 처리 대기', DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)', REFUSED: '거부' };
   function logHtml(rows) {
     if (!rows || !rows.length) return '<h3 class="at-subhead">명령 기록</h3><p class="at-empty">아직 기록이 없습니다.</p>';
@@ -1081,6 +1081,43 @@
     var qty = Number(d.qty);
     return price > 0 && qty > 0 ? '예상 주문금액 <b>' + fmtWon(price * qty) + '원</b>' : '목표가와 수량을 넣으면 주문금액을 계산합니다.';
   }
+  // 2026-11-20 주도주 조용한 눌림 전용 칸. 에이전트가 올린 실제 설정(flags.leaderPullback)만 표시하고,
+  // 켜기·끄기·금액 변경은 leader-config 명령(에이전트가 설정 파일만 저장)으로 보낸다.
+  var leaderDraft = null;
+  function leaderHtml(c) {
+    var vm = c.vm || {}, lp = c.received && (vm.flags || {}).leaderPullback;
+    var head = '<div class="at-hd"><h3>주도주 조용한 눌림 칸</h3><span class="at-sub">검색기 매수후보 자동 매수 · 기존 단타·스윙 칸과 별도</span></div>';
+    if (!(vm.capabilities || []).includes('leader-pullback-v1') || !lp) {
+      return '<section class="at-card at-act">' + head + '<p class="at-empty">' + (c.received ? '에이전트가 아직 이 기능을 지원하지 않습니다(업데이트 대기).' : '상태 미수신') + '</p></section>';
+    }
+    if (!leaderDraft) leaderDraft = { perStock: lp.perStock, maxStocks: lp.maxStocks };
+    var locked = busy || c.pending ? ' disabled' : '';
+    var won = function (v) { return (v / 10000).toLocaleString('ko-KR') + '만 원'; };
+    var perOpts = [100000, 200000, 300000, 500000, 700000, 1000000, 1500000, 2000000];
+    if (perOpts.indexOf(leaderDraft.perStock) < 0) perOpts.push(leaderDraft.perStock);
+    var state = lp.on ? '<b class="at-up">켜짐</b> · 조건에 맞으면 실계좌 매수' : '<b>꺼짐</b> · 매수하지 않음';
+    if (lp.source === 'invalid') state += ' <span class="at-mute">(설정 파일 확인 필요 · 안전하게 꺼짐 처리)</span>';
+    if (lp.envOn) state += ' <span class="at-mute">(서버 환경변수로 켜짐)</span>';
+    var held = (lp.positions || []).length ? lp.positions.map(function (code) { return esc(code) + ' ' + esc(krxName(code) || ''); }).join(', ') : '없음';
+    return '<section class="at-card at-act">' + head
+      + '<div class="at-row"><span>상태</span><b>' + state + '</b></div>'
+      + '<div class="at-row"><span>종목당 상한</span><b><select data-leader="perStock"' + locked + '>'
+      + perOpts.sort(function (a, b) { return a - b; }).map(function (v) { return '<option value="' + v + '"' + (v === leaderDraft.perStock ? ' selected' : '') + '>' + won(v) + '</option>'; }).join('')
+      + '</select></b></div>'
+      + '<div class="at-row"><span>최대 종목 수</span><b><select data-leader="maxStocks"' + locked + '>'
+      + [1, 2, 3].map(function (v) { return '<option value="' + v + '"' + (v === leaderDraft.maxStocks ? ' selected' : '') + '>' + v + '종목</option>'; }).join('')
+      + '</select></b></div>'
+      + '<div class="at-row"><span>매수</span><b>전 거래일 확정 후보 · 다음 거래일 지정가 · 기준가 +2% 이상이면 추격 안 함</b></div>'
+      + '<div class="at-row"><span>매도</span><b>손절 -10% · +10% 도달 뒤 종가 60일선 이탈 시 다음 거래일 매도 · 최대 250거래일</b></div>'
+      + '<div class="at-row"><span>이 칸 보유</span><b>' + held + '</b></div>'
+      + '<div class="at-ctl-actions">'
+      + '<button type="button" class="at-ctl-btn is-go" data-leader-set="on"' + locked + '>' + (lp.on ? '설정 저장' : '켜기') + '</button>'
+      + '<button type="button" class="at-ctl-btn is-stop" data-leader-set="off"' + (lp.on && !busy && !c.pending ? '' : ' disabled') + '>끄기</button>'
+      + (lp.on ? '' : '<button type="button" class="at-ctl-btn" data-leader-set="save"' + locked + '>꺼진 채 설정 저장</button>')
+      + '</div>'
+      + '<p class="at-note">켜면 다음 매수 점검부터 실계좌 주문이 나갈 수 있습니다. 수동 중지·당일 매수 보류·14:00 종료·계좌 승인 게이트는 그대로 적용됩니다. KOSPI가 60일선 아래인 날은 검색기가 매수후보를 내지 않습니다.</p>'
+      + '</section>';
+  }
   function targetBuyHtml(c) {
     var vm = c.vm || {};
     if (!(vm.capabilities || []).includes('target-buy-v1')) {
@@ -1190,7 +1227,7 @@
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
-    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
+    root.innerHTML = controlHtml(c) + leaderHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
     var targetForm = root.querySelector('[data-target-form]');
     if (targetForm) {
       bindTargetSymbolSearch(targetForm);
@@ -1255,6 +1292,27 @@
     });
     root.querySelectorAll('[data-pos-sell],[data-pos-drop]').forEach(function (button) {
       button.addEventListener('click', function () { openPositionModal(button.hasAttribute('data-pos-sell') ? 'sell' : 'drop', button.dataset); });
+    });
+    root.querySelectorAll('[data-leader]').forEach(function (sel) {
+      sel.addEventListener('change', function () { if (leaderDraft) leaderDraft[sel.getAttribute('data-leader')] = Number(sel.value); });
+    });
+    root.querySelectorAll('[data-leader-set]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var mode = button.getAttribute('data-leader-set'), lp = ((lastControl || {}).vm || {}).flags || {};
+        lp = lp.leaderPullback || {};
+        var on = mode === 'on' ? true : mode === 'off' ? false : !!lp.on;
+        var d = leaderDraft || { perStock: lp.perStock, maxStocks: lp.maxStocks };
+        var amount = (d.perStock / 10000).toLocaleString('ko-KR') + '만 원 · ' + d.maxStocks + '종목';
+        var msg = mode === 'on' && !lp.on
+          ? '주도주 조용한 눌림 칸을 켭니다(' + amount + ').\n\n다음 매수 점검부터 조건에 맞는 종목을 실계좌로 매수할 수 있습니다. 계속할까요?'
+          : mode === 'off' ? '주도주 조용한 눌림 칸을 끕니다.\n\n새 매수만 멈추며, 이미 산 종목은 이 칸의 매도 기준으로 계속 관리합니다. 계속할까요?'
+            : '설정을 저장합니다(' + amount + (on ? ', 켜진 상태 유지' : ', 꺼진 상태') + '). 계속할까요?';
+        if (busy || !global.confirm(msg)) return;
+        busy = true; lastError = ''; renderControl(lastControl);
+        controlRequest('/autotrader/command', { action: 'leader-config', on: on, perStock: d.perStock, maxStocks: d.maxStocks }).catch(function (e) {
+          lastError = e && e.status === 403 ? '관리자 Google 로그인이 필요합니다.' : e && e.status === 409 ? '서버가 명령을 거부했습니다. 아래 사유를 확인하세요.' : '명령을 보내지 못했습니다.';
+        }).then(function () { busy = false; leaderDraft = null; refresh(); });
+      });
     });
     root.querySelectorAll('[data-ctl]').forEach(function (button) {
       button.addEventListener('click', function () {
