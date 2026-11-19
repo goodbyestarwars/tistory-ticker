@@ -21,6 +21,8 @@
 2단계(2026-11-19): 캐시에 flow(외국인·기관·개인 순매수)와 px[6] 외국인 소진율이 있으면 FLOW·FOREIGN·ORGAN·FR 및 QLP 결합 그룹을 추가한다.
 3단계(2026-11-19): <작업 폴더>/earn.json(fetch_dart_quarterly_cache.py, 환경변수 EARN_FILE로 변경)이 있으면 DART 분기 실적 그룹
   EARN(영업이익 YoY 상위30%)·EARN_REV(매출 YoY 상위30%)·TURN(흑자 전환)·EARN_FRESH(EARN & 접수 20거래일 이내)와 QLP 결합을 추가한다.
+4단계(2026-11-19): <작업 폴더>/events.json(fetch_dart_events_cache.py, EVENTS_FILE)이 있으면 공시 사건 그룹을 추가한다.
+  신호일 = 접수일(휴장이면 다음 거래일) j의 다음 거래일 s. 반응 = (c[s]/c[j-1]-1)/(ATR14[j-1]/c[j-1]) (2일, ATR 배수). s+1 시가 매수.
 실행: python pullback_combo_study.py <작업 폴더(cache/)> <shape.tsv> <out.json>   (SPRING_START, SPRING_SPLIT, SPRING_INDEX 공용)
 """
 import json
@@ -100,7 +102,60 @@ def earn_cols(dates, rows):
     return out
 
 
-def frame(code, px, mret, flow=None, earn=None):
+EV_KINDS = ('earn', 'contract', 'buyback', 'bonus', 'facility', 'rights')
+EV_UP_ATR = 1.0  # 긍정 반응 = 2일 반응 >= 1 ATR (변동성 단위, 고정 %가 아님)
+
+
+def event_cols(dates, c, atr, events):
+    """4단계 공시 사건 피처(2026-11-19). events: [[접수일, 유형], ...].
+    ev_<유형>  : 그 유형 사건의 신호일 s에만 2일 반응(ATR 배수), 그 외 NaN. s일 종가까지만 사용.
+    ev_up20    : 최근 20거래일(신호일 기준, 오늘 포함) 안에 rights 외 사건이 긍정 반응(>= EV_UP_ATR)으로 신호됐으면 1, 아니면 0.
+    사후 서술용(rally 전용, 미래 포함 - 매매 판정에 쓰지 않음):
+    evw_<earn|contract|any> : 접수 거래일 j가 [i-5, i+10] 안이면 1,  evp_any : j가 [i-20, i] 안이면 1."""
+    n = len(dates)
+    out = {('ev_' + k): np.full(n, np.nan) for k in EV_KINDS}
+    up = np.zeros(n)
+    jw = {k: [] for k in ('earn', 'contract', 'any')}
+    if events is None:
+        for k in ('ev_up20', 'evw_earn', 'evw_contract', 'evw_any', 'evp_any'):
+            out[k] = np.full(n, np.nan)
+        return pd.DataFrame(out)
+    idx = np.searchsorted(np.asarray(dates), [e[0] for e in events], side='left')
+    for (d, kind), j in zip(events, idx):
+        if j >= n or kind not in EV_KINDS:
+            continue
+        if kind != 'rights':
+            jw['any'].append(j)
+        if kind in jw:
+            jw[kind].append(j)
+        s = j + 1
+        if j < 1 or s >= n or not (atr[j - 1] > 0) or not (c[j - 1] > 0):
+            continue
+        r = (c[s] / c[j - 1] - 1) / (atr[j - 1] / c[j - 1])
+        col = out['ev_' + kind]
+        col[s] = r if np.isnan(col[s]) else max(col[s], r)
+        if kind != 'rights' and r >= EV_UP_ATR:
+            up[s:min(s + 20, n)] = 1.0
+    out['ev_up20'] = up
+    for k, js in jw.items():
+        w = np.zeros(n)
+        for j in js:
+            w[max(j - 10, 0):min(j + 6, n)] = 1.0  # i in [j-10, j+5]  <=>  j in [i-5, i+10]
+        out['evw_' + k] = w
+    p = np.zeros(n)
+    for j in jw['any']:
+        p[j:min(j + 21, n)] = 1.0  # i in [j, j+20]  <=>  j in [i-20, i]
+    out['evp_any'] = p
+    return pd.DataFrame(out)
+
+
+def load_events(path):
+    if path and os.path.exists(path):
+        return json.load(open(path, encoding='utf-8'))
+    return None
+
+
+def frame(code, px, mret, flow=None, earn=None, events=None):
     df = pd.DataFrame([r[:6] for r in px], columns=['d', 'o', 'h', 'l', 'c', 'v'])
     o, h, l, c, v = (df[k].values.astype(float) for k in 'ohlcv')
     cs, vs = pd.Series(c), pd.Series(v)
@@ -126,6 +181,10 @@ def frame(code, px, mret, flow=None, earn=None):
     ec = earn_cols(list(df.d), earn)
     for k in ec.columns:
         f[k] = ec[k].values
+    ev = event_cols(list(df.d), c, atr, events)
+    for k in ev.columns:
+        if not k.startswith(('evw_', 'evp_')):  # 미래 포함 서술용 열은 매매 표에 넣지 않는다
+            f[k] = ev[k].values
     n = len(c)
     res = np.full((n, 4), np.nan)
     trade = [None] * n
@@ -197,6 +256,7 @@ def main(lab, shape_tsv, out_path):
     warnings.filterwarnings('ignore')
     data, flows = {}, {}
     earn = load_earn(os.environ.get('EARN_FILE', os.path.join(lab, 'earn.json')))
+    events = load_events(os.environ.get('EVENTS_FILE', os.path.join(lab, 'events.json')))
     for fn in sorted(os.listdir(os.path.join(lab, 'cache'))):
         if fn.endswith('.json'):
             px = [r for r in json.load(open(os.path.join(lab, 'cache', fn), encoding='utf-8'))['px'] if r[1] > 0 and r[4] > 0]
@@ -207,7 +267,7 @@ def main(lab, shape_tsv, out_path):
     mret = closes.pct_change().mean(axis=1).to_dict()
     frames = []
     for code, px in data.items():
-        f = frame(code, px, mret, flows.get(code), earn.get(code))
+        f = frame(code, px, mret, flows.get(code), earn.get(code), None if events is None else events.get(code, []))
         f['i_'] = np.arange(len(f))
         frames.append(f)
     df = pd.concat(frames, ignore_index=True)
@@ -248,6 +308,15 @@ def main(lab, shape_tsv, out_path):
         groups.update({'EARN 영업이익 YoY 상위30%': EARN, 'EARN_REV 매출 YoY 상위30%': df.p_e_rev_yoy >= .7,
                        'TURN 영업이익 흑자전환': df.e_turn == 1, 'EARN_FRESH 실적개선 접수 20일 이내': EARN_FRESH,
                        'QLP & EARN': QLP & EARN, 'QLP & EARN_FRESH': QLP & EARN_FRESH})
+    # 4단계 공시 사건(2026-11-19): 신호일 s = 접수 거래일 다음 날, s 종가까지의 2일 반응으로 판정, s+1 시가 매수.
+    if events is not None:
+        evk = ['ev_' + k for k in EV_KINDS if k != 'rights']
+        ANY_UP = (df[evk].max(axis=1) >= EV_UP_ATR)
+        groups.update({'EV_EARN 잠정실적 공시': df.ev_earn.notna(), 'EV_EARN_UP 잠정실적 긍정반응': df.ev_earn >= EV_UP_ATR,
+                       'EV_CONTRACT 공급계약 공시': df.ev_contract.notna(), 'EV_CONTRACT_UP 공급계약 긍정반응': df.ev_contract >= EV_UP_ATR,
+                       'EV_BUYBACK 자사주 취득': df.ev_buyback.notna(), 'EV_BONUS 무상증자': df.ev_bonus.notna(),
+                       'EV_FACILITY 시설투자': df.ev_facility.notna(), 'EV_RIGHTS 유상증자(참고)': df.ev_rights.notna(),
+                       'EV_ANY_UP 사건 긍정반응': ANY_UP, 'QLP & EV_UP20 최근20일 긍정사건': QLP & (df.ev_up20 == 1)})
     up_side = df.regime.isin(['상승', '횡보'])
     res = {'regime_source': src, 'shape_coverage': round(float(df.t120.notna().mean()) * 100, 1),
            'earn_coverage': round(float(df.e_op_sym.notna().mean()) * 100, 1),
