@@ -28,7 +28,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'cloud-vm'))
 
 START, END = os.environ.get('EV_START', '20201001'), os.environ.get('EV_END', '20260831')
-TYPES = ('I002', 'I001')
+# I001 거래소 수시공시(공급계약·시설투자), I002 공정공시(잠정실적), B001 주요사항보고서(자기주식취득·무상/유상증자결정).
+# 2026-11-19 첫 수집은 B001이 빠져 buyback 4건·bonus 0건이었다(설계 누락) -> 추가.
+TYPES = tuple(os.environ.get('EV_TYPES', 'I002,I001,B001').split(','))
 SLEEP = 0.3
 MAX_CALLS = int(os.environ.get('MAX_CALLS', '8000'))
 RULES = (('earn', ('영업(잠정)실적',)), ('contract', ('단일판매ㆍ공급계약체결', '단일판매·공급계약체결')),
