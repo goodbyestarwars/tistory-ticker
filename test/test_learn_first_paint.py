@@ -40,10 +40,11 @@ class LearnFirstPaintContract(unittest.TestCase):
         self.assertIn('body.learn-page .legal-wrap {', self.css)
         self.assertIn('max-width: 920px;', self.css)
         # 2026-10-31 통일 디자인: 단락 흰 상자·둥근 모서리·마루부리(제목만 Bold)
-        self.assertIn('--learn-box: #f2f7fe;', self.css)
+        # 2026-11-02 전역 디자인: 그림 면은 남색 계열 옅은 톤(#eef2f9), 글꼴은 공통 --font-serif로 일원화.
+        self.assertIn('--learn-box: #eef2f9;', self.css)
         self.assertIn('body.learn-page .legal-wrap .learn-sec,', self.css)
         self.assertIn('border-radius: 22px;', self.css)
-        self.assertIn('"MaruBuriBold"', self.css)
+        self.assertIn('body.learn-page .legal-wrap { font-family: var(--font-serif);', self.css)
         self.assertIn('.fig-on-strong { fill: #fff;', self.css)
         self.assertIn('.fig-on-accent { fill: #263445;', self.css)
         self.assertIn('.gd-toc { display: grid;', self.css)
