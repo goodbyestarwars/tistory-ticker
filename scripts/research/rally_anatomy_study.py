@@ -35,7 +35,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from spring_index_study import atr14, floor_geometry, persistent_extrema, regime_by_date  # noqa: E402
-from pullback_combo_study import EARN_KEYS, earn_cols, flow_cols, load_earn  # noqa: E402
+from pullback_combo_study import EARN_KEYS, earn_cols, event_cols, flow_cols, load_earn, load_events  # noqa: E402
 
 RALLY_GAIN = float(os.environ.get('RALLY_GAIN', '0.30'))
 RALLY_MAX_BARS = int(os.environ.get('RALLY_MAX_BARS', '60'))
@@ -52,13 +52,14 @@ RALLY_ATR = float(os.environ.get('RALLY_ATR', '8'))
 FAIL_ATR = float(os.environ.get('FAIL_ATR', '3'))
 MIN_AMT = 3e9
 SEED = 7
-FEATURES = ('e_op_sym', 'e_rev_yoy', 'e_opm_chg', 'e_turn', 'f20', 'o20', 'fo60', 'dfr20', 'dd250', 'pos120', 'box60', 'drift60', 'ret20', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
+FEATURES = ('evw_earn', 'evw_contract', 'evw_any', 'evp_any', 'e_op_sym', 'e_rev_yoy', 'e_opm_chg', 'e_turn', 'f20', 'o20', 'fo60', 'dfr20', 'dd250', 'pos120', 'box60', 'drift60', 'ret20', 'rs60', 'vol_up', 'dry10', 'ivol60', 'upvol20',
             'atr_ratio', 'c_ma20', 'c_ma60', 'c_ma120', 'ma60_slope', 'rising')
 
 
 def load(lab):
     out = {}
     earn = load_earn(os.environ.get('EARN_FILE', os.path.join(lab, 'earn.json')))
+    events = load_events(os.environ.get('EVENTS_FILE', os.path.join(lab, 'events.json')))
     for fn in sorted(os.listdir(os.path.join(lab, 'cache'))):
         if fn.endswith('.json'):
             raw = json.load(open(os.path.join(lab, 'cache', fn), encoding='utf-8'))
@@ -72,6 +73,7 @@ def load(lab):
                 ec = earn_cols(list(df.d), earn.get(fn[:-5]))
                 for k in ec.columns:
                     df[k] = ec[k].values
+                df.attrs['events'] = None if events is None else events.get(fn[:-5], [])
                 out[fn[:-5]] = df
     return out
 
@@ -146,6 +148,10 @@ def features(df, mret):
     f['rising'] = np.nan
     for k in ('f20', 'o20', 'fo60', 'dfr20') + EARN_KEYS:
         f[k] = df[k].values if k in df else np.nan
+    # 4단계 사건(사후 서술용: evw_*는 T0 뒤 10거래일까지 포함하므로 '상승 출발에 사건이 있었나'를 묘사할 뿐 매매 규칙이 아니다)
+    ev = event_cols(list(df.d), c, atr.values, df.attrs.get('events'))
+    for k in ('evw_earn', 'evw_contract', 'evw_any', 'evp_any'):
+        f[k] = ev[k].values
     return f, atr.values
 
 
@@ -256,7 +262,7 @@ def main(lab, out_path):
         ok = x.notna()
         if ok.sum() < 50:
             continue
-        if k == 'e_turn':  # 0/1 피처: 5분위 대신 비율 비교, ATR% 3분위 통제
+        if k in ('e_turn', 'evw_earn', 'evw_contract', 'evw_any', 'evp_any'):  # 0/1 피처: 5분위 대신 비율 비교, ATR% 3분위 통제
             vq = np.digitize(t.atrp, np.nanquantile(t.atrp, [1 / 3, 2 / 3]))
             a, b = x[is_r & ok].mean(), x[~is_r & ok].mean()
             num = den = 0.0

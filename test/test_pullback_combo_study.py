@@ -68,6 +68,42 @@ class EarningsPointInTime(unittest.TestCase):
         self.assertTrue(((a == b) | (a.isna() & b.isna())).all().all())
 
 
+class EventsPointInTime(unittest.TestCase):
+    """4단계 공시 사건(2026-11-19): 신호는 접수 거래일 다음 날에만, 그날 종가까지로 계산하고 미래 봉을 쓰지 않는다."""
+
+    def test_signal_day_and_reaction(self):
+        dates = ['2025%04d' % i for i in range(60)]
+        c = np.full(60, 100.0)
+        c[31] = 110.0
+        atr = np.full(60, 5.0)
+        e = P.event_cols(dates, c, atr, [['2025%04d' % 30, 'earn'], ['20250045', 'rights']])
+        self.assertTrue(np.isnan(e.ev_earn.iat[30]))  # 접수일 당일은 신호 아님
+        self.assertAlmostEqual(e.ev_earn.iat[31], (110 / 100 - 1) / 0.05)  # 2 ATR
+        self.assertEqual(e.ev_up20.iat[30], 0)
+        self.assertEqual(e.ev_up20.iat[31], 1)
+        self.assertEqual(e.ev_up20.iat[50], 1)
+        self.assertEqual(e.ev_up20.iat[51], 0)
+        self.assertFalse(np.isnan(e.ev_rights.iat[46]))
+        self.assertEqual(e.evw_earn.iat[20], 1)  # j=30 in [i-5, i+10] for i=20
+        self.assertEqual(e.evw_earn.iat[19], 0)
+
+    def test_weekend_filing_maps_to_next_trading_day(self):
+        dates = ['20250103', '20250106', '20250107', '20250108']  # 금, 월, 화, 수
+        c, atr = np.array([100., 100., 105., 106.]), np.full(4, 2.0)
+        e = P.event_cols(dates, c, atr, [['20250104', 'contract']])  # 토요일 접수 -> j=월, s=화
+        self.assertAlmostEqual(e.ev_contract.iat[2], (105 / 100 - 1) / 0.02)
+        self.assertTrue(e.ev_contract.drop(index=2).isna().all())
+
+    def test_frame_event_columns_ignore_future_bars(self):
+        px = bars()
+        evs = [['2025%04d' % 100, 'earn'], ['2025%04d' % 250, 'contract'], ['2025%04d' % 299, 'buyback'], ['2025%04d' % 350, 'bonus']]
+        full, cut = P.frame('x', px, {}, None, None, evs), P.frame('x', px[:300], {}, None, None, evs)
+        cols = ['ev_' + k for k in P.EV_KINDS] + ['ev_up20']
+        a, b = full.loc[:299, cols], cut.loc[:299, cols]
+        self.assertTrue(((a == b) | (a.isna() & b.isna())).all().all())
+        self.assertFalse(any(k.startswith(('evw_', 'evp_')) for k in full.columns))  # 미래 포함 서술용 열은 매매 표에 없음
+
+
 class DartQ4(unittest.TestCase):
     def test_q4_is_annual_minus_q3_cumulative(self):
         import fetch_dart_quarterly_cache as F
