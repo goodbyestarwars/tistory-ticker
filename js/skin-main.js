@@ -3668,6 +3668,41 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     wrap.appendChild(table);
   });
 
+  /* ── 마켓 브리핑 글 본문 공통 디자인(2026-11-20) ──
+     글마다 제목·표에 박힌 장식용 인라인 스타일(검은 굵은 윗줄·회색 배경·고정 글자색)은 CSS 파일보다 우선해서,
+     !important를 쌓는 대신 장식 속성만 지우고 css/briefing-post.css를 입힌다.
+     정렬·너비·줄바꿈 같은 배치 속성, 상승/하락 색 글자, 그림(SVG)은 그대로 둔다. 원본 글은 바뀌지 않는다. */
+  (function styleBriefingPost() {
+    var badge = document.querySelector('.post-single-header .post-cat-badge');
+    var body = document.querySelector('.post-single-body .contents_style');
+    if (!badge || !body || badge.textContent.replace(/\s+/g, ' ').trim() !== '마켓 브리핑') return;
+    if (body.classList.contains('nine-briefing-post')) return;
+    var DECOR = ['background', 'background-color', 'border', 'border-top', 'border-bottom', 'border-left', 'border-right',
+      'font-family', 'font-size', 'font-weight', 'margin', 'padding', 'color'];
+    function strip(el, props) { props.forEach(function (p) { el.style.removeProperty(p); }); if (!el.getAttribute('style')) el.removeAttribute('style'); }
+    function nearBlack(el) { return /^rgb\((2[0-9]|1[0-9]|[0-9]), ?(2[0-9]|1[0-9]|[0-9]), ?(2[0-9]|1[0-9]|[0-9])\)$/.test(el.style.color); }
+    body.querySelectorAll('h2, h3').forEach(function (h) { if (!h.closest('svg')) strip(h, DECOR); });
+    body.querySelectorAll('th').forEach(function (c) { strip(c, DECOR); });
+    // 칸 글자색은 상승(빨강)·하락(파랑) 의미일 수 있어 검정 계열일 때만 지운다.
+    body.querySelectorAll('td').forEach(function (c) {
+      strip(c, DECOR.filter(function (p) { return p !== 'color'; }));
+      if (nearBlack(c)) strip(c, ['color']);
+    });
+    body.querySelectorAll('b, strong').forEach(function (b) { if (nearBlack(b)) strip(b, ['color']); });
+    // 시간순 흐름 상자의 왼쪽 시각 칸: 고정 너비(flex)는 두고 배경만 공통 패널로 바꾼다.
+    body.querySelectorAll('div[style]').forEach(function (d) {
+      if (d.style.flex && d.style.backgroundColor) { strip(d, ['background', 'background-color']); d.classList.add('nbp-label'); }
+    });
+    body.classList.add('nine-briefing-post');
+    if (!document.querySelector('link[data-briefing-post-css]')) {
+      var postCss = document.createElement('link');
+      postCss.rel = 'stylesheet';
+      postCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/briefing-post.css?v=20261120-briefing-post';
+      postCss.setAttribute('data-briefing-post-css', '1');
+      document.head.appendChild(postCss);
+    }
+  })();
+
   /* ── 인덱스 요약 텍스트 줄바꿈 개선 ── */
   document.querySelectorAll('.post-excerpt').forEach(function(el) {
     /* innerHTML 기반 처리: 티스토리가 삽입한 <br> 보존 */
