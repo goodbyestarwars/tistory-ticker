@@ -112,3 +112,25 @@ def test_restore_removes_previously_pinned_inverse(tmp_path, monkeypatch):
     assert '252670' not in o.tracks
     snapshot = live.health_snapshot()
     assert snapshot['candidateDetails'] == [] and snapshot['signals'] == []
+
+
+def test_archive_keeps_signal_outcome_and_70pct_stage_only(monkeypatch, tmp_path):
+    """2026-11-20 단타 검증용 보존 기록: 회전 로그와 별도로 월별 파일에 남기며 순위·70% 전 단계는 넣지 않는다."""
+    monkeypatch.setattr(live, 'ARCHIVE_DIR', str(tmp_path))
+    monkeypatch.setattr(live, 'LOG_PATH', str(tmp_path / 'research.jsonl'))
+    live._record({'type': 'rank', 'codes': ['005930']})
+    live._record({'type': 'stage', 'code': '005930', 'first70At': None, 'signalAt': None})
+    live._record({'type': 'stage', 'code': '005930', 'first70At': 100.0, 'price': 101})
+    live._record({'type': 'signal', 'code': '005930', 'signalPrice': 102})
+    live._record({'type': 'outcome', 'code': '005930', 'signalPrice': 102, 'lastPrice': 104})
+    files = list(tmp_path.glob('kiwoom_9pay_signals_*.jsonl'))
+    assert len(files) == 1
+    import json
+    kinds = [json.loads(l)['type'] for l in files[0].read_text(encoding='utf-8').splitlines()]
+    assert kinds == ['stage', 'signal', 'outcome']
+    assert len((tmp_path / 'research.jsonl').read_text(encoding='utf-8').splitlines()) == 5, '기존 회전 로그는 그대로 모두 기록'
+
+
+def test_archive_failure_does_not_raise(monkeypatch, tmp_path):
+    monkeypatch.setattr(live, 'ARCHIVE_DIR', str(tmp_path / 'missing' / 'dir'))
+    live._archive({'type': 'signal', 'code': '005930'})
