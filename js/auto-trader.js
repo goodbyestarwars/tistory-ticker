@@ -59,6 +59,7 @@
     STOP_3: '손절 주문 전송', STOP_EMERGENCY: '비상 손절 주문 전송', TRAIL_2_5: '추적 청산(익절) 주문 전송',
     LEADER_STOP_10: '주도주 칸 손절 주문 전송', LEADER_MA60: '주도주 칸 매도 주문 전송', LEADER_MAX_HOLD: '주도주 칸 기간 만료 매도 전송',
     LEADER_NO_ENTRY: '주도주 칸 진입 없음',
+    SWING_STOP_10: '스윙 손절 주문 전송', SWING_MA60: '스윙 매도 주문 전송', SWING_MAX_HOLD: '스윙 기간 만료 매도 전송',
     PRICE_UNAVAILABLE: '현재가 확인 불가', CLOSED_OR_STOPPED: '장 시간 밖 또는 정지',
     EXCLUSION_UNCONFIRMED: '제외 목록 확인 실패 - 주문 중지' };
 
@@ -695,7 +696,8 @@
 
   // 에이전트가 올린 주문·보유·연구 후보(서버가 허용 필드만 남김). 주문번호·계좌·잔고는 받지 않는다.
   var ACT_REASON = { ENTRY: '연구 후보 신규 진입', NINEPAY_ENTRY: '9Pay 장중 단타 진입', TARGET_ENTRY: '목표가 진입', STOP_3: '손절(-3%)', TRAIL_2_5: '추적 청산(고점 -2.5%)', STOP_EMERGENCY: '긴급 손절',
-    LEADER_ENTRY: '주도주 조용한 눌림 진입', LEADER_STOP_10: '주도주 칸 손절(-10%)', LEADER_MA60: '주도주 칸 매도(60일선 이탈)', LEADER_MAX_HOLD: '주도주 칸 매도(최대 250거래일)' };
+    LEADER_ENTRY: '주도주 조용한 눌림 진입', LEADER_STOP_10: '주도주 칸 손절(-10%)', LEADER_MA60: '주도주 칸 매도(60일선 이탈)', LEADER_MAX_HOLD: '주도주 칸 매도(최대 250거래일)',
+    SWING_STOP_10: '스윙 손절(-10%)', SWING_MA60: '스윙 매도(60일선 이탈)', SWING_MAX_HOLD: '스윙 매도(최대 250거래일)' };
   var ACT_STATE = { ACK: '접수됨 · 체결 확인 전', FILLED: '체결', UNKNOWN: '확인 필요', SENT: '전송됨' };
   var SCANNER_LABEL = { pullback: '눌림목', maCloudBreakout: '구름대 돌파', doubleBottom: '쌍바닥', invHeadShoulders: '역헤드앤숄더', quietLeaderPullback: '주도주 조용한 눌림' };
   var ORDERS_FIRST = 30;
@@ -887,6 +889,9 @@
       else if (o.reason === 'LEADER_STOP_10') add('주도주 조용한 눌림 칸: 매입가 대비 -10% 이하 손절');
       else if (o.reason === 'LEADER_MA60') add('주도주 조용한 눌림 칸: +10% 도달 뒤 확정 종가가 60일선 아래로 내려가 매도');
       else if (o.reason === 'LEADER_MAX_HOLD') add('주도주 조용한 눌림 칸: 최대 보유 250거래일 도달');
+      else if (o.reason === 'SWING_STOP_10') add('스윙: 매입가 대비 -10% 이하 손절');
+      else if (o.reason === 'SWING_MA60') add('스윙: +10% 도달 뒤 확정 종가가 60일선 아래로 내려가 매도');
+      else if (o.reason === 'SWING_MAX_HOLD') add('스윙: 최대 보유 250거래일 도달');
       else add('매도 사유: ' + (ACT_REASON[o.reason] || o.reason || '미기록'));
       if (d.avg != null) add('판단 당시 매입 평단 ' + fmtPrice(d.avg) + '원 · 판단 기준가 ' + fmtPrice(o.price) + '원');
       if (d.gain_pct != null) add('판단 당시 평단 대비 ' + pct(d.gain_pct) + ' (실현손익 아님)');
