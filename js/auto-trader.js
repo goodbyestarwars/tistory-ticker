@@ -627,7 +627,7 @@
     var service = orMissing(vm.serviceState, { active: '실행 중', inactive: '대기', failed: '실패', activating: '시작 중' });
     var link = c.received ? '수신 · ' + c.ageSec + '초 전' : '미수신' + (c.ageSec != null ? ' · 마지막 ' + c.ageSec + '초 전' : '');
     var approval = flags.approval ? (flags.approval.present ? '있음' + (flags.approval.date ? ' (' + flags.approval.date + '~)' : '') : '없음') : '미수신';
-    var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지', hold: '오늘 신규 매수 보류', resume: '보류 해제' }[c.lastCommand.action] || c.lastCommand.action) + ' ' + ({ DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
+    var lastCmd = c.lastCommand ? ({ start: '시작', stop: '중지', hold: '오늘 신규 매수 보류', resume: '보류 해제' }[c.lastCommand.action] || LOG_ACTION[c.lastCommand.action] || c.lastCommand.action) + (c.lastCommand.code ? ' ' + c.lastCommand.code : '') + ' ' + ({ DONE: '완료', FAILED: '실패', EXPIRED: '미처리(만료)' }[c.lastCommand.result] || c.lastCommand.result)
       + ' · ' + String(c.lastCommand.at || '').slice(5, 16).replace('T', ' ') + (c.lastCommand.reason ? ' · ' + c.lastCommand.reason : '') : '없음';
     var blockers = c.startBlockers || [];
     var st = statusLine(c);
@@ -749,8 +749,16 @@
       return '<button type="button" class="at-mini is-sell" data-pos-sell' + attrs + (ok ? '' : ' disabled') + (caps.indexOf('manual-sell-v1') >= 0 ? '' : ' title="에이전트가 아직 매도 기능을 지원하지 않습니다"') + '>매도</button>';
     }
     if (p.state === 'PENDING') {
+      // 이 종목의 기록 정리 명령 상태: 처리 중 / 실패·미처리 사유 / 완료 응답 뒤에도 VM이 다시 보고함.
+      var pend = lastControl && lastControl.pending, lc = lastControl && lastControl.lastCommand;
+      if (pend && pend.action === 'position-drop' && pend.code === p.code) return '<span class="at-mute">삭제 처리 중…</span>';
+      var note = '';
+      if (lc && lc.action === 'position-drop' && lc.code === p.code) {
+        if (lc.result === 'DONE') return '<span class="at-warn-text" title="삭제 완료 응답 뒤에도 VM 장부가 이 기록을 다시 보냈습니다. VM 장부 확인이 필요합니다.">삭제 완료 응답 · VM 장부에 남아 있음</span>';
+        note = '<br><small class="at-warn-text">' + esc((lc.result === 'FAILED' ? '삭제 실패' : '미처리') + (lc.reason ? ' · ' + lc.reason : '')) + '</small>';
+      }
       var ok2 = caps.indexOf('position-drop-v1') >= 0 && !locked;
-      return '<button type="button" class="at-mini" data-pos-drop' + attrs + (ok2 ? '' : ' disabled') + (caps.indexOf('position-drop-v1') >= 0 ? '' : ' title="에이전트가 아직 기록 정리를 지원하지 않습니다"') + '>기록 삭제</button>';
+      return '<button type="button" class="at-mini" data-pos-drop' + attrs + (ok2 ? '' : ' disabled') + (caps.indexOf('position-drop-v1') >= 0 ? '' : ' title="에이전트가 아직 기록 정리를 지원하지 않습니다"') + '>기록 삭제</button>' + note;
     }
     return '';
   }
