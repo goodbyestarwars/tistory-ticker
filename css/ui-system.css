@@ -439,9 +439,14 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
   html body .home-realtime-board .hrt-table-wrap tbody tr:last-child {
     border-bottom: 0 !important;
   }
-  /* Header row reads as one soft rounded band over the columns (2026-11-18 user). */
-  html body .home-realtime-board .hrt-table-wrap thead th {
+  /* Header row reads as one soft rounded band over the columns (2026-11-18 user).
+     2026-11-20 user: every native table header uses the same band fill (light #FAF8F3 via soft-ui,
+     dark --dk-panel). Rounded ends come from the shared thead rule above. Text colour/weight stay
+     per table (non-important here) so semantic header colours keep working. */
+  html body table > thead > tr > :is(th, td) {
     background-color: var(--ui-glass-panel, #f8f7f4) !important;
+  }
+  html body .home-realtime-board .hrt-table-wrap thead th {
     color: var(--ui-muted);
     font-weight: 600;
     letter-spacing: -0.01em;
