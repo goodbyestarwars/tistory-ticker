@@ -51,6 +51,11 @@ window.NineHomeBriefing = window.NineHomeBriefing || {
       + '<div><button type="button" data-briefing-prev aria-label="이전 브리핑">←</button><button type="button" data-briefing-next aria-label="다음 브리핑">→</button></div></div>';
     var track = briefing.querySelector('.briefing-carousel-track');
     cards.forEach(function (card, index) {
+      // 티스토리 요약은 글 맨 앞 HTML 주석(작업 메모)까지 글자로 담는다(2026-11-20 1315번). 주석 끝(-->) 뒤 본문부터 보인다.
+      var excerpt = card.querySelector('.post-excerpt');
+      var excerptText = excerpt ? excerpt.textContent : '';
+      var commentEnd = excerptText.indexOf('-->');
+      if (commentEnd !== -1 && commentEnd < 1200) excerpt.textContent = excerptText.slice(commentEnd + 3).trim();
       card.classList.add('home-briefing-card');
       card.setAttribute('data-briefing-number', String(index + 1).padStart(2, '0'));
       track.appendChild(card);
