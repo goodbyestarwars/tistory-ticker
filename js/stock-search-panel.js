@@ -256,11 +256,20 @@
     { code: 'INDEX:DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
     { code: 'INDEX:SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
+  // 2026-11-20: 가상자산도 상단 검색에서 찾는다. 종목 화면(stock-search.js)의 CRYPTO:BTC/ETH/USDT 업비트 차트로
+  // 이동만 하며 시세 조회·관심종목 저장은 하지 않는다(지수와 같은 고정 목록 방식).
+  var CRYPTO_SEARCH_ROWS = [
+    { code: 'CRYPTO:BTC', name: '비트코인', aliases: 'btc bitcoin krw-btc 비트코인 비트', market: 'crypto' },
+    { code: 'CRYPTO:ETH', name: '이더리움', aliases: 'eth ethereum krw-eth 이더리움 이더', market: 'crypto' },
+    { code: 'CRYPTO:USDT', name: '테더', aliases: 'usdt tether krw-usdt 테더', market: 'crypto' }
+  ];
+  function isCryptoCode(code) { return /^CRYPTO:/i.test(String(code || '')); }
   function indexSearchRows(query) {
     var q = String(query || '').trim().toLowerCase();
     if (!q) return [];
-    return INDEX_SEARCH_ROWS.filter(function (row) { return (row.code + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(q) >= 0; });
+    return CRYPTO_SEARCH_ROWS.concat(INDEX_SEARCH_ROWS).filter(function (row) { return (row.code + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(q) >= 0; });
   }
+  function searchRowMarket(row) { return row.market || 'index'; }
   // ---- 종목명/코드 검색 (KRX_MAP, 기존 위젯들과 동일 패턴) ----
 
   function resolveStock(query) {
@@ -338,14 +347,15 @@
 
   function buildRow(code, name, i, market) {
     var isUs = market === 'us' || String(code || '').indexOf('US:') === 0;
-    var fav = !isUs && isFavorite(code);
+    var isCrypto = market === 'crypto' || isCryptoCode(code);
+    var fav = !isUs && !isCrypto && isFavorite(code);
     return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
       + stockIconHtml(code)
       + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
-      + (isUs ? '<span class="nav-search-suggest-code">' + escapeHtml(String(code).replace(/^US:/, '')) + '</span>' : '')
+      + (isUs || isCrypto ? '<span class="nav-search-suggest-code">' + escapeHtml(String(code).replace(/^(US|CRYPTO):/i, '')) + '</span>' : '')
       + '<span class="nav-search-rate-badge" data-rate-code="' + escapeAttr(code) + '"></span>'
       + '<span class="nav-search-current-price" data-price-code="' + escapeAttr(code) + '"></span>'
-      + (!isUs ? '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>' : '')
+      + (!isUs && !isCrypto ? '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>' : '')
       + '</div>';
   }
 
@@ -353,7 +363,7 @@
 
   function fetchRates(codes) {
     if (!codes.length) return Promise.resolve({});
-    var domesticCodes = codes.filter(function (code) { return String(code).indexOf('US:') !== 0; });
+    var domesticCodes = codes.filter(function (code) { return String(code).indexOf('US:') !== 0 && !isCryptoCode(code); });
     if (!domesticCodes.length) return Promise.resolve({});
     return global.NineAPI.domesticQuotes(domesticCodes, {timeoutMs:RATE_FETCH_TIMEOUT_MS})
       .then(function (data) {
@@ -415,7 +425,7 @@
 
   function renderMatches(box, query) {
     currentMatchQuery = query;
-    var indexRows = indexSearchRows(query).map(function (row) { return { code: row.code, name: row.name, market: 'index' }; });
+    var indexRows = indexSearchRows(query).map(function (row) { return { code: row.code, name: row.name, market: searchRowMarket(row) }; });
     var domesticRows = suggestNames(query).map(function (name) {
       return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' };
     });
@@ -503,7 +513,7 @@
   function currentRowList(query) {
     if (query) {
       if (currentMatchQuery === query && currentMatchRows.length) return currentMatchRows;
-      return indexSearchRows(query).map(function (row) { return { code: row.code, name: row.name, market: 'index' }; }).concat(suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' }; }));
+      return indexSearchRows(query).map(function (row) { return { code: row.code, name: row.name, market: searchRowMarket(row) }; }).concat(suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' }; }));
     }
     var favorites = getFavorites();
     var favCodes = favorites.map(function (it) { return it.code; });

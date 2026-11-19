@@ -18,7 +18,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <div class="legal-backs">
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
@@ -30,7 +30,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <section class="learn-sec learn-sec--intro">
   <p>"좋은 회사인데 왜 빠지지?" 회사 실적과 무관하게 금리나 시장 전체의 자금 흐름이 주가를 누를 때가 있다. 예탁금·신용융자·외국인·기관·ETF 자금의 이동을 나눠 보자.</p>
-
+  <p>욕조에 물을 받는다고 생각하면 쉽다. 수도꼭지를 세게 틀면 물이 차오르고, 마개를 빼면 빠진다.
+  욕조에 띄운 고무 오리(종목)는 아무리 예뻐도 물이 빠지면 같이 내려간다. 이 장은 그 물이 어디서 들어오고 어디로 빠지는지 본다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>시장은</span><strong>물탱크</strong></div>
+    <div class="in-fact"><span>물이 들어오는 수도꼭지</span><strong>다섯 개</strong></div>
+    <div class="in-fact"><span>수도꼭지 손잡이</span><strong>금리</strong></div>
+  </div>
   </section>
   <section class="learn-sec">
   <h2 id="sec-1">시장은 물탱크다</h2>
@@ -111,9 +117,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
 
   <div class="learn-note">
-    <b>구분하는 법</b> 종목명 끝에 <b>"(H)"</b> 같은 표시나 <b>"ETN"</b>이라는 글자가 직접 들어간 경우가
-    많다("KODEX 인버스"는 ETF, "미래에셋 인버스 ETN"처럼 이름에 ETN이 박혀 있는 식). 헷갈리면 종목명에
-    ETN이 있는지부터 확인한다.
+    <b>구분하는 법</b> ETN은 종목명에 <b>"ETN"</b>이라는 글자가 직접 들어간다("KODEX 인버스"는 ETF,
+    "미래에셋 인버스 ETN"처럼 이름에 ETN이 박혀 있는 식). 이름 끝의 "(H)"는 ETN 표시가 아니라 환율 변동을 막아 둔(환헤지)
+    상품이라는 뜻이다. 헷갈리면 종목명에 ETN이 있는지부터 확인한다.
   </div>
 
   <h3>레버리지·인버스 - "매일" 재조정된다는 함정</h3>
@@ -162,6 +168,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <section class="learn-sec">
   <h2 id="sec-6">선물과 옵션 — 돈이 먼저 움직이는 곳</h2>
   <p>뉴스에서 "선물이 빠지니 현물도 밀렸다"는 말이 나온다. 선물·옵션은 <b>미리 정한 가격으로 나중에 사고팔기로 한 약속</b>을 거래하는 시장이다.</p>
+  <p>봄에 배추 장수가 농부에게 "가을에 배추 한 포기를 3,000원에 사겠다"고 약속하는 것과 같다. 가을에 배추값이 5,000원이 되면 장수가 이득을 보고,
+  2,000원이 되면 농부가 이득을 본다. 값이 어떻게 되든 약속은 지켜야 한다. 이런 약속이 선물이다.
+  옵션은 "사고 싶으면 사고, 싫으면 안 사도 되는 권리"를 미리 돈 주고 사 두는 것이다.</p>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 196" role="img" aria-label="선물은 미리 사기로 한 약속, 옵션은 살 권리를 사는 보험">
@@ -258,6 +267,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 10,000원짜리 주식이 오늘 100만 주 거래됐다. 거래대금은?</summary><p>10,000원 × 100만 주 = 100억 원이다. 오늘 이 종목에 흐른 물의 양이다.</p></details>
+  <details class="in-quiz"><summary>2. 예금 금리가 크게 오르면 주식시장의 물은 어떻게 될까?</summary><p>위험 없이 받는 이자가 커지니 주식에서 예금으로 옮겨 가는 돈이 생긴다. 물탱크의 물이 빠지는 쪽으로 힘이 작용한다.</p></details>
+  <details class="in-quiz"><summary>3. 빚을 내서 산 돈(신용융자)이 많은 시장에서 주가가 급하게 떨어지면 무슨 일이 생길까?</summary><p>담보가 모자라면 증권사가 주식을 강제로 판다(반대매매). 그 매도가 주가를 더 누른다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="advanced-money">
   <h2 id="advanced-money">심화 연구실 · 거래대금과 실제 자금 유입은 다르다</h2>
   <p>시장의 거래대금이 20조 원이었다고 해서 새로운 현금 20조 원이 시장으로 들어온 것은 아니다. 거래대금은 매수자와 매도자 사이에서 성사된 <b>거래가격 × 수량의 합</b>이고, 신규 자금 유입은 발행시장·펀드 설정/환매·투자자 예탁금·기관별 포지션 변화를 별도로 봐야 한다.</p>

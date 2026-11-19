@@ -26,7 +26,7 @@
     write('in-noodle-result', '가격 ' + ratio.toFixed(2) + '배 · 누적 ' + signed((ratio - 1) * 100));
     write('in-noodle-old-count', (8000 / past).toFixed(2) + '그릇');
     write('in-noodle-now-count', (8000 / now).toFixed(2) + '그릇');
-    write('in-noodle-compare', '8,000원으로 당시 ' + (8000 / past).toFixed(1) + '그릇, 비교 시점에는 ' + (8000 / now).toFixed(1) + '그릇을 살 수 있습니다.');
+    write('in-noodle-compare', '8,000원으로 당시 ' + (8000 / past).toFixed(1) + '그릇, 비교 시점에는 ' + (8000 / now).toFixed(1) + '그릇을 살 수 있다.');
   }
   function renderBasket() {
     var market = num('in-market-weight', 30) / 100;
@@ -41,7 +41,7 @@
     write('in-home-result', signed(mine));
     bar('in-market-bar', avg);
     bar('in-home-bar', mine);
-    write('in-basket-gap', '같은 품목 가격변화라도 가중치가 달라 차이가 ' + Math.abs(mine - avg).toFixed(2) + '%p 납니다.');
+    write('in-basket-gap', '같은 품목 가격변화라도 가중치가 달라 차이가 ' + Math.abs(mine - avg).toFixed(2) + '%p 난다.');
   }
   function renderWage() {
     var wage = num('in-wage-rate', 4), price = num('in-price-rate', 6);

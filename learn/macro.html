@@ -18,7 +18,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <div class="legal-backs">
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
@@ -30,7 +30,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <section class="learn-sec learn-sec--intro">
   <p>어제까지 멀쩡하던 종목이 오늘 아침 다 같이 빠지는 날이 있다. 그런 날은 대개 종목이 아니라 <b>시장 바깥</b>에서 일이 생긴 것이다.</p>
-
+  <p>소풍 날 아침에는 내 도시락이 아무리 맛있어도 비가 오면 소풍이 취소된다. 주식도 회사(도시락)만 좋다고 되는 게 아니라
+  날씨가 받쳐 줘야 한다. 주식시장의 날씨를 알려 주는 세 가지가 환율, 금리, 비트코인이다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>환율</span><strong>외국인의 계산기</strong></div>
+    <div class="in-fact"><span>금리</span><strong>돈의 임대료</strong></div>
+    <div class="in-fact"><span>비트코인</span><strong>24시간 위험 온도계</strong></div>
+  </div>
   </section>
   <section class="learn-sec">
   <h2 id="sec-1">먼저 한 장으로 보기 — 주식 경제의 큰 사이클</h2>
@@ -72,13 +78,15 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </table>
 
   <div class="learn-note">
-    <b>한 종목으로 연결해 보기</b> 전기차 회사가 새 배터리 기술을 발표하면 ② 기대와 모멘텀이 먼저 움직인다. 몇 달 뒤 실제 판매량과 이익이 늘면 ③ 펀더멘털이 확인된다. 그런데 금리가 급하게 오르면 좋은 실적이 있어도 ④ 시장 전체가 식을 수 있다. <b>모멘텀은 먼저 달리고, 펀더멘털은 나중에 확인하며, 금리는 둘의 속도를 바꾼다.</b>
+    <b>한 종목으로 연결해 보기</b> 전기차 회사가 새 배터리 기술을 발표하면 ② 기대와 모멘텀이 먼저 움직인다. 몇 달 뒤 실제 판매량과 이익이 늘면 ③ 펀더멘탈이 확인된다. 그런데 금리가 급하게 오르면 좋은 실적이 있어도 ④ 시장 전체가 식을 수 있다. <b>모멘텀은 먼저 달리고, 펀더멘탈은 나중에 확인하며, 금리는 둘의 속도를 바꾼다.</b>
   </div>
 
   </section>
   <section class="learn-sec">
   <h2 id="sec-2">1. 환율 — 달러를 들고 온 손님의 계산기</h2>
   <p>원/달러 환율 1,300원은 "1달러를 사려면 1,300원이 필요하다"는 뜻이다. 이 숫자가 1,400원으로 <b>오르면</b> 달러가 비싸진 것이고, 뒤집어 말하면 <b>우리 돈 값이 싸진 것</b>(원화 약세)이다.</p>
+  <p>해외 쇼핑몰에서 20달러짜리 장난감을 산다고 하자. 환율이 1,300원이면 26,000원, 1,400원이면 28,000원을 낸다.
+  장난감 값은 그대로인데 우리 돈으로 내는 값이 2,000원 늘었다. 외국인 투자자는 이 계산을 거꾸로 한다.</p>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 186" role="img" aria-label="환율 시소: 환율이 오르면 원화 가치가 내려가고, 환율이 내리면 원화 가치가 올라간다">
@@ -114,6 +122,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
   <section class="learn-sec">
   <h2 id="sec-3">2. 금리 — 돈의 임대료</h2>
+  <p>친구에게 자전거를 빌리면 빌린 값을 낸다. 돈도 빌리면 값을 내는데, 그 값이 금리다. 100만 원을 1년 빌리고 금리가 5%면 5만 원을 더 갚는다.</p>
   <p>금리는 돈을 빌리는 값이자, 안전하게 맡겼을 때 받는 값이다. 예금이 5%를 준다면 굳이 오르내리는 주식에 돈을 둘 이유가 줄어든다. 6장의 수도꼭지 손잡이가 이것이다.</p>
 
   <h3>먼 미래의 이익일수록 금리에 약하다</h3>
@@ -226,6 +235,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 외국인이 환율 1,300원일 때 1억 원어치 주식을 샀다. 주가는 그대로인데 환율이 1,400원이 되면?</summary><p>처음엔 약 76,900달러였는데 지금은 약 71,400달러다. 주가가 그대로여도 달러로 따지면 약 7% 손해라서 팔고 싶어진다.</p></details>
+  <details class="in-quiz"><summary>2. 금리가 오르면 회사는 왜 힘들어질까?</summary><p>빌린 돈의 이자가 늘어 이익이 줄어든다. 새로 돈을 빌려 공장을 짓기도 부담스러워진다.</p></details>
+  <details class="in-quiz"><summary>3. 주말에 비트코인이 크게 떨어졌다. 월요일 주식시장이 반드시 떨어질까?</summary><p>아니다. 위험을 꺼리는 분위기를 미리 보여 줄 수는 있지만 주가의 다음 방향을 정해 주지는 않는다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="advanced-macro">
   <h2 id="advanced-macro">심화 연구실 · 환율·금리·주가 사이에 한 가지 정답은 없다</h2>
   <p>원/달러 환율 상승과 한국 주식 하락이 동시에 일어났더라도 환율이 주식 하락을 일으켰다고 단정할 수 없다. 두 변수 모두 <b>달러 유동성, 성장 전망, 위험회피 심리, 한·미 금리차, 외국인 포지션</b>의 영향을 받을 수 있다. 전문 분석은 공통 원인을 식별하고 시차와 체제를 함께 본다.</p>

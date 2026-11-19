@@ -18,7 +18,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <div class="legal-backs">
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
@@ -27,6 +27,18 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <h1>5장 · 위험 관리와 나의 규칙</h1>
   <p class="legal-effective-date">잃지 않는 것이 먼저인 이유, 빚투, 상승장·하락장 대처, 사기 전에 정해 둘 것</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>자전거를 처음 배울 때 가장 먼저 익히는 건 빨리 달리기가 아니라 넘어지지 않기, 그리고 넘어져도 크게 다치지 않기다.
+  무릎 보호대를 차고, 너무 빠른 내리막에는 들어가지 않는다.</p>
+  <p>주식도 같다. 잘 고르는 법보다 먼저 <b>크게 잃지 않는 법</b>을 익혀야 다음 기회까지 버틸 수 있다.
+  이 장은 잃은 돈이 왜 되찾기 어려운지, 빚으로 사면 무엇이 달라지는지, 사기 전에 무엇을 정해 둘지를 다룬다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>50% 잃으면 되찾으려면</span><strong>+100%</strong></div>
+    <div class="in-fact"><span>사기 전에 정할 것</span><strong>세 가지</strong></div>
+    <div class="in-fact"><span>손실을 정하는 것</span><strong>넣은 금액</strong></div>
+  </div>
+  </section>
 
   <section class="learn-sec">
   <h2 id="sec-1">회복은 하락보다 가파르다</h2>
@@ -96,6 +108,17 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <figcaption>빚을 쓰면 손실이 두 배 속도로 커지고, 버틸 권리마저 증권사에 넘어간다.</figcaption>
   </figure>
 
+  <table class="learn-table">
+    <thead><tr><th></th><th>내 돈만 500만 원</th><th>내 돈 500만 + 빌린 돈 500만</th></tr></thead>
+    <tbody>
+      <tr><td>산 주식</td><td>500만 원어치</td><td>1,000만 원어치</td></tr>
+      <tr><td>주가 +20%</td><td>+100만 원 (+20%)</td><td>+200만 원 (내 돈 기준 +40%)</td></tr>
+      <tr><td>주가 −20%</td><td>−100만 원 (−20%)</td><td>−200만 원 (내 돈 기준 −40%)</td></tr>
+      <tr><td>더 빠지면</td><td>기다릴 수 있다</td><td>담보가 모자라 증권사가 강제로 판다</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">가상 숫자이고 이자는 뺐다. 증권사가 담보 부족으로 주식을 강제로 파는 것을 <b>반대매매</b>라 한다. 언제 팔지를 내가 아니라 증권사가 정한다.</p>
+
   <p>시장 전체에 빚이 많이 쌓여 있으면 하락이 시작될 때 반대매매가 반대매매를 부른다. 이 사이트 증시온도에 <b>빚투 위험도</b>가 들어 있는 이유다.</p>
 
   </section>
@@ -130,7 +153,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h3>상승장 — 욕심이 실수를 만든다</h3>
   <ul>
     <li>이미 크게 오른 종목을 <b>추격</b>하고 싶어진다. 위쪽에 매물대가 없으니 기준 삼을 가격도 없다(3장).</li>
-    <li>수익이 나면 익절 기준을 <b>미리</b> 올려 둔다. "얼마가 되면 일부라도 판다"를 오르기 전에 정한다.</li>
+    <li>수익이 나면 이익을 챙기고 팔 기준(익절 기준)을 <b>미리</b> 올려 둔다. "얼마가 되면 일부라도 판다"를 오르기 전에 정한다.</li>
     <li>주변에서 수익 인증이 늘어날 때가 제일 위험하다. 이때 빚을 쓰는 사람이 급증한다.</li>
   </ul>
 
@@ -179,7 +202,8 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h2 id="sec-6">초보가 자주 밟는 지뢰</h2>
   <ul>
     <li><b>추격 매수</b> 이미 크게 오른 종목을 "더 갈 것 같아서" 산다.</li>
-    <li><b>물타기 반복</b> 이유가 무너졌는데 평단가만 낮추면 손실 금액은 계속 커진다.</li>
+    <li><b>물타기 반복</b> 10,000원에 100주를 샀는데 7,000원이 되자 100주를 더 사면 평균 산 값(평단가)은 8,500원으로 내려간다.
+    기분은 나아지지만 이제 200주가 걸려 있어서, 주가가 더 빠지면 손실 금액도 두 배로 커진다. 산 이유가 무너졌다면 평단가를 낮추는 건 해결이 아니다.</li>
     <li><b>리딩방·단톡방</b> 남이 사라고 한 종목은 팔 때를 알려 주지 않는다. 수익을 보장한다고 하면 그 자체가 신호다.</li>
     <li><b>잦은 매매</b> 비용이 쌓이고 판단이 급해진다.</li>
   </ul>
@@ -194,6 +218,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 10,000원짜리 주식이 5,000원이 됐다. 다시 10,000원이 되려면 몇 % 올라야 할까?</summary><p>5,000원이 10,000원이 되려면 두 배, 즉 +100%가 필요하다. 떨어질 때 50%가 올라갈 때는 100%가 된다.</p></details>
+  <details class="in-quiz"><summary>2. 20% 떨어진 주식이 본전을 찾으려면?</summary><p>100원이 80원이 됐으니 20원을 더 벌어야 한다. 80원 기준으로 25%다.</p></details>
+  <details class="in-quiz"><summary>3. 계좌 1,000만 원 중 500만 원을 한 종목에 넣었는데 그 종목이 30% 떨어졌다. 계좌 전체로는?</summary><p>500만 원의 30%인 150만 원을 잃었다. 계좌 전체로는 15% 손실이다. 한 종목에 넣은 돈의 크기가 계좌 손실을 정한다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="advanced-risk">
   <h2 id="advanced-risk">심화 연구실 · 종목이 아니라 포트폴리오가 살아남아야 한다</h2>
   <p>위험관리는 손절 퍼센트 하나가 아니라 <b>포지션 크기, 자산 간 상관관계, 유동성, 동시에 손실이 발생하는 꼬리 위험</b>을 함께 관리하는 분야다. 위험 지표는 과거 자료에서 추정하므로 미래 손실의 상한선을 보증하지 않는다.</p>

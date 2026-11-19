@@ -19,7 +19,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
   <div class="learn-search" id="learn-search"></div>
 
@@ -29,11 +29,21 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <section class="learn-sec learn-sec--intro">
   <p>가상자산(코인)은 주식과 거래 방식부터 다르다. 어디서 사는지(거래소), 무엇을 사는지(비트코인·알트코인·
   스테이블코인)가 저마다 성격이 달라서, 뉴스에 나오는 말을 그대로 따라가면 헷갈리기 쉽다. 거래소가 어떤 역할을 하고, 코인마다 어떤 방식으로 가치와 가격이 형성되는지부터 구분해 보자.</p>
-
+  <p>게임 속 아이템을 떠올리면 쉽다. 손으로 만질 수는 없지만, 갖고 싶어 하는 사람이 많고 개수가 정해져 있으면 값이 붙는다.
+  코인도 컴퓨터 속 기록이다. 다만 그 기록을 한 회사가 아니라 전 세계 수많은 컴퓨터가 함께 맞춰 보며 지킨다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>비트코인 총발행량</span><strong>2,100만 개</strong></div>
+    <div class="in-fact"><span>채굴 보상이 반으로</span><strong>약 4년마다</strong></div>
+    <div class="in-fact"><span>시장이 쉬는 시간</span><strong>없음</strong></div>
+  </div>
   </section>
   <section class="learn-sec">
   <h2 id="sec-1">거래소부터 알아야 한다 - 어디서, 누구를 거쳐 사는가</h2>
   <p>주식은 증권사를 거쳐 거래소(KRX)에서 체결되지만, 코인은 <b>거래소 자체의 성격이 크게 둘로 나뉜다</b>.</p>
+  <ul>
+    <li><b>중앙화 거래소(CEX)</b> 은행처럼 회사가 내 코인을 맡아 두고 대신 사고팔아 준다. 쓰기 쉽지만 그 회사를 믿어야 한다.</li>
+    <li><b>탈중앙화 거래소(DEX)</b> 회사 없이 프로그램끼리 바로 바꾼다. 내 코인은 내 지갑에 있지만, 지갑 비밀번호를 잃으면 아무도 찾아 주지 못한다.</li>
+  </ul>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 190" role="img" aria-label="중앙화 거래소(CEX)와 탈중앙화 거래소(DEX) 비교">
@@ -70,6 +80,8 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <p>비트코인의 가장 큰 특징은 <b>총발행량이 2,100만 개로 고정</b>돼 있다는 것이다. 새 비트코인은
   "채굴"(연산 문제를 풀어 거래를 검증하는 대가)로만 생기는데, 그 보상은 <b>약 4년마다 절반으로
   줄어든다("반감기")</b>.</p>
+  <p>문제를 먼저 푼 학생에게 사탕을 주는데, 4년마다 주는 사탕이 반으로 준다고 생각하면 된다. 처음엔 한 번에 50개였다가
+  25개, 12.5개, 6.25개, 3.125개로 줄었다. 사탕(새 비트코인)은 계속 나오지만 점점 천천히 나와서, 다 합쳐도 2,100만 개를 넘지 않는다.</p>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 180" role="img" aria-label="비트코인 채굴 보상이 반감기마다 절반으로 줄어드는 계단형 그래프: 50개에서 25개, 12.5개, 6.25개로 감소">
@@ -165,7 +177,8 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
   <section class="learn-sec">
   <h2 id="sec-6">김치 프리미엄 - 같은 코인, 다른 가격</h2>
-  <p>국내 거래소의 비트코인이 해외 거래소보다 비싸게 거래될 때가 있다. 이 차이를 김치 프리미엄(김프)이라고 부른다. 국내에서 사려는 사람이 몰리는데, 해외에서 싸게 사 와서 국내에서 파는 길이 외환 규제로 좁아서 생긴다.</p>
+  <p>국내 거래소의 비트코인이 해외 거래소보다 비싸게 거래될 때가 있다. 이 차이를 김치 프리미엄(김프)이라고 부른다. 국내에서 사려는 사람이 몰리는데, 해외에서 싸게 사 와서 국내에서 파는 길이 외환 규제로 좁아서 생긴다.
+  인기 장난감이 우리 동네 가게에만 품귀라 값이 비싼데, 옆 동네에서 싸게 사 오는 길이 막혀 있는 것과 같다.</p>
   <table class="learn-table">
     <thead><tr><th></th><th>가상 예시</th></tr></thead>
     <tbody>
@@ -181,7 +194,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
   <section class="learn-sec">
   <h2 id="sec-7">코인시장은 왜 24시간 도는가</h2>
-  <p>7장(환율·금리·비트코인)에서 다룬 것처럼, 코인시장은 주식과 달리 개장·마감 시간이 없다. 정해진 거래소나
+  <p>주식 이야기 7장(환율·금리·비트코인)에서 다룬 것처럼, 코인시장은 주식과 달리 개장·마감 시간이 없다. 정해진 거래소나
   결제 시스템의 영업시간에 묶이지 않고 전 세계 참여자가 언제든 사고팔 수 있게 설계됐기 때문이다. 그래서
   주말·새벽에도 가격이 움직이며, 위험 선호 심리를 실시간으로 보여주는 "위험 온도계"로 자주 언급된다.</p>
 
@@ -194,6 +207,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 해외 거래소에서 1비트코인이 100,000달러, 환율은 1,400원이다. 국내 거래소 값이 1억 4,700만 원이면 김치 프리미엄은?</summary><p>해외 값을 원화로 바꾸면 1억 4,000만 원이다. 국내가 700만 원 비싸니 약 5% 프리미엄이다.</p></details>
+  <details class="in-quiz"><summary>2. 스테이블코인은 1달러에 맞춰 설계됐다. 그럼 절대 값이 떨어지지 않을까?</summary><p>아니다. 담보가 모자라거나 믿음이 깨지면 1달러 아래로 떨어진 사례가 있다. 고정되도록 만들었을 뿐 위험이 없는 것은 아니다.</p></details>
+  <details class="in-quiz"><summary>3. 반감기가 오면 비트코인 값은 반드시 오를까?</summary><p>새로 풀리는 양은 줄지만 값은 사려는 사람이 정한다. 공급이 줄어도 가격이 자동으로 오르지는 않는다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="crypto-advanced">
   <h2 id="crypto-advanced">심화 연구실 · 공급량이 줄어도 가격은 자동으로 오르지 않는다</h2>
   <p>비트코인 반감기는 신규 발행 보상의 속도를 낮춘다. 그러나 발행량이 절반으로 줄었다는 이유만으로 가격이 반드시 오르지는 않는다. <b>기존 보유자의 매도, 수요 변화, 거래소 유동성, 현물·선물 포지션, 채굴 비용</b>도 균형가격에 영향을 준다.</p>

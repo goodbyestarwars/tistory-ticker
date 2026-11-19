@@ -18,7 +18,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap story-page">
   <div class="legal-backs">
     <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
     <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 주식 이야기</a>
@@ -27,6 +27,18 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <h1>3장 · 차트 읽기</h1>
   <p class="legal-effective-date">캔들, 이동평균선, 거래량, 매물대. 예측이 아니라 기록을 읽는 법</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>키를 매달 벽에 표시해 두면, 언제 쑥 컸고 언제 멈췄는지 한눈에 보인다. 주가 차트도 매일의 가격을 표시해 둔 벽이다.
+  다만 키는 거의 줄지 않지만 주가는 오르기도 하고 내리기도 한다.</p>
+  <p>이 장은 그 표시를 읽는 도구 네 가지를 다룬다. 하루를 그린 막대(캔들), 며칠의 평균을 이은 선(이동평균선),
+  그날 몰린 사람 수(거래량), 사람들이 어느 가격에 많이 샀는지(매물대)다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>캔들 하나에 담긴 가격</span><strong>4개</strong></div>
+    <div class="in-fact"><span>이동평균선</span><strong>최근 평균값</strong></div>
+    <div class="in-fact"><span>거래량</span><strong>사람들의 발자국</strong></div>
+  </div>
+  </section>
 
   <section class="learn-sec">
   <h2 id="sec-1">차트는 예언서가 아니라 일기장이다</h2>
@@ -58,6 +70,17 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     </svg>
     <figcaption>몸통은 시가~종가, 꼬리는 그날 다녀온 최고·최저 흔적이다. 국내는 오르면 빨강, 내리면 파랑.</figcaption>
   </figure>
+
+  <table class="learn-table">
+    <thead><tr><th>어느 날의 기록</th><th>가격</th><th>캔들에서 보이는 곳</th></tr></thead>
+    <tbody>
+      <tr><td>아침 첫 거래(시가)</td><td>10,000원</td><td>몸통 아래 끝</td></tr>
+      <tr><td>하루 중 가장 높았던 값(고가)</td><td>11,000원</td><td>위꼬리 끝</td></tr>
+      <tr><td>하루 중 가장 낮았던 값(저가)</td><td>9,800원</td><td>아래꼬리 끝</td></tr>
+      <tr><td>마지막 거래(종가)</td><td>10,400원</td><td>몸통 위 끝</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">가상 숫자. 종가가 시가보다 높아서 빨간 몸통이고, 11,000원까지 갔다가 내려왔으니 위꼬리가 600원만큼 길다.</p>
 
   <p>위꼬리가 몸통보다 두세 배 긴 캔들은 "장중에 크게 올랐다가 결국 되밀렸다"는 기록이다. 그날 뉴스에 흥분해 샀던 사람들이 <b>고점에 물렸다</b>는 뜻이기도 하다.</p>
 
@@ -147,6 +170,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <section class="learn-sec">
   <h2 id="sec-4">이동평균선은 '평균 매수가'의 근사치다</h2>
   <p>20일선은 최근 20일 종가의 평균이다. 거칠게 말하면 <b>최근 한 달 동안 산 사람들의 평균 가격</b>에 가깝다. 주가가 20일선 위면 그 사람들이 대체로 이익 구간, 아래면 손실 구간이다.</p>
+  <p>반 친구 다섯 명의 시험 점수 평균을 내는 것과 같다. 5일 동안 종가가 100·102·104·106·108원이면 5일선은 104원이다.
+  다음 날 110원이 되면 가장 오래된 100원을 빼고 110원을 넣어 다시 평균을 낸다(106원). 날마다 하루씩 밀어 가며 평균을 내서
+  "이동"평균이다.</p>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 190" role="img" aria-label="주가가 이동평균선 위에 있을 때와 아래로 내려왔을 때">
@@ -260,13 +286,15 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-note">
     <b>선 하나에 목매지 않기</b> 지지·저항은 칼같은 선이 아니라 <b>구간</b>이다. 13,000원이 저항이면
     12,900~13,100원쯤이 다 저항이다. 1원 차이로 판단하지 않는다. 그리고 <b>뚫렸다고 다 가는 것도
-    아니다</b> - 거래량 없이 살짝 넘었다가 되돌아오는 일이 흔하다(3장 거래량 참고).
+    아니다</b> - 거래량 없이 살짝 넘었다가 되돌아오는 일이 흔하다(앞의 거래량 이야기 참고).
   </div>
 
   </section>
   <section class="learn-sec">
   <h2 id="sec-8">보조지표는 거들 뿐</h2>
-  <p>RSI는 최근 상승과 하락의 힘을 0~100으로 바꾼 값이다. 흔히 70 위를 과열, 30 아래를 침체로 본다. 다만 <b>강한 상승장에서는 70 위에 몇 주씩 머물기도</b> 한다. "70 넘었으니 판다"로 쓰면 제일 좋은 구간을 놓친다.</p>
+  <p>보조지표는 가격과 거래량을 다시 계산해서 만든 숫자다. 새로운 정보가 들어 있는 게 아니라 같은 기록을 다른 각도로 본 것이다.
+  대표적인 RSI는 최근 14일 동안 오른 날의 힘과 내린 날의 힘을 견줘 0~100으로 바꾼 값이다. 오른 날만 이어지면 100에, 내린 날만 이어지면 0에 가까워진다.</p>
+  <p>흔히 70 위를 과열, 30 아래를 침체로 본다. 다만 <b>강한 상승장에서는 70 위에 몇 주씩 머물기도</b> 한다. "70 넘었으니 판다"로 쓰면 제일 좋은 구간을 놓친다.</p>
 
   </section>
   <section class="learn-sec">
@@ -325,7 +353,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <h3>왜 하필 '폭발'하듯 움직이나</h3>
   <p>좁은 구간에 오래 갇히면, 그 구간 바로 바깥에 <b>손절 주문이 빽빽하게 쌓인다.</b> 아래쪽에는
-  "여기 깨지면 판다"는 사람들이, 위쪽에는 공매도나 미리 판 사람들의 "여기 넘으면 되산다"가 몰린다.</p>
+  "여기 깨지면 판다"는 사람들이, 위쪽에는 주식을 빌려 먼저 판 사람(공매도, 4장)이나 미리 판 사람들의 "여기 넘으면 되산다"가 몰린다.</p>
   <p>그래서 한쪽으로 살짝 밀리면 그 손절이 <b>줄줄이 터진다.</b> 손절 매도는 그 자체가 또 매도라
   가격을 더 밀고, 그게 다음 손절을 부른다. 스스로 가속하는 것이다. "폭발"처럼 보이는 이유가 이거다.
   없던 에너지가 생긴 게 아니라, <b>한 방향 주문이 연쇄로 붙는 것</b>이다.</p>
@@ -497,6 +525,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
 
   </section>
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 시가 10,000원, 종가 10,500원인 날의 캔들은 무슨 색일까?</summary><p>끝난 값이 시작한 값보다 높으니 오른 날이다. 우리나라 차트에서는 빨간 몸통(양봉)으로 그린다.</p></details>
+  <details class="in-quiz"><summary>2. 최근 5일 종가가 100, 102, 104, 106, 108원이다. 5일 이동평균은?</summary><p>다섯 개를 더하면 520, 5로 나누면 104원이다. 최근 5일 동안 산 사람들의 평균 값에 가깝다.</p></details>
+  <details class="in-quiz"><summary>3. 주가가 크게 올랐는데 거래량은 평소의 절반이었다. 어떻게 봐야 할까?</summary><p>사는 사람이 많아서 오른 것이 아닐 수 있다. 거래량이 함께 늘어난 오름보다 덜 믿고 다음 날을 더 지켜본다.</p></details>
+  </section>
+
 <section class="learn-deep" aria-labelledby="advanced-chart">
   <h2 id="advanced-chart">심화 연구실 · 차트 패턴을 검증 가능한 가설로 바꾸기</h2>
   <p>그림이 그럴듯한 것과 통계적으로 유효한 전략은 다르다. “거래량이 늘어난 망치형 이후 상승한다”는 관찰을 연구하려면 <b>진입 조건, 관찰 가능 시점, 보유기간, 비교 집단, 거래비용, 위험</b>을 먼저 고정해야 한다. 과거를 다 보고 나서 규칙을 고르면 우연한 모양도 실력처럼 보일 수 있다.</p>
