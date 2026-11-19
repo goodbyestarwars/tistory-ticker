@@ -6107,7 +6107,7 @@ body#tt-body-index .home-editorial-page .home-market-switch {
   width: max-content; max-width: 100%; min-height: 44px;
   gap: 4px; margin: 0; padding: 4px;
   border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card);
-  background: rgba(var(--np-ink), .055);
+  background: #FAF8F3;
   overflow-x: auto; scrollbar-width: none;
 }
 body#tt-body-index .home-editorial-page .home-market-switch::-webkit-scrollbar { display: none; }
