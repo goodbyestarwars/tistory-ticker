@@ -120,6 +120,7 @@
     { symbol: 'MU', name: '마이크론 테크놀로지', aliases: '마이크론 마이크론테크놀로지 micron micron technology' },
     { symbol: 'CBRS', name: '세레브라스 시스템즈', aliases: '세레브라스 cerebras cerebras systems' },
     { symbol: 'PLTR', name: '팔란티어', aliases: '팔란티어 palantir palantir technologies' },
+    { symbol: 'ANT', name: '앤트로픽', aliases: '앤트로픽 엔트로픽 anthropic' },
     { symbol: 'SNDK', name: '샌디스크', aliases: '샌디스크 sandisk' },
     { symbol: 'DELL', name: '델 테크놀로지스', aliases: '델 델테크놀로지스 dell dell technologies' },
     { symbol: 'IONQ', name: '아이온큐', aliases: '아이온큐 ionq' },
