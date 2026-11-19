@@ -36,6 +36,7 @@ ACTIVITY_MAX_ORDERS = 400     # 화면 "더 보기"가 볼 수 있는 최근 주
 ACTIVITY_MAX_CANDIDATES = 120
 ACTIVITY_MAX_HISTORY_DATES = 20
 COMMAND_TTL_SEC = 150       # 에이전트가 못 가져간 명령은 만료한다(뒤늦게 실행되지 않게).
+MANUAL_RESULT_WAIT_SEC = 300   # 접수된 매도·기록 정리의 봇 결과를 기다리는 시간(봇은 180초 넘은 요청을 거부하고 결과를 남긴다).
 SIGNATURE_WINDOW_SEC = 60
 KNOWN_CALENDAR_YEARS = (2026,)   # market_calendar 표가 검증된 연도. 그 밖은 휴장 여부를 모르므로 start 거부.
 
@@ -210,7 +211,8 @@ def public_status(now=None):
                             **({'code': pending['code']} if pending['action'] in POSITION_ACTIONS and pending.get('code') else {}))
                        if pending else None,
             'hold': hold, 'log': recent_log(),
-            'lastCommand': state.get('last')}
+            'lastCommand': {k: v for k, v in state['last'].items() if k not in ('id', 'acceptedAt')}
+                           if isinstance(state.get('last'), dict) else state.get('last')}
 
 
 def queue_command(action, account, now=None, params=None):
@@ -408,6 +410,25 @@ def sanitize_activity(raw):
     return result
 
 
+def _apply_manual_result(state, result, now):
+    """접수(ACCEPTED)된 매도·기록 정리를 봇의 처리 결과로 확정한다. 결과가 오지 않으면 일정 시간 뒤 EXPIRED."""
+    last = state.get('last')
+    if not isinstance(last, dict) or last.get('result') != 'ACCEPTED':
+        return
+    if isinstance(result, dict) and result.get('id') and result.get('id') == last.get('id'):
+        final = 'DONE' if result.get('ok') is True else 'FAILED'
+        last.update(result=final, at=now.isoformat(timespec='seconds'), reason=_text(result.get('reason'), 120))
+        audit('agent', last['action'], final, last['reason'])
+        # 기록 정리가 끝나면 저장된 활동에서도 해당 PENDING 행을 바로 뺀다(다음 동기화가 다시 보고하면 그대로 표시).
+        if final == 'DONE' and last['action'] == 'position-drop' and isinstance(state.get('activity'), dict):
+            rows = state['activity'].get('positions') or []
+            state['activity']['positions'] = [r for r in rows
+                                              if not (r.get('code') == last.get('code') and r.get('state') == 'PENDING')]
+    elif time.time() - float(last.get('acceptedAt') or 0) > MANUAL_RESULT_WAIT_SEC:
+        last.update(result='EXPIRED', at=now.isoformat(timespec='seconds'), reason='봇 처리 결과 미수신')
+        audit('agent', last['action'], 'EXPIRED', last['reason'])
+
+
 def agent_sync(payload, now=None):
     """에이전트가 올린 상태를 저장하고, 대기 중인 명령(있으면 1건)을 돌려준다."""
     now = now or _now()
@@ -428,18 +449,16 @@ def agent_sync(payload, now=None):
             state['activity'] = fresh
         pending = state.get('pending')
         if isinstance(ack, dict) and pending and ack.get('id') == pending.get('id'):
-            result = 'DONE' if ack.get('ok') else 'FAILED'
+            # 매도·기록 정리는 에이전트가 요청 파일만 쓰고 봇이 처리한다. ack ok는 '접수'일 뿐이므로 ACCEPTED로 두고
+            # 봇 결과(snapshot.manualResult)가 같은 id로 올라오면 DONE/FAILED로 확정한다.
+            result = ('ACCEPTED' if pending['action'] in POSITION_ACTIONS else 'DONE') if ack.get('ok') else 'FAILED'
             state['last'] = {'action': pending['action'], 'result': result, 'at': now.isoformat(timespec='seconds'),
                              'reason': str(ack.get('reason') or '')[:200]}
             if pending['action'] in POSITION_ACTIONS and pending.get('code'):
-                state['last']['code'] = pending['code']
-            # 기록 정리가 완료되면 저장된 활동에서도 해당 PENDING 행을 바로 뺀다(다음 동기화가 다시 보고하면 그대로 표시).
-            if result == 'DONE' and pending['action'] == 'position-drop' and isinstance(state.get('activity'), dict):
-                rows = state['activity'].get('positions') or []
-                state['activity']['positions'] = [r for r in rows
-                                                  if not (r.get('code') == pending.get('code') and r.get('state') == 'PENDING')]
+                state['last'].update(code=pending['code'], id=pending['id'], acceptedAt=time.time())
             audit(pending.get('account'), pending['action'], result, ack.get('reason') or '')
             state['pending'] = pending = None
+        _apply_manual_result(state, snapshot.get('manualResult'), now)
         command = None
         if pending:
             if (time.time() - pending.get('queuedAt', 0)) > COMMAND_TTL_SEC:

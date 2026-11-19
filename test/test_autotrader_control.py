@@ -146,8 +146,39 @@ class ControlTest(unittest.TestCase):
         self.assertEqual(ac.public_status(now)['pending']['code'], '002350')
         ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1']), 'ack': {'id': cmd['id'], 'ok': True}}, now)
         st = ac.public_status(now)
+        # 에이전트 ack는 접수일 뿐: 봇 결과 전에는 행을 지우지 않는다.
+        self.assertEqual(len(st['activity']['positions']), 2)
+        self.assertEqual((st['lastCommand']['result'], st['lastCommand']['code']), ('ACCEPTED', '002350'))
+        self.assertNotIn('id', st['lastCommand'])
+        ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1'], manualResult={
+            'id': cmd['id'], 'action': 'position-drop', 'code': '002350', 'ok': True, 'reason': 'PENDING 장부 기록 삭제(주문 없음)'})}, now)
+        st = ac.public_status(now)
         self.assertEqual([p['code'] for p in st['activity']['positions']], ['068270'])
         self.assertEqual((st['lastCommand']['result'], st['lastCommand']['code']), ('DONE', '002350'))
+
+    def test_drop_bot_refusal_is_reported_with_reason(self):
+        now = MON.replace(hour=10)
+        ac._save({'snapshot': good(now, capabilities=['position-drop-v1']),
+                  'activity': {'positions': [{'code': '002350', 'qty': 2, 'state': 'PENDING'}]}})
+        cmd = ac.queue_command('position-drop', 'admin', now, params={'code': '002350'})
+        old = {'id': 'older-id', 'action': 'position-drop', 'code': '002350', 'ok': True, 'reason': 'x'}
+        ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1'], manualResult=old), 'ack': {'id': cmd['id'], 'ok': True}}, now)
+        self.assertEqual(ac.public_status(now)['lastCommand']['result'], 'ACCEPTED')   # 다른 id의 옛 결과는 무시
+        bad = {'id': cmd['id'], 'action': 'position-drop', 'code': '002350', 'ok': False, 'reason': '잔고·미체결 조회 실패: AttributeError'}
+        ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1'], manualResult=bad)}, now)
+        st = ac.public_status(now)
+        self.assertEqual(len(st['activity']['positions']), 1)
+        self.assertEqual((st['lastCommand']['result'], st['lastCommand']['reason']), ('FAILED', '잔고·미체결 조회 실패: AttributeError'))
+
+    def test_accepted_without_bot_result_expires(self):
+        now = MON.replace(hour=10)
+        ac._save({'snapshot': good(now, capabilities=['position-drop-v1']),
+                  'activity': {'positions': [{'code': '002350', 'qty': 2, 'state': 'PENDING'}]}})
+        cmd = ac.queue_command('position-drop', 'admin', now, params={'code': '002350'})
+        ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1']), 'ack': {'id': cmd['id'], 'ok': True}}, now)
+        state = ac._load(); state['last']['acceptedAt'] = time.time() - 1000; ac._save(state)
+        ac.agent_sync({'snapshot': good(now, capabilities=['position-drop-v1'])}, now)
+        self.assertEqual((ac._load()['last']['result'], ac._load()['last']['reason']), ('EXPIRED', '봇 처리 결과 미수신'))
 
     def test_drop_failed_keeps_row_and_reason(self):
         now = MON.replace(hour=10)
