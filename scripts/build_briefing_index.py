@@ -203,11 +203,20 @@ class PostParser(HTMLParser):
         elif self.in_date:
             self.in_date -= 1
 
-def fetch(url, timeout=25):
+def fetch(url, timeout=25, attempts=3):
+    # 2026-11-19 티스토리 응답 한 번의 시간 초과로 하루치 색인 갱신 전체가 실패했다.
+    # 일시 오류(시간 초과·연결 오류·5xx)만 간격을 두고 다시 시도하고, 끝내 실패하면 기존 색인을 보존한다.
     req = Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; BriefingArchiveIndexer/1.0; +https://ghlee.tistory.com)"})
-    with urlopen(req, timeout=timeout) as r:
-        if r.status != 200: raise RuntimeError(f"HTTP {r.status} {url}")
-        return r.read().decode("utf-8", errors="replace")
+    for attempt in range(1, attempts + 1):
+        try:
+            with urlopen(req, timeout=timeout) as r:
+                if r.status != 200: raise RuntimeError(f"HTTP {r.status} {url}")
+                return r.read().decode("utf-8", errors="replace")
+        except (URLError, TimeoutError, OSError) as error:
+            code = getattr(error, "code", None)
+            if attempt == attempts or (code is not None and code < 500): raise
+            print(f"retry {attempt}/{attempts - 1} {url}: {error}", flush=True)
+            time.sleep(5 * attempt)
 
 def cards_all(max_pages, delay):
     found = {}
@@ -289,7 +298,9 @@ def entry(card, html, catalog):
         coverage = "excerpt"
     if len(body) < 70: raise RuntimeError(f"본문·요약 파싱 실패: {card['url']}")
     title = card["title"]
-    summary = card["summary"] or body[:260]
+    # 목록 요약(post-excerpt)에는 글 맨 앞 HTML 주석 속 작업 메모까지 섞일 수 있다(1315번 사례).
+    # 본문을 끝까지 읽은 글은 주석을 뺀 본문 앞부분을 요약으로 쓰고, 부분 색인일 때만 목록 요약을 쓴다.
+    summary = body[:260] if coverage == "full" else (card["summary"] or body[:260])
     meta = clean("".join(p.date_text)) or card["date"]
     stamp = STAMP.search(meta)
     if stamp:

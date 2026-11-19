@@ -124,6 +124,7 @@
       var u = verified ? p.url : '';
       var html = '<article class="ba-item"><div class="ba-meta"><time datetime="' + safe(date(p.publishedAt)) + '">' + safe(date(p.publishedAt) || '게시일 미확인') + '</time>';
       if (p.referenceDate) html += '<span>본문 기준일 ' + safe(p.referenceDate) + '</span>';
+      if (p.pending) html += '<span>새 글 · 검색 색인 반영 전</span>';
       html += '</div><a class="ba-title" href="' + safe(u || '#') + '">' + safe(p.title) + '</a>' +
         '<p class="ba-excerpt">' + safe(p.summary || '원문에서 내용을 확인하세요.') + '</p><div class="ba-tags">' +
         tagHtml(p) + '</div></article>';
@@ -188,6 +189,22 @@
       if (!index || index.schemaVersion !== 1 || !Array.isArray(index.posts) || !index.posts.length) {
         throw new Error('검색 색인 계약 오류');
       }
+      // 색인은 하루 한 번 만든다. 그사이 올라온 새 글(현재 목록 카드에는 있으나 색인에 없는 글)이
+      // 선반을 숨기면서 사라지지 않도록 제목·게시일·원문 링크만으로 목록 맨 앞에 더한다(2026-11-20 1315번 누락).
+      var known = {};
+      index.posts.forEach(function (p) { known[String(p.id)] = true; });
+      var fresh = [];
+      (cards || []).forEach(function (card) {
+        var m = /^\/(\d+)$/.exec(card.getAttribute('data-url') || '');
+        var titleEl = card.querySelector('.post-title');
+        if (!m || known[m[1]] || !titleEl) return;
+        var d = /(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/.exec((card.querySelector('.post-date') || {}).textContent || '');
+        fresh.push({ id: m[1], url: 'https://ghlee.tistory.com/' + m[1], title: titleEl.textContent.trim(),
+          publishedAt: d ? d[1] + '-' + ('0' + d[2]).slice(-2) + '-' + ('0' + d[3]).slice(-2) + 'T00:00:00+09:00' : '',
+          summary: '', pending: true });
+        known[m[1]] = true;
+      });
+      if (fresh.length) index = { schemaVersion: index.schemaVersion, generatedAt: index.generatedAt, posts: fresh.concat(index.posts) };
       shelf.hidden = true;
       if (pagination) pagination.hidden = true;
       var topics = {};
