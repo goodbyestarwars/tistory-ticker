@@ -1838,6 +1838,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "econ-business-cycle.html": ("완전고용", "경기순환", "실질임금"),
             "econ-money.html": ("신용창조", "지급준비금"),
             "econ-exchange-rate.html": ("비교우위", "국제수지", "경상수지"),
+            # 2026-11-20 사용자 요청으로 추가한 7·8장.
+            "econ-public.html": ("공공재", "무임승차", "외부효과", "누진세"),
+            "econ-growth.html": ("GDP", "실질 GDP", "1인당 GDP", "생산성"),
         }
         for chapter, terms in chapter_terms.items():
             with self.subTest(chapter=chapter):

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>경제 이야기</title>
-<meta name="description" content="개미·아줌마·학생 눈높이로 풀어 쓰는 경제학 기초 6장. 선택과 기회비용, 보이지 않는 손, 물가와 인플레이션, 경기변동과 실업, 돈과 신용창조, 국제수지와 환율." />
+<meta name="description" content="초등학생도 읽을 수 있게 풀어 쓴 경제학 기초 8장. 선택과 기회비용, 보이지 않는 손, 물가와 인플레이션, 경기변동과 실업, 돈과 신용창조, 국제수지와 환율, 세금과 나라 살림, 나라 경제의 크기(GDP)." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
@@ -19,128 +19,140 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 <link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
 </head>
 <body class="learn-page">
-<div class="legal-wrap">
+<div class="legal-wrap econ-page">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
   <div class="learn-search" id="learn-search"></div>
 
   <h1>경제 이야기</h1>
-  <p class="legal-effective-date">개미·아줌마·학생 눈높이로 풀어 쓰는 경제학 기초 6장</p>
+  <p class="legal-effective-date">초등학생도 읽을 수 있게 풀어 쓴 경제학 기초 8장</p>
 
   <section class="learn-sec learn-sec--intro">
-  <p>주식·채권·코인 이야기가 "시장 안에서 무슨 일이 벌어지는가"를 다뤘다면, 이 글은 그 시장을 둘러싼
-  <b>더 큰 틀 - 경제학의 기본 개념</b>을 다룬다. "왜 장바구니 물가는 뉴스보다 더 비싸게 느껴질까",
-  "환율이 오르면 우리 집 살림엔 뭐가 달라질까" 같은, 매일 마주치지만 막상 설명하려면 막막한 질문들이다.
-  교과서 용어 대신 학생·아줌마·개미(개인 투자자) 각자의 하루에서 예시를 가져와 풀었다.</p>
+  <p>붕어빵 값은 누가 정할까? 엄마 월급이 올랐는데 왜 장보기는 더 빠듯할까? 해외직구 장난감은 왜 지난달보다
+  비싸졌을까? 매일 마주치지만 막상 설명하려면 말문이 막히는 질문들이다. 이 이야기는 그런 질문에 답하면서
+  경제학의 기초를 하나씩 쌓는다.</p>
+  <p>어려운 낱말은 처음 나올 때 쉬운 말로 풀었다. 그림과 표를 먼저 보고, 숫자 예시를 따라 계산해 보고, 장 끝의
+  문제를 풀어 보면 된다. 학생·아줌마·개미(주식에 투자하는 개인)가 각자 겪는 장면도 곳곳에 넣었다.</p>
 
   <div class="learn-note">
-    <b>읽는 법</b> 짧은 장은 10분 정도, 그림과 계산기가 많은 3장은 조금 더 길게 읽는다. 순서대로 안 읽어도 되고, 궁금한 장만 골라 읽어도 된다.
-    각 장 끝에는 이 사이트나 앞선 다른 글(채권 이야기 등)과 어떻게 이어지는지 짧게 적어 뒀다.
+    <b>읽는 법</b> 한 장은 15분 안팎이다. 계산기가 있는 3장은 조금 더 걸린다. 순서대로 읽으면 앞 장의 생각이
+    뒤 장에서 다시 나오지만, 궁금한 장만 골라 읽어도 된다. 각 장의 '한 걸음 더'와 '어른을 위한 덧붙임'은 건너뛰어도 괜찮다.
   </div>
 
   <figure class="learn-fig">
-    <svg viewBox="0 0 420 268" role="img" aria-label="6장 학습 순서: 1장 선택과 기회비용부터 6장 국제수지와 환율까지">
-      <rect class="fig-soft" x="0" y="0" width="420" height="268" />
-      <g>
-        <rect class="fig-white" x="12" y="10" width="396" height="30" />
-        <text class="fig-ink" x="28" y="30">1 · 선택과 기회비용</text>
-        <text class="fig-sub" x="250" y="30">포기한 것의 값</text>
-      </g>
-      <g>
-        <rect class="fig-white" x="12" y="48" width="396" height="30" />
-        <text class="fig-ink" x="28" y="68">2 · 보이지 않는 손</text>
-        <text class="fig-sub" x="250" y="68">수요 · 공급</text>
-      </g>
-      <g>
-        <rect class="fig-white" x="12" y="86" width="396" height="30" />
-        <text class="fig-ink" x="28" y="106">3 · 물가와 인플레이션</text>
-        <text class="fig-sub" x="250" y="106">체감물가</text>
-      </g>
-      <g>
-        <rect class="fig-white" x="12" y="124" width="396" height="30" />
-        <text class="fig-ink" x="28" y="144">4 · 경기변동과 실업</text>
-        <text class="fig-sub" x="250" y="144">완전고용</text>
-      </g>
-      <g>
-        <rect class="fig-white" x="12" y="162" width="396" height="30" />
-        <text class="fig-ink" x="28" y="182">5 · 돈이란 무엇인가</text>
-        <text class="fig-sub" x="250" y="182">신용창조</text>
-      </g>
-      <g>
-        <rect class="fig-white" x="12" y="200" width="396" height="30" />
-        <text class="fig-ink" x="28" y="220">6 · 국제수지와 환율</text>
-        <text class="fig-sub" x="250" y="220">비교우위</text>
-      </g>
+    <svg viewBox="0 0 420 330" role="img" aria-label="8장 학습 순서: 나와 시장(1~3장), 나라 전체의 흐름(4~5장), 세계와 나라 살림(6~8장)">
+      <rect class="fig-soft" x="0" y="0" width="420" height="330" rx="8" />
+      <text class="fig-sub" x="12" y="20">나와 시장</text>
+      <rect class="fig-white" x="12" y="28" width="396" height="30" rx="4" />
+      <text class="fig-ink" x="26" y="48">1 · 선택과 기회비용</text>
+      <text class="fig-sub" x="250" y="48">놓친 것의 값</text>
+      <rect class="fig-white" x="12" y="64" width="396" height="30" rx="4" />
+      <text class="fig-ink" x="26" y="84">2 · 보이지 않는 손</text>
+      <text class="fig-sub" x="250" y="84">수요와 공급</text>
+      <rect class="fig-white" x="12" y="100" width="396" height="30" rx="4" />
+      <text class="fig-ink" x="26" y="120">3 · 물가와 인플레이션</text>
+      <text class="fig-sub" x="250" y="120">돈의 힘이 줄 때</text>
+      <text class="fig-sub" x="12" y="150">나라 전체의 흐름</text>
+      <rect class="fig-white" x="12" y="158" width="396" height="30" rx="4" />
+      <text class="fig-ink" x="26" y="178">4 · 경기변동과 실업</text>
+      <text class="fig-sub" x="250" y="178">물결치는 경기</text>
+      <rect class="fig-white" x="12" y="194" width="396" height="30" rx="4" />
+      <text class="fig-ink" x="26" y="214">5 · 돈이란 무엇인가</text>
+      <text class="fig-sub" x="250" y="214">이자와 신용창조</text>
+      <text class="fig-sub" x="12" y="244">세계와 나라 살림</text>
+      <rect class="fig-white" x="12" y="252" width="396" height="30" rx="4" />
+      <text class="fig-ink" x="26" y="272">6 · 국제수지와 환율</text>
+      <text class="fig-sub" x="250" y="272">비교우위</text>
+      <rect class="fig-soft2" x="12" y="288" width="194" height="30" rx="4" />
+      <text class="fig-ink" x="26" y="308">7 · 세금과 나라 살림</text>
+      <rect class="fig-soft2" x="214" y="288" width="194" height="30" rx="4" />
+      <text class="fig-ink" x="228" y="308">8 · 나라 경제의 크기</text>
     </svg>
-    <figcaption>1~3장은 개인의 선택과 시장가격, 4~6장은 경제 전체(고용·화폐·환율)로 시야를 넓혀 간다.</figcaption>
+    <figcaption>1~3장은 한 사람과 가게, 4~5장은 나라 전체의 경기와 돈, 6~8장은 세계와 나라 살림으로 넓혀 간다. 7·8장은 2026년 11월에 새로 더했다.</figcaption>
   </figure>
-
   </section>
+
   <section class="learn-sec">
   <h2 id="sec-1">차례</h2>
   <ol class="learn-toc">
     <li>
       <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-choice.html">선택과 기회비용</a>
-      <small>시험 전날 게임 한 판의 진짜 값, 여윳돈을 예금에 둘지 주식에 넣을지 - 모든 선택엔 포기한 대안의 값이 숨어 있다. <b>예시</b>: 아줌마의 장보기, 학생의 벼락치기, 개미의 여윳돈.</small>
+      <small>토요일 오후 두 시간, 축구와 숙제와 게임 가운데 무엇을 할까. 놓친 것 가운데 가장 아까운 것이 진짜 비용이다. <b>예시</b>: 피자 다섯 조각으로 배우는 "하나 더", 영화표로 배우는 매몰비용.</small>
     </li>
     <li>
       <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-invisible-hand.html">보이지 않는 손</a>
-      <small>명절 기차표는 왜 매진되고 전통시장 흥정은 왜 되는가. 수요·공급 곡선과 시장가격이 스스로 맞아가는 원리. <b>예시</b>: 전통시장 흥정, 스터디카페 좌석난, 편의점이 하나뿐인 동네.</small>
+      <small>학교 앞 붕어빵 값은 누가 정할까. 수요·공급 표와 그래프, 추운 날 값이 오르는 이유, 값을 묶으면 생기는 줄서기, 경쟁과 독점. <b>예시</b>: 붕어빵 가게, 명절 기차표, 콘서트 표.</small>
     </li>
     <li>
       <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-inflation.html">물가와 인플레이션</a>
-      <small>어릴 적 짜장면 800원과 2026년 서울 평균 7,808원에서 출발해 체감물가·실질월급·예금·대출·한국은행의 2% 목표까지 연결한다. <b>직접 해보기</b>: 짜장면 구매력, 우리 집 물가, 실질임금 계산기와 그래프.</small>
+      <small>짜장면 800원의 기억과 2026년 서울 평균 7,808원에서 출발해 체감물가·실질월급·예금·대출·한국은행의 2% 목표까지. <b>직접 해보기</b>: 짜장면 구매력, 우리 집 물가, 실질임금 계산기.</small>
     </li>
     <li>
       <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-business-cycle.html">경기변동과 실업</a>
-      <small>아빠 회사 상여금이 줄어든 이유, "완전고용"이 실업률 0%가 아닌 이유. <b>예시</b>: 학생의 취업난 체감, 아줌마 남편의 보너스, 개미의 경기민감주.</small>
+      <small>동네 치킨집이 바쁜 해와 한가한 해가 번갈아 오는 이유. 마을 100명으로 실업률을 계산하고, 완전고용이 0%가 아닌 이유를 본다. <b>예시</b>: 아빠 회사 보너스, 통계에 안 잡히는 취업 준비생.</small>
     </li>
     <li>
       <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-money.html">돈이란 무엇인가</a>
-      <small>세뱃돈은 왜 "돈"이고 조개껍데기는 왜 안 되는가, 은행에 넣은 100만 원이 어떻게 그보다 훨씬 큰돈이 되는가(신용창조). <b>예시</b>: 학생의 세뱃돈, 마트 상품권, 개미의 예금-대출 순환.</small>
+      <small>물물교환이 어긋나는 이유, 돈이 하는 세 가지 일, 이자와 금리, 은행에 넣은 돈이 불어나는 신용창조, 코인과 원화의 차이. <b>예시</b>: 세뱃돈과 문구점 포인트.</small>
     </li>
     <li>
       <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-exchange-rate.html">국제수지와 환율</a>
-      <small>해외직구가 갑자기 비싸진 이유, 환율이 오르면 누구는 좋고 누구는 나쁜가. <b>예시</b>: 아줌마의 해외직구, 학생의 어학연수, 개미가 보는 외국인 수급과 환율.</small>
+      <small>한국과 베트남이 나눠 만들면 둘 다 더 갖는 이유(비교우위), 나라의 가계부(경상수지), 환율이 오르면 누가 웃고 우는가. <b>예시</b>: 50달러 레고 직구, 기름값, 빅맥지수.</small>
+    </li>
+    <li>
+      <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-public.html">세금과 나라 살림 (새 장)</a>
+      <small>가로등은 왜 가게에서 팔지 않을까. 공공재와 무임승차, 남에게 피해나 도움이 가는 외부효과, 세금의 종류와 쓰임. <b>예시</b>: 반 청소 당번, 층간 소음, 과자 속 부가가치세.</small>
+    </li>
+    <li>
+      <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-growth.html">나라 경제의 크기 (새 장)</a>
+      <small>빵집 이야기로 GDP를 세는 법, 명목과 실질, 1인당 GDP, 나라가 잘살게 되는 이유, 70의 법칙. <b>예시</b>: 밀→밀가루→빵, 1953년 67달러에서 3만 달러로.</small>
     </li>
   </ol>
-
   </section>
+
+  <section class="learn-deep" aria-labelledby="econ-roadmap-deep">
+  <h2 id="econ-roadmap-deep">한 장의 그림으로 보는 경제</h2>
+  <p>여덟 장의 이야기는 결국 돈과 물건이 어떻게 돌고 도는지에 대한 이야기다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 280" role="img" aria-label="경제의 순환: 가계는 기업에 일을 하고 월급을 받으며, 기업에서 물건을 사고 돈을 낸다. 정부는 세금을 걷어 공공서비스를 주고, 외국과는 수출과 수입이 오간다">
+      <rect class="fig-soft2" x="150" y="6" width="120" height="44" rx="8" />
+      <text class="fig-ink" x="186" y="26">정부</text>
+      <text class="fig-sub" x="162" y="43">세금 ↔ 공공서비스</text>
+      <rect class="fig-soft" x="0" y="100" width="120" height="70" rx="8" />
+      <text class="fig-ink" x="16" y="128">가계(우리 집)</text>
+      <text class="fig-sub" x="16" y="152">일하고, 산다</text>
+      <rect class="fig-soft" x="300" y="100" width="120" height="70" rx="8" />
+      <text class="fig-ink" x="316" y="128">기업(회사)</text>
+      <text class="fig-sub" x="316" y="152">만들고, 판다</text>
+      <path class="fig-up-line" d="M124 112 H296 M287 107 L296 112 L287 117" />
+      <text class="fig-up" x="146" y="104" font-size="12.5">돈을 낸다 · 일을 한다</text>
+      <path class="fig-down-line" d="M296 158 H124 M133 153 L124 158 L133 163" />
+      <text class="fig-down" x="146" y="180" font-size="12.5">물건과 월급을 준다</text>
+      <path class="fig-ink-line" d="M60 96 V70 Q60 60 70 60 H146" />
+      <path class="fig-ink-line" d="M360 96 V70 Q360 60 350 60 H274" />
+      <rect class="fig-soft2" x="150" y="222" width="120" height="44" rx="8" />
+      <text class="fig-ink" x="186" y="242">외국</text>
+      <text class="fig-sub" x="168" y="259">수출 ↔ 수입</text>
+      <path class="fig-ink-line" d="M360 174 V234 H274" />
+      <path class="fig-ink-line" d="M60 174 V234 H146" />
+    </svg>
+    <figcaption>집과 회사가 일·월급·물건·돈을 주고받는 고리(1·2장)에 정부(7장)와 외국(6장)이 이어진다. 이 고리 전체의 크기가 GDP(8장)이고, 고리가 빨라졌다 느려졌다 하는 것이 경기(4장)다. 그 사이를 흐르는 것이 돈(5장)이고, 돈의 힘이 줄어드는 것이 인플레이션(3장)이다.</figcaption>
+  </figure>
+  </section>
+
   <section class="learn-sec">
-  <h2 id="sec-2">먼저 알아 둘 것</h2>
+  <h2 id="sec-3">먼저 알아 둘 것</h2>
   <ul>
-    <li>이 글은 <b>공부용 설명</b>이다. 투자·소비를 특정 방향으로 권하지 않는다.</li>
-    <li>숫자·예시는 이해를 돕기 위한 <b>가상값</b>이다. 실제 통계와 다를 수 있다.</li>
-    <li>이 시리즈는 한국은행이 발간한 교육자료 <b>「알기 쉬운 경제이야기(일반인용)」</b>의 내용을 참고해,
-    이 사이트의 예시·표·그림 형식으로 새로 풀어 쓴 것이다. 출처는 각 장 끝에도 표기한다.</li>
+    <li>이 글은 <b>공부용 설명</b>이다. 투자나 소비를 어느 쪽으로 권하지 않는다.</li>
+    <li>"가상 숫자"라고 적은 예시는 이해를 돕기 위해 만든 값이다. 실제 통계와 다르다. 실제 통계를 쓴 곳에는 출처나 기준 시점을 적었다.</li>
+    <li>이 시리즈는 한국은행이 펴낸 교육자료 <b>「알기 쉬운 경제이야기(일반인용)」</b>와 대학 경제원론의 기본 차례를
+    참고해 이 사이트의 예시·표·그림으로 새로 풀어 쓴 것이다.</li>
   </ul>
 
   <div class="learn-note">
     <b>출처</b> 한국은행 경제교육, 「알기 쉬운 경제이야기(일반인용)」 —
     <a href="https://www.bok.or.kr/portal/bbs/B0000249/view.do?nttId=10061816&menuNo=200765" target="_blank" rel="noopener">bok.or.kr 발간자료 페이지</a>
   </div>
-
-
   </section>
-<section class="learn-deep" aria-labelledby="econ-roadmap-deep">
-  <h2 id="econ-roadmap-deep">학술 심화 과정 · 6장의 이야기를 하나의 모형으로 읽기</h2>
-  <p>생활 속 사례를 경제학의 분석 틀로 다시 보면 <b>개인의 선택(미시경제) → 시장 가격과 유인 → 생산과 물가 → 경기와 고용 → 은행의 신용·통화 → 국제거래와 환율</b>이 서로 연결된다. 함께 움직이는 변수라도 <b>원인과 결과는 따로 검증해야 한다</b>.</p>
-  <figure class="learn-fig"><svg viewBox="0 0 520 194" role="img" aria-label="미시적 선택에서 시장 가격, 생산·물가, 고용·신용, 국제 거래로 이어지는 경제 연구의 단계">
-    <rect class="fig-soft" x="0" y="24" width="158" height="60" rx="5"/>
-    <rect class="fig-soft2" x="181" y="24" width="158" height="60" rx="5"/>
-    <rect class="fig-white" x="362" y="24" width="158" height="60" rx="5" stroke="#cbd8e5"/>
-    <text class="fig-ink" x="12" y="50">개인의 선택</text><text class="fig-sub" x="12" y="72">비용·유인</text>
-    <text class="fig-ink" x="194" y="50">시장 가격</text><text class="fig-sub" x="194" y="72">수요·공급</text>
-    <text class="fig-ink" x="374" y="50">거시경제</text><text class="fig-sub" x="374" y="72">생산·물가</text>
-    <path class="fig-ink-line" stroke-linecap="round" stroke-linejoin="round" d="M158 54H180M173 49L180 54L173 59M339 54H360M353 49L360 54L353 59"/>
-    <rect class="fig-soft2" x="91" y="113" width="338" height="48" rx="5"/>
-    <text class="fig-ink" x="105" y="135">고용 · 은행 신용 · 해외자본과 환율</text>
-    <!-- 거시경제 → 고용·신용·환율 → 개인의 선택: 상자 가장자리에서 이어지는 피드백 화살표 -->
-    <path class="fig-ink-line" stroke-linecap="round" stroke-linejoin="round" d="M440 84V98Q440 104 434 104H378Q372 104 372 110V112M366 106L372 113L378 106"/>
-    <path class="fig-ink-line" stroke-linecap="round" stroke-linejoin="round" d="M91 137H52Q40 137 40 125V85M34 91L40 84L46 91"/>
-    <text class="fig-sub" x="0" y="186">각 단계는 서로 피드백하며 실제 경제에서는 일방통행이 아니다.</text>
-  </svg><figcaption>심화 그림 ⑧ 경제학 연구는 개별 시장과 거시 지표의 연결 구조를 확인한다.</figcaption></figure>
-  <div class="learn-lab"><h3>학습 과제 · 자료를 보고 인과관계를 가려 보자</h3><p>환율이 오르고 수출이 증가한 달이 있었다면, 환율이 수출을 늘린 것일까? 글로벌 수요 증가가 두 현상을 동시에 만들었을 가능성은 없을까? <b>발표 시차, 교역 상대국의 경기, 계절요인, 수입 원가, 정책변화</b>를 확인해 경쟁 가설을 세운다.</p><p>각 장을 읽을 때 <b>정의 → 계산식 → 가상 반례 → 실제 검증할 데이터 → 결론의 한계</b> 순서로 스스로 한 페이지를 작성해 보자.</p></div>
-</section>
 
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/company-analysis.html">← 기업분석 이야기</a>

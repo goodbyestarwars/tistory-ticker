@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>8장 나라 경제의 크기 · 경제 이야기</title>
+<meta name="description" content="빵집 이야기로 GDP를 세는 법, 명목과 실질, 1인당 GDP, 경제성장률, 나라가 잘살게 되는 이유와 복리의 힘을 쉽게 설명한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+</head>
+<body class="learn-page">
+<div class="legal-wrap econ-page">
+  <div class="legal-backs">
+    <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+    <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
+  </div>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>8장 · 나라 경제의 크기</h1>
+  <p class="legal-effective-date">GDP는 무엇을 세고, 나라는 어떻게 잘살게 될까</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>뉴스에서 "올해 경제성장률 2%"라는 말을 자주 듣는다. 무엇이 2% 컸다는 걸까? 나라가 한 해 동안 만들어 낸
+  물건과 서비스를 모두 더한 값, <b>GDP(국내총생산)</b>가 2% 커졌다는 뜻이다. 우리나라 GDP는 한 해 2,500조 원이
+  넘는다. 너무 큰 숫자라 감이 안 오니, 작은 빵집에서 시작해 보자.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">빵집으로 배우는 GDP 세는 법</h2>
+  <p>농부가 밀을 길러 제분소에 1,000원에 판다. 제분소는 밀가루로 빻아 빵집에 1,500원에 판다. 빵집은 빵을 구워
+  손님에게 3,000원에 판다. 이 마을이 한 해 동안 새로 만든 값은 얼마일까?</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="밀 1000원, 밀가루 1500원, 빵 3000원. 단계마다 새로 더한 값은 1000원, 500원, 1500원이고 합은 빵값 3000원과 같다">
+      <text class="fig-ink" x="0" y="16">단계마다 새로 더한 값</text>
+      <rect class="fig-bar" x="0" y="36" width="140" height="40" rx="4" />
+      <text class="fig-on-strong" x="12" y="61">농부 1,000원</text>
+      <rect class="fig-soft2" x="144" y="36" width="70" height="40" rx="4" />
+      <text class="fig-ink" x="150" y="61" font-size="12">제분소 500</text>
+      <rect class="fig-up" x="218" y="36" width="202" height="40" rx="4" />
+      <text class="fig-on-strong" x="232" y="61">빵집 1,500원</text>
+      <path class="fig-ink-line" d="M0 92 H420" />
+      <path class="fig-ink-line" d="M0 86 V98 M420 86 V98" />
+      <text class="fig-ink" x="120" y="118">합계 3,000원 = 빵 한 개 값</text>
+      <text class="fig-sub" x="0" y="160">잘못 세면: 밀 1,000 + 밀가루 1,500 + 빵 3,000 = 5,500원</text>
+      <text class="fig-sub" x="0" y="182">밀값이 세 번, 밀가루값이 두 번 들어가 부풀려진다</text>
+    </svg>
+    <figcaption>GDP는 마지막에 손님이 산 빵의 값(3,000원)만 센다. 단계마다 새로 더한 값을 모두 합해도 같은 3,000원이 나온다.</figcaption>
+  </figure>
+
+  <p>밀과 밀가루는 빵에 이미 들어 있다. 그래서 GDP에는 <b>마지막에 쓰이는 물건(최종재)</b>의 값만 넣는다.
+  다시 정리하면 GDP는 <b>한 해 동안, 우리나라 땅 안에서, 새로 만든, 최종 물건과 서비스의 값을 모두 더한 것</b>이다.</p>
+  <table class="learn-table">
+    <thead><tr><th>이런 것은</th><th>GDP에 들어갈까</th><th>왜</th></tr></thead>
+    <tbody>
+      <tr><td>올해 새로 지은 아파트</td><td>들어간다</td><td>올해 새로 만들었다</td></tr>
+      <tr><td>10년 된 중고차를 사고팖</td><td>안 들어간다</td><td>10년 전에 이미 셌다</td></tr>
+      <tr><td>미용실에서 머리 자르기</td><td>들어간다</td><td>서비스도 만든 것이다</td></tr>
+      <tr><td>엄마가 집에서 한 요리</td><td>안 들어간다</td><td>사고판 값이 없다</td></tr>
+      <tr><td>한국 회사가 베트남 공장에서 만든 휴대폰</td><td>베트남 GDP에 들어간다</td><td>만든 곳이 베트남이다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">값이 올라서 커진 걸까, 많이 만들어서 커진 걸까 · 명목과 실질</h2>
+  <p>올해 빵을 작년과 똑같이 100개 만들었는데 빵값이 3,000원에서 3,300원으로 올랐다. 판 돈은 30만 원에서 33만 원이
+  됐다. 10% 컸다고 해야 할까? 빵은 하나도 더 만들지 않았다.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>작년</th><th>올해</th><th>변화</th></tr></thead>
+    <tbody>
+      <tr><td>빵 개수</td><td>100개</td><td>100개</td><td>0%</td></tr>
+      <tr><td>빵값</td><td>3,000원</td><td>3,300원</td><td>+10%</td></tr>
+      <tr><td>그해 값으로 센 크기(명목 GDP)</td><td>30만 원</td><td>33만 원</td><td>+10%</td></tr>
+      <tr><td>작년 값으로 다시 센 크기(실질 GDP)</td><td>30만 원</td><td>30만 원</td><td>0%</td></tr>
+    </tbody>
+  </table>
+  <p>값이 오른 것을 빼고 정말 많이 만들었는지 보려면 <b>실질 GDP</b>를 본다. 뉴스의 "경제성장률"은 이 실질 GDP가
+  작년보다 몇 % 늘었는지를 말한다.</p>
+  <p class="learn-math">경제성장률 = (올해 실질 GDP − 작년 실질 GDP) ÷ 작년 실질 GDP × 100</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">나라가 크다고 잘사는 건 아니다 · 1인당 GDP</h2>
+  <p>인구가 많은 나라는 GDP도 크기 쉽다. 그래서 한 사람에게 돌아가는 몫을 보려면 GDP를 인구로 나눈 <b>1인당 GDP</b>를 본다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 180" role="img" aria-label="가 나라는 GDP 1000억 달러에 인구 1000만 명이라 1인당 1만 달러, 나 나라는 GDP 3000억 달러에 인구 1억 명이라 1인당 3천 달러">
+      <text class="fig-sub" x="0" y="16">나라 전체 크기(GDP)</text>
+      <text class="fig-ink" x="0" y="48" font-size="13">가 나라</text>
+      <rect class="fig-soft2" x="70" y="32" width="100" height="24" rx="3" />
+      <text class="fig-sub" x="178" y="49">1,000억 달러</text>
+      <text class="fig-ink" x="0" y="82" font-size="13">나 나라</text>
+      <rect class="fig-soft2" x="70" y="66" width="300" height="24" rx="3" />
+      <text class="fig-sub" x="378" y="83">3,000억</text>
+      <text class="fig-sub" x="0" y="118">한 사람 몫(1인당 GDP)</text>
+      <text class="fig-ink" x="0" y="148" font-size="13">가 나라</text>
+      <rect class="fig-bar" x="70" y="132" width="200" height="24" rx="3" />
+      <text class="fig-ink" x="278" y="149" font-size="13">1만 달러(1,000만 명)</text>
+      <text class="fig-ink" x="0" y="176" font-size="13">나 나라</text>
+      <rect class="fig-bar" x="70" y="160" width="60" height="18" rx="3" />
+      <text class="fig-ink" x="138" y="175" font-size="13">3천 달러(1억 명)</text>
+    </svg>
+    <figcaption>나라 전체는 나 나라가 세 배 크지만, 한 사람 몫은 가 나라가 세 배 넘게 크다. 가상 숫자.</figcaption>
+  </figure>
+  <p>우리나라는 한국전쟁 직후인 1953년 1인당 국민소득이 67달러로 세계에서 가장 가난한 나라 가운데 하나였다.
+  지금은 3만 달러를 넘는다. 70년 사이에 몇백 배가 됐다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">나라는 어떻게 잘살게 될까</h2>
+  <p>붕어빵 아저씨가 한 시간에 30개를 굽다가 틀을 두 개로 늘리고 반죽 기계를 들이고 손이 빨라져서 100개를 굽게
+  됐다. 같은 시간에 더 많이 만들게 된 것, 이것을 <b>생산성</b>이 높아졌다고 한다. 나라가 잘살게 되는 길도 같다.</p>
+  <table class="learn-table">
+    <thead><tr><th>무엇이 늘면</th><th>붕어빵 가게에서</th><th>나라에서</th></tr></thead>
+    <tbody>
+      <tr><td>기계·도구</td><td>붕어빵 틀이 두 개</td><td>공장, 도로, 컴퓨터</td></tr>
+      <tr><td>배운 기술</td><td>손이 빨라짐</td><td>교육받은 사람들</td></tr>
+      <tr><td>새로운 방법</td><td>반죽 기계 발명</td><td>새 기술과 연구</td></tr>
+      <tr><td>믿을 수 있는 규칙</td><td>남의 가게를 함부로 뺏지 못함</td><td>재산을 지켜 주는 법, 깨끗한 정부</td></tr>
+    </tbody>
+  </table>
+  <p>기계를 사려면 돈이 필요하다. 그 돈은 누군가 오늘 다 쓰지 않고 모아 둔 돈(저축)에서 나온다. 은행에 맡긴
+  저축이 회사에 빌려지고, 회사는 그 돈으로 공장과 기계를 사들인다(투자). <b>오늘 아껴 둔 돈이 내일 더 많이
+  만드는 힘이 된다.</b></p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">조금씩이라도 오래 크면 · 복리와 70의 법칙</h2>
+  <p>해마다 조금씩 크는 것도 오래 쌓이면 엄청나게 커진다. 커진 크기에서 다시 크기 때문이다. 이것을 <b>복리</b>라 한다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="100에서 시작해 해마다 2퍼센트 크면 35년 뒤 약 200, 해마다 7퍼센트 크면 10년 뒤 약 200, 35년 뒤 약 1070이 된다">
+      <path class="fig-line" d="M40 20 V190 H410" />
+      <text class="fig-sub" x="0" y="16">크기</text>
+      <text class="fig-sub" x="10" y="194">100</text>
+      <text class="fig-sub" x="366" y="210">35년 뒤</text>
+      <text class="fig-sub" x="40" y="210">지금</text>
+      <path class="fig-down-line" d="M40 190 C150 186 260 178 400 174" />
+      <text class="fig-down" x="300" y="166" font-size="12.5">해마다 2% → 약 200</text>
+      <path class="fig-up-line" d="M40 190 C200 180 330 120 400 26" />
+      <text class="fig-up" x="226" y="70" font-size="12.5">해마다 7% → 약 1,070</text>
+    </svg>
+    <figcaption>같은 35년인데 2%로 크면 두 배, 7%로 크면 열 배 넘게 커진다. 계산 예시.</figcaption>
+  </figure>
+  <p>몇 년 만에 두 배가 될지 어림하는 쉬운 방법이 있다. <b>70을 한 해 성장률로 나눈다.</b></p>
+  <table class="learn-table">
+    <thead><tr><th>한 해 성장률</th><th>두 배가 되는 데 걸리는 해(어림)</th></tr></thead>
+    <tbody>
+      <tr><td>1%</td><td>약 70년</td></tr>
+      <tr><td>2%</td><td>약 35년</td></tr>
+      <tr><td>7%</td><td>약 10년</td></tr>
+      <tr><td>10%</td><td>약 7년</td></tr>
+    </tbody>
+  </table>
+  <p>예금 이자에도 똑같이 쓸 수 있다. 연 5% 복리로 맡긴 돈은 약 14년(70 ÷ 5) 뒤 두 배가 된다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">GDP가 세지 못하는 것</h2>
+  <p>GDP는 편리한 숫자지만 행복을 다 재지는 못한다.</p>
+  <ul>
+    <li><b>집안일과 봉사</b> 엄마의 요리, 할머니의 손주 돌보기, 동네 봉사는 사고판 값이 없어 빠진다.</li>
+    <li><b>환경</b> 공장이 강을 더럽혀도 GDP는 늘 수 있다.</li>
+    <li><b>쉬는 시간</b> 모두가 밤새 일하면 GDP는 늘지만 삶이 나아졌다고 하기 어렵다.</li>
+    <li><b>골고루 나눴는지</b> 평균이 커져도 몇몇 사람만 많이 가졌을 수 있다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 실질 GDP가 작년 500조에서 올해 510조가 됐다. 경제성장률은?</summary><p>(510 − 500) ÷ 500 × 100 = 2%다.</p></details>
+  <details class="in-quiz"><summary>2. 할머니가 쓰던 피아노를 중고로 50만 원에 팔았다. 올해 GDP에 들어갈까?</summary><p>안 들어간다. 피아노는 예전에 만들어져 그해 GDP에 이미 들어갔다. 다만 중고 가게가 받은 수수료는 올해 만든 서비스라 들어간다.</p></details>
+  <details class="in-quiz"><summary>3. 해마다 3%씩 크는 나라는 몇 년 뒤 두 배가 될까?</summary><p>70 ÷ 3 ≈ 23년이다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="econ-growth-deep">
+  <h2 id="econ-growth-deep">한 걸음 더 · GDP는 세 가지 방법으로 세도 같다</h2>
+  <p>빵집 마을에서 빵 3,000원은 손님이 쓴 돈이다. 같은 3,000원은 농부·제분소·빵집 사람들이 번 돈이기도 하다.
+  그래서 GDP는 <b>만든 값</b>으로 세도, <b>쓴 돈</b>으로 세도, <b>번 돈</b>으로 세도 이론상 같다. 쓴 돈으로 나누면
+  이렇게 적는다.</p>
+  <p class="learn-math">GDP = 가계 소비 + 기업 투자 + 정부 지출 + (수출 − 수입)</p>
+  <p>4장의 불황 때 정부가 돈을 더 쓰거나 금리를 내려 투자를 늘리려는 이유가 이 식에 보인다. 6장의 경상수지 흑자는
+  (수출 − 수입) 칸과 이어진다.</p>
+  <p class="in-small">어른을 위한 덧붙임: GDP는 나라 땅 안에서 만든 값, GNI(국민총소득)는 우리 국민이 번 소득이다. 1953년 67달러는 1인당 국민소득(GNI) 기준이다. 정확한 최신 숫자는 한국은행 경제통계시스템에서 확인한다.</p>
+  </section>
+
+  <h2>한 줄 정리</h2>
+  <p>GDP는 한 해 동안 나라 안에서 새로 만든 최종 물건·서비스의 값이다. 값이 오른 것을 뺀 실질 GDP가 얼마나 늘었는지가
+  경제성장률이다. 나라는 기계·기술·사람이 좋아져 생산성이 높아질 때 잘살게 되고, 작은 성장도 오래 쌓이면 크게 불어난다.</p>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-public.html">← 7장 세금과 나라 살림</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/tax-story.html">절세 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>
