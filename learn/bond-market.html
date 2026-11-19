@@ -29,8 +29,8 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <section class="learn-sec learn-sec--intro">
   <p>뉴스에서 "국채금리가 올랐다"는 말이 나오면 주식시장이 같이 흔들리는 걸 자주 본다. 그런데 채권이 정확히
   뭘 사고파는 건지, 금리가 오르면 왜 채권 가격은 내려가는지는 막상 설명하기 어렵다. 채권의 구조와 금리·가격 관계를 이해하면, 채권시장 소식이 주식시장에 어떤 영향을 주는지도 따져볼 수 있다.</p>
-
-  
+  <p>친구에게 만 원을 빌려주면서 "1년 뒤에 만 원 갚고, 고마우니까 300원 더 줄게"라고 쓴 쪽지를 받았다고 하자. 그 쪽지가 채권이다.
+  쪽지를 가진 사람이 돈을 받으니, 쪽지 자체를 다른 사람에게 팔 수도 있다. 이 장은 그 쪽지의 값이 왜 오르내리는지를 다룬다.</p>
   <div class="in-facts">
     <div class="in-fact"><span>채권 가격과 금리</span><strong>반대로</strong></div>
     <div class="in-fact"><span>금리에 더 민감한 것</span><strong>긴 만기</strong></div>
@@ -137,6 +137,16 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     내리면, 내 채권(3%)이 새 채권보다 유리해져 웃돈을 주고서라도 사려는 사람이 생긴다.
   </div>
 
+  <table class="learn-table">
+    <thead><tr><th>1년 뒤 10,300원을 받는 채권</th><th>요즘 금리</th><th>오늘 낼 만한 값</th></tr></thead>
+    <tbody>
+      <tr><td>금리가 내렸다</td><td>2%</td><td>약 10,098원</td></tr>
+      <tr><td>그대로다</td><td>3%</td><td>10,000원</td></tr>
+      <tr><td>금리가 올랐다</td><td>5%</td><td>약 9,810원</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">받을 돈(10,300원)을 (1 + 금리)로 나눈 값이다. 받을 돈은 그대로인데, 금리가 오를수록 오늘 값은 내려간다.</p>
+
   </section>
   <section class="learn-sec">
   <h2 id="sec-4">단기채와 장기채 - 돈을 얼마나 오래 빌려주나</h2>
@@ -160,6 +170,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h2 id="sec-5">듀레이션 - 만기가 길수록 금리에 더 민감하다</h2>
   <p>같은 크기의 금리 변화라도 <b>만기가 긴 채권일수록 가격이 더 크게 움직인다</b>. 남은 이자를 받을 기간이
   길수록, 그 사이 금리 변화가 누적으로 영향을 주기 때문이다. 이 민감도를 "듀레이션"이라 부른다.</p>
+  <p>시소를 생각하면 쉽다. 가운데 받침점에서 가까운 자리(짧은 만기)는 조금만 움직이고, 끝자리(긴 만기)는 같은 힘에도 크게 오르내린다.</p>
 
   <figure class="learn-fig">
     <svg viewBox="0 0 420 190" role="img" aria-label="금리가 1%p 오를 때 단기채(1년)는 가격이 약 1% 빠지고 장기채(10년)는 약 8% 빠지는 비교 막대그래프">
@@ -275,7 +286,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
   <section class="learn-sec">
   <h2 id="sec-11">금리와 주식시장 - 왜 항상 같이 언급되나</h2>
-  <p>6장(돈이 들어오는 구조)에서 "금리는 돈의 임대료"라고 배웠다. 금리가 오르면 이 임대료가 비싸지는
+  <p>주식 이야기 6·7장에서 금리를 "수도꼭지 손잡이", "돈의 임대료"라고 불렀다. 금리가 오르면 이 임대료가 비싸지는
   셈이라, 주식시장에는 크게 두 방향으로 영향을 준다.</p>
 
   <ul>
