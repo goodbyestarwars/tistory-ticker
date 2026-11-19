@@ -2059,12 +2059,12 @@
     var gap = gapPercent(Number(live.price), scanPrice);
     if (!quote || gap == null) return;
     var day = row.getAttribute('data-scan-day');
-    var session = live.market_state === 'regular' ? '현재가'
-      : (live.price_session === 'post' || live.price_session === 'pre') ? 'NXT 시간외가' : '최근 종가';
+    var session = live.market_state === 'regular' ? '실시간'
+      : (live.price_session === 'post' || live.price_session === 'pre') ? 'NXT 시간외' : '장 마감';
     var rounded = Math.round(gap * 100) / 100;
     quote.innerHTML = '<span class="ps-pick-price">' + fmt(live.price) + '<small>원</small></span>'
       + '<span class="ps-pick-rate ' + chgClass(rounded) + '" title="' + escapeHtml((day ? day + ' ' : '기준일 ') + '종가 대비 등락률') + '">' + escapeHtml(chgSign(rounded)) + '</span>'
-      + '<span class="ps-pick-basis">' + escapeHtml(session + ' · ' + (day ? day + ' ' : '기준일 ') + '종가 ' + fmt(scanPrice) + '원 대비') + '</span>';
+      + '<span class="ps-pick-basis">' + escapeHtml((day ? day + ' ' : '기준일 ') + '종가 ' + fmt(scanPrice) + '원 대비 · ' + session) + '</span>';
     var gauge = row.querySelector('.ps-pick-gauge');
     var next = rangeGaugeHtml(live.price, row.getAttribute('data-sup'), row.getAttribute('data-res'));
     if (gauge && next) gauge.outerHTML = next;

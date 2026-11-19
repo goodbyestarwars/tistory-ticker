@@ -88,7 +88,7 @@ async def main():
                     # 2026-11-19: 카드는 공통 실시간 조회로 현재가와 기준일 종가 대비 %를 보여준다. 시세가 없으면 기준일 종가 그대로.
                     scan_price=await evaluate('Number(document.querySelector(\'.ps-pick[data-code="005930"]\').dataset.scanPrice)')
                     await evaluate('window.qaQuotes=[{code:"005930",price:'+str(round(scan_price*1.05))+',changeRate:1.2,market_state:"regular"}];NineHttp.clearCache();PatternScan.refresh()')
-                    await wait_for('/현재가 · .*종가 .*원 대비/.test(document.querySelector(\'.ps-pick[data-code="005930"] .ps-pick-basis\')?.textContent||"")')
+                    await wait_for('/종가 .*원 대비 · 실시간/.test(document.querySelector(\'.ps-pick[data-code="005930"] .ps-pick-basis\')?.textContent||"")')
                     expected='+'+format(round((round(scan_price*1.05)/scan_price-1)*100,2),'.2f')+'%'
                     assert await evaluate('document.querySelector(\'.ps-pick[data-code="005930"] .ps-pick-rate\').textContent')==expected
                     await evaluate('window.qaQuotes=null')
