@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>코인 이야기</title>
-<meta name="description" content="비트코인의 역사와 거래 방식, 블록체인·작업증명의 원리, 거래소 종류(중앙화·탈중앙화), 발행량 상한과 반감기, 알트코인과 이더리움, 스테이블코인의 페깅 원리와 디페깅 위험까지 그림으로 정리한다." />
+<meta name="description" content="비트코인의 역사와 거래 방식, 블록체인·작업증명의 원리, 이더리움과 테더, 거래소 종류(중앙화·탈중앙화), 발행량 상한과 반감기, 알트코인과 이더리움, 스테이블코인의 페깅 원리와 디페깅 위험까지 그림으로 정리한다." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
@@ -274,6 +274,62 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   </section>
   <section class="learn-sec">
+  <h2 id="sec-eth">이더리움 - 장부 위에 프로그램을 올린 코인</h2>
+  <p>비트코인이 "디지털 금"에 가깝다면 이더리움은 <b>누구나 프로그램을 올려 돌릴 수 있는 공용 컴퓨터</b>에 가깝다. 2013년 비탈릭 부테린이 구상을 내놓았고 2015년 7월 메인넷이 시작됐다. 이 공용 컴퓨터를 쓰는 요금이 이더(ETH)다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th></th><th>비트코인</th><th>이더리움</th></tr></thead>
+    <tbody>
+      <tr><td>주된 쓰임</td><td>가치 저장·송금</td><td>스마트컨트랙트(조건이 맞으면 자동 실행되는 프로그램)를 돌리는 플랫폼</td></tr>
+      <tr><td>합의 방식</td><td>작업증명(채굴)</td><td>지분증명(스테이킹), 2022년 9월 전환</td></tr>
+      <tr><td>블록 간격</td><td>약 10분</td><td>약 12초</td></tr>
+      <tr><td>총발행량</td><td>2,100만 개 상한</td><td>고정 상한이 없다. 수수료 일부를 소각해 순증감이 달라진다</td></tr>
+    </tbody>
+  </table>
+
+  <h3>스마트컨트랙트와 가스비</h3>
+  <p>스마트컨트랙트는 "A가 돈을 넣고 B가 물건을 보내면 자동으로 정산한다" 같은 규칙을 코드로 써서 블록체인에 올려 둔 것이다. 자판기가 돈을 넣으면 음료를 내주듯 중간 관리자 없이 실행된다. 프로그램을 돌릴 때마다 계산 비용인 <b>가스비</b>를 ETH로 낸다. 이용자가 몰리면 가스비가 오르고 처리가 느려진다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 170" role="img" aria-label="이더리움 생태계: 아래층 이더리움 메인넷 위에 레이어2, 그 위에 디파이·NFT·스테이블코인 같은 서비스">
+      <rect class="fig-soft" x="30" y="112" width="400" height="38" rx="8" /><text class="fig-ink" x="44" y="136">이더리움 메인넷 (보안·최종 기록)</text>
+      <rect class="fig-soft2" x="30" y="66" width="400" height="38" rx="8" /><text class="fig-ink" x="44" y="90">레이어2 (거래를 모아 처리, 수수료 절감)</text>
+      <rect class="fig-acc" x="30" y="20" width="124" height="38" rx="8" /><text class="fig-on-accent" x="42" y="44">디파이</text>
+      <rect class="fig-acc" x="168" y="20" width="124" height="38" rx="8" /><text class="fig-on-accent" x="180" y="44">NFT</text>
+      <rect class="fig-acc" x="306" y="20" width="124" height="38" rx="8" /><text class="fig-on-accent" x="318" y="44">스테이블코인</text>
+    </svg>
+    <figcaption>복잡한 거래를 레이어2에서 처리하고 결과만 메인넷에 기록해 속도와 비용을 줄인다.</figcaption>
+  </figure>
+
+  <ul>
+    <li><b>디파이(DeFi)</b> 은행 없이 코드로 돌아가는 대출·예금·거래소다. 담보를 맡기고 빌리거나 코인끼리 바로 바꾼다.</li>
+    <li><b>NFT</b> 같은 종류의 코인과 달리 하나하나 고유한 디지털 소유권 증표다. 그림·게임 아이템 등에 쓰였고 2021년 열풍 뒤 거래가 크게 줄었다.</li>
+    <li><b>토큰 발행</b> 이더리움 위에서 누구나 자기 토큰(ERC-20 규격)을 만들 수 있다. 2017년 코인 공모(ICO) 열풍도, 지금 쓰이는 많은 스테이블코인도 이 규격 위에 있다.</li>
+    <li><b>레이어2</b> 아비트럼·옵티미즘·베이스처럼 이더리움 위에 얹어 수수료를 낮춘 확장망이다. 2024년 3월 업그레이드(덴쿤)로 레이어2 수수료가 크게 내려갔다.</li>
+  </ul>
+
+  <h3>이더리움의 큰 사건</h3>
+  <table class="learn-table">
+    <thead><tr><th>때</th><th>사건</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>2016년</td><td>투자 펀드 '더 다오(The DAO)'가 코드 허점으로 해킹당했다. 이를 되돌리는 하드포크를 두고 커뮤니티가 갈려 이더리움(ETH)과 이더리움 클래식(ETC)으로 나뉜다</td><td>"코드가 곧 법인가"라는 논쟁을 남겼다</td></tr>
+      <tr><td>2021년 8월</td><td>수수료 일부를 소각하는 업그레이드(EIP-1559)</td><td>이용이 늘면 소각도 늘어 공급이 줄 수 있는 구조가 됐다</td></tr>
+      <tr><td>2022년 9월</td><td>더 머지(The Merge): 작업증명에서 지분증명으로 전환</td><td>전력 사용이 99% 이상 줄었다고 알려졌다</td></tr>
+      <tr><td>2023년 4월</td><td>스테이킹한 ETH의 출금이 가능해진다</td><td>스테이킹의 부담이 줄었다</td></tr>
+      <tr><td>2024년 7월</td><td>미국에서 이더리움 현물 ETF가 거래를 시작한다</td><td>제도권 투자 경로가 생겼다</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>지분증명과 스테이킹</b> 채굴 대신 ETH를 맡겨(스테이킹) 거래를 검증하는 사람(검증자)을 뽑는다. 검증자가 되려면 32 ETH를 예치해야 하고, 거짓 검증을 하면 맡긴 ETH를 일부 잃는다(슬래싱). 일반 이용자는 거래소나 스테이킹 서비스를 통해 대신 참여하고 보상을 나눠 받는다. 대신 서비스 업체 위험과 중간에 바로 못 뺄 수 있다는 제약이 따른다.
+  </div>
+
+  <div class="learn-note">
+    <b>위험</b> 스마트컨트랙트는 코드에 버그가 있으면 자금이 빠져나가도 되돌릴 수 없는 경우가 많다. 디파이 해킹 사고도 반복돼 왔다. 가격도 비트코인보다 더 크게 흔들리는 경향이 있고, 솔라나 같은 경쟁 플랫폼과 점유율을 다툰다.
+  </div>
+
+  </section>
+  <section class="learn-sec">
   <h2 id="sec-4">스테이블코인 - 가격이 고정되도록 설계한 코인</h2>
   <p>비트코인·알트코인이 하루에도 몇 %씩 흔들리는 것과 반대로, <b>스테이블코인은 특정 자산(대부분 미국
   달러) 가격에 묶이도록("페깅") 설계된 코인</b>이다. 대표적으로 테더(USDT), USDC 같은 코인이 1개당
@@ -292,6 +348,49 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <b>디페깅(depegging)</b> 어떤 이유로든 "1개 = 1달러"라는 약속이 깨져 가격이 그 밑으로 떨어지는 현상이다.
     안전자산처럼 보이는 스테이블코인도 발행사의 담보 부실, 대규모 인출 쇄도(뱅크런과 비슷한 구조), 알고리즘형의
     설계 결함 등으로 디페깅이 일어난 적이 있다 - "스테이블"이라는 이름이 위험이 0이라는 뜻은 아니다.
+  </div>
+
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-usdt">테더(USDT) - 가장 많이 쓰이는 달러 코인</h2>
+  <p>테더는 2014년 처음 나온 <b>달러 연동 스테이블코인</b>이다. 발행사 테더 리미티드가 "USDT 1개는 1달러로 바꿔 준다"고 약속하고 이를 뒷받침할 준비자산을 보유한다고 밝힌다. 코인 거래소에서 코인을 사고팔 때 기준이 되는 돈 역할을 해서, 스테이블코인 가운데 가장 많이 쓰이는 축에 든다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 150" role="img" aria-label="테더 흐름: 이용자가 달러를 내면 발행사가 USDT를 발행하고, 달러는 준비자산(현금·단기 국채)으로 보관되며, 환매하면 달러로 돌려받는다">
+      <rect class="fig-soft" x="6" y="30" width="96" height="56" rx="8" /><text class="fig-ink" x="16" y="54">이용자</text><text class="fig-sub" x="16" y="72">달러 입금</text>
+      <rect class="fig-soft2" x="182" y="30" width="96" height="56" rx="8" /><text class="fig-ink" x="192" y="54">테더 발행사</text><text class="fig-sub" x="192" y="72">USDT 발행</text>
+      <rect class="fig-acc" x="358" y="30" width="96" height="56" rx="8" /><text class="fig-on-accent" x="368" y="54">준비자산</text><text class="fig-on-accent" x="368" y="72">현금·단기 국채</text>
+      <path class="fig-line" d="M103 58 L181 58" /><path class="fig-line" d="M279 58 L357 58" />
+      <text class="fig-sub" x="6" y="118">환매하면 거꾸로 달러를 돌려받는다. 약속이 지켜지는 한 값이 1달러 근처에 머문다</text>
+    </svg>
+    <figcaption>신뢰는 "준비자산이 정말 충분한가"와 "환매가 실제로 되는가"에 달려 있다.</figcaption>
+  </figure>
+
+  <h3>어디에 쓰이나</h3>
+  <ul>
+    <li><b>거래소의 기준 통화</b> 변동이 큰 코인 값을 달러에 가깝게 묶인 USDT로 표시하면 비교가 쉽다. 코인에서 빠져나와 달러처럼 쉬어 갈 때도 쓴다.</li>
+    <li><b>국경 간 송금</b> 은행 송금보다 빠르고 주말에도 되어, 환율이 불안한 나라에서 달러 대용으로 쓰인다. 한국에서는 원화마켓의 USDT 가격이 환율의 간이 지표로도 쓰이고, 김치 프리미엄 계산에도 들어간다.</li>
+    <li><b>여러 블록체인에서 발행</b> 이더리움, 트론, 솔라나 등 여러 체인 위에 있다. 같은 USDT라도 어느 체인으로 보내느냐에 따라 수수료가 다르고, 주소를 다른 체인으로 잘못 보내면 되찾기 어렵다.</li>
+  </ul>
+
+  <h3>테더를 둘러싼 논란</h3>
+  <table class="learn-table">
+    <thead><tr><th>쟁점</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>준비금</td><td>오랫동안 "정말 1:1로 갖고 있나"라는 의문이 있었다. 2021년 미국 뉴욕주 검찰과 상품선물거래위원회(CFTC)는 준비금 설명이 부정확했다며 합의금·벌금을 부과했다. 이후 발행사는 정기적인 준비자산 증명 보고서를 내고 있다</td></tr>
+      <tr><td>증명·감사</td><td>증명 보고서는 특정 시점의 자산을 확인한 것이고, 모든 장부를 샅샅이 점검하는 회계감사와 다르다. 어떤 수준의 확인인지 구분해서 읽는다</td></tr>
+      <tr><td>디페깅</td><td>2022년 5월 테라 사태 때 일시적으로 1달러 아래로 흔들렸다가 회복했다. 약속이 깨질 가능성이 0은 아니다</td></tr>
+      <tr><td>동결</td><td>발행사는 불법 자금 등으로 판단한 주소의 USDT를 동결할 수 있다. 탈중앙 코인과 다른 점이다</td></tr>
+      <tr><td>규제</td><td>미국은 2025년 스테이블코인 규제법(GENIUS Act)을 도입했고 유럽도 MiCA 규정이 있다. 규정 적용에 따라 발행·상장 조건이 달라질 수 있다</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>USDT와 USDC</b> 둘 다 달러 연동 코인이다. USDC는 미국 회사 서클이 발행하고 준비자산 공개와 규제 준수를 강조해 왔다. USDT는 거래소 유동성이 압도적으로 풍부하다. 어느 쪽이 더 안전하다고 단정하기보다, 발행사·준비자산·환매 조건을 각각 확인하는 것이 기본이다.
+  </div>
+
+  <div class="learn-note">
+    <b>예금이 아니다</b> 스테이블코인은 은행 예금과 달리 예금자보호를 받지 않는다. 거래소에 맡겨 두면 거래소 위험까지 겹친다. 또 한국 거래소의 USDT 원화 가격은 실제 환율과 다를 수 있다.
   </div>
 
   </section>
@@ -358,6 +457,8 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <details class="in-quiz"><summary>5. 거래소에서 비트코인을 보낸 직후 상대가 받았다고 했다. 바로 안심해도 될까?</summary><p>블록에 담기고 그 뒤로 블록이 더 쌓여야 안전하다. 관례적으로 6번 확인(약 1시간)을 기준으로 삼고, 큰 금액일수록 더 기다리기도 한다.</p></details>
   <details class="in-quiz"><summary>6. 블록 100번의 거래 하나를 몰래 고치면 왜 들키는가?</summary><p>블록 100의 지문이 바뀌고, 그 지문을 담은 101번 이후 블록이 전부 어긋난다. 모든 노드가 규칙을 검사하므로 고친 체인은 거부된다.</p></details>
   <details class="in-quiz"><summary>3. 반감기가 오면 비트코인 값은 반드시 오를까?</summary><p>새로 풀리는 양은 줄지만 값은 사려는 사람이 정한다. 공급이 줄어도 가격이 자동으로 오르지는 않는다.</p></details>
+  <details class="in-quiz"><summary>7. 이더리움 위의 프로그램을 쓸 때마다 내는 수수료를 무엇이라 하나? 이용자가 몰리면 어떻게 되나?</summary><p>가스비다. 이용자가 몰리면 올라가고 처리가 느려진다. 레이어2는 거래를 모아 처리해 이 비용을 줄이려는 방식이다.</p></details>
+  <details class="in-quiz"><summary>8. 테더(USDT)는 은행 예금처럼 보호받을까?</summary><p>아니다. 발행사의 준비자산과 환매 약속에 의존하며 예금자보호 대상이 아니다. 준비금 보고서도 회계감사와는 다른 수준의 확인일 수 있다.</p></details>
   </section>
 
 <section class="learn-deep" aria-labelledby="crypto-advanced">
@@ -385,7 +486,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <section class="learn-sec">
   <h2 id="sec-9">한 줄 정리</h2>
   <p>비트코인은 2008년 백서에서 시작해 장부를 전 세계가 나눠 갖고 작업증명으로 위조를 막는 방식으로 움직이며, 거래는 서명·전파·블록 포함·확인의 순서를 거친다. 거래소는 중앙화(CEX)와 탈중앙화(DEX)로 성격이 다르고, 비트코인은 발행량 상한과 반감기로 공급이
-  정해져 있으며, 알트코인은 저마다 다른 목적으로 만들어진다. 스테이블코인은 가격이 고정되도록 설계됐을
+  정해져 있으며, 알트코인은 저마다 다른 목적으로 만들어진다. 이더리움은 스마트컨트랙트를 돌리는 플랫폼이고, 테더는 달러 준비자산을 근거로 한 대표 스테이블코인이다. 스테이블코인은 가격이 고정되도록 설계됐을
   뿐 위험이 없는 것은 아니다.</p>
 
   </section>
