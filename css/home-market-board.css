@@ -386,7 +386,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-bar-
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-row .hmb-investor-asof {
   margin-top: 2px; font: 400 10px/1.35 var(--font-ui); color: var(--hmb-faint);
 }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-mini-dates {
+body#tt-body-index .home-editorial-page :is(#homeMarketBoard.hmb2, .home-liquidity) .hmb-investor-mini-dates {
   display: flex; justify-content: space-between; gap: 8px;
   color: var(--hmb-faint); font: 400 10px/1.4 var(--font-ui);
 }
@@ -687,9 +687,37 @@ body#tt-body-index .home-editorial-page .hff-linked-readout { font:400 11px/1.5 
 body#tt-body-index .home-editorial-page .hff-time { display:block; width:100%; height:12px; margin:3px 0; accent-color:var(--hmb-ink); }
 body#tt-body-index .home-editorial-page .hff-cursor { stroke:var(--hmb-mute); stroke-width:1; stroke-dasharray:3 3; pointer-events:none; }
 body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux .hff-linked-readout { grid-column:1/-1; }
+/* 2026-11-20 증시 수급 추이: PC는 수급 카드(왼쪽)가 두 줄을 차지하고 오른쪽 열에 주간선물 → 수급 추이 순서로 쌓는다. */
+body#tt-body-index .home-editorial-page .home-futures-pair > [data-home-futures-flow] { grid-column:1; grid-row:1 / span 2; }
+body#tt-body-index .home-editorial-page .home-futures-pair > #homeMarketAux { grid-column:2; grid-row:1; }
+body#tt-body-index .home-editorial-page .home-futures-pair > .home-liquidity { grid-column:2; grid-row:2; }
+body#tt-body-index .home-editorial-page .home-liquidity .hmb-summary-head { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+body#tt-body-index .home-editorial-page .hlq-balances { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+body#tt-body-index .home-editorial-page .hlq-name { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+body#tt-body-index .home-editorial-page .hlq-name strong { font:600 13px/1.4 var(--font-ui); color:var(--hmb-ink); }
+body#tt-body-index .home-editorial-page .hlq-name small, body#tt-body-index .home-editorial-page .hlq-change { font:400 11px/1.5 var(--font-ui); color:var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .hlq-value { font:700 18px/1.3 var(--font-ui); color:var(--hmb-ink); font-variant-numeric:tabular-nums; }
+body#tt-body-index .home-editorial-page .hlq-change { display:flex; gap:8px; flex-wrap:wrap; }
+body#tt-body-index .home-editorial-page .hlq-spark { display:block; width:100%; height:56px; margin-top:4px; }
+body#tt-body-index .home-editorial-page .hlq-line { stroke:var(--hmb-ink); stroke-width:1.6; stroke-linejoin:round; }
+body#tt-body-index .home-editorial-page .hlq-avg { stroke:var(--hmb-mute); stroke-width:1; stroke-dasharray:3 3; }
+body#tt-body-index .home-editorial-page .hlq-dot { fill:var(--hmb-ink); }
+body#tt-body-index .home-editorial-page .hlq-flow { width:100%; margin-top:12px; border-collapse:collapse; font:400 12px/1.5 var(--font-ui); color:var(--hmb-ink); }
+body#tt-body-index .home-editorial-page .hlq-flow caption { caption-side:top; text-align:left; padding-bottom:4px; font:600 12px/1.5 var(--font-ui); color:var(--hmb-ink); }
+body#tt-body-index .home-editorial-page .hlq-flow :is(th, td) { padding:4px 6px; border-bottom:1px solid var(--ui-rule, var(--hmb-line)); text-align:left; font-weight:400; }
+body#tt-body-index .home-editorial-page .hlq-flow tbody tr:last-child :is(th, td) { border-bottom:0; }
+body#tt-body-index .home-editorial-page .hlq-flow thead th { color:var(--hmb-faint); font-size:11px; }
+body#tt-body-index .home-editorial-page .hlq-flow .num { text-align:right; font-variant-numeric:tabular-nums; }
+body#tt-body-index .home-editorial-page .hlq-flow td small { display:block; font-size:10px; color:var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .hlq-volume { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:10px; font:400 12px/1.5 var(--font-ui); color:var(--hmb-ink); }
+body#tt-body-index .home-editorial-page .hlq-volume em { flex-basis:100%; font-style:normal; font-weight:600; }
+body#tt-body-index .home-editorial-page .home-liquidity .ui-kpi-source { display:block; font:400 11px/1.5 var(--font-ui); color:var(--hmb-faint); }
+body#tt-body-index .home-editorial-page .home-liquidity .ui-kpi-source a { color:inherit; text-decoration:underline; }
+body#tt-body-index .home-editorial-page .hlq-sentence { margin:10px 0 6px; font:400 12px/1.6 var(--font-ui); color:var(--hmb-ink); }
 @media(max-width:720px) {
   body#tt-body-index .home-editorial-page .home-futures-pair { grid-template-columns:minmax(0,1fr); }
   body#tt-body-index .home-editorial-page .home-futures-pair #homeMarketAux { order:-1; }
+  body#tt-body-index .home-editorial-page .home-futures-pair > :is([data-home-futures-flow], #homeMarketAux, .home-liquidity) { grid-column:auto; grid-row:auto; }
 }
 
 /* Time-by-time futures gross contracts, using existing investor colours and table tokens. */
