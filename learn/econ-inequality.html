@@ -31,6 +31,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>12장 · 부와 불평등</h1>
   <p class="legal-effective-date">같은 마을에 사는데 왜 살림살이는 이렇게 다를까</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>같은 반인데도 용돈이 5천 원인 아이와 5만 원인 아이가 있다. 같은 동네에 월세방에 사는 가족과 큰 집에 사는 가족이
   함께 산다. 이 차이는 어디서 오고, 어느 정도까지 괜찮을까?</p>
@@ -38,6 +39,49 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <b>어떤 방법으로 줄이려 하는지</b>를 알려 준다. 어떤 정책이 옳은지는 사람마다 의견이 다르므로 판단은 읽는
   사람의 몫이다.</p>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 마을 셋 · 같은 100이어도 나눈 모양은 다르다</h2>
+  <p>다섯 가구가 사는 마을이 세 곳 있다. 세 마을 모두 한 달 소득의 합이 똑같이 100이다(단위 가상). 그런데 나눠 가진
+  모양은 이렇게 다르다.</p>
+  <table class="learn-table">
+    <thead><tr><th>마을</th><th>다섯 가구의 소득(낮은 쪽부터)</th><th>가장 낮은 가구의 몫</th><th>가장 높은 가구의 몫</th><th>지니계수</th></tr></thead>
+    <tbody>
+      <tr><td>가 마을</td><td>20 · 20 · 20 · 20 · 20</td><td>20%</td><td>20%</td><td>0</td></tr>
+      <tr><td>나 마을</td><td>10 · 15 · 20 · 25 · 30</td><td>10%</td><td>30%</td><td>0.2</td></tr>
+      <tr><td>다 마을</td><td>2 · 3 · 5 · 10 · 80</td><td>2%</td><td>80%</td><td>약 0.65</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="세 마을의 소득 몫을 다섯 칸으로 나눈 가로 막대: 가 마을은 모두 20퍼센트, 나 마을은 10에서 30퍼센트, 다 마을은 2에서 80퍼센트로 맨 위 한 가구에 몰려 있다">
+      <text class="fig-sub" x="0" y="14">소득을 낮은 가구부터 차례로 이어 붙인 몫(%)</text>
+      <text class="fig-ink" x="0" y="52" font-size="12">가 마을</text>
+      <rect class="fig-soft2" x="70" y="34" width="60" height="26" /><text class="fig-ink" x="90" y="52" font-size="11">20</text>
+      <rect class="fig-soft" x="130" y="34" width="60" height="26" /><text class="fig-ink" x="150" y="52" font-size="11">20</text>
+      <rect class="fig-white" x="190" y="34" width="60" height="26" /><text class="fig-ink" x="210" y="52" font-size="11">20</text>
+      <rect class="fig-bar" x="250" y="34" width="60" height="26" /><text class="fig-on-strong" x="270" y="52" font-size="11">20</text>
+      <rect class="fig-up" x="310" y="34" width="60" height="26" /><text class="fig-on-strong" x="330" y="52" font-size="11">20</text>
+      <text class="fig-ink" x="0" y="102" font-size="12">나 마을</text>
+      <rect class="fig-soft2" x="70" y="84" width="30" height="26" /><text class="fig-ink" x="76" y="102" font-size="11">10</text>
+      <rect class="fig-soft" x="100" y="84" width="45" height="26" /><text class="fig-ink" x="110" y="102" font-size="11">15</text>
+      <rect class="fig-white" x="145" y="84" width="60" height="26" /><text class="fig-ink" x="165" y="102" font-size="11">20</text>
+      <rect class="fig-bar" x="205" y="84" width="75" height="26" /><text class="fig-on-strong" x="232" y="102" font-size="11">25</text>
+      <rect class="fig-up" x="280" y="84" width="90" height="26" /><text class="fig-on-strong" x="316" y="102" font-size="11">30</text>
+      <text class="fig-ink" x="0" y="152" font-size="12">다 마을</text>
+      <rect class="fig-soft2" x="70" y="134" width="6" height="26" />
+      <rect class="fig-soft" x="76" y="134" width="9" height="26" />
+      <rect class="fig-white" x="85" y="134" width="15" height="26" /><text class="fig-ink" x="88" y="152" font-size="9">5</text>
+      <rect class="fig-bar" x="100" y="134" width="30" height="26" /><text class="fig-on-strong" x="108" y="152" font-size="11">10</text>
+      <rect class="fig-up" x="130" y="134" width="240" height="26" /><text class="fig-on-strong" x="236" y="152" font-size="11">80</text>
+      <text class="fig-sub" x="70" y="180">가장 낮은 가구 → 가장 높은 가구(왼쪽에서 오른쪽)</text>
+    </svg>
+    <figcaption>다 마을의 가장 소득이 높은 한 가구가 마을 소득의 80%를 가진다. 가장 낮은 두 가구의 몫은 합쳐도 5%다. 같은 100이라도 모양은 전혀 다르다.</figcaption>
+  </figure>
+
+  <p>"평균 소득"은 세 마을이 똑같이 20이다. 평균만 보면 차이를 놓친다. 이 장은 평균 뒤에 가려진 모양을 보는 법을 다룬다.</p>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">번 돈과 쌓인 재산은 다르다 · 소득과 자산</h2>
@@ -141,7 +185,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <thead><tr><th>상황</th><th>알아 둘 것</th></tr></thead>
     <tbody>
       <tr><td>빨리 시작할수록 복리가 오래 일한다</td><td>8장의 70의 법칙. 연 7% 수익이면 약 10년마다 두 배가 된다(세금·수수료 전)</td></tr>
-      <tr><td>빚으로 투자하면</td><td>자산 가격이 떨어질 때 격차가 거꾸로 벌어질 수 있다(부동산 이야기, 금융사기 이야기)</td></tr>
+      <tr><td>빚으로 투자하면</td><td>자산 가격이 떨어질 때 격차가 거꾸로 벌어질 수 있다(금융사기 이야기)</td></tr>
       <tr><td>"남들은 다 번다"는 말</td><td>격차에 대한 불안이 판단을 서두르게 한다(투자심리 이야기)</td></tr>
     </tbody>
   </table>
@@ -151,11 +195,113 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-rulers">격차를 재는 자 여러 개</h2>
+  <p>한 가지 자로는 모양을 다 담지 못한다. 그래서 여러 자를 함께 쓴다.</p>
+  <table class="learn-table">
+    <thead><tr><th>자</th><th>뜻</th><th>다 마을에서</th></tr></thead>
+    <tbody>
+      <tr><td>평균과 중위값</td><td>중위값은 순서대로 세웠을 때 한가운데 가구의 소득</td><td>평균 20, 중위값 5. 평균은 맨 위 가구가 끌어올렸다</td></tr>
+      <tr><td>5분위 배율</td><td>소득 높은 20% 가구가 낮은 20% 가구의 몇 배인가</td><td>80 ÷ 2 = 40배(5가구 마을이라 한 가구씩)</td></tr>
+      <tr><td>상위 몫</td><td>가장 높은 10%(또는 1%)가 전체 소득의 몇 %인가</td><td>가장 높은 한 가구(20%)가 80%</td></tr>
+      <tr><td>지니계수</td><td>모든 가구의 차이를 한 숫자로 줄인 값(0~1)</td><td>약 0.65</td></tr>
+      <tr><td>상대적 빈곤율</td><td>중위소득의 절반에 못 미치는 사람의 비율</td><td>가구 소득 2.5 미만이면 빈곤(이 마을은 없다)</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note">
+    <b>헷갈리기 쉬운 것</b> <b>상대적 빈곤</b>은 굶는 것과 다르다. 사회의 중간 수준에 비해 한참 뒤처진 상태를 말하고, 모두가
+    부유해져 중위소득이 오르면 빈곤선도 함께 오른다. 그래서 나라가 부자가 되어도 상대적 빈곤율이 크게 안 줄 수 있다.
+    굶주림처럼 절대적인 기준으로 재는 <b>절대적 빈곤</b>과 따로 본다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-causes">격차는 어디서 생길까</h2>
+  <table class="learn-table">
+    <thead><tr><th>원인</th><th>어떻게 격차를 키우나</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td>교육과 기술</td><td>기술이 비싸게 팔리면 가진 사람과 못 가진 사람의 월급이 벌어진다</td><td>프로그래밍 같은 희소한 기술은 높은 월급을 받는다</td></tr>
+      <tr><td>일자리의 변화</td><td>자동화가 반복 업무를 줄이면 중간 일자리가 사라진다</td><td>무인 결제기가 늘고 계산원 자리가 줄어든다</td></tr>
+      <tr><td>자본소득</td><td>돈이 돈을 번다. 일하지 않아도 이자·배당·임대료가 들어온다</td><td>예금 이자, 주식 배당</td></tr>
+      <tr><td>물려받은 재산</td><td>출발선이 다르다</td><td>집을 물려받은 사람과 월세로 시작한 사람</td></tr>
+      <tr><td>지역·성별·고용 형태</td><td>같은 일을 해도 월급이 다를 수 있다</td><td>정규직과 비정규직의 임금 차이</td></tr>
+      <tr><td>운과 시기</td><td>어느 해에 일을 시작했는지, 어떤 시장에 있었는지</td><td>호황기에 취업한 세대와 불황기에 취업한 세대</td></tr>
+    </tbody>
+  </table>
+  <p>누구의 탓인지 한 줄로 말하기는 어렵다. 노력도 중요하고 운과 구조도 중요하다. 이 모두가 섞여 있어서 정책도 하나로
+  정리되지 않는다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-wealth">같은 월급, 20년 뒤 다른 재산 · 자산 격차의 복리</h2>
+  <p>한 달 월급이 똑같이 400만 원인 두 사람이 있다(가상 숫자). 20년 전, 한 사람은 집을 샀고 한 사람은 월세에 살았다. 집
+  값이 20년 동안 3억 원에서 6억 원으로 올랐다고 하자.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>집을 산 사람</th><th>월세에 산 사람</th></tr></thead>
+    <tbody>
+      <tr><td>월급(소득)</td><td>400만 원</td><td>400만 원</td></tr>
+      <tr><td>20년 전 자산</td><td>집 3억 원(대출 일부)</td><td>거의 없음</td></tr>
+      <tr><td>20년 뒤 집의 값</td><td>6억 원</td><td>없음</td></tr>
+      <tr><td>그 사이 월세로 나간 돈(월 80만 원 가정)</td><td>0</td><td>약 1억 9천만 원(80만 × 240개월)</td></tr>
+      <tr><td>결과 차이</td><td colspan="2">소득은 같은데 자산 격차가 수억 원이다</td></tr>
+    </tbody>
+  </table>
+  <p>소득 격차보다 자산 격차가 더 큰 까닭이 여기 있다. 자산은 <b>가격이 오르면서 불어나고</b>, 그 불어난 돈이 다시 자산을
+  사는 데 쓰인다. 빚을 낸 투자가 오르면 격차가 빨리 벌어지고, 내리면 거꾸로 빨리 줄어들기도 한다. 이 예는 개념을 위한
+  가상이며, 모든 집이 오르는 것은 아니다.</p>
+  <div class="learn-note">
+    <b>더 알아보기</b> 프랑스 경제학자 토마 피케티는 자본(자산)에서 나오는 수익률이 경제성장률보다 오래 높았기 때문에
+    자산을 가진 쪽으로 부가 쏠렸다고 주장했다(r &gt; g). 이 주장은 널리 알려졌지만 자료와 해석을 두고 논쟁도 크다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-redistrib">재분배를 계산으로 확인하기 · 세금 20%를 걷어 똑같이 나누면</h2>
+  <p>다 마을(2 · 3 · 5 · 10 · 80)에서 모든 가구에게 소득의 20%를 세금으로 걷고, 모인 20을 다섯 가구에 똑같이 4씩
+  나눠 준다고 해 보자.</p>
+  <table class="learn-table">
+    <thead><tr><th>가구</th><th>세금 내기 전</th><th>세금 20%</th><th>똑같이 나눠 받는 돈</th><th>세금·지원 후 소득</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>2</td><td>−0.4</td><td>+4</td><td>5.6</td></tr>
+      <tr><td>2</td><td>3</td><td>−0.6</td><td>+4</td><td>6.4</td></tr>
+      <tr><td>3</td><td>5</td><td>−1.0</td><td>+4</td><td>8.0</td></tr>
+      <tr><td>4</td><td>10</td><td>−2.0</td><td>+4</td><td>12.0</td></tr>
+      <tr><td>5</td><td>80</td><td>−16.0</td><td>+4</td><td>68.0</td></tr>
+      <tr><td><b>지니계수</b></td><td colspan="2"><b>약 0.65</b></td><td colspan="2"><b>→ 약 0.52</b></td></tr>
+    </tbody>
+  </table>
+  <p>소득이 가장 낮은 가구는 2에서 5.6으로 2.8배가 됐다. 가장 높은 가구는 80에서 68로 줄었다. 격차를 가리키는 지니계수는
+  0.65에서 0.52로 낮아졌다. 이처럼 시장에서 번 소득(시장소득)과 세금·복지를 반영한 소득(처분가능소득)의 지니계수를
+  비교하면 재분배 효과를 잴 수 있다.</p>
+  <p>그러나 계산 뒤의 이야기도 있다. 세율이 지나치게 높으면 일할 의욕이 줄어 모두의 소득이 줄 수도 있다. 위의 표는
+  행동이 변하지 않는다고 가정한 단순한 계산이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-ladder">사다리는 열려 있을까 · 세대를 넘는 이동</h2>
+  <p>지금의 격차가 오래 이어질지 사라질지는 <b>사다리</b>가 열려 있는지에 달렸다. 부모의 소득이 자녀의 소득에 얼마나 영향을
+  주는지를 보는 것이 세대 간 이동성이다. 격차가 있어도 누구나 올라갈 기회가 있다면 사회는 받아들이기 쉽지만, 출발선이
+  고정되면 격차가 대물림된다는 불안이 커진다.</p>
+  <table class="learn-table">
+    <thead><tr><th>사다리를 넓히는 정책</th><th>어떻게 돕나</th></tr></thead>
+    <tbody>
+      <tr><td>공교육과 장학금</td><td>출발선의 학습 격차를 줄인다</td></tr>
+      <tr><td>아동·청소년 건강·돌봄 지원</td><td>어릴 적 불리함이 평생 가지 않게 한다</td></tr>
+      <tr><td>직업훈련과 재교육</td><td>일자리가 바뀌어도 새 기술로 옮겨 가게 한다</td></tr>
+      <tr><td>창업 지원과 신용 접근</td><td>담보가 없어도 시작할 기회를 준다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-6">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 월급과 집값 중 소득은 어느 것이고 자산은 어느 것일까?</summary><p>월급은 소득(흐름), 집은 자산(고인 것)이다.</p></details>
   <details class="in-quiz"><summary>2. 지니계수 0과 1은 각각 어떤 마을일까?</summary><p>0은 모든 가구의 소득이 같은 마을이다. 1에 가까우면 한 사람이 거의 모든 소득을 가진 마을이다.</p></details>
   <details class="in-quiz"><summary>3. 다섯 가구 마을에서 소득이 낮은 쪽 3가구가 전체 소득에서 차지하는 몫은?</summary><p>100 + 200 + 300 = 600만 원, 전체 2,000만 원의 30%다.</p></details>
   <details class="in-quiz"><summary>4. 지니계수가 낮은 나라가 더 부자일까?</summary><p>아니다. 지니계수는 격차만 재며, 모두가 가난해도 낮을 수 있다.</p></details>
+  <details class="in-quiz"><summary>5. 다 마을의 평균 소득과 중위값은 각각 얼마이고, 왜 차이가 날까?</summary><p>평균은 100 ÷ 5 = 20, 중위값은 한가운데 가구의 소득인 5다. 소득이 가장 높은 한 가구(80)가 평균을 크게 끌어올렸기 때문이다.</p></details>
+  <details class="in-quiz"><summary>6. 모든 사람의 소득이 두 배가 되면 상대적 빈곤율은 어떻게 될까?</summary><p>중위소득도 두 배가 되어 빈곤선이 함께 올라가므로 비율은 거의 그대로다. 상대적 빈곤율은 격차를 재는 자이기 때문이다.</p></details>
+  <details class="in-quiz"><summary>7. 월급이 같은데 자산 격차가 크게 벌어지는 까닭 두 가지는?</summary><p>자산 가격이 오르면 자산을 가진 사람의 재산이 불어나고, 자산이 없는 사람은 월세 같은 비용을 계속 내기 때문이다.</p></details>
+  <details class="in-quiz"><summary>8. 세금과 지원으로 지니계수가 0.65에서 0.52로 내려갔다. 이 숫자가 알려 주지 못하는 것은?</summary><p>모두가 더 잘살게 됐는지, 사람들이 일을 덜 하게 되지는 않았는지는 알려 주지 못한다. 지니계수는 격차의 크기만 잰다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="econ-ineq-deep">

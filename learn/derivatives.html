@@ -28,6 +28,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>선물·옵션 이야기</h1>
   <p class="legal-effective-date">선물 계약·증거금·만기·베이시스·옵션 그릭스·헤지 · 설명 업데이트 2026-11-21</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>뉴스에서 "외국인이 선물을 대량으로 팔았다", "오늘은 옵션 만기일이라 장 막판에 지수가 출렁였다"는 말이 나온다. 현물 주식만 하는 사람에게는 남의 이야기처럼 들리지만, 지수가 하루에 크게 움직이는 날의 뒤에는 선물과 옵션이 있는 경우가 많다.</p>
   <p>김장철 배추밭 농부와 김치 공장을 떠올리면 출발이 쉽다. 농부는 가을에 배추 값이 떨어질까 걱정하고, 공장은 오를까 걱정한다. 둘이 "11월에 한 포기 3,000원에 주고받자"고 미리 약속하면 둘 다 마음이 놓인다. 그 약속이 선물이다. 이 이야기는 그 약속이 어떻게 지수와 주식에 붙어 있는지, 돈은 얼마나 들고 어디서 크게 다치는지를 다룬다.</p>
@@ -37,6 +38,39 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <div class="in-fact"><span>내 돈 대비 움직임은</span><strong>몇 배</strong></div>
   </div>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 배추 한 포기로 보는 선물의 손익</h2>
+  <p>김장철에 농부와 김치 공장이 "11월에 한 포기 3,000원에 주고받자"고 약속했다고 하자. 11월이 되면 시장 가격은 약속과 다를 수 있다. 같은 약속이 누구에게는 이득이고 누구에게는 손해가 된다.</p>
+  <table class="learn-table">
+    <thead><tr><th>11월 시장 가격</th><th>농부(팔기로 약속)</th><th>공장(사기로 약속)</th><th>누가 웃나</th></tr></thead>
+    <tbody>
+      <tr><td>2,000원으로 폭락</td><td>시장보다 1,000원 더 받는다 (+1,000)</td><td>시장보다 1,000원 더 낸다 (−1,000)</td><td>농부</td></tr>
+      <tr><td>3,000원 그대로</td><td>0</td><td>0</td><td>둘 다 본전</td></tr>
+      <tr><td>4,500원으로 폭등</td><td>시장보다 1,500원 덜 받는다 (−1,500)</td><td>시장보다 1,500원 싸게 산다 (+1,500)</td><td>공장</td></tr>
+    </tbody>
+  </table>
+  <p>두 사람의 합은 언제나 0이다. 한쪽이 번 만큼 다른 쪽이 잃는다. 이것이 선물의 기본 성격이고, 둘 다 "가격 걱정을 지우려고" 약속했다면 손익이 나더라도 원래 의도(가격 확정)는 이뤄진 것이다. 반대로 걱정할 일이 없는 사람이 방향을 맞히려고 약속하면 순수한 내기가 된다. 지수선물이 크게 움직이는 날의 뒤에는 이 두 부류(위험을 피하려는 사람과 방향에 거는 사람)가 함께 있다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="선물 매수자와 매도자의 손익 비교선: 가격이 오르면 매수자가 벌고 매도자가 같은 만큼 잃는다">
+      <text class="fig-sub" x="0" y="14">약속 가격 대비 손익 (가격이 오르면?)</text>
+      <path class="fig-line" d="M20 100 H400" />
+      <path class="fig-line" d="M210 28 V172" />
+      <path class="fig-up-line" d="M40 160 L380 40" stroke-width="2.5" fill="none" />
+      <path class="fig-down-line" d="M40 40 L380 160" stroke-width="2.5" fill="none" />
+      <text class="fig-up" x="296" y="54" font-size="12" fill="currentColor">매수자</text>
+      <text class="fig-down" x="296" y="152" font-size="12" fill="currentColor">매도자</text>
+      <text class="fig-sub" x="214" y="40">이익</text>
+      <text class="fig-sub" x="214" y="166">손실</text>
+      <text class="fig-sub" x="20" y="116">가격 하락</text>
+      <text class="fig-sub" x="338" y="116">가격 상승</text>
+      <text class="fig-sub" x="0" y="186">선물은 이익도 손실도 가격 변화만큼 양쪽으로 끝없이 간다</text>
+    </svg>
+    <figcaption>선물은 한쪽이 번 만큼 다른 쪽이 잃는 영합(零合) 구조다. 옵션의 손익선(아래)과 비교하면 꺾이는 부분이 없다는 점이 다르다.</figcaption>
+  </figure>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">선물 · 미리 가격을 정해 두는 약속</h2>
@@ -264,11 +298,103 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-daily">증거금 계좌가 하루하루 줄어드는 모습 · 일일정산</h2>
+  <p>선물은 만기에 한 번 정산하지 않고 매일 정산한다. 가격이 움직인 만큼 그날 계좌에서 더하고 뺀다. 지수선물 1계약을 400포인트에 샀고, 가상으로 승수 25만 원·개시증거금 1,000만 원·유지증거금 700만 원이라고 하자(실제 수치는 거래소와 증권사 공지로 확인한다).</p>
+  <table class="learn-table">
+    <thead><tr><th>날</th><th>종가</th><th>전일 대비</th><th>그날 손익</th><th>계좌 잔고</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>산 날</td><td>400</td><td>-</td><td>-</td><td>1,000만 원</td><td>시작</td></tr>
+      <tr><td>1일 뒤</td><td>402</td><td>+2</td><td>+50만 원</td><td>1,050만 원</td><td>정상</td></tr>
+      <tr><td>2일 뒤</td><td>399</td><td>−3</td><td>−75만 원</td><td>975만 원</td><td>정상</td></tr>
+      <tr><td>3일 뒤</td><td>395</td><td>−4</td><td>−100만 원</td><td>875만 원</td><td>정상(유지 700만 이상)</td></tr>
+      <tr><td>4일 뒤</td><td>385</td><td>−10</td><td>−250만 원</td><td>625만 원</td><td><b>유지증거금 아래 → 추가증거금 요구</b></td></tr>
+    </tbody>
+  </table>
+  <p>4일째에 625만 원이 되어 유지증거금 700만 원을 밑돈다. 이때 증권사는 개시증거금 1,000만 원 수준으로 돌려놓도록 375만 원을 채우라고 요구한다. 정해진 시한까지 못 채우면 증권사가 포지션을 강제로 정리한다. 처음 내 돈 1,000만 원이 4일 만에 375만 원 손실(−37.5%)이 났는데, 지수는 고작 3.75% 내렸을 뿐이다. 증거금 10%의 레버리지가 만드는 결과다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-payoff">옵션 손익선 · 만기 날 얼마를 버나</h2>
+  <p>행사가 400 콜옵션을 프리미엄 5포인트에 샀다고 하자. 만기 날 지수에 따라 손익은 아래처럼 바뀐다(승수와 수수료는 생략하고 포인트로 본다).</p>
+  <table class="learn-table">
+    <thead><tr><th>만기 때 지수</th><th>권리 행사 가치</th><th>낸 프리미엄</th><th>순손익(포인트)</th></tr></thead>
+    <tbody>
+      <tr><td>380</td><td>0</td><td>5</td><td>−5 (최대 손실)</td></tr>
+      <tr><td>400</td><td>0</td><td>5</td><td>−5</td></tr>
+      <tr><td>405</td><td>5</td><td>5</td><td>0 (손익분기)</td></tr>
+      <tr><td>410</td><td>10</td><td>5</td><td>+5</td></tr>
+      <tr><td>420</td><td>20</td><td>5</td><td>+15</td></tr>
+    </tbody>
+  </table>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="콜옵션 매수 손익선: 지수 400 이하에서는 손실이 5로 고정되고 405에서 손익분기, 그 위에서는 지수가 오른 만큼 이익이 커진다">
+      <text class="fig-sub" x="0" y="14">행사가 400 콜 매수의 만기 손익(포인트)</text>
+      <path class="fig-line" d="M30 110 H400" />
+      <path class="fig-down-line" d="M40 130 H240" stroke-width="2.5" fill="none" />
+      <path class="fig-up-line" d="M240 130 L390 40" stroke-width="2.5" fill="none" />
+      <path class="fig-dash" d="M240 28 V170" />
+      <text class="fig-ink" x="44" y="148" font-size="12">−5 (프리미엄만 잃는다)</text>
+      <text class="fig-ink" x="246" y="44" font-size="12">행사가 400</text>
+      <text class="fig-ink" x="268" y="126" font-size="12">405 손익분기</text>
+      <text class="fig-up" x="246" y="64" font-size="12" fill="currentColor">이익 한도 없음</text>
+      <text class="fig-sub" x="0" y="186">사는 쪽은 손실이 정해져 있고 이익은 열려 있다</text>
+    </svg>
+    <figcaption>옵션 매수자의 손실은 낸 프리미엄으로 끝난다. 선물과 달리 손익선이 행사가에서 꺾이는 것이 핵심이다. 반대편인 콜 매도자는 이 그림이 위아래로 뒤집힌 모양이다.</figcaption>
+  </figure>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-four">옵션 네 가지 자리 · 무엇을 사고 팔았나</h2>
+  <table class="learn-table">
+    <thead><tr><th>자리</th><th>바라는 것</th><th>최대 이익</th><th>최대 손실</th><th>시간이 지나면</th></tr></thead>
+    <tbody>
+      <tr><td>콜 매수</td><td>지수가 크게 오름</td><td>한도 없음</td><td>낸 프리미엄</td><td>값이 깎인다(불리)</td></tr>
+      <tr><td>콜 매도</td><td>지수가 오르지 않음</td><td>받은 프리미엄</td><td>한도 없음</td><td>값이 깎인다(유리)</td></tr>
+      <tr><td>풋 매수</td><td>지수가 크게 내림</td><td>(지수가 0이 되는 한도까지) 크다</td><td>낸 프리미엄</td><td>값이 깎인다(불리)</td></tr>
+      <tr><td>풋 매도</td><td>지수가 내리지 않음</td><td>받은 프리미엄</td><td>지수가 0이 되는 한도까지 크다</td><td>값이 깎인다(유리)</td></tr>
+    </tbody>
+  </table>
+  <p>"매도는 프리미엄을 받으니 쉬운 돈벌이"라는 말은 위험 구조를 가린다. 평소에는 조금씩 벌다가 한 번의 큰 움직임에 모았던 이익을 넘어 크게 잃을 수 있어서, 흔히 "압축기 앞에서 동전 줍기"에 비유한다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-expiry">만기일에 지수가 출렁이는 까닭</h2>
+  <table class="learn-table">
+    <thead><tr><th>원인</th><th>어떤 일이 벌어지나</th></tr></thead>
+    <tbody>
+      <tr><td>포지션 정리</td><td>만기가 가까워지면 선물·옵션 매매자가 포지션을 청산하거나 다음 달로 옮기고(롤오버), 이때 현물 바스켓도 같이 사고판다</td></tr>
+      <tr><td>차익거래 청산</td><td>선물과 현물의 값 차이를 이용해 쌓아 둔 프로그램 포지션이 만기에 풀린다</td></tr>
+      <tr><td>감마가 큰 구간</td><td>행사가 근처 옵션의 값이 지수 변화에 민감해져 헤지 매매가 몰린다</td></tr>
+      <tr><td>동시호가</td><td>장 마감 직전 한꺼번에 주문이 쏟아져 가격이 흔들릴 수 있다</td></tr>
+    </tbody>
+  </table>
+  <p>만기일의 변동은 대개 하루 안에 끝나는 기술적 흔들림이다. 이 날의 급등락만 보고 추세가 바뀌었다고 읽으면 틀리기 쉽다. 다음 날 거래량이 정상으로 돌아왔는지 함께 본다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-mistakes">개미가 흔히 하는 실수 다섯 가지</h2>
+  <table class="learn-table">
+    <thead><tr><th>실수</th><th>왜 위험한가</th><th>피하는 법</th></tr></thead>
+    <tbody>
+      <tr><td>증거금만 보고 크게 산다</td><td>작은 가격 변화에도 계좌가 마이너스로 간다</td><td>계약 금액 기준으로 내 자산 대비 크기를 먼저 계산한다</td></tr>
+      <tr><td>만기 임박 옵션을 복권처럼 산다</td><td>대부분 만기에 값이 0으로 사라진다. 감마와 시간 가치가 커서 맞아도 짧게 끝난다</td><td>잃어도 되는 금액만, 정해 둔 한도 안에서</td></tr>
+      <tr><td>옵션 매도를 안정 수익으로 본다</td><td>꼬리 위험에서 한 번에 크게 잃는다</td><td>손실이 정해진 구조(스프레드)를 먼저 이해한다</td></tr>
+      <tr><td>헤지를 수익 수단으로 쓴다</td><td>보호가 목적인데 방향에 거는 내기가 된다</td><td>무엇을 얼마나 지킬지 먼저 정한다</td></tr>
+      <tr><td>가격만 보고 구조를 모른다</td><td>만기·롤오버·승수를 몰라 원치 않는 손실이 난다</td><td>상품 설명서와 거래소 공지를 먼저 읽는다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 선물 1계약이 400포인트일 때 지수가 2포인트 오르면 매수자 손익은? 승수는 25만 원으로 한다.</summary><p>2 × 25만 원 = 50만 원 이익이다. 매도자는 같은 금액을 잃는다.</p></details>
   <details class="in-quiz"><summary>2. 행사가 400 콜옵션을 프리미엄 5포인트에 샀다. 만기 날 지수가 390이면?</summary><p>권리를 쓸 이유가 없어 프리미엄 5포인트(125만 원)만 잃는다. 지수가 아무리 내려도 그 이상은 잃지 않는다.</p></details>
   <details class="in-quiz"><summary>3. 증거금이 계약 금액의 10%일 때 지수가 3% 내리면 내 돈은 몇 % 줄까?</summary><p>3% ÷ 10% = 30%다. 계약 금액에서 3%가 내 돈의 30%가 된다. 이 배수가 레버리지다.</p></details>
   <details class="in-quiz"><summary>4. 옵션 만기 하루 전, 등가격 콜의 값이 지수 변화에 크게 요동치는 것은 어떤 그릭스 때문일까?</summary><p>감마다. 만기가 임박한 등가격 옵션은 델타가 아주 빠르게 바뀌어 같은 움직임에도 값이 크게 흔들린다.</p></details>
+  <details class="in-quiz"><summary>5. 증거금 1,000만 원으로 선물 1계약(계약 금액 1억 원)을 샀다. 지수가 5% 내리면 내 돈은 얼마나 줄까?</summary><p>계약 금액의 5%는 500만 원이다. 내 돈 1,000만 원 중 500만 원, 즉 50%가 줄어든다.</p></details>
+  <details class="in-quiz"><summary>6. 행사가 400 콜옵션을 프리미엄 5포인트에 샀다. 손익분기 지수는?</summary><p>405다. 행사가에 낸 프리미엄을 더한 값이다. 405를 넘어야 순이익이 난다.</p></details>
+  <details class="in-quiz"><summary>7. 옵션 매도자가 "프리미엄을 받으니 안전하다"는 말은 왜 위험한가?</summary><p>받는 돈은 한정돼 있지만 손실은 크게 열려 있을 수 있어서다. 평소에는 조금씩 벌다 큰 변동 한 번에 모은 이익을 넘어 잃는다.</p></details>
+  <details class="in-quiz"><summary>8. 선물 손익과 옵션 매수 손익선의 가장 큰 차이는?</summary><p>선물은 양쪽으로 곧은 선이라 이익도 손실도 끝없이 이어진다. 옵션 매수는 행사가에서 꺾여 손실이 낸 프리미엄으로 한정된다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="deriv-advanced">

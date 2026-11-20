@@ -31,6 +31,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>10장 · 게임이론</h1>
   <p class="legal-effective-date">서로 눈치를 보는 두 가게, 값을 내릴까 말까</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>학교 앞에 분식집이 두 곳뿐이다. 둘 다 떡볶이를 3,000원에 판다. 어느 날 한 집이 "2,500원!"이라고 써 붙였다. 손님이
   몰렸다. 옆집은 가만히 있을까? 아니다. 옆집도 값을 내린다. 결국 둘 다 값만 내리고 손님은 그대로다.</p>
@@ -38,6 +39,27 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <b>게임이론</b>이다. 9장의 과점(몇 곳이 나눠 가진 시장)을 이해하는 열쇠이고, 투자자에게는 "상대가 나보다 더
   알고 있을 때"를 생각하게 해 준다.</p>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 장면 둘 · 만나기 게임과 가위바위보</h2>
+  <p><b>장면 1.</b> 친구와 놀이공원에서 헤어졌다. 휴대폰 배터리가 나가 연락이 안 된다. 만날 곳은 "정문"과 "후문" 둘뿐이다.
+  내가 정문에 가면 친구도 정문에 와야 만난다. 서로의 선택이 맞아야 둘 다 이득이다(가상 점수, 만나면 각 10점, 어긋나면 각 0점).</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>친구가 정문</th><th>친구가 후문</th></tr></thead>
+    <tbody>
+      <tr><td>내가 정문</td><td>10 · 10 (만난다)</td><td>0 · 0 (엇갈린다)</td></tr>
+      <tr><td>내가 후문</td><td>0 · 0 (엇갈린다)</td><td>10 · 10 (만난다)</td></tr>
+    </tbody>
+  </table>
+  <p>답이 둘이다. 둘 다 정문이든 둘 다 후문이든 아무도 혼자 바꾸고 싶지 않다. 이런 상황에서는 <b>"어디서 만나자"는
+  약속이나 눈에 띄는 표지판</b>이 큰 역할을 한다. 같은 곳에 모이는 일이 표준이 되는 것도 이 덕분이다(도로에서 오른쪽으로
+  가기, 화폐를 받아 주기, 같은 메신저 쓰기).</p>
+  <p><b>장면 2.</b> 가위바위보를 해 보자. 무엇을 내도 상대가 알아채고 이길 수 있다. 정해 놓고 내면 지는 게임이라
+  "어느 걸 낼지 모르게" 섞어서 내야 한다. 이런 게임에서는 순서 있는 정답 대신 <b>일정한 확률로 섞는 전략</b>이 균형이
+  된다. 축구 승부차기에서 키커가 왼쪽·오른쪽 방향을 무작위로 섞는 것이 같은 원리다.</p>
+  <p>게임이론의 첫걸음은 "상대의 선택을 보고 내 선택을 정한다"는 생각이다. 이어서 분식집 이야기로 돌아가 보자.</p>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">두 가게의 고민 · 죄수의 딜레마</h2>
@@ -158,11 +180,159 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-find">균형 찾는 4단계 · 상대의 선택마다 내 최선에 표시하기</h2>
+  <p>복잡한 표에서도 내시균형을 찾는 방법이 있다. 분식집 표(1절)로 해 보자.</p>
+  <ol>
+    <li>B가 <b>값 유지</b>라고 가정하고, A의 두 점수(100과 150)를 비교한다. 150이 크니 "내림"에 표시한다.</li>
+    <li>B가 <b>값 내림</b>이라고 가정하고, A의 두 점수(40과 70)를 비교한다. 70이 크니 "내림"에 표시한다.</li>
+    <li>같은 방법으로 A의 선택마다 B의 최선(점수가 큰 쪽)에 표시한다.</li>
+    <li>두 사람의 표시가 <b>한 칸에서 겹치면</b> 그 칸이 내시균형이다.</li>
+  </ol>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 210" role="img" aria-label="분식집 표에서 각 상대 선택마다 내 최선 점수에 표시한 그림. A 내림 B 내림 칸에서 두 가게의 표시가 겹쳐 내시균형이 된다">
+      <text class="fig-ink" x="130" y="24" font-size="12">B 유지</text>
+      <text class="fig-ink" x="270" y="24" font-size="12">B 내림</text>
+      <text class="fig-ink" x="40" y="80" font-size="12">A 유지</text>
+      <text class="fig-ink" x="40" y="160" font-size="12">A 내림</text>
+      <rect class="fig-white" x="110" y="34" width="130" height="72" rx="6" />
+      <rect class="fig-soft" x="250" y="34" width="130" height="72" rx="6" />
+      <rect class="fig-soft" x="110" y="114" width="130" height="72" rx="6" />
+      <rect class="fig-soft2" x="250" y="114" width="130" height="72" rx="6" />
+      <text class="fig-ink" x="124" y="66">A 100 · B 100</text>
+      <text class="fig-ink" x="264" y="66">A 40 · B 150 ✔B</text>
+      <text class="fig-ink" x="124" y="146">A 150 · B 40 ✔A</text>
+      <text class="fig-up" x="264" y="146">A 70 · B 70 ✔A ✔B</text>
+      <text class="fig-sub" x="110" y="204">✔는 그 칸에서 내 점수가 상대 선택에 대한 최선임을 뜻한다</text>
+    </svg>
+    <figcaption>A의 ✔는 상대 선택마다 A에게 더 큰 점수 칸에, B의 ✔는 B에게 더 큰 점수 칸에 붙는다. 두 ✔가 만나는 오른쪽 아래 칸이 내시균형이다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>학생 관점 · 조별 과제의 딜레마</b> 조원 모두가 열심히 하면 A를 받는다. 한 명이 빠지고 나머지가 하면 그 한 명도 A를 받는다.
+    그래서 "나 하나쯤" 하고 빠지는 사람이 생기고, 모두가 빠지면 조 점수가 떨어진다. 이 장의 죄수의 딜레마와 같은
+    구조다. 조 점수에 개인 평가를 섞거나, 서로 평가해 한 명이 빠지기 어렵게 하는 것이 처방이다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-types">게임에도 종류가 있다</h2>
+  <table class="learn-table">
+    <thead><tr><th>나누는 기준</th><th>종류</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td>동시에 vs 번갈아</td><td>동시 게임 / 순차 게임</td><td>가위바위보는 동시, 바둑은 번갈아 둔다</td></tr>
+      <tr><td>한 번 vs 여러 번</td><td>일회성 / 반복 게임</td><td>관광지 식당(한 번 오는 손님) vs 단골 식당</td></tr>
+      <tr><td>한 사람 이득 = 상대 손해?</td><td>제로섬 / 논제로섬</td><td>내기 도박은 제로섬, 교환은 둘 다 이득인 논제로섬</td></tr>
+      <tr><td>합의를 지킬 수 있나</td><td>협력 / 비협력 게임</td><td>법으로 강제되는 계약 vs 몰래 짜는 담합</td></tr>
+      <tr><td>상대의 정보를 아나</td><td>완전정보 / 불완전정보 게임</td><td>장기와 바둑 vs 포커</td></tr>
+    </tbody>
+  </table>
+  <p>주식시장은 이 가운데 <b>동시에, 여러 번, 불완전한 정보로</b> 이루어지는 거대한 게임이다. 누가 어떤 정보를 가졌는지
+  모르는 채로 매일 다시 겨룬다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-tree">번갈아 두는 게임 · 새 가게가 들어올 때 기존 가게의 위협</h2>
+  <p>동네에 분식집이 한 곳뿐이다. 주인은 말한다. "새 가게가 들어오면 값을 확 내려서 쫓아내겠다." 새 가게 주인은 이 말을
+  믿어야 할까? 게임으로 따져 보자(점수는 가상, 새 가게·기존 가게 순).</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 230" role="img" aria-label="진입 게임 나무: 새 가게가 들어오지 않으면 0 대 100, 들어오면 기존 가게가 값 전쟁을 하면 -20 대 20, 받아들이면 30 대 50. 기존 가게는 받아들이는 편이 이득이라 값 전쟁 위협은 믿기 어렵다">
+      <rect class="fig-white" x="150" y="10" width="110" height="32" rx="6" />
+      <text class="fig-ink" x="164" y="31" font-size="12">새 가게의 선택</text>
+      <path class="fig-ink-line" d="M170 44 L90 90 M240 44 L320 90" />
+      <text class="fig-sub" x="90" y="70">들어오지 않는다</text>
+      <text class="fig-sub" x="270" y="70">들어온다</text>
+      <rect class="fig-soft2" x="30" y="92" width="130" height="40" rx="6" />
+      <text class="fig-ink" x="42" y="110" font-size="12">새 가게 0</text>
+      <text class="fig-ink" x="42" y="126" font-size="12">기존 가게 100</text>
+      <rect class="fig-white" x="260" y="92" width="130" height="32" rx="6" />
+      <text class="fig-ink" x="268" y="113" font-size="12">기존 가게의 선택</text>
+      <path class="fig-ink-line" d="M280 126 L220 164 M370 126 L350 164" />
+      <text class="fig-sub" x="170" y="150">값 전쟁</text>
+      <text class="fig-sub" x="352" y="150">받아들인다</text>
+      <rect class="fig-soft" x="150" y="166" width="130" height="40" rx="6" />
+      <text class="fig-ink" x="160" y="184" font-size="12">새 가게 −20</text>
+      <text class="fig-ink" x="160" y="200" font-size="12">기존 가게 20</text>
+      <rect class="fig-bar" x="290" y="166" width="124" height="40" rx="6" />
+      <text class="fig-on-strong" x="300" y="184" font-size="12">새 가게 30</text>
+      <text class="fig-on-strong" x="300" y="200" font-size="12">기존 가게 50</text>
+    </svg>
+    <figcaption>새 가게가 들어온 뒤에는 기존 가게가 값 전쟁(20)보다 받아들이는 쪽(50)이 이득이다. 그래서 "쫓아내겠다"는 위협은 믿기 어렵고 새 가게는 들어온다.</figcaption>
+  </figure>
+
+  <p>거꾸로 거슬러 올라가며 푸는 이 방법을 <b>후진 귀납</b>이라 한다. 위협은 말하는 사람에게도 손해일 때 <b>믿을 수 없는
+  위협</b>이다. 그래서 기존 회사들이 일부러 공장을 미리 크게 지어 놓거나 값을 낮게 유지해 "나는 싸울 준비가 돼 있다"는
+  것을 행동으로 보여 주기도 한다. 말보다 행동이 믿음을 준다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-info">정보가 한쪽에만 있을 때 생기는 일들</h2>
+  <p>정보 비대칭은 크게 두 얼굴이 있다. 계약 전에 생기는 문제와 계약 뒤에 생기는 문제다.</p>
+  <table class="learn-table">
+    <thead><tr><th>문제</th><th>언제</th><th>쉬운 예</th><th>줄이는 방법</th></tr></thead>
+    <tbody>
+      <tr><td>역선택</td><td>계약 전</td><td>보험료를 평균으로 매기면 건강에 자신 없는 사람만 많이 가입한다</td><td>건강검진, 나이·병력별 보험료</td></tr>
+      <tr><td>도덕적 해이</td><td>계약 뒤</td><td>자동차 보험에 들었다고 운전을 덜 조심한다</td><td>자기부담금, 사고 이력에 따른 할증</td></tr>
+      <tr><td>신호 보내기</td><td>더 아는 쪽이 보내는 신호</td><td>중고차 판매자가 보증 기간을 길게 내건다</td><td>제3자가 확인한 성능 점검 기록</td></tr>
+      <tr><td>선별</td><td>덜 아는 쪽이 고르게 하는 장치</td><td>회사가 면접·인턴으로 일 잘하는 사람을 가린다</td><td>시험, 수습 기간</td></tr>
+    </tbody>
+  </table>
+  <p>자기 능력을 알리려고 쓰는 돈이 낭비처럼 보이지만, 정보를 나누는 데 쓰는 나름의 비용이다. 투자에서는 경영진이
+  자기 돈으로 주식을 사거나(자기 확신의 신호), 배당을 꾸준히 늘려 신뢰를 쌓는 것이 신호 보내기에 가깝다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-curse">이기고도 지는 경매 · 승자의 저주</h2>
+  <p>유리병에 동전이 가득 들어 있다. 몇 원인지 모르는 채 각자 입찰가를 적어 내고, 가장 높게 쓴 사람이 병을 받는다.
+  병의 진짜 값은 1만 원이다(비밀). 사람들은 어림짐작으로 8천 원, 9천 원, 1만 원, 1만 3천 원, 1만 5천 원을 썼다.
+  가장 높게 쓴 사람이 이긴다. 그런데 이기는 사람은 병의 값을 <b>가장 크게 높게 어림한 사람</b>이라 평균적으로 값보다 비싸게
+  산다. 이긴 것이 곧 손해가 되는 현상을 <b>승자의 저주</b>라 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>입찰자</th><th>어림한 값</th><th>써낸 값</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>가</td><td>8,000원</td><td>8,000원</td><td>탈락</td></tr>
+      <tr><td>나</td><td>9,000원</td><td>9,000원</td><td>탈락</td></tr>
+      <tr><td>다</td><td>10,000원</td><td>10,000원</td><td>탈락</td></tr>
+      <tr><td>라</td><td>13,000원</td><td>13,000원</td><td>낙찰 → 진짜 값 10,000원보다 3,000원 손해</td></tr>
+    </tbody>
+  </table>
+  <p>기업 인수와 공모주 청약 경쟁, 부동산 입찰, 야구 자유계약선수 영입에서도 비슷하다. 가장 낙관적으로 본 사람이 이기면
+  평균적으로 과하게 지불한다. 그래서 경매에 나갈 때는 "내가 이겼다는 사실 자체가 내가 너무 높게 봤다는 신호"일 수 있다고
+  보고 입찰가를 낮춘다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-beauty">미인대회 게임 · 주식시장이 보이는 거울</h2>
+  <p>케인스는 주식투자를 신문 미인대회에 비유했다. 가장 예쁜 사람을 고르는 것이 아니라 <b>다른 사람들이 가장 예쁘다고
+  고를 사람</b>을 맞히는 대회라는 것이다. 이를 숫자 게임으로 만든 실험이 있다.</p>
+  <p><b>게임 규칙:</b> 여러 사람이 0부터 100 사이에서 숫자를 하나씩 적는다. 전체 평균의 ⅔에 가장 가까운 숫자를 쓴 사람이
+  이긴다. 어떻게 생각하는 단계가 나뉜다.</p>
+  <table class="learn-table">
+    <thead><tr><th>생각의 단계</th><th>이렇게 생각한다</th><th>써 내는 숫자</th></tr></thead>
+    <tbody>
+      <tr><td>0단계</td><td>아무 생각 없이 찍는다. 평균은 대략 50</td><td>50</td></tr>
+      <tr><td>1단계</td><td>평균이 50이라면 그 ⅔는</td><td>33</td></tr>
+      <tr><td>2단계</td><td>남들도 33을 쓴다면 그 ⅔는</td><td>22</td></tr>
+      <tr><td>3단계</td><td>남들도 22를 쓴다면 그 ⅔는</td><td>15</td></tr>
+      <tr><td>끝까지 가면</td><td>모두가 끝까지 생각한다면 결국</td><td>0 (내시균형)</td></tr>
+    </tbody>
+  </table>
+  <p>실제로 해 보면 정답은 0이 아니라, 대개 10~30 사이 값이다. 사람들은 몇 단계까지만 생각하기 때문이다. 이 실험이
+  주는 교훈은 <b>시장에서 이기려면 "내가 얼마나 영리한가"가 아니라 "남들이 몇 단계까지 생각하는가"를 읽어야 한다</b>는
+  점이다. 두 단계 앞을 보는 것이 최선이지, 열 단계 앞을 본다고 항상 이기는 것이 아니다.</p>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-6">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 두 분식집 표에서 B가 값을 유지한다면 A는 어느 쪽이 이득일까?</summary><p>A는 값을 유지하면 100, 내리면 150이다. 내리는 쪽이 이득이다.</p></details>
   <details class="in-quiz"><summary>2. 내시균형이 가장 좋은 결과라는 말은 맞을까?</summary><p>아니다. 내시균형은 아무도 혼자서는 바꾸고 싶지 않은 자리일 뿐이다. 두 가게의 예에서는 둘 다 값을 유지한 칸이 둘에게 더 좋았다.</p></details>
   <details class="in-quiz"><summary>3. 중고차 사는 사람이 평균값만 내려 하면 왜 좋은 차가 사라질까?</summary><p>좋은 차 주인은 평균보다 비싼 값을 받아야 하는데 못 받으니 팔기를 포기한다. 남은 차는 평균 품질이 낮아져 값이 더 내려간다.</p></details>
   <details class="in-quiz"><summary>4. 담합 자수 제도는 죄수의 딜레마를 어떻게 이용할까?</summary><p>먼저 신고하는 회사의 처벌을 줄여 주면 서로 약속을 지킬 이유가 약해진다. 담합 가담자들이 서로 믿지 못하게 되는 것이다.</p></details>
+  <details class="in-quiz"><summary>5. 만나기 게임(정문·후문)에서 내시균형은 몇 개일까?</summary><p>두 개다. 둘 다 정문, 또는 둘 다 후문이다. 그래서 이런 게임에서는 서로 같은 곳을 고르게 하는 약속이 중요하다.</p></details>
+  <details class="in-quiz"><summary>6. 새 가게가 들어오자 "값 전쟁을 하겠다"는 기존 가게의 말은 왜 믿기 어려울까?</summary><p>새 가게가 들어온 뒤에는 값 전쟁(20)보다 받아들이는 편(50)이 기존 가게에게 이익이기 때문이다. 말하는 사람에게도 손해인 위협은 믿을 수 없다.</p></details>
+  <details class="in-quiz"><summary>7. 자동차 보험에 가입한 뒤 운전을 덜 조심하게 되는 것을 무엇이라 할까?</summary><p>도덕적 해이다. 계약 뒤에 위험을 줄이려는 노력이 약해지는 문제다. 자기부담금이 그 대책의 하나다.</p></details>
+  <details class="in-quiz"><summary>8. 승자의 저주에서 가장 높게 써낸 사람이 평균적으로 손해를 보는 이유는?</summary><p>값을 가장 높게 어림한 사람이 낙찰받기 때문이다. 어림짐작에는 오차가 있어서 가장 큰 오차를 낸 사람이 이긴다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="econ-game-deep">
