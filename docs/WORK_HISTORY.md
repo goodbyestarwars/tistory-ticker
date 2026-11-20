@@ -1,3 +1,5 @@
+**2026-11-20 로그인 랜딩 배경을 사용자 제공 사진으로 교체(사용자 지시 "로그인 사진을 이걸로, 가로로 돌려서")** — 세로 1080×1920 이미지를 반시계 90° 회전해 `img/landing-ironman.webp`(1920×1080, 446KB) 추가. `js/access-landing.js`: SVG 스케치(`drawSketch`·손글씨 글꼴 로드) 제거 → `<img>` 16:9·cover, 모바일 비율 56.25%. 인증·입장 동작 불변. 검증: JS 구문, 배포 후 운영 랜딩 확인.
+
 **2026-11-20 자동매매 신규 매수는 주도주 조용한 눌림만(사용자 승인 "승인한다")** — 비공개 PR #9 병합, 11:45 KST VM 코드 반영(장중 재시작 없음 → 다음 거래일 08:55 적용). 스윙 4개·9Pay 단타는 신규 매수 중단·기록만. 규칙 문서 새 절.
 
 **2026-11-20 검색기 모니터링(사용자 지시 "확실하면 남기고 아니면 모니터링 및 수정 대상")** — `shape_scan.monitor_summary`가 매일 모든 검색기(20개 추적 키)의 기존 추적 기록을 exit-v1/v2 실제 결과로 집계(전체/KOSPI 60일선 위), `shapeSelection.monitor`. `exit_plan.track_summary`에 `date_ok` 추가. 다시 쓰는 기준은 `docs/SCANNER_MONITORING_2026-11-20.md`(결과 전 고정). 화면·선정·주문 불변. 자동매매 신규 매수는 주도주만(비공개 PR #9). 검증: test_exit_plan 로컬 7+1skip·Linux OK, test_earn_signal Linux OK. 사이트 백엔드 반영은 보호 시간 이후.
