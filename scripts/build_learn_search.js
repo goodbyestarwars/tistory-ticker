@@ -59,7 +59,7 @@ function glossaryEntries() {
   const sandbox = { window: {} };
   vm.runInNewContext(src, sandbox);
   const g = sandbox.window.NINE_GLOSSARY || { terms: [] };
-  return g.terms.map(x => ({ n: x.t, e: x.en || '', c: x.cat || '', x: [x.d, x.ex, x.use].filter(Boolean).join(' ') }));
+  return g.terms.map(x => ({ n: x.t, e: x.en || '', c: x.cat || '', x: [x.d, x.ex, x.use].concat(x.more || []).filter(Boolean).join(' ') }));
 }
 
 function build() {
