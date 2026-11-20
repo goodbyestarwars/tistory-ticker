@@ -440,8 +440,8 @@ html.dark .market-discussion .discussion-recent-heading { color:var(--dk-sub); }
 
 /* 새 창(팝업) 모드: 대화방만 창 전체에 꽉 채운다. 사이트 머리·메뉴·푸터와 떠 있는 관심종목/메모 손잡이는 숨긴다. */
 .discussion-terminal-welcome { position: relative; }
-.discussion-popout { position: absolute; top: 8px; right: 8px; z-index: 2; padding: .3em .7em; border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
-.discussion-popout:hover { background: rgba(255,255,255,.15); }
+.discussion-popout { position: absolute; top: 8px; right: 8px; z-index: 2; padding: .3em .7em; border: 0; background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.discussion-popout:hover { text-decoration: underline; }
 html.discussion-popup .navbar,
 html.discussion-popup #nav-menu-mount,
 html.discussion-popup .site-footer,
