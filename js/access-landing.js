@@ -41,6 +41,9 @@
     '.nl-google,.nl-google:visited{background:#07535b;color:#fff}.nl-google:hover{background:#09616a;color:#fff}.nl-google i{background:#f1f3f4;color:#4285f4}' +
     '.nl-back{margin-top:14px;background:none;border:0;color:rgba(255,255,255,.85);font:inherit;font-size:13px;cursor:pointer;padding:4px 0}' +
     '.nl-card .nl-note{margin:14px 0 0;font-size:12px;line-height:1.5;color:#554d40}' +
+    '.nl-card .nl-quote{margin:0 0 16px;padding:14px 16px;border-radius:12px;background:#f0e6d3;color:#3a3226;font-size:14px;line-height:1.7}' +
+    '.nl-card ul.nl-points{margin:0 0 18px;padding:0 0 0 18px;font-size:14.5px;line-height:1.7;color:#554d40}.nl-card ul.nl-points li{margin:0 0 6px}' +
+    '.nl-card .nl-two{display:grid;gap:10px;margin-top:6px}' +
     '@media (max-width:720px){.nl-layout{grid-template-columns:minmax(0,1fr);max-width:480px}.nl-visual{grid-row:1;align-self:start;aspect-ratio:auto;height:0;padding-top:56.25%}.nl-logo{margin-bottom:16px}.nl-login-panel{padding:22px 16px}.nl-sub{margin-bottom:18px}}' +
     // 모바일 한 열 배치는 위 미디어쿼리에서 padding-top 비율로 높이를 확보한다. iOS Safari(WebKit)는 그리드 stretch가
     // aspect-ratio보다 우선해 SVG(absolute)만 있는 칸이 높이 0이 됐다(2026-11-20 실기기 확인). 아래는 미지원 브라우저의 PC 보완.
@@ -65,13 +68,13 @@
   }
   function closeModal() {
     if (!root) return;
-    var modal = root.querySelector('.nl-modal');
-    if (!modal || modal.hidden) return;
+    var modal = root.querySelector('.nl-modal:not([hidden])');
+    if (!modal) return;
     modal.hidden = true;
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
-  function openModal() {
-    var modal = root.querySelector('.nl-modal');
+  function openModal(which) {
+    var modal = root.querySelector(which === 'guest' ? '.nl-modal[data-nl-guestmodal]' : '.nl-modal:not([data-nl-guestmodal])');
     lastFocus = doc.activeElement;
     modal.hidden = false;
     modal.querySelector('.nl-card').focus();
@@ -92,8 +95,8 @@
 
   function onKey(e) {
     if (!root) return;
-    var modal = root.querySelector('.nl-modal');
-    if (!modal || modal.hidden) return;
+    var modal = root.querySelector('.nl-modal:not([hidden])');
+    if (!modal) return;
     if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
     if (e.key === 'Tab') { // 모달 안에서만 포커스 이동
       var items = focusables(modal);
@@ -119,11 +122,23 @@
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
       '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
       '<p class="nl-note">티스토리 글·댓글 관리는 별도 블로그 관리에서 이용합니다.</p>' +
+      '</section></div>' +
+      '<div class="nl-modal" data-nl-guestmodal="1" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlGuestTitle">' +
+      '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
+      '<h2 id="nlGuestTitle">비회원 이용 안내</h2>' +
+      '<p>시세 정보의 이용약관상 비회원에게는 시세를 제공할 수 없습니다.</p>' +
+      '<div class="nl-quote"><b>이용약관</b><br>고객은 회사에서 제공하는 시세(국내주식, 해외주식, 국내선물/옵션 등)정보를 고객이 직접 개발한 프로그램 등 개인의 업무에 한하여 이용해야 하며, 제3자에게 제공해서는 아니 된다.</div>' +
+      '<ul class="nl-points"><li>이 약관에 따라 <b>시세·호가·수급 등 시세 정보는 비회원에게 제공하지 않습니다.</b></li>' +
+      '<li>비회원은 뉴스, 마켓 브리핑, 이야기, 캘린더 같은 공개 콘텐츠를 볼 수 있습니다.</li>' +
+      '<li><b>회원 가입은 무료이며 별도 문의로 안내합니다.</b> 약관상 허용되는 범위를 알려 드립니다.</li></ul>' +
+      '<div class="nl-two"><a class="nl-btn primary" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="mailto:goodbyestarwars@gmail.com?subject=%ED%9A%8C%EC%9B%90%20%EA%B0%80%EC%9E%85%20%EB%AC%B8%EC%9D%98">회원 가입 문의하기</a>' +
+      '<button type="button" class="nl-btn ghost" data-nl-guestgo="1">확인하고 공개 콘텐츠 보기</button></div>' +
       '</section></div>';
     root.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null;
       if (!t) return;
-      if (t.closest('[data-nl-guest]')) { enterGuest(); return; }
+      if (t.closest('[data-nl-guestgo]')) { closeModal(); enterGuest(); return; }
+      if (t.closest('[data-nl-guest]')) { openModal('guest'); return; }
       if (t.closest('[data-nl-login]')) { openModal(); return; }
       if (t.closest('[data-nl-back]') || t.classList.contains('nl-modal')) closeModal();
     });
