@@ -116,3 +116,39 @@ class TrackSummary(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class DateFilter(unittest.TestCase):
+    def test_date_ok_limits_signals(self):
+        conn = sqlite3.connect(':memory:')
+        conn.execute('CREATE TABLE pattern_tracks (scanner TEXT, code TEXT, detected_date TEXT)')
+        o, h, l, c = walk(300, 9, drift=.003)
+        bars = bars_from(o, h, l, c)
+        conn.executemany('INSERT INTO pattern_tracks VALUES (?,?,?)',
+                         [('pattern:pullback', '000010', bars[70]['date']), ('pattern:pullback', '000010', bars[200]['date'])])
+        allow = {bars[200]['date']}
+        out = E.track_summary(conn, 'pattern:pullback', load_bars=lambda _c, code: bars, date_ok=allow.__contains__)
+        self.assertEqual(out['signals'], 1)
+        self.assertEqual(out['since'], bars[200]['date'])
+
+
+class Monitor(unittest.TestCase):
+    def test_monitor_all_and_kospi_split(self):
+        try:
+            import shape_scan as S
+        except Exception as error:
+            self.skipTest('import failed: %s' % error)
+        conn = sqlite3.connect(':memory:')
+        conn.execute('CREATE TABLE pattern_tracks (scanner TEXT, code TEXT, detected_date TEXT)')
+        conn.execute("INSERT INTO pattern_tracks VALUES ('pattern:pullback','000010','2026-03-02')")
+        old_up, old_ts = S.kospi_up_dates, S.exit_plan.track_summary
+        S.kospi_up_dates = lambda conn: {'2026-03-02'}
+        S.exit_plan.track_summary = lambda conn, key, load_bars=None, date_ok=None: {'key': key, 'filtered': date_ok is not None}
+        try:
+            out = S.monitor_summary(conn)
+        finally:
+            S.kospi_up_dates, S.exit_plan.track_summary = old_up, old_ts
+        self.assertTrue(out['observationOnly'])
+        self.assertEqual(len(out['scanners']), len(S.MONITOR_KEYS))
+        self.assertTrue(out['scanners']['pattern:pullback']['kospiAbove60']['filtered'])
+        self.assertFalse(out['scanners']['pattern:pullback']['all']['filtered'])

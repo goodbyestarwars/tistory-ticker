@@ -82,6 +82,48 @@ def record_tracks(snapshot, conn=None):
             conn.close()
 
 
+# 2026-11-20 사용자 지시("확실하면 남기고 아니면 모니터링 및 수정 대상"): 모든 검색기의 기존 추적 기록(pattern_tracks)을
+# 60일선 매도(exit-v2)·20일선 매도(exit-v1) 실제 결과로 매일 집계한다(전체 / KOSPI 60일선 위인 날만). 읽기 전용, 선정·화면·주문 불변.
+# 다시 쓸 기준은 docs/SCANNER_MONITORING_2026-11-20.md.
+MONITOR_KEYS = tuple('pattern:shape-v2:' + g for g in ('liveFlow', 'trendBreakout', 'bottomFormation', 'pullbackRebreak', 'longTermQuality')) + tuple(
+    'pattern:' + k for k in ('pullback', 'doubleBottom', 'invHeadShoulders', 'maCloudBreakout', 'risingLows', 'shortTermMaBreakout',
+                             'boxRangeLow', 'firstPullbackBreakout', 'longTermQuality', 'accumulationBar')) + tuple(
+    EDGE_PREFIX + k for k in ('quietLeaderPullback', 'rsHighResidual', 'surgeNextDay', 'gapVolumeClose', 'timeLagAccumulation'))
+
+
+def kospi_up_dates(conn):
+    """저장된 KOSPI 확정 종가가 60일 평균 위인 날짜 집합(YYYY-MM-DD). 새 호출 없음."""
+    rows = []
+    for r in db_schema.load_future_chart_since(conn, 'KOSPI', ''):
+        d = str(r.get('date', '')).replace('-', '')
+        c = r.get('close')
+        if len(d) == 8 and isinstance(c, (int, float)) and math.isfinite(c) and c > 0:
+            rows.append((d[:4] + '-' + d[4:6] + '-' + d[6:], float(c)))
+    rows.sort()
+    out = set()
+    for i in range(59, len(rows)):
+        if rows[i][1] > sum(c for _, c in rows[i - 59:i + 1]) / 60:
+            out.add(rows[i][0])
+    return out
+
+
+def monitor_summary(conn):
+    try:
+        up = kospi_up_dates(conn)
+    except Exception:
+        up = None
+    out = {}
+    for key in MONITOR_KEYS:
+        try:
+            item = {'all': exit_plan.track_summary(conn, key)}
+            if up is not None:
+                item['kospiAbove60'] = exit_plan.track_summary(conn, key, date_ok=up.__contains__)
+            out[key] = item
+        except Exception as error:
+            out[key] = {'status': 'error', 'error': type(error).__name__}
+    return dict(version='scanner-monitor-v1', observationOnly=True, kospiAbove60Known=up is not None, scanners=out)
+
+
 def load_benchmarks(conn, basis):
     """Stored KOSPI/KOSDAQ daily closes (same source as signal_review); no provider call.
 
@@ -199,6 +241,10 @@ def refresh():
                                  EARN_TRACK: exit_plan.track_summary(conn, EDGE_PREFIX + EARN_TRACK)}
             except Exception as error:
                 exit_tracking = {'quietLeaderPullback': dict(version='exit-tracking-v1', status='error', error=type(error).__name__)}
+            try:
+                monitor = monitor_summary(conn)
+            except Exception as error:
+                monitor = dict(version='scanner-monitor-v1', status='error', error=type(error).__name__)
     finally:
         conn.close()
     at = datetime.now(timezone.utc).isoformat()
@@ -211,7 +257,7 @@ def refresh():
                     scannedAt=at, dataDate=basis, coverage=coverage, groups=groups,
                     relativeStrength=relative_strength, edgeSignals=edge_signals,
                     strategyVersion=worker.get('strategyVersion'), extended=extended, research=research, quiet=quiet,
-                    exitTracking=exit_tracking, earn=earn)
+                    exitTracking=exit_tracking, earn=earn, monitor=monitor)
     def apply(cache):
         if cache.get('dataDate') != original.get('dataDate') or cache.get('generatedAt') != original.get('generatedAt'):
             raise ValueError('Daily snapshot changed during shape scan')
