@@ -79,7 +79,7 @@ async function verify() {
     for (const selector of ['.discussion-stockbar', '.discussion-native-guestbook']) {
       assert.equal(await terminal.locator(selector).count(), 1);
     }
-    assert.equal(await terminal.locator('.discussion-terminal-poem h2').textContent(), '실패할 수 있는 용기');
+    assert.equal(await terminal.locator('.discussion-terminal-poem h2').count(), 0);
     assert.doesNotMatch(await terminal.locator('.discussion-terminal-welcome').innerText(), /회원ID|천리안 가입/);
     assert.equal(await terminal.locator('.discussion-terminal-etiquette').textContent(), '대화실 이용시 건전한 언어를 사용합시다.');
     assert.equal(await terminal.locator('.discussion-terminal-welcome').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(0, 0, 128)');

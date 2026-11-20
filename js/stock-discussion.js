@@ -260,7 +260,7 @@
 
   // Edit these three fields to refresh the terminal intro.
   var intro = {
-    title: '실패할 수 있는 용기',
+    title: '',
     art: [
       '      ▧▨',
       ' ▨▤ ▨▧ ▧▨',
@@ -324,7 +324,6 @@
       if (saved.revision < data.revision) return;
       data.revision = saved.revision;
       if (saved.content) data.content = saved.content;
-      poem.querySelector('h2').textContent = data.content.title;
       poem.querySelector('p').textContent = data.content.body;
       rose.textContent = data.content.art;
       etiquette.textContent = data.content.etiquette;
@@ -340,7 +339,6 @@
       dialog.setAttribute('aria-labelledby', 'discussionIntroTitle');
       dialog.innerHTML = '<form><h2 id="discussionIntroTitle">인트로 문구 편집</h2>' +
         '<p>저장하면 모든 방문자에게 적용됩니다. 줄바꿈은 그대로 표시하며 HTML은 실행되지 않습니다.</p>' +
-        '<label>제목 · 최대 100자<input name="title" required maxlength="100"></label>' +
         '<label>본문 · 최대 4,000자<textarea name="body" required maxlength="4000" rows="9"></textarea></label>' +
         '<label>문자 그림 · 최대 2,000자<textarea name="art" maxlength="2000" rows="5" spellcheck="false"></textarea></label>' +
         '<label>하단 안내 · 최대 200자<input name="etiquette" required maxlength="200"></label>' +
@@ -363,14 +361,14 @@
       request().then(function (saved) {
         if (!dialog || !admin()) return;
         apply(saved);
-        Object.keys(data.content).forEach(function (key) { form.elements[key].value = data.content[key]; });
-        status.textContent = ''; save.disabled = false; form.elements.title.focus();
+        Object.keys(data.content).forEach(function (key) { if (form.elements[key]) form.elements[key].value = data.content[key]; });
+        status.textContent = ''; save.disabled = false; form.elements.body.focus();
       }).catch(function () { if (dialog) status.textContent = '읽기에 실패했습니다. 닫고 다시 열어 주세요.'; });
       form.addEventListener('submit', function (event) {
         event.preventDefault();
         if (busy || !admin() || !form.reportValidity()) return;
         var content = {};
-        Object.keys(data.content).forEach(function (key) { content[key] = form.elements[key].value; });
+        Object.keys(data.content).forEach(function (key) { content[key] = form.elements[key] ? form.elements[key].value : ''; });
         busy = true; save.disabled = true; status.textContent = '저장 중…';
         request({ content: content, revision: data.revision }).then(function (saved) {
           apply(saved); busy = false; dialog.close();
@@ -401,7 +399,7 @@
     var rose = addText(screen, 'pre', 'discussion-terminal-rose', intro.art.join('\n'));
     rose.setAttribute('aria-hidden', 'true');
     var poem = addText(screen, 'div', 'discussion-terminal-poem', '');
-    addText(poem, 'h2', '', intro.title);
+    /* 제목은 쓰지 않는다(2026-11-21 사용자 지시). 저장된 과거 제목이 있어도 표시하지 않는다. */
     addText(poem, 'p', '', intro.lines.join('\n'));
     var etiquette = addText(welcome, 'p', 'discussion-terminal-etiquette', '대화실 이용시 건전한 언어를 사용합시다.');
     setupIntroEditor(welcome, poem, rose, etiquette);
