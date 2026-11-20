@@ -11,5 +11,12 @@ assert.ok(make('pullbackRebreak').includes('우위 없음'));
 assert.ok(make('leaderPullback').includes('+10.3%')&&make('leaderPullback').includes('2024~2025.6') && make('leaderPullback').includes('검증 통과'));
 assert.ok(make('longTermQuality').includes('재무 조건 제외 근사'));
 assert.equal(make('unknown'),'');
-assert.ok(/list\.innerHTML=market\+scorecardHtml\(\)/.test(src),'매수후보 위에 표시');
+assert.ok(/list\.innerHTML=market\+scorecardHtml\(leaderInfoHtml\(selection\)\)/.test(src),'매수후보 위에 표시');
+{ // 주도주 눌림: 매도 기준·실제 추적이 같은 카드 안 행(칩)으로 들어간다
+  const mk=sel=>new Function('var escapeHtml=s=>String(s);var activeTab="leaderPullback";function detailFor(){return {};}'+card+grab('leaderInfoHtml')+grab('scorecardHtml')+'return scorecardHtml(leaderInfoHtml('+JSON.stringify(sel)+'));')();
+  const h=mk({exitTracking:{quietLeaderPullback:{since:'2026-11-13',signals:2,rules:{'exit-v2':{closed:0,open:2,openAvgPct:1.52}}}}});
+  assert.ok(h.includes('ps-sc-rows')&&h.includes('매도 기준')&&h.includes('최대 250거래일'),'매도 기준 칩');
+  assert.ok(h.includes('실제 추적')&&h.includes('2026-11-13부터')&&h.includes('끝난 매매 없음')&&h.includes('+1.52%'),'실제 추적 행');
+  assert.equal((h.match(/<section class="ps-scorecard"/g)||[]).length,1,'카드는 하나');
+}
 console.log('test_scanner_scorecard ok');

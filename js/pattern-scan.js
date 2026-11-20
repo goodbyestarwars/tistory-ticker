@@ -1699,7 +1699,7 @@
     longTermQuality:{ex:[-0.58,0.27,1.03],grade:'우위 약함',note:'재무 조건 제외 근사'},
     leaderPullback:{avg:[10.28,9.56],grade:'검증 통과'}
   };
-  function scorecardHtml() {
+  function scorecardHtml(extra) {
     // 2026-11-21 사용자 지시(가독성): 한 줄 문장 → 등급 배지 + 기간별 숫자 칸 + 한 줄 설명. 수치·문구 근거는 위와 같다.
     var s=MENU_SCORECARD[activeTab];if(!s)return '';
     var sg=function(v){return (v>0?'+':'')+v.toFixed(1);};
@@ -1709,20 +1709,28 @@
     var cells=s.avg?cell('2024~2025.6',s.avg[0],'%')+cell('2025.7~',s.avg[1],'%')
       :cell('2021~23',s.ex[0],'%p')+cell('2024~25.6',s.ex[1],'%p')+cell('2025.7~',s.ex[2],'%p');
     return '<section class="ps-scorecard" aria-label="과거 5년 성적"><div class="ps-sc-head"><b>과거 5년 성적</b><span class="ps-sc-grade '+tone+'">'+escapeHtml(s.grade)+'</span></div>'
-      +'<p class="ps-sc-desc">'+desc+'</p><dl class="ps-sc-grid">'+cells+'</dl>'
+      +'<p class="ps-sc-desc">'+desc+'</p><dl class="ps-sc-grid">'+cells+'</dl>'+(extra || '')
       +'<p class="ps-sc-foot">'+(s.note?escapeHtml(s.note)+' · ':'')+'수수료 0.7% 차감 · 미래 수익 보장 아님</p></section>';
   }
   function leaderInfoHtml(selection) {
+    // 2026-11-21 사용자 지시(전부 보기 좋게·빈칸 줄이기): 매도 기준·실제 추적을 별도 평문 줄이 아니라 성적 카드 안의 행·칩으로 합친다. 값·문구 근거는 그대로다.
     if(activeTab!=='leaderPullback' || !selection)return '';
     var plan=null;
     ['groups','research'].forEach(function(b){((selection[b] || {}).leaderPullback || []).forEach(function(r){plan=plan || detailFor(r).exitPlan;});});
-    var exit=plan?'손절 '+escapeHtml(String(plan.stopLossPct))+'% · '+escapeHtml(plan.takeProfit || '')+' · 최대 '+escapeHtml(String(plan.maxHoldDays))+'거래일'
-      :'손절 -10% · +10% 도달 뒤 종가가 60일선 아래면 다음 거래일 시가 매도 · 최대 250거래일';
+    var chip=function(t,cls){return '<span class="ps-sc-chip'+(cls?' '+cls:'')+'">'+t+'</span>';};
+    var pct=function(v){var n=Number(v);return isFinite(n)?'<b class="'+(n>0?'is-up':n<0?'is-down':'')+'">'+(n>0?'+':'')+escapeHtml(String(v))+'%</b>':'<b>-</b>';};
+    var exit=plan?[chip('손절 '+escapeHtml(String(plan.stopLossPct))+'%'),chip(escapeHtml(plan.takeProfit || '')),chip('최대 '+escapeHtml(String(plan.maxHoldDays))+'거래일')]
+      :[chip('손절 -10%'),chip('+10% 도달 뒤 종가가 60일선 아래면 다음 거래일 시가 매도'),chip('최대 250거래일')];
     var t=((selection.exitTracking || {}).quietLeaderPullback) || null,track='';
-    var v=function(x){if(!x)return '-';return (x.closed?'끝난 '+x.closed+'건 · 승률 '+(x.winPct!=null?x.winPct+'%':'-')+' · 평균 '+(x.avgPct!=null?x.avgPct+'%':'-'):'끝난 매매 없음')
-      +(x.open?' · 보유 중 '+x.open+'건 평균 '+(x.openAvgPct!=null?x.openAvgPct+'%':'-'):'');};
-    if(t && t.rules)track='<p class="ps-state-meaning"><b>실제 추적</b> · '+escapeHtml(String(t.since || '-'))+'부터 포착 '+escapeHtml(String(t.signals))+'건 · 수수료 0.7% 차감 · '+v(t.rules['exit-v2'])+'</p>';
-    return '<p class="ps-state-meaning"><b>매도 기준</b> · '+exit+'</p>'+track;
+    var x=t && t.rules && t.rules['exit-v2'];
+    if(t && t.rules){
+      var parts=[chip('포착 <b>'+escapeHtml(String(t.signals))+'</b>건')];
+      if(x && x.closed)parts.push(chip('끝난 <b>'+escapeHtml(String(x.closed))+'</b>건 · 승률 '+(x.winPct!=null?'<b>'+escapeHtml(String(x.winPct))+'%</b>':'-')+' · 평균 '+(x.avgPct!=null?pct(x.avgPct):'-')));
+      else parts.push(chip('끝난 매매 없음'));
+      if(x && x.open)parts.push(chip('보유 중 <b>'+escapeHtml(String(x.open))+'</b>건 · 평균 '+(x.openAvgPct!=null?pct(x.openAvgPct):'-')));
+      track='<div class="ps-sc-row"><dt>실제 추적</dt><dd>'+parts.join('')+'<small>'+escapeHtml(String(t.since || '-'))+'부터</small></dd></div>';
+    }
+    return '<dl class="ps-sc-rows"><div class="ps-sc-row"><dt>매도 기준</dt><dd>'+exit.join('')+'</dd></div>'+track+'</dl>';
   }
   function renderSimpleList(container,list,model,selection,known) {
     var current=function(r){var it=r.classified[0].member.item;return !it.track && !it._history;};
@@ -1735,7 +1743,7 @@
       :q.marketRest===false?'<p class="ps-state-meaning"><b>매수 검토 구간</b> · KOSPI 60일선 위</p>':'';
     detailNavItems=yes.concat(manual);
     var total=yes.length+manual.length;
-    list.innerHTML=market+scorecardHtml()+leaderInfoHtml(selection)+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
+    list.innerHTML=market+scorecardHtml(leaderInfoHtml(selection))+'<h3>매수후보 '+total+'</h3><p class="ps-state-meaning">'+(selection?'기준일 '+escapeHtml(selection.dataDate)+' 일봉':'')+'</p>'
       +(total?yes.map(function(r){return simpleRowHtml(r,false,selection && selection.dataDate);}).join('')+manual.map(function(r){return simpleRowHtml(r,true,selection && selection.dataDate);}).join('')
         :'<p class="ps-state-empty">'+(known?'오늘은 매수후보가 없습니다.':'자료를 확인하지 못했습니다.')+'</p>');
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){

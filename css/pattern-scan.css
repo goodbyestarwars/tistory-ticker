@@ -1154,17 +1154,27 @@ html.dark #pattern-scan .ps-pick-gauge-dot { box-shadow:0 0 0 2px var(--dk-card)
 @media(max-width:720px) { #pattern-scan .ps-state-row.ps-pick { padding:14px; } #pattern-scan .ps-pick-quote { margin-left:0; justify-content:start; justify-items:start; } #pattern-scan .ps-pick-price { font-size:20px; } #pattern-scan .ps-pick-gauge { flex-basis:100%; max-width:none; } #pattern-scan .ps-pick .ps-state-actions { width:100%; } #pattern-scan .ps-pick .ps-state-detail { width:100%; text-align:center; } }
 
 /* 2026-11-21 검색기 과거 성적 카드(가독성): 등급 배지 + 기간별 숫자 칸. 색은 공통 의미색 토큰만 쓴다. */
-#pattern-scan .ps-scorecard { margin:12px 0; padding:12px 14px; border:1px solid var(--ui-rule, var(--rule)); border-radius:var(--ui-radius-card, 12px); background:var(--ui-card-surface, #fff); }
+#pattern-scan .ps-scorecard { margin:10px 0; padding:12px 14px; border:1px solid var(--ui-rule, var(--rule)); border-radius:var(--ui-radius-card, 12px); background:var(--ui-card-surface, #fff); }
 #pattern-scan .ps-sc-head { display:flex; align-items:center; gap:8px; }
 #pattern-scan .ps-sc-head b { font-size:14px; }
 #pattern-scan .ps-sc-grade { padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700; background:var(--ui-glass-panel, #f3f4f6); }
 #pattern-scan .ps-sc-grade.is-pass { color:var(--num-up); }
 #pattern-scan .ps-sc-grade.is-none { color:var(--num-down); }
-#pattern-scan .ps-sc-desc { margin:6px 0 8px; font-size:13px; line-height:1.6; }
-#pattern-scan .ps-sc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:8px; margin:0; }
-#pattern-scan .ps-sc-cell { padding:8px 10px; border-radius:8px; background:var(--ui-glass-panel, #f3f4f6); }
+#pattern-scan .ps-sc-desc { margin:4px 0 8px; font-size:13px; line-height:1.6; }
+#pattern-scan .ps-sc-grid { display:flex; flex-wrap:wrap; gap:8px; margin:0; }
+#pattern-scan .ps-sc-cell { flex:0 0 auto; min-width:120px; padding:8px 16px 8px 12px; border-radius:8px; background:var(--ui-glass-panel, #f3f4f6); }
 #pattern-scan .ps-sc-cell dt { margin:0; font-size:11px; opacity:.75; }
 #pattern-scan .ps-sc-cell dd { margin:2px 0 0; font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; }
 #pattern-scan .ps-sc-cell dd.is-up { color:var(--num-up); }
 #pattern-scan .ps-sc-cell dd.is-down { color:var(--num-down); }
 #pattern-scan .ps-sc-foot { margin:8px 0 0; font-size:11px; line-height:1.5; opacity:.75; }
+/* 2026-11-21 성적 카드 안 매도 기준·실제 추적 행: 라벨 + 칩. 숫자 칸은 내용 폭만 쓰고 빈칸을 늘리지 않는다. */
+#pattern-scan .ps-sc-rows { display:grid; gap:6px; margin:10px 0 0; padding:10px 0 0; border-top:1px solid var(--ui-rule, var(--rule)); }
+#pattern-scan .ps-sc-row { display:flex; align-items:baseline; gap:10px; }
+#pattern-scan .ps-sc-row dt { flex:0 0 4.6em; margin:0; font-size:12px; font-weight:700; opacity:.8; }
+#pattern-scan .ps-sc-row dd { display:flex; flex-wrap:wrap; align-items:center; gap:6px; flex:1 1 auto; min-width:0; margin:0; }
+#pattern-scan .ps-sc-chip { padding:2px 9px; border-radius:999px; font-size:12px; line-height:1.6; background:var(--ui-glass-panel, #f3f4f6); word-break:keep-all; }
+#pattern-scan .ps-sc-chip b.is-up, #pattern-scan .ps-sc-row dd b.is-up { color:var(--num-up); }
+#pattern-scan .ps-sc-chip b.is-down, #pattern-scan .ps-sc-row dd b.is-down { color:var(--num-down); }
+#pattern-scan .ps-sc-row dd small { font-size:11px; opacity:.7; }
+@media(max-width:720px) { #pattern-scan .ps-sc-row { flex-direction:column; gap:3px; } #pattern-scan .ps-sc-cell { flex:1 1 40%; min-width:0; } }
