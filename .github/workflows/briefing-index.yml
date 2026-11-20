@@ -8,8 +8,12 @@ on:
       - scripts/build_briefing_index.py
       - .github/workflows/briefing-index.yml
   schedule:
-    # KST 03:35 daily. No resident process, no VM load.
+    # KST 03:35, 12:05, 19:05, 23:05 daily (new posts show a placeholder until indexed).
+    # No resident process, no VM load; the job only reads the public category.
     - cron: '35 18 * * *'
+    - cron: '5 3 * * *'
+    - cron: '5 10 * * *'
+    - cron: '5 14 * * *'
 
 permissions:
   contents: write
