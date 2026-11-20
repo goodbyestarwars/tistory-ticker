@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>자산배분 이야기</title>
+<meta name="description" content="주식·채권·현금·금을 섞는 이유, 상관관계와 분산투자, 리밸런싱의 효과를 가상 숫자와 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+<link rel="stylesheet" href="../css/learn-cards.css?v=20261121-cards-1" />
+<script>try{if(localStorage.getItem('lc_mode')!=='scroll')document.documentElement.classList.add('lc-pre')}catch(e){document.documentElement.classList.add('lc-pre')}</script>
+</head>
+<body class="learn-page">
+<div class="legal-wrap story-page">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>자산배분 이야기</h1>
+  <p class="legal-effective-date">주식·채권·현금·금 · 분산투자·상관관계·리밸런싱 · 설명 업데이트 2026-11-21</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>위험 관리 이야기에서는 한 종목에 얼마를 넣을지가 손실을 정한다고 했다. 이번에는 한 단계 위로 올라가 <b>계좌 전체를 무엇으로 채울지</b>를 본다. 어느 종목을 고르느냐보다 주식과 채권, 현금, 금을 어떻게 섞었는지가 오랜 기간 수익과 흔들림을 더 크게 좌우한다는 연구가 많다.</p>
+  <p>우산을 하나만 들고 다니는 사람은 비 오는 날만 걱정한다. 비 오는 날 우산, 햇볕 나는 날 모자, 추운 날 장갑을 모두 챙기면 어떤 날씨에도 크게 당하지 않는다. 자산배분은 이렇게 <b>서로 다른 날씨에 강한 자산을 한 가방에 넣는 일</b>이다. 정답 비율을 알려 주는 글이 아니라, 비율을 정할 때 따지는 방법을 다룬다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>종목 선택보다</span><strong>자산 구성이 크다</strong></div>
+    <div class="in-fact"><span>같이 안 움직이는 것끼리</span><strong>섞는다</strong></div>
+    <div class="in-fact"><span>비율은</span><strong>주기적으로 맞춘다</strong></div>
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">네 가지 자산의 성격</h2>
+  <table class="learn-table">
+    <thead><tr><th>자산</th><th>돈을 버는 길</th><th>잘 버티는 날씨</th><th>약한 날씨</th></tr></thead>
+    <tbody>
+      <tr><td>주식</td><td>회사 이익 성장과 배당</td><td>경기 확장, 금리 안정</td><td>경기 침체, 금융 위기</td></tr>
+      <tr><td>채권</td><td>이자 + 금리 하락 때 가격 상승</td><td>경기 둔화, 금리 인하</td><td>물가·금리 급등</td></tr>
+      <tr><td>현금(예금·MMF)</td><td>이자</td><td>변동성이 큰 시장, 기회 대기</td><td>물가 상승(구매력 하락)</td></tr>
+      <tr><td>금</td><td>가격 상승(이자·배당이 없다)</td><td>불확실성 확대, 달러·실질금리 하락</td><td>실질금리 급등, 위험 선호</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">표는 흔한 경향을 정리한 것이다. 항상 같은 방향으로 움직이는 것은 아니다. 2022년처럼 물가와 금리가 함께 급등하면 주식과 채권이 같이 내린 해도 있다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">분산투자는 공짜 점심에 가깝다</h2>
+  <p>두 자산이 완전히 같이 움직이면 섞어도 흔들림이 줄지 않는다. 서로 다르게 움직이면 한쪽이 내릴 때 다른 쪽이 받쳐 줘서 합친 계좌의 오르내림이 작아진다. 이 같이 움직이는 정도가 <b>상관관계</b>(-1에서 +1)다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 210" role="img" aria-label="주식과 채권이 번갈아 움직이면 두 자산을 섞은 계좌는 곡선이 훨씬 완만해진다">
+      <path class="fig-line" d="M30 20 V185 H420" />
+      <path class="fig-up-line" d="M40 100 C80 30,120 30,160 100 S240 170,280 100 S360 30,410 100" />
+      <path class="fig-down-line" d="M40 100 C80 170,120 170,160 100 S240 30,280 100 S360 170,410 100" />
+      <path class="fig-acc-line" d="M40 100 H410" />
+      <text class="fig-up" x="48" y="30" font-size="12.5">자산 A</text>
+      <text class="fig-down" x="48" y="198" font-size="12.5">자산 B (A와 반대로)</text>
+      <text class="fig-acc" x="330" y="94" font-size="12.5">섞으면 평평</text>
+    </svg>
+    <figcaption>이상적인 극단 예시다. 현실의 자산은 완전히 반대로 움직이지 않지만, 움직임이 다를수록 섞는 효과가 커진다.</figcaption>
+  </figure>
+  <table class="learn-table">
+    <thead><tr><th>가상 숫자(연 수익률)</th><th>1년 차</th><th>2년 차</th><th>평균</th><th>흔들림</th></tr></thead>
+    <tbody>
+      <tr><td>자산 A만</td><td>+30%</td><td>-10%</td><td>+10%</td><td>크다(40%p 차이)</td></tr>
+      <tr><td>자산 B만</td><td>-10%</td><td>+30%</td><td>+10%</td><td>크다(40%p 차이)</td></tr>
+      <tr><td>A·B 반반</td><td>+10%</td><td>+10%</td><td>+10%</td><td>없다</td></tr>
+    </tbody>
+  </table>
+  <p>평균 수익은 같은데 섞었더니 흔들림이 사라졌다. 이 차이가 중요한 이유는 아래 복리 계산에서 드러난다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">흔들림이 복리를 깎는다</h2>
+  <p>평균 수익이 같아도 흔들리는 계좌는 복리로 계산하면 더 적게 불어난다. 위 표를 100만 원에 적용해 보자.</p>
+  <table class="learn-table">
+    <thead><tr><th>100만 원 시작</th><th>1년 뒤</th><th>2년 뒤</th><th>실제 연평균(복리)</th></tr></thead>
+    <tbody>
+      <tr><td>자산 A만(+30%, -10%)</td><td>130만 원</td><td>117만 원</td><td>약 +8.2%</td></tr>
+      <tr><td>A·B 반반(+10%, +10%)</td><td>110만 원</td><td>121만 원</td><td>+10%</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">1.3 × 0.9 = 1.17. 117만 원의 연평균은 √1.17 - 1 ≒ 8.2%다. 평균 수익 10%와 복리 8.2%의 차이가 흔들림의 비용이다.</p>
+  <div class="learn-note"><b>위험 관리 이야기의 "회복은 하락보다 가파르다"가 계좌 전체에서도 같다</b> -30%를 만회하려면 +43%가 필요하다. 계좌가 크게 내리지 않도록 막는 일이 곧 복리를 지키는 일이다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">비율은 어떻게 정하나 · 세 가지 질문</h2>
+  <ol class="learn-toc">
+    <li><b>얼마나 오래 묻어 둘 돈인가</b> <small>1년 안에 쓸 돈은 흔들리는 자산에 두지 않는다. 20년 뒤 쓸 돈은 잠깐의 하락을 견딜 시간이 있다</small></li>
+    <li><b>얼마까지 내려가도 잠을 잘 수 있나</b> <small>계좌가 -30%일 때 팔고 싶어지는 사람이 주식 80%를 들고 있으면 가장 아래에서 팔게 된다. 내가 견딜 수 있는 낙폭을 먼저 묻는다</small></li>
+    <li><b>내 벌이는 경기와 얼마나 같이 움직이나</b> <small>월급이 경기민감 업종에서 나오는 사람이 같은 업종 주식을 많이 들면 위험이 겹친다. 직장·집·투자가 한 방향이면 분산이 아니다</small></li>
+  </ol>
+  <div class="learn-note"><b>나이별 공식은 출발선이다</b> "100 - 나이 = 주식 비중" 같은 말은 참고만 한다. 소득, 저축 여력, 해야 할 큰 지출(집·교육)이 같지 않으면 같은 나이도 다른 비율이 맞는다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">대표적인 섞는 방식</h2>
+  <table class="learn-table">
+    <thead><tr><th>방식</th><th>구성 예(가상)</th><th>성격</th></tr></thead>
+    <tbody>
+      <tr><td>주식·채권 기본형</td><td>주식 60 / 채권 40</td><td>오래 쓰인 기본 틀. 주식이 성장, 채권이 완충을 맡는다</td></tr>
+      <tr><td>사계절형</td><td>주식·장기채·중기채·금·원자재를 나눈다</td><td>경기·물가 네 가지 날씨에 모두 대비하려는 구성</td></tr>
+      <tr><td>핵심-위성형</td><td>핵심 80(분산 ETF) / 위성 20(관심 종목)</td><td>큰 틀은 지수로 맡기고 관심 종목은 작은 비중으로만</td></tr>
+      <tr><td>목표 날짜형</td><td>은퇴 시점이 다가오면 주식 비중을 낮춘다</td><td>시간이 갈수록 안전자산 비중을 올리는 방식(퇴직연금 TDF)</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">비율은 설명용 예시이며 권유가 아니다. 어떤 구성이 더 좋았는지는 기간에 따라 다르다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">리밸런싱 · 흐트러진 비율을 되돌리는 일</h2>
+  <p>주식 60·채권 40으로 시작해도 주식이 크게 오르면 비율이 70·30으로 바뀐다. 계좌는 어느새 처음 정한 것보다 위험해졌다. 이때 오른 쪽을 일부 팔고 내린 쪽을 사서 <b>원래 비율로 되돌리는 것</b>이 리밸런싱이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 190" role="img" aria-label="주식 60 채권 40으로 시작해 주식이 올라 70 대 30이 된 뒤 일부를 팔아 60 대 40으로 되돌리는 과정">
+      <text class="fig-ink" x="10" y="20" font-size="12.5">처음</text>
+      <rect class="fig-soft2" x="10" y="28" width="150" height="26" /><rect class="fig-up" x="10" y="28" width="90" height="26" opacity="0.85" /><text class="fig-on-strong" x="18" y="46" font-size="12">주식 60</text><text class="fig-sub" x="108" y="46">채권 40</text>
+      <text class="fig-ink" x="10" y="84" font-size="12.5">주식이 오른 뒤</text>
+      <rect class="fig-soft2" x="10" y="92" width="150" height="26" /><rect class="fig-up" x="10" y="92" width="105" height="26" opacity="0.85" /><text class="fig-on-strong" x="18" y="110" font-size="12">주식 70</text><text class="fig-sub" x="122" y="110">채권 30</text>
+      <text class="fig-ink" x="10" y="148" font-size="12.5">리밸런싱 뒤</text>
+      <rect class="fig-soft2" x="10" y="156" width="150" height="26" /><rect class="fig-up" x="10" y="156" width="90" height="26" opacity="0.85" /><text class="fig-on-strong" x="18" y="174" font-size="12">주식 60</text><text class="fig-sub" x="108" y="174">채권 40</text>
+      <text class="fig-sub" x="200" y="46">목표 비율 60 : 40</text>
+      <text class="fig-sub" x="200" y="110">위험이 커졌다: 주식 10 매도</text>
+      <text class="fig-sub" x="200" y="174">오른 것을 팔고 내린 것을 산다</text>
+    </svg>
+    <figcaption>리밸런싱은 시장 전망이 아니라 규칙이다. 오른 것을 일부 팔고 싼 것을 사는 구조가 자연스럽게 만들어진다.</figcaption>
+  </figure>
+  <table class="learn-table">
+    <thead><tr><th>방식</th><th>뜻</th><th>특징</th></tr></thead>
+    <tbody>
+      <tr><td>기간 기준</td><td>분기·반기·1년마다 점검</td><td>단순하다. 시장이 급변해도 다음 점검일을 기다린다</td></tr>
+      <tr><td>허용 범위 기준</td><td>목표 비율에서 ±5%p 벗어나면 조정</td><td>필요할 때만 한다. 계속 지켜봐야 한다</td></tr>
+      <tr><td>새 돈으로 조정</td><td>매달 넣는 돈을 부족한 자산에 먼저 채운다</td><td>팔지 않아 세금·비용이 덜 든다</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note"><b>팔 때 비용이 든다</b> 리밸런싱을 너무 자주 하면 거래 비용과 세금이 쌓여 이익을 깎는다. 계좌 종류(ISA·연금)에서는 세금 영향이 달라 절세 이야기와 함께 본다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">자주 틀리는 곳</h2>
+  <ul>
+    <li><b>종목 수가 많으면 분산이라고 믿는다</b> 같은 업종 종목 열 개는 사실상 한 종목이다. 서로 다른 날씨에 강한 것이어야 분산이다.</li>
+    <li><b>위기 때는 상관관계가 1에 가까워진다</b> 급락장에서는 평소 따로 놀던 자산이 같이 내리는 일이 있다. 분산이 모든 하락을 막아 주지 않는다. 현금과 단기 안전자산이 마지막 방어선이다.</li>
+    <li><b>최근 오른 자산을 늘린다</b> 최근 1~3년 성적이 좋은 자산에 몰아넣는 것이 추격매수의 계좌 버전이다. 투자심리 이야기를 다시 본다.</li>
+    <li><b>환율 위험을 잊는다</b> 해외 자산은 환율에 따라 원화 수익이 달라진다. 환 헤지를 하는 상품과 하지 않는 상품의 차이를 안다(환율 이야기).</li>
+    <li><b>총비용을 놓친다</b> ETF 총보수·매매 비용·세금이 장기에는 크게 쌓인다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-8">이 사이트에서 확인하기</h2>
+  <ul>
+    <li>MY 화면에서 보유 종목의 비중을 보고 한 종목이나 한 업종이 계좌에서 얼마나 차지하는지 확인한다.</li>
+    <li>글로벌 시장지표에서 금·달러·채권 금리·주가지수를 한 화면에서 나란히 본다. 서로 반대로 움직인 날이 있는지 눈으로 확인하면 상관관계 감이 생긴다.</li>
+    <li>홈 미국 모드의 주요 ETF 비교 표에서 1일·1개월·3개월·6개월·YTD 수익률을 나란히 본다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 한 해 +50%, 다음 해 -50%인 계좌의 2년 뒤 원금 대비는?</summary><p>1.5 × 0.5 = 0.75, 즉 -25%다. 평균은 0%인데 실제로는 잃는다. 흔들림이 복리를 깎는 예다.</p></details>
+  <details class="in-quiz"><summary>2. 주식 60·채권 40으로 시작해 주식이 올라 70·30이 되었다. 리밸런싱은 어떻게 하나?</summary><p>계좌 전체 기준 주식 10%를 팔고 채권 10%를 사서 60·40으로 되돌린다. 새로 넣을 돈이 있으면 채권부터 채워도 된다.</p></details>
+  <details class="in-quiz"><summary>3. 반도체 종목 5개로 계좌를 채웠다. 분산이 되었나?</summary><p>되지 않았다. 같은 업종이라 같은 날씨에 같이 내린다. 서로 다른 업종, 다른 자산이어야 분산이다.</p></details>
+  <details class="in-quiz"><summary>4. 급락장에서 분산이 효과를 못 낸 것처럼 보이는 이유는?</summary><p>위기 때는 모든 위험자산에서 한꺼번에 돈을 빼기 때문에 평소 따로 움직이던 자산도 같이 내린다. 이때는 현금·단기 국채 같은 안전자산이 방어한다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="alloc-advanced">
+  <h2 id="alloc-advanced">심화 연구실 · 두 자산 포트폴리오의 위험을 계산한다</h2>
+  <p>해리 마코위츠의 현대 포트폴리오 이론은 위험을 <b>수익률의 표준편차</b>로 보고, 두 자산의 상관관계가 낮을수록 합친 위험이 개별 위험의 평균보다 작아진다고 설명한다. 마코위츠는 이 연구로 1990년 노벨 경제학상을 받았다.</p>
+  <div class="learn-lab">
+    <h3>가상 계산 · 주식 60 · 채권 40의 위험</h3>
+    <p>주식의 연 변동성 18%, 채권 6%, 둘의 상관관계 0.2라고 가정한다. 포트폴리오 표준편차는 다음 식으로 구한다.</p>
+    <p class="learn-math">σ = √( 0.6²×18² + 0.4²×6² + 2×0.6×0.4×0.2×18×6 ) = √(116.64 + 5.76 + 10.37) ≈ 11.5%</p>
+    <p>두 위험의 단순 평균(0.6×18 + 0.4×6 = 13.2%)보다 낮은 11.5%다. 상관관계가 0.8이면 값이 올라 12.8%로 분산 효과가 줄어든다. 상관관계가 낮을수록 효과가 크다는 뜻이다.</p>
+  </div>
+  <div class="learn-grid">
+    <div><h3>상관관계는 시기마다 바뀐다</h3><p>주식과 채권의 상관관계는 물가가 낮고 안정된 시기에 음(-)에 가까웠지만, 물가가 오르는 시기에는 양(+)으로 바뀌기도 했다. 과거 한 구간의 상관관계가 앞으로도 유지된다고 믿지 않는다.</p></div>
+    <div><h3>위험 기여도로 보기</h3><p>주식 60%가 계좌 위험의 90% 이상을 차지하는 경우가 많다. 자산 비중이 아니라 위험 비중으로 나누는 위험균형 방식은 이 편중을 줄이려는 시도다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>자료 확인</strong><ul><li><a href="https://www.nobelprize.org/prizes/economic-sciences/1990/markowitz/facts/" target="_blank" rel="noopener noreferrer">노벨위원회 · 해리 마코위츠(1990) 업적 소개</a></li><li><a href="https://www.kofia.or.kr/" target="_blank" rel="noopener noreferrer">금융투자협회 · 펀드·ETF 비용 비교</a></li></ul></div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-summary">한 줄 정리</h2>
+  <p>자산배분은 서로 다른 날씨에 강한 자산을 함께 담아 계좌의 흔들림을 줄이는 일이다. 흔들림이 줄면 복리 손실도 줄고, 비율이 흐트러지면 리밸런싱으로 되돌린다. 비율의 정답은 없고, 묻어 둘 기간과 견딜 수 있는 하락 폭, 내 벌이와 계좌의 겹침을 따져서 정한다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-source">설명 근거</h2>
+  <p>2026-11-21 확인. 모든 수익률·변동성·상관관계 숫자는 가상값이다. 구성 비율 예시는 권유가 아니며 과거 성과가 앞으로의 성과를 보장하지 않는다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/market-flow.html">← 시장수급 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/commodity.html">원자재 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-cards.js?v=20261121-cards-1"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>

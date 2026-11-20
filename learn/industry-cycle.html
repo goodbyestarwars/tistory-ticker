@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>산업 사이클 이야기</title>
+<meta name="description" content="반도체·조선·자동차·바이오·2차전지가 어떤 순서로 좋아지고 나빠지는지, 업종마다 먼저 볼 숫자와 사이클주의 PER 함정을 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+<link rel="stylesheet" href="../css/learn-cards.css?v=20261121-cards-1" />
+<script>try{if(localStorage.getItem('lc_mode')!=='scroll')document.documentElement.classList.add('lc-pre')}catch(e){document.documentElement.classList.add('lc-pre')}</script>
+</head>
+<body class="learn-page">
+<div class="legal-wrap story-page">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>산업 사이클 이야기</h1>
+  <p class="legal-effective-date">반도체·조선·자동차·바이오·2차전지 · 업종별 경기순환과 분석 순서 · 설명 업데이트 2026-11-21</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>같은 해에 같은 회사가 만드는 상품인데 어느 해는 공장을 24시간 돌려도 모자라고, 어느 해는 창고에 재고가 쌓여 가동을 줄인다. 업종마다 이런 오르내림에는 고유한 박자가 있다. 반도체는 재고가 쌓이는 속도, 조선은 몇 년 전에 받은 주문, 바이오는 임상 결과가 박자를 정한다.</p>
+  <p>기업분석 이야기는 한 회사의 재무제표를 읽는 법이었다. 이 이야기는 한 걸음 위에서 <b>그 회사가 속한 업종이 지금 어느 구간에 있는가</b>를 본다. 좋은 회사도 업종이 내리막이면 주가가 힘들고, 평범한 회사도 업종이 오르막이면 같이 오른다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>주가는 이익보다</span><strong>먼저 움직인다</strong></div>
+    <div class="in-fact"><span>사이클주의 PER은</span><strong>거꾸로 읽는다</strong></div>
+    <div class="in-fact"><span>업종마다 볼 숫자가</span><strong>다르다</strong></div>
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">경기가 흔들리면 업종마다 다르게 흔들린다</h2>
+  <p>경제 전체가 좋아지고 나빠지는 물결이 경기다. 그 물결 위에서 업종은 두 부류로 나뉜다. 경기가 나빠져도 사람들이 끊지 못하는 것을 파는 <b>방어 업종</b>(음식료·통신·전력·의약품)과 경기가 좋을 때 크게 늘고 나쁠 때 크게 줄어드는 <b>경기민감 업종</b>(반도체·화학·철강·조선·자동차)이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="같은 경기 물결에서 방어 업종은 작게, 경기민감 업종은 크게 출렁이는 두 곡선 비교">
+      <path class="fig-line" d="M30 20 V160 H395" />
+      <path class="fig-dash" d="M30 90 H395" />
+      <path class="fig-down-line" d="M40 90 C80 60,110 60,150 90 S220 130,260 90 S330 60,385 90" />
+      <path class="fig-up-line" d="M40 90 C80 30,110 30,150 90 S220 150,260 90 S330 30,385 90" />
+      <text class="fig-up" x="48" y="30" font-size="12.5">경기민감 업종(크게 출렁)</text>
+      <text class="fig-down" x="48" y="178" font-size="12.5">방어 업종(작게 출렁)</text>
+    </svg>
+    <figcaption>같은 경기 파도에도 흔들림의 크기가 다르다. 곡선은 개념 그림이다.</figcaption>
+  </figure>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">업종을 보는 다섯 단계</h2>
+  <p>어떤 업종이든 이 순서로 묻는다. 한 단계를 건너뛰면 지금이 오르막인지 내리막인지 헷갈린다.</p>
+  <ol class="learn-toc">
+    <li><b>수요</b> <small>살 사람이 늘고 있나, 줄고 있나. 소비자·기업·정부 가운데 누가 주문하나</small></li>
+    <li><b>공급</b> <small>공장을 얼마나 지었고 앞으로 얼마나 지을 계획인가. 새 공장은 짓는 데 1~3년이 걸린다</small></li>
+    <li><b>재고</b> <small>만든 것이 팔리고 있나, 쌓이고 있나. 쌓이면 곧 값이 내려간다</small></li>
+    <li><b>가격</b> <small>제품 값이 오르는가 내리는가. 원재료 값과의 차이(스프레드)가 이익이다</small></li>
+    <li><b>이익과 주가</b> <small>위 네 가지가 실적에 찍히는 때와 주가가 반응하는 때는 다르다</small></li>
+  </ol>
+  <div class="learn-note"><b>공급은 늦게 움직이고 수요는 빨리 움직인다</b> 호황이면 모두가 공장을 늘린다. 공장이 완성될 즈음에는 수요가 꺾이고, 공급이 넘쳐 값이 무너진다. 사이클이 생기는 가장 흔한 이유다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">주가는 실적보다 앞서 간다</h2>
+  <p>사이클 업종에서 가장 헷갈리는 장면은 <b>이익이 가장 나쁜데 주가는 오르고, 이익이 가장 좋은데 주가는 내리는</b> 일이다. 주가는 지금 번 돈이 아니라 앞으로 벌 돈을 값으로 매기기 때문이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 200" role="img" aria-label="주가 곡선이 이익 곡선보다 먼저 바닥과 정점을 지나가는 개념도">
+      <path class="fig-line" d="M30 20 V170 H420" />
+      <path class="fig-acc-line" d="M40 120 C90 150,130 160,170 130 S250 40,300 40 S380 90,410 130" />
+      <path class="fig-up-line" d="M40 90 C70 120,100 150,140 150 S210 110,250 70 S320 30,360 50 S400 100,410 120" />
+      <text class="fig-acc" x="48" y="188" font-size="12.5">이익(실적 발표로 확인)</text>
+      <text class="fig-up" x="220" y="188" font-size="12.5">주가(미리 반영)</text>
+      <path class="fig-dash" d="M140 150 V170 M170 130 V170" />
+      <text class="fig-sub" x="100" y="26">주가 바닥이 먼저</text>
+      <text class="fig-sub" x="290" y="26">정점도 주가가 먼저</text>
+    </svg>
+    <figcaption>보통 주가는 이익보다 몇 달 앞서 방향을 바꾼다. 앞서는 정도는 업종과 시기마다 다르다. 개념 그림이다.</figcaption>
+  </figure>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">반도체 · 재고가 박자를 정한다</h2>
+  <p>메모리 반도체는 규격이 같은 상품이라 값이 곧 이익이다. 스마트폰·서버 회사들이 반도체를 많이 사 두려고 주문을 늘리면 호황이 오고, 재고가 충분해지면 주문을 멈춰 불황이 온다. 그 사이 공장 증설이 겹치면 오르내림이 더 커진다.</p>
+  <table class="learn-table">
+    <thead><tr><th>먼저 보는 숫자</th><th>무엇을 알려 주나</th></tr></thead>
+    <tbody>
+      <tr><td>D램·낸드 가격(현물·계약)</td><td>값이 오르는 중인가. 현물가가 계약가보다 먼저 움직이는 경향이 있다</td></tr>
+      <tr><td>고객사·제조사 재고 일수</td><td>쌓이면 주문이 줄 신호, 줄면 주문이 늘 신호</td></tr>
+      <tr><td>설비투자(CAPEX) 계획</td><td>증설이 크면 1~2년 뒤 공급 과잉 위험</td></tr>
+      <tr><td>수출 통계(월별)</td><td>한국은 반도체 수출액이 업황의 빠른 확인표다</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note"><b>이익이 바닥일 때 PER은 가장 높다</b> 사이클 업종의 PER은 거꾸로 읽는다. 아래 계산을 보자.</div>
+  <table class="learn-table">
+    <thead><tr><th>가상 숫자</th><th>주가</th><th>주당이익(EPS)</th><th>PER</th></tr></thead>
+    <tbody>
+      <tr><td>호황 정점</td><td>80,000원</td><td>10,000원</td><td>8배(싸 보인다)</td></tr>
+      <tr><td>불황 바닥</td><td>60,000원</td><td>1,000원</td><td>60배(비싸 보인다)</td></tr>
+    </tbody>
+  </table>
+  <p>정점에서는 PER이 낮아 싸 보이지만 곧 이익이 꺾인다. 바닥에서는 PER이 높아 비싸 보이지만 이익이 회복되면 오히려 싸다. 그래서 사이클 업종은 PER 하나로 판단하지 않고 <b>PBR과 업황 지표</b>를 함께 본다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">조선 · 주문은 지금 받고 돈은 몇 년 뒤에 번다</h2>
+  <p>배 한 척은 짓는 데 2~3년이 걸린다. 선주와 계약을 맺은 때와 매출이 잡히는 때가 멀다. 그래서 조선은 <b>수주잔고</b>(받아 놓고 아직 못 지은 주문의 총액)가 앞날 실적을 미리 보여 준다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 150" role="img" aria-label="수주는 계약 때 잡히고 매출은 2~3년에 걸쳐 나뉘어 인식되며, 그 사이 수주잔고에 쌓여 있는 흐름">
+      <rect class="fig-soft2" x="20" y="30" width="100" height="42" rx="6" />
+      <text class="fig-ink" x="40" y="56" font-size="13">수주(계약)</text>
+      <path class="fig-ink-line" d="M126 51 H156 M148 45 L156 51 L148 57" />
+      <rect class="fig-soft" x="162" y="30" width="110" height="42" rx="6" />
+      <text class="fig-ink" x="176" y="56" font-size="13">수주잔고(대기)</text>
+      <path class="fig-ink-line" d="M278 51 H308 M300 45 L308 51 L300 57" />
+      <rect class="fig-soft2" x="314" y="30" width="92" height="42" rx="6" />
+      <text class="fig-ink" x="330" y="56" font-size="13">매출 인식</text>
+      <text class="fig-sub" x="20" y="108">선가와 철강재 원가 시점이 어긋나면 이익이 흔들린다</text>
+      <text class="fig-sub" x="20" y="128">그래서 선가와 후판 가격도 함께 본다</text>
+    </svg>
+    <figcaption>조선은 "지금 호황"이 아니라 "몇 년 치 일감이 있는가"를 본다.</figcaption>
+  </figure>
+  <p>먼저 보는 숫자는 <b>신조선가지수</b>(새 배의 값), <b>수주잔고</b>, 선박 수요를 정하는 환경 규제(연료 규칙)와 노후 선박 교체 주기다. 사이클이 길어 한 번 오르면 몇 년 이어지고, 꺾이면 길게 이어지는 특징이 있다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">자동차 · 신차 주기와 환율</h2>
+  <p>자동차는 부품이 3만 개쯤 들어가는 큰 산업이라 경기·금리·환율에 모두 걸린다. 할부로 사는 사람이 많아 금리가 내리면 판매가 늘고, 해외 판매 비중이 커 환율이 오르면(원화가 약해지면) 같은 판매로도 원화 이익이 늘어난다.</p>
+  <table class="learn-table">
+    <thead><tr><th>먼저 보는 숫자</th><th>읽는 법</th></tr></thead>
+    <tbody>
+      <tr><td>판매 대수와 신차 출시</td><td>새 모델이 나오는 해에 판매·가격이 오르는 모델 주기</td></tr>
+      <tr><td>인센티브(판매 장려금)</td><td>할인이 늘면 팔기 힘들다는 신호</td></tr>
+      <tr><td>환율·관세</td><td>수출 단가와 마진을 바꾼다</td></tr>
+      <tr><td>전기차·하이브리드 비중</td><td>제품 구성이 바뀌면 이익률과 부품주 수혜가 갈린다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">바이오 · 경기가 아니라 임상이 박자를 정한다</h2>
+  <p>바이오 업종은 경기와 따로 움직인다. 신약은 약효를 사람에게 확인하는 <b>임상시험</b> 단계(1상 안전성 → 2상 효능 → 3상 대규모 확인)를 통과해야 팔 수 있다. 단계마다 떨어질 수 있고, 처음 시험에 들어간 약 가운데 허가까지 가는 것은 일부(통계마다 다르지만 한 자릿수에서 열 몇 %)라고 알려져 있다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 170" role="img" aria-label="신약 개발 깔때기: 후보 물질에서 임상 1상, 2상, 3상, 허가로 갈수록 살아남는 약이 줄어든다">
+      <path class="fig-soft" d="M20 20 H400 L350 60 H70 Z" />
+      <text class="fig-ink" x="150" y="44" font-size="13">후보 물질 · 전임상</text>
+      <path class="fig-soft2" d="M70 66 H350 L316 100 H104 Z" />
+      <text class="fig-ink" x="142" y="88" font-size="13">1상 · 2상 · 3상</text>
+      <path class="fig-white" d="M104 106 H316 L292 138 H128 Z" />
+      <text class="fig-ink" x="164" y="127" font-size="13">허가 · 출시</text>
+      <text class="fig-sub" x="20" y="162">단계가 올라갈수록 살아남는 비율이 줄어든다. 폭은 개념이다.</text>
+    </svg>
+    <figcaption>임상 결과 발표 하루에 주가가 ±30%(가격제한폭) 가까이 움직이는 까닭이다.</figcaption>
+  </figure>
+  <p>매출이 아직 없는 회사가 많아 PER 대신 <b>보유 현금과 연구비 지출 속도(몇 년 버티나), 임상 단계 일정, 기술이전 계약</b>을 본다. 기술이전은 다른 제약사가 개발·판매 권리를 사 가는 것으로, 계약금(바로 받는 돈)과 마일스톤(단계를 통과하면 받는 돈)이 다르다는 점에 유의한다. 발표된 총액을 한꺼번에 받는 돈으로 읽으면 안 된다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-8">2차전지 · 전기차와 원재료 값 사이에서</h2>
+  <p>2차전지는 전기차 수요와 소재 값(리튬·니켈·코발트)을 양쪽에 둔다. 소재 값이 오르면 전지 값에 넘기는 데 시차가 있어 이익이 눌리기도 하고, 반대면 재고 평가이익이 생기기도 한다. 업종 안에서도 위치가 다르다.</p>
+  <table class="learn-table">
+    <thead><tr><th>위치</th><th>하는 일</th><th>먼저 보는 것</th></tr></thead>
+    <tbody>
+      <tr><td>소재(양극재·음극재·전해액)</td><td>전지 재료를 만든다</td><td>원재료 값과 판매가의 연동 방식, 가동률</td></tr>
+      <tr><td>셀(전지)</td><td>전지를 만들어 완성차에 판다</td><td>고객사 판매, 증설 계획, 정책 보조</td></tr>
+      <tr><td>장비</td><td>공장에 들어가는 기계를 만든다</td><td>고객사 신규 증설 주문 → 증설이 멈추면 가장 먼저 꺾인다</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note"><b>장비·소재·셀의 시차</b> 증설 계획이 나오면 장비가 먼저, 공장이 돌 때 소재가, 완성차가 팔릴 때 셀이 반응한다. 같은 업종이어도 주가가 움직이는 순서가 다르다. 정책(보조금·관세)이 한 번에 바꾸는 규칙도 변수다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-9">업종별 박자 한눈에 보기</h2>
+  <table class="learn-table">
+    <thead><tr><th>업종</th><th>박자를 정하는 것</th><th>사이클 길이(대략)</th><th>가장 먼저 볼 것</th></tr></thead>
+    <tbody>
+      <tr><td>반도체</td><td>재고와 증설</td><td>수 년 안팎</td><td>제품 가격, 재고 일수</td></tr>
+      <tr><td>조선</td><td>수주와 선가</td><td>길다(10년 안팎까지)</td><td>수주잔고, 신조선가지수</td></tr>
+      <tr><td>자동차</td><td>신차·금리·환율</td><td>중간</td><td>판매 대수, 인센티브</td></tr>
+      <tr><td>바이오</td><td>임상 단계</td><td>경기와 무관</td><td>임상 일정, 보유 현금</td></tr>
+      <tr><td>2차전지</td><td>전기차 수요, 소재 값</td><td>중간</td><td>고객사 증설, 소재 가격</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">사이클 길이는 시기에 따라 달라진다. 어림을 알려 주는 표이지 달력이 아니다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-10">이 사이트에서 확인하기</h2>
+  <ul>
+    <li>시장 메뉴의 업종·섹터 화면에서 업종별 등락과 거래대금 흐름을 본다. 같은 업종이 같이 움직이는지, 대장주만 오르는지 구분해서 본다.</li>
+    <li>마켓 대동여지도에서 업종별 종목의 단기·장기 상대 위치를 비교한다. 업종이 시장보다 오래 강했는지, 최근에야 올랐는지를 가늠한다.</li>
+    <li>종목분석 화면의 실적·재무 표로 해당 업종 기업의 매출과 이익이 업황 지표와 같은 방향인지 맞춰 본다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 반도체 회사 주가가 이익이 바닥을 치기 전에 이미 올랐다. 이상한 일일까?</summary><p>자주 있는 일이다. 주가는 지금 번 돈이 아니라 앞으로 벌 돈을 반영하므로 이익이 바닥을 확인하기 몇 달 전에 방향을 바꾸는 경우가 많다.</p></details>
+  <details class="in-quiz"><summary>2. 호황 정점에서 PER이 6배인 업종주를 "싸다"고 사도 될까?</summary><p>조심해야 한다. 정점의 이익은 평소의 몇 배라 이익이 꺾이면 PER이 금방 올라간다. 평균 이익 기준으로 다시 보거나 PBR과 업황 지표를 함께 본다.</p></details>
+  <details class="in-quiz"><summary>3. 조선 회사가 올해 대규모 수주를 발표했다. 매출은 언제 늘어날까?</summary><p>2~3년에 걸쳐 건조 진행률에 따라 나뉘어 잡힌다. 올해 이익이 아니라 앞으로 몇 년의 일감이 늘었다는 뜻이다.</p></details>
+  <details class="in-quiz"><summary>4. 바이오 기업이 "총 1조 원 기술이전"을 발표했다. 1조 원이 곧 들어오는 돈일까?</summary><p>아니다. 계약금과 단계별 마일스톤, 판매 로열티로 나뉜다. 발표 총액은 모든 조건을 다 채웠을 때의 최대 금액이다. 계약금이 얼마인지 공시에서 확인한다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="cycle-advanced">
+  <h2 id="cycle-advanced">심화 연구실 · 사이클에서 선행·동행·후행을 가르기</h2>
+  <p>사이클 분석은 어느 지표가 <b>먼저</b>, <b>같이</b>, <b>나중에</b> 움직이는지 가르는 일이다. 모든 지표를 같은 무게로 읽으면 늦은 지표에 속는다. 한국은행·통계청은 선행종합지수와 동행종합지수를 따로 발표해 경기 전환 시점을 가늠하게 한다.</p>
+  <div class="learn-grid">
+    <div><h3>선행 지표</h3><p>수주, 설비투자 계획, 재고 증감, 가격 상승률 변화, 신용 스프레드. 방향이 바뀌는 시점을 미리 알려 주지만 오신호도 자주 낸다.</p></div>
+    <div><h3>동행 지표</h3><p>생산, 출하, 수출, 가동률. 지금 어디인지 확인한다. 선행 지표가 꺾인 뒤 동행 지표가 따라 꺾이면 신호가 겹쳐 신뢰가 오른다.</p></div>
+    <div><h3>후행 지표</h3><p>재무제표의 이익, 고용, 재고 소진 후의 가격. 확인용이다. 후행 지표만 보고 사면 이미 반영된 뒤다.</p></div>
+  </div>
+  <div class="learn-lab">
+    <h3>연습 · 재고가 늘면 왜 주가가 먼저 내릴까</h3>
+    <p>재고가 계속 늘면 한동안은 매출이 좋다. 창고에 쌓이는 물건도 "판매"로 보이는 단계(유통 재고)에서는 이익이 늘어 보이기 때문이다. 그러나 최종 소비가 따라오지 않으면 곧 주문이 끊긴다. 시장은 <b>재고 증가율이 판매 증가율을 넘는 시점</b>을 위험 신호로 읽는다. 업종마다 재고를 세는 방법(제조사 재고, 유통 재고, 고객 재고)이 다르니 같은 숫자를 다른 업종에 쓰지 않는다.</p>
+  </div>
+  <div class="learn-sources"><strong>자료 확인</strong><ul><li><a href="https://kosis.kr/" target="_blank" rel="noopener noreferrer">통계청 국가통계포털(KOSIS) · 산업활동동향, 경기종합지수</a></li><li><a href="https://ecos.bok.or.kr/" target="_blank" rel="noopener noreferrer">한국은행 경제통계시스템(ECOS) · 업황 조사</a></li></ul></div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-summary">한 줄 정리</h2>
+  <p>업종은 수요·공급·재고·가격의 순서로 오르내리고, 주가는 그 이익보다 앞서 움직인다. 업종마다 박자를 정하는 변수(반도체 재고, 조선 수주, 바이오 임상, 2차전지 고객 증설)가 달라서 먼저 볼 숫자도 다르다. 사이클 업종은 이익이 바닥일 때 PER이 가장 높으므로 PER 하나로 싸고 비싸다를 판단하지 않는다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-source">설명 근거</h2>
+  <p>2026-11-21 확인. 개념 설명이며 특정 업종의 현재 업황이나 종목 전망을 말하지 않는다. 숫자는 가상값이다. 임상 성공률·사이클 길이는 자료와 시기마다 다르다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/derivatives.html">← 선물·옵션 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/disclosure.html">기업공시 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-cards.js?v=20261121-cards-1"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>

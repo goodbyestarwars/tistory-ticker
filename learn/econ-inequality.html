@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>12장 부와 불평등 · 경제 이야기</title>
+<meta name="description" content="다섯 사람 마을로 소득 격차와 지니계수·로렌츠 곡선을 계산하고, 소득과 자산 불평등의 차이, 세금과 복지로 나누는 재분배, 평등과 효율의 고민을 쉽게 설명한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+<link rel="stylesheet" href="../css/learn-cards.css?v=20261121-cards-1" />
+<script>try{if(localStorage.getItem('lc_mode')!=='scroll')document.documentElement.classList.add('lc-pre')}catch(e){document.documentElement.classList.add('lc-pre')}</script>
+</head>
+<body class="learn-page">
+<div class="legal-wrap econ-page">
+  <div class="legal-backs">
+    <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+    <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
+  </div>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>12장 · 부와 불평등</h1>
+  <p class="legal-effective-date">같은 마을에 사는데 왜 살림살이는 이렇게 다를까</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>같은 반인데도 용돈이 5천 원인 아이와 5만 원인 아이가 있다. 같은 동네에 월세방에 사는 가족과 큰 집에 사는 가족이
+  함께 산다. 이 차이는 어디서 오고, 어느 정도까지 괜찮을까?</p>
+  <p>이 장은 정답을 내리는 글이 아니다. 차이를 <b>어떻게 재는지</b>, <b>소득과 재산은 어떻게 다른지</b>, 나라가
+  <b>어떤 방법으로 줄이려 하는지</b>를 알려 준다. 어떤 정책이 옳은지는 사람마다 의견이 다르므로 판단은 읽는
+  사람의 몫이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">번 돈과 쌓인 재산은 다르다 · 소득과 자산</h2>
+  <p>욕조에 물이 들어오는 것을 생각해 보자. 1분에 들어오는 물의 양이 <b>소득</b>(흐름)이고, 욕조에 고인 물의
+  양이 <b>자산</b>(고인 것)이다. 월급은 소득이고, 집과 예금과 주식은 자산이다.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>소득</th><th>자산</th></tr></thead>
+    <tbody>
+      <tr><td>비유</td><td>욕조로 들어오는 물</td><td>욕조에 고인 물</td></tr>
+      <tr><td>예</td><td>월급, 사업 수입, 이자·배당</td><td>집, 땅, 예금, 주식, 자동차</td></tr>
+      <tr><td>변하는 속도</td><td>매달 들어온다</td><td>오랜 세월 쌓이고, 가격이 오르내리며 변한다</td></tr>
+      <tr><td>격차가 벌어지는 이유</td><td>직업, 일하는 시간, 기술</td><td>소득에 더해 물려받은 것, 집값·주가 변화</td></tr>
+    </tbody>
+  </table>
+  <p>소득이 같아도 자산이 많은 사람은 이자와 임대료까지 받는다. 반대로 월급은 높아도 빚이 많으면 자산은 거의
+  없을 수 있다. 그래서 불평등은 소득과 자산을 따로 봐야 한다. 보통 자산의 격차가 소득의 격차보다 더 크다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">격차를 숫자 하나로 · 로렌츠 곡선과 지니계수</h2>
+  <p>다섯 식구가 사는 작은 마을을 상상하자. 한 달 소득이 각각 100만, 200만, 300만, 400만, 1,000만 원이다(가상
+  숫자). 소득이 낮은 사람부터 순서대로 세워 놓고, 소득을 차곡차곡 더해 가며 점을 찍는다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>가구 수(낮은 쪽부터)</th><th>그 가구들의 소득 합계</th><th>전체 소득에서 차지하는 몫</th></tr></thead>
+    <tbody>
+      <tr><td>1가구(20%)</td><td>100만</td><td>5%</td></tr>
+      <tr><td>2가구(40%)</td><td>300만</td><td>15%</td></tr>
+      <tr><td>3가구(60%)</td><td>600만</td><td>30%</td></tr>
+      <tr><td>4가구(80%)</td><td>1,000만</td><td>50%</td></tr>
+      <tr><td>5가구(100%)</td><td>2,000만</td><td>100%</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="로렌츠 곡선: 가구를 소득 낮은 순으로 세웠을 때 누적 소득 몫을 이은 선이 완전 평등선 아래로 휘어 있다. 다섯 가구 마을에서 하위 60%는 소득의 30%를 차지한다">
+      <text class="fig-sub" x="0" y="14">누적 소득 몫</text>
+      <rect class="fig-soft" x="40" y="20" width="200" height="160" />
+      <path class="fig-dash" d="M40 180 L240 20" />
+      <path class="fig-up-line" d="M40 180 L80 172 L120 156 L160 132 L200 100 L240 20" />
+      <text class="fig-sub" x="40" y="200">0</text>
+      <text class="fig-sub" x="200" y="200">80%</text>
+      <text class="fig-sub" x="100" y="214">낮은 쪽부터 센 가구 수 →</text>
+      <text class="fig-ink" x="262" y="60" font-size="12">점선: 모두 같은 소득</text>
+      <text class="fig-up" x="262" y="84" font-size="12">붉은 선: 실제 마을</text>
+      <text class="fig-sub" x="262" y="112">두 선 사이가 넓을수록</text>
+      <text class="fig-sub" x="262" y="130">격차가 크다</text>
+      <text class="fig-ink" x="262" y="164" font-size="12">이 마을 지니계수 0.4</text>
+    </svg>
+    <figcaption>붉은 선이 점선에서 멀리 휠수록 소득이 몇 사람에게 몰려 있다는 뜻이다. 두 선 사이의 넓이를 숫자로 바꾼 것이 지니계수다.</figcaption>
+  </figure>
+
+  <p>두 선 사이의 넓이를 삼각형 전체 넓이와 비교해 0에서 1 사이의 숫자로 만든 것이 <b>지니계수</b>다. 모두가 똑같이
+  벌면 0, 한 사람이 다 가지면 1에 가깝다. 이 마을은 0.4다. 계산하는 법은 아래 '한 걸음 더'에서 직접 해 본다.</p>
+
+  <div class="learn-note">
+    <b>헷갈리기 쉬운 것</b> 지니계수가 낮다고 그 나라가 부자라는 뜻은 아니다. 모두가 가난하게 똑같아도 0에
+    가깝다. 격차의 크기를 재는 숫자일 뿐 살림의 수준을 말해 주지 않는다. 같은 나라라도 시장에서 번 소득으로 계산한
+    값과, 세금과 복지를 반영한 값은 다르다. 연도별 한국의 값은 통계청(현 국가데이터처) 자료에서 확인한다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">나라는 어떻게 격차를 줄이려 할까 · 재분배</h2>
+  <p>나라가 세금으로 걷은 돈을 도움이 필요한 사람에게 옮기는 일을 <b>재분배</b>라 한다. 7장에서 본 누진세가 대표다.
+  많이 버는 사람이 더 높은 비율을 내고, 그 돈이 복지로 간다.</p>
+  <table class="learn-table">
+    <thead><tr><th>방법</th><th>어떻게 하나</th><th>우리 생활에서</th></tr></thead>
+    <tbody>
+      <tr><td>누진세</td><td>번 돈이 많을수록 높은 비율을 낸다</td><td>소득세, 상속세</td></tr>
+      <tr><td>현금 지원</td><td>돈을 직접 준다</td><td>기초연금, 아동수당, 근로장려금</td></tr>
+      <tr><td>현물 지원</td><td>서비스를 준다</td><td>무상급식, 건강보험, 공공임대주택</td></tr>
+      <tr><td>기회 평등</td><td>교육·훈련을 지원한다</td><td>무상교육, 장학금, 직업훈련</td></tr>
+    </tbody>
+  </table>
+  <p>학교에서 교복을 못 사는 친구가 있다면 모두 함께 돕는 것이 재분배의 가장 작은 모습이다. 다만 도움을 주는 방법과
+  양을 정하는 일에는 늘 논쟁이 따른다. 세금을 많이 걷으면 일할 의욕이 줄 수 있다는 걱정도 있다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">평등과 효율은 늘 맞바꿔야 할까</h2>
+  <p>경제학자 아서 오쿤은 재분배를 "물이 새는 양동이"에 비유했다. 부자에게서 물을 퍼서 가난한 사람에게 옮기는데,
+  운반하는 동안 일부가 새 버린다는 것이다. 세금을 걷고 나누는 과정에서 비용이 들고, 일할 의욕이 줄어 전체 파이가
+  작아질 수 있다.</p>
+  <table class="learn-table">
+    <thead><tr><th>생각</th><th>주장</th></tr></thead>
+    <tbody>
+      <tr><td>효율을 먼저 보는 쪽</td><td>파이를 키워야 모두에게 돌아갈 몫이 커진다. 지나친 재분배는 일할 이유를 줄인다.</td></tr>
+      <tr><td>평등을 먼저 보는 쪽</td><td>격차가 너무 크면 기회가 막혀 오히려 성장이 약해진다. 교육과 건강에 대한 투자는 모두에게 이익이다.</td></tr>
+    </tbody>
+  </table>
+  <p>두 쪽이 모두 일리가 있어서 나라마다, 시대마다 답이 다르다. 연구도 "얼마나 불평등하면 성장이 약해지는가"에
+  대해 하나로 모이지 않는다. 한 쪽 이야기만 듣고 단정하지 않는 것이 이 주제를 읽는 좋은 습관이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">개미 관점 · 자산이 자산을 낳는다</h2>
+  <p>집값이나 주가가 오르면 자산을 가진 사람의 재산이 불어난다. 자산이 없는 사람은 같은 시기에 월급만 받으므로
+  격차가 벌어지기 쉽다. 그래서 개미가 투자를 시작하는 이유 중 하나가 "월급만으로는 따라잡기 어렵다"는 생각이다.</p>
+  <table class="learn-table">
+    <thead><tr><th>상황</th><th>알아 둘 것</th></tr></thead>
+    <tbody>
+      <tr><td>빨리 시작할수록 복리가 오래 일한다</td><td>8장의 70의 법칙. 연 7% 수익이면 약 10년마다 두 배가 된다(세금·수수료 전)</td></tr>
+      <tr><td>빚으로 투자하면</td><td>자산 가격이 떨어질 때 격차가 거꾸로 벌어질 수 있다(부동산 이야기, 금융사기 이야기)</td></tr>
+      <tr><td>"남들은 다 번다"는 말</td><td>격차에 대한 불안이 판단을 서두르게 한다(투자심리 이야기)</td></tr>
+    </tbody>
+  </table>
+  <p>격차는 개인이 노력해도 해결되지 않는 구조적 문제가 섞여 있다. 하지만 지금 할 수 있는 것은 생활비를 확인하고,
+  비상금과 장기 분산 투자부터 쌓아 가는 일이다. 이 글은 투자를 권하지 않는다. 자산배분 이야기에서 기본 원칙을
+  확인하자.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 월급과 집값 중 소득은 어느 것이고 자산은 어느 것일까?</summary><p>월급은 소득(흐름), 집은 자산(고인 것)이다.</p></details>
+  <details class="in-quiz"><summary>2. 지니계수 0과 1은 각각 어떤 마을일까?</summary><p>0은 모든 가구의 소득이 같은 마을이다. 1에 가까우면 한 사람이 거의 모든 소득을 가진 마을이다.</p></details>
+  <details class="in-quiz"><summary>3. 다섯 가구 마을에서 소득이 낮은 쪽 3가구가 전체 소득에서 차지하는 몫은?</summary><p>100 + 200 + 300 = 600만 원, 전체 2,000만 원의 30%다.</p></details>
+  <details class="in-quiz"><summary>4. 지니계수가 낮은 나라가 더 부자일까?</summary><p>아니다. 지니계수는 격차만 재며, 모두가 가난해도 낮을 수 있다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="econ-ineq-deep">
+  <h2 id="econ-ineq-deep">한 걸음 더 · 지니계수를 직접 계산해 보자</h2>
+  <p>다섯 가구 소득이 x₁~x₅(100, 200, 300, 400, 1,000)일 때, 모든 두 가구 사이의 소득 차이를 더해 평균으로 나눈다.
+  서로 다른 두 가구의 차이를 모두 더하면 1·2: 100, 1·3: 200, 1·4: 300, 1·5: 900, 2·3: 100, 2·4: 200, 2·5: 800,
+  3·4: 100, 3·5: 700, 4·5: 600으로 합계가 4,000이다. 순서를 구분해 두 번 센 합은 8,000이다.</p>
+  <p>지니계수 = 8,000 ÷ (2 × 가구 수² × 평균) = 8,000 ÷ (2 × 25 × 400) = 8,000 ÷ 20,000 = 0.4다. 소득이
+  모두 같으면 차이가 0이므로 0이고, 한 가구가 모든 소득을 가진 경우는 5가구 기준 0.8이다.</p>
+  <p class="in-small">어른을 위한 덧붙임: 실제 통계는 가구 규모를 반영한 균등화 소득과 시장소득·처분가능소득을 구분해 계산한다. 자산 지니계수는 소득 지니계수보다 대체로 크다. 한 나라의 상위 몇 %가 소득·자산을 얼마나 갖는지는 통계 기관 자료로 확인하며, 이 장의 숫자는 개념을 위한 가상 값이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">한 줄 정리</h2>
+  <p>소득은 흐르는 것, 자산은 쌓인 것이다. 격차는 로렌츠 곡선과 지니계수로 잴 수 있고, 나라는 누진세와 복지로
+  재분배한다. 평등과 효율 사이의 균형은 의견이 갈리는 문제이므로 한쪽 주장만 보고 단정하지 않는다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-policy.html">← 11장 경기와 정책</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-behavioral.html">13장 행동경제 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-cards.js?v=20261121-cards-1"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>

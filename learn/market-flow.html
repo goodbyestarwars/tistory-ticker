@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>시장수급 이야기</title>
+<meta name="description" content="외국인·기관·개인의 매매가 시장에서 어떻게 맞물리는지, 프로그램 매매와 선물·현물 차익거래, 지수 리밸런싱이 만드는 대량 매매를 그림으로 풀어 본다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+<link rel="stylesheet" href="../css/learn-cards.css?v=20261121-cards-1" />
+<script>try{if(localStorage.getItem('lc_mode')!=='scroll')document.documentElement.classList.add('lc-pre')}catch(e){document.documentElement.classList.add('lc-pre')}</script>
+</head>
+<body class="learn-page">
+<div class="legal-wrap story-page">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>시장수급 이야기</h1>
+  <p class="legal-effective-date">외국인·기관·프로그램매매·차익거래·지수 리밸런싱 · 설명 업데이트 2026-11-21</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>주식 이야기 4장에서는 "외국인·기관·개인이 어디에 몰리는지 본다"고 배웠다. 한 종목의 수급이었다. 이번에는 시야를 넓혀 <b>시장 전체에서 돈이 누구에게서 누구로 흐르는가</b>를 본다. 같은 날 코스피가 3% 내려도 개인이 받쳤는지, 외국인이 던졌는지에 따라 그다음 며칠이 달라진다.</p>
+  <p>큰 시장은 큰 저수지다. 외국인과 기관은 큰 파이프로 물을 넣고 빼고, 개인은 작은 수도꼭지다. 어느 파이프가 열렸는지 알면 수위가 왜 변하는지 설명된다. 다만 수급은 결과를 알려 주는 숫자이지 앞날을 알려 주는 숫자가 아니라는 점도 같이 짚는다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>한 쪽이 사면</span><strong>다른 쪽이 판다</strong></div>
+    <div class="in-fact"><span>큰 손의 매매는</span><strong>쪼개져 나온다</strong></div>
+    <div class="in-fact"><span>정기 이벤트는</span><strong>미리 알려져 있다</strong></div>
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">시장은 누가 사고 누가 파는가</h2>
+  <p>거래소의 투자자별 매매 동향은 사고파는 사람을 몇 가지 무리로 나눈다. 한 거래에는 사는 사람과 파는 사람이 있어서, 모든 무리의 순매수를 더하면 <b>항상 0</b>이다. 외국인이 1조 원을 순매수했다면 나머지 무리가 합쳐서 1조 원을 순매도한 것이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="하루 순매수 가상 예시: 외국인 +1조, 기관 -0.4조, 개인 -0.6조로 합이 0이다">
+      <path class="fig-dash" d="M30 100 H395" />
+      <rect class="fig-up" x="70" y="30" width="70" height="70" opacity="0.85" />
+      <text class="fig-ink" x="64" y="22" font-size="12">외국인</text>
+      <text class="fig-up" x="80" y="68" font-size="13">+1.0조</text>
+      <rect class="fig-down" x="175" y="100" width="70" height="28" opacity="0.85" />
+      <text class="fig-ink" x="180" y="22" font-size="12">기관</text>
+      <text class="fig-down" x="180" y="146" font-size="12.5">-0.4조</text>
+      <rect class="fig-down" x="280" y="100" width="70" height="42" opacity="0.85" />
+      <text class="fig-ink" x="290" y="22" font-size="12">개인</text>
+      <text class="fig-down" x="288" y="162" font-size="12.5">-0.6조</text>
+      <text class="fig-sub" x="30" y="184">사는 쪽(위)과 파는 쪽(아래)의 크기가 같다. 가상 숫자다.</text>
+    </svg>
+    <figcaption>순매수의 합은 늘 0이다. 누가 받아 주고 누가 던졌는지가 그날의 이야기다.</figcaption>
+  </figure>
+  <table class="learn-table">
+    <thead><tr><th>무리</th><th>누구인가</th><th>매매 성격</th></tr></thead>
+    <tbody>
+      <tr><td>외국인</td><td>해외 기관·펀드·ETF를 통한 자금</td><td>글로벌 위험 선호, 환율, 한국 비중 조절에 반응</td></tr>
+      <tr><td>기관(연기금)</td><td>국민연금 등 장기 투자 자금</td><td>비중 조절 중심. 하락 때 받아 주는 역할로 거론된다</td></tr>
+      <tr><td>기관(투신·사모)</td><td>펀드 운용사</td><td>펀드 자금 유출입에 따라 사고판다</td></tr>
+      <tr><td>기관(금융투자)</td><td>증권사 자기매매·차익거래·ETF 유동성 공급</td><td>선물·옵션과 연결된 단기 매매가 많다</td></tr>
+      <tr><td>개인</td><td>직접 투자자</td><td>하락 때 사고 상승 때 판 흔적이 흔히 보인다(역추세)</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note"><b>분류의 한계</b> 외국인으로 잡힌 자금에는 해외 연기금뿐 아니라 해외 헤지펀드의 단기 매매도 섞인다. 기관 안에도 성격이 정반대인 주체가 있다. 한 줄 합계 숫자만 보고 "스마트 머니"라고 부르지 않는다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">외국인 · 왜 가장 먼저 보나</h2>
+  <p>한국 대형주의 시가총액에서 외국인이 가진 비중은 작지 않다. 그래서 외국인이 어느 쪽으로 움직이는지가 지수 방향에 크게 영향을 준다. 외국인이 한국 주식을 사고팔게 되는 이유는 대체로 이렇다.</p>
+  <ul>
+    <li><b>글로벌 위험 선호</b> 위험자산을 줄일 때는 신흥국에서 먼저 빠지는 경우가 많다.</li>
+    <li><b>환율</b> 원화가 약하면 달러로 환산한 수익이 줄어 부담이 된다(7장 환율 참고).</li>
+    <li><b>한국 비중 조절</b> 신흥국 펀드가 한국 비중을 정할 때 지수 편입 비중과 업종(특히 반도체) 전망이 영향을 준다.</li>
+    <li><b>선물·현물 동시 포지션</b> 현물을 팔면서 선물로 방어하거나 선물에서 먼저 방향을 잡는 식으로 따로 움직이기도 한다.</li>
+  </ul>
+  <p>한국 시장은 <b>선물에서 먼저 사고팔고 현물이 따라오는</b> 경우가 자주 보인다. 선물은 증거금만으로 큰 금액을 빠르게 움직일 수 있어서다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">프로그램 매매 · 컴퓨터가 바스켓을 사고판다</h2>
+  <p>프로그램 매매는 주식 여러 종목(바스켓)을 한꺼번에, 컴퓨터가 정해 둔 조건으로 사고파는 방식이다. 거래소는 이를 둘로 나눠 집계한다.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>차익거래</th><th>비차익거래</th></tr></thead>
+    <tbody>
+      <tr><td>무엇인가</td><td>선물과 현물의 값 차이를 이용해 양쪽을 함께 거래</td><td>선물과 무관하게 바스켓을 사고파는 거래(펀드 자금 이동, ETF 설정 등)</td></tr>
+      <tr><td>주로 하는 곳</td><td>증권사 자기매매·기관</td><td>기관·외국인</td></tr>
+      <tr><td>시장에 주는 신호</td><td>선물·현물 괴리, 만기일 정리</td><td>큰 자금의 방향 전환</td></tr>
+    </tbody>
+  </table>
+
+  <h3>차익거래의 구조</h3>
+  <p>선물 가격이 이론 가격보다 비싸면 <b>선물을 팔고 현물 바스켓을 산다</b>. 만기에 선물 값이 현물 값으로 수렴하므로 그 사이의 값 차이를 챙기는 거래다. 선물이 싸면 반대다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 190" role="img" aria-label="선물이 이론가보다 비싸면 선물을 팔고 현물 바스켓을 사서 만기에 가격이 수렴하는 과정에서 차액을 얻는 차익거래 구조도">
+      <rect class="fig-soft2" x="14" y="26" width="190" height="50" rx="6" />
+      <text class="fig-ink" x="26" y="48" font-size="13">선물이 비싸다(403)</text><text class="fig-down" x="26" y="66" font-size="12.5">→ 선물을 판다</text>
+      <rect class="fig-soft" x="236" y="26" width="190" height="50" rx="6" />
+      <text class="fig-ink" x="248" y="48" font-size="13">현물 바스켓(400)</text><text class="fig-up" x="248" y="66" font-size="12.5">→ 현물을 산다</text>
+      <path class="fig-ink-line" d="M110 80 V108 M220 108 H110 M330 80 V108 M220 108 H330" />
+      <path class="fig-ink-line" d="M220 108 V124 M214 118 L220 126 L226 118" />
+      <rect class="fig-white" x="110" y="130" width="220" height="40" rx="6" />
+      <text class="fig-ink" x="124" y="148" font-size="12.5">만기에 두 값이 수렴하면 차이만큼 이익</text>
+      <text class="fig-sub" x="124" y="163">이론가 401.5보다 비싼 1.5포인트 부분(가상)</text>
+    </svg>
+    <figcaption>"사면서 팔면" 가격이 어느 쪽으로 가도 괴리만 남는다. 거래 비용이 이익보다 크면 하지 않는다.</figcaption>
+  </figure>
+  <div class="learn-note"><b>뉴스에서 이렇게 나온다</b> "프로그램 매수 1조 원 유입"은 이런 바스켓 거래의 합계다. 차익 매수는 선물을 팔고 현물을 사는 쪽이다. 만기일에는 이미 쌓인 차익 포지션을 한꺼번에 청산해 현물 물량이 쏟아지기도 한다. 선물·옵션 이야기의 베이시스와 이어진다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">지수 리밸런싱 · 미리 알려진 대규모 매매</h2>
+  <p>지수를 따라가도록 만든 펀드와 ETF는 지수가 바뀌면 같은 종목 구성으로 바꿔야 한다. 이 <b>지수 편입·편출</b> 때 대규모 매매가 한꺼번에 나온다. 일정이 정해져 있어 시장이 미리 알고 움직인다.</p>
+  <table class="learn-table">
+    <thead><tr><th>이벤트</th><th>주기</th><th>무슨 일이 생기나</th></tr></thead>
+    <tbody>
+      <tr><td>코스피200 정기변경</td><td>매년 6월·12월</td><td>코스피200을 추종하는 자금이 편입 종목을 사고 편출 종목을 판다. 적용 전날 장 마감 부근에 거래량이 몰린다</td></tr>
+      <tr><td>MSCI 지수 정기 리뷰</td><td>2·5·8·11월에 발표, 말일 부근 적용</td><td>해외 지수 추종 자금이 한국 비중과 종목을 조정한다. 신흥국 지수라 외국인 수급에 직접 영향을 준다</td></tr>
+      <tr><td>ETF 구성 변경</td><td>상품마다</td><td>ETF가 담는 종목이 바뀌면 그 종목에 매수·매도가 생긴다</td></tr>
+    </tbody>
+  </table>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 180" role="img" aria-label="지수 편입 종목의 주가가 발표 때부터 오르다 편입일 이후 되돌려지는 경향을 보여주는 개념도">
+      <path class="fig-line" d="M30 20 V150 H420" />
+      <path class="fig-up-line" d="M40 110 C100 108,140 100,180 70 S260 30,290 32 S350 70,410 100" />
+      <path class="fig-dash" d="M180 20 V150 M290 20 V150" />
+      <text class="fig-sub" x="140" y="168">발표</text>
+      <text class="fig-sub" x="258" y="168">편입일</text>
+      <text class="fig-sub" x="40" y="40">발표 전 조용</text>
+      <text class="fig-sub" x="300" y="56">편입일 지나면 되돌림</text>
+    </svg>
+    <figcaption>편입 기대로 미리 오른 종목은 편입일 이후에 맥이 빠지는 경우가 흔하다고 알려졌다. 항상 그렇지는 않으며 개념 그림이다.</figcaption>
+  </figure>
+  <div class="learn-note"><b>수급 이벤트를 매매 근거로 쓸 때</b> 일정은 미리 알려지고 많은 참가자가 같은 계산을 한다. 편입 가능성이 가격에 이미 반영된 상태에서 편입일에 사면 이벤트가 끝난 뒤 사는 셈이 된다. 이벤트 자체를 수익 근거로 삼기보다 그날 거래량이 왜 크게 나왔는지 설명하는 도구로 쓰는 편이 안전하다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">수급을 읽을 때 걸리는 함정</h2>
+  <ul>
+    <li><b>수급은 결과다</b> 오른 날 외국인 순매수가 많은 것은 오르는 동안 샀다는 뜻일 수도, 오르게 만들었다는 뜻일 수도 있다. 같은 날 값만으로는 원인과 결과를 가를 수 없다.</li>
+    <li><b>장중 집계는 잠정치다</b> 장 마감 뒤 확정치와 다를 수 있다. 장중에 본 숫자로 결론을 내지 않는다.</li>
+    <li><b>한 종목과 시장 전체는 다르다</b> 시장 전체는 외국인 순매도인데 특정 종목은 순매수일 수 있다. 같은 시장 안의 반대 흐름도 의미가 있다.</li>
+    <li><b>연속 순매수 일수</b> 며칠 연속인지는 흐름을 보여 주지만, 규모가 작은 날이 이어졌다면 힘이 약하다. 일수와 금액을 같이 본다.</li>
+    <li><b>한 가지 지표로 시장을 설명하지 않는다</b> 수급·환율·금리·업황이 같이 움직인다. 서로 다른 신호가 같은 방향을 가리킬 때 신뢰가 올라간다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">이 사이트에서 확인하기</h2>
+  <ul>
+    <li>홈의 투자자 동향 카드에서 코스피·코스닥의 외국인·기관·개인 순매수를 같은 눈금으로 비교한다.</li>
+    <li>홈의 증시 수급 추이 카드에서 예탁금·신용융자의 흐름을 본다(돈이 들어오는 구조 이야기와 이어진다).</li>
+    <li>홈의 선물 수급 카드에서 코스피200 선물의 외국인·기관·개인 순매수 계약수와 시간별 변화를 본다.</li>
+    <li>종목분석 화면의 수급 탭에서 선택한 종목의 기간별 주체별 순매수를 본다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 하루 외국인 +8,000억, 기관 -3,000억이다. 개인과 기타 합계는?</summary><p>-5,000억이다. 시장 전체 순매수는 0이므로 나머지 합이 -(8,000 - 3,000) = -5,000억이다.</p></details>
+  <details class="in-quiz"><summary>2. 선물이 이론가보다 2포인트 비쌀 때 차익거래자는 어느 쪽을 사고 어느 쪽을 팔까?</summary><p>선물을 팔고 현물 바스켓을 산다. 만기에 두 값이 같아지면서 이 차이가 이익으로 남는다.</p></details>
+  <details class="in-quiz"><summary>3. 코스피200 정기변경 전날 장 마감 부근에 거래량이 몰리는 이유는?</summary><p>지수 추종 펀드와 ETF가 변경 시점의 종가에 맞춰 편입 종목을 사고 편출 종목을 팔기 때문이다. 추종 오차를 줄이려고 종가에 몰린다.</p></details>
+  <details class="in-quiz"><summary>4. "외국인이 순매수한 날 주가가 올랐다"로 외국인이 가격을 올렸다고 할 수 있을까?</summary><p>그럴 수 없다. 같은 날 값이어서 오르는 종목을 사서 순매수가 커졌을 수도 있다. 선후 관계는 별도 검증이 필요하다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="flow-advanced">
+  <h2 id="flow-advanced">심화 연구실 · 수급이 다음 날 수익률을 예측할까</h2>
+  <p>학계와 실무에서 자주 던지는 질문이다. 대체로 알려진 결과는 외국인 순매수와 <b>같은 날 수익률</b>은 강하게 같이 움직이지만, <b>다음 날 이후 수익률</b>에 대한 예측력은 시기와 방법에 따라 약하거나 사라진다는 것이다. 그래서 수급 지표만으로 매매 규칙을 만들면 과거에는 맞아도 앞으로는 틀리는 일이 흔하다.</p>
+  <div class="learn-lab">
+    <h3>가상 연습 · 외국인 3일 연속 순매수 후 사면 이길까</h3>
+    <p>① 외국인 순매수가 3일 연속 양수인 날을 모은다. ② 그다음 거래일 시가에 살 수 있다고 가정한다(당일 종가는 이미 아는 값이어서 쓰지 않는다). ③ 5일 뒤 수익률에서 같은 기간 시장지수 수익률을 뺀다. ④ 거래세와 수수료를 뺀다. ⑤ 시장이 오르던 시기와 내리던 시기로 나누어 본다. ⑥ 종목 수가 너무 적은 날은 제외한다.</p>
+    <p class="learn-math">검증 수익률 = (매수 후 5일 종목 수익률 - 시장 수익률) - 거래 비용</p>
+  </div>
+  <div class="learn-grid">
+    <div><h3>시점 오류를 조심한다</h3><p>수급 확정치는 장이 끝난 뒤에야 알 수 있다. 장중 값을 알던 것처럼 당일 가격에 사고팔았다고 계산하면 실제로는 불가능한 매매가 들어간다.</p></div>
+    <div><h3>모두가 아는 신호는 값이 줄어든다</h3><p>누구나 같은 데이터를 보면 신호의 초과수익은 빠르게 사라진다. 수급은 시장 상태를 가늠하는 참고 정보로 쓰고, 단독 매매 신호로 삼지 않는다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>자료 확인</strong><ul><li><a href="https://www.krx.co.kr/" target="_blank" rel="noopener noreferrer">한국거래소 · 투자자별 매매동향, 지수 정기변경</a></li><li><a href="https://www.msci.com/" target="_blank" rel="noopener noreferrer">MSCI · 지수 정기 리뷰 일정</a></li></ul></div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-summary">한 줄 정리</h2>
+  <p>시장 전체의 순매수는 합이 0이어서 누가 받고 누가 던졌는지가 핵심 정보다. 외국인은 글로벌 위험 선호와 환율에 반응하고, 프로그램 매매는 선물·현물 값 차이와 만기일에 대량으로 나오며, 지수 리밸런싱은 일정이 미리 알려진 매매다. 수급은 결과로서 읽고 앞날을 알려 주는 신호로 단독 사용하지 않는다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-source">설명 근거</h2>
+  <p>2026-11-21 확인. 지수 정기변경 주기와 투자자 분류는 거래소·지수 제공사의 공개 설명을 요약했다. 일정과 방식은 바뀔 수 있어 최신 공지를 확인한다. 숫자는 가상값이다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/investor-psychology.html">← 투자심리 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/asset-allocation.html">자산배분 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-cards.js?v=20261121-cards-1"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>
