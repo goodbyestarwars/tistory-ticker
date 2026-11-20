@@ -49,53 +49,7 @@
   });
   if (!secs.length) { root.classList.remove('lc-pre'); return; }
 
-  var narrow = window.innerWidth < 720;
-  var LIMIT = narrow ? 700 : 1000;
-
-  function textLen(n) { return (n.textContent || '').replace(/\s+/g, ' ').trim().length; }
-  function weight(n) {
-    var tag = n.tagName;
-    var cls = n.className && n.className.baseVal === undefined ? String(n.className) : '';
-    if (tag === 'H3') return 70;
-    if (tag === 'P') return textLen(n) + 40;
-    if (tag === 'UL' || tag === 'OL') {
-      var w = 0;
-      Array.prototype.forEach.call(n.children, function (li) { w += textLen(li) + 30; });
-      return w;
-    }
-    if (tag === 'TABLE') return n.rows.length * 70 + 60;
-    if (tag === 'FIGURE') return narrow ? 280 : 330;
-    if (tag === 'DETAILS') return 110;
-    if (/in-facts/.test(cls)) return 160;
-    if (n.querySelector && n.querySelector('table')) return n.querySelectorAll('tr').length * 70 + 80;
-    if (n.querySelector && n.querySelector('svg')) return (narrow ? 280 : 330) + textLen(n);
-    return textLen(n) + 90;
-  }
-
-  /* 한 절의 노드를 무게 순서대로 카드 묶음으로 나눈다. 소제목은 바로 뒤 노드와 붙인다. */
-  function chunk(nodes, firstBudget) {
-    var units = [];
-    for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].tagName === 'H3' && nodes[i + 1]) { units.push([nodes[i], nodes[i + 1]]); i++; }
-      else units.push([nodes[i]]);
-    }
-    var out = [], sums = [], cur = [], sum = 0, budget = firstBudget;
-    units.forEach(function (u) {
-      var w = 0;
-      u.forEach(function (n) { w += weight(n); });
-      if (cur.length && sum + w > budget) { out.push(cur); sums.push(sum); cur = []; sum = 0; budget = LIMIT; }
-      u.forEach(function (n) { cur.push(n); });
-      sum += w;
-    });
-    if (cur.length) { out.push(cur); sums.push(sum); }
-    /* 끝에 남은 얇은 카드는 앞 카드에 합친다(카드 안에서 스크롤되므로 내용은 잃지 않는다). */
-    var k = out.length - 1;
-    if (k > 0 && sums[k] < LIMIT * 0.4 && sums[k - 1] + sums[k] <= LIMIT * 1.45) {
-      out[k - 1] = out[k - 1].concat(out[k]);
-      out.pop();
-    }
-    return out;
-  }
+  function colCount() { return window.innerWidth >= 900 ? 2 : 1; }
 
   var cards = []; /* {num, title, kind, nodes, lead, cont} */
   var tocItems = [];
@@ -110,10 +64,7 @@
     coverNodes = coverNodes.concat(Array.prototype.slice.call(first.children));
     rest = secs.slice(1);
   }
-  var coverChunks = chunk(coverNodes, LIMIT);
-  coverChunks.forEach(function (c, i) {
-    cards.push({ kind: 'cover', num: 0, title: '', nodes: c, cont: i > 0 });
-  });
+  cards.push({ kind: 'cover', num: 0, title: '', nodes: coverNodes, cont: false });
   tocItems.push({ label: '표지', index: 0 });
 
   /* 본문 */
@@ -124,12 +75,8 @@
     if (kids.length && kids[0].tagName === 'H2') h2 = kids.shift();
     var title = h2 ? h2.textContent.trim() : '';
     var kind = sec.classList.contains('learn-deep') ? 'deep' : (sec.querySelector('.in-quiz') ? 'quiz' : 'body');
-    var chunks = chunk(kids, LIMIT - 90);
-    if (!chunks.length) chunks = [[]];
     tocItems.push({ label: pad(n) + '  ' + title, index: cards.length });
-    chunks.forEach(function (c, i) {
-      cards.push({ kind: kind, num: n, title: title, h2: i === 0 ? h2 : null, nodes: c, cont: i > 0 });
-    });
+    cards.push({ kind: kind, num: n, title: title, h2: h2, nodes: kids, cont: false });
   });
 
   var total = cards.length;
@@ -170,7 +117,7 @@
     a.appendChild(body);
     var foot = el('footer', 'lc-foot');
     foot.appendChild(el('span', null, '9Pay 이야기 시리즈'));
-    foot.appendChild(el('span', 'lc-count', pad(i + 1) + ' / ' + pad(total)));
+    foot.appendChild(el('span', 'lc-count'));
     a.appendChild(foot);
     stage.appendChild(a);
     return a;
@@ -192,18 +139,48 @@
   secs[0].parentNode.insertBefore(book, secs[0]);
   secs.forEach(function (s) { if (s.parentNode) s.parentNode.removeChild(s); });
 
-  var cur = -1;
-  function show(i, keepScroll) {
+  var cur = -1, sub = 0, pages = cards.map(function () { return 1; });
+  function bodyOf(i) { return cardEls[i].querySelector('.lc-body'); }
+  function stepOf(b) {
+    var gap = parseFloat(getComputedStyle(b).columnGap) || 0;
+    return b.clientWidth + gap;
+  }
+  function measure() {
+    /* 카드마다 잠깐 펼쳐 쪽 수를 센다(세로 스크롤 없이 쪽으로 넘기므로 내용 길이 = 쪽 수). */
+    var keep = cur;
+    cardEls.forEach(function (c, i) {
+      var was = c.classList.contains('on');
+      c.classList.add('on', 'lc-measure');
+      var b = bodyOf(i), gap = parseFloat(getComputedStyle(b).columnGap) || 0, st = b.clientWidth + gap;
+      pages[i] = Math.max(1, Math.round((b.scrollWidth + gap) / st));
+      c.classList.remove('lc-measure');
+      if (!was) c.classList.remove('on');
+    });
+    if (keep >= 0) cardEls[keep].classList.add('on');
+  }
+  function paint() {
+    var b = bodyOf(cur);
+    sub = Math.max(0, Math.min(pages[cur] - 1, sub));
+    b.scrollLeft = sub * stepOf(b);
+    var before = 0, all = 0;
+    pages.forEach(function (p, i) { if (i < cur) before += p; all += p; });
+    cardEls.forEach(function (c, i) {
+      var cnt = c.querySelector('.lc-count');
+      if (cnt) cnt.textContent = i === cur ? pad(before + sub + 1) + ' / ' + pad(all) : '';
+    });
+    bar.style.width = ((before + sub + 1) / all * 100) + '%';
+    prev.disabled = cur === 0 && sub === 0;
+    next.disabled = cur === total - 1 && sub === pages[cur] - 1;
+  }
+  function show(i, s, keepScroll) {
     i = Math.max(0, Math.min(total - 1, i));
-    if (i === cur) return;
-    if (cur >= 0) cardEls[cur].classList.remove('on');
+    if (cur >= 0 && i !== cur) cardEls[cur].classList.remove('on');
+    var changed = i !== cur;
     cur = i;
     cardEls[cur].classList.add('on');
-    var body = cardEls[cur].querySelector('.lc-body');
-    if (body && !keepScroll) body.scrollTop = 0;
-    bar.style.width = ((cur + 1) / total * 100) + '%';
-    prev.disabled = cur === 0;
-    next.disabled = cur === total - 1;
+    if (changed) pages[cur] = Math.max(1, Math.round((bodyOf(cur).scrollWidth + (parseFloat(getComputedStyle(bodyOf(cur)).columnGap) || 0)) / stepOf(bodyOf(cur))));
+    sub = s === 'last' ? pages[cur] - 1 : (s || 0);
+    paint();
     var ti = 0;
     tocItems.forEach(function (t, k) { if (t.index <= cur) ti = k; });
     toc.value = String(tocItems[ti].index);
@@ -212,16 +189,29 @@
       if (r.top < 0 || r.top > window.innerHeight * 0.5) book.scrollIntoView({ block: 'start' });
     }
   }
-  prev.addEventListener('click', function () { show(cur - 1); });
-  next.addEventListener('click', function () { show(cur + 1); });
-  toc.addEventListener('change', function () { show(parseInt(toc.value, 10) || 0); });
+  function turn(d) {
+    var s = sub + d;
+    if (s >= 0 && s < pages[cur]) { sub = s; paint(); return; }
+    if (d > 0 && cur < total - 1) show(cur + 1, 0);
+    else if (d < 0 && cur > 0) show(cur - 1, 'last');
+  }
+  prev.addEventListener('click', function () { turn(-1); });
+  next.addEventListener('click', function () { turn(1); });
+  toc.addEventListener('change', function () { show(parseInt(toc.value, 10) || 0, 0); });
+
+  var rz = 0, lastCols = colCount();
+  window.addEventListener('resize', function () {
+    clearTimeout(rz);
+    rz = setTimeout(function () { measure(); paint(); lastCols = colCount(); }, 150);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measure(); paint(); });
 
   document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     var t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-    if (e.key === 'ArrowRight') show(cur + 1);
-    else if (e.key === 'ArrowLeft') show(cur - 1);
+    if (e.key === 'ArrowRight') turn(1);
+    else if (e.key === 'ArrowLeft') turn(-1);
   });
 
   var sx = 0, sy = 0, tracking = false, blocked = false;
@@ -240,7 +230,7 @@
     var t = e.changedTouches[0];
     var dx = t.clientX - sx, dy = t.clientY - sy;
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
-    show(dx < 0 ? cur + 1 : cur - 1);
+    turn(dx < 0 ? 1 : -1);
   }, { passive: true });
 
   function goHash() {
@@ -250,13 +240,18 @@
     var t = document.getElementById(id);
     var card = t && t.closest ? t.closest('.lc-card') : null;
     if (!card) return false;
-    show(cardEls.indexOf(card));
-    if (t.scrollIntoView) t.scrollIntoView({ block: 'nearest' });
+    var ci = cardEls.indexOf(card);
+    show(ci, 0);
+    var b = bodyOf(ci);
+    var off = 0;
+    for (var n = t; n && n !== b; n = n.offsetParent) off += n.offsetLeft;
+    show(ci, Math.floor(off / stepOf(b)), true);
     return true;
   }
   window.addEventListener('hashchange', goHash);
 
   root.classList.remove('lc-pre');
   root.classList.add('lc-on');
-  if (!goHash()) show(0, true);
+  measure();
+  if (!goHash()) show(0, 0, true);
 })();
