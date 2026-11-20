@@ -990,8 +990,15 @@
       return s.pts.length > 1 ? '<polyline class="kf-bs-line' + (s.kind === 'dash' ? ' is-dash' : '') + '" points="' + s.pts.join(' ') + '"/>'
         : '<circle class="kf-bs-dot" cx="' + s.pts[0].split(',')[0] + '" cy="' + s.pts[0].split(',')[1] + '" r="1.6"/>';
     }).join('');
+    // 하루마다 점을 찍는다. 길이 0인 경로에 둥근 선 끝을 주면 가로세로 비율이 달라져도 찌그러지지 않는 원이 된다.
+    var dotsSolid = '', dotsDash = '';
+    shown.forEach(function (r, i) {
+      var d = 'M' + pt(i) + 'h0';
+      if (r.phase === 'normal') dotsSolid += d; else dotsDash += d;
+    });
+    var dots = (dotsSolid ? '<path class="kf-bs-pt" d="' + dotsSolid + '"/>' : '') + (dotsDash ? '<path class="kf-bs-pt is-dash" d="' + dotsDash + '"/>' : '');
     return '<svg class="kf-bs-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + n + '거래일 종가 베이시스 선 그래프">'
-      + '<line class="kf-bs-zero" x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '"/>' + lines + hits + '</svg>';
+      + '<line class="kf-bs-zero" x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '"/>' + lines + dots + hits + '</svg>';
   }
   function buildBasisHtml(futItem, spotItem, nowMs) {
     var now = basisNow(futItem, spotItem, nowMs), nowHtml;
