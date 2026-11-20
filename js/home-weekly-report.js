@@ -976,6 +976,11 @@
     var state = global.MarketHours && global.MarketHours.restOverview && global.MarketHours.restOverview(new Date());
     return state && state.next ? bannerDate(state.next) : '캘린더에서 확인';
   }
+  // 2026-11-21 사용자 제공 일러스트(외부 캐릭터 포함, 권리 판단은 사용자). 장식용이라 대체 텍스트는 비운다. 실패하면 숨긴다.
+  var SLEEP_ART = 'https://goodbyestarwars.github.io/tistory-ticker/img/weekend-sleep.webp';
+  function sleepArtMarkup() {
+    return '<img class="wd-sleep-art" src="' + SLEEP_ART + '" alt="" width="720" height="620" loading="lazy" decoding="async" onerror="this.hidden=true">';
+  }
   function countdownMarkup() {
     return '<div class="wd-countdown"><span class="wd-countdown-label">다음 국내·미국 거래 시작까지</span><div class="wd-flip-clock" role="timer" aria-live="off" aria-label="개장 시간 확인 중">'
       + ['일', '시간', '분', '초'].map(function (unit, i) {
@@ -1133,7 +1138,7 @@
       return indexCard(indices.filter(function (row) { return row && row.symbol === spec[0]; })[0] || {symbol: spec[0], name: spec[1]});
     }).join('');
     var indexTitleIcon = '<svg class="wd-index-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-7"/></svg>';
-    root.innerHTML = '<header class="wd-header" hidden><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>시장도 잠시 쉬어가요</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 거래 시작일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
+    root.innerHTML = '<header class="wd-header" hidden><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>시장도 잠시 쉬어가요</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + sleepArtMarkup() + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 거래 시작일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
       + '<section class="wd-index-section"><div class="wd-section-head"><h3>' + indexTitleIcon + ' 주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><dl class="wd-rate-grid wd-indices-values" aria-label="주요 지수 · 직전 주 종가 대비">' + indexCards + '</dl></section>'
       + '<div class="wd-grid wd-market-overview"><section class="wd-panel wd-commodities" data-hwr-commodities>' + panelHeading('원유·금', '주말에 확인할 주요 원자재 · USD') + '<p class="wd-empty">시세 확인 중</p></section>'
       + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading(scheduleWindow(new Date()).title, '월~토 · 날짜·시각 KST · 미국 실적은 현지 발표일 병기') + '<span>캘린더 연결 중</span></div>' + scheduleList(data.schedule) + '<p class="wd-note">국내 공시·미국 S&amp;P 100 실적·미국 주요 경제지표·등록 캘린더의 확인된 일정입니다. 미발표·미수집 일정은 포함되지 않습니다.</p><a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section>'
