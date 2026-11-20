@@ -497,8 +497,9 @@
       });
     }
     var messages = entries.filter(function (entry) {
-      return entry.classList.contains('guest_general') &&
-        !entry.hidden && !entry.matches('.guest_secret, .secret, [data-secret="true"]');
+      /* 블로그 주인(guest_admin)의 공개 글도 일반 글과 같이 보여 준다. 비밀글은 계속 제외한다. */
+      return (entry.classList.contains('guest_general') || entry.classList.contains('guest_admin')) &&
+        !entry.hidden && !entry.matches('.guest_secret, .secret, [class*="secret"], [data-secret="true"]');
     }).map(function (entry) {
       return {
         entry: entry,
