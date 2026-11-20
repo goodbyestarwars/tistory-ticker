@@ -960,7 +960,7 @@
   var BASIS_PHASE_LABEL = { week: '만기 주간', expiry: '만기일', roll: '새 월물 첫날' };
   function basisDateLabel(ymd) { return ymd.slice(2, 4) + '.' + ymd.slice(4, 6) + '.' + ymd.slice(6, 8); }
   function basisTone(v) { return v > 0 ? 'is-up' : v < 0 ? 'is-down' : ''; }
-  // 2026-11-21 사용자 지시: 그래프는 검은 선. 만기 주간·새 월물 첫날은 월물이 바뀌어 값을 이어 볼 수 없으므로 선을 끊고 회색 띠로 표시한다.
+  // 2026-11-21 사용자 지시: 그래프는 검은 선, 만기 주간·새 월물 첫날은 회색 점선(월물이 달라 앞뒤와 직접 비교하지 않는다는 표시). 값은 그대로 그린다.
   function basisLineSvg(rows) {
     var shown = rows.slice(-BASIS_BAR_DAYS), W = 720, H = 140, pad = 8, n = shown.length;
     if (n < 2) return '';
@@ -968,26 +968,30 @@
     shown.forEach(function (r) { if (r.phase === 'normal') max = Math.max(max, Math.abs(r.basis)); });
     max *= 1.15;
     var mid = H / 2, step = W / n;
-    function px(i) { return (i + 0.5) * step; }
-    function py(v) { return mid - Math.max(-1, Math.min(1, v / max)) * (mid - pad); }
-    var bands = '', hits = '', runs = [], run = [];
+    function pt(i) { return ((i + 0.5) * step).toFixed(1) + ',' + (mid - Math.max(-1, Math.min(1, shown[i].basis / max)) * (mid - pad)).toFixed(1); }
+    // 같은 종류(실선/점선)로 이어지는 구간으로 나눈다. 점선 구간은 앞뒤 정상일 한 점씩을 포함해 선이 끊겨 보이지 않게 한다.
+    var segs = [], cur = null;
     shown.forEach(function (r, i) {
-      var label = basisDateLabel(r.date) + ' 베이시스 ' + fmtSigned(r.basis, 2) + 'p (' + fmtSigned(r.pct, 2) + '%)' + (BASIS_PHASE_LABEL[r.phase] ? ' · ' + BASIS_PHASE_LABEL[r.phase] : '');
-      hits += '<rect class="kf-bs-hit" x="' + (i * step).toFixed(1) + '" y="0" width="' + step.toFixed(1) + '" height="' + H + '"><title>' + label + '</title></rect>';
-      if (r.phase !== 'normal') {
-        bands += '<rect class="kf-bs-band" x="' + (i * step).toFixed(1) + '" y="0" width="' + step.toFixed(1) + '" height="' + H + '"/>';
-        if (run.length) { runs.push(run); run = []; }
-        return;
+      var kind = r.phase === 'normal' ? 'solid' : 'dash';
+      if (!cur || cur.kind !== kind) {
+        var prev = cur;
+        cur = { kind: kind, pts: [] };
+        if (kind === 'dash' && prev) cur.pts.push(pt(i - 1));
+        if (kind === 'solid' && prev) cur.pts.push(pt(i - 1));
+        segs.push(cur);
       }
-      run.push(px(i).toFixed(1) + ',' + py(r.basis).toFixed(1));
+      cur.pts.push(pt(i));
     });
-    if (run.length) runs.push(run);
-    var lines = runs.map(function (pts) {
-      return pts.length > 1 ? '<polyline class="kf-bs-line" points="' + pts.join(' ') + '"/>'
-        : '<circle class="kf-bs-dot" cx="' + pts[0].split(',')[0] + '" cy="' + pts[0].split(',')[1] + '" r="1.6"/>';
+    var hits = shown.map(function (r, i) {
+      var label = basisDateLabel(r.date) + ' 베이시스 ' + fmtSigned(r.basis, 2) + 'p (' + fmtSigned(r.pct, 2) + '%)' + (BASIS_PHASE_LABEL[r.phase] ? ' · ' + BASIS_PHASE_LABEL[r.phase] : '');
+      return '<rect class="kf-bs-hit" x="' + (i * step).toFixed(1) + '" y="0" width="' + step.toFixed(1) + '" height="' + H + '"><title>' + label + '</title></rect>';
+    }).join('');
+    var lines = segs.map(function (s) {
+      return s.pts.length > 1 ? '<polyline class="kf-bs-line' + (s.kind === 'dash' ? ' is-dash' : '') + '" points="' + s.pts.join(' ') + '"/>'
+        : '<circle class="kf-bs-dot" cx="' + s.pts[0].split(',')[0] + '" cy="' + s.pts[0].split(',')[1] + '" r="1.6"/>';
     }).join('');
     return '<svg class="kf-bs-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + n + '거래일 종가 베이시스 선 그래프">'
-      + bands + '<line class="kf-bs-zero" x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '"/>' + lines + hits + '</svg>';
+      + '<line class="kf-bs-zero" x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '"/>' + lines + hits + '</svg>';
   }
   function buildBasisHtml(futItem, spotItem, nowMs) {
     var now = basisNow(futItem, spotItem, nowMs), nowHtml;
@@ -1012,7 +1016,7 @@
     return nowHtml
       + '<div class="kf-bs-avg">최근 ' + normal.length + '거래일(만기 주간·새 월물 첫날 제외) 평균 <b class="' + basisTone(avg) + '">' + (avg == null ? '-' : fmtSigned(avg, 2) + 'p') + '</b> · 기준일 ' + basisDateLabel(rows[rows.length - 1].date) + '</div>'
       + basisLineSvg(rows)
-      + '<div class="kf-bs-legend"><span>검은 선 = 종가 베이시스(가운데 선보다 위 +, 아래 −)</span><span class="kf-bs-legend-band">회색 띠 = 만기 주간·새 월물 첫날(선을 끊어 이어 보지 않음)</span></div>'
+      + '<div class="kf-bs-legend"><span>검은 선 = 종가 베이시스(가운데 선보다 위 +, 아래 −)</span><span class="kf-bs-legend-dash">회색 점선 = 만기 주간·새 월물 첫날(월물이 달라 앞뒤와 직접 비교하지 않음)</span></div>'
       + table;
   }
   function renderBasis(container, futItem, spotItem) {
