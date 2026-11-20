@@ -1,0 +1,136 @@
+/* 이야기 시리즈 카드(책) 읽기 모드 (2026-11-21 사용자 지시) — js/learn-cards.js가 만든 DOM의 스타일.
+   색은 learn 페이지의 기존 토큰을 쓰고, 번호·꼬리표 강조색만 책 느낌의 갈색 계열을 쓴다. */
+:root {
+  --lc-card-bg: #fff;
+  --lc-card-line: #ece8e1;
+  --lc-ink: #273332;
+  --lc-muted: #8b8478;
+  --lc-rule: #d9d3c8;
+  --lc-accent: #8a6a4f;
+  --lc-track: #ece8e1;
+  --lc-fill: #8a6a4f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lc-card-bg: #161d2c;
+    --lc-card-line: #2a3550;
+    --lc-ink: #d3dbe8;
+    --lc-muted: #8e9ab0;
+    --lc-rule: #34415b;
+    --lc-accent: #d1a67c;
+    --lc-track: #2a3550;
+    --lc-fill: #d1a67c;
+  }
+}
+
+/* 깜빡임 방지: 카드가 만들어지기 전에는 원문을 숨기되, JS가 실패해도 2.5초 뒤 다시 보인다. */
+html.lc-pre body.learn-page .legal-wrap > h1,
+html.lc-pre body.learn-page .legal-wrap > .legal-effective-date,
+html.lc-pre body.learn-page .legal-wrap > .learn-sec,
+html.lc-pre body.learn-page .legal-wrap > .learn-deep {
+  visibility: hidden;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  animation: lc-failsafe 1ms 2.5s forwards;
+}
+@keyframes lc-failsafe {
+  to { visibility: visible; height: auto; overflow: visible; }
+}
+
+.lc-scrollbar { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+.lc-switch {
+  border: 1px solid var(--lc-card-line);
+  border-radius: 999px;
+  background: var(--lc-card-bg);
+  color: var(--lc-muted);
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+.lc-switch:hover { color: var(--lc-ink); }
+
+.lc-book { max-width: 680px; margin: 0 auto 24px; }
+.lc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; }
+.lc-toc {
+  flex: 1;
+  min-width: 0;
+  max-width: 340px;
+  border: 1px solid var(--lc-card-line);
+  border-radius: 999px;
+  background: var(--lc-card-bg);
+  color: var(--lc-ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 12px;
+}
+
+.lc-card { display: none; flex-direction: column; box-sizing: border-box; }
+.lc-card.on {
+  display: flex;
+  height: clamp(480px, calc(100vh - 220px), 780px);
+  background: var(--lc-card-bg);
+  border: 1px solid var(--lc-card-line);
+  border-radius: 22px;
+  box-shadow: 0 1px 2px rgba(20, 33, 61, .05), 0 12px 30px -14px rgba(20, 33, 61, .16);
+  animation: lc-in .22s ease-out;
+}
+@supports (height: 100svh) {
+  .lc-card.on { height: clamp(480px, calc(100svh - 220px), 780px); }
+}
+@keyframes lc-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lc-card.on { animation: none; } }
+
+.lc-head, .lc-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 28px;
+  font-size: 11.5px;
+  letter-spacing: .04em;
+  color: var(--lc-muted);
+}
+.lc-head { padding: 20px 0 10px; border-bottom: 1px solid var(--lc-rule); }
+.lc-head b { font-weight: 400; color: var(--lc-accent); }
+.lc-foot { padding: 12px 0 18px; border-top: 1px solid var(--lc-rule); }
+.lc-count { font-variant-numeric: tabular-nums; }
+
+.lc-body { flex: 1; overflow-y: auto; padding: 22px 28px 12px; overscroll-behavior: contain; }
+.lc-body > :first-child { margin-top: 0; }
+.lc-body > :last-child { margin-bottom: 0; }
+.lc-num { display: flex; align-items: center; gap: 14px; margin: 14px 0 20px; }
+.lc-num span { font-size: 17px; font-weight: 700; color: var(--lc-accent); }
+.lc-num i { flex: 0 0 64px; height: 1px; background: var(--lc-rule); }
+.lc-body h2.lc-title { margin: 0 0 16px; padding: 0; border: 0; font-size: 22px; line-height: 1.5; color: var(--lc-ink); }
+.lc-subtitle { margin: 0 0 14px; font-size: 14px; color: var(--lc-muted); }
+.lc-body > p, .lc-body > ul > li, .lc-body > ol > li { font-size: 16.5px; line-height: 1.95; }
+.lc-card--cover h1 { margin: 6px 0 6px; font-size: 30px; line-height: 1.35; }
+.lc-card--cover .legal-effective-date { margin: 0 0 18px; color: var(--lc-muted); }
+
+.lc-ctrl { display: flex; align-items: center; gap: 14px; margin: 14px 0 0; }
+.lc-btn {
+  border: 1px solid var(--lc-card-line);
+  border-radius: 999px;
+  background: var(--lc-card-bg);
+  color: var(--lc-ink);
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 18px;
+  cursor: pointer;
+  min-width: 84px;
+}
+.lc-btn:disabled { opacity: .35; cursor: default; }
+.lc-progress { flex: 1; height: 4px; border-radius: 4px; background: var(--lc-track); overflow: hidden; }
+.lc-progress i { display: block; height: 100%; width: 0; background: var(--lc-fill); transition: width .2s; }
+
+@media (max-width: 720px) {
+  .lc-card.on { height: clamp(460px, calc(100vh - 200px), 780px); }
+  @supports (height: 100svh) { .lc-card.on { height: clamp(460px, calc(100svh - 200px), 780px); } }
+  .lc-head, .lc-foot { margin: 0 20px; }
+  .lc-body { padding: 18px 20px 10px; }
+  .lc-body > p, .lc-body > ul > li, .lc-body > ol > li { font-size: 15.5px; line-height: 1.9; }
+  .lc-body h2.lc-title { font-size: 20px; }
+  .lc-card--cover h1 { font-size: 26px; }
+}
