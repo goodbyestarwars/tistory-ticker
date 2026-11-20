@@ -493,3 +493,31 @@ html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-top-color: var(--d
 #kospi-futures .kf-interval-toggle { flex-wrap: wrap; gap: 8px 12px; }
 #kospi-futures .kf-interval-tabs { flex: 0 0 auto; margin: 0; }
 #kospi-futures .kf-draw-buttons { flex: 0 0 auto; margin-left: auto; }
+
+/* 2026-11-21 시장 베이시스(주간선물 - KOSPI200 현물). 색은 공통 의미색 토큰만 쓴다. */
+#kospi-futures .kf-basis { display: grid; gap: 10px; }
+#kospi-futures .kf-bs-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+#kospi-futures .kf-bs-now strong { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#kospi-futures .kf-bs-now-label { font-size: 12px; font-weight: 700; color: var(--text-sub); }
+#kospi-futures .kf-bs-now small, #kospi-futures .kf-bs-avg { font-size: 12px; color: var(--text-sub); }
+#kospi-futures .kf-bs-now.is-empty { font-size: 13px; color: var(--text-sub); }
+#kospi-futures .kf-basis .is-up { color: var(--num-up); }
+#kospi-futures .kf-basis .is-down { color: var(--num-down); }
+#kospi-futures .kf-bs-svg { display: block; width: 100%; height: 140px; }
+#kospi-futures .kf-bs-line { fill: none; stroke: var(--ui-ink, #111); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+#kospi-futures .kf-bs-dot { fill: var(--ui-ink, #111); }
+#kospi-futures .kf-bs-band { fill: var(--ui-rule, #ddd); opacity: .55; }
+#kospi-futures .kf-bs-hit { fill: transparent; }
+#kospi-futures .kf-bs-legend-band::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; background: var(--ui-rule, #ddd); }
+#kospi-futures .kf-bs-zero { stroke: var(--ui-rule, var(--rule, #ddd)); stroke-width: 1; vector-effect: non-scaling-stroke; }
+#kospi-futures .kf-bs-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--text-sub); }
+#kospi-futures .kf-bs-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+#kospi-futures .kf-bs-table th, #kospi-futures .kf-bs-table td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--ui-rule, var(--rule, #eee)); white-space: nowrap; }
+#kospi-futures .kf-bs-table th:first-child, #kospi-futures .kf-bs-table td:last-child { text-align: left; }
+#kospi-futures .kf-bs-table thead th { font-size: 12px; font-weight: 600; color: var(--text-sub); }
+#kospi-futures .kf-bs-table tbody tr:last-child th, #kospi-futures .kf-bs-table tbody tr:last-child td { border-bottom: 0; }
+#kospi-futures .kf-bs-table tr.is-special { color: var(--text-sub); }
+@media (max-width: 720px) {
+  #kospi-futures .kf-bs-table { font-size: 12px; }
+  #kospi-futures .kf-bs-table th, #kospi-futures .kf-bs-table td { padding: 6px 5px; }
+}
