@@ -3381,6 +3381,8 @@ def home_session_prices(request: Request):
     return {'success': True, 'data': home_session_chart.get_results()}
 
 
+# 2026-11-21: 기본 /futures 응답에는 싣지 않고 symbols로 명시 요청할 때만 내려주는 심볼(선물 베이시스용 KOSPI200 현물).
+_EXPLICIT_ONLY_FUTURES_SYMBOLS = ('KOSPI200',)
 _CALENDAR_MACRO_SYMBOLS = ('US_INITIAL_CLAIMS', 'US_DURABLE_GOODS', 'US_FACTORY_ORDERS', 'US_HOUSING_STARTS',
                            'US_NEW_HOME_SALES', 'US_INDUSTRIAL_PRODUCTION', 'US_TRADE_BALANCE', 'US_PRODUCTIVITY')
 
@@ -3458,7 +3460,7 @@ def _read_futures(request, interval, days, symbols, stored_only):
         if symbols:
             wanted = set(s.strip().upper() for s in symbols.split(',') if s.strip())
             # 캘린더 발표 결과 전용 FRED 심볼은 명시 요청 때만 싣는다(기본 전체 응답은 그대로).
-            narrowed = [s for s in order + list(_CALENDAR_MACRO_SYMBOLS) if s in wanted]
+            narrowed = [s for s in order + list(_CALENDAR_MACRO_SYMBOLS) + list(_EXPLICIT_ONLY_FUTURES_SYMBOLS) if s in wanted]
             if narrowed:
                 order = narrowed
         # 메인 대시보드 환율은 GAS가 같은 네이버 exchangeInfo를 직접 읽는다. DB 수집 주기
