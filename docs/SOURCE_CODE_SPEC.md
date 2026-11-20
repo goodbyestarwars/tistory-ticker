@@ -113,7 +113,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 
 | 파일 | 전역 변수 | 내용 | 갱신 방식 |
 |---|---|---|---|
-| `krx_map.js` | `window.KRX_MAP` | 종목명 → 6자리 코드 매핑(전 상장사) | 수동 |
+| `krx_map.js` | `window.KRX_MAP`, `KRX_ETF_NAMES`, `KRX_ETN` | 종목명 → 6자리 코드 매핑(주식·스팩·ETF는 `KRX_MAP`, ETN은 VM 유니버스에 섞이지 않도록 별도 쌍 배열 `KRX_ETN`을 브라우저에서만 합침) | 자동: `.github/workflows/listing-sync.yml`(매일 KST 08:25·16:25) → `scripts/sync_listings.py`(KIS 공개 마스터+네이버 교차 확인, 추가 전용). 형식은 `scripts/krx_map_io.py` |
 | `wics-map.js` | `window.WICS_MAP` | 코드 → {name, sector, industry} WICS 업종 | 수동 |
 | `sectors-v3.js` | (스크립트 내 배열) | 커스텀 섹터 분류 37개, {name, code, market} | 수동, `sectors-v3-검수표.md`로 교차검증 |
 | `marketcap-codes.js` | - | 히트맵용 ETF/레버리지/인버스 코드 목록 | 수동 |

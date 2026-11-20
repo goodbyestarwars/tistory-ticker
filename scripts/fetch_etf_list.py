@@ -40,6 +40,9 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import krx_map_io  # noqa: E402
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KRX_MAP_FILE = os.path.join(REPO_ROOT, 'data', 'krx_map.js')
 
@@ -93,27 +96,17 @@ def fetch_etf_rows(service_key):
 
 
 def load_krx_map():
-    """data/krx_map.js에서 window.KRX_MAP(이름->코드)만 파싱한다. window.KRX_ETF_NAMES는
-    항상 이번 fetch 결과로 새로 만들어 쓰므로(아래 main 참고) 읽어올 필요가 없다."""
-    with open(KRX_MAP_FILE, 'r', encoding='utf-8') as f:
-        text = f.read().strip()
-    map_match = re.search(r'window\.KRX_MAP\s*=\s*(\{.*?\});', text, re.DOTALL)
-    return json.loads(map_match.group(1)) if map_match else {}
+    """data/krx_map.js 전체(본 맵 + 과거 수동 덧붙임 줄 + ETN 배열)를 읽는다.
+    2026-11-21: 예전에는 첫 KRX_MAP 객체만 읽고 파일 전체를 다시 써서, 수동으로 덧붙인
+    `window.KRX_MAP["이름"]="코드";` 줄이 재실행 때 사라지는 문제가 있었다. 읽기·쓰기는
+    scripts/krx_map_io.py 공통 모듈을 쓴다(sync_listings.py와 같은 형식)."""
+    return krx_map_io.load(KRX_MAP_FILE)
 
 
-def write_krx_map(stock_map, etf_names):
-    # 기존 파일과 동일하게 압축(공백 없음) 포맷 유지 - 전 종목 매핑이라 들여쓰기하면 파일
-    # 크기가 크게 늘어나고(모든 페이지가 매번 fetch), 기존 파일도 이 포맷이었음.
-    # KRX_ETF_NAMES: 종목검색 등 여러 위젯(js/foreign-flow.js, stock-search-panel.js,
-    # stock-news.js, watchlist.js)이 자동완성 순위를 매길 때 "이 이름이 ETF인지"를 판별하는
-    # 용도(일반 종목명을 먼저 보여주고 ETF는 뒤로 미루기 위함, 2026-07-20 사용자 피드백 -
-    # "삼성전자" 검색 시 진짜 삼성전자 대신 "KODEX 삼성전자SK하이닉스채권혼합50" 같은 ETF가
-    # 순위를 차지하던 문제). krx_map.js에 같이 넣어두면 이미 이 파일을 로드하는 모든 페이지가
-    # 별도 script 태그 추가 없이 바로 쓸 수 있다.
-    map_body = json.dumps(stock_map, ensure_ascii=False, separators=(',', ':'))
-    etf_body = json.dumps(sorted(etf_names), ensure_ascii=False, separators=(',', ':'))
-    with open(KRX_MAP_FILE, 'w', encoding='utf-8', newline='\n') as f:
-        f.write('window.KRX_MAP=' + map_body + ';\nwindow.KRX_ETF_NAMES=' + etf_body + ';')
+def write_krx_map(data):
+    # 압축 포맷·KRX_ETF_NAMES 의미(자동완성에서 ETF를 일반 종목 뒤로 미루는 판별 목록,
+    # 2026-07-20)는 krx_map_io.render가 그대로 유지한다.
+    krx_map_io.write(data, KRX_MAP_FILE)
 
 
 def main():
@@ -124,7 +117,8 @@ def main():
         sys.exit(1)
 
     items = fetch_etf_rows(service_key)
-    stock_map = load_krx_map()
+    krx_data = load_krx_map()
+    stock_map = krx_data.map
     before_count = len(stock_map)
 
     # 충돌 판정 기준은 "이미 다른 코드로 등록된 이름인가"이다(이름만 있고 코드가 같으면
@@ -150,7 +144,9 @@ def main():
     if skipped:
         log('이름 충돌로 건너뜀(%d건, 기존 종목 코드 유지): %s' % (len(skipped), ', '.join(skipped[:20])))
 
-    write_krx_map(stock_map, etf_names)
+    # 이미 등록된 ETF 이름(sync_listings.py가 추가한 신규 ETF 포함)은 API가 아직 모르더라도 유지한다.
+    krx_data.etf_names = sorted(set(etf_names) | set(krx_data.etf_names))
+    write_krx_map(krx_data)
     log('krx_map.js 갱신 완료: %d -> %d개(ETF %d개 추가, 전체 ETF %d개)' % (before_count, len(stock_map), added, len(etf_names)))
 
 
