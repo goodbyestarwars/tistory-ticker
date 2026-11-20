@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>부동산·리츠 이야기</title>
+<meta name="description" content="집값을 움직이는 금리와 대출 규제, 임대수익률 계산, 전세와 갭투자의 위험, 리츠의 구조와 배당, 프로젝트파이낸싱이 금융시장으로 번지는 길을 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+</head>
+<body class="learn-page">
+<div class="legal-wrap story-page">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>부동산·리츠 이야기</h1>
+  <p class="legal-effective-date">집값·임대수익률·LTV·전세·리츠·PF · 설명 업데이트 2026-11-21</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>한국 가계 자산의 큰 부분은 부동산이다. 주식을 아무리 공부해도 집값과 대출 이자가 흔들리면 가계는 같이 흔들린다. 부동산은 금리, 은행, 건설사, 리츠, 주식시장과 줄줄이 엮여 있어서 이 연결을 모르면 뉴스 속 "PF 위기", "리츠 배당 감소"가 무슨 뜻인지 읽히지 않는다.</p>
+  <p>이 이야기는 집을 살지 말지를 권하지 않는다. 집이 <b>돈으로 어떻게 움직이는 물건인지</b>를 푼다. 집은 거주하는 곳이면서 담보이고, 월세를 받는 자산이면서 빚으로 사는 자산이다. 한 가지 얼굴만 보면 나머지에서 다친다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>집은 대개</span><strong>빚으로 산다</strong></div>
+    <div class="in-fact"><span>금리 1%p가</span><strong>월 상환액을 바꾼다</strong></div>
+    <div class="in-fact"><span>리츠는</span><strong>건물 지분을 주식처럼</strong></div>
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">집값을 움직이는 다섯 가지 힘</h2>
+  <table class="learn-table">
+    <thead><tr><th>힘</th><th>어떻게 작용하나</th></tr></thead>
+    <tbody>
+      <tr><td>금리</td><td>대출 이자 부담과 임대수익률 비교 기준을 바꾼다. 금리가 내리면 집을 사려는 수요가 늘고, 오르면 줄어드는 경향</td></tr>
+      <tr><td>대출 규제</td><td>한 사람이 빌릴 수 있는 한도(LTV·DSR)를 정한다. 같은 금리에서도 규제가 풀리고 조이는 것이 수요를 키우고 줄인다</td></tr>
+      <tr><td>공급</td><td>입주 물량. 집은 짓는 데 몇 년이 걸려 공급이 수요를 따라가는 데 시차가 있다</td></tr>
+      <tr><td>수요</td><td>가구 수, 소득, 인구 이동, 일자리가 몰린 지역</td></tr>
+      <tr><td>심리</td><td>"더 오른다"는 기대와 "지금 안 사면 영영 못 산다"는 마음. 투자심리 이야기의 추격매수와 같다</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note"><b>전국 평균은 없다</b> 집값은 지역과 단지, 평형마다 다르게 움직인다. 같은 시기에 서울 한 구는 오르고 지방 소도시는 내리는 일이 흔하다. "부동산이 오른다"는 문장은 대부분 어디인지가 빠져 있다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">빚으로 사면 움직임이 몇 배가 된다</h2>
+  <p>5억 원짜리 집을 자기 돈 2억 원과 대출 3억 원으로 샀다고 하자. 선물·옵션 이야기의 레버리지와 같은 구조다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 190" role="img" aria-label="5억 원 집을 자기 돈 2억 원과 대출 3억 원으로 산 경우 집값이 10퍼센트 내리면 자기 돈이 25퍼센트 줄어든다">
+      <rect class="fig-soft2" x="30" y="20" width="150" height="110" rx="4" />
+      <rect class="fig-soft" x="30" y="20" width="150" height="66" rx="4" />
+      <text class="fig-ink" x="44" y="58" font-size="13">대출 3억</text>
+      <text class="fig-ink" x="44" y="112" font-size="13">내 돈 2억</text>
+      <text class="fig-sub" x="30" y="148">집값 5억</text>
+      <path class="fig-ink-line" d="M190 75 H240 M232 69 L240 75 L232 81" />
+      <rect class="fig-soft2" x="250" y="30" width="150" height="100" rx="4" />
+      <rect class="fig-soft" x="250" y="30" width="150" height="66" rx="4" />
+      <text class="fig-ink" x="264" y="68" font-size="13">대출 3억(그대로)</text>
+      <text class="fig-down" x="264" y="116" font-size="13">내 돈 1.5억</text>
+      <text class="fig-sub" x="250" y="148">집값 -10% = 4.5억</text>
+      <text class="fig-sub" x="30" y="176">집값이 10% 내렸을 뿐인데 내 돈은 2억 → 1.5억으로 25% 줄었다</text>
+    </svg>
+    <figcaption>대출은 집값이 내려도 줄지 않는다. 줄어든 몫은 모두 내 돈이 떠안는다.</figcaption>
+  </figure>
+  <p>집값이 10% 오르면 반대로 내 돈이 25% 늘어난다. 같은 구조가 이익도, 손실도 크게 만든다. 금리가 오르면 이자 부담이 같이 커지므로 위험이 한 번 더 겹친다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">LTV, DSR · 빌릴 수 있는 돈을 정하는 두 가지</h2>
+  <table class="learn-table">
+    <thead><tr><th>용어</th><th>뜻</th><th>예(가상)</th></tr></thead>
+    <tbody>
+      <tr><td>LTV(담보인정비율)</td><td>집값 대비 빌릴 수 있는 비율</td><td>집값 5억 × LTV 70% = 최대 3.5억</td></tr>
+      <tr><td>DSR(총부채원리금상환비율)</td><td>연 소득 대비 모든 대출의 연간 원리금 상환액 비율</td><td>연봉 6,000만 원 × DSR 40% = 연 상환액 2,400만 원까지</td></tr>
+    </tbody>
+  </table>
+  <p>LTV는 <b>집이 담보로 얼마나 버티는가</b>를, DSR은 <b>내 소득이 이자를 감당하는가</b>를 본다. 두 값은 지역, 주택 가격, 대출 종류, 시기에 따라 자주 바뀐다. 이 표의 비율은 설명용이고 현재 적용되는 기준은 금융위원회와 금융기관 안내에서 확인한다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">금리 1%p는 한 달에 얼마인가</h2>
+  <p>3억 원을 30년 동안 원리금 균등으로 갚는 경우 월 상환액은 이렇게 달라진다.</p>
+  <table class="learn-table">
+    <thead><tr><th>금리</th><th>월 상환액(원금+이자)</th><th>4%와의 차이</th></tr></thead>
+    <tbody>
+      <tr><td>3%</td><td>약 126만 원</td><td>-17만 원</td></tr>
+      <tr><td>4%</td><td>약 143만 원</td><td>기준</td></tr>
+      <tr><td>5%</td><td>약 161만 원</td><td>+18만 원</td></tr>
+      <tr><td>6%</td><td>약 180만 원</td><td>+37만 원</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">원리금 균등상환 30년 계산이다. 변동금리 대출은 금리가 바뀔 때마다 같이 움직인다. 이자만 먼저 갚는 거치 기간이 있으면 시작할 때는 가볍지만 이후 상환 부담이 커진다.</p>
+  <div class="learn-note"><b>월급이 같은데 지출이 늘면</b> 소비가 줄고 경제 전체 수요가 약해진다. 한국은행이 금리를 올릴 때 가계 부채를 걱정하는 이유가 여기에 있다(경제 이야기 5장).</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">임대수익률 · 집을 월세 받는 자산으로 보면</h2>
+  <p>집을 투자 자산으로 보면 한 해에 얼마가 들어오는지 계산할 수 있다. 가상 숫자로 따라가자. 매매가 5억 원, 보증금 5,000만 원, 월세 150만 원인 집이다.</p>
+  <table class="learn-table">
+    <thead><tr><th>단계</th><th>계산</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>연 월세</td><td>150만 원 × 12</td><td>1,800만 원</td></tr>
+      <tr><td>실제 들어간 돈</td><td>5억 - 보증금 5,000만 원</td><td>4.5억 원</td></tr>
+      <tr><td>겉보기 수익률</td><td>1,800만 ÷ 4.5억</td><td>4.0%</td></tr>
+      <tr><td>비용을 빼면</td><td>재산세·수리·공실(한 달 비면 -150만)·중개 수수료</td><td>3%대 초반으로 내려간다</td></tr>
+    </tbody>
+  </table>
+  <p>이 수익률은 <b>정기예금 이자나 채권 금리와 비교</b>해 읽는다. 대출을 끼고 샀다면 대출 이자가 월세 수입보다 클 수 있다(수익률이 대출 금리보다 낮은 역마진). 집값이 오를 것이라는 기대에 기대어 샀다면 월세가 이자를 못 덮는 만큼 집값이 올라야 본전이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">전세와 갭투자 · 한국에만 있는 구조</h2>
+  <p>한국에서는 집주인에게 큰 보증금(전세금)을 맡기고 월세 없이 사는 <b>전세</b>가 널리 쓰였다. 집주인은 이 돈을 사실상 무이자 대출처럼 쓰고, 집값이 오르기를 기대한다. 전세금을 끼고 사는 투자를 <b>갭투자</b>라 한다(집값 - 전세금 = 갭).</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 190" role="img" aria-label="매매가 5억 전세 4억인 집에서 집값이 20퍼센트 내리면 매매가가 전세금과 같아져 집주인은 자기 돈 1억을 전부 잃고 전세금 반환이 어려워진다">
+      <rect class="fig-soft2" x="30" y="20" width="150" height="100" rx="4" />
+      <rect class="fig-soft" x="30" y="20" width="150" height="80" rx="4" />
+      <text class="fig-ink" x="44" y="66" font-size="13">전세금 4억(세입자 돈)</text>
+      <text class="fig-ink" x="44" y="112" font-size="12.5">갭 1억(집주인)</text>
+      <text class="fig-sub" x="30" y="138">매매가 5억, 전세가율 80%</text>
+      <path class="fig-ink-line" d="M190 70 H240 M232 64 L240 70 L232 76" />
+      <rect class="fig-soft" x="250" y="20" width="150" height="80" rx="4" />
+      <text class="fig-ink" x="264" y="66" font-size="13">매매가 4억 = 전세금</text>
+      <text class="fig-down" x="264" y="118" font-size="12.5">집주인 몫 0원</text>
+      <text class="fig-sub" x="250" y="138">집값 -20%</text>
+      <text class="fig-sub" x="30" y="166">집을 팔아도 전세금 4억이 남을까 말까 → 세입자 보증금 반환 위험</text>
+    </svg>
+    <figcaption>집값이 전세금 밑으로 내려가면 집을 팔아도 세입자에게 돌려줄 돈이 모자랄 수 있다(깡통전세).</figcaption>
+  </figure>
+  <div class="learn-note"><b>세입자도 점검한다</b> 계약 전에 등기부등본에서 선순위 대출(근저당), 집값 대비 전세금 비율, 보증보험 가입 가능 여부를 본다. 전세가율이 높을수록 집값이 조금만 내려도 위험해진다. 전입신고와 확정일자는 보증금을 지키는 기본 장치다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">리츠 · 건물 지분을 주식처럼 사는 법</h2>
+  <p>리츠(REITs, 부동산투자회사)는 여러 투자자의 돈을 모아 오피스·상가·물류센터·데이터센터·주택 같은 부동산을 사들여 <b>임대료를 배당으로 나눠 주는 회사</b>다. 주식처럼 상장되어 있으면 증권계좌로 한 주씩 살 수 있다. 건물 전체가 아니라 건물 지분 한 조각을 사는 셈이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 160" role="img" aria-label="리츠 구조: 투자자의 돈과 대출로 건물을 사고 임대료를 받아 비용을 뺀 뒤 대부분을 배당으로 투자자에게 돌려준다">
+      <rect class="fig-soft" x="10" y="52" width="86" height="44" rx="6" /><text class="fig-ink" x="20" y="78" font-size="12.5">투자자 돈</text>
+      <path class="fig-ink-line" d="M100 74 H124 M118 68 L124 74 L118 80" />
+      <rect class="fig-soft2" x="128" y="40" width="100" height="68" rx="6" /><text class="fig-ink" x="140" y="68" font-size="13">리츠 회사</text><text class="fig-sub" x="140" y="88">건물 보유</text>
+      <path class="fig-ink-line" d="M232 74 H256 M250 68 L256 74 L250 80" />
+      <rect class="fig-soft" x="260" y="24" width="86" height="40" rx="6" /><text class="fig-ink" x="270" y="48" font-size="12">임차인</text>
+      <rect class="fig-soft" x="260" y="88" width="86" height="40" rx="6" /><text class="fig-ink" x="270" y="112" font-size="12">은행 대출</text>
+      <path class="fig-ink-line" d="M350 74 H374 M368 68 L374 74 L368 80" />
+      <rect class="fig-soft2" x="378" y="52" width="56" height="44" rx="6" /><text class="fig-ink" x="386" y="78" font-size="12">배당</text>
+      <text class="fig-sub" x="10" y="150">임차인이 임대료를 내고, 은행에는 이자를 내고, 남은 이익을 배당한다</text>
+    </svg>
+    <figcaption>임대료에서 이자와 비용을 빼고 남은 이익이 배당의 재원이다.</figcaption>
+  </figure>
+  <p>한국 리츠는 배당 가능 이익의 90% 이상을 배당하면 법인세를 면제받는 구조를 쓰는 곳이 많다. 그래서 배당 비율이 높은 편이다. 배당 소득에 대한 세제 혜택은 기간과 한도가 바뀌므로 최신 세법을 확인한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>리츠를 볼 때</th><th>읽는 법</th></tr></thead>
+    <tbody>
+      <tr><td>배당수익률</td><td>1주 배당 ÷ 현재 주가. 채권 금리나 예금 이자와 비교한다. 배당이 영구적인지 임대 계약 만기로 줄 수 있는지 본다</td></tr>
+      <tr><td>자산 구성</td><td>오피스인지 물류센터인지에 따라 공실 위험과 계약 기간이 다르다</td></tr>
+      <tr><td>부채 비율과 만기</td><td>빌린 돈이 언제 만기가 오는지. 금리가 높은 때 재융자하면 이자가 늘어 배당이 줄어든다</td></tr>
+      <tr><td>순자산가치(NAV) 대비 주가</td><td>건물 감정가에서 부채를 뺀 가치보다 주가가 싼지 비싼지. 감정가가 시장 가격과 다를 수 있다</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note"><b>리츠는 주식이면서 채권처럼 읽힌다</b> 금리가 오르면 배당의 매력이 줄어 주가가 내려가는 경향이 있고(채권과 같은 방향), 경기가 나빠져 공실이 늘면 배당이 줄어든다(주식과 같은 방향). 금리와 경기 두 날씨에 모두 영향을 받는다. 리츠는 주식이라 가격이 매일 움직이고 배당이 보장되지 않는다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-8">PF · 건설이 금융위기로 번지는 길</h2>
+  <p>프로젝트파이낸싱(PF)은 아직 짓지 않은 건물을 담보로 돈을 빌려 짓는 방식이다. 땅을 사는 단계(브릿지론)에서 짓는 단계(본PF)로 넘어가며 은행·증권사·저축은행이 돈을 대고, 시공사가 지급보증이나 책임준공을 약속한다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 170" role="img" aria-label="분양이 안 되면 시행사 자금이 막히고, 시공사 보증이 현실화되고, 대출한 금융회사 부실이 커지는 연쇄 구조">
+      <rect class="fig-soft" x="8" y="36" width="82" height="44" rx="6" /><text class="fig-ink" x="16" y="62" font-size="12">분양 부진</text>
+      <path class="fig-ink-line" d="M94 58 H110 M104 52 L110 58 L104 64" />
+      <rect class="fig-soft2" x="114" y="36" width="82" height="44" rx="6" /><text class="fig-ink" x="122" y="62" font-size="12">시행사 자금난</text>
+      <path class="fig-ink-line" d="M200 58 H216 M210 52 L216 58 L210 64" />
+      <rect class="fig-soft" x="220" y="36" width="94" height="44" rx="6" /><text class="fig-ink" x="228" y="62" font-size="12">시공사 보증 이행</text>
+      <path class="fig-ink-line" d="M318 58 H334 M328 52 L334 58 L328 64" />
+      <rect class="fig-soft2" x="338" y="36" width="94" height="44" rx="6" /><text class="fig-ink" x="346" y="62" font-size="12">대출 금융회사</text>
+      <text class="fig-sub" x="8" y="116">건설사가 보증한 금액이 많을수록 한 건의 부진이 건설사 전체 신용으로 번진다</text>
+      <text class="fig-sub" x="8" y="136">저축은행·증권사·캐피탈은 건설 대출 비중이 큰 곳이 많아 연쇄가 빠르다</text>
+    </svg>
+    <figcaption>한 프로젝트에서 끝나지 않고 시공사와 금융회사로 번진다. 연결 구조를 그린 개념도다.</figcaption>
+  </figure>
+  <p>PF 문제는 건설주·증권주·저축은행·리츠에 같이 나타나고, 금융 당국이 유동성을 지원하는 안정화 대책이 뉴스에 오른다. 공시에서는 <b>지급보증 잔액과 우발채무</b>, 금융회사는 PF 대출 연체율과 충당금을 본다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-9">이 사이트에서 확인하기</h2>
+  <ul>
+    <li>글로벌 시장지표에서 한국 국고채 3년물과 미국 10년물 금리를 확인한다. 주택담보대출 금리와 리츠 배당의 비교 기준이 된다.</li>
+    <li>종목분석에서 리츠·건설·은행 종목의 부채비율과 이자보상배율, 배당 이력을 본다.</li>
+    <li>마켓 대동여지도에서 건설·금융·리츠 관련 업종의 단기·장기 위치를 비교한다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 집값 4억, 자기 돈 1억, 대출 3억이다. 집값이 5% 내리면 내 돈은 몇 % 줄까?</summary><p>집값 5% = 2,000만 원이 내 몫에서 빠진다. 1억의 20%다. 레버리지가 4배이므로 5% × 4 = 20%와 같다.</p></details>
+  <details class="in-quiz"><summary>2. 매매 3억, 보증금 3,000만 원, 월세 100만 원이다. 겉보기 수익률은?</summary><p>연 월세 1,200만 원 ÷ 실제 들어간 돈 2.7억 ≒ 4.4%다. 재산세·공실·수리를 빼면 이보다 낮아진다.</p></details>
+  <details class="in-quiz"><summary>3. 3억 대출의 금리가 4%에서 5%로 오르면 30년 원리금 균등 기준 월 상환액은 얼마나 늘까?</summary><p>약 143만 원에서 161만 원으로 월 18만 원쯤 늘어난다. 변동금리면 이 변화가 바로 가계 소득에서 나간다.</p></details>
+  <details class="in-quiz"><summary>4. 리츠 배당수익률이 7%라고 광고한다. 먼저 확인할 것은?</summary><p>배당이 임대 수익에서 나오는지 자산 매각이나 차입에서 나오는지, 대출 만기와 금리, 공실률을 본다. 주가가 크게 내려 수익률만 올라간 것은 아닌지도 확인한다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="re-advanced">
+  <h2 id="re-advanced">심화 연구실 · 캡레이트와 금리, 건물 값의 계산</h2>
+  <p>수익형 부동산의 값은 <b>순영업이익(NOI) ÷ 캡레이트(자본환원율)</b>로 어림한다. NOI는 임대료에서 운영비를 뺀 연 순이익이고, 캡레이트는 시장이 요구하는 수익률이다. 캡레이트는 시장 금리와 위험 프리미엄의 영향을 받는다.</p>
+  <div class="learn-lab">
+    <h3>가상 계산 · 금리 1%p가 건물 값을 얼마나 바꿀까</h3>
+    <p>NOI가 연 4억 원인 건물이 있다. 캡레이트가 5%면 가치 = 4억 ÷ 0.05 = <b>80억 원</b>이다. 금리가 올라 시장이 6%를 요구하면 4억 ÷ 0.06 ≒ <b>66.7억 원</b>으로 약 -16.7%다. 임대료가 그대로여도 값이 이만큼 내려간다.</p>
+    <p class="learn-math">가치 = NOI ÷ 캡레이트 → 5%: 80억 / 6%: 66.7억 (-16.7%)</p>
+    <p>건물을 담보로 대출을 낀 리츠는 값이 내려가면 부채비율이 올라 재융자가 어려워진다. 금리가 오르는 시기에 리츠 가격이 내리는 구조적 이유다.</p>
+  </div>
+  <div class="learn-grid">
+    <div><h3>가격지수의 한계</h3><p>부동산 가격지수는 실제 거래된 것만 담는다. 거래가 얼어붙으면 거래가 있는 물건만 통계에 잡혀서 가격이 덜 내린 것처럼 보일 수 있다(거래 절벽). 거래량과 함께 본다.</p></div>
+    <div><h3>감정가와 시장가</h3><p>리츠 순자산가치는 감정평가 기준이라 시장 가격과 시차가 있다. 평가 시점과 방법을 확인한다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>자료 확인</strong><ul><li><a href="https://www.molit.go.kr/" target="_blank" rel="noopener noreferrer">국토교통부 · 주택·리츠 제도</a></li><li><a href="https://www.reb.or.kr/" target="_blank" rel="noopener noreferrer">한국부동산원 · 주택 가격 동향</a></li><li><a href="https://www.fsc.go.kr/" target="_blank" rel="noopener noreferrer">금융위원회 · 대출 규제와 PF 대책</a></li></ul></div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-summary">한 줄 정리</h2>
+  <p>집은 대개 빚으로 사는 자산이라 집값 변화가 내 돈에 몇 배로 나타나고, 금리 1%p는 월 상환액을 크게 바꾼다. 임대수익률은 예금·채권 금리와 비교해 읽고, 전세는 집값이 전세금 아래로 내려갈 때 위험해진다. 리츠는 건물 지분을 주식으로 사는 방법이며 금리와 경기에 모두 영향을 받고, PF는 건설의 부진이 금융회사로 번지는 길이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-source">설명 근거</h2>
+  <p>2026-11-21 확인. 대출 규제 비율·세제 혜택·리츠 배당 요건은 자주 바뀐다. 거래 전에 금융위원회, 국토교통부, 금융기관의 최신 안내를 확인한다. 숫자는 가상값이며 투자와 주택 구입을 권유하지 않는다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/commodity.html">← 원자재 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/backtest.html">투자검증 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>

@@ -63,7 +63,7 @@ class LearnFirstPaintContract(unittest.TestCase):
 
     def test_footer_story_palette_preserves_original_pastel_tones(self):
         footer = (ROOT / "js" / "skin-shell.js").read_text(encoding="utf-8")
-        self.assertEqual(footer.count('style="--lc-a:#'), 12)
+        self.assertEqual(footer.count('style="--lc-a:#'), 22)
         self.assertIn('--lc-a:#ffe6c2;--lc-b:#f7bf78', footer)
         self.assertNotIn('--lc-a:#e6f1f5;--lc-b:#d1e2ea', footer)
 

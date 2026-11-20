@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>투자검증 이야기</title>
+<meta name="description" content="백테스트 방법과 MDD·CAGR·샤프비율 같은 성과 숫자, 거래비용, 과최적화, 미래정보 누출, 생존자 편향, 다중검정의 함정을 그림과 계산으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+</head>
+<body class="learn-page">
+<div class="legal-wrap story-page">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>투자검증 이야기</h1>
+  <p class="legal-effective-date">백테스트·MDD·거래비용·과최적화·생존자 편향·성과 측정 · 설명 업데이트 2026-11-21</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>차트 이야기에서 배운 패턴은 "이 모양이 나오면 오르는 경향이 있다"는 주장이다. 주장은 얼마든지 만들 수 있다. 중요한 것은 그 주장이 <b>과거 데이터에서 실제로 돈이 됐는지, 그리고 그 결과를 믿어도 되는지</b>다. 이 두 번째 질문에서 대부분의 성공담이 무너진다.</p>
+  <p>새 요리법을 만들어 가족에게 한 번 먹였더니 맛있다고 했다고 해서 식당을 차리지는 않는다. 여러 사람에게 여러 번 먹여 보고, 재료 값을 따져 보고, 다른 날씨에도 맛이 같은지 본다. 투자 규칙도 같다. 이 이야기는 규칙을 과거로 시험하는 백테스트와, 시험 결과를 읽을 때 속지 않는 법이다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>좋은 백테스트는</span><strong>비용을 넣는다</strong></div>
+    <div class="in-fact"><span>많이 시험할수록</span><strong>우연이 늘어난다</strong></div>
+    <div class="in-fact"><span>믿는 순서는</span><strong>표본 밖 결과</strong></div>
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">백테스트란 무엇인가</h2>
+  <p>백테스트는 <b>정해 둔 매매 규칙을 과거 가격에 적용해 그때 했다면 어땠을지 계산하는 일</b>이다. 규칙은 사람이 말로 풀어 쓸 수 있을 만큼 분명해야 한다. "좋아 보이면 산다"는 시험할 수 없다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 150" role="img" aria-label="백테스트 순서: 규칙을 정하고, 과거 데이터에 적용하고, 가상 거래를 만들고, 비용을 넣어 성과를 계산한다">
+      <rect class="fig-soft" x="6" y="30" width="86" height="50" rx="6" /><text class="fig-ink" x="16" y="52" font-size="12.5">규칙 정하기</text><text class="fig-sub" x="16" y="68">진입·청산·비중</text>
+      <path class="fig-ink-line" d="M96 55 H108 M102 49 L108 55 L102 61" />
+      <rect class="fig-soft2" x="112" y="30" width="86" height="50" rx="6" /><text class="fig-ink" x="122" y="52" font-size="12.5">과거 가격</text><text class="fig-sub" x="122" y="68">수정주가 포함</text>
+      <path class="fig-ink-line" d="M202 55 H214 M208 49 L214 55 L208 61" />
+      <rect class="fig-soft" x="218" y="30" width="86" height="50" rx="6" /><text class="fig-ink" x="228" y="52" font-size="12.5">가상 거래</text><text class="fig-sub" x="228" y="68">다음 날 시가 체결</text>
+      <path class="fig-ink-line" d="M308 55 H320 M314 49 L320 55 L314 61" />
+      <rect class="fig-soft2" x="324" y="30" width="110" height="50" rx="6" /><text class="fig-ink" x="334" y="52" font-size="12.5">성과 계산</text><text class="fig-sub" x="334" y="68">비용·세금 반영</text>
+      <text class="fig-sub" x="6" y="112">순서를 건너뛰지 않는다. 규칙을 보고 나서 고치면 이미 그 데이터에 맞춘 것이다</text>
+      <text class="fig-sub" x="6" y="132">규칙은 시험하기 전에 적고, 결과를 본 뒤에는 바꾼 이유를 기록한다</text>
+    </svg>
+    <figcaption>검증의 첫 단계는 코드가 아니라 규칙을 한 줄씩 적는 일이다.</figcaption>
+  </figure>
+  <div class="learn-note"><b>수정주가를 쓴다</b> 액면분할이나 배당, 유상증자가 있었던 종목의 옛 가격을 그대로 쓰면 하루에 -50% 같은 가짜 급락이 신호로 잡힌다. 분할·배당을 반영해 이어 붙인 수정주가를 쓰는지 확인한다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">성과 숫자 읽는 법</h2>
+  <table class="learn-table">
+    <thead><tr><th>숫자</th><th>뜻</th><th>가상 예</th></tr></thead>
+    <tbody>
+      <tr><td>총수익률</td><td>시작부터 끝까지 얼마가 불었나</td><td>100 → 150 = +50%</td></tr>
+      <tr><td>연평균 수익률(CAGR)</td><td>복리로 환산한 1년 수익률</td><td>3년에 1.5배 → 1.5의 1/3제곱 ≒ 연 14.5%</td></tr>
+      <tr><td>최대낙폭(MDD)</td><td>고점에서 저점까지 가장 깊은 하락</td><td>고점 100 → 저점 60 = -40%</td></tr>
+      <tr><td>변동성</td><td>수익률이 평균 주변에서 흔들리는 정도(표준편차)</td><td>연 15%면 대체로 ±15% 범위</td></tr>
+      <tr><td>샤프비율</td><td>(수익률 - 무위험 수익률) ÷ 변동성. 위험 한 단위당 얻은 초과수익</td><td>(10% - 3%) ÷ 14% = 0.5</td></tr>
+      <tr><td>승률 / 손익비</td><td>이긴 거래 비율 / 평균 이익 ÷ 평균 손실</td><td>승률 40%, 손익비 2.5</td></tr>
+    </tbody>
+  </table>
+  <h3>승률만 보면 안 된다 · 기대값</h3>
+  <p>한 번 거래할 때 평균적으로 얼마를 버는지가 <b>기대값</b>이다. 승률이 40%밖에 안 되어도 이길 때 크게 이기면 이긴다.</p>
+  <p class="learn-math">기대값 = 승률 × 평균 이익 - (1 - 승률) × 평균 손실 = 0.4 × 10% - 0.6 × 4% = +1.6%</p>
+  <p>반대로 승률 80%인 규칙이 평균 이익 +2%, 평균 손실 -12%라면 0.8×2 - 0.2×12 = -0.8%로 계속 잃는다. 투자심리 이야기에서 본 "작게 자주 이기고 크게 한 번 지는" 구조다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 190" role="img" aria-label="MDD: 자산이 100에서 올랐다가 고점 대비 40퍼센트 내려 60이 되고 다시 회복하려면 66.7퍼센트 올라야 한다">
+      <path class="fig-line" d="M30 20 V160 H420" />
+      <path class="fig-up-line" d="M40 130 C90 100,130 60,180 50" />
+      <path class="fig-down-line" d="M180 50 C220 80,250 120,280 132" />
+      <path class="fig-acc-line" d="M280 132 C330 120,370 90,410 60" />
+      <path class="fig-dash" d="M180 50 H410 M180 132 H410" />
+      <text class="fig-ink" x="184" y="44" font-size="12">고점 100</text>
+      <text class="fig-down" x="286" y="152" font-size="12">저점 60 (MDD -40%)</text>
+      <text class="fig-acc" x="330" y="82" font-size="12">회복에 +66.7% 필요</text>
+    </svg>
+    <figcaption>내린 만큼이 아니라 더 올라야 원래 자리로 돌아온다. MDD가 깊은 규칙은 실제로 따라 하기 어렵다.</figcaption>
+  </figure>
+  <div class="learn-note"><b>MDD는 내 심장의 한계다</b> 백테스트에서 MDD -40%라면 실제로는 계좌가 -40% 되는 동안 규칙을 지켜야 한다. 중간에 포기하면 백테스트 결과는 의미가 없다. 내가 견딜 수 있는 낙폭과 비교한다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">비용을 빼야 진짜다</h2>
+  <p>백테스트 결과는 대개 비용 없이 계산한 값이 먼저 나온다. 실제 거래에는 비용이 붙는다.</p>
+  <table class="learn-table">
+    <thead><tr><th>비용</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>수수료·거래세</td><td>사고팔 때 모두 붙는 증권사 수수료, 팔 때 붙는 증권거래세</td></tr>
+      <tr><td>호가 차이(스프레드)</td><td>사는 값과 파는 값의 차이. 거래가 적은 종목일수록 크다</td></tr>
+      <tr><td>슬리피지</td><td>주문한 값과 실제 체결 값의 차이. 급등락 구간·소형주일수록 크다</td></tr>
+      <tr><td>체결 가능성</td><td>상한가에 붙은 종목은 신호가 떠도 살 수 없다</td></tr>
+    </tbody>
+  </table>
+  <table class="learn-table">
+    <thead><tr><th>가상 숫자</th><th>한 번 거래 평균 이익</th><th>왕복 비용 0.4%</th><th>1년 50번 거래</th></tr></thead>
+    <tbody>
+      <tr><td>규칙 A</td><td>+1.5%</td><td>순이익 +1.1%</td><td>비용으로 잃은 몫 합계 약 20%p</td></tr>
+      <tr><td>규칙 B</td><td>+0.3%</td><td>순이익 -0.1%</td><td>비용을 빼면 손실로 바뀐다</td></tr>
+    </tbody>
+  </table>
+  <p class="in-small">비용은 시기와 증권사, 종목에 따라 다르다. 비용을 더 크게 가정해도 살아남는 규칙이 안전하다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">결과가 좋아 보이는 다섯 가지 속임수</h2>
+
+  <h3>① 과최적화 · 과거에만 맞춘 규칙</h3>
+  <p>규칙의 설정값(이동평균 기간, 매수 조건 숫자)을 바꿔 가며 과거에서 가장 높은 수익을 내는 값을 고르면 <b>과거 잡음까지 외운 규칙</b>이 된다. 시험 점수를 올리려고 기출 문제 답을 통째로 외운 학생과 같다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 180" role="img" aria-label="과거 점들을 모두 지나가는 복잡한 곡선은 새 데이터에서 크게 빗나가고 단순한 선은 비슷한 방향을 유지한다">
+      <path class="fig-line" d="M30 20 V150 H420" />
+      <circle class="fig-acc" cx="70" cy="110" r="3" /><circle class="fig-acc" cx="120" cy="86" r="3" /><circle class="fig-acc" cx="170" cy="98" r="3" /><circle class="fig-acc" cx="220" cy="66" r="3" /><circle class="fig-acc" cx="270" cy="76" r="3" />
+      <path class="fig-down-line" d="M60 120 C80 100,100 70,120 86 S150 130,170 98 S200 40,220 66 S250 100,270 76 S330 -20,360 10" />
+      <path class="fig-ink-line" d="M60 118 L280 66 L400 38" />
+      <text class="fig-down" x="290" y="22" font-size="12">복잡한 규칙(미래에서 빗나감)</text>
+      <text class="fig-ink" x="290" y="58" font-size="12">단순한 규칙</text>
+      <text class="fig-sub" x="30" y="172">점은 과거 표본이다. 복잡한 선은 새 데이터에서 크게 틀린다.</text>
+    </svg>
+    <figcaption>과거에 완벽히 맞는 규칙은 대개 미래에서 틀린다. 개념 그림이다.</figcaption>
+  </figure>
+
+  <h3>② 미래정보 누출</h3>
+  <p>그날 종가가 나오고 나서야 알 수 있는 정보를 그날 시가에 쓰면 실제로는 불가능한 거래가 들어간다. 재무제표는 <b>실제로 공시된 날짜 이후</b>에만 써야 한다. 분기 실적은 분기 말이 아니라 발표일에 알려진다.</p>
+
+  <h3>③ 생존자 편향</h3>
+  <p>지금 상장되어 있는 종목만으로 과거를 시험하면 망해서 사라진 종목이 빠진다. 살아남은 것만 보니 성적이 좋아 보인다. 상장폐지 종목이 포함된 데이터인지 확인한다.</p>
+
+  <h3>④ 많이 시험할수록 우연히 좋은 것이 나온다</h3>
+  <p>의미 없는 규칙이라도 100개를 만들어 시험하면 몇 개는 우연으로 좋은 성과를 낸다. 유의수준 5%로 20번 시험하면 하나쯤 우연히 유의해 보일 확률이 이렇다.</p>
+  <p class="learn-math">1 - 0.95<sup>20</sup> ≈ 1 - 0.36 = 64%</p>
+  <p>"서른 개를 시험해서 가장 좋은 하나를 골랐다"는 이야기에서 중요한 정보는 <b>서른 개를 시험했다는 사실</b>이다.</p>
+
+  <h3>⑤ 좋은 시기만 본 표본</h3>
+  <p>상승장 3년만으로 시험한 규칙은 하락장에서 어떻게 될지 모른다. 상승·하락·횡보 시기를 모두 포함하고, 시기별로 나눠 결과를 본다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">검증하는 방법 · 믿음의 순서</h2>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 150" role="img" aria-label="전체 기간을 표본 내(규칙을 찾는 구간)와 표본 외(한 번만 시험하는 구간)로 나누고 표본 외 결과를 믿는 구조">
+      <rect class="fig-soft" x="20" y="34" width="260" height="40" rx="4" /><text class="fig-ink" x="34" y="58" font-size="12.5">표본 내 · 규칙을 찾고 고치는 구간</text>
+      <rect class="fig-soft2" x="284" y="34" width="136" height="40" rx="4" /><text class="fig-ink" x="294" y="58" font-size="12.5">표본 외 · 한 번만</text>
+      <text class="fig-sub" x="20" y="96">시간 순서: 과거 →</text>
+      <text class="fig-sub" x="284" y="96">현재</text>
+      <text class="fig-sub" x="20" y="124">표본 외 구간은 규칙을 확정한 뒤 한 번만 열어 본다.</text>
+      <text class="fig-sub" x="20" y="142">결과가 나쁘다고 다시 고치면 그 구간도 표본 내가 된다.</text>
+    </svg>
+    <figcaption>믿음의 크기는 표본 외 결과 → 표본 내 결과 순서다.</figcaption>
+  </figure>
+  <table class="learn-table">
+    <thead><tr><th>방법</th><th>무엇을 보나</th></tr></thead>
+    <tbody>
+      <tr><td>표본 내·외 분리</td><td>앞 70%에서 규칙을 만들고 뒤 30%에서 한 번만 시험한다</td></tr>
+      <tr><td>워크포워드</td><td>기간을 굴려 가며 "앞 구간에서 정한 설정이 바로 다음 구간에서도 통하는가"를 반복한다</td></tr>
+      <tr><td>설정값 안정성</td><td>이동평균 20일에서만 좋고 19일·21일에서 나쁘면 우연일 가능성이 크다. 이웃 값에서도 비슷해야 한다</td></tr>
+      <tr><td>시기별 분해</td><td>상승장·하락장·횡보장, 연도별로 나눠 한 해 때문에 좋아 보인 것은 아닌지 본다</td></tr>
+      <tr><td>대조군 비교</td><td>같은 기간 지수를 계속 들고 있었을 때, 또는 무작위로 골랐을 때와 비교한다</td></tr>
+      <tr><td>거래 횟수</td><td>수십 건 이하의 결과는 운과 구분하기 어렵다. 거래가 충분한지 본다</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note"><b>대조군이 없으면 비교가 안 된다</b> "이 규칙으로 연 12%를 벌었다"는 말은 같은 기간 시장이 연 15% 올랐다면 오히려 졌다는 뜻이다. 항상 같은 기간 벤치마크(KOSPI, 같은 시총 종목)와 나란히 둔다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">남의 백테스트를 읽을 때 던질 질문 열 가지</h2>
+  <ol class="learn-toc">
+    <li><b>규칙이 한 줄씩 적혀 있나</b> <small>진입·청산·비중·손절이 분명하지 않으면 재현이 안 된다</small></li>
+    <li><b>시험 기간은 얼마이고 하락장이 있나</b> <small>상승장만 있는 기간은 점수를 부풀린다</small></li>
+    <li><b>비용과 세금을 뺐나</b> <small>왕복 비용과 슬리피지를 얼마로 가정했나</small></li>
+    <li><b>체결 시점이 현실적인가</b> <small>신호가 난 날 종가에 이미 샀다고 가정하면 안 된다</small></li>
+    <li><b>거래 횟수는 몇 번인가</b> <small>수십 건 미만이면 우연일 수 있다</small></li>
+    <li><b>상장폐지 종목을 포함했나</b> <small>생존자 편향을 확인한다</small></li>
+    <li><b>몇 가지 규칙을 시험했나</b> <small>많이 시험한 뒤 고른 것인지 알려야 한다</small></li>
+    <li><b>표본 밖 결과가 있나</b> <small>있다면 표본 안 결과와 차이가 얼마인가</small></li>
+    <li><b>벤치마크보다 나았나</b> <small>수익률만이 아니라 MDD와 샤프비율도 같이 비교한다</small></li>
+    <li><b>실제 돈으로 해 본 기록이 있나</b> <small>백테스트와 실제 체결 결과의 차이를 확인한다</small></li>
+  </ol>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">이 사이트에서 확인하기</h2>
+  <ul>
+    <li>검색기 화면의 메뉴별 과거 성적 한 줄에서 기간, 비교 대상(같은 기간 아무 종목을 들고 있었을 때와의 차이), 표본 수가 무엇인지 읽는 연습을 한다. 위의 열 가지 질문을 그대로 적용해 본다.</li>
+    <li>차트의 매입가 선과 메모 기능으로 내가 정한 규칙과 실제 매매의 차이를 기록한다. 실제 기록이 가장 믿을 만한 표본 외 데이터다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 100만 원이 3년 뒤 133만 원이 됐다. 연평균 수익률(CAGR)은 대략?</summary><p>1.33의 1/3제곱 ≒ 1.10, 즉 연 약 10%다. 단순히 33 ÷ 3 = 11%로 나누면 복리 효과 때문에 조금 어긋난다.</p></details>
+  <details class="in-quiz"><summary>2. 승률 30%, 평균 이익 +12%, 평균 손실 -3%이면 거래당 기대값은?</summary><p>0.3 × 12 - 0.7 × 3 = 3.6 - 2.1 = +1.5%다. 승률이 낮아도 손익비가 크면 기대값은 양수다.</p></details>
+  <details class="in-quiz"><summary>3. 이동평균 기간을 5일부터 60일까지 모두 시험해 가장 좋은 값을 골랐다. 무엇이 문제일까?</summary><p>많이 시험한 뒤 최고를 고른 것이라 우연히 좋아 보인 값일 수 있다(다중검정). 표본 밖에서 한 번만 시험하고, 이웃 설정에서도 비슷한지 본다.</p></details>
+  <details class="in-quiz"><summary>4. 현재 상장된 종목 500개로 과거 10년을 시험했다. 결과가 좋았다면 어느 편향을 의심할까?</summary><p>생존자 편향이다. 10년 사이에 상장폐지된 종목이 데이터에서 빠져 있어 성과가 부풀려진다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="backtest-advanced">
+  <h2 id="backtest-advanced">심화 연구실 · 가장 좋은 규칙은 얼마나 부풀려질까</h2>
+  <p>규칙을 많이 시험하고 가장 좋은 하나를 고르면 그 성과는 평균적으로 부풀려져 있다. 선택 편향의 크기는 계산으로 어림할 수 있다. 서로 다른 규칙 20개가 모두 실제 기대수익이 0인 무의미한 규칙이라고 해 보자.</p>
+  <div class="learn-lab">
+    <h3>가상 계산 · 무의미한 규칙 20개 가운데 최고</h3>
+    <p>각 규칙의 연 수익률이 우연 때문에 표준편차 5%로 흔들린다고 하자(실제 기대수익은 0). 서로 독립인 20개의 표준정규 난수에서 최댓값의 기대값은 약 1.87이다. 따라서 가장 좋아 보이는 규칙의 연 수익률은 평균적으로 <b>1.87 × 5% ≒ +9.4%</b>다.</p>
+    <p class="learn-math">E[최댓값] ≈ 1.87 × 5% = 9.4% (실제 기대수익은 0%)</p>
+    <p>"연 9%를 낸 규칙을 찾았다"는 말은 열 개를 시험했는지 백 개를 시험했는지에 따라 전혀 다른 정보다. 샤프비율을 이런 선택 편향에 맞게 깎아서 보는 방법이 학계에 제안되어 있다(deflated Sharpe ratio, 백테스트 과최적화 확률).</p>
+  </div>
+  <div class="learn-grid">
+    <div><h3>검정력과 표본 수</h3><p>연 수익률 5%p의 초과수익을 통계적으로 구분하려면 변동성이 큰 전략일수록 오랜 기간이 필요하다. 거래가 적은 전략은 몇 년을 봐도 운인지 실력인지 구분할 수 없다.</p></div>
+    <div><h3>환경이 바뀌는 문제</h3><p>시장 구조(거래시간, 호가단위, 참가자)가 바뀌면 과거 관계가 유지되지 않을 수 있다. 오래 통하던 규칙도 모두가 쓰기 시작하면 초과수익이 사라진다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>자료 확인</strong><p class="in-small">Bailey, Borwein, López de Prado, Zhu, "The Probability of Backtest Overfitting"(2016)과 Harvey, Liu, Zhu, "...and the Cross-Section of Expected Returns"(2016)가 다중검정과 과최적화를 다룬다. 샤프비율은 William Sharpe(1966, 1994)의 정의를 따른다.</p></div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-summary">한 줄 정리</h2>
+  <p>백테스트는 규칙을 과거로 시험하는 일이고, 좋은 결과가 나와도 비용을 빼고 표본 밖에서 한 번만 확인하기 전에는 믿지 않는다. 승률보다 기대값과 MDD를, 수익률보다 같은 기간 벤치마크와의 차이를 본다. 많이 시험할수록 우연히 좋은 규칙이 나오므로 몇 개를 시험했는지가 가장 중요한 정보다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-source">설명 근거</h2>
+  <p>2026-11-21 확인. 모든 숫자는 설명용 가상값이며 특정 전략의 실제 성과가 아니다. 과거 결과는 미래 수익을 보장하지 않는다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/real-estate.html">← 부동산·리츠 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/fraud.html">금융사기 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>

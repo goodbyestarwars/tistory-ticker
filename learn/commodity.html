@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>원자재 이야기</title>
+<meta name="description" content="금·은·원유·구리·곡물의 가격이 정해지는 방식, 선물가격의 콘탱고와 백워데이션, 원자재 ETF의 롤오버 비용, 원자재가 물가와 환율과 기업 이익에 미치는 경로를 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+</head>
+<body class="learn-page">
+<div class="legal-wrap story-page">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>원자재 이야기</h1>
+  <p class="legal-effective-date">금·은·원유·구리·곡물 · 수요공급·콘탱고·백워데이션·롤오버 · 설명 업데이트 2026-11-21</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>주유소 가격표, 라면 값, 전기요금, 스마트폰 값. 모두 어딘가에서 원료를 파고 키워서 가져온 값이 들어 있다. 원유와 구리와 밀의 가격은 경제의 맨 아래층에서 정해지고 위로 올라오며 물가와 기업 이익에 닿는다. 그래서 주식 시장 밖의 것 같은 원자재 뉴스가 주식 시장에도 번진다.</p>
+  <p>빵집을 하나 떠올리자. 밀가루 값이 오르면 빵 값을 올리든지 사장 몫이 줄든지 둘 중 하나다. 이 이야기는 밀가루 값이 어떻게 정해지는지, 그리고 그 값이 빵집과 은행과 환율로 어떻게 번지는지를 다룬다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>단기 가격은</span><strong>공급 충격에 흔들린다</strong></div>
+    <div class="in-fact"><span>선물 가격에는</span><strong>시간의 값이 들어 있다</strong></div>
+    <div class="in-fact"><span>원자재 ETF는</span><strong>롤오버 비용이 든다</strong></div>
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">다섯 가지 원자재, 다섯 가지 성격</h2>
+  <table class="learn-table">
+    <thead><tr><th>원자재</th><th>누가 쓰나</th><th>가격을 움직이는 것</th><th>경제 신호</th></tr></thead>
+    <tbody>
+      <tr><td>원유</td><td>운송·석유화학·발전</td><td>OPEC+ 생산, 지정학, 재고, 달러</td><td>물가와 운송 비용의 기준</td></tr>
+      <tr><td>금</td><td>투자·중앙은행·장신구</td><td>실질금리, 달러, 불확실성, 중앙은행 매수</td><td>불안과 금리 기대의 온도계</td></tr>
+      <tr><td>은</td><td>투자 + 산업(태양광·전자)</td><td>금의 흐름 + 산업 수요</td><td>금보다 변동이 크다</td></tr>
+      <tr><td>구리</td><td>건설·전력망·가전·전기차</td><td>중국 수요, 광산 공급, 전기화</td><td>경기를 가장 먼저 느끼는 금속</td></tr>
+      <tr><td>곡물(밀·옥수수·대두)</td><td>식량·사료·에탄올</td><td>날씨, 수출 규제, 에너지 가격</td><td>식료품 물가의 선행 지표</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">왜 값이 갑자기 크게 움직이나</h2>
+  <p>경제 이야기 2장에서 수요와 공급 곡선을 보았다. 원자재는 <b>단기에 수요와 공급이 모두 둔하다</b>. 기름값이 두 배가 되어도 당장 차를 안 타기는 어렵고(수요 비탄력), 유정과 광산은 하루아침에 늘릴 수 없다(공급 비탄력). 이런 시장에서는 공급이 조금만 줄어도 값이 크게 뛴다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 200" role="img" aria-label="가파른 수요곡선과 가파른 공급곡선에서 공급곡선이 왼쪽으로 조금 이동하면 가격이 크게 오른다">
+      <path class="fig-line" d="M40 20 V170 H400" />
+      <path class="fig-down-line" d="M170 30 L240 170" />
+      <path class="fig-up-line" d="M110 170 L260 40" />
+      <path class="fig-dash" d="M60 170 L210 40" />
+      <circle class="fig-acc" cx="204" cy="98" r="4" /><circle class="fig-acc" cx="186" cy="61" r="4" />
+      <text class="fig-down" x="246" y="166" font-size="12.5">수요</text>
+      <text class="fig-up" x="266" y="44" font-size="12.5">공급(감산 전)</text>
+      <text class="fig-sub" x="216" y="30">공급(감산 후)</text>
+      <text class="fig-sub" x="46" y="190">거래량은 조금 줄고, 값은 크게 오른다</text>
+    </svg>
+    <figcaption>곡선이 가파를수록 같은 크기의 공급 충격이 값에 더 크게 나타난다. 개념 그림이다.</figcaption>
+  </figure>
+  <p>반대 방향도 같다. 수요가 갑자기 꺼지면(경기 침체, 코로나 봉쇄) 값이 급락한다. 2020년 4월에는 미국 원유 선물(WTI 5월물)이 저장 공간이 없어지며 <b>마이너스 약 -37달러</b>로 마감한 일이 있었다. 팔 사람이 돈을 얹어 줘야 하는 일이 벌어진 것이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">원유 · 모든 값의 뿌리</h2>
+  <p>원유는 운송, 석유화학, 발전, 비료까지 이어지는 원료다. 대표 가격은 두 가지다. 미국 내륙에서 정해지는 <b>WTI</b>와 북해에서 정해져 국제 거래의 기준이 되는 <b>브렌트</b>다. 한국은 원유를 대부분 수입하므로 국제 유가와 환율이 합쳐서 국내 휘발유·전기·화학 제품 가격에 닿는다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 150" role="img" aria-label="유가 상승이 운송비, 화학 원료, 전기요금, 물가로 퍼져 나가고 한국은 환율까지 겹치는 흐름">
+      <rect class="fig-soft2" x="10" y="52" width="80" height="40" rx="6" /><text class="fig-ink" x="22" y="78" font-size="13">유가 상승</text>
+      <path class="fig-ink-line" d="M94 72 H120 M114 66 L120 72 L114 78" />
+      <rect class="fig-soft" x="124" y="14" width="130" height="34" rx="5" /><text class="fig-ink" x="134" y="36" font-size="12">운송·항공 비용</text>
+      <rect class="fig-soft" x="124" y="58" width="130" height="34" rx="5" /><text class="fig-ink" x="134" y="80" font-size="12">화학·플라스틱 원료</text>
+      <rect class="fig-soft" x="124" y="102" width="130" height="34" rx="5" /><text class="fig-ink" x="134" y="124" font-size="12">전기·난방 요금</text>
+      <path class="fig-ink-line" d="M258 31 H290 M258 75 H290 M258 119 H290 M290 31 V119 M290 75 H310 M304 69 L310 75 L304 81" />
+      <rect class="fig-soft2" x="314" y="56" width="116" height="40" rx="6" /><text class="fig-ink" x="330" y="80" font-size="12.5">물가·기업 원가</text>
+    </svg>
+    <figcaption>유가는 곧바로 물가에 닿지 않고 여러 길을 거쳐 시차를 두고 퍼진다.</figcaption>
+  </figure>
+  <p>유가가 오르면 이익이 늘 업종(정유·시추)과 줄 업종(항공·화학·운송)이 갈린다. 전체 시장에는 물가 상승 우려와 금리 부담으로 이어지는 경로가 더 크게 작용하는 경우가 많다. 방향이 항상 같지는 않다. 경기가 좋아서 오른 유가와 공급이 막혀서 오른 유가는 주식에 다른 영향을 준다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">금과 은 · 이자가 없는 자산의 값</h2>
+  <p>금은 이자도 배당도 주지 않는다. 그런데도 값이 있는 까닭은 <b>안전하다고 믿는 사람이 많기</b> 때문이다. 금 값은 대체로 두 가지와 반대로 움직이는 경향이 있다.</p>
+  <ul>
+    <li><b>실질금리</b>(명목금리에서 물가를 뺀 금리) 실질금리가 오르면 이자 주는 채권이 매력적이라 금의 매력이 줄고, 내리면 반대다.</li>
+    <li><b>달러 가치</b> 금은 달러로 값이 매겨져서 달러가 강하면 다른 나라 사람에게는 비싸지고 수요가 줄어드는 경향이 있다.</li>
+  </ul>
+  <p>여기에 각국 중앙은행이 외환보유액으로 금을 사 모으는 수요, 전쟁·금융불안 같은 불확실성이 더해진다. 은은 금과 같은 투자 성격에 <b>산업 수요</b>(태양광 패널, 전자 부품)가 겹쳐서 금보다 오르내림이 큰 편이다. 금값을 은값으로 나눈 금은비율이 높으면 은이 상대적으로 싸다고 읽는 투자자도 있다.</p>
+  <div class="learn-note"><b>금이 항상 위기에 오르는 것은 아니다</b> 위기 초기에 현금이 필요해 금도 같이 파는 일이 있다. 금리가 급히 오르는 국면에서는 금이 내리기도 한다. 자산배분 이야기의 "안전자산도 항상 같은 날씨에 강하지는 않다"가 여기에도 해당한다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">구리 · 경기를 먼저 느끼는 금속</h2>
+  <p>구리는 건설, 전선, 가전, 자동차, 전력망에 두루 쓰인다. 경기가 좋아지면 구리 수요가 먼저 늘어서 <b>닥터 코퍼</b>(구리 박사)라는 별명이 붙었다. 세계 구리 소비의 큰 부분이 중국이어서 중국 부동산과 제조업 지표가 구리 값에 크게 영향을 준다.</p>
+  <p>최근에는 전기차와 데이터센터, 전력망 확충으로 구리 수요가 새로 늘 것이라는 전망이 있다. 새 광산을 개발하는 데는 10년 안팎이 걸리므로 수요 전망이 커져도 공급이 늦게 따라오는 구조다. 이 시차가 값의 급등락과 사이클을 만든다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">곡물 · 날씨와 식탁 물가</h2>
+  <p>밀·옥수수·대두는 날씨에 민감하다. 한 지역 가뭄이나 수출 규제가 값을 흔든다. 옥수수와 대두는 사료로도 쓰여 고기값, 우유값으로 번진다. 에너지 가격과도 연결된다(옥수수로 에탄올을 만들기 때문이다). 곡물은 한 해 수확이 끝나면 다음 해 수확까지 정해진 양을 나눠 쓰기 때문에 수확 시기 전후로 값 패턴이 나타난다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">선물 가격 · 콘탱고와 백워데이션</h2>
+  <p>원자재는 현물보다 선물로 많이 거래된다. 선물 가격에는 만기까지의 <b>보관비, 이자 비용, 당장 구하기 어려운 정도</b>가 들어 있다. 만기가 먼 선물이 현물보다 비싸면 <b>콘탱고</b>, 싸면 <b>백워데이션</b>이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 440 210" role="img" aria-label="콘탱고는 만기가 멀수록 선물 가격이 높아지는 곡선, 백워데이션은 만기가 멀수록 낮아지는 곡선">
+      <text class="fig-ink" x="10" y="20" font-size="13">콘탱고 (먼 달이 비싸다)</text>
+      <path class="fig-line" d="M20 90 H205" />
+      <path class="fig-up-line" d="M30 78 C80 72,130 60,200 42" />
+      <text class="fig-sub" x="22" y="108">근월물</text><text class="fig-sub" x="168" y="108">원월물</text>
+      <text class="fig-sub" x="10" y="130">보관비·금리 때문에 정상으로 본다</text>
+      <text class="fig-ink" x="232" y="20" font-size="13">백워데이션 (가까운 달이 비싸다)</text>
+      <path class="fig-line" d="M240 90 H425" />
+      <path class="fig-down-line" d="M250 42 C300 60,350 72,420 78" />
+      <text class="fig-sub" x="242" y="108">근월물</text><text class="fig-sub" x="388" y="108">원월물</text>
+      <text class="fig-sub" x="232" y="130">당장 부족하다는 신호로 본다</text>
+      <text class="fig-sub" x="10" y="176">선물 곡선의 모양은 지금 시장이 느끼는 공급 부족과 재고 사정을 보여 준다</text>
+      <text class="fig-sub" x="10" y="194">개념 그림이며 실제 곡선은 상품과 시기마다 다르다</text>
+    </svg>
+    <figcaption>같은 원자재도 시기에 따라 콘탱고였다가 백워데이션이 된다.</figcaption>
+  </figure>
+  <p>선물 이론가는 현물 가격에 이자와 보관비를 더하고 당장 쓸 수 있는 편익을 뺀 값이다. 재고가 충분하면 콘탱고가, 당장 구하기 힘들면 백워데이션이 된다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-8">원자재 ETF가 현물을 못 따라가는 이유 · 롤오버</h2>
+  <p>원자재 선물 ETF·ETN은 만기가 가까운 선물을 사다가 만기 전에 팔고 다음 달 선물로 갈아탄다(롤오버). <b>콘탱고에서는 싼 것을 팔고 비싼 것을 사는 갈아타기</b>라서 현물 가격이 그대로여도 ETF가 조금씩 깎인다.</p>
+  <table class="learn-table">
+    <thead><tr><th>가상 숫자</th><th>값</th></tr></thead>
+    <tbody>
+      <tr><td>근월물 선물 가격</td><td>70.0달러</td></tr>
+      <tr><td>차월물 선물 가격</td><td>71.0달러(콘탱고)</td></tr>
+      <tr><td>롤오버 한 번</td><td>70을 팔고 71을 산다 → 같은 돈으로 계약이 70/71 = 98.6%만 남는다</td></tr>
+      <tr><td>매달 반복하면</td><td>한 달 -1.4% → 1년 약 -16%</td></tr>
+    </tbody>
+  </table>
+  <p>현물 가격이 1년 동안 변하지 않아도 이런 구조에서는 ETF가 크게 깎인다. 반대로 백워데이션이면 롤오버가 이익이 된다. 상품 설명서에서 <b>무엇을 추종하는지(현물인지 선물인지), 롤오버 방식, 레버리지·인버스 여부</b>를 먼저 확인한다. 장기 보유에 맞지 않는 상품이 많다.</p>
+  <div class="learn-note"><b>금·은 현물 ETF는 다르다</b> 실물을 보관하는 방식의 상품은 선물 롤오버가 없다. 대신 보관·운용 보수가 있다. 같은 "금 ETF"여도 구조가 다르면 수익이 갈린다.</div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-9">원자재 값이 경제로 번지는 세 가지 길</h2>
+  <ol class="learn-toc">
+    <li><b>물가</b> <small>에너지·식량 가격은 소비자물가에 직접 들어간다. 중앙은행은 근원물가(식료품·에너지 제외)를 따로 본다. 한시적인 원자재 충격인지 지속되는 물가 압력인지 가르려는 이유다</small></li>
+    <li><b>환율</b> <small>원자재는 달러로 값이 매겨져서 원화가 약하면 같은 양의 수입 비용이 늘어난다. 한국처럼 에너지를 수입하는 나라는 유가와 환율이 함께 오르면 무역수지에 이중 부담이 된다</small></li>
+    <li><b>기업 이익</b> <small>원료 값과 제품 값의 차이가 이익이다. 원료가 오르는 속도와 제품값에 전가하는 속도가 다르면 이익이 흔들린다</small></li>
+  </ol>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-10">이 사이트에서 확인하기</h2>
+  <ul>
+    <li>휴장일 홈의 원자재 카드와 글로벌 시장지표에서 WTI·금·구리 등의 가격과 기준 시각을 확인한다.</li>
+    <li>시장 메뉴의 원자재·가상자산 화면에서 일별 이력을 보고 값이 어떤 시점에 크게 움직였는지 본다.</li>
+    <li>종목분석에서 정유·화학·항공 같은 원자재 민감 종목의 실적과 원자재 값을 맞춰 본다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 원유 공급이 3%만 줄었는데 값이 20% 올랐다. 왜 이런 일이 생길까?</summary><p>단기에는 수요도 공급도 둔해서(비탄력) 조금의 공급 변화가 큰 값 변화로 나타난다. 재고가 얇을수록 더 심하다.</p></details>
+  <details class="in-quiz"><summary>2. 금 값이 오를 때 실질금리와 달러는 보통 어떻게 움직였을까?</summary><p>실질금리와 달러 가치가 내려갈 때 금이 오르는 경향이 있다. 항상 그런 것은 아니다.</p></details>
+  <details class="in-quiz"><summary>3. 선물 ETF가 콘탱고 시장에서 현물 가격이 같아도 깎이는 이유는?</summary><p>싼 근월물을 팔고 비싼 원월물을 사는 롤오버가 매번 비용이 되기 때문이다. 월 1.4% 차이면 1년 약 16%가 깎인다.</p></details>
+  <details class="in-quiz"><summary>4. 원/달러 환율이 오르면 한국의 원유 수입 비용은?</summary><p>같은 양을 사도 원화로는 늘어난다. 유가와 환율이 같이 오르면 부담이 더 커진다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="commodity-advanced">
+  <h2 id="commodity-advanced">심화 연구실 · 선물 가격과 편익수익률</h2>
+  <p>보관할 수 있는 원자재의 선물 이론가는 현물에 자금 조달 비용(r)과 보관비(u)를 더하고, 실물을 가지고 있어서 얻는 편익(y, 편익수익률)을 뺀 값이다.</p>
+  <p class="learn-math">F = S × e<sup>(r + u - y) × T</sup></p>
+  <div class="learn-lab">
+    <h3>가상 계산 · 같은 현물, 다른 선물</h3>
+    <p>현물 70달러, 금리 4%, 보관비 1%, 만기 3개월이라고 하자. 편익수익률이 0이면 F = 70 × e<sup>0.05×0.25</sup> ≈ 70.88달러(콘탱고). 재고가 모자라 편익수익률이 12%로 높아지면 F = 70 × e<sup>(0.05-0.12)×0.25</sup> ≈ 68.8달러로 현물보다 싸다(백워데이션). 곡선 모양이 재고 사정을 압축해서 보여 주는 이유다.</p>
+  </div>
+  <div class="learn-grid">
+    <div><h3>롤 수익률</h3><p>선물을 오래 들고 가는 투자자의 수익은 현물 가격 변화 + 롤 수익률(콘탱고에서는 음, 백워데이션에서는 양)로 나뉜다. 장기 선물 지수 수익률 분석에서 롤 수익률의 크기가 시기마다 큰 차이를 만든다.</p></div>
+    <div><h3>금융화 논쟁</h3><p>원자재 선물에 투자 자금이 대규모로 들어오면서 값이 실제 수요와 공급 대신 자금 흐름에 휘둘린다는 주장이 있다. 영향의 크기에는 의견이 갈린다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>자료 확인</strong><ul><li><a href="https://www.eia.gov/" target="_blank" rel="noopener noreferrer">미국 에너지정보청(EIA) · 원유 가격과 재고</a></li><li><a href="https://www.gold.org/" target="_blank" rel="noopener noreferrer">월드골드카운슬 · 금 수요와 중앙은행 보유</a></li><li><a href="https://www.cmegroup.com/" target="_blank" rel="noopener noreferrer">CME 그룹 · 원자재 선물 상품 설명</a></li></ul></div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-summary">한 줄 정리</h2>
+  <p>원자재는 단기에 수요와 공급이 모두 둔해서 작은 충격에도 값이 크게 흔들린다. 금은 실질금리·달러와 반대로, 구리는 경기와 같이, 원유와 곡물은 공급 충격에 반응한다. 선물 가격은 콘탱고와 백워데이션으로 시장의 재고 사정을 보여 주며, 선물 ETF는 롤오버 비용 때문에 현물을 그대로 따라가지 못한다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-source">설명 근거</h2>
+  <p>2026-11-21 확인. 2020년 4월 20일 WTI 5월물 선물의 마이너스 마감은 거래소 공표 기록에 따른 사건이다. 숫자 예시는 가상값이며 현재 시세·전망이 아니다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/asset-allocation.html">← 자산배분 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/real-estate.html">부동산·리츠 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>
