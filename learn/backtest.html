@@ -28,6 +28,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>투자검증 이야기</h1>
   <p class="legal-effective-date">백테스트·MDD·거래비용·과최적화·생존자 편향·성과 측정 · 설명 업데이트 2026-11-21</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>차트 이야기에서 배운 패턴은 "이 모양이 나오면 오르는 경향이 있다"는 주장이다. 주장은 얼마든지 만들 수 있다. 중요한 것은 그 주장이 <b>과거 데이터에서 실제로 돈이 됐는지, 그리고 그 결과를 믿어도 되는지</b>다. 이 두 번째 질문에서 대부분의 성공담이 무너진다.</p>
   <p>새 요리법을 만들어 가족에게 한 번 먹였더니 맛있다고 했다고 해서 식당을 차리지는 않는다. 여러 사람에게 여러 번 먹여 보고, 재료 값을 따져 보고, 다른 날씨에도 맛이 같은지 본다. 투자 규칙도 같다. 이 이야기는 규칙을 과거로 시험하는 백테스트와, 시험 결과를 읽을 때 속지 않는 법이다.</p>
@@ -37,6 +38,22 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <div class="in-fact"><span>믿는 순서는</span><strong>표본 밖 결과</strong></div>
   </div>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 동전 던지기 · 아무 규칙이나 100개를 시험하면</h2>
+  <p>동전 던지기로 매매 신호를 만든다고 하자. 앞면이면 사고 뒷면이면 팔며, 한 규칙은 10번 거래한다. 규칙이 아무 의미 없는 순수한 운이라면 승률 50%가 정상이다. 그래도 운이 좋으면 10번 중 8번 이상 이길 수 있다. 그 확률은 56 ÷ 1,024 ≈ 5.5%다. 이제 이런 규칙을 여러 개 시험해서 가장 좋은 것을 고른다고 하자.</p>
+  <table class="learn-table">
+    <thead><tr><th>시험한 규칙 수</th><th>"10번 중 8번 이상 승" 규칙이 하나라도 나올 확률</th><th>이때 사람들이 하는 말</th></tr></thead>
+    <tbody>
+      <tr><td>1개</td><td>5.5%</td><td>"우연이 아닐 수 있다"</td></tr>
+      <tr><td>10개</td><td>43.0%</td><td>"운 좋은 규칙이 나올 만하다"</td></tr>
+      <tr><td>50개</td><td>94.0%</td><td>"거의 매번 나온다"</td></tr>
+      <tr><td>100개</td><td>99.6%</td><td>"찾으면 반드시 나온다"</td></tr>
+    </tbody>
+  </table>
+  <p>규칙이 모두 무의미한데도 100개를 시험하면 거의 확실히 "승률 80% 이상"인 규칙이 나온다. 이 규칙을 소개할 때 100개를 시험했다는 사실을 빼면 대단한 발견처럼 보인다. 그래서 백테스트를 볼 때는 결과가 얼마나 좋은지보다 <b>"몇 개를 시험하고 그중 이것만 골랐는가"</b>를 먼저 묻는다.</p>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">백테스트란 무엇인가</h2>
@@ -198,11 +215,82 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-numbers">성과 숫자 한 번에 계산해 보기</h2>
+  <p>어떤 규칙의 자산이 3년 동안 이렇게 움직였다고 하자(가상, 시작 100).</p>
+  <table class="learn-table">
+    <thead><tr><th>시점</th><th>자산</th><th>직전 최고점</th><th>고점 대비 하락(드로다운)</th></tr></thead>
+    <tbody>
+      <tr><td>시작</td><td>100</td><td>100</td><td>0%</td></tr>
+      <tr><td>1년 뒤</td><td>130</td><td>130</td><td>0%</td></tr>
+      <tr><td>2년 뒤</td><td>104</td><td>130</td><td><b>−20%</b></td></tr>
+      <tr><td>3년 뒤</td><td>150</td><td>150</td><td>0%</td></tr>
+    </tbody>
+  </table>
+  <table class="learn-table">
+    <thead><tr><th>지표</th><th>계산</th><th>값</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td>총수익</td><td>150 ÷ 100 − 1</td><td>+50%</td><td>3년 전체</td></tr>
+      <tr><td>CAGR(연평균 복리)</td><td>(1.5)^(1/3) − 1</td><td>약 +14.5%</td><td>매년 같은 비율로 불었다면 얼마인가</td></tr>
+      <tr><td>MDD(최대 낙폭)</td><td>(104 − 130) ÷ 130</td><td>−20%</td><td>고점에서 가장 크게 내린 폭</td></tr>
+      <tr><td>회복에 필요한 수익률</td><td>130 ÷ 104 − 1</td><td>+25%</td><td>바닥에서 이전 고점까지</td></tr>
+      <tr><td>CAGR ÷ |MDD|(칼마 비율)</td><td>14.5 ÷ 20</td><td>약 0.73</td><td>견딘 고통 대비 수익</td></tr>
+    </tbody>
+  </table>
+  <p>CAGR만 보면 14.5%로 좋아 보이지만 중간에 −20%를 지났다. 그 구간을 견디지 못하고 파는 사람이라면 이 결과를 실제로는 얻지 못한다. 수익 숫자는 반드시 낙폭과 함께 읽는다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-split">같은 규칙을 훈련 구간과 검증 구간에서 본다</h2>
+  <p>규칙을 만든 데이터에서 잘 나오는 것은 당연하다. 규칙을 만들 때 쓰지 않은 구간에서도 되는지 봐야 한다. 가상 예시다.</p>
+  <table class="learn-table">
+    <thead><tr><th>구간</th><th>용도</th><th>연평균 수익(CAGR)</th><th>MDD</th></tr></thead>
+    <tbody>
+      <tr><td>2010~2017</td><td>규칙을 찾고 조정한 구간(훈련)</td><td>+28%</td><td>−12%</td></tr>
+      <tr><td>2018~2024</td><td>손대지 않고 그대로 적용한 구간(검증)</td><td>+3%</td><td>−25%</td></tr>
+    </tbody>
+  </table>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="훈련 구간에서는 가파르게 오르던 자산이 검증 구간에서는 거의 평평하고 흔들리는 모습">
+      <text class="fig-sub" x="0" y="14">같은 규칙의 자산 곡선 (가상)</text>
+      <path class="fig-line" d="M20 160 H400" />
+      <path class="fig-dash" d="M220 28 V160" />
+      <path class="fig-up-line" d="M30 150 L70 130 L110 110 L150 82 L190 60 L220 44" stroke-width="2.5" fill="none" />
+      <path class="fig-down-line" d="M220 44 L250 70 L280 56 L310 84 L340 66 L370 78 L400 70" stroke-width="2.5" fill="none" />
+      <text class="fig-ink" x="30" y="70" font-size="12">훈련 구간</text>
+      <text class="fig-ink" x="228" y="150" font-size="12">검증 구간</text>
+      <text class="fig-sub" x="20" y="182">훈련에서만 좋았다면 데이터에 맞춘 규칙일 가능성이 크다</text>
+    </svg>
+    <figcaption>검증 구간에서 곡선이 꺾이면 "과최적화"를 의심한다. 훈련과 검증의 차이가 크다는 것은 규칙이 과거의 우연에 맞춰져 있다는 신호다.</figcaption>
+  </figure>
+  <p>한 번 나누는 데서 끝내지 않고, 구간을 옮겨 가며 반복하는 방법(워크포워드)도 쓴다. 중요한 약속은 <b>검증 구간을 본 뒤 규칙을 다시 고치지 않는 것</b>이다. 고치는 순간 그 구간도 훈련 데이터가 된다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-report">좋은 백테스트 보고서에 들어 있어야 할 것</h2>
+  <table class="learn-table">
+    <thead><tr><th>항목</th><th>왜 필요한가</th><th>빠졌을 때 의심할 것</th></tr></thead>
+    <tbody>
+      <tr><td>기간과 시장 상황</td><td>상승장만 포함했는지 가려낸다</td><td>유리한 구간만 골랐을 가능성</td></tr>
+      <tr><td>대상 종목의 선정 기준</td><td>살아남은 종목만 고르지 않았는지 확인</td><td>생존자 편향</td></tr>
+      <tr><td>거래 비용·세금·체결 가정</td><td>현실 수익을 가늠한다</td><td>비용 무시로 부풀린 수익</td></tr>
+      <tr><td>시험한 규칙·변수 수</td><td>우연으로 나온 결과인지 가늠한다</td><td>다중검정 문제</td></tr>
+      <tr><td>MDD와 최악 구간</td><td>견딜 수 있는지 판단한다</td><td>수익만 강조한 광고</td></tr>
+      <tr><td>검증 구간 결과</td><td>처음 보는 데이터에서의 성능</td><td>과최적화</td></tr>
+      <tr><td>거래 횟수</td><td>표본이 충분한지 본다</td><td>몇 번의 운에 의존</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 100만 원이 3년 뒤 133만 원이 됐다. 연평균 수익률(CAGR)은 대략?</summary><p>1.33의 1/3제곱 ≒ 1.10, 즉 연 약 10%다. 단순히 33 ÷ 3 = 11%로 나누면 복리 효과 때문에 조금 어긋난다.</p></details>
   <details class="in-quiz"><summary>2. 승률 30%, 평균 이익 +12%, 평균 손실 -3%이면 거래당 기대값은?</summary><p>0.3 × 12 - 0.7 × 3 = 3.6 - 2.1 = +1.5%다. 승률이 낮아도 손익비가 크면 기대값은 양수다.</p></details>
   <details class="in-quiz"><summary>3. 이동평균 기간을 5일부터 60일까지 모두 시험해 가장 좋은 값을 골랐다. 무엇이 문제일까?</summary><p>많이 시험한 뒤 최고를 고른 것이라 우연히 좋아 보인 값일 수 있다(다중검정). 표본 밖에서 한 번만 시험하고, 이웃 설정에서도 비슷한지 본다.</p></details>
   <details class="in-quiz"><summary>4. 현재 상장된 종목 500개로 과거 10년을 시험했다. 결과가 좋았다면 어느 편향을 의심할까?</summary><p>생존자 편향이다. 10년 사이에 상장폐지된 종목이 데이터에서 빠져 있어 성과가 부풀려진다.</p></details>
+  <details class="in-quiz"><summary>5. 자산이 100 → 120 → 90 → 130으로 움직였다. MDD는?</summary><p>직전 최고점 120에서 90으로 내렸으므로 (90 − 120) ÷ 120 = −25%다. 마지막 130은 새 고점이라 낙폭이 0이 된다.</p></details>
+  <details class="in-quiz"><summary>6. 2년 만에 자산이 100에서 144가 됐다. CAGR은?</summary><p>(1.44)^(1/2) − 1 = 20%다. 매년 20%씩 복리로 불은 것과 같다.</p></details>
+  <details class="in-quiz"><summary>7. 규칙 50개를 시험해서 가장 좋은 하나만 소개하는 것이 문제인 까닭은?</summary><p>우연히 좋게 나온 규칙이 포함될 확률이 매우 높기 때문이다. 시험한 개수를 밝히지 않으면 우연을 실력으로 착각하게 된다.</p></details>
+  <details class="in-quiz"><summary>8. 검증 구간을 본 뒤 규칙을 고치면 안 되는 이유는?</summary><p>고치는 순간 검증 구간도 규칙을 만든 데이터가 되어 더 이상 처음 보는 데이터의 시험이 아니게 되기 때문이다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="backtest-advanced">
@@ -232,7 +320,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <div class="learn-nav">
-    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/real-estate.html">← 부동산·리츠 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/commodity.html">← 원자재 이야기</a>
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/fraud.html">금융사기 이야기 →</a>
   </div>
 

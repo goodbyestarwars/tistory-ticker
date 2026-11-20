@@ -28,6 +28,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>기업공시 이야기</h1>
   <p class="legal-effective-date">IPO·CB·BW·감자·합병·분할·자사주·상장폐지 · 설명 업데이트 2026-11-21</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>"주요사항보고서(전환사채권발행결정)", "감자결정", "분할합병결정". 공시 제목만 보면 외계어 같지만 이 문서들 뒤에는 늘 같은 질문이 있다. <b>내 지분이 줄어드는가, 회사 돈이 어디로 가는가, 누가 이득을 보는가.</b> 같은 회사 주식을 들고 있어도 공시 한 장으로 값이 달라지는 이유다.</p>
   <p>마을 저수지의 양어장 주인을 떠올리면 이해가 쉽다. 주주는 양어장 지분 일부를 가진 사람이고, 주인은 가끔 "물고기를 더 사 넣겠다(유상증자)", "양어장을 둘로 나누겠다(분할)", "다른 양어장과 합치겠다(합병)"고 알린다. 공시는 그 안내문이다. 이 이야기는 안내문의 뜻과 숨은 함정을 읽는 법이다.</p>
@@ -37,6 +38,38 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <div class="in-fact"><span>원문은</span><strong>DART·KIND</strong></div>
   </div>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 숫자로 보는 유상증자 · 내 지분은 얼마나 줄까</h2>
+  <p>어느 회사의 주식이 1,000만 주, 주가가 10,000원이라고 하자(가상 숫자). 시가총액은 1,000억 원이다. 이 회사가 "250만 주를 8,000원에 새로 발행해 200억 원을 모으겠다"고 공시했다. 이 한 줄 공시가 기존 주주에게 무슨 뜻인지 계산해 보자.</p>
+  <table class="learn-table">
+    <thead><tr><th>항목</th><th>증자 전</th><th>증자 후</th><th>변화</th></tr></thead>
+    <tbody>
+      <tr><td>발행 주식 수</td><td>1,000만 주</td><td>1,250만 주</td><td>+25%</td></tr>
+      <tr><td>회사의 돈(시가총액 가정)</td><td>1,000억 원</td><td>1,200억 원 (+조달 200억)</td><td>돈이 들어왔다</td></tr>
+      <tr><td>1주당 이론 가격</td><td>10,000원</td><td>9,600원 (1,200억 ÷ 1,250만 주)</td><td><b>−4%</b></td></tr>
+      <tr><td>내 1,000주의 지분율</td><td>0.0100%</td><td>0.0080%</td><td>신주를 안 받으면 20% 줄어든 셈</td></tr>
+    </tbody>
+  </table>
+  <p>"회사에 돈이 들어오니 좋은 일"인지, "내 지분이 줄고 주가가 내려가는 일"인지는 <b>그 돈을 어디에 쓰는지</b>가 가른다. 새 공장을 지어 이익이 늘면 주가가 다시 오를 수 있고, 적자를 메우는 데 쓰이면 가치가 늘지 않은 채 주식 수만 늘어난다. 공시를 읽을 때 "얼마 모으나"보다 "모아서 어디에 쓰나"를 먼저 본다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 170" role="img" aria-label="유상증자 전후 비교: 주식 수 1,000만에서 1,250만으로 늘고 1주당 이론 가격이 10,000원에서 9,600원으로 내린다">
+      <text class="fig-sub" x="0" y="14">같은 회사, 신주 25% 발행 (가상)</text>
+      <rect class="fig-soft" x="20" y="34" width="160" height="60" rx="4" />
+      <text class="fig-ink" x="34" y="58" font-size="12">증자 전</text>
+      <text class="fig-ink" x="34" y="78" font-size="12">1,000만 주 · 10,000원</text>
+      <rect class="fig-soft2" x="230" y="34" width="190" height="60" rx="4" />
+      <text class="fig-ink" x="244" y="58" font-size="12">증자 후</text>
+      <text class="fig-ink" x="244" y="78" font-size="12">1,250만 주 · 이론 9,600원</text>
+      <path class="fig-ink-line" d="M184 64 H226" stroke-width="2" fill="none" />
+      <text class="fig-sub" x="20" y="124">신주 250만 주 × 8,000원 = 200억 원이 회사에 들어온다</text>
+      <text class="fig-sub" x="20" y="146">그러나 주식 수가 늘어 1주가 가진 몫은 4% 줄어든다</text>
+    </svg>
+    <figcaption>이론 가격은 (기존 시총 + 조달금) ÷ 새 주식 수다. 실제 주가는 돈을 쓸 곳과 시장 분위기에 따라 이보다 더 내리거나 오를 수 있다.</figcaption>
+  </figure>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">공시는 어디서 어떻게 읽나</h2>
@@ -236,11 +269,97 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-cb">전환사채(CB)가 지분을 얼마나 희석하나</h2>
+  <p>같은 회사가 100억 원 규모의 CB를 발행했다고 하자. CB는 빚(채권)이지만 정해진 가격(전환가)에 주식으로 바꿀 권리가 붙어 있다. 전환가에 따라 새로 생기는 주식 수가 달라진다.</p>
+  <table class="learn-table">
+    <thead><tr><th>전환가</th><th>전환 시 새 주식 수</th><th>기존 주주 지분(1,000만 주 기준)</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>5,000원</td><td>200만 주</td><td>1,000 ÷ 1,200 = 83.3% (희석 16.7%)</td><td>발행 당시 약정</td></tr>
+      <tr><td>4,000원</td><td>250만 주</td><td>1,000 ÷ 1,250 = 80.0% (희석 20.0%)</td><td>주가가 내려 전환가를 낮춘 경우(리픽싱)</td></tr>
+      <tr><td>3,000원</td><td>333만 주</td><td>1,000 ÷ 1,333 = 75.0% (희석 25.0%)</td><td>전환가가 더 낮아진 경우</td></tr>
+    </tbody>
+  </table>
+  <p>주가가 내려갈수록 전환가가 따라 내려가는 조건이 있으면, 주가 하락이 새 주식 수를 늘리고 이것이 다시 주가에 부담을 주는 고리가 생긴다. 그래서 공시의 CB 항목에서는 <b>전환가 조정(리픽싱) 조건</b>, 전환 청구 시작일, 인수한 사람이 누구인지를 먼저 본다. 인수자가 전환 즉시 팔 수 있는 구조라면 매물 부담이 크다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-reduce">감자 두 종류 · 같은 이름, 다른 뜻</h2>
+  <table class="learn-table">
+    <thead><tr><th>구분</th><th>무엇을 줄이나</th><th>주주의 돈</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td>무상감자</td><td>주식 수를 줄이되 주주에게 돈을 주지 않는다. 쌓인 손실을 장부에서 정리하는 용도</td><td>5:1 무상감자면 2,000원짜리 1,000주(200만 원)가 10,000원짜리 200주(200만 원)로 바뀐다. 가치는 그대로</td><td>재무 정리</td></tr>
+      <tr><td>유상감자</td><td>주식을 사서 소각하며 주주에게 돈을 돌려준다</td><td>주식을 낸 만큼 현금을 받는다</td><td>잉여 자금 환원, 지배구조 변경</td></tr>
+    </tbody>
+  </table>
+  <p>무상감자는 숫자만 바뀌는 "형식" 거래라서 주가가 기준가로 조정될 뿐 가치가 바뀌지 않는다. 다만 감자 뒤 재거래 시 시세가 크게 출렁이고, 감자 이유가 자본잠식(손실이 쌓여 자본이 바닥난 상태)이면 회사가 위험하다는 신호다. 감자 비율보다 <b>왜 하는지</b>를 본다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-split">분할 두 방식 · 누가 새 회사를 갖는가</h2>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="인적분할은 주주가 두 회사를 같은 비율로 갖고, 물적분할은 모회사가 새 회사를 100퍼센트 갖는 구조 비교">
+      <text class="fig-sub" x="0" y="14">회사 A의 사업 일부를 떼어 내는 두 방법</text>
+      <text class="fig-ink" x="20" y="44" font-size="12">인적분할</text>
+      <rect class="fig-soft" x="20" y="54" width="74" height="30" rx="3" />
+      <text class="fig-ink" x="28" y="74" font-size="11">주주들</text>
+      <path class="fig-ink-line" d="M98 62 H140" stroke-width="1.5" fill="none" />
+      <path class="fig-ink-line" d="M98 76 H140" stroke-width="1.5" fill="none" />
+      <rect class="fig-soft2" x="142" y="50" width="96" height="22" rx="3" />
+      <text class="fig-ink" x="150" y="66" font-size="11">존속 A</text>
+      <rect class="fig-soft2" x="142" y="76" width="96" height="22" rx="3" />
+      <text class="fig-ink" x="150" y="92" font-size="11">신설 B</text>
+      <text class="fig-sub" x="250" y="70" font-size="11">두 회사 지분을</text>
+      <text class="fig-sub" x="250" y="88" font-size="11">똑같이 직접 보유</text>
+      <text class="fig-ink" x="20" y="130" font-size="12">물적분할</text>
+      <rect class="fig-soft" x="20" y="140" width="74" height="30" rx="3" />
+      <text class="fig-ink" x="28" y="160" font-size="11">주주들</text>
+      <path class="fig-ink-line" d="M98 155 H140" stroke-width="1.5" fill="none" />
+      <rect class="fig-soft2" x="142" y="140" width="96" height="30" rx="3" />
+      <text class="fig-ink" x="150" y="160" font-size="11">존속 A</text>
+      <path class="fig-ink-line" d="M242 155 H276" stroke-width="1.5" fill="none" />
+      <rect class="fig-white" x="278" y="140" width="130" height="30" rx="3" />
+      <text class="fig-ink" x="286" y="160" font-size="11">신설 B 100%</text>
+      <text class="fig-sub" x="20" y="196" font-size="11">신설 B를 따로 상장하면 A 주주는</text>
+      <text class="fig-sub" x="20" y="212" font-size="11">B 가치를 A를 통한 간접 지분으로만 갖는다</text>
+    </svg>
+    <figcaption>물적분할 뒤 자회사를 따로 상장하면 기존 A 주주는 자회사 가치의 일부만 간접적으로 갖게 된다. 이 구조 때문에 물적분할은 논란이 컸다.</figcaption>
+  </figure>
+  <table class="learn-table">
+    <thead><tr><th>따질 것</th><th>인적분할</th><th>물적분할</th></tr></thead>
+    <tbody>
+      <tr><td>새 회사의 주인</td><td>기존 주주(지분 비율대로)</td><td>모회사(A)</td></tr>
+      <tr><td>주주의 직접 몫</td><td>두 회사 지분을 따로 갖는다</td><td>A 지분만 갖는다. B는 A를 통한 간접 몫</td></tr>
+      <tr><td>자회사 상장 시</td><td>주주가 B 주식을 직접 보유</td><td>B 가치 일부가 A 가치에 간접 반영</td></tr>
+      <tr><td>살펴볼 것</td><td>분할 비율, 재상장 일정</td><td>분할 목적, 자회사 상장 계획, 주주 보호 장치</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-flow">공시 한 건을 읽는 다섯 단계</h2>
+  <table class="learn-table">
+    <thead><tr><th>순서</th><th>무엇을 보나</th><th>답을 얻는 질문</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>제목과 구분(정정·철회 여부)</td><td>처음 공시인가, 고친 공시인가</td></tr>
+      <tr><td>2</td><td>금액과 일정</td><td>회사 규모 대비 얼마인가. 언제 효력이 생기나</td></tr>
+      <tr><td>3</td><td>상대방(누구에게)</td><td>제3자 배정이면 누구인가. 특수관계가 있나</td></tr>
+      <tr><td>4</td><td>돈의 용도(자금 사용 목적)</td><td>투자인가, 빚 갚기인가, 운영비인가</td></tr>
+      <tr><td>5</td><td>과거 공시와의 연결</td><td>같은 회사가 비슷한 공시를 반복했나. 약속한 일을 지켰나</td></tr>
+    </tbody>
+  </table>
+  <p>공시의 첫 줄은 대개 호재처럼 쓰인다. "신규 시설 투자", "대규모 계약" 같은 제목이라도 금액·상대방·조건을 읽어야 한다. 위 다섯 단계 중 3~5번에서 공시의 진짜 성격이 드러난다.</p>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. CB 100억 원, 전환가 5,000원이다. 전체가 주식으로 바뀌면 몇 주가 늘까?</summary><p>100억 원 ÷ 5,000원 = 200만 주다. 전환가가 4,000원으로 내려가면 250만 주가 된다.</p></details>
   <details class="in-quiz"><summary>2. 10대1 무상감자로 내 100주가 10주가 됐다. 이론적으로 내 몫의 가치는?</summary><p>그대로다. 주식 수가 1/10이 되는 만큼 이론 주가가 10배가 된다. 감자를 한 이유와 이후 증자 계획이 실제 가치를 좌우한다.</p></details>
   <details class="in-quiz"><summary>3. 모회사가 알짜 사업부를 물적분할해 신설회사를 상장했다. 모회사 주주는 왜 불만일까?</summary><p>사업부의 가치를 직접 가진 신설회사 주식이 아니라 모회사를 통한 간접 지분만 갖기 때문이다. 상장 뒤 신설회사에 쏟아지는 관심이 모회사 가치에 그대로 돌아오지 않는다.</p></details>
   <details class="in-quiz"><summary>4. 상장폐지 결정 뒤 정리매매 기간의 가격제한폭은?</summary><p>없다. 정리매매 7거래일에는 가격제한이 없어 하루에 크게 오르내릴 수 있다. 이 기간이 지나면 거래소에서 거래할 수 없다.</p></details>
+  <details class="in-quiz"><summary>5. 주식 1,000만 주, 주가 10,000원인 회사가 250만 주를 8,000원에 발행하면 이론 가격은? 계산식도 함께.</summary><p>(1,000만×10,000 + 250만×8,000) ÷ 1,250만 = (1,000억+200억) ÷ 1,250만 = 9,600원이다.</p></details>
+  <details class="in-quiz"><summary>6. CB의 전환가가 5,000원에서 4,000원으로 낮아지면 100억 원 CB의 전환 주식 수는?</summary><p>200만 주에서 250만 주로 늘어난다. 전환가가 낮을수록 같은 금액으로 더 많은 주식이 생겨 기존 주주의 희석이 커진다.</p></details>
+  <details class="in-quiz"><summary>7. 5:1 무상감자를 하면 2,000원짜리 1,000주를 가진 주주의 가치는?</summary><p>그대로다. 200만 원이 10,000원짜리 200주(200만 원)로 바뀔 뿐 가치는 변하지 않는다. 다만 감자 이유가 손실 정리라면 회사 사정을 따로 봐야 한다.</p></details>
+  <details class="in-quiz"><summary>8. 물적분할 뒤 자회사를 따로 상장하면 모회사 주주에게 불리해질 수 있는 이유는?</summary><p>자회사의 가치가 모회사 지분을 통한 간접 몫으로만 반영되고, 새 주주가 자회사 가치의 일부를 직접 가져가기 때문이다. 분할 목적과 주주 보호 장치를 확인해야 한다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="disclosure-advanced">

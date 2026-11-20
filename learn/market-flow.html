@@ -28,6 +28,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>시장수급 이야기</h1>
   <p class="legal-effective-date">외국인·기관·프로그램매매·차익거래·지수 리밸런싱 · 설명 업데이트 2026-11-21</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>주식 이야기 4장에서는 "외국인·기관·개인이 어디에 몰리는지 본다"고 배웠다. 한 종목의 수급이었다. 이번에는 시야를 넓혀 <b>시장 전체에서 돈이 누구에게서 누구로 흐르는가</b>를 본다. 같은 날 코스피가 3% 내려도 개인이 받쳤는지, 외국인이 던졌는지에 따라 그다음 며칠이 달라진다.</p>
   <p>큰 시장은 큰 저수지다. 외국인과 기관은 큰 파이프로 물을 넣고 빼고, 개인은 작은 수도꼭지다. 어느 파이프가 열렸는지 알면 수위가 왜 변하는지 설명된다. 다만 수급은 결과를 알려 주는 숫자이지 앞날을 알려 주는 숫자가 아니라는 점도 같이 짚는다.</p>
@@ -37,6 +38,38 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <div class="in-fact"><span>정기 이벤트는</span><strong>미리 알려져 있다</strong></div>
   </div>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 하루 장부 · 누군가 판 것은 누군가 샀다</h2>
+  <p>어느 하루 코스피의 투자자별 순매수가 이랬다고 하자(가상 숫자, 단위 억 원). 순매수는 산 금액에서 판 금액을 뺀 값이다.</p>
+  <table class="learn-table">
+    <thead><tr><th>투자자</th><th>산 금액</th><th>판 금액</th><th>순매수</th></tr></thead>
+    <tbody>
+      <tr><td>외국인</td><td>40,000</td><td>43,000</td><td><b>−3,000</b></td></tr>
+      <tr><td>기관</td><td>30,000</td><td>29,000</td><td><b>+1,000</b></td></tr>
+      <tr><td>개인</td><td>70,000</td><td>68,000</td><td><b>+2,000</b></td></tr>
+      <tr><td>합계</td><td>140,000</td><td>140,000</td><td><b>0</b></td></tr>
+    </tbody>
+  </table>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 170" role="img" aria-label="투자자별 순매수 막대: 외국인 마이너스 3,000억, 기관 플러스 1,000억, 개인 플러스 2,000억, 합계는 0">
+      <text class="fig-sub" x="0" y="14">투자자별 순매수(억 원)</text>
+      <path class="fig-line" d="M210 26 V150" />
+      <text class="fig-ink" x="0" y="50" font-size="12">외국인</text>
+      <rect class="fig-down" x="60" y="36" width="150" height="22" rx="2" />
+      <text class="fig-on-strong" x="70" y="52" font-size="12">−3,000</text>
+      <text class="fig-ink" x="0" y="88" font-size="12">기관</text>
+      <rect class="fig-up" x="210" y="74" width="50" height="22" rx="2" />
+      <text class="fig-ink" x="266" y="90" font-size="12">+1,000</text>
+      <text class="fig-ink" x="0" y="126" font-size="12">개인</text>
+      <rect class="fig-up" x="210" y="112" width="100" height="22" rx="2" />
+      <text class="fig-ink" x="316" y="128" font-size="12">+2,000</text>
+      <text class="fig-sub" x="0" y="162">외국인이 판 3,000억을 기관과 개인이 합쳐서 받았다. 순매수 합은 항상 0이다</text>
+    </svg>
+    <figcaption>모든 거래는 상대방이 있다. 한 주체의 순매도는 다른 주체의 순매수와 짝을 이룬다. 그래서 "누가 샀나"보다 "누가 얼마나 일관되게, 얼마 동안 사 모으나"가 정보가 된다.</figcaption>
+  </figure>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">시장은 누가 사고 누가 파는가</h2>
@@ -161,11 +194,79 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-who">투자자별 성격 · 같은 순매수가 다른 뜻</h2>
+  <table class="learn-table">
+    <thead><tr><th>주체</th><th>주로 누구인가</th><th>매매 성격</th><th>읽을 때 주의</th></tr></thead>
+    <tbody>
+      <tr><td>외국인</td><td>해외 연기금·운용사·헤지펀드</td><td>대형주·반도체 비중이 크고 환율·글로벌 금리에 반응</td><td>패시브(지수 추종)와 액티브가 섞여 있어 한 줄로 해석하기 어렵다</td></tr>
+      <tr><td>기관</td><td>자산운용사·보험·은행·연기금·증권사</td><td>펀드 환매·자금 유입에 따라 움직이고 중기 시각이 많다</td><td>펀드 환매가 몰리면 의지와 상관없이 판다</td></tr>
+      <tr><td>개인</td><td>일반 투자자</td><td>하락 때 저가 매수, 상승 추종 매수 등 반응이 빠르다</td><td>신용·빚투 비중에 따라 속도와 위험이 달라진다</td></tr>
+      <tr><td>연기금 등</td><td>국민연금 등 장기 자금</td><td>비중 조절·리밸런싱 위주로 느리고 꾸준하다</td><td>방향 매매라기보다 배분 조절인 경우가 많다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-arb">차익거래 한 건 계산 · 선물이 현물보다 비쌀 때</h2>
+  <p>프로그램 매매 중 가장 이해하기 쉬운 것이 선물과 현물의 값 차이를 이용하는 차익거래다. 가상 숫자로 보자(단위는 지수 포인트).</p>
+  <table class="learn-table">
+    <thead><tr><th>항목</th><th>값</th></tr></thead>
+    <tbody>
+      <tr><td>현물 지수(바스켓 가치)</td><td>400.0</td></tr>
+      <tr><td>선물 가격</td><td>402.0</td></tr>
+      <tr><td>이론 선물가(현물 + 금리 − 배당 반영, 가정)</td><td>401.0</td></tr>
+      <tr><td>시장 선물가 − 이론가 = 고평가 폭</td><td>+1.0</td></tr>
+    </tbody>
+  </table>
+  <p>선물이 이론가보다 1.0 비싸다. 이때 <b>선물을 팔고 현물 바스켓을 사 두면</b>, 만기에는 두 가격이 같아지므로 1.0포인트 차이(승수 25만 원 가정 시 계약당 25만 원, 수수료·세금 전)가 이익으로 남는다. 이 거래를 하는 순간 현물 바스켓 매수(프로그램 매수 차익)가 시장에 나오고, 만기에 포지션을 풀 때는 현물 바스켓 매도가 나온다.</p>
+  <table class="learn-table">
+    <thead><tr><th>시점</th><th>선물</th><th>현물 바스켓</th><th>시장에 보이는 모습</th></tr></thead>
+    <tbody>
+      <tr><td>진입(선물이 비쌀 때)</td><td>매도</td><td>매수</td><td>프로그램 차익 순매수</td></tr>
+      <tr><td>만기(포지션 청산)</td><td>소멸·환매</td><td>매도</td><td>프로그램 차익 순매도(만기일 막판 출렁임)</td></tr>
+    </tbody>
+  </table>
+  <p>차익거래는 방향에 거는 내기가 아니라 가격 차이를 줍는 거래라서 시장의 호재·악재와 무관하게 대량 매매가 생긴다. 프로그램 매매 숫자가 크다고 곧바로 "시장이 좋다"고 읽으면 안 되는 까닭이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-index">지수 편입이 만드는 매수 · 가상 계산</h2>
+  <p>지수를 그대로 따라가는 패시브 자금이 20조 원이라고 하자. 어떤 종목이 지수에서 차지하는 비중이 1.5%라면 이 종목에 3,000억 원이 들어 있다(20조 × 1.5%). 지수 개편으로 비중이 1.8%로 오르면 어떻게 될까.</p>
+  <table class="learn-table">
+    <thead><tr><th>구분</th><th>비중</th><th>패시브가 가져야 할 금액</th><th>매매</th></tr></thead>
+    <tbody>
+      <tr><td>개편 전</td><td>1.5%</td><td>3,000억 원</td><td>-</td></tr>
+      <tr><td>개편 후</td><td>1.8%</td><td>3,600억 원</td><td><b>600억 원 순매수</b></td></tr>
+      <tr><td>비중이 1.2%로 내리면</td><td>1.2%</td><td>2,400억 원</td><td><b>600억 원 순매도</b></td></tr>
+    </tbody>
+  </table>
+  <p>개편 일정은 미리 공표되므로 앞질러 사는 사람이 생기고, 실제 매매는 반영 기준일 종가 부근에 몰린다. 이날의 대량 매매는 기업 가치와 무관한 수급이라 다음 거래일에 되돌려지는 경우가 있다. 그래서 거래량이 급증한 날의 방향만 보고 의미를 부여하지 않는다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-traps">수급 숫자를 읽을 때 걸리는 함정</h2>
+  <table class="learn-table">
+    <thead><tr><th>함정</th><th>어떻게 속나</th><th>점검법</th></tr></thead>
+    <tbody>
+      <tr><td>하루 숫자로 판단</td><td>지수 개편·만기일의 일회성 매매일 수 있다</td><td>5거래일·20거래일 누적과 연속 순매수 일수를 함께 본다</td></tr>
+      <tr><td>금액만 본다</td><td>시총 큰 종목은 작은 비율이라도 금액이 크다</td><td>시총 또는 거래대금 대비 비율로 본다</td></tr>
+      <tr><td>외국인=선행지표로 단정</td><td>패시브 환매·환율 요인 등 방향 의지가 아닌 매매가 섞인다</td><td>가격·거래량·업종 흐름과 함께 확인한다</td></tr>
+      <tr><td>개인 순매수=저점</td><td>하락 추세 중 물타기일 수 있다</td><td>가격이 돌아선 뒤 수급이 따라붙는지 본다</td></tr>
+      <tr><td>잠정치와 확정치 혼동</td><td>장중·장 마감 직후 숫자가 나중에 바뀔 수 있다</td><td>기준 시각과 확정 여부를 확인한다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 하루 외국인 +8,000억, 기관 -3,000억이다. 개인과 기타 합계는?</summary><p>-5,000억이다. 시장 전체 순매수는 0이므로 나머지 합이 -(8,000 - 3,000) = -5,000억이다.</p></details>
   <details class="in-quiz"><summary>2. 선물이 이론가보다 2포인트 비쌀 때 차익거래자는 어느 쪽을 사고 어느 쪽을 팔까?</summary><p>선물을 팔고 현물 바스켓을 산다. 만기에 두 값이 같아지면서 이 차이가 이익으로 남는다.</p></details>
   <details class="in-quiz"><summary>3. 코스피200 정기변경 전날 장 마감 부근에 거래량이 몰리는 이유는?</summary><p>지수 추종 펀드와 ETF가 변경 시점의 종가에 맞춰 편입 종목을 사고 편출 종목을 팔기 때문이다. 추종 오차를 줄이려고 종가에 몰린다.</p></details>
   <details class="in-quiz"><summary>4. "외국인이 순매수한 날 주가가 올랐다"로 외국인이 가격을 올렸다고 할 수 있을까?</summary><p>그럴 수 없다. 같은 날 값이어서 오르는 종목을 사서 순매수가 커졌을 수도 있다. 선후 관계는 별도 검증이 필요하다.</p></details>
+  <details class="in-quiz"><summary>5. 외국인 −3,000억, 기관 +1,000억일 때 개인의 순매수는? (3주체 합계가 0이라고 가정)</summary><p>+2,000억이다. 세 주체의 순매수 합은 0이므로 −3,000 + 1,000 + x = 0에서 x = 2,000이다.</p></details>
+  <details class="in-quiz"><summary>6. 선물이 이론가보다 비쌀 때 차익거래자는 어떻게 하는가?</summary><p>선물을 팔고 현물 바스켓을 산다. 만기에 두 가격이 같아지며 비싸게 판 값과 싸게 산 값의 차이가 이익이 된다.</p></details>
+  <details class="in-quiz"><summary>7. 지수 추종 자금이 10조 원일 때 어떤 종목의 비중이 2.0%에서 2.5%로 오르면 필요한 순매수는?</summary><p>10조 × 0.5% = 500억 원이다. 이 매수는 기업 가치와 무관하게 지수 규칙이 만드는 수급이다.</p></details>
+  <details class="in-quiz"><summary>8. 하루 외국인 순매수 숫자만 보고 방향을 단정하면 위험한 이유는?</summary><p>지수 개편, 만기일 청산, 패시브 환매 등 방향 의지와 무관한 매매가 섞이기 때문이다. 누적 일수·가격·거래량과 함께 봐야 한다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="flow-advanced">
