@@ -750,7 +750,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261118-domestic-news-height-2')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261118-domestic-news-height-2';
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261118-futures-direct-nav';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261120-home-liquidity';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261118-finance-filter-v2';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
@@ -975,6 +975,9 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         + '<div class="home-index-chart home-night-futures-chart" data-home-day-chart></div>'
         + '<div class="hff-linked-readout" data-futures-price-readout aria-live="polite">같은 날짜의 수급 관측 시 연동</div>'
         + '<small class="ui-kpi-source" data-home-day-field="time">기준시각 확인 중</small></section>'
+        // 2026-11-20 증시 수급 추이: 주간선물 카드 아래(PC 오른쪽 열). 시장지표 국내 수급과 같은 응답·공통 InvestorFlow.homeLiquidity.
+        + '<section class="home-liquidity ui-content-block" data-home-liquidity aria-label="증시 수급 추이"><div class="hmb-summary-head"><strong class="ui-section-title">증시 수급 추이</strong><span>대기자금 · 빚투 · 투자자 · 거래량</span></div>'
+        + '<div data-home-liquidity-body><div class="hmb-investor-spark-empty">자료 확인 중</div></div></section>'
         + '</section>'
         + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
         + '</section>';
@@ -987,7 +990,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       hmbCss.rel = 'stylesheet';
       document.head.appendChild(hmbCss);
     }
-    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261118-home-rhythm-2';
+    hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261120-home-liquidity';
     hmbCss.setAttribute('data-home-market-board-css', '1');
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
@@ -2876,7 +2879,29 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       // 그린 뒤 최신 응답 요청을 즉시 병행한다.
       loadHomeSectors();
       loadHomeInvestorTrend();
+      loadHomeLiquidity();
     };
+
+    // 증시 수급 추이: 일별 자료라 10분 안에는 다시 묻지 않는다. 실패 시 이전 화면을 지우지 않는다.
+    var homeLiquidityLastAttempt = 0, homeLiquidityLoading = false;
+    function loadHomeLiquidity() {
+      var host = dashboardSection.querySelector('[data-home-liquidity-body]');
+      if (!host || homeLiquidityLoading || homeMarketSession().market !== 'domestic') return;
+      if (Date.now() - homeLiquidityLastAttempt < 10 * 60 * 1000) return;
+      homeLiquidityLastAttempt = Date.now();
+      homeLiquidityLoading = true;
+      Promise.all([loadHomeScript(HOME_INVESTOR_FLOW_SCRIPT_URL, 'InvestorFlow'),
+        fetchHomeJson('https://goodbyestar.cloud/domestic-market-indicators', 20000)]).then(function (results) {
+        var env = results[1];
+        if (!env || !env.data || typeof window.InvestorFlow.homeLiquidity !== 'function') throw new Error('수급 추이 자료 없음');
+        host.innerHTML = window.InvestorFlow.homeLiquidity(env.data);
+      }).catch(function (error) {
+        console.warn('증시 수급 추이 불러오기 실패', error);
+        if (host.querySelector('.hlq-balances')) return;
+        host.innerHTML = '<div class="hmb-investor-spark-empty">수급 추이를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</div>';
+        homeLiquidityLastAttempt = Date.now() - 9 * 60 * 1000;
+      }).then(function () { homeLiquidityLoading = false; });
+    }
 
     function investorAmountText(value) {
       if (value == null || value === '') return '-';
@@ -3148,7 +3173,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }
       var nextKey = (session.keys || []).join('|');
       if (nextKey !== summarySessionKey) loadSummaryForSession(session);
-      else if (session.market !== 'us') loadHomeInvestorTrend();
+      else if (session.market !== 'us') { loadHomeInvestorTrend(); loadHomeLiquidity(); }
     }, 60 * 1000);
 
     function calendarMeta(rawTitle) {

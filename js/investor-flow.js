@@ -33,7 +33,14 @@
   function esc(value) { return global.NineUI.escapeHtml(value); }
 
   /* ───────────── 계산(순수 함수, 테스트 대상) ───────────── */
-  function fmtEok(v, signed) { return global.IndicatorBoard ? global.IndicatorBoard.util.fmtEok(v, signed) : String(v); }
+  function fmtEok(v, signed) {
+    if (global.IndicatorBoard) return global.IndicatorBoard.util.fmtEok(v, signed);
+    // 홈처럼 IndicatorBoard가 없는 화면: indicator-board.js의 fmtEok와 같은 규칙(억원 → 조/억).
+    if (v == null || !isFinite(v)) return '-';
+    var abs = Math.abs(v), sign = v < 0 ? '-' : (signed && v > 0 ? '+' : '');
+    if (abs >= 10000) return sign + (abs / 10000).toLocaleString('ko-KR', { minimumFractionDigits: abs >= 100000 ? 1 : 2, maximumFractionDigits: abs >= 100000 ? 1 : 2 }) + '조';
+    return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
+  }
 
   function lastRows(rows, n) { return rows.slice(Math.max(0, rows.length - n)); }
 
@@ -652,7 +659,67 @@
       +'<p class="hff-activity-note">전체=외국인·기관·개인·기타법인의 매수 합계(매도 합계와 일치할 때만 표시). 매수+매도 합산 아님. 기존 순매수만 저장된 시간대의 매수·매도·전체는 미집계입니다.</p>';
   }
 
+  /* 홈 '증시 수급 추이' 카드(2026-11-20): 시장지표 국내 수급과 같은 `/domestic-market-indicators` 응답만 쓴다.
+     예탁금·신용은 03 증시자금의 balanceSeries/balanceStats/summarizeBalances, 투자자는 sumOf/streak를 그대로 재사용한다.
+     결측은 0으로 바꾸지 않고 '자료 없음'으로 둔다. 추천·점수 아님. */
+  function liquiditySpark(points, avg) {
+    var take = points.slice(Math.max(0, points.length - BALANCE_CHART_DAYS));
+    if (take.length < 2) return '<div class="hmb-investor-spark-empty">추이 자료 부족</div>';
+    var vals = take.map(function (p) { return p[1]; }).concat(avg != null ? [avg] : []);
+    var lo = Math.min.apply(Math, vals), hi = Math.max.apply(Math, vals), pad = Math.max(1, (hi - lo) * .08);
+    lo -= pad; hi += pad;
+    var w = 240, h = 56, n = take.length;
+    function x(i) { return (3 + (w - 6) * i / (n - 1)).toFixed(2); }
+    function y(v) { return (h - 4 - (v - lo) / (hi - lo) * (h - 8)).toFixed(2); }
+    var svg = avg != null ? '<line class="hlq-avg" x1="3" x2="' + (w - 3) + '" y1="' + y(avg) + '" y2="' + y(avg) + '" vector-effect="non-scaling-stroke"><title>20거래일 평균 ' + esc(fmtEok(avg)) + '</title></line>' : '';
+    svg += '<polyline class="hlq-line" fill="none" points="' + take.map(function (p, i) { return x(i) + ',' + y(p[1]); }).join(' ') + '" vector-effect="non-scaling-stroke"/>';
+    svg += '<circle class="hlq-dot" r="2" cx="' + x(n - 1) + '" cy="' + y(take[n - 1][1]) + '"><title>' + esc(take[n - 1][0] + ' ' + fmtEok(take[n - 1][1])) + '</title></circle>';
+    return '<svg class="hlq-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + n + '거래일 추이">' + svg + '</svg>'
+      + '<div class="hmb-investor-mini-dates"><span>' + esc(mmdd(take[0][0])) + '</span><span>' + esc(mmdd(take[n - 1][0])) + '</span></div>';
+  }
+
+  function homeLiquidity(data, options) {
+    var opts = options || {}, d = data || {}, funds = d.funds || {};
+    var depPts = balanceSeries(funds, 'deposits'), crdPts = balanceSeries(funds, 'credit');
+    var dep = balanceStats(depPts), crd = balanceStats(crdPts);
+    function pct(v) { return v == null ? '-' : (v > 0 ? '+' : '') + v.toFixed(1) + '%'; }
+    function tone(v) { return v > 0 ? 'home-positive' : v < 0 ? 'home-negative' : 'home-neutral'; }
+    function balance(label, desc, st, pts) {
+      return '<div class="hlq-balance"><div class="hlq-name"><strong>' + label + '</strong><small>' + desc + '</small></div>'
+        + '<div class="hlq-value">' + (st.last == null ? '자료 없음' : esc(fmtEok(st.last))) + '</div>'
+        + '<div class="hlq-change"><span class="' + tone(st.pct20) + '">20거래일 ' + pct(st.pct20) + '</span><span class="' + tone(st.pct5) + '">5거래일 ' + pct(st.pct5) + '</span></div>'
+        + liquiditySpark(pts, st.avg20) + '</div>';
+    }
+    var inv = d.investor || {}, marketKeys = ['KOSPI', 'KOSDAQ'], dayCount = 0, asOf = '';
+    var flowRows = INVESTORS.map(function (who) {
+      return '<tr><th scope="row">' + who.label + '</th>' + marketKeys.map(function (mk) {
+        var rows = ((inv[mk] && inv[mk].rows) || []).filter(function (r) { return validAmount(r[who.key]); });
+        if (!rows.length) return '<td class="num">자료 없음</td>';
+        dayCount = Math.max(dayCount, rows.length);
+        if (inv[mk].asOf && inv[mk].asOf > asOf) asOf = inv[mk].asOf;
+        var sum = sumOf(rows, who.key), st = streak(rows, who.key);
+        return '<td class="num"><span class="' + tone(sum) + '">' + esc(fmtEok(sum, true)) + '</span>'
+          + (st.days >= 2 ? '<small>' + st.days + '일 연속 ' + (st.sign > 0 ? '순매수' : '순매도') + '</small>' : '') + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    var volume = marketKeys.map(function (mk) {
+      var day = d.indices && d.indices[mk] && d.indices[mk].intervals && d.indices[mk].intervals.day;
+      var rows = ((day && day.rows) || []).filter(function (r) { return validAmount(r.volume) && Number(r.volume) > 0; });
+      if (rows.length < 60) return '<span>' + mk + ' 자료 부족</span>';
+      var a20 = sumOf(lastRows(rows, 20), 'volume') / 20, a60 = sumOf(lastRows(rows, 60), 'volume') / 60, p = pctChange(a20, a60);
+      return '<span>' + mk + ' <b class="' + tone(p) + '">' + pct(p) + '</b></span>';
+    }).join('');
+    var sentence = summarizeBalances(dep, crd).sentences.join(' ');
+    return '<div class="hlq-balances">' + balance('고객예탁금', '주식 살 대기자금', dep, depPts) + balance('신용잔고', '빚내서 산 금액', crd, crdPts) + '</div>'
+      + '<table class="hlq-flow"><caption>투자자별 순매수 · 최근 ' + (dayCount || '-') + '거래일 합계</caption><thead><tr><th></th><th class="num">KOSPI</th><th class="num">KOSDAQ</th></tr></thead><tbody>' + flowRows + '</tbody></table>'
+      + '<div class="hlq-volume"><em>지수 거래량 20일 평균 (60일 평균 대비)</em>' + volume + '</div>'
+      + (sentence ? '<p class="hlq-sentence">' + esc(sentence) + '</p>' : '')
+      + '<small class="ui-kpi-source">예탁금·신용 기준일 ' + esc(dep.lastDate || '-') + ' · 투자자 ' + esc(asOf ? kstStamp(asOf) : '-') + ' 조회(당일은 장중 잠정) · 순매수는 신규 자금 유입액이 아닙니다 · '
+      + '<a href="' + esc(opts.detailUrl || '/pages/domestic-market-indicators') + '">자세히</a></small>';
+  }
+
   global.InvestorFlow = {
+    homeLiquidity: homeLiquidity,
     mount: mount,
     miniChart: miniChart,
     miniBars: miniBars,
