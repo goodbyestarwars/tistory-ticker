@@ -38,7 +38,7 @@ SCREENS = {
     'watchlist': ('관심종목', 'member'),
     'memo': ('메모', 'member'),
     'market-temp': ('증시온도', 'member'),
-    'market-map': ('마켓 아틀라스', 'member'),
+    'market-map': ('마켓 대동여지도', 'member'),
     'autotrader': ('자동매매', 'admin'),
     'kis': ('KIS Trading Tool', 'admin'),
 }

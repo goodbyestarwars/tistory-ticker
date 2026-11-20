@@ -1,3 +1,5 @@
+**2026-11-21 화면 설정의 '마켓 아틀라스' 표기를 '마켓 대동여지도'로 변경(사용자 지시)** — `scripts/cloud-vm/access_policy.py`의 `market-map` 화면 라벨만 변경(키·권한·기본값 불변). 메뉴·화면 제목은 이미 '마켓 대동여지도'였고 화면 설정(관리자 화면)에서만 옛 이름이 보였음. 검증: 저장소 전체에서 '마켓 아틀라스' 문구가 이 한 곳뿐임을 확인, access_policy 테스트. 배포: master → VM 자동 배포 후 화면 설정에 반영(미확인).
+
 **2026-11-21 대화방 `[ 새 창 ]` 버튼 네모 테두리 제거(사용자 지시 "새창 네모칸은 지워")** — `css/stock-discussion.css` `.discussion-popout`: 테두리·hover 배경 제거, 글자만 표시(hover 시 밑줄). 위치·동작 불변. 미확인: 운영 화면. 배포: master → Pages.
 
 **2026-11-21 대화방 새 창: 버튼 위치·창 크기·손잡이 숨김(사용자 지시 "새창은 저기로, 넓게·화면 딱 맞게, 2번째 붉은 동그라미는 안 나왔으면")** — `js/stock-discussion.js`·`css/stock-discussion.css`: ① `[ 새 창 ]` 버튼을 인트로 영역 오른쪽 위(문구 편집 위)로 이동(`.discussion-popout`) ② 새 창을 화면 가용 크기 전체(`screen.availWidth/availHeight`, 좌상단 0,0)로 열기 ③ 팝업 모드(`html.discussion-popup`)에서 대화방을 창 전체에 고정(`position:fixed; inset:0`)해 빈 여백 없이 채우고, 우측 `>>` 관심종목 손잡이(`.global-watchlist-toggle`·서랍)·메모 버튼(`.memo-fab`)·`.wl-toggle`도 숨김. 첫 번째 붉은 원(왼쪽 위 연필 버튼)은 요청 범위 밖이라 그대로. 검증: 테스트 픽스처에서 버튼 위치(인트로 영역 안)·팝업에서 손잡이/메뉴 display:none·대화방 폭 1280(창 폭과 일치) 확인. 미확인: 실제 티스토리 페이지에서 연필 버튼(티스토리 글쓰기) 등 다른 전역 요소, 창 최대화 시 OS별 표시. 배포: master → Pages.
