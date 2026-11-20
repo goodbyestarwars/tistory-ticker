@@ -2,6 +2,7 @@
 (function (global) {
   'use strict';
   if (global.ScannerProgress) return;
+  var SHOW_DASHBOARD = false; // 검색기 화면 상태·통계 대시보드 표시 스위치(2026-11-21 숨김)
   function model(jobs, strategy, now) {
     var daily = jobs.find(function (j) { return j.id === 'dailyscan'; });
     var target = jobs.find(function (j) { return j.id === (strategy ? 'strategyscan' : 'dailyscan'); });
@@ -107,7 +108,10 @@
     container.parentNode.insertBefore(strip, container);
     render(model([], strategy, Date.now()));
     refresh();
-    if (!strategy && selfUrl) {
+    /* 2026-11-21 사용자 지시: 검색기 화면은 종목만 간단히 보여준다. 일봉 배치 상태·통계·최근 포착 신호
+       대시보드는 화면에서 숨기고(코드·scanner-dashboard.js 보존), 완료 감지 후 결과 새로고침은 유지한다. */
+    if (!strategy) strip.style.display = 'none';
+    if (!strategy && selfUrl && SHOW_DASHBOARD) {
       var dashboard = document.createElement('script');
       dashboard.src = new URL('scanner-dashboard.js', selfUrl).href;
       document.head.appendChild(dashboard);
