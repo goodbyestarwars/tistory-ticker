@@ -30,9 +30,11 @@ class IntroTests(unittest.TestCase):
         with self.assertRaises(mod.Conflict):
             mod.update(dict(content=dict(CONTENT, title='다른 제목'), revision=0), 'admin')
         self.assertEqual(mod.view()['content']['title'], CONTENT['title'])
+    def test_empty_title_allowed(self):
+        mod.update(dict(content=dict(CONTENT,title=''),revision=0),'admin')
+        self.assertEqual(mod.view()['content']['title'],'')
     def test_invalid_input(self):
-        for body in [None, {}, dict(content=CONTENT, revision=True), dict(content=dict(CONTENT,title=''), revision=0),
-                     dict(content=dict(CONTENT,title='x'*101),revision=0),
+        for body in [None, {}, dict(content=CONTENT, revision=True),                      dict(content=dict(CONTENT,title='x'*101),revision=0),
                      dict(content=dict(CONTENT,body='x'*4001),revision=0),
                      dict(content=dict(CONTENT,etiquette='a\nb'),revision=0),
                      dict(content=dict(CONTENT,body='\x00'),revision=0)]:

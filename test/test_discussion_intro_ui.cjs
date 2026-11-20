@@ -14,13 +14,13 @@ await p.waitForTimeout(80);
 }
 for(const role of ['guest','member']){await mount(role);assert.equal(await p.locator('.discussion-intro-edit').isVisible(),false);}
 for(const width of [1280,390,320]){
-await mount('admin',width);await p.locator('.discussion-intro-edit').click();await p.locator('[name=title]').fill('수정한 제목');
+await mount('admin',width);await p.locator('.discussion-intro-edit').click();assert.equal(await p.locator('[name=title]').count(),0);
 await p.locator('[name=body]').fill('<img src=x onerror=alert(1)>\n둘째 줄');await p.locator('[name=etiquette]').fill('새 안내');
 await p.locator('[type=submit]').click();await p.waitForFunction(()=>!document.querySelector('dialog'));
-assert.equal(await p.locator('.discussion-terminal-poem h2').textContent(),'수정한 제목');
+assert.equal(await p.locator('.discussion-terminal-poem h2').count(),0);
 assert.equal(await p.locator('.discussion-terminal-poem img').count(),0);
-await p.locator('.discussion-intro-edit').click();await p.locator('[name=title]').waitFor();await p.waitForFunction(()=>!document.querySelector('dialog [type=submit]').disabled);
-assert.equal(await p.locator('[name=title]').inputValue(),'수정한 제목');
+await p.locator('.discussion-intro-edit').click();await p.locator('[name=body]').waitFor();await p.waitForFunction(()=>!document.querySelector('dialog [type=submit]').disabled);
+assert.equal(await p.locator('[name=body]').inputValue(),'<img src=x onerror=alert(1)>\n둘째 줄');
 assert(await p.evaluate(()=>{let r=document.querySelector('dialog').getBoundingClientRect();return r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight;}));
 await p.keyboard.press('Escape');await p.waitForFunction(()=>!document.querySelector('dialog'));assert.equal(await p.locator('dialog').count(),0);
 }

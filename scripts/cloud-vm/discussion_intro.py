@@ -25,8 +25,8 @@ def normalize(content):
             raise ValueError('문자만 입력해 주세요.')
         value = value.replace('\r\n', '\n').replace('\r', '\n')
         if key != 'art':
-            value = value.strip()
-        if (not value.strip() and key != 'art') or len(value) > limit or any(ord(c) < 32 and c not in '\n\t' for c in value):
+            value = value.strip()  # 제목은 더 이상 쓰지 않아 빈 값을 허용한다(2026-11-21)
+        if (not value.strip() and key not in ('art', 'title')) or len(value) > limit or any(ord(c) < 32 and c not in '\n\t' for c in value):
             raise ValueError('빈 문구 또는 글자 수 제한을 확인해 주세요.')
         if key in ('title', 'etiquette') and '\n' in value:
             raise ValueError('제목과 하단 안내는 한 줄로 입력해 주세요.')
