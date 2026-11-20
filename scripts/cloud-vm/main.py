@@ -1031,14 +1031,20 @@ def _has_server_api_key(request):
     return bool(expected) and hmac.compare_digest(expected.encode('utf-8'), given.encode('utf-8'))
 
 
+# 서버 간 읽기 전용 HMAC 허용 경로. 서명 문장이 'GET <경로>'라 경로마다 서명이 달라 다른 경로·메서드에 재사용되지 않는다.
+# /volume-surge-live: 자동매매 VM 텔레그램 봇의 거래량 급증 관찰 알림(2026-11-20, 11-11 관리자 전용 전환 뒤 401로 끊겼던 것 복구).
+AGENT_SIGNED_READ_PATHS = ('/pattern-scan', '/volume-surge-live')
+
+
 def _has_research_scan_signature(request):
-    """기존 에이전트 HMAC으로 GET /pattern-scan 조회만 인증한다."""
-    if request.method != 'GET' or request.url.path != '/pattern-scan':
+    """기존 에이전트 HMAC으로 AGENT_SIGNED_READ_PATHS의 GET 조회만 인증한다."""
+    path = request.url.path
+    if request.method != 'GET' or path not in AGENT_SIGNED_READ_PATHS:
         return False
     try:
         autotrader_control.verify_agent(
             request.headers.get('x-ts'), request.headers.get('x-sig'),
-            b'GET /pattern-scan')
+            ('GET ' + path).encode('utf-8'))
         return True
     except autotrader_control.ControlError:
         return False

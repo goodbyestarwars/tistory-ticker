@@ -1,3 +1,5 @@
+**2026-11-20 텔레그램 거래량 급증 알림 401 복구(사용자 지시 "고쳐")** — 원인: 11-11 접근 정책(2cb26e12)에서 `/volume-surge-live`가 관리자 전용 접두사에 들어가, 자동매매 VM 봇(`tg_volume_surge.fetch`, 로그인 없음)이 장중 30초마다 `401 login required`(11-19 794건·11-20 601건 HTTPError, 주문 무관). 변경: `scripts/cloud-vm/main.py` 서버 간 HMAC 읽기 허용을 `AGENT_SIGNED_READ_PATHS=('/pattern-scan','/volume-surge-live')`로 넓힘. 서명 문장 `ts.GET <경로>`가 경로마다 달라 다른 경로·메서드에 재사용 불가, 관리자 접두사·브라우저 경계·빈도 제한 불변. 봇 쪽은 비공개 저장소 PR(기존 `CONTROL_SECRET`으로 서명, 새 비밀값 없음). 검증: `test/test_agent_signed_reads.py` 6건(경로별 수락·교차 재사용·다른 경로/POST·잘못된 키·60초 초과·미설정 거부), `test_access_policy` 14·`test_autotrader_control` 30 통과. 배포: Oracle은 보호 시간(평일 08:00~20:00) 뒤 자동 반영. 미완료: 비공개 PR 병합·봇 재시작은 별도 승인 후, 그 뒤 실제 알림 수신 확인.
+
 **2026-11-20 로그인 랜딩 배경을 사용자 제공 사진으로 교체(사용자 지시 "로그인 사진을 이걸로, 가로로 돌려서")** — 세로 1080×1920 이미지를 반시계 90° 회전해 `img/landing-ironman.webp`(1920×1080, 446KB) 추가. `js/access-landing.js`: SVG 스케치(`drawSketch`·손글씨 글꼴 로드) 제거 → `<img>` 16:9·cover, 모바일 비율 56.25%. 인증·입장 동작 불변. 검증: JS 구문, 배포 후 운영 랜딩 확인.
 - 같은 날 보완(사용자 지시 "문구랑 로그인 버튼 살짝 와이드로"): 왼쪽 로그인 칸 최소 280→340px·비율 .62→.82fr, 안쪽 여백 최대 56→44px로 문구·버튼 폭 확대. 모바일 한 열 배치는 그대로.
 
