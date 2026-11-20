@@ -31,12 +31,64 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>15장 · 경제위기</h1>
   <p class="legal-effective-date">좋던 경기는 어떻게 한순간에 무너질까</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>4장에서 경기는 물결처럼 오르내린다고 했다. 그런데 어떤 물결은 파도가 아니라 쓰나미다. 1929년 대공황,
   1997년 외환위기, 2008년 금융위기처럼 수많은 회사가 문을 닫고 사람들이 일자리를 잃는 큰 위기가 있다.</p>
   <p>위기는 매번 모양이 조금씩 다르지만, 퍼지는 길은 놀랄 만큼 비슷하다. 이 장은 그 길과 나라가 쓰는 대응 수단을
   살핀다. 개미에게는 "위기는 반드시 온다"는 사실을 받아들이고 대비하는 법을 생각하게 하는 장이다.</p>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 작은 은행의 장부 · 자기 돈이 10뿐이라면</h2>
+  <p>어느 작은 은행의 장부를 보자(가상 숫자, 단위 억 원). 은행은 손님의 예금 90을 받고, 은행 자신의 돈(자기자본) 10을
+  보태 100을 만든다. 그 100 중 10은 금고에 두고, 90은 대출로 빌려줬다.</p>
+  <table class="learn-table">
+    <thead><tr><th>자산(은행이 가진 것)</th><th></th><th>부채와 자본(은행이 갚아야 할 것)</th><th></th></tr></thead>
+    <tbody>
+      <tr><td>금고의 현금</td><td>10</td><td>손님 예금</td><td>90</td></tr>
+      <tr><td>빌려준 대출</td><td>90</td><td>은행의 자기자본</td><td>10</td></tr>
+      <tr><td><b>합계</b></td><td><b>100</b></td><td><b>합계</b></td><td><b>100</b></td></tr>
+    </tbody>
+  </table>
+  <p>이제 경기가 나빠져 빌려준 돈의 일부를 못 돌려받는다고 하자. 대출 90 가운데 부실해지는 비율에 따라 은행의
+  자기자본은 이렇게 변한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>대출 중 부실 비율</th><th>잃는 돈</th><th>남는 자기자본</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>0%</td><td>0</td><td>10</td><td>튼튼하다</td></tr>
+      <tr><td>5%</td><td>4.5</td><td>5.5</td><td>반이 사라졌다</td></tr>
+      <tr><td>10%</td><td>9</td><td>1</td><td>위태롭다</td></tr>
+      <tr><td>11.1%</td><td>10</td><td>0</td><td>자기 돈이 바닥났다</td></tr>
+      <tr><td>15%</td><td>13.5</td><td>−3.5</td><td>손님 예금 일부를 못 돌려줄 수 있다</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 200" role="img" aria-label="대출 부실 비율이 커질수록 은행의 자기자본이 10에서 5.5, 1로 줄어 마이너스 3.5가 되는 막대그래프">
+      <text class="fig-sub" x="0" y="14">남는 은행 자기자본(억 원)</text>
+      <path class="fig-line" d="M40 100 H410" />
+      <rect class="fig-up" x="64" y="40" width="56" height="60" />
+      <text class="fig-ink" x="78" y="34" font-size="12">10</text>
+      <rect class="fig-bar" x="144" y="67" width="56" height="33" />
+      <text class="fig-ink" x="156" y="61" font-size="12">5.5</text>
+      <rect class="fig-soft2" x="224" y="94" width="56" height="6" />
+      <text class="fig-ink" x="244" y="88" font-size="12">1</text>
+      <rect class="fig-down" x="304" y="100" width="56" height="21" />
+      <text class="fig-ink" x="310" y="140" font-size="12">−3.5</text>
+      <text class="fig-sub" x="66" y="170">부실 0%</text>
+      <text class="fig-sub" x="146" y="170">부실 5%</text>
+      <text class="fig-sub" x="224" y="170">부실 10%</text>
+      <text class="fig-sub" x="304" y="170">부실 15%</text>
+      <text class="fig-sub" x="40" y="192">자기 돈이 얇은 금융회사는 작은 손실에도 흔들린다</text>
+    </svg>
+    <figcaption>은행은 남의 돈(예금)으로 대출을 한다. 자기 돈이 전체의 10%뿐이면 대출의 11%만 못 받아도 자기 돈이 사라진다. 이것이 빚으로 몸집을 키운 금융회사의 약점이다.</figcaption>
+  </figure>
+
+  <p>이 장부 한 장에 이 장의 큰 이야기가 있다. 빚을 이용한 몸집(레버리지)이 클수록 작은 충격이 큰 위기가 된다. 아래에서
+  실제 위기들이 어떻게 이 구조를 따랐는지 보자.</p>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">위기가 번지는 길</h2>
@@ -163,11 +215,136 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-run">뱅크런이 하루 만에 번지는 과정</h2>
+  <p>예금 90을 받은 은행이 금고에 현금 10만 두고 있다고 했다. 평소에는 하루에 예금의 5% 안팎(4.5)이 빠져나가 문제가
+  없다. 그런데 "저 은행이 위험하다더라"는 소문이 돌면 이야기가 달라진다.</p>
+  <table class="learn-table">
+    <thead><tr><th>날</th><th>무슨 일이 있었나</th><th>하루 인출 요구</th><th>금고 현금 10으로 줄 수 있나</th></tr></thead>
+    <tbody>
+      <tr><td>1일 차</td><td>평소</td><td>4.5 (5%)</td><td>줄 수 있다</td></tr>
+      <tr><td>2일 차</td><td>소문이 돌아 일부가 찾아간다</td><td>9 (10%)</td><td>겨우 줄 수 있다</td></tr>
+      <tr><td>3일 차</td><td>줄이 길어지고 뉴스에 나온다</td><td>27 (30%)</td><td>아니다. 대출을 급히 회수하거나 자산을 헐값에 팔아야 한다</td></tr>
+      <tr><td>4일 차</td><td>헐값 매각으로 손실이 커진다</td><td>45 (50%)</td><td>손실로 자기자본이 바닥난다 → 영업 정지</td></tr>
+    </tbody>
+  </table>
+  <p>은행이 처음에는 튼튼했어도 소문만으로 무너질 수 있다. 이 과정을 끊으려면 두 가지가 필요하다. 사람들이 서둘러 찾지
+  않아도 되도록 <b>예금을 보호하는 제도</b>(예금보험)와, 일시적으로 돈이 모자랄 때 중앙은행이 빌려주는 <b>최종대부자</b>의
+  역할이다. 둘 다 "믿음"을 만드는 장치다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-1997">1997년 한국 외환위기 · 시간 순서로 보기</h2>
+  <table class="learn-table">
+    <thead><tr><th>때</th><th>일어난 일</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>1997년 초</td><td>한보철강 등 큰 기업이 부도를 냈다</td><td>대기업도 빚을 못 갚을 수 있다는 불안이 퍼졌다</td></tr>
+      <tr><td>1997년 7월</td><td>기아자동차가 부도 위기에 몰렸다. 태국 바트화가 폭락하며 아시아로 불안이 번졌다</td><td>기업 빚에 대한 걱정과 외국 투자자의 이탈이 겹쳤다</td></tr>
+      <tr><td>1997년 가을</td><td>해외 은행들이 단기 대출을 갚으라고 요구하고 국가 신용등급이 내려갔다</td><td>외국에서 빌린 단기 자금이 빠져나갔다</td></tr>
+      <tr><td>1997년 11월 21일</td><td>정부가 IMF에 구제금융을 공식 요청했다</td><td>갚을 외화가 모자랐다</td></tr>
+      <tr><td>1997년 12월~1998년</td><td>원/달러 환율이 800원대에서 한때 1,900원대까지 뛰었다. 금융회사 퇴출과 구조조정이 이어졌다</td><td>달러 빚이 있는 기업의 부담이 두 배 넘게 커졌다</td></tr>
+      <tr><td>1998년</td><td>경제성장률이 마이너스 5% 안팎이 됐다. 실업이 크게 늘고 "금 모으기 운동"이 벌어졌다</td><td>국민이 외화 확보에 직접 동참했다</td></tr>
+      <tr><td>2001년 8월</td><td>IMF 차입금을 조기 상환했다</td><td>위기 이후 약 3년 반 만이었다</td></tr>
+    </tbody>
+  </table>
+  <p>핵심은 "미래의 이익을 믿고 단기 달러를 빌려 장기 투자에 쓴" 구조였다. 외국 돈이 한꺼번에 빠지면 달러를 갚을 수 없었다.
+  위기 이후 한국은 외환보유액을 쌓고 환율을 시장에 맡기는 쪽으로 제도를 바꿨다. 숫자는 대략이며 자세한 통계는 한국은행과
+  통계 기관 자료로 확인하자.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-2008">2008년 금융위기 · 대출을 쪼개 판 증권</h2>
+  <p>미국에서는 신용이 낮은 사람에게도 집값의 대부분을 빌려주는 대출(서브프라임)이 늘었다. 금융회사들은 이 대출 수백 개를
+  묶어 증권으로 만든 뒤 <b>갚을 때 먼저 받는 순서</b>에 따라 쪼개 팔았다. 가상 숫자로 이해해 보자. 대출 100억 원을 묶어
+  세 조각으로 나눈다.</p>
+  <table class="learn-table">
+    <thead><tr><th>조각</th><th>크기</th><th>손실 순서</th><th>연체로 대출 10억을 잃으면</th><th>연체로 대출 40억을 잃으면</th></tr></thead>
+    <tbody>
+      <tr><td>선순위(안전해 보임)</td><td>70억</td><td>마지막에 손실</td><td>손실 없음</td><td>손실 없음 (30 &lt; 100−70)</td></tr>
+      <tr><td>중간</td><td>20억</td><td>중간에 손실</td><td>손실 없음</td><td>10억 손실(절반)</td></tr>
+      <tr><td>후순위(위험하지만 이자가 큼)</td><td>10억</td><td>제일 먼저 손실</td><td>10억 전부 손실</td><td>10억 전부 손실</td></tr>
+    </tbody>
+  </table>
+  <p>위 표는 연체가 적을 때 선순위가 안전하다는 점을 보여 준다. 그러나 집값이 전국적으로 내려가 <b>연체가 40% 넘게</b>
+  나오면 선순위도 손실이 난다. 모든 대출이 같은 이유(집값 하락)로 한꺼번에 부실해지기 때문에, 쪼개서 위험을 나눴다는 믿음이
+  깨진 것이다. 이 증권을 가진 은행들이 한꺼번에 손실을 입었고, 서로 믿지 못해 돈을 빌려주지 않는 신용경색이 닥쳤다.</p>
+  <table class="learn-table">
+    <thead><tr><th>시기</th><th>사건</th></tr></thead>
+    <tbody>
+      <tr><td>2006~2007년</td><td>미국 집값이 꺾이고 서브프라임 연체가 늘었다</td></tr>
+      <tr><td>2008년 3월</td><td>투자은행 베어스턴스가 헐값에 팔렸다</td></tr>
+      <tr><td>2008년 9월 15일</td><td>리먼브라더스가 파산을 신청했다. 당시 미국 역사상 최대 규모의 기업 파산으로 알려졌다</td></tr>
+      <tr><td>2008년 가을~</td><td>세계 주가가 급락하고 각국이 금리를 내리고 은행에 공적자금을 투입했다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-spread">위기는 어떻게 다른 나라로 옮겨 가나</h2>
+  <table class="learn-table">
+    <thead><tr><th>통로</th><th>어떻게 옮겨 가나</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td>금융 연결</td><td>서로 빌려주고 증권을 가지고 있어 한 곳의 손실이 다른 곳으로 번진다</td><td>미국 증권을 산 유럽 은행들의 손실</td></tr>
+      <tr><td>무역</td><td>한 나라의 수요가 줄면 그 나라에 수출하던 곳이 타격을 받는다</td><td>미국 소비가 줄자 한국 수출이 줄었다</td></tr>
+      <tr><td>심리</td><td>"이웃 나라가 이 모양이니 우리도 위험하다"는 불안으로 돈이 빠진다</td><td>1997년 태국에서 아시아 다른 나라로</td></tr>
+      <tr><td>환율</td><td>외국 자금이 빠지며 통화 가치가 떨어지고 달러 빚 부담이 늘어난다</td><td>신흥국 통화 약세</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-signals">위기 전에 켜지는 경고등</h2>
+  <p>미리 맞히기는 어렵지만 경고 신호는 있다. 하나의 숫자로 단정할 수는 없고, 여러 신호가 겹칠 때 조심하는 정도로 쓴다.</p>
+  <table class="learn-table">
+    <thead><tr><th>신호</th><th>쉬운 뜻</th><th>위험해 보이는 모습</th></tr></thead>
+    <tbody>
+      <tr><td>가계·기업 부채 비율</td><td>소득이나 GDP 대비 빚의 크기</td><td>빠르게 늘어 상환 부담이 커진다</td></tr>
+      <tr><td>자산 가격 대비 소득</td><td>집값이 소득의 몇 배인가</td><td>소득보다 훨씬 빠르게 오른다</td></tr>
+      <tr><td>단기 외채·외환보유액</td><td>1년 안에 갚을 외화 빚 대비 쌓아 둔 외화</td><td>외화 빚이 쌓아 둔 외화에 가깝거나 넘는다</td></tr>
+      <tr><td>경상수지</td><td>나라가 번 외화와 쓴 외화의 차이</td><td>오랫동안 큰 적자</td></tr>
+      <tr><td>신용 스프레드</td><td>기업이 빌릴 때 안전한 국채보다 더 내는 금리</td><td>갑자기 넓어진다</td></tr>
+      <tr><td>투자 행태</td><td>대출로 투자하는 사람의 비중</td><td>"안 사면 손해"라는 분위기가 퍼진다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-recover">위기 뒤 얼마나 걸려 회복했나</h2>
+  <p>지수가 떨어진 뒤 이전 고점을 다시 넘는 데 걸린 시간은 위기마다 크게 달랐다. 대략의 값으로 비교해 보자.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="고점을 다시 넘는 데 걸린 시간 비교: 대공황 후 다우 약 25년, 2000년 닷컴 후 S&amp;P500 약 7년, 2008년 후 S&amp;P500 약 5~6년, 2020년 약 5개월">
+      <text class="fig-sub" x="0" y="14">이전 고점을 다시 넘기까지 걸린 시간(대략, 년)</text>
+      <rect class="fig-up" x="130" y="26" width="250" height="26" rx="3" />
+      <text class="fig-ink" x="0" y="45" font-size="12">대공황(다우)</text>
+      <text class="fig-on-strong" x="140" y="45">약 25년</text>
+      <rect class="fig-bar" x="130" y="62" width="70" height="26" rx="3" />
+      <text class="fig-ink" x="0" y="81" font-size="12">닷컴(S&amp;P500)</text>
+      <text class="fig-on-strong" x="136" y="81" font-size="11">약 7년</text>
+      <rect class="fig-bar" x="130" y="98" width="55" height="26" rx="3" />
+      <text class="fig-ink" x="0" y="117" font-size="12">2008 금융위기</text>
+      <text class="fig-on-strong" x="136" y="117" font-size="11">5~6년</text>
+      <rect class="fig-soft2" x="130" y="134" width="6" height="26" rx="3" />
+      <text class="fig-ink" x="0" y="153" font-size="12">2020 코로나</text>
+      <text class="fig-ink" x="144" y="153" font-size="12">약 5개월</text>
+    </svg>
+    <figcaption>회복 시간은 위기의 원인과 정책 대응, 지수의 종류에 따라 크게 다르다. 배당과 물가를 반영하면 숫자가 달라지며, 모두 대략의 값이다.</figcaption>
+  </figure>
+
+  <p>"결국 오른다"는 말은 맞는 경우가 많지만 <b>얼마나 기다려야 하는지</b>는 알 수 없다. 25년을 기다리는 일은 생활이 걸린
+  투자자에게 견디기 어렵다. 빚을 내서 투자한 사람은 회복 전에 강제로 팔게 되기도 한다. 그래서 버틸 수 있는 구조(빚 줄이기,
+  현금 확보, 분산)가 시기를 맞히는 것보다 중요하다.</p>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-6">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 은행이 예금의 일부만 금고에 두는데 모두가 동시에 돈을 찾으면?</summary><p>줄 돈이 모자라 뱅크런이 된다. 은행이 멀쩡해도 소문 하나로 무너질 수 있다.</p></details>
   <details class="in-quiz"><summary>2. 신용경색이란?</summary><p>은행이 대출을 꺼려 돈이 말라붙은 상태다. 멀쩡한 회사도 돈을 빌리기 어려워진다.</p></details>
   <details class="in-quiz"><summary>3. 1997년 한국 외환위기를 한 문장으로 설명하면?</summary><p>외국에서 단기로 빌린 달러를 한꺼번에 갚아야 하는데 달러가 모자라 환율이 급등하고 기업이 연쇄적으로 무너진 사건이다.</p></details>
   <details class="in-quiz"><summary>4. 자산이 50% 떨어진 뒤 원래 값으로 돌아오려면 얼마가 올라야 할까?</summary><p>100이 50이 되면 50에서 100으로 가야 하니 100% 올라야 한다. 낙폭이 클수록 회복에 훨씬 큰 상승이 필요하다.</p></details>
+  <details class="in-quiz"><summary>5. 자기자본이 10%인 은행에서 대출의 몇 %가 부실하면 자기자본이 전부 사라질까?</summary><p>대출이 전체 자산의 90%이므로 대출 90 중 10을 잃는 11.1% 정도다. 자기자본 비율이 낮을수록 작은 부실에도 위험하다.</p></details>
+  <details class="in-quiz"><summary>6. 뱅크런을 줄이는 제도 두 가지는?</summary><p>예금자를 보호하는 예금보험과, 일시적으로 돈이 모자란 은행에 중앙은행이 빌려주는 최종대부자 기능이다. 둘 다 "찾지 않아도 안전하다"는 믿음을 만든다.</p></details>
+  <details class="in-quiz"><summary>7. 1997년 외환위기에서 환율이 뛰자 기업이 더 힘들어진 까닭은?</summary><p>달러로 빌린 빚은 원화로 환산하면 환율이 오를수록 갚을 돈이 커지기 때문이다. 매출은 그대로인데 빚이 두 배 가까이 불어난다.</p></details>
+  <details class="in-quiz"><summary>8. 2008년 금융위기에서 선순위 조각이 안전하다는 믿음이 깨진 이유는?</summary><p>집값이 전국에서 함께 내려가 대출이 한꺼번에 부실해졌기 때문이다. 쪼개 팔아 위험을 나눈다는 가정이 모든 대출이 같은 이유로 무너지는 상황에서는 맞지 않았다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="econ-crisis-deep">

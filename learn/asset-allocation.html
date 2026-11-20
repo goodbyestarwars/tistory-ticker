@@ -28,6 +28,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>자산배분 이야기</h1>
   <p class="legal-effective-date">주식·채권·현금·금 · 분산투자·상관관계·리밸런싱 · 설명 업데이트 2026-11-21</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>위험 관리 이야기에서는 한 종목에 얼마를 넣을지가 손실을 정한다고 했다. 이번에는 한 단계 위로 올라가 <b>계좌 전체를 무엇으로 채울지</b>를 본다. 어느 종목을 고르느냐보다 주식과 채권, 현금, 금을 어떻게 섞었는지가 오랜 기간 수익과 흔들림을 더 크게 좌우한다는 연구가 많다.</p>
   <p>우산을 하나만 들고 다니는 사람은 비 오는 날만 걱정한다. 비 오는 날 우산, 햇볕 나는 날 모자, 추운 날 장갑을 모두 챙기면 어떤 날씨에도 크게 당하지 않는다. 자산배분은 이렇게 <b>서로 다른 날씨에 강한 자산을 한 가방에 넣는 일</b>이다. 정답 비율을 알려 주는 글이 아니라, 비율을 정할 때 따지는 방법을 다룬다.</p>
@@ -37,6 +38,56 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <div class="in-fact"><span>비율은</span><strong>주기적으로 맞춘다</strong></div>
   </div>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 4년의 장부 · 세 사람이 같은 100만 원으로 시작했다</h2>
+  <p>세 사람이 각자 100만 원으로 4년을 투자했다(가상 숫자). 해마다 주식과 채권의 수익률은 아래와 같았다.</p>
+  <table class="learn-table">
+    <thead><tr><th>해</th><th>주식</th><th>채권</th></tr></thead>
+    <tbody>
+      <tr><td>1년 차</td><td>+20%</td><td>+3%</td></tr>
+      <tr><td>2년 차</td><td>−25%</td><td>+8%</td></tr>
+      <tr><td>3년 차</td><td>+15%</td><td>+2%</td></tr>
+      <tr><td>4년 차</td><td>+10%</td><td>+4%</td></tr>
+    </tbody>
+  </table>
+  <p>세 사람은 각각 주식만, 채권만, 주식 60%+채권 40%(매년 초 비율 되돌림)로 투자했다. 결과를 계산해 보자.</p>
+  <table class="learn-table">
+    <thead><tr><th>투자자</th><th>1년 뒤</th><th>2년 뒤</th><th>3년 뒤</th><th>4년 뒤</th><th>가장 나쁜 해</th></tr></thead>
+    <tbody>
+      <tr><td>주식만</td><td>120.0만</td><td>90.0만</td><td>103.5만</td><td>113.9만</td><td>−25.0%</td></tr>
+      <tr><td>채권만</td><td>103.0만</td><td>111.2만</td><td>113.5만</td><td>118.0만</td><td>+2.0% (손실 없음)</td></tr>
+      <tr><td>주식 60 + 채권 40</td><td>113.2만</td><td>99.8만</td><td>109.6만</td><td>118.0만</td><td>−11.8%</td></tr>
+    </tbody>
+  </table>
+  <p>"주식이 가장 오른 해가 있었으니 주식만이 이길 것"이라는 기대와 달리, 이 4년에서는 섞은 사람이 주식만 한 사람보다 더 벌었고 가장 나쁜 해의 손실도 절반 이하였다. 물론 이 숫자는 이해를 위해 정한 가상 예시다. 주식이 계속 크게 오르는 기간에는 섞은 쪽이 덜 벌 수 있다. 중요한 것은 수익률 하나가 아니라 <b>"견딜 수 있는 흔들림 안에서 목표를 이루는 경로"</b>다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="4년 동안 주식만, 채권만, 주식 60 채권 40 섞은 포트폴리오의 100만 원 변화: 주식은 크게 출렁이고 섞은 쪽이 중간 경로로 118만 원에 도착">
+      <text class="fig-sub" x="0" y="14">100만 원의 경로 (가상, 단위 만 원)</text>
+      <path class="fig-line" d="M40 110 H400" />
+      <text class="fig-sub" x="4" y="114" font-size="10">100</text>
+      <path class="fig-up-line" d="M40 110 L130 30 L220 150 L310 96 L400 54" stroke-width="2" fill="none" />
+      <path class="fig-down-line" d="M40 110 L130 98 L220 65 L310 56 L400 38" stroke-width="2" fill="none" />
+      <path class="fig-ink-line" d="M40 110 L130 57 L220 111 L310 72 L400 38" stroke-width="3" fill="none" />
+      <circle class="fig-up" cx="130" cy="30" r="3" />
+      <circle class="fig-up" cx="220" cy="150" r="3" />
+      <text class="fig-sub" x="40" y="176" font-size="11">시작</text>
+      <text class="fig-sub" x="120" y="176" font-size="11">1년</text>
+      <text class="fig-sub" x="210" y="176" font-size="11">2년</text>
+      <text class="fig-sub" x="300" y="176" font-size="11">3년</text>
+      <text class="fig-sub" x="384" y="176" font-size="11">4년</text>
+      <rect class="fig-up" x="40" y="194" width="14" height="4" />
+      <text class="fig-ink" x="60" y="199" font-size="11">주식만</text>
+      <rect class="fig-down" x="130" y="194" width="14" height="4" />
+      <text class="fig-ink" x="150" y="199" font-size="11">채권만</text>
+      <rect class="fig-ink" x="230" y="193" width="14" height="5" />
+      <text class="fig-ink" x="250" y="199" font-size="11">섞은 포트폴리오</text>
+    </svg>
+    <figcaption>섞은 쪽은 주식만큼 가파르게 오르지도, 크게 떨어지지도 않는 중간 경로를 만든다. 흔들림이 작아야 중간에 포기하지 않고 끝까지 간다.</figcaption>
+  </figure>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">네 가지 자산의 성격</h2>
@@ -165,11 +216,74 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-corr">상관관계에 따라 섞는 효과가 달라진다</h2>
+  <p>변동성(연 20%)이 같은 두 자산을 절반씩 섞었을 때, 둘이 얼마나 같이 움직이느냐(상관계수)에 따라 합친 변동성이 달라진다. 계산 결과만 표로 본다.</p>
+  <table class="learn-table">
+    <thead><tr><th>두 자산의 상관계수</th><th>뜻</th><th>절반씩 섞은 포트폴리오 변동성</th></tr></thead>
+    <tbody>
+      <tr><td>+1.0</td><td>완전히 같이 움직임</td><td>20.0% (섞어도 줄지 않음)</td></tr>
+      <tr><td>+0.5</td><td>같이 움직이는 경향이 강함</td><td>17.3%</td></tr>
+      <tr><td>0.0</td><td>서로 무관하게 움직임</td><td>14.1%</td></tr>
+      <tr><td>−0.5</td><td>반대로 움직이는 경향</td><td>10.0%</td></tr>
+      <tr><td>−1.0</td><td>정확히 반대로 움직임</td><td>0.0%</td></tr>
+    </tbody>
+  </table>
+  <p>"종목 수만 늘린다고 분산이 되지는 않는다"는 말이 여기서 나온다. 반도체 종목 10개는 이름이 달라도 같이 움직이므로 상관계수가 높다. 다른 성격의 자산(주식·채권·금·현금)을 섞어야 변동성이 눈에 띄게 줄어든다. 다만 큰 위기 때는 평소 낮던 상관관계가 높아지는 경우가 있어서, 분산이 위기를 완전히 막아 주지는 않는다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-rebal">리밸런싱을 숫자로 · 올라간 것을 팔아 내린 것을 산다</h2>
+  <p>60:40으로 시작한 1,000만 원에서 1년 뒤 주식이 +20%, 채권이 +3%가 됐다고 하자.</p>
+  <table class="learn-table">
+    <thead><tr><th>단계</th><th>주식</th><th>채권</th><th>합계</th><th>주식 비중</th></tr></thead>
+    <tbody>
+      <tr><td>시작</td><td>600만 원</td><td>400만 원</td><td>1,000만 원</td><td>60.0%</td></tr>
+      <tr><td>1년 뒤(수익 반영)</td><td>720만 원</td><td>412만 원</td><td>1,132만 원</td><td>63.6%</td></tr>
+      <tr><td>리밸런싱(60:40으로)</td><td>679만 원</td><td>453만 원</td><td>1,132만 원</td><td>60.0%</td></tr>
+      <tr><td>필요한 매매</td><td>41만 원 매도</td><td>41만 원 매수</td><td>-</td><td>-</td></tr>
+    </tbody>
+  </table>
+  <p>많이 오른 쪽을 일부 팔고 덜 오른 쪽을 사서 처음 위험 수준으로 돌린다. 감정으로는 "오르는 걸 왜 파나"라는 저항이 크기 때문에 <b>시기(예: 1년에 한 번)나 허용 범위(예: 비중이 5%p 벗어나면)를 미리 정해 두는 것</b>이 핵심이다. 세금·수수료가 들기 때문에 너무 자주 하면 효과가 줄어든다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-examples">상황별로 달라지는 섞는 비율 · 예시 (투자 조언 아님)</h2>
+  <p>정답 비율은 없다. 같은 사람도 상황에 따라 바뀐다. 아래는 생각을 정리하는 예시일 뿐이며 실제 비율은 본인의 목표·기간·감내 가능한 손실로 정해야 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>사람(가상)</th><th>상황</th><th>고려할 것</th><th>비율 방향(예)</th></tr></thead>
+    <tbody>
+      <tr><td>사회초년생</td><td>월급이 꾸준하고 20년 이상 쓸 일 없음</td><td>시간이 길고 흔들림을 견딜 수 있다</td><td>주식 비중을 높게 시작할 수 있다</td></tr>
+      <tr><td>내 집 마련 3년 전</td><td>3년 뒤 큰돈이 필요</td><td>기간이 짧아 하락 후 회복할 시간이 부족</td><td>채권·현금 비중을 높인다</td></tr>
+      <tr><td>은퇴 직전</td><td>수입이 곧 끊기고 투자 수익으로 생활</td><td>큰 하락 직후 인출이 겹치면 치명적</td><td>생활비 몇 년치를 안전자산으로 따로 둔다</td></tr>
+      <tr><td>변동성에 잠을 못 자는 사람</td><td>−20%만 되어도 불안</td><td>견디지 못하면 최악의 때 판다</td><td>수익률보다 흔들림이 작은 비율을 택한다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-faq">자주 묻는 질문</h2>
+  <table class="learn-table">
+    <thead><tr><th>질문</th><th>짧은 답</th></tr></thead>
+    <tbody>
+      <tr><td>채권도 손실이 날 수 있나?</td><td>그렇다. 금리가 오르면 이미 가진 채권 값이 내려가고, 발행자가 부도 나면 원금을 잃을 수 있다. 안전한 쪽에 가까울 뿐 안전한 것은 아니다.</td></tr>
+      <tr><td>현금은 가만히 있으니 안전한가?</td><td>원금은 줄지 않지만 물가가 오르면 구매력은 줄어든다. 짧은 기간의 비상금과 긴 기간의 보존은 따로 생각한다.</td></tr>
+      <tr><td>금은 꼭 넣어야 하나?</td><td>필수는 아니다. 주식과 채권이 함께 흔들리는 시기에 다른 방향으로 움직이는 경우가 있어 일부가 쓰지만, 이자가 없고 가격 변동이 크다.</td></tr>
+      <tr><td>해외 자산에는 환율 위험이 따라오나?</td><td>그렇다. 자산 가격이 같아도 원화로 바꾼 가치는 환율에 따라 달라진다. 환헤지를 하면 환율 영향은 줄지만 비용이 든다.</td></tr>
+      <tr><td>한 번 정한 비율을 바꿔도 되나?</td><td>목표·기간·소득이 바뀌면 바꾼다. 시장 전망에 따라 자주 바꾸면 규칙이 아니라 시장 예측이 된다.</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 한 해 +50%, 다음 해 -50%인 계좌의 2년 뒤 원금 대비는?</summary><p>1.5 × 0.5 = 0.75, 즉 -25%다. 평균은 0%인데 실제로는 잃는다. 흔들림이 복리를 깎는 예다.</p></details>
   <details class="in-quiz"><summary>2. 주식 60·채권 40으로 시작해 주식이 올라 70·30이 되었다. 리밸런싱은 어떻게 하나?</summary><p>계좌 전체 기준 주식 10%를 팔고 채권 10%를 사서 60·40으로 되돌린다. 새로 넣을 돈이 있으면 채권부터 채워도 된다.</p></details>
   <details class="in-quiz"><summary>3. 반도체 종목 5개로 계좌를 채웠다. 분산이 되었나?</summary><p>되지 않았다. 같은 업종이라 같은 날씨에 같이 내린다. 서로 다른 업종, 다른 자산이어야 분산이다.</p></details>
   <details class="in-quiz"><summary>4. 급락장에서 분산이 효과를 못 낸 것처럼 보이는 이유는?</summary><p>위기 때는 모든 위험자산에서 한꺼번에 돈을 빼기 때문에 평소 따로 움직이던 자산도 같이 내린다. 이때는 현금·단기 국채 같은 안전자산이 방어한다.</p></details>
+  <details class="in-quiz"><summary>5. 1,000만 원을 60:40으로 투자해 주식이 +20%, 채권이 +3%가 됐다. 다시 60:40으로 맞추려면 주식을 얼마 팔아야 할까?</summary><p>합계 1,132만 원의 60%는 679만 원이다. 주식이 720만 원이므로 약 41만 원을 팔고 채권을 41만 원 산다.</p></details>
+  <details class="in-quiz"><summary>6. 두 자산의 상관계수가 +1이면 섞어도 변동성이 줄지 않는 까닭은?</summary><p>두 자산이 같은 방향으로 같은 비율로 움직여, 한쪽이 내릴 때 다른 쪽이 받쳐 주지 않기 때문이다.</p></details>
+  <details class="in-quiz"><summary>7. 3년 뒤 집 계약금이 필요한 사람이 주식 비중을 높게 두면 위험한 이유는?</summary><p>하락했을 때 회복할 시간이 없는 채로 돈을 써야 해서, 손실을 그대로 확정할 수 있기 때문이다.</p></details>
+  <details class="in-quiz"><summary>8. 종목 수를 늘리는 것만으로 분산이 충분하지 않은 경우는?</summary><p>같은 업종·같은 요인에 함께 움직이는 종목들일 때다. 상관계수가 높아 섞어도 위험이 크게 줄지 않는다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="alloc-advanced">

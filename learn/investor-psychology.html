@@ -28,6 +28,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>투자심리 이야기</h1>
   <p class="legal-effective-date">손실회피·처분효과·확증편향·추격매수·군중심리 · 설명 업데이트 2026-11-21</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>같은 차트를 보고도 어떤 사람은 사고 어떤 사람은 판다. 차트가 달라서가 아니라 사람이 달라서다. 지식이 많은 투자자도 손실이 난 종목 앞에서는 같은 실수를 한다. 사람의 뇌는 투자용으로 만들어지지 않았다. 사냥하고 도망치던 시절에 맞춰진 지름길로 판단하기 때문이다.</p>
   <p>이 이야기는 차트 모양이 아니라 <b>차트를 보는 사람의 머릿속</b>을 다룬다. 내 실수가 어떤 이름을 가졌는지 알면, 같은 실수가 다시 오려 할 때 알아챈다. 아는 것만으로 끝나지 않으므로, 마지막에는 매수하기 전에 정해 두는 규칙도 적었다.</p>
@@ -37,6 +38,28 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <div class="in-fact"><span>막는 법은</span><strong>사전에 정하기</strong></div>
   </div>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 두 종목의 선택 · 당신이라면 무엇을 파나</h2>
+  <p>한 개미가 두 종목을 같은 금액으로 샀다. 오늘 계좌를 열어 보니 이렇다(가상 숫자).</p>
+  <table class="learn-table">
+    <thead><tr><th>종목</th><th>산 값</th><th>지금 값</th><th>손익</th><th>이후 1년(실제로는 알 수 없음)</th></tr></thead>
+    <tbody>
+      <tr><td>A (잘 오른 종목)</td><td>10,000원</td><td>11,000원</td><td>+10%</td><td>이후 +30% 더 오른다</td></tr>
+      <tr><td>B (내린 종목)</td><td>10,000원</td><td>9,000원</td><td>−10%</td><td>이후 −30% 더 내린다</td></tr>
+    </tbody>
+  </table>
+  <p>현금이 필요해 하나를 팔아야 한다면 대부분은 A를 판다. "이익을 확정하자"는 마음 때문이다. B는 "본전이 오면 팔자"며 안고 간다. 그러나 이후 1년 결과를 보면 어떨까.</p>
+  <table class="learn-table">
+    <thead><tr><th>선택</th><th>1년 뒤 A</th><th>1년 뒤 B</th><th>합계(각 100만 원 기준)</th></tr></thead>
+    <tbody>
+      <tr><td>A를 팔고 B를 가진다</td><td>팔아서 110만 원 현금</td><td>9,000원 × 0.7 = 6,300원 → 63만 원</td><td>110 + 63 = 173만 원</td></tr>
+      <tr><td>B를 팔고 A를 가진다</td><td>11,000원 × 1.3 = 14,300원 → 143만 원</td><td>팔아서 90만 원 현금</td><td>143 + 90 = 233만 원</td></tr>
+    </tbody>
+  </table>
+  <p>1년 뒤를 미리 알 수는 없으니 이 결과로 "B를 팔라"고 정답을 말하는 것은 아니다. 핵심은 <b>"내가 산 값보다 올랐는지 내렸는지"가 미래에 아무 영향을 주지 않는다는 점</b>이다. 시장은 내 매입가를 모른다. 그런데도 사람들은 매입가를 기준으로 팔고 버티는 쪽을 고른다. 이 편향이 이 이야기의 출발이다.</p>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">손실회피 · 잃는 아픔은 얻는 기쁨보다 크다</h2>
@@ -181,11 +204,100 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-recover">손실은 왜 더 아픈가 · 회복에 필요한 수익률</h2>
+  <p>손실에서 본전으로 돌아오려면 손실 비율보다 더 큰 수익이 필요하다. 계산은 간단하다. 100만 원이 50만 원이 되면 다시 100만 원이 되려면 100% 올라야 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>손실률</th><th>남은 돈(100만 원 기준)</th><th>본전에 필요한 수익률</th></tr></thead>
+    <tbody>
+      <tr><td>−10%</td><td>90만 원</td><td>+11.1%</td></tr>
+      <tr><td>−20%</td><td>80만 원</td><td>+25.0%</td></tr>
+      <tr><td>−30%</td><td>70만 원</td><td>+42.9%</td></tr>
+      <tr><td>−50%</td><td>50만 원</td><td>+100.0%</td></tr>
+      <tr><td>−70%</td><td>30만 원</td><td>+233.3%</td></tr>
+    </tbody>
+  </table>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="손실률별 본전에 필요한 수익률 막대: 마이너스 10퍼센트는 11.1퍼센트, 20퍼센트는 25퍼센트, 30퍼센트는 42.9퍼센트, 50퍼센트는 100퍼센트">
+      <text class="fig-sub" x="0" y="14">본전까지 필요한 수익률(%)</text>
+      <text class="fig-ink" x="0" y="48" font-size="12">−10% 손실</text>
+      <rect class="fig-bar" x="88" y="34" width="28" height="20" rx="2" />
+      <text class="fig-ink" x="122" y="49" font-size="12">+11.1%</text>
+      <text class="fig-ink" x="0" y="80" font-size="12">−20% 손실</text>
+      <rect class="fig-bar" x="88" y="66" width="63" height="20" rx="2" />
+      <text class="fig-ink" x="157" y="81" font-size="12">+25.0%</text>
+      <text class="fig-ink" x="0" y="112" font-size="12">−30% 손실</text>
+      <rect class="fig-bar" x="88" y="98" width="107" height="20" rx="2" />
+      <text class="fig-ink" x="201" y="113" font-size="12">+42.9%</text>
+      <text class="fig-ink" x="0" y="144" font-size="12">−50% 손실</text>
+      <rect class="fig-down" x="88" y="130" width="250" height="20" rx="2" />
+      <text class="fig-ink" x="344" y="145" font-size="12">+100%</text>
+      <text class="fig-sub" x="0" y="180">작은 손실은 가볍게 회복되지만 큰 손실일수록 회복이 가파르게 어려워진다</text>
+    </svg>
+    <figcaption>"손실을 오래 안고 있으면 언젠가 본전"이라는 희망이 위험한 까닭이다. 손실이 깊을수록 본전이 훨씬 멀어진다.</figcaption>
+  </figure>
+  <p>그래서 손절 기준은 "얼마나 아픈가"가 아니라 <b>"얼마나 되돌리기 어려운가"</b>로 정한다. 같은 10%포인트라도 −40%에서 −50%로 가는 쪽이 −10%에서 −20%로 가는 쪽보다 회복 부담이 훨씬 크다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-overtrade">자주 사고팔수록 불리한 이유 · 가상 계산</h2>
+  <p>두 투자자가 같은 종목 묶음으로 연 8%의 총수익을 올린다고 하자. 한 명은 일 년에 2번, 다른 한 명은 100번 사고판다. 한 번 왕복(사고 팔기)에 수수료·세금·호가 차이로 총 0.3%가 든다고 가정한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>투자자</th><th>연 왕복 횟수</th><th>연 거래 비용</th><th>비용을 뺀 수익률</th></tr></thead>
+    <tbody>
+      <tr><td>천천히 사는 사람</td><td>2회</td><td>0.6%</td><td>7.4%</td></tr>
+      <tr><td>자주 사고파는 사람</td><td>100회</td><td>30.0%</td><td>−22.0%</td></tr>
+    </tbody>
+  </table>
+  <p>같은 종목으로 같은 8%를 벌어도 비용만으로 결과가 갈린다. 실제로는 자주 거래하는 사람의 총수익이 8%에 못 미치는 경우가 더 많다. 매매가 많은 날은 대개 감정이 가장 큰 날이기 때문이다. 수치는 단순화한 가정이고, 실제 비용은 시기·증권사·거래 방식에 따라 다르다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-wave">시장 심리의 파도 · 사이클 위의 감정</h2>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 200" role="img" aria-label="시장 심리 사이클: 불안에서 낙관, 도취로 올라가고 불안, 공포, 절망으로 내려갔다가 다시 희망으로 돌아오는 파도">
+      <text class="fig-sub" x="0" y="14">가격 사이클과 사람들의 감정 (모식)</text>
+      <path class="fig-line" d="M20 170 H400" />
+      <path class="fig-ink-line" d="M30 140 C70 150 90 110 130 90 C170 70 190 40 215 36 C250 40 270 90 300 130 C320 160 340 168 360 150 C375 140 385 128 395 118" stroke-width="2.5" fill="none" />
+      <circle class="fig-up" cx="130" cy="90" r="4" />
+      <circle class="fig-up" cx="215" cy="36" r="4" />
+      <circle class="fig-down" cx="340" cy="168" r="4" />
+      <text class="fig-ink" x="96" y="108" font-size="11">낙관</text>
+      <text class="fig-ink" x="226" y="34" font-size="11">도취·FOMO</text>
+      <text class="fig-ink" x="280" y="104" font-size="11">불안·부정</text>
+      <text class="fig-ink" x="318" y="186" font-size="11">절망·공포</text>
+      <text class="fig-ink" x="372" y="112" font-size="11">희망</text>
+      <text class="fig-sub" x="20" y="124" font-size="11">의심</text>
+    </svg>
+    <figcaption>정점에서는 모두가 낙관하고 바닥에서는 모두가 비관한다. 개인의 매매는 감정의 정점 근처에서 몰리는 경향이 있어 일반적으로 고점 매수·저점 매도로 이어지기 쉽다. 정점과 바닥은 지나고 나서야 알 수 있다.</figcaption>
+  </figure>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-checklist">투자 일지와 사전 규칙 · 샘플 양식</h2>
+  <p>감정이 흔들릴 때는 판단력이 떨어지므로, 감정이 없을 때 미리 규칙을 적어 둔다. 사기 전에 아래 칸을 채우는 습관만으로도 충동 매수가 크게 줄어든다.</p>
+  <table class="learn-table">
+    <thead><tr><th>적어 둘 칸</th><th>예시</th><th>왜 필요한가</th></tr></thead>
+    <tbody>
+      <tr><td>이 종목을 산 이유 한 줄</td><td>"이익이 3분기 연속 늘고 PER이 동종업계 하위"</td><td>사고 난 뒤 이유가 바뀌었는지 비교한다</td></tr>
+      <tr><td>내가 틀렸다고 볼 가격</td><td>매입가 −10%</td><td>손실이 불어나기 전 기준을 감정 없이 정해 둔다</td></tr>
+      <tr><td>이 종목에 넣을 최대 금액</td><td>전체 투자금의 10%</td><td>한 종목 실패가 전체를 흔들지 않게 한다</td></tr>
+      <tr><td>팔 이유(이익 실현 기준)</td><td>목표가 +30% 또는 이유 사라짐</td><td>오를 때 욕심이 판단을 대신하지 않게 한다</td></tr>
+      <tr><td>반대 의견 한 줄</td><td>"경쟁사가 가격을 내리면 이익이 꺾인다"</td><td>확증편향을 줄이려고 약점을 먼저 찾는다</td></tr>
+    </tbody>
+  </table>
+  <p>일지는 "맞았는지"보다 "규칙을 지켰는지"를 돌아보는 도구다. 규칙대로 했는데 졌다면 운이 나빴을 수 있고, 규칙을 어겼는데 이겼다면 운이 좋았을 뿐이다.</p>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. +20%인 종목 A와 -20%인 종목 B 가운데 팔고 싶은 쪽은? 그 마음은 어떤 편향일까?</summary><p>대부분 A를 판다. 이익 난 쪽을 서둘러 팔고 손실 난 쪽을 버티는 것이 처분효과다. 팔 이유는 종목의 앞날이지 현재 손익이 아니다.</p></details>
   <details class="in-quiz"><summary>2. 이익 +5% 네 번에 손실 -25% 한 번이면 승률 80%인데도 손익은?</summary><p>+20% - 25% = -5%다. 승률이 아니라 이길 때의 크기와 질 때의 크기를 함께 봐야 한다.</p></details>
   <details class="in-quiz"><summary>3. "본전만 오면 팔겠다"는 판단의 문제는?</summary><p>시장은 내 매입가를 모른다. 앞으로 오를지는 오늘의 가치와 이유에 달렸다. 오늘 처음 보는 종목이라면 이 값에 사겠는지 묻는다.</p></details>
   <details class="in-quiz"><summary>4. 거래 한 번에 비용이 0.3%일 때 한 달에 열 번 거래하면 비용은 대략?</summary><p>한 달에 약 3%다. 모든 매매에서 비용을 넘는 이익이 나야 본전이라는 뜻이다.</p></details>
+  <details class="in-quiz"><summary>5. 40% 손실이 난 계좌가 본전이 되려면 몇 % 올라야 할까?</summary><p>100 → 60이 됐으니 60 → 100이 되려면 66.7% 올라야 한다. 계산은 (1 ÷ 0.6) − 1이다.</p></details>
+  <details class="in-quiz"><summary>6. 한 번 왕복에 0.3% 비용이 든다. 연 50번 왕복하면 비용은 얼마(단순 합계)일까?</summary><p>0.3% × 50 = 15%다. 수익이 이보다 작으면 비용 때문에 손실이 난다. 실제 복리 효과까지 따지면 더 불리하다.</p></details>
+  <details class="in-quiz"><summary>7. 매입가보다 올랐다는 이유로 파는 행동이 이상한 까닭은?</summary><p>시장은 내 매입가를 모르고, 미래 수익은 매입가와 관계가 없기 때문이다. 팔지 말지는 지금부터의 기대 수익과 위험으로 정해야 한다.</p></details>
+  <details class="in-quiz"><summary>8. 투자 일지를 쓰는 가장 큰 효용은?</summary><p>감정이 없을 때 정한 기준과 이유를 기록해 감정이 흔들릴 때 규칙을 지켰는지 돌아볼 수 있다는 점이다. 결과보다 과정을 평가하게 만든다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="psy-advanced">

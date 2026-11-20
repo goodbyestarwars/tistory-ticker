@@ -28,6 +28,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h1>원자재 이야기</h1>
   <p class="legal-effective-date">금·은·원유·구리·곡물 · 수요공급·콘탱고·백워데이션·롤오버 · 설명 업데이트 2026-11-21</p>
 
+<!--DEEPENED-->
   <section class="learn-sec learn-sec--intro">
   <p>주유소 가격표, 라면 값, 전기요금, 스마트폰 값. 모두 어딘가에서 원료를 파고 키워서 가져온 값이 들어 있다. 원유와 구리와 밀의 가격은 경제의 맨 아래층에서 정해지고 위로 올라오며 물가와 기업 이익에 닿는다. 그래서 주식 시장 밖의 것 같은 원자재 뉴스가 주식 시장에도 번진다.</p>
   <p>빵집을 하나 떠올리자. 밀가루 값이 오르면 빵 값을 올리든지 사장 몫이 줄든지 둘 중 하나다. 이 이야기는 밀가루 값이 어떻게 정해지는지, 그리고 그 값이 빵집과 은행과 환율로 어떻게 번지는지를 다룬다.</p>
@@ -37,6 +38,24 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <div class="in-fact"><span>원자재 ETF는</span><strong>롤오버 비용이 든다</strong></div>
   </div>
   </section>
+
+  <section class="learn-sec">
+  <h2 id="x-open">먼저 아침 커피 한 잔 · 그 안에 들어 있는 원자재</h2>
+  <p>카페에서 마시는 커피 한 잔에는 여러 원자재가 들어 있다. 값이 오르면 어디서 먼저 느끼는지 표로 짚어 보자(비중은 설명을 위한 가정이며 가게와 시기마다 다르다).</p>
+  <table class="learn-table">
+    <thead><tr><th>들어 있는 것</th><th>연결되는 원자재</th><th>값이 오르면 누가 먼저 느끼나</th></tr></thead>
+    <tbody>
+      <tr><td>원두</td><td>커피(농산물)</td><td>원두를 수입하는 업체, 몇 달 뒤 카페 메뉴 가격</td></tr>
+      <tr><td>우유·시럽</td><td>곡물·설탕·유제품</td><td>음료 원가, 사료비가 오르면 우유 값에 시차를 두고 반영</td></tr>
+      <tr><td>일회용 컵·뚜껑</td><td>원유(플라스틱)·펄프</td><td>포장 원가</td></tr>
+      <tr><td>운송·배송</td><td>원유(연료)</td><td>물류비, 배달 요금</td></tr>
+      <tr><td>매장 전기·가스</td><td>천연가스·석탄·원유</td><td>고정비</td></tr>
+      <tr><td>커피 머신·집기</td><td>구리·철강·알루미늄</td><td>설비 가격</td></tr>
+    </tbody>
+  </table>
+  <p>원자재는 "남의 이야기"가 아니라 생활 물가와 기업 원가 속에 깔려 있다. 문제는 원자재 값이 오른다고 곧바로 소비자 가격이 오르지 않는다는 점이다. 기업은 일부를 흡수하고 일부를 가격에 넘기며 이 시차와 정도가 기업마다 다르다. 원자재 투자를 이해하려면 "값이 오르면 누가 이익이고 누가 손해인가"를 먼저 물어야 한다.</p>
+  </section>
+
 
   <section class="learn-sec">
   <h2 id="sec-1">다섯 가지 원자재, 다섯 가지 성격</h2>
@@ -170,11 +189,88 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   </section>
 
   <section class="learn-sec">
+  <h2 id="x-roll">원자재 ETF의 숨은 비용 · 콘탱고 롤오버를 계산해 보자</h2>
+  <p>원유 같은 원자재는 실물을 쌓아 두기 어려워 대부분의 ETF가 선물을 산다. 선물은 만기가 있어서 매달 만기가 다가오면 근월물을 팔고 다음 달 물량을 사야 한다(롤오버). 이때 다음 달 선물이 더 비싸면(콘탱고) 갈아탈 때마다 손해가 난다. 가상 숫자로 보자.</p>
+  <table class="learn-table">
+    <thead><tr><th>항목</th><th>값</th></tr></thead>
+    <tbody>
+      <tr><td>근월물 선물 가격</td><td>80달러</td></tr>
+      <tr><td>다음 달 선물 가격</td><td>82달러</td></tr>
+      <tr><td>매달 갈아탈 때 손실률</td><td>80 ÷ 82 − 1 = −2.44%</td></tr>
+      <tr><td>현물 가격이 계속 80달러로 그대로일 때</td><td>ETF 값은 매달 −2.44%씩 줄어든다</td></tr>
+    </tbody>
+  </table>
+  <table class="learn-table">
+    <thead><tr><th>시간</th><th>현물 가격(변화 없음)</th><th>ETF 가치(100에서 시작)</th></tr></thead>
+    <tbody>
+      <tr><td>시작</td><td>80달러</td><td>100.0</td></tr>
+      <tr><td>3개월 뒤</td><td>80달러</td><td>92.9</td></tr>
+      <tr><td>6개월 뒤</td><td>80달러</td><td>86.2</td></tr>
+      <tr><td>12개월 뒤</td><td>80달러</td><td>74.4</td></tr>
+    </tbody>
+  </table>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 170" role="img" aria-label="현물 가격이 변하지 않아도 콘탱고 상태에서 원자재 ETF 가치는 12개월 뒤 74.4로 줄어드는 그래프">
+      <text class="fig-sub" x="0" y="14">현물은 그대로, ETF는 줄어든다 (가상)</text>
+      <path class="fig-line" d="M40 40 H400" />
+      <path class="fig-ink-line" d="M40 40 H400" stroke-width="2" fill="none" />
+      <path class="fig-down-line" d="M40 40 L130 61 L220 81 L400 117" stroke-width="2.5" fill="none" />
+      <circle class="fig-down" cx="130" cy="61" r="3" />
+      <circle class="fig-down" cx="220" cy="81" r="3" />
+      <circle class="fig-down" cx="400" cy="117" r="3" />
+      <text class="fig-ink" x="300" y="34" font-size="12">현물 (100 유지)</text>
+      <text class="fig-ink" x="330" y="136" font-size="12">ETF 74.4</text>
+      <text class="fig-sub" x="40" y="158" font-size="11">시작</text>
+      <text class="fig-sub" x="116" y="158" font-size="11">3개월</text>
+      <text class="fig-sub" x="206" y="158" font-size="11">6개월</text>
+      <text class="fig-sub" x="376" y="158" font-size="11">12개월</text>
+    </svg>
+    <figcaption>콘탱고가 계속되면 현물이 제자리여도 ETF는 매달 조금씩 깎인다. 반대로 근월물이 더 비싼 백워데이션이면 롤오버가 이익이 된다. 선물 곡선의 모양은 매일 달라진다.</figcaption>
+  </figure>
+  <p>이 때문에 "원유 가격이 올랐는데 내 원유 ETF는 왜 덜 올랐나"라는 일이 생긴다. 장기 보유할수록 롤오버 비용이 누적된다. 원자재 ETF는 단기 방향 도구로 쓰는 사람이 많고, 장기 보유라면 곡선의 모양을 먼저 확인해야 한다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-who">원유가 오르면 누가 웃고 누가 우나 · 업종 영향 표</h2>
+  <table class="learn-table">
+    <thead><tr><th>업종</th><th>대체로 이익?</th><th>이유</th><th>주의</th></tr></thead>
+    <tbody>
+      <tr><td>원유 개발·생산</td><td>이익 쪽</td><td>파는 값이 오른다</td><td>비용·세금 구조, 생산 지역 위험</td></tr>
+      <tr><td>정유</td><td>혼합</td><td>원유 값 자체보다 제품 가격과의 차이(정제마진)와 재고 평가가 이익을 좌우</td><td>유가 방향과 정제마진 방향이 다를 수 있다</td></tr>
+      <tr><td>항공·해운</td><td>손해 쪽</td><td>연료비가 원가의 큰 부분</td><td>연료 할증, 헤지 여부</td></tr>
+      <tr><td>화학</td><td>혼합</td><td>원료(나프타) 값이 오르지만 제품 값도 오를 수 있다</td><td>수요가 약하면 제품에 못 넘긴다</td></tr>
+      <tr><td>정유 소비자(운송·택배)</td><td>손해 쪽</td><td>연료비 상승</td><td>요금 전가 속도</td></tr>
+    </tbody>
+  </table>
+  <p>"원자재가 오르니 관련주를 산다"는 단순한 문장은 위 표처럼 업종별로 정반대일 수 있다. 같은 원자재 값 상승이 누구에게 호재인지는 비용 구조와 가격 전가력에 달려 있다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="x-gold">금 값을 움직이는 힘 · 시나리오표</h2>
+  <table class="learn-table">
+    <thead><tr><th>상황</th><th>금에 대체로 어떤 영향?</th><th>이유(쉬운 말)</th></tr></thead>
+    <tbody>
+      <tr><td>실질금리(금리−물가 상승률)가 내림</td><td>유리</td><td>이자가 없는 금을 들고 있는 기회비용이 줄어든다</td></tr>
+      <tr><td>달러 가치가 약해짐</td><td>유리</td><td>달러로 사는 값이 상대적으로 싸진다</td></tr>
+      <tr><td>전쟁·금융 불안</td><td>유리한 경우가 많다</td><td>안전한 곳을 찾는 수요가 몰린다</td></tr>
+      <tr><td>각국 중앙은행이 금을 늘려 삼</td><td>유리</td><td>꾸준한 큰 수요</td></tr>
+      <tr><td>실질금리가 크게 오름</td><td>불리</td><td>이자 나오는 자산이 더 매력적이다</td></tr>
+      <tr><td>달러 가치가 강해짐</td><td>불리</td><td>달러로 표시된 금이 상대적으로 비싸진다</td></tr>
+    </tbody>
+  </table>
+  <p>위 관계는 "대체로"일 뿐이다. 서로 겹치면 정반대 결과가 나오기도 한다. 한 가지 이유만으로 방향을 단정하지 않는다.</p>
+  </section>
+
+  <section class="learn-sec">
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 원유 공급이 3%만 줄었는데 값이 20% 올랐다. 왜 이런 일이 생길까?</summary><p>단기에는 수요도 공급도 둔해서(비탄력) 조금의 공급 변화가 큰 값 변화로 나타난다. 재고가 얇을수록 더 심하다.</p></details>
   <details class="in-quiz"><summary>2. 금 값이 오를 때 실질금리와 달러는 보통 어떻게 움직였을까?</summary><p>실질금리와 달러 가치가 내려갈 때 금이 오르는 경향이 있다. 항상 그런 것은 아니다.</p></details>
   <details class="in-quiz"><summary>3. 선물 ETF가 콘탱고 시장에서 현물 가격이 같아도 깎이는 이유는?</summary><p>싼 근월물을 팔고 비싼 원월물을 사는 롤오버가 매번 비용이 되기 때문이다. 월 1.4% 차이면 1년 약 16%가 깎인다.</p></details>
   <details class="in-quiz"><summary>4. 원/달러 환율이 오르면 한국의 원유 수입 비용은?</summary><p>같은 양을 사도 원화로는 늘어난다. 유가와 환율이 같이 오르면 부담이 더 커진다.</p></details>
+  <details class="in-quiz"><summary>5. 근월물 100달러, 다음 달 물 102달러일 때 ETF가 롤오버하면 한 번에 몇 %를 잃나(현물 불변 가정)?</summary><p>100 ÷ 102 − 1 = −1.96%다. 현물이 그대로여도 이 정도가 깎이고, 매달 반복되면 누적된다.</p></details>
+  <details class="in-quiz"><summary>6. 항공사가 유가 상승에 약한 까닭은?</summary><p>연료비가 원가의 큰 비중을 차지하고, 요금에 바로 전가하기 어렵기 때문이다. 연료 할증이나 헤지로 일부를 줄이기도 한다.</p></details>
+  <details class="in-quiz"><summary>7. 실질금리가 내리면 금이 유리한 경향이 있는 이유는?</summary><p>금은 이자를 주지 않아서 이자가 줄수록 들고 있는 기회비용이 작아지기 때문이다.</p></details>
+  <details class="in-quiz"><summary>8. "원자재가 오르니 관련주는 다 오른다"가 틀릴 수 있는 이유는?</summary><p>업종마다 원가 구조와 가격 전가력이 달라 같은 값 상승이 어떤 회사에는 이익, 어떤 회사에는 비용이기 때문이다.</p></details>
   </section>
 
   <section class="learn-deep" aria-labelledby="commodity-advanced">
@@ -204,7 +300,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/asset-allocation.html">← 자산배분 이야기</a>
-    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/real-estate.html">부동산·리츠 이야기 →</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/backtest.html">투자검증 이야기 →</a>
   </div>
 
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
