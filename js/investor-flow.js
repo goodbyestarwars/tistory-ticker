@@ -660,7 +660,8 @@
   }
 
   /* 홈 '증시 수급 추이' 카드(2026-11-20): 시장지표 국내 수급과 같은 `/domestic-market-indicators` 응답만 쓴다.
-     예탁금·신용은 03 증시자금의 balanceSeries/balanceStats/summarizeBalances, 투자자는 sumOf/streak를 그대로 재사용한다.
+     예탁금·신용은 03 증시자금의 balanceSeries/balanceStats/summarizeBalances를 그대로 재사용한다.
+     (2026-11-20 사용자 지시: 투자자 순매수 표·거래량 줄은 빼고 그래프+그래프 위 수치만 남긴다.)
      결측은 0으로 바꾸지 않고 '자료 없음'으로 둔다. 추천·점수 아님. */
   function liquiditySpark(points, avg) {
     var take = points.slice(Math.max(0, points.length - BALANCE_CHART_DAYS));
@@ -690,31 +691,10 @@
         + '<div class="hlq-change"><span class="' + tone(st.pct20) + '">20거래일 ' + pct(st.pct20) + '</span><span class="' + tone(st.pct5) + '">5거래일 ' + pct(st.pct5) + '</span></div>'
         + liquiditySpark(pts, st.avg20) + '</div>';
     }
-    var inv = d.investor || {}, marketKeys = ['KOSPI', 'KOSDAQ'], dayCount = 0, asOf = '';
-    var flowRows = INVESTORS.map(function (who) {
-      return '<tr><th scope="row">' + who.label + '</th>' + marketKeys.map(function (mk) {
-        var rows = ((inv[mk] && inv[mk].rows) || []).filter(function (r) { return validAmount(r[who.key]); });
-        if (!rows.length) return '<td class="num">자료 없음</td>';
-        dayCount = Math.max(dayCount, rows.length);
-        if (inv[mk].asOf && inv[mk].asOf > asOf) asOf = inv[mk].asOf;
-        var sum = sumOf(rows, who.key), st = streak(rows, who.key);
-        return '<td class="num"><span class="' + tone(sum) + '">' + esc(fmtEok(sum, true)) + '</span>'
-          + (st.days >= 2 ? '<small>' + st.days + '일 연속 ' + (st.sign > 0 ? '순매수' : '순매도') + '</small>' : '') + '</td>';
-      }).join('') + '</tr>';
-    }).join('');
-    var volume = marketKeys.map(function (mk) {
-      var day = d.indices && d.indices[mk] && d.indices[mk].intervals && d.indices[mk].intervals.day;
-      var rows = ((day && day.rows) || []).filter(function (r) { return validAmount(r.volume) && Number(r.volume) > 0; });
-      if (rows.length < 60) return '<span>' + mk + ' 자료 부족</span>';
-      var a20 = sumOf(lastRows(rows, 20), 'volume') / 20, a60 = sumOf(lastRows(rows, 60), 'volume') / 60, p = pctChange(a20, a60);
-      return '<span>' + mk + ' <b class="' + tone(p) + '">' + pct(p) + '</b></span>';
-    }).join('');
     var sentence = summarizeBalances(dep, crd).sentences.join(' ');
     return '<div class="hlq-balances">' + balance('고객예탁금', '주식 살 대기자금', dep, depPts) + balance('신용잔고', '빚내서 산 금액', crd, crdPts) + '</div>'
-      + '<table class="hlq-flow"><caption>투자자별 순매수 · 최근 ' + (dayCount || '-') + '거래일 합계</caption><thead><tr><th></th><th class="num">KOSPI</th><th class="num">KOSDAQ</th></tr></thead><tbody>' + flowRows + '</tbody></table>'
-      + '<div class="hlq-volume"><em>지수 거래량 20일 평균 (60일 평균 대비)</em>' + volume + '</div>'
       + (sentence ? '<p class="hlq-sentence">' + esc(sentence) + '</p>' : '')
-      + '<small class="ui-kpi-source">예탁금·신용 기준일 ' + esc(dep.lastDate || '-') + ' · 투자자 ' + esc(asOf ? kstStamp(asOf) : '-') + ' 조회(당일은 장중 잠정) · 순매수는 신규 자금 유입액이 아닙니다 · '
+      + '<small class="ui-kpi-source">예탁금·신용 기준일 ' + esc(dep.lastDate || '-') + ' · 점선은 20거래일 평균 · '
       + '<a href="' + esc(opts.detailUrl || '/pages/domestic-market-indicators') + '">자세히</a></small>';
   }
 
