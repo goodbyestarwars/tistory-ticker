@@ -2849,30 +2849,37 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 }
 .post-single-tags { margin-bottom: 20px; }
 
-/* 관련 글 */
+/* 관련 글 — 2026-11-21 사용자 지시(디자인 다시): 푸른 회색 면+작은 글씨+아래 빈칸 → 공통 카드 면·여유 있는 행·hover 강조 */
 .related-posts {
-  margin: 20px 0;
-  padding: 16px;
-  background: #f8faff;
-  border-radius: 12px;
+  margin: 28px 0 8px;
+  padding: 18px 20px 10px;
+  background: var(--ui-card-surface, #fff);
+  border: 1px solid var(--ui-rule, var(--rule, #ece8e1));
+  border-radius: var(--ui-radius-card, 12px);
+  box-shadow: var(--soft-raised, none);
 }
 .related-title {
-  font-size: 12px; font-weight: 700; color: #94a3b8;
-  margin-bottom: 12px; letter-spacing: 0.5px;
-  text-transform: uppercase;
+  margin: 0 0 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ui-rule, var(--rule, #ece8e1));
+  font-size: 14px; font-weight: 700; color: var(--ui-ink, #273332);
+  letter-spacing: 0;
 }
-.related-list { display: flex; flex-direction: column; gap: 8px; }
+.related-list { display: flex; flex-direction: column; gap: 0; }
 .related-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 14px;
+  margin: 0 -10px;
+  padding: 13px 10px;
+  border-radius: 8px;
   text-decoration: none;
+  transition: background-color .15s ease;
 }
-.related-item:last-child { border-bottom: none; }
-.related-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
-.related-item-title { font-size: 13px; color: #374151; flex: 1; line-height: 1.4; }
-.related-item-title:hover { color: var(--ui-accent-ink); }
-.related-item-date { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+.related-item + .related-item { border-top: 1px solid var(--ui-rule, var(--rule, #ece8e1)); border-top-left-radius: 0; border-top-right-radius: 0; }
+.related-item:hover { background: var(--ui-glass-panel, #f6f3ee); }
+.related-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.related-item-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--ui-ink, #273332); word-break: keep-all; }
+.related-item:hover .related-item-title { color: var(--ui-accent-ink); }
+.related-item-date { flex-shrink: 0; font-size: 12px; font-variant-numeric: tabular-nums; color: #94a3b8; }
 
 /* ============ 댓글 섹션 (티스토리 s_t3 — s_rp 기반) ============ */
 .post-comments {
@@ -4702,7 +4709,12 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   .post-single-body h3 { font-size: 15px; }
 
   /* ── 관련 글 ── */
-  .related-list { flex-direction: column; }
+  .related-posts { margin: 20px 0 4px; padding: 14px 16px 6px; }
+  .related-item { flex-wrap: wrap; gap: 4px 12px; padding: 12px 10px; }
+  .related-item-title { flex-basis: 100%; font-size: 14.5px; }
+  .related-thumb + .related-item-title { flex-basis: calc(100% - 64px); }
+  .related-item-date { flex-basis: 100%; }
+  .related-thumb { width: 48px; height: 48px; }
 
   /* ── 페이지네이션 ── */
   .pagination { gap: 4px; }
