@@ -145,13 +145,36 @@
     var gap = parseFloat(getComputedStyle(b).columnGap) || 0;
     return b.clientWidth + gap;
   }
+  /* 쪽 경계에서 잘리지 않게 다듬는다: 같은 폭 칸으로 나뉜 상자 묶음(사례 카드 등)은 세로로 쌓고,
+     한 쪽에 들어가는 상자·그림·표는 쪽 중간에서 끊지 않는다. 쪽 폭이 바뀔 때마다 다시 계산한다. */
+  function fit(b) {
+    Array.prototype.forEach.call(b.querySelectorAll('.lc-stack, .lc-keep'), function (n) { n.classList.remove('lc-stack', 'lc-keep'); });
+    var cs = getComputedStyle(b), gap = parseFloat(cs.columnGap) || 0, cols = parseInt(cs.columnCount, 10) || 1;
+    var colW = (b.clientWidth - gap * (cols - 1)) / cols, colH = b.clientHeight;
+    b.classList.add('lc-flat');
+    b.style.width = colW + 'px';
+    var blocks = b.querySelectorAll('div, section, figure, table, details, blockquote, dl, ul, ol');
+    Array.prototype.forEach.call(blocks, function (n) {
+      if (getComputedStyle(n).display !== 'grid') return;
+      var tr = getComputedStyle(n).gridTemplateColumns.split(' ').map(parseFloat).filter(function (x) { return x > 0; });
+      if (tr.length > 1 && Math.max.apply(null, tr) - Math.min.apply(null, tr) < 3 && n.children.length > 1) n.classList.add('lc-stack');
+    });
+    Array.prototype.forEach.call(blocks, function (n) {
+      if (n.tagName === 'UL' || n.tagName === 'OL') return;
+      if (n.offsetHeight > 0 && n.offsetHeight < colH * 0.9) n.classList.add('lc-keep');
+    });
+    b.style.width = '';
+    b.classList.remove('lc-flat');
+  }
   function measure() {
     /* 카드마다 잠깐 펼쳐 쪽 수를 센다(세로 스크롤 없이 쪽으로 넘기므로 내용 길이 = 쪽 수). */
     var keep = cur;
     cardEls.forEach(function (c, i) {
       var was = c.classList.contains('on');
       c.classList.add('on', 'lc-measure');
-      var b = bodyOf(i), gap = parseFloat(getComputedStyle(b).columnGap) || 0, st = b.clientWidth + gap;
+      var b = bodyOf(i);
+      fit(b);
+      var gap = parseFloat(getComputedStyle(b).columnGap) || 0, st = b.clientWidth + gap;
       pages[i] = Math.max(1, Math.round((b.scrollWidth + gap) / st));
       c.classList.remove('lc-measure');
       if (!was) c.classList.remove('on');

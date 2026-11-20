@@ -114,7 +114,15 @@ html.lc-pre body.learn-page .legal-wrap > .learn-deep {
   .lc-card.on { background-image: linear-gradient(90deg, rgba(0,0,0,0) calc(50% - 14px), rgba(120,100,70,.07) 50%, rgba(0,0,0,0) calc(50% + 14px)); }
 }
 .lc-body > * { break-inside: auto; }
-.lc-body figure, .lc-body tr, .lc-body li, .lc-body .learn-note, .lc-body details { break-inside: avoid; }
+.lc-body.lc-flat { column-count: 1; flex: none; height: auto; overflow: visible; }
+.lc-body .lc-keep { break-inside: avoid; }
+/* 같은 폭 칸 묶음을 쪽 폭에서 한 줄로 쌓는다(칸 폭이 인라인/클래스 규칙보다 우선해야 해서 !important). */
+body.learn-page .lc-body .lc-stack { grid-template-columns: minmax(0, 1fr) !important; }
+.lc-body tr, .lc-body li { break-inside: avoid; }
+/* overflow:hidden 표는 쪽을 넘어 이어지지 않고 아래가 잘리므로 보이게 두고 모서리만 머리 칸에 준다. */
+body.learn-page .lc-body .learn-table { overflow: visible; }
+body.learn-page .lc-body .learn-table thead th:first-child { border-top-left-radius: 14px; }
+body.learn-page .lc-body .learn-table thead th:last-child { border-top-right-radius: 14px; }
 .lc-body h2, .lc-body h3 { break-after: avoid; }
 .lc-body table { font-size: 13.5px; }
 .lc-body img, .lc-body svg { max-width: 100%; height: auto; }
