@@ -94,6 +94,15 @@
     toc.appendChild(o);
   });
   top.appendChild(toc);
+  var FS_KEY = 'lc_fs', FS = [0.9, 1, 1.12, 1.25];
+  function getFs() { try { var v = parseInt(localStorage.getItem(FS_KEY), 10); return v >= 0 && v < FS.length ? v : 1; } catch (e) { return 1; } }
+  var fsIdx = getFs();
+  var fsBox = el('span', 'lc-fs');
+  var fsDown = el('button', 'lc-fsb', '가−'), fsUp = el('button', 'lc-fsb', '가+');
+  fsDown.type = fsUp.type = 'button';
+  fsDown.setAttribute('aria-label', '글자 작게'); fsUp.setAttribute('aria-label', '글자 크게');
+  fsBox.appendChild(fsDown); fsBox.appendChild(fsUp);
+  top.appendChild(fsBox);
   top.appendChild(switchButton('스크롤로 보기', 'scroll'));
   book.appendChild(top);
 
@@ -139,6 +148,13 @@
   secs[0].parentNode.insertBefore(book, secs[0]);
   secs.forEach(function (s) { if (s.parentNode) s.parentNode.removeChild(s); });
 
+  function applyFs(keep) {
+    book.style.setProperty('--lc-fs', String(FS[fsIdx]));
+    fsDown.disabled = fsIdx === 0; fsUp.disabled = fsIdx === FS.length - 1;
+    if (keep) { var s = sub; measure(); sub = s; paint(); }
+  }
+  fsDown.addEventListener('click', function () { if (fsIdx > 0) { fsIdx--; try { localStorage.setItem(FS_KEY, String(fsIdx)); } catch (e) {} applyFs(true); } });
+  fsUp.addEventListener('click', function () { if (fsIdx < FS.length - 1) { fsIdx++; try { localStorage.setItem(FS_KEY, String(fsIdx)); } catch (e) {} applyFs(true); } });
   var cur = -1, sub = 0, pages = cards.map(function () { return 1; });
   function bodyOf(i) { return cardEls[i].querySelector('.lc-body'); }
   function stepOf(b) {
@@ -275,6 +291,7 @@
 
   root.classList.remove('lc-pre');
   root.classList.add('lc-on');
+  applyFs(false);
   measure();
   if (!goHash()) show(0, 0, true);
 })();

@@ -141,7 +141,14 @@ body.learn-page .lc-body .etf-table-scroll .learn-table { min-width: 0; font-siz
 .lc-num i { flex: 0 0 64px; height: 1px; background: var(--lc-rule); }
 .lc-body h2.lc-title { margin: 0 0 16px; padding: 0; border: 0; font-size: 22px; line-height: 1.5; color: var(--lc-ink); }
 .lc-subtitle { margin: 0 0 14px; font-size: 14px; color: var(--lc-muted); }
-.lc-body > p, .lc-body > ul > li, .lc-body > ol > li { font-size: 16.5px; line-height: 1.95; }
+.lc-book { --lc-fs: 1; }
+.lc-body > p, .lc-body > ul > li, .lc-body > ol > li { font-size: calc(16.5px * var(--lc-fs)); line-height: 1.95; }
+.lc-body .in-fact span, .lc-body .learn-note, .lc-body .learn-table { font-size: calc(14px * var(--lc-fs)); }
+.lc-body .in-fact strong { font-size: calc(20px * var(--lc-fs)); }
+.lc-fs { display: inline-flex; gap: 4px; }
+.lc-fsb { border: 1px solid var(--lc-card-line); border-radius: 999px; background: var(--lc-card-bg); color: var(--lc-muted); font: inherit; font-size: 13px; padding: 5px 11px; cursor: pointer; }
+.lc-fsb:hover:not(:disabled) { color: var(--lc-ink); }
+.lc-fsb:disabled { opacity: .35; cursor: default; }
 .lc-card--cover h1 { margin: 6px 0 6px; font-size: 30px; line-height: 1.35; }
 .lc-card--cover .legal-effective-date { margin: 0 0 18px; color: var(--lc-muted); }
 
@@ -166,7 +173,7 @@ body.learn-page .lc-body .etf-table-scroll .learn-table { min-width: 0; font-siz
   @supports (height: 100svh) { .lc-card.on { height: clamp(460px, calc(100svh - 200px), 780px); } }
   .lc-head, .lc-foot { margin: 0 20px; }
   .lc-body { margin: 18px 20px 10px; }
-  .lc-body > p, .lc-body > ul > li, .lc-body > ol > li { font-size: 15.5px; line-height: 1.9; }
+  .lc-body > p, .lc-body > ul > li, .lc-body > ol > li { font-size: calc(15.5px * var(--lc-fs)); line-height: 1.9; }
   .lc-body h2.lc-title { font-size: 20px; }
   .lc-card--cover h1 { font-size: 26px; }
 }
