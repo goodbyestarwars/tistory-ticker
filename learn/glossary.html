@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>금융용어사전</title>
-<meta name="description" content="골든크로스·지지선·체결강도·PER·ATR처럼 차트와 수급, 재무, 보조지표에서 자주 만나는 용어를 한 줄 정의와 예시로 찾아본다." />
+<meta name="description" content="골든크로스·지지선·공매도·MSCI 선진국 지수·PER처럼 차트, 수급, 재무, 지수 편입, 기업행사에서 자주 만나는 용어를 한 줄 정의와 예시로 찾아본다." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
@@ -33,6 +33,11 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 .gl-ex { color: var(--learn-ink, #14213d); }
 .gl-meta { color: var(--learn-sub, #35507a); font-size: 13.5px; }
 .gl-rel a { margin-right: 8px; color: var(--learn-down, #1261c4); text-decoration: none; }
+.gl-more { margin: 8px 0 4px; }
+.gl-more summary { cursor: pointer; color: var(--learn-down, #1261c4); font-size: 14px; }
+.gl-more p { font-size: 14.5px; }
+.gl-src { font-size: 12.5px; }
+.gl-src a { color: var(--learn-down, #1261c4); }
 .gl-empty { padding: 30px 0; text-align: center; color: var(--learn-sub, #35507a); }
 @media (prefers-color-scheme: dark) {
   .gl-search { background: #161d2c; border-color: #34415b; }
@@ -46,12 +51,12 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <div class="learn-search" id="learn-search"></div>
 
   <h1>금융용어사전</h1>
-  <p class="legal-effective-date">차트 · 수급 · 재무 · 보조지표</p>
+  <p class="legal-effective-date">차트 · 수급 · 재무 · 지수 편입 · 기업행사</p>
   <section class="learn-sec learn-sec--intro">
   <p>차트와 종목 화면에서 자주 만나는 용어를 한 줄 정의, 예시, 쓰임새로 정리했다. 예시 숫자는 이해를 돕기 위한 가상의 값이며,
-  투자 판단의 근거가 아니라 용어를 이해하기 위한 참고 자료다. 관련용어를 누르면 해당 용어로 이동한다.</p>
+  투자 판단의 근거가 아니라 용어를 이해하기 위한 참고 자료다. 관련용어를 누르면 해당 용어로 이동한다. 공매도·MSCI처럼 풀이가 긴 용어는 '더 자세히'를 눌러 제도의 흐름과 근거까지 볼 수 있다.</p>
 
-  <input class="gl-search" id="glSearch" type="search" placeholder="용어 검색 (예: ATR, 지지선, 순매수)" autocomplete="off" />
+  <input class="gl-search" id="glSearch" type="search" placeholder="용어 검색 (예: 공매도, MSCI, 지지선, 순매수)" autocomplete="off" />
   <div class="gl-chips" id="glChips"></div>
   <div class="gl-count" id="glCount"></div>
   </section>
@@ -75,7 +80,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   function matches(x) {
     if (cat !== '전체' && x.cat !== cat) return false;
     if (!query) return true;
-    return (x.t + ' ' + x.en + ' ' + x.d + ' ' + x.use).toLowerCase().indexOf(query) >= 0;
+    return (x.t + ' ' + x.en + ' ' + x.d + ' ' + x.use + ' ' + (x.more || []).join(' ')).toLowerCase().indexOf(query) >= 0;
   }
   function render() {
     var rows = data.terms.filter(matches).sort(function (a, b) { return a.t.localeCompare(b.t, 'ko'); });
@@ -87,11 +92,13 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
       var rel = (x.rel || []).map(function (r) {
         return known[r] ? '<a href="#' + idOf(r) + '" data-go="' + esc(r) + '">' + esc(r) + '</a>' : '<span>' + esc(r) + '</span> ';
       }).join('');
+      var more = (x.more && x.more.length) ? '<details class="gl-more"><summary>더 자세히</summary>' + x.more.map(function (m) { return '<p>' + esc(m) + '</p>'; }).join('') + '</details>' : '';
+      var src = (x.src && x.src.length) ? '<p class="gl-meta gl-src">출처 ' + x.src.map(function (s) { return '<a href="' + esc(s[1]) + '" target="_blank" rel="noopener noreferrer">' + esc(s[0]) + '</a>'; }).join(' · ') + '</p>' : '';
       return '<article class="gl-card" id="' + idOf(x.t) + '"><h3>' + esc(x.t) + (x.en ? '<small>' + esc(x.en) + '</small>' : '') + '</h3>'
         + '<span class="gl-cat">' + esc(x.cat) + '</span>'
         + '<p>' + esc(x.d) + '</p>'
         + '<p class="gl-ex">💡 예를 들어 ' + esc(x.ex) + '</p>'
-        + '<p class="gl-meta">주로 어디에 쓰나? ' + esc(x.use) + '</p>'
+        + '<p class="gl-meta">주로 어디에 쓰나? ' + esc(x.use) + '</p>' + more + src
         + (rel ? '<p class="gl-meta gl-rel">관련용어 ' + rel + '</p>' : '') + '</article>';
     }).join('');
   }
