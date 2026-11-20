@@ -46,7 +46,16 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     assert.equal(await page.locator('#nineLanding').count(), 0);
     // /guestbook에서 비회원 입장: 이동 완료 전까지 랜딩 유지(대화방 순간 노출 방지)
     await page.evaluate(() => { sessionStorage.clear(); window.NineLanding.show(false); });
+    // 비회원 로그인은 먼저 이용 안내 모달(시세 약관·회원 문의)을 띄우고, 확인해야 입장한다.
     await page.evaluate(() => document.querySelector('[data-nl-guest]').click());
+    assert.equal(await page.locator('.nl-modal[data-nl-guestmodal]').isHidden(), false, 'guest terms modal opens');
+    assert.equal(await page.evaluate(() => window.__guestGo), undefined, 'no entry before confirm');
+    assert.ok(/제3자에게 제공해서는 아니 된다/.test(await page.locator('.nl-modal[data-nl-guestmodal]').innerText()), 'terms text shown');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.nl-modal[data-nl-guestmodal]').isHidden(), true, 'ESC closes guest modal');
+    assert.equal(await page.evaluate(() => window.__guestGo), undefined, 'ESC does not enter');
+    await page.evaluate(() => document.querySelector('[data-nl-guest]').click());
+    await page.click('[data-nl-guestgo]');
     assert.equal(await page.evaluate(() => window.__guestGo), true, 'guest goes to /');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('nine_guest')), '1');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('nine_authed') || localStorage.getItem('nine_authed')), null, 'guest is not authenticated');
@@ -55,6 +64,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     // 이미 홈(/)에서 비회원 입장하면 이동 없이 랜딩만 닫는다.
     await page.evaluate(() => { history.replaceState(null, '', '/'); window.__guestGo = false; });
     await page.evaluate(() => document.querySelector('[data-nl-guest]').click());
+    await page.click('[data-nl-guestgo]');
     assert.equal(await page.evaluate(() => window.__guestGo), false, 'home entry does not navigate');
     assert.equal(await page.locator('#nineLanding').count(), 0);
     console.log('PASS landing', width);
