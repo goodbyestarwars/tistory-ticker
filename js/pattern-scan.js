@@ -1700,12 +1700,17 @@
     leaderPullback:{avg:[10.28,9.56],grade:'검증 통과'}
   };
   function scorecardHtml() {
+    // 2026-11-21 사용자 지시(가독성): 한 줄 문장 → 등급 배지 + 기간별 숫자 칸 + 한 줄 설명. 수치·문구 근거는 위와 같다.
     var s=MENU_SCORECARD[activeTab];if(!s)return '';
     var sg=function(v){return (v>0?'+':'')+v.toFixed(1);};
-    var body=s.avg?'60일선 매도 기준 1건당 평균 '+sg(s.avg[0])+'% (2024~2025.6) · '+sg(s.avg[1])+'% (2025.7~)'
-      :'다음 날 사서 20거래일 보유 시 아무 종목보다 1건당 '+s.ex.map(sg).join(' / ')+'%p (2021~23 / 2024~25.6 / 2025.7~)';
-    return '<p class="ps-state-meaning ps-scorecard"><b>과거 5년 성적 · '+escapeHtml(s.grade)+'</b> · '+body
-      +(s.note?' · '+escapeHtml(s.note):'')+' · 수수료 0.7% 차감, 미래 수익 보장 아님</p>';
+    var cell=function(label,v,unit){return '<div class="ps-sc-cell"><dt>'+label+'</dt><dd class="'+(v>0?'is-up':v<0?'is-down':'')+'">'+sg(v)+unit+'</dd></div>';};
+    var tone=s.grade==='검증 통과'?'is-pass':s.grade==='우위 약함'?'is-weak':'is-none';
+    var desc=s.avg?'60일선 매도 기준, 한 번 사서 판 평균 수익률':'다음 날 사서 20거래일 보유했을 때, 아무 종목을 샀을 때보다 나았던 정도(1건당)';
+    var cells=s.avg?cell('2024~2025.6',s.avg[0],'%')+cell('2025.7~',s.avg[1],'%')
+      :cell('2021~23',s.ex[0],'%p')+cell('2024~25.6',s.ex[1],'%p')+cell('2025.7~',s.ex[2],'%p');
+    return '<section class="ps-scorecard" aria-label="과거 5년 성적"><div class="ps-sc-head"><b>과거 5년 성적</b><span class="ps-sc-grade '+tone+'">'+escapeHtml(s.grade)+'</span></div>'
+      +'<p class="ps-sc-desc">'+desc+'</p><dl class="ps-sc-grid">'+cells+'</dl>'
+      +'<p class="ps-sc-foot">'+(s.note?escapeHtml(s.note)+' · ':'')+'수수료 0.7% 차감 · 미래 수익 보장 아님</p></section>';
   }
   function leaderInfoHtml(selection) {
     if(activeTab!=='leaderPullback' || !selection)return '';
