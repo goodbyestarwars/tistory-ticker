@@ -438,10 +438,19 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 html.dark .market-discussion .discussion-recent-heading { color:var(--dk-sub); }
 @media(max-width:720px){ .market-discussion .discussion-recent-heading { flex-basis:100%; padding-top:5px; } .market-discussion .discussion-current-quote { white-space:normal; } }
 
-/* 새 창(팝업) 모드: 사이트 머리·메뉴·푸터를 숨기고 대화방만 창 전체에 보여 준다. */
+/* 새 창(팝업) 모드: 대화방만 창 전체에 꽉 채운다. 사이트 머리·메뉴·푸터와 떠 있는 관심종목/메모 손잡이는 숨긴다. */
+.discussion-terminal-welcome { position: relative; }
+.discussion-popout { position: absolute; top: 8px; right: 8px; z-index: 2; padding: .3em .7em; border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.discussion-popout:hover { background: rgba(255,255,255,.15); }
 html.discussion-popup .navbar,
 html.discussion-popup #nav-menu-mount,
 html.discussion-popup .site-footer,
 html.discussion-popup .mobile-tabbar,
-html.discussion-popup .m-tabbar { display: none; }
-html.discussion-popup body { margin: 0; padding: 0; }
+html.discussion-popup .m-tabbar,
+html.discussion-popup .global-watchlist-toggle,
+html.discussion-popup .global-watchlist-drawer,
+html.discussion-popup .wl-toggle,
+html.discussion-popup .memo-fab { display: none !important; }
+html.discussion-popup, html.discussion-popup body { margin: 0; padding: 0; overflow: hidden; }
+html.discussion-popup [data-market-discussion] { position: fixed; inset: 0; z-index: 2147483000; margin: 0; padding: 0; max-width: none; overflow: auto; background: var(--discussion-terminal-bg, #000080); }
+html.discussion-popup [data-market-discussion] .discussion-terminal { margin: 0; max-width: none; width: 100%; min-height: 100%; box-sizing: border-box; }

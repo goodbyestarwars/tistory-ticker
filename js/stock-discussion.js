@@ -415,19 +415,20 @@
         location.reload();
       }
     });
-    /* 새 창: 같은 방명록 주소를 작은 창으로 연다(popup=1이면 사이트 머리·메뉴·푸터는 숨긴다). 현재 보는 방(종목)도 같이 넘긴다. */
+    /* 새 창: 같은 방명록 주소를 화면 크기의 창으로 연다(popup=1이면 사이트 머리·메뉴·푸터는 숨긴다). 현재 보는 방(종목)도 같이 넘긴다. */
     var isPopup = /(^|[?&])popup=1(&|$)/.test(location.search) || window.name === 'nine_chat';
     if (isPopup) {
       document.documentElement.classList.add('discussion-popup');
     } else {
-      var popout = addText(toolbar, 'button', '', '[ 새 창 ]');
+      var popout = addText(welcome, 'button', 'discussion-popout', '[ 새 창 ]');
       popout.type = 'button';
       popout.title = '대화방을 별도 창으로 띄웁니다';
       popout.addEventListener('click', function () {
         var u = new URL(location.href);
         u.searchParams.set('popup', '1');
         if (activeCode) u.searchParams.set('stock', activeCode); else u.searchParams.delete('stock');
-        var w = window.open(u.toString(), 'nine_chat', 'popup=yes,width=520,height=780,resizable=yes,scrollbars=yes');
+        var sw = (window.screen && screen.availWidth) || 1280, sh = (window.screen && screen.availHeight) || 800;
+        var w = window.open(u.toString(), 'nine_chat', 'popup=yes,left=0,top=0,width=' + sw + ',height=' + sh + ',resizable=yes,scrollbars=yes');
         if (w) { w.focus(); } else { location.href = u.toString(); }
       });
     }
