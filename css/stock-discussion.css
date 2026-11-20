@@ -437,3 +437,11 @@ html.dark .discussion-empty { color: var(--dk-mute); }
 .market-discussion .discussion-current-quote.is-down { color:var(--num-down, #2563eb); }
 html.dark .market-discussion .discussion-recent-heading { color:var(--dk-sub); }
 @media(max-width:720px){ .market-discussion .discussion-recent-heading { flex-basis:100%; padding-top:5px; } .market-discussion .discussion-current-quote { white-space:normal; } }
+
+/* 새 창(팝업) 모드: 사이트 머리·메뉴·푸터를 숨기고 대화방만 창 전체에 보여 준다. */
+html.discussion-popup .navbar,
+html.discussion-popup #nav-menu-mount,
+html.discussion-popup .site-footer,
+html.discussion-popup .mobile-tabbar,
+html.discussion-popup .m-tabbar { display: none; }
+html.discussion-popup body { margin: 0; padding: 0; }
