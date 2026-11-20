@@ -157,7 +157,7 @@ ensure_scan_timers_current() {
   # 해시 비교로 다시 설치하는 이 목록에 넣어 둔다.
   # swingmonitor: 2026-09-18 신설 - dailyscan의 ExecStartPost에서 떼어낸 후속 작업
   # (setup_swingmonitor_timer.sh 주석 참고).
-  for name in dailyscan strategyscan etfstrategyscan anglemomentumscan gongpasanscan week52 batch scanreaper volumebreakout swingmonitor; do
+  for name in dailyscan strategyscan etfstrategyscan anglemomentumscan gongpasanscan week52 batch scanreaper volumebreakout swingmonitor guestbookbackup; do
     setup_script="$APP_DIR/scripts/cloud-vm/setup_${name}_timer.sh"
     if [ ! -f "$setup_script" ]; then
       continue  # 아직 배포가 안 닿았으면 다음 회차에 다시 본다
