@@ -69,6 +69,9 @@ REALTIME_SYMBOLS = {
     'KOSPI200_DAY': ('코스피200 주간선물', 'FUT'),
     'KOSPI': ('KOSPI', 'KOSPI'),
     'KOSDAQ': ('KOSDAQ', 'KOSDAQ'),
+    # 2026-11-21: 선물 시장 베이시스(주간선물 - KOSPI200 현물)용 현물 지수. /futures는 symbols=KOSPI200으로
+    # 명시 요청할 때만 내려주며 기본 응답은 그대로다. 같은 네이버 API·같은 주기(30초)라 새 공급자는 없다.
+    'KOSPI200': ('코스피200 현물', 'KPI200'),
 }
 
 # 과거 일봉을 수집하는 심볼 - {symbol: (네이버 chart category, 네이버 code)}.
@@ -77,6 +80,7 @@ CHART_SYMBOLS = {
     'KOSPI200_DAY': ('futures', 'FUT'),
     'KOSPI': ('index', 'KOSPI'),
     'KOSDAQ': ('index', 'KOSDAQ'),
+    'KOSPI200': ('index', 'KPI200'),
 }
 
 _REALTIME_POLL_SEC = 30

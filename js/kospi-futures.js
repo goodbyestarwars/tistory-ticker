@@ -65,7 +65,7 @@
   // 환율·채권·코인까지 21개 심볼을 한 번에 주는 공용 엔드포인트인데, 이 페이지는 선물 2개만
   // 쓰면서 나머지 19개 심볼의 일봉까지 매번 받아 응답이 필요 이상으로 컸다(2026-07-31).
   // symbols를 모르는 구버전 서버에 붙어도 파라미터가 무시되고 기존 전체 응답이 와서 동작은 같다.
-  var PAGE_SYMBOLS = PANEL_ORDER.join(',');
+  var PAGE_SYMBOLS = PANEL_ORDER.join(',') + ',KOSPI200'; // KOSPI200 현물은 시장 베이시스 계산용(시세 표 행에는 싣지 않는다)
   var DAY_RANGE = 250; // 기존 90일 -> 약 1년으로 확대(VM domestic_futures.py 기본 수집 범위와 일치)
   var INTERVAL_LABELS = { minute: '분봉', day: '일봉', week: '주봉' };
   // 2026-07-16: 야간선물도 분봉 지원 추가 - 처음엔 KIS에 소스가 없다고 판단했었으나 공식
@@ -75,7 +75,7 @@
     { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '야간선물 (18:00~05:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
-  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260912-remove-ai-section-v1';
+  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20261121-basis-v1';
 
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
@@ -278,6 +278,9 @@
       + '<div class="mi-sub"><div class="mi-sub-title">주간·야간 선물 시세</div>'
       + '<div class="mi-sub-cap">현재가, 전일 대비, 등락률과 미결제약정(증감)입니다.</div>'
       + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div></div>'
+      + '<div class="mi-sub"><div class="mi-sub-title">시장 베이시스</div>'
+      + '<div class="mi-sub-cap">주간선물 − KOSPI200 현물입니다. +는 선물이 현물보다 높고 −는 낮다는 뜻이며, 만기가 가까울수록 0에 수렴합니다. 이론가 대비 괴리나 방향 예측이 아닙니다.</div>'
+      + '<div class="kf-basis" id="kfBasis"><div class="kf-loading">불러오는 중...</div></div></div>'
       + '<div class="mi-sub"><div class="kf-chart-grid">' + sections + '</div></div>'
       + '</div>'
       + '</section>'
@@ -879,6 +882,144 @@
     });
   }
 
+  // ---- 시장 베이시스(주간선물 - KOSPI200 현물) - 2026-11-21 사용자 승인 1단계 ----
+  // 시장 베이시스는 만기가 가까울수록 0에 수렴하고, 네이버 FUT는 만기일(3·6·9·12월 둘째 목요일) 다음 거래일에
+  // 새 월물로 바뀐다(2025-09~2026-09 일봉 실측: 만기 다음 날 베이시스가 +1~+8p 튐). 그래서 달력만으로 만기 주간·
+  // 새 월물 첫날을 구분해 표시하고 막대를 이어 해석하지 않는다. 이론 베이시스(CD금리·배당 반영)와 선행성은 이 단계 밖이다.
+  var BASIS_BAR_DAYS = 60; // 그래프에 보여 줄 최근 거래일 수
+  var BASIS_MAX_SKEW_MS = 2 * 60 * 1000;   // 선물·현물 시세 시점이 이보다 벌어지면 실시간 베이시스를 만들지 않는다
+  var BASIS_MAX_AGE_MS = 20 * 60 * 1000;   // 더 오래된 시세는 장중 현재값으로 쓰지 않는다
+  function basisPad(n) { return (n < 10 ? '0' : '') + n; }
+  function basisYmd(date) { return String(date.getUTCFullYear()) + basisPad(date.getUTCMonth() + 1) + basisPad(date.getUTCDate()); }
+  function basisSecondThursday(year, month) {
+    var first = new Date(Date.UTC(year, month - 1, 1)), offset = (4 - first.getUTCDay() + 7) % 7;
+    return basisYmd(new Date(Date.UTC(year, month - 1, 1 + offset + 7)));
+  }
+  // dates: 오름차순 거래일(YYYYMMDD). 둘째 목요일이 휴장이면 그 이전 마지막 거래일을 만기로 본다. 자료 범위 밖 만기는 만들지 않는다.
+  function basisExpiries(dates) {
+    if (!dates || !dates.length) return [];
+    var first = Number(dates[0].slice(0, 4)), last = Number(dates[dates.length - 1].slice(0, 4)), out = [];
+    for (var y = first; y <= last; y++) {
+      [3, 6, 9, 12].forEach(function (m) {
+        var nominal = basisSecondThursday(y, m), actual = null;
+        if (nominal < dates[0] || nominal > dates[dates.length - 1]) return;
+        for (var i = 0; i < dates.length && dates[i] <= nominal; i++) actual = dates[i];
+        if (actual && out.indexOf(actual) < 0) out.push(actual);
+      });
+    }
+    return out;
+  }
+  function basisMonday(ymd) {
+    var d = new Date(Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8))));
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return basisYmd(d);
+  }
+  // 선물·현물 일봉을 날짜로 맞춰 종가 베이시스를 만든다. phase: normal | week(만기 주간) | expiry(만기일) | roll(새 월물 첫날)
+  function basisSeries(futRows, spotRows) {
+    var spotBy = {};
+    (spotRows || []).forEach(function (r) { if (r && r.date && isFinite(Number(r.close)) && Number(r.close) > 0) spotBy[r.date] = Number(r.close); });
+    var rows = [];
+    (futRows || []).forEach(function (r) {
+      if (!r || !r.date || !isFinite(Number(r.close)) || Number(r.close) <= 0 || !(r.date in spotBy)) return;
+      rows.push({ date: r.date, fut: Number(r.close), spot: spotBy[r.date] });
+    });
+    rows.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    var expiries = basisExpiries(rows.map(function (r) { return r.date; }));
+    rows.forEach(function (r, i) {
+      r.basis = r.fut - r.spot;
+      r.pct = r.basis / r.spot * 100;
+      r.phase = 'normal';
+      expiries.forEach(function (e) {
+        if (r.date === e) r.phase = 'expiry';
+        else if (r.date < e && r.date >= basisMonday(e) && r.phase === 'normal') r.phase = 'week';
+        else if (i > 0 && rows[i - 1].date === e) r.phase = 'roll';
+      });
+    });
+    return rows;
+  }
+  // 장중 현재 베이시스: 선물·현물이 모두 최근이고 시점 차이가 작을 때만 만든다. 아니면 이유를 돌려준다(0이나 이전 값으로 채우지 않는다).
+  function basisNow(fut, spot, nowMs) {
+    function price(q) { var v = q && q.price != null ? Number(q.price) : NaN; return isFinite(v) && v > 0 ? v : null; }
+    function at(q) { var t = q && q.updated_at ? new Date(q.updated_at).getTime() : NaN; return isFinite(t) ? t : null; }
+    var f = price(fut), s = price(spot), tf = at(fut), ts = at(spot);
+    if (f == null || s == null) return { reason: 'missing' };
+    if (tf == null || ts == null) return { reason: 'time' };
+    if (nowMs - Math.min(tf, ts) > BASIS_MAX_AGE_MS) return { reason: 'stale' };
+    if (Math.abs(tf - ts) > BASIS_MAX_SKEW_MS) return { reason: 'skew' };
+    return { fut: f, spot: s, basis: f - s, pct: (f - s) / s * 100, at: Math.max(tf, ts) };
+  }
+  function basisKstToday(nowMs) {
+    var d = new Date(nowMs + 9 * 3600 * 1000);
+    return { ymd: basisYmd(d), minutes: d.getUTCHours() * 60 + d.getUTCMinutes() };
+  }
+  // 오늘 장중 일봉은 선물(15:45)·현물(15:30) 마감 시각이 달라 종가 베이시스로 쓰지 않는다(15:50 KST 이후부터 사용).
+  function basisClosedRows(rows, nowMs) {
+    var k = basisKstToday(nowMs);
+    return rows.filter(function (r) { return !(r.date === k.ymd && k.minutes < 15 * 60 + 50); });
+  }
+  var BASIS_PHASE_LABEL = { week: '만기 주간', expiry: '만기일', roll: '새 월물 첫날' };
+  function basisDateLabel(ymd) { return ymd.slice(2, 4) + '.' + ymd.slice(4, 6) + '.' + ymd.slice(6, 8); }
+  function basisTone(v) { return v > 0 ? 'is-up' : v < 0 ? 'is-down' : ''; }
+  // 2026-11-21 사용자 지시: 그래프는 검은 선. 만기 주간·새 월물 첫날은 월물이 바뀌어 값을 이어 볼 수 없으므로 선을 끊고 회색 띠로 표시한다.
+  function basisLineSvg(rows) {
+    var shown = rows.slice(-BASIS_BAR_DAYS), W = 720, H = 140, pad = 8, n = shown.length;
+    if (n < 2) return '';
+    var max = 0.5;
+    shown.forEach(function (r) { if (r.phase === 'normal') max = Math.max(max, Math.abs(r.basis)); });
+    max *= 1.15;
+    var mid = H / 2, step = W / n;
+    function px(i) { return (i + 0.5) * step; }
+    function py(v) { return mid - Math.max(-1, Math.min(1, v / max)) * (mid - pad); }
+    var bands = '', hits = '', runs = [], run = [];
+    shown.forEach(function (r, i) {
+      var label = basisDateLabel(r.date) + ' 베이시스 ' + fmtSigned(r.basis, 2) + 'p (' + fmtSigned(r.pct, 2) + '%)' + (BASIS_PHASE_LABEL[r.phase] ? ' · ' + BASIS_PHASE_LABEL[r.phase] : '');
+      hits += '<rect class="kf-bs-hit" x="' + (i * step).toFixed(1) + '" y="0" width="' + step.toFixed(1) + '" height="' + H + '"><title>' + label + '</title></rect>';
+      if (r.phase !== 'normal') {
+        bands += '<rect class="kf-bs-band" x="' + (i * step).toFixed(1) + '" y="0" width="' + step.toFixed(1) + '" height="' + H + '"/>';
+        if (run.length) { runs.push(run); run = []; }
+        return;
+      }
+      run.push(px(i).toFixed(1) + ',' + py(r.basis).toFixed(1));
+    });
+    if (run.length) runs.push(run);
+    var lines = runs.map(function (pts) {
+      return pts.length > 1 ? '<polyline class="kf-bs-line" points="' + pts.join(' ') + '"/>'
+        : '<circle class="kf-bs-dot" cx="' + pts[0].split(',')[0] + '" cy="' + pts[0].split(',')[1] + '" r="1.6"/>';
+    }).join('');
+    return '<svg class="kf-bs-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + n + '거래일 종가 베이시스 선 그래프">'
+      + bands + '<line class="kf-bs-zero" x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '"/>' + lines + hits + '</svg>';
+  }
+  function buildBasisHtml(futItem, spotItem, nowMs) {
+    var now = basisNow(futItem, spotItem, nowMs), nowHtml;
+    if (now.reason) {
+      var why = now.reason === 'skew' ? '선물과 현물 시세의 시점이 달라' : now.reason === 'stale' ? '장이 열려 있지 않거나 시세가 오래돼' : now.reason === 'time' ? '시세 시각을 확인할 수 없어' : '현물(KOSPI200) 시세가 아직 없어';
+      nowHtml = '<div class="kf-bs-now is-empty">' + why + ' 실시간 베이시스는 표시하지 않습니다. 아래는 일별 종가 기준입니다.</div>';
+    } else {
+      nowHtml = '<div class="kf-bs-now"><span class="kf-bs-now-label">현재 베이시스</span><strong class="' + basisTone(now.basis) + '">' + fmtSigned(now.basis, 2) + 'p</strong>'
+        + '<span class="' + basisTone(now.pct) + '">' + fmtSigned(now.pct, 2) + '%</span>'
+        + '<small>선물 ' + fmtPrice(now.fut) + ' · 현물 ' + fmtPrice(now.spot) + ' · ' + fmtTime(new Date(now.at).toISOString()) + ' 기준</small></div>';
+    }
+    var rows = basisClosedRows(basisSeries(futItem && futItem.chart, spotItem && spotItem.chart), nowMs);
+    if (rows.length < 2) return nowHtml + '<div class="kf-chart-error">일별 선물·현물 자료가 아직 부족합니다.</div>';
+    var recent = rows.slice(-8).reverse();
+    var normal = rows.filter(function (r) { return r.phase === 'normal'; }).slice(-20);
+    var avg = normal.length ? normal.reduce(function (a, r) { return a + r.basis; }, 0) / normal.length : null;
+    var table = '<table class="kf-bs-table"><thead><tr><th scope="col">기준일</th><th scope="col">선물 종가</th><th scope="col">현물 종가</th><th scope="col">베이시스</th><th scope="col">%</th><th scope="col">구분</th></tr></thead><tbody>'
+      + recent.map(function (r) {
+        return '<tr class="' + (r.phase !== 'normal' ? 'is-special' : '') + '"><th scope="row">' + basisDateLabel(r.date) + '</th><td>' + fmtPrice(r.fut) + '</td><td>' + fmtPrice(r.spot) + '</td>'
+          + '<td class="' + basisTone(r.basis) + '">' + fmtSigned(r.basis, 2) + 'p</td><td class="' + basisTone(r.pct) + '">' + fmtSigned(r.pct, 2) + '%</td><td>' + (BASIS_PHASE_LABEL[r.phase] || '') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    return nowHtml
+      + '<div class="kf-bs-avg">최근 ' + normal.length + '거래일(만기 주간·새 월물 첫날 제외) 평균 <b class="' + basisTone(avg) + '">' + (avg == null ? '-' : fmtSigned(avg, 2) + 'p') + '</b> · 기준일 ' + basisDateLabel(rows[rows.length - 1].date) + '</div>'
+      + basisLineSvg(rows)
+      + '<div class="kf-bs-legend"><span>검은 선 = 종가 베이시스(가운데 선보다 위 +, 아래 −)</span><span class="kf-bs-legend-band">회색 띠 = 만기 주간·새 월물 첫날(선을 끊어 이어 보지 않음)</span></div>'
+      + table;
+  }
+  function renderBasis(container, futItem, spotItem) {
+    var mount = container.querySelector('#kfBasis');
+    if (mount) mount.innerHTML = buildBasisHtml(futItem, spotItem, Date.now());
+  }
+
   function renderAll(container, items) {
     var bySymbol = {};
     items.forEach(function (item) { bySymbol[item.symbol] = item; });
@@ -902,6 +1043,7 @@
         renderChartPanel(cfg);
       }
     });
+    renderBasis(container, panelState.day.dayItem, bySymbol.KOSPI200);
   }
 
   function refresh(container) {
@@ -1028,7 +1170,10 @@
   var KospiFutures = {
     init: init,
     fetchFutures: fetchFutures,
-    fetchOptionFlow: fetchOptionFlow
+    fetchOptionFlow: fetchOptionFlow,
+    basisSeries: basisSeries,
+    basisNow: basisNow,
+    basisExpiries: basisExpiries
   };
   global.KospiFutures = KospiFutures;
 
