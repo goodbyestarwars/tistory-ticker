@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>코인 이야기</title>
-<meta name="description" content="가상자산 거래소 종류(중앙화·탈중앙화)부터 비트코인의 발행량 상한과 반감기, 알트코인과 이더리움, 스테이블코인의 페깅 원리와 디페깅 위험까지 그림으로 정리한다." />
+<meta name="description" content="비트코인의 역사와 거래 방식, 블록체인·작업증명의 원리, 거래소 종류(중앙화·탈중앙화), 발행량 상한과 반감기, 알트코인과 이더리움, 스테이블코인의 페깅 원리와 디페깅 위험까지 그림으로 정리한다." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
@@ -111,6 +111,149 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   </section>
   <section class="learn-sec">
+  <h2 id="sec-btc-history">비트코인 역사 - 한 장의 논문에서 월가의 ETF까지</h2>
+  <p>비트코인은 2008년 금융위기 한가운데서 나왔다. 은행이 무너지고 정부가 돈을 찍어 구제하는 모습을 본 사람들 사이에서 "은행 없이 사람끼리 직접 돈을 주고받을 수 없을까"라는 질문이 커졌다. 그 답으로 <b>사토시 나카모토</b>라는 가명의 인물이 논문을 냈다. 실제 정체는 지금까지 밝혀지지 않았다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 200" role="img" aria-label="비트코인 연표: 2008 백서, 2009 첫 블록, 2010 피자 거래, 2013 첫 1000달러, 2017 약 2만 달러, 2021 약 6만 9천 달러, 2024 현물 ETF와 10만 달러">
+      <path class="fig-ink-line" d="M16 96 L444 96" />
+      <circle class="fig-acc" cx="30" cy="96" r="6" /><text class="fig-ink" x="14" y="76">2008</text><text class="fig-sub" x="6" y="122">백서</text>
+      <circle class="fig-acc" cx="94" cy="96" r="6" /><text class="fig-ink" x="78" y="76">2009</text><text class="fig-sub" x="62" y="122">첫 블록</text>
+      <circle class="fig-acc" cx="158" cy="96" r="6" /><text class="fig-ink" x="142" y="76">2010</text><text class="fig-sub" x="132" y="122">피자 거래</text>
+      <circle class="fig-acc" cx="222" cy="96" r="6" /><text class="fig-ink" x="206" y="76">2013</text><text class="fig-sub" x="188" y="122">첫 1천 달러</text>
+      <circle class="fig-down" cx="286" cy="96" r="6" /><text class="fig-ink" x="270" y="76">2017</text><text class="fig-sub" x="266" y="122">2만 달러</text>
+      <circle class="fig-down" cx="350" cy="96" r="6" /><text class="fig-ink" x="334" y="76">2021</text><text class="fig-sub" x="330" y="122">6.9만</text>
+      <circle class="fig-up" cx="414" cy="96" r="6" /><text class="fig-ink" x="398" y="76">2024</text><text class="fig-sub" x="392" y="122">ETF</text>
+      <text class="fig-sub" x="6" y="170">호황 뒤에는 큰 폭락이 반복됐다 (2011, 2014, 2018, 2022)</text>
+    </svg>
+    <figcaption>가격은 대략적인 당시 고점이다. 정확한 값은 날짜와 거래소마다 다르다.</figcaption>
+  </figure>
+
+  <table class="learn-table">
+    <thead><tr><th>때</th><th>사건</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>2008년 10월</td><td>사토시 나카모토가 백서 「Bitcoin: A Peer-to-Peer Electronic Cash System」을 공개한다</td><td>은행 같은 중간자 없이 이중지불을 막는 방법을 처음 제시했다</td></tr>
+      <tr><td>2009년 1월</td><td>첫 블록(제네시스 블록)이 만들어진다. 보상은 50 BTC. 블록에는 당시 신문 헤드라인이 새겨졌다</td><td>구제금융에 대한 문제의식이 담겼다고 해석된다</td></tr>
+      <tr><td>2010년 5월</td><td>프로그래머가 비트코인 1만 개로 피자 두 판을 샀다 (비트코인 피자데이)</td><td>비트코인이 실제 물건과 교환된 첫 사례로 꼽힌다</td></tr>
+      <tr><td>2011~2014년</td><td>거래소 마운트곡스가 급성장했다가 2014년 파산한다. 고객 비트코인 수십만 개가 사라졌다</td><td>거래소를 믿고 맡기는 위험이 처음 크게 드러났다</td></tr>
+      <tr><td>2013년</td><td>키프로스 금융위기와 맞물려 처음 1,000달러를 넘는다</td><td>정부 규제 밖의 자산이라는 관심이 커졌다</td></tr>
+      <tr><td>2017년</td><td>약 2만 달러까지 오르고 코인 공모(ICO)와 알트코인 열풍이 인다. 한국에서는 김치 프리미엄이 화제가 된다</td><td>개인 투자자가 대거 유입된 첫 거품으로 평가된다</td></tr>
+      <tr><td>2018년</td><td>고점에서 80% 안팎 하락해 3천 달러대까지 떨어진다</td><td>높은 변동성을 보여 준 사례다</td></tr>
+      <tr><td>2020~2021년</td><td>코로나 대응 유동성과 기업·기관의 매입이 겹쳐 약 6만 9천 달러까지 오른다. 2021년 엘살바도르는 법정통화로 채택했다</td><td>"디지털 금" 논의가 확산됐다</td></tr>
+      <tr><td>2022년</td><td>테라·루나 붕괴(5월)와 거래소 FTX 파산(11월)이 이어진다. 1만 5천 달러대까지 떨어진다</td><td>알트코인과 거래소 위험을 다시 확인했다</td></tr>
+      <tr><td>2024년</td><td>1월 미국에서 비트코인 현물 ETF가 승인되어 거래를 시작한다. 4월 4번째 반감기, 12월에는 처음 10만 달러를 넘는다</td><td>증권 계좌로 살 수 있는 길이 열려 제도권 자금이 들어왔다</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>한국의 흐름</b> 2017년 코인 공모(ICO)를 금지했고, 2021년 3월 특정금융정보법 시행으로 거래소는 금융당국에 신고해야 운영할 수 있게 됐다. 2024년 7월에는 이용자 자산 보호를 규정한 가상자산이용자보호법이 시행됐다. 가상자산 소득 과세는 여러 차례 미뤄져 왔으므로 시행 시기와 세율은 국세청·기획재정부 안내로 확인한다.
+  </div>
+
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-btc-how">비트코인은 어떻게 거래되나 - 지갑에서 확정까지</h2>
+  <p>은행 송금은 은행이 장부를 고쳐 준다. 비트코인에는 그 은행이 없다. 대신 <b>전 세계 컴퓨터가 같은 장부를 나눠 갖고</b>, 규칙에 맞는 거래만 장부에 올린다. 사람이 하는 일은 지갑에서 "얼마를 누구에게 보낸다"고 서명하는 것까지다.</p>
+
+  <h3>지갑과 열쇠</h3>
+  <ul>
+    <li><b>개인키</b> 내 코인을 쓸 수 있게 해 주는 비밀 숫자다. 서명을 만들 때만 쓰고 절대 남에게 알리지 않는다.</li>
+    <li><b>공개키와 주소</b> 개인키에서 계산해 만든 값이다. 은행의 계좌번호처럼 남에게 알려 줘도 된다. 주소만으로는 개인키를 거꾸로 알아낼 수 없다.</li>
+    <li><b>시드 구문(복구 단어)</b> 지갑을 되살리는 12~24개 영어 단어다. 이 단어가 곧 전 재산의 열쇠라서 잃어버리거나 유출되면 되찾을 방법이 없다.</li>
+  </ul>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 150" role="img" aria-label="비트코인 거래 흐름: 지갑에서 서명, 네트워크 전파, 대기실(멤풀), 채굴자가 블록에 포함, 확인 횟수 쌓임">
+      <rect class="fig-soft" x="4" y="40" width="78" height="54" rx="8" /><text class="fig-ink" x="14" y="64">① 서명</text><text class="fig-sub" x="14" y="82">개인키로</text>
+      <rect class="fig-soft2" x="98" y="40" width="78" height="54" rx="8" /><text class="fig-ink" x="108" y="64">② 전파</text><text class="fig-sub" x="108" y="82">노드들에게</text>
+      <rect class="fig-soft" x="192" y="40" width="78" height="54" rx="8" /><text class="fig-ink" x="202" y="64">③ 대기</text><text class="fig-sub" x="202" y="82">멤풀</text>
+      <rect class="fig-soft2" x="286" y="40" width="78" height="54" rx="8" /><text class="fig-ink" x="296" y="64">④ 블록</text><text class="fig-sub" x="296" y="82">채굴자가</text>
+      <rect class="fig-acc" x="380" y="40" width="76" height="54" rx="8" /><text class="fig-on-accent" x="390" y="64">⑤ 확인</text><text class="fig-on-accent" x="390" y="82">쌓임</text>
+      <path class="fig-line" d="M83 67 L97 67" /><path class="fig-line" d="M177 67 L191 67" /><path class="fig-line" d="M271 67 L285 67" /><path class="fig-line" d="M365 67 L379 67" />
+      <text class="fig-sub" x="4" y="130">수수료를 많이 낸 거래가 대기실에서 먼저 블록에 담긴다</text>
+    </svg>
+    <figcaption>보내는 순간 끝나는 것이 아니라 블록에 담기고 그 위에 블록이 쌓일 때까지 기다려야 안전해진다.</figcaption>
+  </figure>
+
+  <ol>
+    <li><b>서명</b> 지갑이 개인키로 "이 코인을 이 주소로 보낸다"는 거래에 서명한다. 서명이 맞는지는 누구나 공개키로 검증할 수 있다.</li>
+    <li><b>전파</b> 거래가 네트워크의 노드들에게 퍼지고, 각 노드가 규칙(잔액·서명)을 검사한다.</li>
+    <li><b>대기</b> 검증을 통과한 거래는 아직 확정되지 않은 채 대기실(멤풀)에 쌓인다.</li>
+    <li><b>블록 포함</b> 채굴자가 대기 중인 거래를 골라 블록에 담는다. 수수료가 높은 거래를 먼저 담는 경향이 있어, 붐비는 때는 수수료를 올려야 빨리 처리된다.</li>
+    <li><b>확인</b> 블록이 하나 쌓일 때마다 확인 횟수가 1씩 늘어난다. 관례적으로 6번 확인(약 1시간)이면 충분히 안전하다고 본다. 큰 금액일수록 더 기다리기도 한다.</li>
+  </ol>
+
+  <div class="learn-note">
+    <b>잔고가 아니라 '쓰지 않은 조각'이다</b> 비트코인에는 계좌 잔고라는 숫자가 없다. 지갑 속 잔고는 <b>아직 쓰지 않은 거래 출력(UTXO)</b>이라는 조각들의 합이다. 현금으로 1만 원짜리를 내고 거스름돈을 받듯이, 조각 하나를 통째로 쓰고 남는 금액은 내 주소로 돌려받는다. 그래서 거래에는 받는 사람 몫과 거스름돈 몫이 함께 들어 있다. 최소 단위는 1억분의 1 비트코인으로, 이것을 사토시라고 부른다.
+  </div>
+
+  <h3>수수료와 속도</h3>
+  <p>수수료는 보내는 금액이 아니라 거래의 <b>데이터 크기</b>에 따라 정해지는 값이다. 100만 원을 보내든 10만 원을 보내든 조각 수가 같으면 수수료도 비슷하다. 블록은 약 10분마다 하나 생기고 한 블록에 담을 수 있는 거래가 한정돼 있어서, 거래가 몰리면 수수료가 오르고 대기 시간이 길어진다. 이 한계를 보완하려고 만든 것이 비트코인 위에 얹은 소액·즉시 결제망인 <b>라이트닝 네트워크</b>(2018년 시작)다.</p>
+
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-btc-chain">블록체인 - 장부를 위조하기 어려운 이유</h2>
+  <p>블록체인은 이름 그대로 <b>블록을 사슬처럼 이은 장부</b>다. 각 블록에는 거래 묶음과 함께 <b>바로 앞 블록의 지문(해시)</b>이 들어 있다. 앞 블록의 내용이 한 글자라도 바뀌면 지문이 완전히 달라지므로 뒤의 블록이 전부 어긋난다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 150" role="img" aria-label="블록체인 구조: 각 블록이 거래 묶음과 앞 블록의 해시를 담아 사슬처럼 연결된다">
+      <rect class="fig-soft" x="6" y="30" width="120" height="72" rx="8" /><text class="fig-ink" x="16" y="52">블록 100</text><text class="fig-sub" x="16" y="72">거래 묶음</text><text class="fig-sub" x="16" y="90">앞 블록 지문 A</text>
+      <rect class="fig-soft2" x="170" y="30" width="120" height="72" rx="8" /><text class="fig-ink" x="180" y="52">블록 101</text><text class="fig-sub" x="180" y="72">거래 묶음</text><text class="fig-sub" x="180" y="90">앞 블록 지문 B</text>
+      <rect class="fig-soft" x="334" y="30" width="120" height="72" rx="8" /><text class="fig-ink" x="344" y="52">블록 102</text><text class="fig-sub" x="344" y="72">거래 묶음</text><text class="fig-sub" x="344" y="90">앞 블록 지문 C</text>
+      <path class="fig-line" d="M127 66 L169 66" /><path class="fig-line" d="M291 66 L333 66" />
+      <text class="fig-sub" x="6" y="132">101번을 고치면 지문 B가 바뀌고 102번부터 전부 어긋난다</text>
+    </svg>
+    <figcaption>과거 블록을 위조하려면 그 뒤에 쌓인 블록을 전부 다시 만들어야 한다.</figcaption>
+  </figure>
+
+  <h3>작업증명(PoW)과 채굴</h3>
+  <p>누가 다음 블록을 쓸지는 <b>무작위 숫자 맞히기 경쟁</b>으로 정한다. 채굴자는 블록 내용에 숫자(nonce)를 바꿔 넣으며 지문을 계산해서, 지문이 일정 조건(앞자리가 0으로 길게 시작)을 만족할 때까지 수없이 시도한다. 답을 찾기는 어렵지만 답이 맞는지 확인하기는 쉽다. 먼저 찾은 채굴자가 블록을 올리고 <b>블록 보상과 수수료</b>를 받는다. 참여자가 늘어 경쟁이 세지면 난이도가 자동으로 올라가고, 약 2주(2,016블록)마다 평균 블록 간격이 10분이 되도록 조정된다.</p>
+
+  <ul>
+    <li><b>풀노드</b> 모든 거래와 블록을 직접 내려받아 규칙대로 검사하는 컴퓨터다. 채굴자가 규칙을 어긴 블록을 만들어도 노드들이 거부한다.</li>
+    <li><b>가장 긴(작업량이 가장 많은) 체인이 정답이다</b> 같은 시각에 블록이 둘 생기면 잠시 갈라졌다가, 다음 블록이 더 붙은 쪽이 채택된다. 그래서 확인 횟수가 쌓일수록 안전하다.</li>
+    <li><b>이중지불 방지</b> 같은 코인을 두 번 쓰는 거래는 한쪽만 블록에 담긴다. 중간 장부 관리자 없이도 이를 막는 것이 비트코인의 핵심 발명이다.</li>
+  </ul>
+
+  <table class="learn-table">
+    <thead><tr><th>용어</th><th>뜻</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>해시</td><td>어떤 데이터든 고정 길이의 지문으로 바꾸는 계산</td><td>비트코인은 SHA-256을 쓴다</td></tr>
+      <tr><td>51% 공격</td><td>한 쪽이 전체 연산력의 과반을 차지해 최근 거래를 되돌리거나 막는 시도</td><td>비트코인처럼 규모가 큰 체인에서는 비용이 막대해 현실성이 낮다고 본다. 규모가 작은 코인에서는 실제 사례가 있다</td></tr>
+      <tr><td>포크</td><td>규칙이 바뀌며 체인이 갈라지는 일</td><td>호환되는 업그레이드(소프트포크)와 호환되지 않는 분리(하드포크)가 있다. 2017년 하드포크로 비트코인캐시가 생겼다</td></tr>
+      <tr><td>세그윗·탭루트</td><td>2017년·2021년에 적용된 대표적인 기능 개선</td><td>거래 데이터 효율과 개인정보·스마트 기능을 다듬었다</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>블록체인이 곧 비트코인은 아니다</b> 블록체인은 장부를 나누어 관리하는 기술이고, 비트코인은 그 기술로 만든 첫 번째 응용이다. 이더리움처럼 장부 위에 프로그램(스마트 컨트랙트)을 올리는 체인도 있다. 한편 블록체인이 느리고 에너지를 많이 쓴다는 비판도 있어서, 모든 용도에 맞는 해법이라고 단정할 수 없다.
+  </div>
+
+  </section>
+  <section class="learn-sec">
+  <h2 id="sec-btc-buy">비트코인을 사는 방법과 보관법</h2>
+  <table class="learn-table">
+    <thead><tr><th>방법</th><th>어떻게</th><th>알아 둘 점</th></tr></thead>
+    <tbody>
+      <tr><td>국내 거래소 현물</td><td>원화를 입금해 업비트·빗썸 같은 곳에서 직접 산다</td><td>코인은 거래소가 보관한다. 거래소의 보안·재무 상태에 노출된다</td></tr>
+      <tr><td>개인 지갑으로 출금</td><td>산 코인을 직접 관리하는 지갑으로 옮긴다</td><td>시드 구문을 잃으면 되찾을 수 없다. 주소를 잘못 입력해도 되돌릴 수 없다</td></tr>
+      <tr><td>해외 현물 ETF</td><td>미국에 상장된 비트코인 현물 ETF를 증권 계좌로 산다</td><td>코인을 직접 갖는 것이 아니고 운용 보수가 붙는다. 한국에서의 거래 가능 여부와 세금은 증권사·당국 안내로 확인한다</td></tr>
+      <tr><td>선물·레버리지</td><td>가격 방향에 돈을 건다</td><td>증거금보다 큰 손실이 날 수 있고 강제청산 위험이 있다. 초보자가 쓰기에 위험하다</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>"내 열쇠가 아니면 내 코인이 아니다"</b> 거래소에 두는 것은 편리하지만 거래소가 해킹당하거나 파산하면 묶일 수 있다(마운트곡스, FTX 사례). 반대로 직접 보관은 안전한 대신 모든 책임이 본인에게 있다. 큰 금액을 오래 들고 간다면 인터넷에 연결되지 않은 하드웨어 지갑(콜드 월렛)을 쓰는 사람이 많다.
+  </div>
+
+  <h3>비트코인을 둘러싼 두 가지 시각</h3>
+  <ul>
+    <li><b>가치 저장 수단(디지털 금)이라는 시각</b> 총량이 정해져 있고 중앙은행이 마음대로 늘릴 수 없다는 점을 근거로 든다.</li>
+    <li><b>투기 자산에 가깝다는 시각</b> 현금흐름이 없고 가격이 심리에 크게 좌우되며, 채굴의 전력 소비와 불법 자금 이용 문제가 있다고 지적한다.</li>
+  </ul>
+  <p>어느 쪽이든 변동성은 크다. 잃어도 생활에 지장이 없는 금액으로, 거래 방식과 보관 책임을 이해한 뒤에 접근하는 것이 기본이다.</p>
+
+  </section>
+  <section class="learn-sec">
   <h2 id="sec-3">알트코인 - 비트코인이 아닌 나머지 전부</h2>
   <p>"알트코인(alt-coin)"은 비트코인을 뺀 모든 코인을 뭉뚱그려 부르는 말이다. 성격이 저마다 다르다.</p>
 
@@ -211,6 +354,9 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
   <h2 id="sec-quiz">직접 풀어 보기</h2>
   <details class="in-quiz"><summary>1. 해외 거래소에서 1비트코인이 100,000달러, 환율은 1,400원이다. 국내 거래소 값이 1억 4,700만 원이면 김치 프리미엄은?</summary><p>해외 값을 원화로 바꾸면 1억 4,000만 원이다. 국내가 700만 원 비싸니 약 5% 프리미엄이다.</p></details>
   <details class="in-quiz"><summary>2. 스테이블코인은 1달러에 맞춰 설계됐다. 그럼 절대 값이 떨어지지 않을까?</summary><p>아니다. 담보가 모자라거나 믿음이 깨지면 1달러 아래로 떨어진 사례가 있다. 고정되도록 만들었을 뿐 위험이 없는 것은 아니다.</p></details>
+  <details class="in-quiz"><summary>4. 비트코인 지갑 앱을 지웠다. 시드 구문(복구 단어)을 적어 뒀다면 코인은 어떻게 될까?</summary><p>코인은 지갑 앱이 아니라 블록체인 위에 있다. 시드 구문으로 다른 기기에서 지갑을 복구하면 그대로 쓸 수 있다. 반대로 시드 구문을 잃으면 누구도 되찾아 줄 수 없다.</p></details>
+  <details class="in-quiz"><summary>5. 거래소에서 비트코인을 보낸 직후 상대가 받았다고 했다. 바로 안심해도 될까?</summary><p>블록에 담기고 그 뒤로 블록이 더 쌓여야 안전하다. 관례적으로 6번 확인(약 1시간)을 기준으로 삼고, 큰 금액일수록 더 기다리기도 한다.</p></details>
+  <details class="in-quiz"><summary>6. 블록 100번의 거래 하나를 몰래 고치면 왜 들키는가?</summary><p>블록 100의 지문이 바뀌고, 그 지문을 담은 101번 이후 블록이 전부 어긋난다. 모든 노드가 규칙을 검사하므로 고친 체인은 거부된다.</p></details>
   <details class="in-quiz"><summary>3. 반감기가 오면 비트코인 값은 반드시 오를까?</summary><p>새로 풀리는 양은 줄지만 값은 사려는 사람이 정한다. 공급이 줄어도 가격이 자동으로 오르지는 않는다.</p></details>
   </section>
 
@@ -238,7 +384,7 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
 
   <section class="learn-sec">
   <h2 id="sec-9">한 줄 정리</h2>
-  <p>거래소는 중앙화(CEX)와 탈중앙화(DEX)로 성격이 다르고, 비트코인은 발행량 상한과 반감기로 공급이
+  <p>비트코인은 2008년 백서에서 시작해 장부를 전 세계가 나눠 갖고 작업증명으로 위조를 막는 방식으로 움직이며, 거래는 서명·전파·블록 포함·확인의 순서를 거친다. 거래소는 중앙화(CEX)와 탈중앙화(DEX)로 성격이 다르고, 비트코인은 발행량 상한과 반감기로 공급이
   정해져 있으며, 알트코인은 저마다 다른 목적으로 만들어진다. 스테이블코인은 가격이 고정되도록 설계됐을
   뿐 위험이 없는 것은 아니다.</p>
 
