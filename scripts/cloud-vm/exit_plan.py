@@ -92,8 +92,9 @@ def summarize(results):
     return out
 
 
-def track_summary(conn, scanner, load_bars=None):
-    """기존 연구 태그 추적 기록(pattern_tracks)을 읽어 exit-v1/exit-v2 결과를 따로 집계한다(읽기 전용)."""
+def track_summary(conn, scanner, load_bars=None, date_ok=None):
+    """기존 연구 태그 추적 기록(pattern_tracks)을 읽어 exit-v1/exit-v2 결과를 따로 집계한다(읽기 전용).
+    date_ok: 포착일(YYYY-MM-DD)을 받아 포함 여부를 돌려주는 함수(예: KOSPI 60일선 위인 날만)."""
     if load_bars is None:
         from pattern_tracker import load_bars
     try:
@@ -101,6 +102,8 @@ def track_summary(conn, scanner, load_bars=None):
                             (scanner,)).fetchall()
     except Exception:
         rows = []
+    if date_ok is not None:
+        rows = [r for r in rows if date_ok(str(r[1]))]
     per_rule = {key: [] for key in RULES}
     cache, missing = {}, 0
     for code, date in rows:

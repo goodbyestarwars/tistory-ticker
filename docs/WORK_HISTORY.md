@@ -1,3 +1,5 @@
+**2026-11-20 검색기 모니터링(사용자 지시 "확실하면 남기고 아니면 모니터링 및 수정 대상")** — `shape_scan.monitor_summary`가 매일 모든 검색기(20개 추적 키)의 기존 추적 기록을 exit-v1/v2 실제 결과로 집계(전체/KOSPI 60일선 위), `shapeSelection.monitor`. `exit_plan.track_summary`에 `date_ok` 추가. 다시 쓰는 기준은 `docs/SCANNER_MONITORING_2026-11-20.md`(결과 전 고정). 화면·선정·주문 불변. 자동매매 신규 매수는 주도주만(비공개 PR #9). 검증: test_exit_plan 로컬 7+1skip·Linux OK, test_earn_signal Linux OK. 사이트 백엔드 반영은 보호 시간 이후.
+
 **2026-11-20 검색기 성적표 5단계: 저점상승 패턴 단독(사용자 질문 "저점을 계속 올리는 종목 어때")** — 운영 `detect_rising_lows`를 5년 재현(신호 10,471건), 1단계 틀로 판정. 모든 날 초과 -1.28/+0.86/+1.78%p, KOSPI 60일선 위 -1.43/+1.88/+2.85%p(검증·시험 PF 1.27·1.25) — 둘 다 '고침'(학습 기간 음수). 참고 exit-v2+KOSPI 60일선 위 PF 0.59/1.65/1.94. `legacy_replay_batch.py`에 `SCANNERS` 선택 추가. 검색기·주문 변경 없음.
 
 **2026-11-20 9Pay 단타 검증용 보존 기록 시작(사용자 지시 "진행해")** — `kiwoom_9pay_live.py`가 기존 1MiB 회전 로그와 별도로 신호·결과(5분 최대 상승/하락 + 신호가·현재가 추가)·70% 이후 단계만 월별 `kiwoom_9pay_signals_YYYYMM.jsonl`에 회전 없이 저장(새 수집·API 없음, 실패해도 관측 계속). 판정 기준은 `docs/NINEPAY_DAYTRADE_VALIDATION_2026-11-20.md`에 결과 전 고정(신호 100건 뒤 LIVE 근사로 70% 도달·미신호 기준선 대비). 실계좌 장부상 9Pay 매수는 10/14 이후 0건. 검증: 9Pay 관련 테스트 22 passed(보존 기록 2개 추가). 배포는 사이트 백엔드 보호 시간(평일 08:00~20:00) 밖에서 반영.
