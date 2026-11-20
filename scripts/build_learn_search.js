@@ -32,7 +32,7 @@ function pageEntries(file) {
   const html = fs.readFileSync(path.join(LEARN, file), 'utf8');
   const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html);
   const title = h1 ? plain(h1[1]) : file;
-  const start = html.indexOf('<div class="legal-wrap">');
+  const start = html.search(/<div class="legal-wrap[^"]*">/);
   let body = html.slice(start < 0 ? 0 : start);
   const end = body.search(/<div class="learn-nav">|<div class="legal-contact">|<script/);
   if (end > 0) body = body.slice(0, end);
