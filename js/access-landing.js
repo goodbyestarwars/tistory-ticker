@@ -17,8 +17,8 @@
   var CSS =
     'html.nine-landing-open,html.nine-landing-open body{overflow:hidden}' +
     '.nl{position:fixed;inset:0;z-index:2147000000;box-sizing:border-box;display:flex;overflow:auto;padding:clamp(16px,4vw,56px);background:#eee8dc;color:#24231f;font-family:var(--font-ui,"Pretendard Variable",system-ui,sans-serif)}' +
-    '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(280px, .62fr) minmax(0, 1.9fr);width:min(1360px,100%);margin:auto;background:#f7f0e4;border:1px solid #fff8ed;border-radius:22px;padding:10px;box-shadow:0 18px 45px rgba(93,69,37,.19)}' +
-    '.nl-login-panel{display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,4vw,56px)}' +
+    '.nl-layout{box-sizing:border-box;display:grid;grid-template-columns:minmax(340px, .82fr) minmax(0, 1.9fr);width:min(1360px,100%);margin:auto;background:#f7f0e4;border:1px solid #fff8ed;border-radius:22px;padding:10px;box-shadow:0 18px 45px rgba(93,69,37,.19)}' +
+    '.nl-login-panel{display:flex;flex-direction:column;justify-content:center;padding:clamp(22px,3vw,44px)}' +
     '.nl-logo{font-size:18px;font-weight:700;margin-bottom:32px;color:#292721}' +
     '.nl-title,.nl-sub{font-family:inherit;font-size:16px;font-weight:700;line-height:1.65}.nl-title{margin:0}' +
     '.nl-sub{margin:12px 0 26px;color:#554d40;word-break:keep-all}' +
