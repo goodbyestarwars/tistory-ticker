@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>10장 게임이론 · 경제 이야기</title>
+<meta name="description" content="두 가게가 값을 내릴지 말지 고민하는 죄수의 딜레마, 내시균형, 중고차 시장의 정보 비대칭을 가상 숫자와 표로 쉽게 설명한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+<link rel="stylesheet" href="../css/learn-cards.css?v=20261121-cards-1" />
+<script>try{if(localStorage.getItem('lc_mode')!=='scroll')document.documentElement.classList.add('lc-pre')}catch(e){document.documentElement.classList.add('lc-pre')}</script>
+</head>
+<body class="learn-page">
+<div class="legal-wrap econ-page">
+  <div class="legal-backs">
+    <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+    <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
+  </div>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>10장 · 게임이론</h1>
+  <p class="legal-effective-date">서로 눈치를 보는 두 가게, 값을 내릴까 말까</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>학교 앞에 분식집이 두 곳뿐이다. 둘 다 떡볶이를 3,000원에 판다. 어느 날 한 집이 "2,500원!"이라고 써 붙였다. 손님이
+  몰렸다. 옆집은 가만히 있을까? 아니다. 옆집도 값을 내린다. 결국 둘 다 값만 내리고 손님은 그대로다.</p>
+  <p>이렇게 <b>내가 어떻게 하느냐보다 상대가 어떻게 하느냐가 결과를 좌우하는 상황</b>을 연구하는 학문이
+  <b>게임이론</b>이다. 9장의 과점(몇 곳이 나눠 가진 시장)을 이해하는 열쇠이고, 투자자에게는 "상대가 나보다 더
+  알고 있을 때"를 생각하게 해 준다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">두 가게의 고민 · 죄수의 딜레마</h2>
+  <p>두 분식집이 값을 높게(3,000원) 유지하느냐, 낮게(2,500원) 내리느냐 정한다. 하루 이익은 이렇다고 하자(가상 숫자,
+  단위 만 원).</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 230" role="img" aria-label="두 가게의 값 선택 표: 둘 다 유지하면 각각 100, 한 곳만 내리면 내린 곳 150과 유지한 곳 40, 둘 다 내리면 각각 70">
+      <text class="fig-sub" x="150" y="16">B 가게</text>
+      <text class="fig-ink" x="130" y="40" font-size="12">값 유지</text>
+      <text class="fig-ink" x="268" y="40" font-size="12">값 내림</text>
+      <text class="fig-sub" x="0" y="130">A 가게</text>
+      <text class="fig-ink" x="58" y="96" font-size="12">값 유지</text>
+      <text class="fig-ink" x="58" y="186" font-size="12">값 내림</text>
+      <rect class="fig-white" x="110" y="52" width="130" height="80" rx="6" />
+      <rect class="fig-soft" x="250" y="52" width="130" height="80" rx="6" />
+      <rect class="fig-soft" x="110" y="142" width="130" height="80" rx="6" />
+      <rect class="fig-soft2" x="250" y="142" width="130" height="80" rx="6" />
+      <text class="fig-ink" x="130" y="82" font-size="13">A 100 · B 100</text>
+      <text class="fig-sub" x="130" y="108">둘 다 편하다</text>
+      <text class="fig-ink" x="270" y="82" font-size="13">A 40 · B 150</text>
+      <text class="fig-sub" x="270" y="108">A만 손님을 잃는다</text>
+      <text class="fig-ink" x="130" y="172" font-size="13">A 150 · B 40</text>
+      <text class="fig-sub" x="130" y="198">B만 손님을 잃는다</text>
+      <text class="fig-up" x="270" y="172" font-size="13">A 70 · B 70</text>
+      <text class="fig-sub" x="270" y="198">둘 다 내리고 남는다</text>
+    </svg>
+    <figcaption>A는 B가 어떻게 해도 값을 내리는 쪽이 더 낫다(B가 유지하면 150>100, B가 내리면 70>40). B도 마찬가지다. 그래서 둘 다 내려 70씩 얻는 칸에서 멈춘다.</figcaption>
+  </figure>
+
+  <p>둘 다 값을 유지하면 100씩 얻을 수 있는데도, 각자 따로 생각하면 둘 다 내리는 쪽으로 간다. 개인에게 가장 좋은
+  선택이 둘에게는 더 나쁜 결과를 만든다. 이것을 <b>죄수의 딜레마</b>라 한다. 이름은 경찰이 두 용의자를 따로
+  불러 "먼저 자백하면 풀어 준다"고 하는 예에서 왔다.</p>
+
+  <div class="learn-note">
+    <b>학생 관점 · 시험 때 몰래 짜는 약속</b> 둘이 "같이 공부 안 하고 놀지 말자"고 약속했다고 하자. 한 명이 몰래
+    공부하면 혼자만 점수가 오른다. 그래서 서로 믿지 못하면 둘 다 공부하게 된다. 약속을 지킬 이유가 없는 상황에서는
+    합의가 쉽게 깨진다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">아무도 바꾸고 싶지 않은 자리 · 내시균형</h2>
+  <p>위 표에서 둘 다 값을 내린 칸(70, 70)을 보자. A는 B가 값을 내린 채라면 자기만 올릴 이유가 없다(올리면 40으로
+  떨어진다). B도 같다. 이렇게 <b>상대가 그대로일 때 나도 바꿀 이유가 없는 상태</b>를 <b>내시균형</b>이라 한다.
+  수학자 존 내시가 정리했다.</p>
+  <p>중요한 점은 내시균형이 <b>가장 좋은 결과라는 뜻이 아니라는 것</b>이다. 위 표에서는 오히려 둘 다 100을 얻는 칸이
+  더 좋다. 그런데 그 칸은 한 명이 몰래 어기고 싶어지는 자리라 오래 못 간다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>상황</th><th>무슨 일이 생기나</th></tr></thead>
+    <tbody>
+      <tr><td>몇 곳이 나눈 시장(과점)</td><td>서로 눈치를 보다 값 전쟁이 터진다</td></tr>
+      <tr><td>군비 경쟁</td><td>한 나라가 늘리면 상대도 늘려 둘 다 비용만 는다</td></tr>
+      <tr><td>공유지의 비극(7장)</td><td>모두 아끼지 않고 쓰다가 바닥난다</td></tr>
+      <tr><td>단체 대화방의 소음</td><td>참던 사람이 먼저 떠나 대화가 식는다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">약속하면 깨고 싶어진다 · 담합과 그 처벌</h2>
+  <p>두 가게가 "우리 둘 다 3,000원으로 하자"고 몰래 약속하면 100씩 얻을 수 있다. 이렇게 경쟁해야 할 회사들이
+  값을 짜는 것을 <b>담합</b>이라 한다. 소비자는 비싼 값을 내야 하니 우리나라 공정거래법은 담합을 금지하고
+  공정거래위원회가 과징금을 매긴다.</p>
+  <p>담합은 약속이 깨지기 쉬워서 오래가기도 어렵다. 한 회사가 몰래 값을 내리고, 담합을 먼저 자수한 회사는 처벌을
+  줄여 주는 제도도 있기 때문이다. 이 제도는 죄수의 딜레마를 법에 거꾸로 써먹은 예다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">한쪽만 알고 있을 때 · 정보 비대칭</h2>
+  <p>중고차 시장을 보자. 좋은 차는 1,000만 원, 문제 있는 차는 600만 원의 값어치가 있다. 파는 사람은 자기 차가 어떤지
+  안다. 사는 사람은 겉만 보고는 모른다. 이렇게 <b>한쪽이 더 많이 아는 상황</b>을 <b>정보 비대칭</b>이라 한다.</p>
+  <p>사는 사람은 좋은 차와 나쁜 차가 반반 섞여 있다고 보고 평균인 800만 원까지만 낸다고 하자. 그러면 1,000만 원짜리
+  좋은 차 주인은 800만 원에 팔기 싫어 시장에서 빠진다. 시장에는 점점 나쁜 차만 남고, 사는 사람은 더 낮은 값만
+  내려 한다. 결국 좋은 차는 거래되지 않는다. 경제학자 조지 애커로프가 이 현상을 설명해 노벨상을 받았다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 170" role="img" aria-label="중고차 시장에서 좋은 차가 사라지는 과정: 값을 평균으로 쳐 주면 좋은 차 주인이 빠지고, 나쁜 차만 남는다">
+      <rect class="fig-white" x="0" y="10" width="120" height="60" rx="6" />
+      <text class="fig-ink" x="12" y="36" font-size="12">좋은 차 1,000만</text>
+      <text class="fig-ink" x="12" y="56" font-size="12">나쁜 차 600만</text>
+      <path class="fig-ink-line" d="M126 40 H156 M148 35 L156 40 L148 45" />
+      <rect class="fig-soft" x="160" y="10" width="120" height="60" rx="6" />
+      <text class="fig-ink" x="172" y="36" font-size="12">사는 사람은</text>
+      <text class="fig-ink" x="172" y="56" font-size="12">평균 800만만 낸다</text>
+      <path class="fig-ink-line" d="M286 40 H316 M308 35 L316 40 L308 45" />
+      <rect class="fig-soft2" x="320" y="10" width="100" height="60" rx="6" />
+      <text class="fig-ink" x="330" y="36" font-size="12">좋은 차는</text>
+      <text class="fig-ink" x="330" y="56" font-size="12">팔기를 접는다</text>
+      <path class="fig-down-line" d="M370 76 V104 M365 96 L370 104 L375 96" />
+      <rect class="fig-bar" x="130" y="108" width="290" height="52" rx="6" />
+      <text class="fig-on-strong" x="146" y="132" font-size="12">시장에는 나쁜 차만 남아 값이 더 내려간다</text>
+      <text class="fig-on-strong" x="146" y="150" font-size="12">그래서 성능 기록·보증이 중요해진다</text>
+    </svg>
+    <figcaption>알 수 없다는 불안이 시장을 무너뜨린다. 그래서 중고차는 성능 점검 기록부와 보증 제도가 있다.</figcaption>
+  </figure>
+
+  <p>정보 비대칭은 곳곳에 있다. 보험 가입자는 자기 건강을 더 잘 알고, 회사 경영자는 주주보다 회사 사정을 더 잘
+  안다. 이 불균형을 줄이려는 제도가 점검 기록, 보증, 그리고 아래에서 볼 공시다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">개미 관점 · 시장은 서로 속고 속이는 게임이다</h2>
+  <p>주식은 사는 사람과 파는 사람이 한 종목을 두고 반대 쪽에 서는 게임이다. 누군가 사려는 이유가 있다면 누군가는
+  팔려는 이유가 있다. 그 상대가 나보다 정보가 많은 사람일 수도 있다.</p>
+  <table class="learn-table">
+    <thead><tr><th>장면</th><th>게임이론으로 보면</th></tr></thead>
+    <tbody>
+      <tr><td>회사가 자사주를 사들인다</td><td>경영자가 내부 사정을 더 안다. 주가가 싸다는 신호일 수도 있고 아닐 수도 있다</td></tr>
+      <tr><td>대주주가 지분을 판다</td><td>팔 이유가 개인 사정인지, 앞날이 어두운 때문인지 알기 어렵다</td></tr>
+      <tr><td>공시 의무</td><td>정보 비대칭을 줄이려고 회사에 사실을 알리게 한 제도다</td></tr>
+      <tr><td>리딩방의 "확실한 정보"</td><td>정말 유리한 정보라면 왜 나에게 알려 주는지부터 생각한다</td></tr>
+    </tbody>
+  </table>
+  <p>기업공시 이야기와 금융사기 이야기에서 이어서 읽을 수 있다. 정보가 나에게만 없다고 느껴질 때는 상대가 나보다
+  뭘 더 아는지, 그 사람이 왜 나에게 말하는지를 먼저 따져 본다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 두 분식집 표에서 B가 값을 유지한다면 A는 어느 쪽이 이득일까?</summary><p>A는 값을 유지하면 100, 내리면 150이다. 내리는 쪽이 이득이다.</p></details>
+  <details class="in-quiz"><summary>2. 내시균형이 가장 좋은 결과라는 말은 맞을까?</summary><p>아니다. 내시균형은 아무도 혼자서는 바꾸고 싶지 않은 자리일 뿐이다. 두 가게의 예에서는 둘 다 값을 유지한 칸이 둘에게 더 좋았다.</p></details>
+  <details class="in-quiz"><summary>3. 중고차 사는 사람이 평균값만 내려 하면 왜 좋은 차가 사라질까?</summary><p>좋은 차 주인은 평균보다 비싼 값을 받아야 하는데 못 받으니 팔기를 포기한다. 남은 차는 평균 품질이 낮아져 값이 더 내려간다.</p></details>
+  <details class="in-quiz"><summary>4. 담합 자수 제도는 죄수의 딜레마를 어떻게 이용할까?</summary><p>먼저 신고하는 회사의 처벌을 줄여 주면 서로 약속을 지킬 이유가 약해진다. 담합 가담자들이 서로 믿지 못하게 되는 것이다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="econ-game-deep">
+  <h2 id="econ-game-deep">한 걸음 더 · 만나는 횟수가 많으면 달라진다</h2>
+  <p>두 가게가 딱 하루만 게임을 한다면 값을 내리는 것이 낫다. 그런데 내일도, 모레도 계속 만난다면 어떨까? 오늘 내가
+  값을 내리면 내일 상대도 보복할 것이다. 이렇게 반복되는 관계에서는 "먼저 약속을 깨지 않는 것"이 오히려 이득이
+  될 수 있다.</p>
+  <p>1980년대 정치학자 로버트 액설로드는 여러 프로그램이 죄수의 딜레마를 반복해서 겨루는 대회를 열었다. 우승한
+  것은 아주 단순한 전략이었다. 첫판에는 협력하고, 그 뒤에는 상대가 직전에 한 대로 똑같이 따라 하는 방식이다.
+  상대가 협력하면 협력하고, 배신하면 한 번 보복한 뒤 다시 협력한다. 착하게 시작하고, 당하면 갚되, 뒤끝이
+  없다는 점이 강점이었다.</p>
+  <p class="in-small">어른을 위한 덧붙임: 현실의 담합이나 시장 거래는 상대가 몇 번 더 만날지, 서로의 행동을 볼 수 있는지에 따라 결과가 달라진다. 이 장의 숫자는 이해를 돕기 위한 가상 값이며, 경제학에서 더 정교한 모델이 쓰인다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">한 줄 정리</h2>
+  <p>서로의 선택이 결과를 좌우하는 상황이 게임이다. 각자 가장 좋은 선택을 하다 보면 둘 다 손해인 죄수의
+  딜레마가 생기고, 한쪽만 알고 있으면 좋은 물건이 시장에서 사라지기도 한다. 투자자는 상대가 나보다 무엇을 더 아는지를
+  먼저 생각한다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-firm-competition.html">← 9장 기업과 경쟁</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-policy.html">11장 경기와 정책 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-cards.js?v=20261121-cards-1"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>

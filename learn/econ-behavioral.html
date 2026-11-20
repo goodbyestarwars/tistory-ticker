@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>13장 행동경제 · 경제 이야기</title>
+<meta name="description" content="사람은 계산기처럼 합리적이지 않다는 행동경제학의 핵심을 제한된 합리성, 프레이밍, 심적 회계, 현재 편향, 넛지로 쉽게 설명한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+<link rel="stylesheet" href="../css/learn-cards.css?v=20261121-cards-1" />
+<script>try{if(localStorage.getItem('lc_mode')!=='scroll')document.documentElement.classList.add('lc-pre')}catch(e){document.documentElement.classList.add('lc-pre')}</script>
+</head>
+<body class="learn-page">
+<div class="legal-wrap econ-page">
+  <div class="legal-backs">
+    <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+    <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">← 경제 이야기</a>
+  </div>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>13장 · 행동경제</h1>
+  <p class="legal-effective-date">우리는 왜 계산기처럼 선택하지 않을까</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>1장에서 우리는 이득과 손해를 따져 가장 좋은 선택을 한다고 배웠다. 그런데 현실에서는 다이어트를 결심하고 야식을
+  먹고, 세뱃돈은 아끼면서 길에서 주운 돈은 펑펑 쓴다. 왜 그럴까?</p>
+  <p>경제학자들은 한동안 사람을 계산기처럼 완벽하게 합리적인 존재로 가정했다. 하지만 실제 사람의 선택을 관찰해 보니
+  일정한 방향으로 어긋나는 습관이 있었다. 이 어긋남을 연구하는 분야가 <b>행동경제학</b>이다. 투자자가 시장에서
+  하는 실수에 초점을 맞춘 '투자심리 이야기'와는 다르게, 이 장은 일상 선택 전체를 다루는 입문이다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">완벽하지 않아서 오히려 현실 · 제한된 합리성</h2>
+  <p>마트에서 사과 하나를 사는 데 전국 모든 가게의 값을 비교하는 사람은 없다. 시간도, 머리도, 정보도 한계가 있기
+  때문이다. 경제학자 허버트 사이먼은 이를 <b>제한된 합리성</b>이라 불렀다. 사람은 가장 좋은 답을 찾는 대신 "이
+  정도면 됐다"는 답에서 멈춘다.</p>
+  <p>그 과정에서 우리는 머릿속 지름길을 쓴다. 이것을 <b>어림짐작(휴리스틱)</b>이라 한다. 대부분은 잘 맞지만,
+  때로 틀린 결론으로 이끈다.</p>
+  <table class="learn-table">
+    <thead><tr><th>어림짐작</th><th>어떻게 판단하나</th><th>틀리는 경우</th></tr></thead>
+    <tbody>
+      <tr><td>쉽게 떠오르면 자주 일어난다고 믿기</td><td>뉴스에서 본 일이 흔하다고 느낀다</td><td>비행기 사고를 자주 본 사람은 운전보다 비행이 위험하다고 느낀다</td></tr>
+      <tr><td>비슷하면 같다고 믿기</td><td>겉모습이 닮으면 같은 결과를 기대한다</td><td>유행하는 업종 이름만 붙었다고 좋은 회사로 믿는다</td></tr>
+      <tr><td>처음 본 숫자에 매이기</td><td>처음 들은 값을 기준으로 삼는다</td><td>"원래 10만 원"이라고 쓰인 표를 보면 7만 원이 싸 보인다</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">같은 말도 포장에 따라 달라진다 · 프레이밍</h2>
+  <p>"이 수술은 생존율이 90%다"와 "이 수술은 환자 10명 중 1명이 죽는다"는 같은 이야기다. 그런데 앞의 말을 들으면
+  수술을 선택하는 사람이 더 많다. 같은 내용을 어떤 틀(프레임)로 보여 주느냐에 따라 선택이 바뀌는 것을
+  <b>프레이밍 효과</b>라 한다.</p>
+  <table class="learn-table">
+    <thead><tr><th>같은 말</th><th>끌리는 쪽</th><th>덜 끌리는 쪽</th></tr></thead>
+    <tbody>
+      <tr><td>카드 수수료</td><td>현금 결제 할인 1,000원</td><td>카드 결제 수수료 1,000원 추가</td></tr>
+      <tr><td>고기</td><td>살코기 80%</td><td>지방 20%</td></tr>
+      <tr><td>투자 상품</td><td>1년 뒤 원금이 보장될 확률 90%</td><td>원금을 잃을 확률 10%</td></tr>
+    </tbody>
+  </table>
+  <p>광고, 가격표, 금융 상품 소개서는 프레임을 아주 신경 써서 만든다. 어떤 말이 눈에 먼저 들어오면 "같은 내용을
+  반대 말로 바꾸면 어떻게 들릴까"를 물어보자. 투자 설명에서 수익이 먼저 크게 나오고 위험이 작게 쓰여 있다면 더 조심할
+  신호다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">돈에도 이름표를 붙인다 · 심적 회계</h2>
+  <p>세뱃돈 10만 원은 저축하고, 길에서 주운 1만 원은 간식에 쓴다. 두 돈은 똑같은 돈이다. 그런데 우리는 돈에
+  "저축용", "여윳돈", "공돈" 같은 이름표를 붙여 다르게 대한다. 이것이 <b>심적 회계</b>다. 경제학자 리처드 탈러가
+  이름 붙였다.</p>
+  <div class="learn-note">
+    <b>개미 관점 · 번 돈은 쉽게 건다</b> 주식으로 번 돈을 "공돈"이라 여기고 더 위험한 곳에 거는 경우가 많다.
+    하지만 통장 숫자 입장에서는 번 돈이나 월급이나 똑같다. 잃으면 똑같이 줄어든다. 돈의 출처보다 목적과 위험으로 나누어
+    생각하는 편이 안전하다.
+  </div>
+  <p>심적 회계는 나쁜 것만은 아니다. 월급 통장과 저축 통장을 나누면 쓰고 싶은 마음을 자연스럽게 막아 준다. 문제는
+  이름표가 현실의 위험을 가릴 때다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">지금은 크게, 나중은 작게 · 현재 편향</h2>
+  <p>아래 두 질문에 답해 보자.</p>
+  <table class="learn-table">
+    <thead><tr><th>질문</th><th>많은 사람의 선택</th></tr></thead>
+    <tbody>
+      <tr><td>오늘 10,000원 vs 내일 10,500원</td><td>오늘 10,000원</td></tr>
+      <tr><td>1년 뒤 10,000원 vs 1년 하루 뒤 10,500원</td><td>하루 더 기다려 10,500원</td></tr>
+    </tbody>
+  </table>
+  <p>두 질문 모두 "하루를 기다리면 500원을 더 준다"인데 답이 달라진다. 눈앞의 만족을 지나치게 크게 느끼고 먼
+  미래의 일은 작게 느끼는 이 성향을 <b>현재 편향</b>이라 한다. 다이어트와 저축이 어려운 이유도, 내일부터 시작하겠다는
+  결심이 자주 무너지는 이유도 같다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">살짝 밀어 주면 선택이 달라진다 · 넛지</h2>
+  <p>사람의 선택은 설계에 영향을 받는다. 같은 가게에서도 과일을 눈높이에 두면 더 팔리고, 자동으로 가입되는 설계는
+  가입을 늘린다. 선택을 막지 않으면서 <b>좋은 방향으로 살짝 밀어 주는</b> 설계를 <b>넛지</b>(팔꿈치로 슬쩍 찌른다는
+  뜻)라 한다. 탈러와 법학자 캐스 선스타인이 널리 알렸고, 탈러는 2017년 노벨 경제학상을 받았다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="장기기증 동의율 비교: 직접 신청해야 하는 나라는 약 12%, 거부 의사를 밝히지 않으면 동의로 보는 나라는 거의 100%">
+      <text class="fig-sub" x="0" y="14">장기기증에 동의한 사람의 비율(연구 수치)</text>
+      <path class="fig-line" d="M40 24 V160 H410" />
+      <rect class="fig-soft2" x="90" y="136" width="80" height="24" />
+      <text class="fig-ink" x="100" y="130" font-size="12">약 12%</text>
+      <rect class="fig-up" x="250" y="26" width="80" height="134" />
+      <text class="fig-ink" x="256" y="20" font-size="12">거의 100%</text>
+      <text class="fig-sub" x="76" y="178">직접 신청해야 한다</text>
+      <text class="fig-sub" x="228" y="178">하지 않으면 동의</text>
+    </svg>
+    <figcaption>2003년 연구는 독일(직접 신청)과 오스트리아(거부하지 않으면 동의)의 동의율을 비교했다. 사람들의 마음이 달랐다기보다 기본값의 힘이 컸다는 해석이 나왔다.</figcaption>
+  </figure>
+
+  <p>기본값이 중요한 이유는 사람들이 귀찮음을 피하는 쪽으로 움직이기 때문이다. 직장인 퇴직연금을 자동 가입으로
+  바꾸자 가입자가 크게 늘었다는 연구도 많다. 나쁜 넛지도 있다. 해지 버튼은 숨기고 가입 버튼만 크게 만든 구독
+  서비스가 그렇다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 마트에서 모든 가게의 값을 비교하지 않고 적당한 곳에서 사는 것은 어떤 개념일까?</summary><p>제한된 합리성이다. 최선이 아니라 "이 정도면 됐다"에서 멈추는 것이다.</p></details>
+  <details class="in-quiz"><summary>2. "수술 성공률 90%"와 "실패율 10%"가 같은 내용이라는 것을 알면서도 앞의 말이 더 안심되는 이유는?</summary><p>프레이밍 효과다. 같은 내용이어도 이익으로 말하느냐 손실로 말하느냐에 따라 느낌과 선택이 달라진다.</p></details>
+  <details class="in-quiz"><summary>3. 용돈 통장과 비상금 통장을 나누면 좋은 점은?</summary><p>돈에 이름표를 붙이는 심적 회계를 일부러 이용해 쓰고 싶은 마음을 막을 수 있다.</p></details>
+  <details class="in-quiz"><summary>4. 사려는 사람이 직접 취소하기 어렵게 만든 구독 서비스는 넛지일까?</summary><p>선택을 막는다는 점에서 좋은 넛지라 하기 어렵다. 선택을 열어 두되 좋은 쪽으로 밀어 주는 것이 넛지의 기본이다.</p></details>
+  </section>
+
+  <section class="learn-deep" aria-labelledby="econ-behav-deep">
+  <h2 id="econ-behav-deep">한 걸음 더 · 우리는 왜 확신할수록 더 틀릴까</h2>
+  <p>사람은 자기가 아는 것을 과대평가하는 경향이 있다. 어떤 시험에서 "90% 확신한다"고 답한 문제의 정답률이
+  그보다 훨씬 낮은 연구가 많다. 이를 <b>과신</b>이라 한다. 확신이 클수록 반대 증거를 덜 찾아 보기 때문이다.</p>
+  <p>그래서 행동경제학이 권하는 것은 의지를 키우는 것이 아니라 <b>장치를 만드는 것</b>이다. 월급날 자동이체로 저축을
+  먼저 빼 두기, 투자하기 전에 틀릴 수 있는 이유를 한 줄 적기, 큰 결정은 하루 자고 다시 보기 같은 것이다.</p>
+  <p class="in-small">어른을 위한 덧붙임: 행동경제학은 사람이 비합리적이라고 낙인찍는 학문이 아니다. 어떤 방향으로 어긋나는지를 예측해 제도와 상품을 더 나은 설계로 바꾸자는 것이다. 일부 효과는 반복 실험에서 크기가 줄거나 재현이 어렵다는 논의도 있어, 하나의 연구를 절대적인 진리로 보지 않는다. 투자 쪽 편향은 '투자심리 이야기'를 참고하자.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">한 줄 정리</h2>
+  <p>사람은 시간과 정보의 한계 속에서 어림짐작으로 선택한다. 같은 말도 프레임에 따라 달라 보이고, 돈에 이름표를
+  붙이며, 눈앞의 만족을 더 크게 느낀다. 의지를 믿기보다 기본값과 자동이체 같은 장치를 만들어 두면 선택이 나아진다.</p>
+  </section>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-inequality.html">← 12장 부와 불평등</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/econ-thinkers.html">14장 경제학자 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-cards.js?v=20261121-cards-1"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>

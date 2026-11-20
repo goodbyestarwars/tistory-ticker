@@ -1841,6 +1841,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
             # 2026-11-20 사용자 요청으로 추가한 7·8장.
             "econ-public.html": ("공공재", "무임승차", "외부효과", "누진세"),
             "econ-growth.html": ("GDP", "실질 GDP", "1인당 GDP", "생산성"),
+            # 2026-11-21 사용자 요청으로 추가한 9~15장과 1·8장 보강.
+            "econ-firm-competition.html": ("고정비용", "한계비용", "독점", "가격 차별"),
+            "econ-game-theory.html": ("죄수의 딜레마", "내시균형", "정보 비대칭"),
+            "econ-policy.html": ("총수요", "재정승수", "필립스 곡선", "스태그플레이션"),
+            "econ-inequality.html": ("지니계수", "로렌츠 곡선", "재분배"),
+            "econ-behavioral.html": ("제한된 합리성", "프레이밍", "넛지"),
+            "econ-thinkers.html": ("애덤 스미스", "케인스", "탈러"),
+            "econ-crisis.html": ("뱅크런", "신용경색", "대마불사"),
         }
         for chapter, terms in chapter_terms.items():
             with self.subTest(chapter=chapter):
