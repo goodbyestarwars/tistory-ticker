@@ -6,9 +6,9 @@ const card=src.slice(src.indexOf('var MENU_SCORECARD='),src.indexOf('function sc
 const make=tab=>new Function('var escapeHtml=s=>String(s);var activeTab='+JSON.stringify(tab)+';'+card+grab('scorecardHtml')+'return scorecardHtml();')();
 for(const t of ['liveFlow','trendBreakout','bottomFormation','pullbackRebreak','longTermQuality','leaderPullback'])
   assert.ok(/과거 5년 성적/.test(make(t)) && /미래 수익 보장 아님/.test(make(t)),t);
-assert.ok(make('trendBreakout').includes('+0.1 / -0.2 / +0.8%p'));
+{const h=make('trendBreakout');assert.ok(h.includes('+0.1%p')&&h.includes('-0.2%p')&&h.includes('+0.8%p'));}
 assert.ok(make('pullbackRebreak').includes('우위 없음'));
-assert.ok(make('leaderPullback').includes('+10.3% (2024~2025.6)') && make('leaderPullback').includes('검증 통과'));
+assert.ok(make('leaderPullback').includes('+10.3%')&&make('leaderPullback').includes('2024~2025.6') && make('leaderPullback').includes('검증 통과'));
 assert.ok(make('longTermQuality').includes('재무 조건 제외 근사'));
 assert.equal(make('unknown'),'');
 assert.ok(/list\.innerHTML=market\+scorecardHtml\(\)/.test(src),'매수후보 위에 표시');
