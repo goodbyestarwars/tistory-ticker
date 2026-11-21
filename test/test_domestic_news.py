@@ -16,7 +16,21 @@ class DomesticNewsTests(unittest.TestCase):
     def tearDown(self):
         domestic_news._watchlist_disclosure_cache.clear()
         domestic_news._kind_cache = None
+        domestic_news._kind_retry_after = 0.0
         domestic_news._dart_cache.clear()
+
+    def test_kind_failure_backs_off_instead_of_retrying_every_request(self):
+        """KIND가 403 등으로 실패하면 backoff 동안 재요청하지 않고 직전 캐시를 쓴다(2026-11-22)."""
+        domestic_news._kind_cache = (0, [{'title': 'old', 'stockName': 'A'}])
+        with mock.patch.object(domestic_news.urllib.request, 'urlopen',
+                               side_effect=OSError('HTTP 403')) as opened:
+            first = domestic_news._kind_items()
+            second = domestic_news._kind_items()
+            forced = domestic_news._kind_items(fresh=True)
+        self.assertEqual(opened.call_count, 1)
+        self.assertEqual([row['title'] for row in first], ['old'])
+        self.assertEqual(first[0]['title'], second[0]['title'])
+        self.assertEqual(forced[0]['title'], 'old')
 
     def test_cache_reads_use_an_index_instead_of_scanning_the_whole_table(self):
         """캐시 조회가 전체 테이블 스캔으로 돌아가지 않는지 고정한다.
