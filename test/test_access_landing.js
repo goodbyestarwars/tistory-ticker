@@ -16,7 +16,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     // 시작 화면: 상단 공개 메뉴·로그인 버튼 없음, 왼쪽 하단 큰 버튼 2개
     assert.equal(await page.locator('.nl-nav').count(), 0);
     const names = (await page.locator('.nl-actions .nl-btn').allInnerTexts()).map(t => t.trim());
-    assert.deepEqual(names, ['로그인', '비회원 로그인']);
+    assert.deepEqual(names, ['로그인', '비회원으로 둘러보기']);
     const boxes = await page.locator('.nl-actions .nl-btn').evaluateAll(a => a.map(n => { const r = n.getBoundingClientRect(); return {x: r.x, y: r.y, w: r.width, h: r.height}; }));
     for (const b of boxes) { assert.ok(b.h >= 56 && b.h <= 64, 'button height ' + b.h); assert.ok(b.x >= 0 && b.x + b.w <= width + 1 && b.y + b.h <= 800, 'inside viewport ' + JSON.stringify(b)); }
     if (width > 720) { assert.ok(boxes[0].w >= 200 && boxes[0].w <= 241 && boxes[0].x < width / 2, 'desktop width/left ' + JSON.stringify(boxes[0])); assert.ok(Math.abs(boxes[0].y - boxes[1].y) < 2, 'same row'); }
