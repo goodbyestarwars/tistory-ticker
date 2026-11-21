@@ -16,4 +16,18 @@ assert.deepEqual(rs('Taiwan Airways said strong sales'),[]);                 // 
 assert.deepEqual(rs('조선일보 보도: 북조선 관련 소식'),[]);                      // 조선일보·북조선은 조선업이 아니다
 assert.deepEqual(rs('에코프로 배터리 증설'),['2차전지']);              // 기업 분류와 같은 분야는 중복 표시하지 않는다
 assert.deepEqual(rs({title:'AI 기업 상장',krSectors:['반도체']}),['반도체','AI']); // 서버 제공 분류가 먼저
+// 2026-11-21 확장: SECTOR_MAP 분야명 전반 + 대표 글로벌 반도체·AI 기업명
+assert.deepEqual(rs('엔비디아 실적 호조…AI 반도체 수요'),['반도체','AI']);
+assert.deepEqual(rs('Anthropic의 혼란스러운 거래 데뷔를 둘러싼 책임 공방'),['AI']);
+assert.deepEqual(rs('로봇 산업 투자 확대, 우주항공 발사체 수주'),['로봇','우주항공']);
+assert.deepEqual(rs('석유화학 업황 부진'),['화학']);                          // 석유화학은 정유가 아니라 화학
+assert.deepEqual(rs('국제유가 급등, 정유주 강세'),['석유/정유']);
+assert.deepEqual(rs('K팝 엔터사 실적, 리츠 배당 확대'),['연예기획사','리츠']);
+assert.deepEqual(rs('스테이블코인 발행 확대에 증권사 주목'),['IT/스테이블코인','증권']);
+assert.deepEqual(rs('SMR 원전 수주, 태양광 풍력 확대'),['신재생/원자력']);
+assert.deepEqual(rs('5G 통신사 요금제'),['통신']);
+assert.deepEqual(rs('건설적인 논의가 이어졌다'),[]);                           // 건설적 ≠ 건설업
+assert.deepEqual(rs('식품의약품안전처 발표'),[]);                              // 식품의약품안전처 ≠ 식품업
+assert.deepEqual(rs('연합뉴스 통신 기사 모음'),[]);                            // 통신사(通信社) 아닌 일반 단어
+assert.deepEqual(rs('Samsung said the deal is paid in full'),[]);            // 단어 속 AMD/AI 아님(paid·said)
 console.log('news business-sector badges: explicit companies only, provided metadata, dedup, curated group excluded PASS');
