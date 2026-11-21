@@ -27,7 +27,7 @@ test('home upgrades an already loaded legacy crypto module and retries a mismatc
   const document={createElement:()=>({}),head:{appendChild:s=>scripts.push(s)}};
   const source=fs.readFileSync('js/home-weekly-report.js','utf8').replace(/global\.HomeWeeklyReport = \{ init: init, syncContent: syncContent[^}]*\};/,'global.HomeWeeklyReport = {module:coinModule};');
   vm.runInNewContext(source,{window,document,URL,AbortController,setTimeout,clearTimeout});
-  const pending=window.HomeWeeklyReport.module();assert.equal(scripts.length,1);assert.match(scripts[0].src,/v=20261026-listed-quotes/);
+  const pending=window.HomeWeeklyReport.module();assert.equal(scripts.length,1);assert.match(scripts[0].src,/crypto-market\.js\?v=/);
   scripts[0].onload();await assert.rejects(pending,/contract/);
   const retry=window.HomeWeeklyReport.module();assert.equal(scripts.length,2);
   window.CryptoMarket.quoteContractVersion=1;scripts[1].onload();assert.equal(await retry,window.CryptoMarket);

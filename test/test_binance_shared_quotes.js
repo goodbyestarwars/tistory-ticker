@@ -55,7 +55,7 @@ test('cached legacy helper is upgraded once before the new listed-quote contract
   const document={readyState:'loading',addEventListener(){},createElement:()=>({}),head:{appendChild:s=>scripts.push(s)}};
   vm.runInNewContext(fs.readFileSync('js/crypto-market.js','utf8'),{window,document,URL,AbortController,setTimeout,clearTimeout});
   const a=window.CryptoMarket.fetchTokenQuotes(),b=window.CryptoMarket.fetchTokenQuotes();
-  assert.equal(scripts.length,1);assert.match(scripts[0].src,/v=20261026-listed-quotes/);
+  assert.equal(scripts.length,1);assert.match(scripts[0].src,/overnight-market\.js\?v=/);
   const options=[];
   window.OvernightMarket={cryptoTools:{quoteContractVersion:1,fetchTokens:async o=>{options.push(o);return{symbols:[],items:[]};}}};
   scripts[0].onload();await Promise.all([a,b]);assert.equal(options.length,2);assert.ok(options.every(o=>o.quotesOnly===true));
