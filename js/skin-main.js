@@ -519,21 +519,21 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges', ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
         key: 'us-macro', badge: '발표 자료', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
-        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261025-tab-explainers',
-        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
+        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261109-calendar-results',
+        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
         key: 'crypto', badge: '가상자산 시세', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
         script: ASSET_BASE + 'js/crypto-market.js?v=20261115-crypto-live',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges',
-          ASSET_BASE + 'css/crypto-market.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
+          ASSET_BASE + 'css/crypto-market.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
         // 2026-10-11: 한국수출입은행 일별 공식 고시환율. 마운트(#fx-rates)는 아래 build()가 만든다 - skin.html 변경 없음.
@@ -598,7 +598,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (!historyModuleJob) historyModuleJob = new Promise(function (resolve) {
         if (window.MarketChartHistory) { resolve(); return; }
         var script = document.createElement('script');
-        script.src = ASSET_BASE + 'js/market-history.js?v=20261008-5y';
+        script.src = ASSET_BASE + 'js/market-history.js?v=20261018-index-3y';
         script.onload = script.onerror = resolve;
         document.head.appendChild(script);
       });
@@ -2700,7 +2700,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     function loadHomeHistory(session) {
       var group = session.market === 'us' ? 'global' : 'domestic';
       if (homeHistoryJobs[group]) return;
-      homeHistoryJobs[group] = loadHomeScript('https://goodbyestarwars.github.io/tistory-ticker/js/market-history.js?v=20261008-home-5y', 'MarketChartHistory')
+      homeHistoryJobs[group] = loadHomeScript('https://goodbyestarwars.github.io/tistory-ticker/js/market-history.js?v=20261018-index-3y', 'MarketChartHistory')
         .then(function (history) { return history.load(group); })
         .then(function () { if (latestHomeIndices) renderHomeIndices(latestHomeIndices);
           renderHomeDayFutures(homeDayFutureQuote, false); })

@@ -516,7 +516,7 @@
 
   // 2026-10-16 사용자 요청: 그리기 도구를 공통 차트(js/chart-drawing.js)와 같게 - 끌어서 그리는 직선·동그라미·박스·가로선·연필.
   // 이 화면 전용 클릭-클릭 구현은 걷어 내고 공통 엔진(NineChartDrawing.attach)을 지연 로드해 붙인다. 저장 키·옛 저장값({lines, circles})은 그대로 읽는다.
-  var CHART_CORE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-rounded-labels1';
+  var CHART_CORE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261117-drawing-mouse-v2';
 
   function loadChartDrawing() {
     var loads = global.__nineChartLoads = global.__nineChartLoads || {};

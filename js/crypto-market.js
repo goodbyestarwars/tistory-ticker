@@ -74,7 +74,7 @@
     helperJob = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
       var timeout = setTimeout(function () { reject(new Error('crypto helper timeout')); },10000);
-      script.src = base + 'js/overnight-market.js?v=20261026-listed-quotes';
+      script.src = base + 'js/overnight-market.js?v=20261110-no-summaries';
       script.onload = function () { clearTimeout(timeout); global.OvernightMarket && global.OvernightMarket.cryptoTools && global.OvernightMarket.cryptoTools.quoteContractVersion >= 1 ? resolve(global.OvernightMarket) : reject(new Error('crypto helper missing')); };
       script.onerror = function () { clearTimeout(timeout); reject(new Error('crypto helper load')); }; document.head.appendChild(script);
     }).catch(function (error) { helperJob = null; throw error; });
@@ -86,12 +86,12 @@
     if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = base + 'css/indicator-board.css?v=20261012-board';
+      link.href = base + 'css/indicator-board.css?v=20261016-no-gross';
       document.head.appendChild(link);
     }
     boardJob = new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = base + 'js/indicator-board.js?v=20261012-board';
+      script.src = base + 'js/indicator-board.js?v=20261016-no-gross';
       script.onload = script.onerror = function () { resolve(); };
       document.head.appendChild(script);
     });

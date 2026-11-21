@@ -347,12 +347,12 @@
     if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = BOARD_ASSET_BASE + 'css/indicator-board.css?v=20261012-board';
+      link.href = BOARD_ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross';
       document.head.appendChild(link);
     }
     boardLoadJob = new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = BOARD_ASSET_BASE + 'js/indicator-board.js?v=20261012-board';
+      script.src = BOARD_ASSET_BASE + 'js/indicator-board.js?v=20261016-no-gross';
       script.onload = script.onerror = function () { resolve(); };
       document.head.appendChild(script);
     });
