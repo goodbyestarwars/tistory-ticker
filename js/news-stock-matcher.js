@@ -42,6 +42,39 @@
     if (!sectorReady) sectorReady = loadCatalog('https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js', 'SECTOR_MAP', 'data-news-sector-map', 2500);
     return sectorReady;
   }
+  /* 2026-11-21 사용자 지시: 기업 언급이 없어도 제목에 '반도체'·'AI' 등이 적힌 기사는 관련 분야로 표시한다
+   * ('반도체 살 돈도 빚 갚는 데…AI 기업 상장의 역설'이 '확인된 분야 없음'이던 문제). 관련성 필터(INDUSTRY_TERMS)가
+   * 통과시킨 산업 단어와 같은 범위만, 제목에 직접 적힌 경우에 한해 고정 사전으로 옮긴다. 수혜주·파급 효과는 추측하지 않는다.
+   * 라벨은 가능하면 SECTOR_MAP의 기존 분야명을 쓴다(AI·데이터센터는 SECTOR_MAP에 없는 제목 키워드 표기). */
+  var INDUSTRY_LABELS = [
+    ['반도체', /반도체|\bHBM\b|파운드리|\bsemiconductors?\b|\bchipmakers?\b|\bfoundr(?:y|ies)\b/i],
+    ['AI', /(?:^|[^A-Za-z0-9])(?:AI|A\.I\.)(?![A-Za-z0-9])|인공지능|\b[Aa]rtificial [Ii]ntelligence\b/],
+    ['데이터센터', /데이터\s*센터|\bdata\s*centers?\b/i],
+    ['전력/에너지', /전력망|\bpower grid\b/i],
+    ['신재생/원자력', /원자력|원전|\bnuclear power\b/i],
+    ['방위산업', /방산|방위산업/],
+    ['조선사', /조선(?:업|사|소|해양|3사)|\bshipbuilding\b/i],
+    ['해운물류', /해운/],
+    ['2차전지', /[2이]차\s*전지|배터리|\bbatter(?:y|ies)\b/i],
+    ['제약/바이오', /제약|바이오|\bpharma(?:ceutical)?s?\b|\bbiotech\b/i],
+    ['자동차', /자동차|전기차|\belectric vehicles?\b/i],
+    ['석유/정유', /정유/],
+    ['철강/제련', /철강/]
+  ];
+  function industryLabels(item) {
+    var titles = [item && item.title, item && item.title_ko].filter(Boolean);
+    var found = [];
+    INDUSTRY_LABELS.forEach(function (row) {
+      var best = Infinity;
+      titles.forEach(function (title) {
+        var match = row[1].exec(String(title));
+        if (match && match.index < best) best = match.index;
+      });
+      if (best !== Infinity) found.push({label: row[0], at: best});
+    });
+    found.sort(function (a, b) { return a.at - b.at; });
+    return found.map(function (row) { return row.label; });
+  }
   function relatedSectors(item) {
     var provided = Array.isArray(item && item.krSectors) ? item.krSectors.filter(function(s){return typeof s === 'string' && s.trim();}) : [];
     var codes = relatedStocks(item).filter(function(stock){return stock.market === 'kr';}).map(function(stock){return stock.code;});
@@ -50,7 +83,7 @@
       if (name.replace(/\s/g,'') === '코스피3대장' || !Array.isArray(map[name])) return;
       if(map[name].some(function(stock){return stock && codes.indexOf(String(stock.code)) >= 0;}))provided.push(name);
     });
-    return provided.filter(function(name,i,rows){return rows.indexOf(name) === i;}).slice(0,4);
+    return provided.concat(industryLabels(item)).filter(function(name,i,rows){return rows.indexOf(name) === i;}).slice(0,4);
   }
 
   function stockCandidates() {
