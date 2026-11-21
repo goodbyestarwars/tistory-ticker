@@ -13,3 +13,8 @@
 - 한계: 비밀글 본문·작성자 IP는 공개 화면에 없어 백업되지 않는다. 사라진 글은 백업 시점 이전 것만 남는다(주 1회라 최대 7일 공백).
 - 수동 실행: `cd ~/kiwoom-api/scripts/cloud-vm && ../../venv/bin/python guestbook_backup.py [--dry-run] [--dir 경로]`.
 - 복구·활용: 대화방 화면 복원(백업에서 표시) 또는 종목별·기간별 추출·Word/엑셀 변환은 필요할 때 별도 작업(내보내기 UI는 아직 없음).
+
+## 수동 백업 버튼 (2026-11-21)
+
+- 대화방 인트로의 `방명록 백업` 버튼(Google 관리자 세션에서만 표시, `js/stock-discussion.js`의 `setupBackupControl`). 누르면 주 1회 타이머와 같은 `guestbook_backup.run`을 실행하고 확인 건수·새 글·변경·마지막 백업 시각을 버튼 옆에 표시한다.
+- 서버: `GET /guestbook-backup/status`(관리자, 건수·시각만), `POST /guestbook-backup/run`(관리자+Origin 검증, 동시 실행 409, 60초 간격 429, 실패 시 502·기존 백업 유지). 글 내용은 응답에 넣지 않는다.

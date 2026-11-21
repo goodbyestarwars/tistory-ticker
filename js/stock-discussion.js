@@ -382,6 +382,51 @@
 
 
 
+  // Admin-only manual guestbook backup (same job as the weekly timer); shows counts only.
+  function setupBackupControl(welcome, etiquette) {
+    var base = 'https://goodbyestar.cloud/guestbook-backup/';
+    var box = addText(welcome, 'div', 'discussion-backup', '');
+    var button = addText(box, 'button', 'discussion-backup-run', '방명록 백업');
+    var note = addText(box, 'span', 'discussion-backup-status', '');
+    welcome.insertBefore(box, etiquette);
+    button.type = 'button'; box.hidden = true; note.setAttribute('role', 'status');
+    var busy = false, loaded = false;
+    function admin() { return !!(window.NineAccess && window.NineAccess.isAdmin()); }
+    function stamp(value) {
+      var d = new Date(value);
+      return isNaN(d) ? '' : d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+    function show(status, summary) {
+      if (!status || !status.exists) { note.textContent = status && status.broken ? '백업 파일을 읽을 수 없습니다.' : '아직 백업이 없습니다.'; return; }
+      var text = '마지막 ' + stamp(status.updatedAt) + ' · 보관 ' + status.entries + '건';
+      if (status.missing) text += ' · 화면에서 사라진 글 ' + status.missing + '건';
+      if (summary) text = '완료: 확인 ' + summary.fetched + '건, 새 글 ' + summary.new + ', 변경 ' + summary.changed + (summary.complete ? '' : ' (일부 페이지만 확인)') + ' · ' + text;
+      note.textContent = text;
+    }
+    function call(path, method) {
+      return window.NineHttp.json(base + path, { private: method === 'POST', retries: 0, fetchOptions: {
+        method: method, credentials: 'include', cache: 'no-store'
+      } }).then(function (result) { return result.data; });
+    }
+    function sync() {
+      box.hidden = !admin();
+      if (box.hidden || loaded) return;
+      loaded = true;
+      call('status', 'GET').then(function (status) { show(status); }).catch(function () { note.textContent = '백업 상태를 읽지 못했습니다.'; });
+    }
+    button.addEventListener('click', function () {
+      if (busy || !admin()) return;
+      busy = true; button.disabled = true; note.textContent = '백업 중…';
+      call('run', 'POST').then(function (data) { show(data.status, data.summary); }).catch(function (error) {
+        var message = error && error.message ? String(error.message) : '';
+        note.textContent = /429|1분/.test(message) ? '방금 백업했습니다. 1분 뒤에 다시 눌러 주세요.' : '백업하지 못했습니다. 기존 백업은 그대로입니다.';
+      }).then(function () { busy = false; button.disabled = false; });
+    });
+    if (window.NineAccess) window.NineAccess.ready.then(sync);
+    window.addEventListener('nineaccess:change', sync);
+    window.addEventListener('nineaccess:ready', sync);
+  }
+
   function setupClassic() {
     var form = root.querySelector('.discussion-native-guestbook');
     var stockbar = root.querySelector('.discussion-stockbar');
@@ -403,6 +448,7 @@
     addText(poem, 'p', '', intro.lines.join('\n'));
     var etiquette = addText(welcome, 'p', 'discussion-terminal-etiquette', '대화실 이용시 건전한 언어를 사용합시다.');
     setupIntroEditor(welcome, poem, rose, etiquette);
+    setupBackupControl(welcome, etiquette);
     var toolbar = addText(panel, 'div', 'discussion-terminal-bar', '');
     var banner = addText(toolbar, 'div', 'discussion-terminal-banner', '');
     addText(banner, 'strong', '', '9PAY PC통신  ▸  종목 채팅');

@@ -268,6 +268,20 @@ def run(directory=None, fetch=fetch_page, delay=PAGE_DELAY_SEC, now=None, dry_ru
             lock.close()
 
 
+def status(directory=None):
+    """Counts and last run only (no entry text) for the admin screen."""
+    path = Path(directory or DATA_DIR) / FILE_NAME
+    try:
+        state = load_state(path)
+    except (ValueError, OSError):
+        return {'exists': False, 'broken': path.exists()}
+    entries = state.get('entries', {})
+    runs = state.get('runs') or []
+    return {'exists': bool(entries) or bool(runs), 'broken': False, 'updatedAt': state.get('updatedAt'),
+            'entries': len(entries), 'missing': sum(1 for e in entries.values() if e.get('missingSince')),
+            'lastRun': runs[-1] if runs else None}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dir', help='backup directory (default ~/guestbook-backup)')
