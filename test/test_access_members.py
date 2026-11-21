@@ -55,7 +55,7 @@ class MembersTests(unittest.TestCase):
         for key in ('scanner','strategy','autotrader','kis'):
             self.assertFalse(screens[key]['allowed'], key)
         self.assertFalse(ap.view(True, False)['screens']['stocks']['allowed'])
-        for p in ('/pattern-scan','/strategy-scan','/quote','/futures','/market-atlas-rs'):
+        for p in ('/pattern-scan','/strategy-scan','/quote','/futures'):
             self.assertTrue(ap.is_restricted_path(p))
 
     def test_migrate_old_matrix_and_preserve_new_opt_out(self):

@@ -37,9 +37,9 @@ class PolicyTests(unittest.TestCase):
     def test_anonymous_three_member_four_screens(self):
         for admin in (False,):
             allowed = {k for k, v in ap.view(False, admin)['screens'].items() if v['allowed']}
-            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing', 'news', 'stories'})  # 비로그인: 시장지표 없음
+            self.assertEqual(allowed, {'guestbook', 'calendar', 'briefing', 'news', 'stories', 'market-map'})  # 비로그인: 시장지표 없음, 마켓 대동여지도 공개(2026-11-22)
             member = {k for k, v in ap.view(True, admin)['screens'].items() if v['allowed']}
-            self.assertEqual(member, {'guestbook', 'calendar', 'briefing', 'news', 'stories', 'indicators'})  # 로그인 회원: 시장지표 추가
+            self.assertEqual(member, {'guestbook', 'calendar', 'briefing', 'news', 'stories', 'indicators', 'market-map'})  # 로그인 회원: 시장지표 추가
         allowed = {k for k, v in ap.view(True, True)['screens'].items() if v['allowed']}
         self.assertEqual(allowed, set(ap.SCREENS))
 
@@ -106,11 +106,26 @@ class PolicyTests(unittest.TestCase):
         self.assertTrue(ap.view(True, False, True)['screens']['market-map']['allowed'])
         self.assertFalse(ap.view(False, False)['screens']['guestbook']['allowed'])
         self.assertTrue(ap.view(False, False)['screens']['stocks']['allowed'])
-        self.assertTrue(ap.is_restricted_path('/market-atlas-rs'))
+        # 2026-11-22 사용자 지시: 마켓 대동여지도와 그 데이터 경로는 비회원도 읽는다(다른 시세 경로는 계속 제한).
+        self.assertFalse(ap.is_restricted_path('/market-atlas-rs'))
+        self.assertFalse(ap.is_restricted_path('/domestic-quotes'))
+        self.assertTrue(ap.is_restricted_path('/quote'))
+        self.assertTrue(ap.is_restricted_path('/sector-quotes'))
         with open(ap.STATE_PATH, 'w', encoding='utf-8') as f:
             json.dump({'schemaVersion': 2, 'roles': {'stocks': {'guest': False, 'member': False, 'admin': True}}}, f)
         self.assertFalse(ap.load_state()['roles']['analysis']['member'])
         self.assertFalse(ap.load_state()['roles']['stock-search']['member'])
+
+    def test_market_map_open_to_guests_and_migration(self):
+        self.assertTrue(ap.view(False, False)['screens']['market-map']['allowed'])
+        # 이전 버전(3) 저장값에서 guest=False였어도 한 번 열어 준다.
+        with open(ap.STATE_PATH, 'w', encoding='utf-8') as f:
+            json.dump({'schemaVersion': 3, 'roles': {'market-map': {'guest': False, 'member': True, 'admin': True}}}, f)
+        self.assertTrue(ap.view(False, False)['screens']['market-map']['allowed'])
+        # 관리자가 저장하면(버전 4) 이후 선택이 우선한다.
+        ap.update(None, 'admin', roles={'market-map': {'guest': False}})
+        self.assertFalse(ap.view(False, False)['screens']['market-map']['allowed'])
+        self.assertTrue(ap.view(True, False, True)['screens']['market-map']['allowed'])
 
     def test_corrupt_file_falls_back_to_default(self):
         with open(ap.STATE_PATH, 'w') as f:

@@ -515,8 +515,8 @@
     if(state.taxonomyLoading)return;
     if(state.loading){state.reload=true;return;}
     var api=global.NineAPI;
-    if(!api||!api.domesticQuotes||!api.data||!global.NineAccess||!global.NineAccess.isAdmin()){
-      state.error='관리자 인증 또는 공통 API를 확인할 수 없습니다.';draw(state);return;
+    if(!api||!api.domesticQuotes||!api.data){
+      state.error='공통 API를 확인할 수 없습니다. 새로고침해 주세요.';draw(state);return;
     }
     var codes=scopeCandidates(state).map(function(s){return s.code;}),signature=codes.join(',');
     state.cache=state.cache||new Map();
@@ -534,7 +534,7 @@
       return api.data(api.vmUrl+'/market-atlas-rs?codes='+supported.join(','),{private:true,timeoutMs:15000,fetchOptions:{credentials:'include',cache:'no-store'}})
         .then(function(rs){if(!rs||!rs.benchmarks)throw Error('RS response invalid');snapshot.rs=rs;})
         .catch(function(){snapshot.error='과거 비교 자료를 불러오지 못했습니다. 회사 목록은 유지하며 임의 좌표는 표시하지 않습니다.';});
-    }).catch(function(){snapshot.error='시세 조회에 실패했습니다. 관리자 로그인과 네트워크를 확인하고 다시 조회해 주세요.';})
+    }).catch(function(){snapshot.error='시세 조회에 실패했습니다. 네트워크를 확인하고 다시 조회해 주세요.';})
     .then(function(){
       state.loading=false;
       if(!snapshot.error){state.cache.set(signature,snapshot);while(state.cache.size>8)state.cache.delete(state.cache.keys().next().value);}
@@ -554,7 +554,7 @@
     container.innerHTML='<main class="mtm" aria-label="마켓 대동여지도">'
       +'<header class="mtm-header"><div><span class="mtm-eyebrow">9PAY MARKET ATLAS</span>'
       +'<h1>길 위에는 신분도 없고 귀천도 없다</h1><p>사업분야별로 회사를 찾고 시장 흐름을 비교하세요.</p></div>'
-      +'<span class="mtm-admin-note">관리자 전용 · 종목 시세</span></header>'
+      +'</header>'
       +'<div class="mtm-toolbar"><div class="mtm-segments" role="group" aria-label="시장 구분">'
       +'<button type="button" data-mtm-market="ALL" aria-pressed="true">전체</button>'
       +'<button type="button" data-mtm-market="KOSPI" aria-pressed="false">KOSPI</button>'

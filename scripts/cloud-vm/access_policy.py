@@ -38,7 +38,7 @@ SCREENS = {
     'watchlist': ('관심종목', 'member'),
     'memo': ('메모', 'member'),
     'market-temp': ('증시온도', 'member'),
-    'market-map': ('마켓 대동여지도', 'member'),
+    'market-map': ('마켓 대동여지도', 'public'),
     'autotrader': ('자동매매', 'admin'),
     'kis': ('KIS Trading Tool', 'admin'),
 }
@@ -65,7 +65,7 @@ def editable_roles(key):
 # 데이터 재제공 권한은 별개이므로 로그인만으로 원천 시세 조회를 허용하지 않는다.
 # 뉴스·캘린더·브리핑 및 다른 미확인 경로는 기존 정책을 유지한다.
 RESTRICTED_PREFIXES = (
-    '/market-atlas-rs', '/sector-quotes', '/domestic-quotes', '/quote', '/us-search', '/us-quote', '/us-quotes',
+    '/sector-quotes', '/quote', '/us-search', '/us-quote', '/us-quotes',
     '/us-orderbook', '/us-options', '/us-chart', '/us-news', '/us-analysis', '/us-sector-rotation',
     '/us-etf-returns', '/us-market-breadth', '/ohlc', '/flow-chart', '/ohlc-minute', '/pbar-tratio',
     '/etf-components', '/investor-flow', '/foreign-flow', '/invest-opinion', '/research-reports',
@@ -203,6 +203,9 @@ def load_state():
         if saved.get('schemaVersion', 1) < 3:
             for key, old in SPLIT_FROM.items():
                 state['roles'][key] = dict(state['roles'][old])
+        if saved.get('schemaVersion', 1) < 4:
+            # 2026-11-22 사용자 지시: 마켓 대동여지도를 비회원에게도 공개. 이후 관리자의 화면 설정 저장값이 우선한다.
+            state['roles']['market-map']['guest'] = True
         state['revision'] = int(saved.get('revision') or 0)
         state['updatedAt'] = saved.get('updatedAt')
         state['updatedBy'] = saved.get('updatedBy')
@@ -274,6 +277,6 @@ def update(changes, email, roles=None):
         state['revision'] += 1
         state['updatedAt'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
         state['updatedBy'] = str(email or '')
-        state['schemaVersion'] = 3
+        state['schemaVersion'] = 4
         snapshot_io.atomic_json(STATE_PATH, state)
     return state

@@ -1678,10 +1678,7 @@
     container.__mtMapStarted = true;
     container.innerHTML = '<p class="mt-hint">시장 지도 접근 권한을 확인하고 있습니다.</p>';
     waitMarketMapAccess_().then(function (access) {
-      if (!access.isAdmin()) {
-        container.innerHTML = '<p class="mt-error">시장 지도는 시세 재배포 권한 보호를 위해 관리자 전용입니다.</p>';
-        return;
-      }
+      // 2026-11-22 사용자 지시: 비회원도 지도·세부 데이터를 본다(화면 접근 게이트는 서버 정책이 판정).
       if (!document.querySelector('link[data-market-map-css]')) {
         var link = document.createElement('link');
         link.rel = 'stylesheet';

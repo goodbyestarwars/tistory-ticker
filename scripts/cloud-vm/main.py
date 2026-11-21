@@ -2117,9 +2117,8 @@ def market_atlas_rs_endpoint(request: Request, codes: str = Query(..., min_lengt
     """WICS Market Atlas axis inputs: confirmed DB daily closes, not live quotes.
 
     One bounded read on the same daily_prices snapshot, no outside I/O, no timer.
-    The access_policy REST middleware requires a verified admin session.
+    2026-11-22 owner decision: public read (guests included); IP rate limit only.
     """
-    require_google_admin(request)
     _check_rate_limit('market_atlas_rs', request, max_per_window=12)
     try:
         normalized = domestic_quotes.normalize_codes(codes, max_codes=300)
