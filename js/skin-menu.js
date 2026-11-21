@@ -168,7 +168,11 @@
     + '<a href="/page/stock-search?code=INDEX%3ANASDAQ_INDEX">나스닥</a>'
     + '<a href="/page/stock-search?code=INDEX%3ASP500_INDEX">S&amp;P&amp;500</a>'
     + '<a href="/page/stock-search?code=INDEX%3ADOW_INDEX">다우존스</a>'
-    + '<a href="/page/stock-search?code=INDEX%3ASOX">필라델피아 반도체</a></div>'
+    + '<a href="/page/stock-search?code=INDEX%3ASOX">필라델피아 반도체</a>'
+    // 2026-11-22 사용자 지시: 가상자산(업비트 KRW 차트) 바로가기 칩. 종목 화면의 CRYPTO:BTC/ETH/USDT 경로를 재사용한다.
+    + '<a href="/page/stock-search?code=CRYPTO%3ABTC">비트코인</a>'
+    + '<a href="/page/stock-search?code=CRYPTO%3AETH">이더리움</a>'
+    + '<a href="/page/stock-search?code=CRYPTO%3AUSDT">테더</a></div>'
     + '<div id="navSearchSuggest" class="nav-search-suggest"></div></div>';
 
   function wireBigSearch() {
