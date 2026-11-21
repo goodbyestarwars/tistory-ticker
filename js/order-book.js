@@ -27,7 +27,7 @@
   var quoteRequests = {};
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var REALTIME_RECONNECT_MS = 5000;
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var CONTAINER_SELECTOR = '#order-book';
   var POLL_MS = 2000;
   var MAX_SUGGESTIONS = 8;

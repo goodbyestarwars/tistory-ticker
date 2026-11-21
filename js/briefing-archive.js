@@ -1,7 +1,7 @@
 /* 마켓 브리핑 전체 기록 검색 (정적 색인만 조회; 원문/페이지네이션 보존) */
 (function (global) {
   'use strict';
-  var BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var ALIAS = {
     '현대상선':'HMM', '대우조선해양':'한화오션', '삼전':'삼성전자',
     '하닉':'SK하이닉스', '엔비디아':'NVIDIA', 'NVDA':'NVIDIA',

@@ -4,7 +4,7 @@
  *   시세·이력·뉴스를 가져오는 경로는 그대로이고, 52주·6개월 평균은 차트 기간별 '평균'이 직접 계산한다. */
 (function (global) {
   'use strict';
-  var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var base = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var api = 'https://goodbyestar.cloud';
   var root, tools, timer, busy, board, boardJob, newsAt = 0, history = {};
   var cryptoLiveJob = null, liveUnsubscribe = null, cryptoLiveState = 'waiting';

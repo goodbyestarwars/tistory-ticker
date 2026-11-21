@@ -19,9 +19,9 @@
 (function (global) {
   'use strict';
 
-  var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js?v=20261113-fast-open';
-  var WATCHLIST_CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/watchlist.css?v=20261113-fast-open';
+  var KRX_MAP_JS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/krx_map.js';
+  var WATCHLIST_JS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/watchlist.js?v=20261113-fast-open';
+  var WATCHLIST_CSS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/watchlist.css?v=20261113-fast-open';
   var WATCHLIST_OPEN_KEY = 'wl_drawer_open_v1';
   // 상단/사이드바 종목검색은 먼저 실시간 호가와 차트를 확인하는 흐름으로 연결한다.
   // 종목분석은 실시간 시세 상세의 명시적 버튼에서 이어간다.
@@ -103,7 +103,7 @@
   var WIRE_RETRY_MS = 300;
   var WIRE_RETRY_MAX = 20; // 최대 6초까지 재시도(스크립트 로드 순서가 뒤바뀐 경우 대비)
 
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
 
   var krxMapPromise = null;
   var activeIndex = -1;

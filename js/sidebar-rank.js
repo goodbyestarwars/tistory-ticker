@@ -34,7 +34,7 @@
   var CACHE_KEY = 'home_market_rank_v1';
   var CACHE_MAX_AGE_MS = 3 * 60 * 1000;
   var STOCK_ANALYSIS_URL = 'https://ghlee.tistory.com/page/foreign-flow';
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {

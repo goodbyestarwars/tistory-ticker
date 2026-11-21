@@ -75,7 +75,7 @@ window.NineHomeBriefing = window.NineHomeBriefing || {
 function loadMobileTabs() {
   if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
   if (document.querySelector('script[data-mobile-tabs]')) return;
-  var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var version = '20261113-linked-futures';
   var link = document.createElement('link');
   link.rel = 'stylesheet';
@@ -220,7 +220,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 (function loadDcfPage() {
   if (!/^\/(?:page|pages)\/dcf\/?$/.test(location.pathname)) return;
   if (document.querySelector('script[data-dcf-page]')) return;
-  var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var base = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var mount = document.getElementById('dcf');
   if (!mount) {
     mount = document.createElement('div'); mount.id = 'dcf';
@@ -244,7 +244,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
 (function loadAutoTraderPage() {
   if (!/^\/(?:page|pages)\/auto-trader\/?$/.test(location.pathname)) return;
   if (document.querySelector('script[data-auto-trader-page]')) return;
-  var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var base = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var mount = document.getElementById('auto-trader');
   if (!mount) {
     mount = document.createElement('div'); mount.id = 'auto-trader';
@@ -341,7 +341,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
      append portfolio/holding analysis without changing other pages. */
   (function loadMyDashboard() {
     if (!/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) return;
-    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20261115-my-analysis';
+    var cssHref = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/my-dashboard.css?v=20261115-my-analysis';
     if (!document.querySelector('link[data-my-dashboard-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -416,7 +416,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!/^\/(?:page|pages)\/(?:market-temp|kospi-futures|overnight-market)\/?$/i.test(location.pathname)) return;
     if (!window.matchMedia || !window.matchMedia('(max-width: 767px)').matches) return;
     if (document.querySelector('script[data-mobile-market]')) return;
-    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
     var version = '20261016-mobile-cards';
     var link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -436,7 +436,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
      최신 팔레트·순위 시각화·단기흐름 그래프가 적용되도록 스킨에서 한 번 더 보장한다. */
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
-    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
     var version = '20261116-map-readable-v3';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
@@ -494,7 +494,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         };
       }
     };
-    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
     var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261110-panel-spacing';
     var TABS = [
       {
@@ -745,15 +745,15 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     })();
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20261004-econ-sp100-v1';
+    var CALENDAR_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/stock-calendar.js?v=20261004-econ-sp100-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261118-domestic-news-height-2')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261118-domestic-news-height-2';
-    var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/investor-flow.js?v=20261120-home-liquidity2';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261118-finance-filter-v2';
-  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
+    var HOME_CHART_HOVER_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-chart-hover.js?v=20261018-hover';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/investor-flow.js?v=20261120-home-liquidity2';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-realtime-table.js?v=20261020-board-metrics';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-economic-news.js?v=20261118-finance-filter-v2';
+  var HOME_WEEKLY_REPORT_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-weekly-report.js?v=20261027-block-subtitles';
 
     function isWeekendReportWindow() {
       // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과
@@ -3471,7 +3471,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       }).catch(function () {});
       // 전체 브리핑 기록실은 기존 선반·원문·페이지네이션을 보존한 채 별도 공통 검색 모듈로 초기화한다.
       // 색인 미수신 시 모듈이 현재 페이지 검색으로 복구한다. 스킨 HTML 편집 불필요.
-      var archiveBase = 'https://goodbyestarwars.github.io/tistory-ticker/';
+      var archiveBase = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
       if (!document.querySelector('link[data-briefing-archive-css]')) {
         var archiveCss = document.createElement('link');
         archiveCss.rel = 'stylesheet';

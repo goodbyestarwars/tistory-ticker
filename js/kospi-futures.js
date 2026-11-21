@@ -75,7 +75,7 @@
     { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '야간선물 (18:00~05:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
-  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20261121-basis-v1';
+  var KOSPI_FUTURES_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/kospi-futures.css?v=20261121-basis-v1';
 
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
@@ -516,7 +516,7 @@
 
   // 2026-10-16 사용자 요청: 그리기 도구를 공통 차트(js/chart-drawing.js)와 같게 - 끌어서 그리는 직선·동그라미·박스·가로선·연필.
   // 이 화면 전용 클릭-클릭 구현은 걷어 내고 공통 엔진(NineChartDrawing.attach)을 지연 로드해 붙인다. 저장 키·옛 저장값({lines, circles})은 그대로 읽는다.
-  var CHART_CORE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261117-drawing-mouse-v2';
+  var CHART_CORE_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/chart-core.js?v=20261117-drawing-mouse-v2';
 
   function loadChartDrawing() {
     var loads = global.__nineChartLoads = global.__nineChartLoads || {};

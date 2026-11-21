@@ -41,7 +41,7 @@
     // GAS가 예전 기준으로 다시 판정해 차트 근거가 목록과 어긋나는 일이 없도록 GAS 재판정 경로를 쓰지 않는다.
   };
   var FETCH_RETRY_COUNT = 2;
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
 
   var CHART_H = 420;
 

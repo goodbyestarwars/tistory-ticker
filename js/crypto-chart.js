@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
   if (global.NineCryptoChart) return;
-  var ASSETS = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var ASSETS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var NAMES = { BTC:'비트코인', ETH:'이더리움', USDT:'테더' };
   var PERIODS = [
     {key:'1',title:'1분',path:'minutes/1',ms:60000},

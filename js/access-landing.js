@@ -109,7 +109,7 @@
 
   /* 2026-11-20 사용자 지정 배경: 사용자가 제공한 설계도 일러스트를 가로(반시계 90°)로 돌려 Pages에 올린 사진.
      이전 '양피지 설계도 스케치'(SVG 코드 그림)는 이 사진으로 교체했다. 로딩 중·실패 시에는 칸 배경색만 보인다. */
-  var PHOTO = 'https://goodbyestarwars.github.io/tistory-ticker/img/landing-ironman.webp';
+  var PHOTO = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/landing-ironman.webp';
 
   function build(naverConfigured) {
     root.innerHTML = '<div class="nl-layout"><div class="nl-login-panel">' +

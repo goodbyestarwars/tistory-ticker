@@ -31,7 +31,7 @@
   var MAX_ITEMS = 50;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var US_SEARCH_URL = API_BASE_URL + '/us-search';
   var US_WATCHLIST_GROUP_NAME = '미국주식';
   var US_WATCHLIST_ETF_SYMBOLS = ['SOXL', 'SOXS', 'KORU'];

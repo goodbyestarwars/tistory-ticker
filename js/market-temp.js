@@ -4015,8 +4015,8 @@
   // 상태에서 차트를 그리면 크기가 0이 되는 문제를 피하기 위해 보여진 뒤에 그린다).
   // 전종목은 한 번에 수천 건을 그리거나 구독하지 않는다. 책 한 쪽만(48종목) 조회해
   // 서버·브라우저 부담을 일정하게 제한하고, 이전/다음 장으로 넘긴다.
-  var KRX_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var WICS_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js';
+  var KRX_MAP_JS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/krx_map.js';
+  var WICS_MAP_JS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/wics-map.js';
   var ALL_STOCKS_PAGE_SIZE = 48;
   var krxMapLoadPromise_ = null;
   var wicsMapLoadPromise_ = null;
@@ -5205,7 +5205,7 @@
     marketKind = /^(domestic|kospi|kosdaq)$/.test(marketKind) ? marketKind : 'sp500';
     if (global.NineUsHeatmap) { global.NineUsHeatmap.init(panel,marketKind); return; }
     panel.innerHTML = '<div class="mt-hint">섹터별 시가총액 TOP100 지도를 준비하는 중…</div>';
-    var root = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var root = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
     if (!document.querySelector('link[href*="/css/us-market-heatmap.css"]')) {
       var link=document.createElement('link');
       link.rel='stylesheet';

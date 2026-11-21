@@ -50,9 +50,9 @@
   var SIGNAL_FETCH_RETRY_DELAY_MS = 800;
   var MAX_SUGGESTIONS = 8;
   var CLIENT_CACHE_MS = 5 * 60 * 1000;
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
-  var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var WICS_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
+  var KRX_MAP_JS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/krx_map.js';
+  var WICS_MAP_JS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/wics-map.js';
   var krxMapPromise = null;
   var wicsMapPromise = null;
   // 신규상장·특수코드는 정적 data/krx_map.js 갱신보다 사용자가 먼저 검색한다.
@@ -1557,7 +1557,7 @@
   }
 
   var companyProfilesPromise = null;
-  var COMPANY_PROFILES_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/company-profiles.js';
+  var COMPANY_PROFILES_JS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/company-profiles.js';
 
   function ensureCompanyProfiles() {
     if (global.COMPANY_PROFILES) return Promise.resolve(global.COMPANY_PROFILES);
@@ -1593,7 +1593,7 @@
   // 종목 스토리(선별 종목 카드): data/stock-stories.js를 지연 로드하고 공통 캐러셀(SiteInteractions)로 넘겨 본다.
   // 심층 스토리가 없는 종목도 기존 스윙 판정·일봉 차트로 기본 분석 카드를 표시한다.
   var stockStoriesPromise = null;
-  var STOCK_STORIES_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/stock-stories.js';
+  var STOCK_STORIES_JS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/stock-stories.js';
 
   function ensureStockStories() {
     if (global.STOCK_STORIES) return Promise.resolve(global.STOCK_STORIES);

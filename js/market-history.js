@@ -1,7 +1,7 @@
 /* Five-year chart history is served by Pages. No VM history backfill is requested. */
 (function (global) {
   'use strict';
-  var base = 'https://goodbyestarwars.github.io/tistory-ticker/data/chart-history/';
+  var base = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/chart-history/';
   var jobs = {};
   function load(group) {
     if (!/^(domestic|global|crypto|macro)$/.test(group)) return Promise.resolve(false);

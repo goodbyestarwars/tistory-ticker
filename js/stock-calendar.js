@@ -29,10 +29,10 @@
   var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   // 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 500 + 미국 경제지표 발표일정"): 발표일은 정적 데이터 파일이다.
-  var ECON_DATA_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/us-econ-calendar.js?v=20261109-econ-v2';
+  var ECON_DATA_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/us-econ-calendar.js?v=20261109-econ-v2';
   var ECON_LINKS = { FOMC: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm' };
   var CONTAINER_SELECTOR = '#stock-calendar';
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   // 미국 장후 실적의 KST 날짜가 달라졌으므로 이전 현지일 캐시와 섞지 않는다.
   var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v4';
   var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -197,7 +197,7 @@
 
   // 2026-11-09: 발표 완료 지표의 결과는 '주요 미국 발표' 탭의 공통 모듈(UsMacroIndicators)이 소유한다.
   // 같은 30분 캐시를 공유하고, 실패하면 결과 줄 없이 일정만 보여준다.
-  var MACRO_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-macro-indicators.js?v=20261109-calendar-results';
+  var MACRO_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/us-macro-indicators.js?v=20261109-calendar-results';
   var macroLoad = null;
   function loadMacroResults() {
     if (!macroLoad) macroLoad = new Promise(function (resolve) {

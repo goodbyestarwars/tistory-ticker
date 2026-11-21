@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261027-block-subtitles';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/home-weekly-report.css?v=20261027-block-subtitles';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -860,7 +860,7 @@
   // 2026-10-04 요청: "다음 주 핵심 스케줄은 캘린더랑 연동돼서 다 볼 수 있게". 서버 schedule(주요 일정 일부)만 쓰지 않고
   // /page/stock-calendar가 쓰는 같은 모듈(StockCalendar.fetchEvents: 구글 캘린더+DART+미국 실적)에서 다음 주 월~일 일정을 모두 가져와 보여준다.
   // 모듈이 없거나 일정이 하나도 없으면 서버 일정 목록을 그대로 둔다.
-  var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20261004-econ-sp100-v1';
+  var CALENDAR_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/stock-calendar.js?v=20261004-econ-sp100-v1';
   var WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
   function loadCalendarModule() {
     if (window.StockCalendar && window.StockCalendar.fetchEvents) return Promise.resolve(window.StockCalendar);
@@ -995,7 +995,7 @@
     return state && state.next ? bannerDate(state.next) : '캘린더에서 확인';
   }
   // 2026-11-21 사용자 제공 일러스트(외부 캐릭터 포함, 권리 판단은 사용자). 장식용이라 대체 텍스트는 비운다. 실패하면 숨긴다.
-  var SLEEP_ART = 'https://goodbyestarwars.github.io/tistory-ticker/img/weekend-sleep.webp';
+  var SLEEP_ART = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/weekend-sleep.webp';
   function sleepArtMarkup() {
     return '<img class="wd-sleep-art" src="' + SLEEP_ART + '" alt="" width="720" height="620" loading="lazy" decoding="async" onerror="this.hidden=true">';
   }

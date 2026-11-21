@@ -9,7 +9,7 @@
   // SPY 대비로 분류한 /us-sector-rotation을 읽는다. 응답 모양은 국내판과 같다.
   var US_API = 'https://goodbyestar.cloud/us-sector-rotation';
   var US_HELP = 'S&P500 섹터 ETF 11개(XLK·XLF 등)를 SPY 대비 상대강도, 최근 5일 순위 변화, 거래대금 강도, ETF가 자기 20일 평균 위에 있는지로 유입 · 주도 · 둔화 · 이탈 단계로 구분합니다. 미국 일봉 종가 기준입니다.';
-  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261005-us-v1';
+  var CSS = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/home-sector-rotation.css?v=20261005-us-v1';
   var COLUMNS = [
     { key: 'emerging', label: '유입', desc: '새롭게 강해지는 업종', cls: 'is-emerging' },
     { key: 'leading', label: '주도', desc: '시장을 이끄는 업종', cls: 'is-leading' },

@@ -327,7 +327,7 @@
   /* ---- 표 + 추이 차트(2026-10-12) ----
      카드 격자 대신 환율 탭과 같은 표(js/indicator-board.js)로 보여 준다. 시세·차트 이력·WebSocket 갱신 경로는 그대로이고
      그리는 곳(renderAll)만 바뀌었다. 표 한 장에서 지표를 고르면 아래 추이 차트(1개월~5년)와 기간 통계가 그 지표로 바뀐다. */
-  var BOARD_ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var BOARD_ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var board = null;
   var boardLoadJob = null;
   var BOARD_COLUMNS = [

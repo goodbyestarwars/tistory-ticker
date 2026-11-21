@@ -265,7 +265,7 @@
   }
 
   /* ---- 표 + 추이 차트(2026-10-12): 카드 대신 js/indicator-board.js 표로 보여 준다. 발표값 계산·캘린더 공유 함수는 그대로 쓴다. ---- */
-  var BOARD_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var BOARD_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var board = null;
   var boardJob = null;
   var BOARD_COLUMNS = [

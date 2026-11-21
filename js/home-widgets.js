@@ -18,7 +18,7 @@
   var WATCHLIST_DISCLOSURES_URL = 'https://goodbyestar.cloud/watchlist/disclosures';
   var GOOGLE_AUTH_START_URL = 'https://goodbyestar.cloud/auth/google/start';
   var EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar';
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   // 2026-07-31: 홈 MY 카드도 /page/watchlist(js/watchlist.js)와 동일한 VM 실시간 체결가
   // WebSocket 중계에 연결한다 - 페이지 로드 시 1회 GAS 조회 후 갱신이 없던 것을 보완.
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';

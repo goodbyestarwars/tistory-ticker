@@ -8,7 +8,7 @@
 (function (global) {
   'use strict';
 
-  var LOCAL_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var LOCAL_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var NAVER_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
   var ICONIFY_BASE = 'https://api.iconify.design/';
   var FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/';

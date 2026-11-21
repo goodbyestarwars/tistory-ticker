@@ -10,7 +10,7 @@
   var VERIFIED_PEOPLE = [
     {name:'젠슨 황', market:'us', code:'NVDA', terms:['젠슨 황', '젠슨황', 'Jensen Huang']}
   ];
-  var STOCK_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var STOCK_MAP_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/krx_map.js';
 
   function loadCatalog(url, name, attribute, timeout) {
     if (global[name]) return Promise.resolve();

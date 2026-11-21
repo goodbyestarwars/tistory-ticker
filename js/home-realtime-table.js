@@ -132,7 +132,7 @@
   var COMPACT_STEP = 10;
   var COMPACT_MAX = 50;
   var NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var ICONIFY_BASE = 'https://api.iconify.design/';
   var FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/';
   var US_DISPLAY_NAMES = {

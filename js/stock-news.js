@@ -16,7 +16,7 @@
   // 제각각이라는 지적 - js/kospi-futures.js 등이 이미 쓰는 "참고의견" + 말풍선 아이콘으로 통일.
   var FETCH_TIMEOUT_MS = 15000; // GAS 뉴스 응답 조회 시간 상한
   var MAX_SUGGESTIONS = 8;
-  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var STORAGE_KEY = 'stock-news-extra-v1';
   var REMOVED_STORAGE_KEY = 'stock-news-removed-v1';
   var RANK_OPEN_KEY = 'stock-news-rank-open-v1';

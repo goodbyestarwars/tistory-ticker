@@ -16,6 +16,19 @@
  * 남아있지만(치환 태그가 없어 존재해도 무해), 굳이 지우려면 skin.html 재배포가 필요해
  * 손대지 않았다.
  */
+/* NineAsset: 에셋(JS/CSS/data/img) 기준 주소의 단일 출처. 이 파일이 내려온 주소에서 유도하고(운영=GitHub Pages,
+ * 로컬 점검=로컬 서버), 알 수 없으면 운영 Pages 주소를 쓴다. 각 화면 모듈은 주소 문자열을 따로 박지 않고 이 값을 재사용한다. */
+(function (global) {
+  'use strict';
+  if (global.NineAsset) return;
+  var FALLBACK = 'https://goodbyestarwars.github.io/tistory-ticker/', base = FALLBACK;
+  try {
+    var src = global.document && global.document.currentScript && global.document.currentScript.src;
+    var m = src && /^(https?:\/\/.+\/)js\/skin-shell\.js(?:[?#].*)?$/.exec(src);
+    if (m) base = m[1];
+  } catch (e) { /* 운영 기본값 유지 */ }
+  global.NineAsset = { base: base, url: function (path) { return base + String(path || '').replace(/^\/+/, ''); } };
+})(typeof window !== 'undefined' ? window : this);
 /* NineHttp: shared transport in the existing synchronous common entry point.
  * Consumers keep response envelopes, units and domain fallback decisions.
  * No new script tag or race with Tistory page modules is introduced.

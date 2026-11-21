@@ -279,7 +279,7 @@
 
   // 2026-10-16 사용자 요청: 그리기 도구를 공통 차트(js/chart-drawing.js)와 같게 - 끌어서 그리는 직선·동그라미·박스·가로선·연필.
   // 이 화면 전용 클릭-클릭 구현은 걷어 내고 공통 엔진(NineChartDrawing.attach)을 지연 로드해 붙인다. 저장 키·옛 저장값({lines, circles})은 그대로 읽는다.
-  var CHART_CORE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261117-drawing-mouse-v2';
+  var CHART_CORE_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/chart-core.js?v=20261117-drawing-mouse-v2';
 
   function loadChartDrawing() {
     var loads = global.__nineChartLoads = global.__nineChartLoads || {};
@@ -817,7 +817,7 @@
      카드 여섯 장 대신 환율 탭과 같은 표(js/indicator-board.js)로 보여 준다. 표에서 지표를 고르면 아래 추이 차트(1개월~1년)와
      기간 통계(시작·종료·변동·최고·최저·평균)가 그 지표로 바뀐다. 값·평균·이력 계산은 기존 카드와 같은 원자료를 쓴다.
      보드 스크립트를 못 불러오면 예전 카드(renderFundCards)로 되돌아간다. */
-  var FUND_BOARD_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var FUND_BOARD_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
   var fundBoard = null;
   var fundBoardJob = null;
   var FUND_COLUMNS = [
