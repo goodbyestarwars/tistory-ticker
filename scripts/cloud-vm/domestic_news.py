@@ -43,6 +43,10 @@ _watchlist_disclosure_cache = {}
 _watchlist_disclosure_cache_lock = threading.Lock()
 _kind_cache = None
 _kind_cache_lock = threading.Lock()
+# 2026-11-22: KIND가 서버 IP를 403으로 막으면 요청마다 12초 대기 + 전체 스택트레이스를
+# 남기며 하루 900회 넘게 재시도했다. 실패 뒤에는 이 시간 동안 재시도하지 않고 직전 캐시를 쓴다.
+KIND_FAILURE_BACKOFF_SEC = 5 * 60
+_kind_retry_after = 0.0
 _dart_cache = {}
 _dart_cache_lock = threading.Lock()
 
@@ -304,11 +308,13 @@ def _kind_items(code='', name='', fresh=False):
     정작 만료 직후에 도착한 실제 방문자가 갱신 비용을 뒤집어쓴다(2026-08-30 실측:
     워머 도입 후에도 약 20%가 4초). 워머만 강제로 갱신해 방문자는 항상 캐시를 읽게 한다.
     """
-    global _kind_cache
+    global _kind_cache, _kind_retry_after
     now_ts = time.time()
     with _kind_cache_lock:
         rows = None if fresh else (
             _kind_cache[1] if _kind_cache and now_ts - _kind_cache[0] < KIND_CACHE_TTL_SEC else None)
+        if rows is None and now_ts < _kind_retry_after:
+            rows = _kind_cache[1] if _kind_cache else []
     if rows is None:
         request = urllib.request.Request(KIND_RSS_URL, headers={'User-Agent': 'tistory-ticker/1.0'})
         try:
@@ -344,9 +350,12 @@ def _kind_items(code='', name='', fresh=False):
                 rows.append(item)
             with _kind_cache_lock:
                 _kind_cache = (time.time(), rows)
-        except Exception:
-            LOGGER.exception('KIND disclosure RSS fetch failed')
+                _kind_retry_after = 0.0
+        except Exception as exc:
+            LOGGER.warning('KIND disclosure RSS fetch failed (%ds 동안 재시도 안 함): %s: %s',
+                           KIND_FAILURE_BACKOFF_SEC, type(exc).__name__, exc)
             with _kind_cache_lock:
+                _kind_retry_after = time.time() + KIND_FAILURE_BACKOFF_SEC
                 rows = _kind_cache[1] if _kind_cache else []
     result = []
     for item in rows:
