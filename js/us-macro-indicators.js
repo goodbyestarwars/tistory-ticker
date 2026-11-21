@@ -332,7 +332,24 @@
   }
 
   // CPI·근원 CPI가 발표 시점 뒤에도 이전 기준월에 머물면 {last, expected}, 아니면 null.
+  // 미시간대 소비자심리: 발표일은 정적 일정(data/us-econ-calendar.js, UMICH)에서 읽는다. 일정이 없으면 경고하지 않는다.
+  // FRED UMCSENT는 속보치 직후가 아니라 뒤늦게 반영될 수 있어, 발표가 지났는데 기준월이 이전이면 '반영 대기'로 안내한다.
+  function umichStale_(item, now) {
+    var cal = global.US_ECON_CALENDAR && global.US_ECON_CALENDAR.events;
+    if (!cal) return null;
+    var t = now == null ? Date.now() : now, latest = null;
+    cal.forEach(function (e) {
+      if (e.code !== 'UMICH' || !/^\d{4}-\d{2}-\d{2}$/.test(String(e.us_date))) return;
+      if (t >= Date.parse(e.start) + 3 * 3600000 && (!latest || e.us_date > latest.us_date)) latest = e;
+    });
+    if (!latest) return null;
+    var expected = latest.us_date.slice(0, 4) + latest.us_date.slice(5, 7);
+    var last = String(itemDate_(item) || '').slice(0, 6);
+    return /^\d{6}$/.test(last) && last < expected ? { last: last, expected: expected, usDate: latest.us_date, calendar: true } : null;
+  }
+
   function releaseStale_(symbol, item, now) {
+    if (symbol === 'US_CONSUMER_SENTIMENT') return umichStale_(item, now);
     if (!BLS_SYMBOLS[symbol]) return null;
     var last = String(itemDate_(item) || '').slice(0, 6);
     var expected = expectedCpiMonth_(now);
@@ -354,7 +371,8 @@
     var guide = impactGuideLines_(symbol);
     var out = '';
     var stale = releaseStale_(symbol, item);
-    if (stale) out += '<div class="ibd-ln"><em>⚠ 이전 발표 기준</em>' + escapeHtml(monthLabel_(stale.expected) + ' 발표가 나왔을 시점인데 마지막 데이터 기준월은 ' + monthLabel_(stale.last) + '입니다. 갱신을 눌러 다시 확인하세요.') + '</div>';
+    if (stale && stale.calendar) out += '<div class="ibd-ln"><em>⚠ 이전 발표 기준</em>' + escapeHtml(Number(stale.usDate.slice(5, 7)) + '/' + Number(stale.usDate.slice(8, 10)) + ' 미시간대 ' + monthLabel_(stale.expected) + ' 발표가 나왔지만 FRED에는 아직 ' + monthLabel_(stale.last) + '까지만 있습니다. FRED 반영 후 이 표가 갱신됩니다(이전 값으로 채우지 않습니다).') + '</div>';
+    else if (stale) out += '<div class="ibd-ln"><em>⚠ 이전 발표 기준</em>' + escapeHtml(monthLabel_(stale.expected) + ' 발표가 나왔을 시점인데 마지막 데이터 기준월은 ' + monthLabel_(stale.last) + '입니다. 갱신을 눌러 다시 확인하세요.') + '</div>';
     if (BLS_SYMBOLS[symbol]) out += '<div class="ibd-ln"><em>표기 기준</em>' + escapeHtml('발표값은 지수(FRED 계절조정 ' + (symbol === 'US_CPI' ? 'CPIAUCSL' : 'CPILFESL') + '), 전월 대비율은 BLS 발표(계절조정)와 같은 기준, 전년 동월은 계절조정 지수로 계산해 BLS 비계절조정 발표와 소수 둘째 자리가 다를 수 있습니다. 소수 첫째 자리로 표시합니다.') + '</div>';
     if (symbol === 'US_PPI_FINAL_DEMAND') out += '<div class="ibd-ln"><em>표기 기준</em>최종수요 PPI의 계절조정 지수(FRED PPIFIS)입니다. 전월 대비는 BLS 발표처럼 소수 첫째 자리로 표시합니다. 전년 대비는 같은 계절조정 지수로 계산하므로 BLS의 비계절조정 발표와 다를 수 있습니다.</div>';
     out += '<div class="ibd-ln"><em>읽는 기준</em>' + escapeHtml(readGuide_(symbol)) + ' <small>· 출처 ' + escapeHtml(META[symbol].source) + ' · ' + escapeHtml(META[symbol].cadence) + '</small></div>';
@@ -424,6 +442,19 @@
       + '<div data-umi-board class="umi-board"></div></section>';
   }
 
+  // 발표일 정적 파일: 증시 캘린더와 같은 URL이라 브라우저 캐시를 공유한다. 실패해도 표 표시는 막지 않는다.
+  var calendarJob = null;
+  function calendarData_() {
+    if (global.US_ECON_CALENDAR) return Promise.resolve();
+    if (!calendarJob) calendarJob = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/us-econ-calendar.js?v=20261109-econ-v2';
+      script.onload = script.onerror = function () { resolve(); };
+      document.head.appendChild(script);
+    });
+    return calendarJob;
+  }
+
   function refresh_(root, force) {
     var target = root.querySelector('[data-umi-board]');
     var button = root.querySelector('[data-umi-refresh]');
@@ -437,7 +468,7 @@
           caption: '미국 경제 발표 표', emptyText: '발표값을 불러오는 중입니다.', nameLabel: '발표 지표', height: 210
         }) : null;
       }
-      return fetchResults_(force);
+      return Promise.all([fetchResults_(force), calendarData_()]).then(function (pair) { return pair[0]; });
     })
       .then(function (items) {
         var bySymbol = {};
@@ -579,7 +610,7 @@
   }
 
   global.UsMacroIndicators = { init: init, fetchResults: fetchResults_, resultCards: resultCards_, releaseResult: releaseResult_,
-    _test: { expectedCpiMonth: expectedCpiMonth_, releaseStale: releaseStale_, boardRow: boardRow_, yearChange: yearChange_ } };
+    _test: { expectedCpiMonth: expectedCpiMonth_, releaseStale: releaseStale_, noteHtml: noteHtml_, periodText: periodText_, boardRow: boardRow_, yearChange: yearChange_ } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })(window);
