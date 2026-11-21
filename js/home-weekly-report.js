@@ -345,6 +345,23 @@
   var TREASURIES = [{symbol:'US2Y',name:'2년물'}, {symbol:'US10Y',name:'10년물'}, {symbol:'US30Y',name:'30년물'}];
   var commodityMemo, lastCommodityQuotes = {}, lastTreasuryQuotes = {};
   var lastOfficialFx = null, officialFxDelayed = false;
+  // 2026-11-21 사용자 지시: 업비트 테더(USDT) 원화가와 원/달러 고시환율이 나란히 보이는데 약 3% 차이가
+  // 설명 없이 오류처럼 보임 -> 테더 행에 '환율 대비 ±x.xx% (고시일·고시값 기준)'을 함께 표시한다.
+  // 계산: USDT 원화가 / 고시 매매기준율 - 1. 둘 중 하나라도 없으면 빈 자리만 두고 0·이전 값으로 대체하지 않는다.
+  // 환율은 은행 고시(주말엔 금요일 값 고정), 테더는 실시간이라 고시일을 라벨에 같이 적는다.
+  function usdtPremiumMarkup() {
+    var quote = lastLiveQuotes.USDT, fx = lastOfficialFx;
+    var price = quote && num(quote.price), rate = fx && num(fx.price);
+    if (!(price > 0) || !(rate > 0)) return '<small class="wd-premium" data-usdt-premium hidden></small>';
+    var gap = (price / rate - 1) * 100;
+    if (Math.abs(gap) < .005) gap = 0;
+    return '<small class="wd-premium" data-usdt-premium title="테더 원화가 ÷ 원/달러 고시환율 − 1"><span>' + (gap > 0 ? '▲ ' : gap < 0 ? '▼ ' : '') + '환율 대비 ' + signed(gap, 2) + '</span>'
+      + ' <span class="wd-premium-basis">(' + escapeHtml(fx.date.slice(5).replace('-','.')) + ' 고시 ' + global.NineUI.number(rate,{digits:2}) + '원 기준)</span></small>';
+  }
+  function refreshUsdtPremium(root) {
+    var el = root.querySelector('[data-usdt-premium]');
+    if (el && document.body.contains(el)) el.outerHTML = usdtPremiumMarkup();
+  }
   function officialFxMarkup() {
     var row = lastOfficialFx, change = row && row.change;
     return '<dt title="1 USD당 원화 매매기준율">원/달러 · 고시</dt><dd>' + (row ? global.NineUI.number(row.price,{digits:2}) + '<small>원</small>' : '미수신') + '</dd>'
@@ -366,6 +383,7 @@
     }).catch(function () { officialFxDelayed = true; }).then(function () {
       var mount = root.querySelector('[data-hwr-fx]');
       if (mount && document.body.contains(mount)) mount.innerHTML = officialFxMarkup();
+      refreshUsdtPremium(root);
     });
   }
   function treasurySnapshot(row) {
@@ -467,7 +485,7 @@
       if (!document.body.contains(mount)) return;
       var rows = pairs.map(function (pair) {
         var row = lastLiveQuotes[pair[0]], fresh = currentCoins[pair[0]], rate = row && row.change_rate;
-        return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : directionIcon(rate) + ' ' + signed(rate)) + '</b><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span></li>';
+        return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : directionIcon(rate) + ' ' + signed(rate)) + '</b><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span>' + (pair[0] === 'USDT' ? usdtPremiumMarkup() : '') + '</li>';
       }).join('');
       mount.innerHTML = '<div class="wd-live-split"><section class="wd-panel wd-live-group">' + panelHeading('24시간 가상자산', '업비트 · 원화 · 30초마다 조회')
         + '<ul class="wd-list">' + rows + '</ul><a class="wd-more" href="/pages/kospi-futures?tab=crypto">가상자산 자세히 →</a></section>'

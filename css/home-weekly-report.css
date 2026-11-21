@@ -475,6 +475,21 @@ body:has(.home-editorial-page.is-market-closed), .weekend-dashboard { --closed-c
   font-size: 11px;
 }
 
+/* 테더 원화가의 원/달러 고시환율 대비 괴리율(2026-11-21). 가격 변동이 아니라 보조 설명이라 중립색.
+   행 아래 전체 폭 한 줄로 두고 contain:inline-size로 열 폭 계산에서 빼, 다른 행과 등락률 열이 어긋나지 않게 한다. */
+.weekend-dashboard .wd-coin > .wd-premium {
+  grid-column: 1 / -1;
+  contain: inline-size;
+  margin-top: -2px;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+  color: var(--wd-sub);
+  white-space: normal;
+}
+
+.weekend-dashboard .wd-coin > .wd-premium[hidden] { display: none; }
+
 .weekend-dashboard .wd-note {
   margin-top: 8px;
   font-size: 11px;

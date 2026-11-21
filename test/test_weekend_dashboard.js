@@ -13,7 +13,7 @@ function fixture() {
     setTimeout:()=>1,clearTimeout(){},setInterval:f=>{intervals.push(f);return 1;},clearInterval(){},
     fetch:async url=>{requests.push(url);return {ok:true,json:()=>handler(url)};}});
   require('./helpers/load_http_client')(context);
-  vm.runInContext(original.replace(/global\.HomeWeeklyReport = \{ init: init, syncContent: syncContent[^}]*\};/, 'global.HomeWeeklyReport = {render:render,live:loadWeekendLive,themes:loadWeekendThemes,weekly:storedWeeklyIndex,card:indexCard};'),context);
+  vm.runInContext(original.replace(/global\.HomeWeeklyReport = \{ init: init, syncContent: syncContent[^}]*\};/, 'global.HomeWeeklyReport = {render:render,live:loadWeekendLive,themes:loadWeekendThemes,weekly:storedWeeklyIndex,card:indexCard,fx:loadOfficialFx};'),context);
   const root={hidden:false,classList:{add(){}},innerHTML:'',querySelector:s=>mounts.get(s)||null};
   return {api:window.HomeWeeklyReport,root,mounts,requests,intervals,handler:f=>handler=f};
 }
@@ -64,4 +64,20 @@ test('additional stored indices normalize dates, exclude future days and match t
   const out=f.api.weekly(row,{start:'2026-10-19',end:'2026-10-23'});
   assert.equal(out.base,100);assert.equal(out.end,120);assert.ok(Math.abs(out.changeRate-20)<1e-8);assert.equal(out.series.length,2);assert.equal(out.series[1].date,'2026-10-23');
   assert.doesNotMatch(f.api.card(f.api.weekly({symbol:'SOX',name:'SOX',chart:[]},{start:'2026-10-19',end:'2026-10-23'})),/<polygon/);
+});
+test('USDT row shows the premium over the official USD/KRW fixing and never invents one when a side is missing',async()=>{
+  const f=fixture(), mount={innerHTML:''}, fxMount={innerHTML:''};
+  f.mounts.set('[data-hwr-live]',mount);f.mounts.set('[data-hwr-fx]',fxMount);
+  let usdt=1371;
+  f.handler(async url=>String(url).endsWith('/fx-rates')
+    ? {success:true,data:{official:true,realtime:false,baseDate:'2026-11-20',prevDate:'2026-11-19',state:'ok',pendingToday:false,currencies:[{code:'USD',curUnit:'USD',unit:1,dealBasR:1330.8,prev:1331.1}]}}
+    : [{symbol:'USDT',price:usdt,change_rate:-0.36,updated_at:'2026-11-21T11:26:41+09:00'}]);
+  f.api.live(f.root,'2026-11-20',true);await flush();
+  assert.match(mount.innerHTML,/data-usdt-premium hidden/);assert.doesNotMatch(mount.innerHTML,/환율 대비/);
+  f.api.fx(f.root);await flush();
+  f.api.live(f.root,'2026-11-20',true);await flush();
+  assert.match(mount.innerHTML,/▲ 환율 대비 \+3\.02%/);assert.match(mount.innerHTML,/\(11\.20 고시 1,330\.80원 기준\)/);
+  assert.equal((mount.innerHTML.match(/data-usdt-premium/g)||[]).length,1);
+  usdt=1325;f.api.live(f.root,'2026-11-20',true);await flush();
+  assert.match(mount.innerHTML,/▼ 환율 대비 -0\.44%/);
 });
