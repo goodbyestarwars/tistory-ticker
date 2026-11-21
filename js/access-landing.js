@@ -28,7 +28,7 @@
     '.nl-btn.ghost{background:#f4ebdc;border-color:#ded1bb;color:#292721}.nl-btn.ghost:hover{background:#ebe0cd}' +
     '.nl-btn:focus-visible,.nl-x:focus-visible,.nl-pv:focus-visible{outline:2px solid #07535b;outline-offset:3px}' +
     '.nl-visual{position:relative;min-width:0;margin:0;align-self:stretch;overflow:hidden;border-radius:14px;background:#2f4466;aspect-ratio:16/9}' +
-    '.nl-sketch{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;object-position:50% 30%}' +
+    '.nl-sketch{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;object-position:50% 30%;opacity:0;transition:opacity .35s ease}.nl-sketch.is-ready{opacity:1}@media (prefers-reduced-motion:reduce){.nl-sketch{transition:none}}' +
     '.nl-modal{position:fixed;inset:0;color:#292721;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(25,29,28,.48)}' +
     '.nl-modal[hidden]{display:none}' +
     '.nl-card{position:relative;box-sizing:border-box;width:min(600px,100%);max-height:100%;overflow:auto;padding:clamp(24px,4vw,44px);border-radius:20px;background:#f7f0e4;border:1px solid #fff8ed;box-shadow:0 22px 60px rgba(36,25,16,.32)}' +
@@ -109,14 +109,17 @@
 
   /* 2026-11-20 사용자 지정 배경: 사용자가 제공한 설계도 일러스트를 가로(반시계 90°)로 돌려 Pages에 올린 사진.
      이전 '양피지 설계도 스케치'(SVG 코드 그림)는 이 사진으로 교체했다. 로딩 중·실패 시에는 칸 배경색만 보인다. */
-  var PHOTO = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/landing-ironman.webp';
+  var ASSET_BASE = (typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var PHOTO = ASSET_BASE + 'img/landing-ironman.webp';
+  // 2026-11-22: 작은 화면은 960px(약 120KB)판을 받고, 사진이 오면 배경색에서 서서히 나타나게 한다.
+  var PHOTO_SM = ASSET_BASE + 'img/landing-ironman-960.webp';
 
   function build(naverConfigured) {
     root.innerHTML = '<div class="nl-layout"><div class="nl-login-panel">' +
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
-      '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원 로그인</button></div></div>' +
-      '<figure class="nl-visual" aria-hidden="true"><img class="nl-sketch" src="' + PHOTO + '" alt="" decoding="async"></figure></div>' +
+      '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원으로 둘러보기</button></div></div>' +
+      '<figure class="nl-visual" aria-hidden="true"><img class="nl-sketch" src="' + PHOTO + '" srcset="' + PHOTO_SM + ' 960w, ' + PHOTO + ' 1920w" sizes="(max-width:720px) 92vw, 760px" alt="" decoding="async" fetchpriority="high"></figure></div>' +
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
@@ -126,7 +129,7 @@
       '<div class="nl-modal" data-nl-guestmodal="1" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlGuestTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlGuestTitle">비회원 이용 안내</h2>' +
-      '<p>시세 정보의 이용약관상 비회원에게는 시세를 제공할 수 없습니다.</p>' +
+      '<p>로그인 없이 공개 콘텐츠를 둘러볼 수 있습니다.</p>' +
       '<div class="nl-quote"><b>이용약관</b><br>고객은 회사에서 제공하는 시세(국내주식, 해외주식, 국내선물/옵션 등)정보를 고객이 직접 개발한 프로그램 등 개인의 업무에 한하여 이용해야 하며, 제3자에게 제공해서는 아니 된다.</div>' +
       '<ul class="nl-points"><li>이 약관에 따라 <b>시세·호가·수급 등 시세 정보는 비회원에게 제공하지 않습니다.</b></li>' +
       '<li>비회원은 뉴스, 마켓 브리핑, 이야기, 캘린더 같은 공개 콘텐츠를 볼 수 있습니다.</li>' +
@@ -134,6 +137,11 @@
       '<div class="nl-two"><a class="nl-btn primary" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="mailto:goodbyestarwars@gmail.com?subject=%ED%9A%8C%EC%9B%90%20%EA%B0%80%EC%9E%85%20%EB%AC%B8%EC%9D%98">회원 가입 문의하기</a>' +
       '<button type="button" class="nl-btn ghost" data-nl-guestgo="1">확인하고 공개 콘텐츠 보기</button></div>' +
       '</section></div>';
+    var photo = root.querySelector('.nl-sketch');
+    if (photo) {
+      var ready = function () { photo.classList.add('is-ready'); };
+      if (photo.complete && photo.naturalWidth) ready(); else photo.addEventListener('load', ready);
+    }
     root.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null;
       if (!t) return;
