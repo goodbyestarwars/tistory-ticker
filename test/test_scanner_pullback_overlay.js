@@ -23,12 +23,30 @@ assert.equal(context.observedPatternLines(bars, 'pullbackRebreak', {...detail, s
 assert.equal(context.observedPatternLines(bars.slice(1), 'pullbackRebreak', detail, wave).length, 0);
 
 
-const rising = Array.from({length:24}, (_,i) => {
-  const close = i===23 ? 151 : i>=21 ? 119+i : 100+2*i;
-  return {date:'2026-10-'+String(i+1).padStart(2,'0'),open:close-1,high:close+1,low:close-2,close,volume:i===23?300:100};
-});
-const groups = wave.selectShapesOf(rising);
-for (const key of ['trendBreakout','liveFlow']) {
+// 2026-11-22: 11/13 chart-first-v2 이후 selectShapesOf의 단기 후보(liveFlow·trendBreakout 등)는
+// 100봉 이상에서 확정 스윙 구조가 있을 때만 만들어진다. 예전 24봉 상승 데이터는 더 이상 후보가 될 수 없어
+// 구조를 갖춘 두 데이터로 바꾼다(trendBreakout은 test_shape_selection.js와 같은 앵커).
+function path(anchors) {
+  const values = [];
+  for (let j = 1; j < anchors.length; j++) {
+    const span = anchors[j][0] - anchors[j-1][0];
+    for (let i = 0; i < span; i++) values.push(anchors[j-1][1] + (anchors[j][1] - anchors[j-1][1]) * i / span);
+  }
+  return values;
+}
+function dailyBars(values) {
+  return values.map((close, i) => ({date: new Date(Date.UTC(2025,0,i+1)).toISOString().slice(0,10),
+    open: close-.1, high: close+.8, low: close-.8, close, volume: 1000}));
+}
+const resistanceValues = path([[0,150],[80,130],[100,100],[120,120],[145,102],[160,118],[175,108],[185,117]]);
+resistanceValues.push(117);
+const trendBars = dailyBars(resistanceValues);
+Object.assign(trendBars.at(-1), {open: 117.8, close: 118, high: 118.8});
+const rangeBox = [0, .3, -.2, .2, 0].map(x => 148.2 + x);
+const flowBars = dailyBars(path([[0,100],[120,150],[126,144],[132,148.2]]).concat(rangeBox, [148.2]));
+Object.assign(flowBars.at(-1), {open: 149.3, close: 151.7, high: 152.1, low: 149.1});
+for (const [key, rising] of [['trendBreakout', trendBars], ['liveFlow', flowBars]]) {
+  const groups = wave.selectShapesOf(rising);
   assert.ok(groups[key].length, key);
   const evidence = context.observedPatternLines([...rising, future], key, groups[key][0], wave);
   assert.ok(evidence[0].points.length >= 2, key);
