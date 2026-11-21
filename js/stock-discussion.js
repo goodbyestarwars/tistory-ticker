@@ -40,8 +40,33 @@
     { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile' }
   ];
   LOCAL_US_SYMBOLS.forEach(function (row) { names['US:' + row.symbol] = row.name; });
-  var krxMap = window.KRX_MAP || {};
-  Object.keys(krxMap).forEach(function (name) { names[krxMap[name]] = name; });
+  function mergeKrxMap() {
+    var krxMap = window.KRX_MAP || {};
+    Object.keys(krxMap).forEach(function (name) { names[krxMap[name]] = name; });
+  }
+  mergeKrxMap();
+  // 2026-11-22: 대화방 페이지에는 종목 사전(data/krx_map.js)을 불러오는 곳이 없어 내장 3종목만 검색됐다.
+  // 처음 검색창을 만질 때 한 번 불러와 합친다(다른 화면과 같은 공용 사전, 실패하면 다음 입력에서 재시도).
+  var KRX_MAP_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/krx_map.js';
+  var krxLoading = null;
+  function ensureKrxMap() {
+    if (krxLoading) return krxLoading;
+    if (window.KRX_MAP && Object.keys(window.KRX_MAP).length > 100) { mergeKrxMap(); krxLoading = Promise.resolve(); return krxLoading; }
+    krxLoading = new Promise(function (resolve) {
+      var tag = document.querySelector('script[src*="/data/krx_map.js"]');
+      var timer = setTimeout(function () { krxLoading = null; resolve(); }, 8000);
+      function done(ok) { clearTimeout(timer); if (ok) mergeKrxMap(); else krxLoading = null; resolve(); }
+      if (!tag) {
+        tag = document.createElement('script');
+        tag.src = KRX_MAP_URL;
+        tag.async = true;
+      }
+      tag.addEventListener('load', function () { done(true); }, { once: true });
+      tag.addEventListener('error', function () { done(false); }, { once: true });
+      if (!tag.parentNode) (document.head || document.documentElement).appendChild(tag);
+    });
+    return krxLoading;
+  }
   var suggestionBox = document.createElement('ul');
   suggestionBox.className = 'discussion-stock-suggest';
   suggestionBox.setAttribute('role', 'listbox');
@@ -73,12 +98,12 @@
       return { code: code, name: names[code] };
     }).filter(function (item) {
       var name = item.name.toLowerCase();
-      return name.indexOf(query) !== -1 || item.code.indexOf(query) !== -1 || initials(item.name).indexOf(query) !== -1;
+      return name.indexOf(query) !== -1 || item.code.toLowerCase().indexOf(query) !== -1 || initials(item.name).indexOf(query) !== -1;
     }).sort(function (a, b) {
       function rank(item) {
         var name = item.name.toLowerCase();
         var initial = initials(item.name);
-        if (name === query || item.code === query) return 0;
+        if (name === query || item.code.toLowerCase() === query) return 0;
         if (name.indexOf(query) === 0) return 1;
         if (initial.indexOf(query) === 0) return 2;
         if (name.indexOf(query) !== -1) return 3;
@@ -162,7 +187,7 @@
   function resolve(value) {
     value = normalize(value);
     if (!value || value === '전체' || value === '일반방' || value === 'all') return '';
-    if (/^\d{6}$/.test(value)) return value;
+    if (/^\d[0-9A-Z]{5}$/i.test(value)) return value.toUpperCase();
     var query = value.toLowerCase();
     for (var i = 0; i < LOCAL_US_SYMBOLS.length; i++) {
       var local = LOCAL_US_SYMBOLS[i];
@@ -174,7 +199,7 @@
     for (var code in names) if (names[code] === value) return code;
     return value;
   }
-  var tagPattern = /^\s*\[(\d{6}|US:[A-Z][A-Z0-9.\-^=]{0,11})\]\s*/;
+  var tagPattern = /^\s*\[(\d[0-9A-Z]{5}|US:[A-Z][A-Z0-9.\-^=]{0,11})\]\s*/;
   var entryRooms = new Map();
   entries.forEach(function (entry) {
     var body = entry.querySelector('.discussion-item-body');
@@ -629,7 +654,14 @@
   var clear = root.querySelector('[data-discussion-clear]');
   clear.textContent = '일반방으로';
   clear.addEventListener('click', function () { applyFilter('', true); });
+  function onKrxReady() {
+    var needLabel = activeCode && !names[activeCode];
+    if (document.activeElement === input && normalize(input.value)) showSuggestions(input.value);
+    if (needLabel && names[activeCode]) applyFilter(activeCode, false);
+  }
+  input.addEventListener('focus', function () { ensureKrxMap().then(onKrxReady); });
   input.addEventListener('input', function () {
+    ensureKrxMap().then(onKrxReady);
     if (normalize(input.value)) showSuggestions(input.value);
     else closeSuggestions();
   });
@@ -642,7 +674,7 @@
         input.value = suggestionItems[0].name;
         applyFilter(suggestionItems[0].code, true);
         closeSuggestions();
-      } else applyFilter(input.value, true);
+      } else ensureKrxMap().then(function () { applyFilter(input.value, true); });
     }
   });
   document.addEventListener('click', function (event) { if (!input.parentNode.contains(event.target)) closeSuggestions(); });
@@ -690,6 +722,7 @@
   }
   setupClassic();
   applyFilter(initial || returnRoom, !initial && !!returnRoom);
+  if (activeCode && !names[activeCode]) ensureKrxMap().then(onKrxReady);
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) stopRoomQuote(); else startRoomQuote(activeCode);
   });
