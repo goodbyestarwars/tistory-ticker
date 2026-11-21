@@ -3932,6 +3932,8 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 }
 .site-footer-links a:last-child { border-right: none; }
 .site-footer-links a:hover { color: #374151; }
+.site-footer-notice { display: block; max-width: 760px; margin: 8px 0 0; padding: 0; color: #8b929d; font: 400 11px/1.6 var(--font-ui); word-break: keep-all; }
+.site-footer-notice a { color: inherit; text-decoration: underline; }
 /* PC 화면 모드 전환(2026-09-06). 링크 4종과 한 줄에 서므로 같은 모양으로 맞춘다.
    PC 폭에서는 의미가 없어 숨기되, PC 모드로 켜 둔 동안에는 남긴다 - 폰에서 켜면
    뷰포트가 1280이 되어 이 미디어쿼리에 걸리는데 버튼까지 사라지면 되돌릴 수 없다. */
@@ -3982,6 +3984,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
 }
 html.dark .site-footer { border-top-color: var(--dk-line); }
 html.dark .site-footer-version { color: var(--dk-mute); }
+html.dark .site-footer-notice { color: var(--dk-mute); }
 html.dark .site-footer-version span { border-color: var(--dk-up); color: var(--dk-up); }
 html.dark .site-footer-links a { color: var(--dk-mute); border-right-color: var(--dk-line); }
 html.dark .site-footer-links a:hover { color: var(--dk-text); }
