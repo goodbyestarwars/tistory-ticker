@@ -29,7 +29,7 @@
 
 - 시장지표(`indicators`)는 **로그인 회원 등급(level=member)**: 비로그인에는 메뉴·모바일 탭·랜딩에서 빠지고 직접 URL은 /guestbook으로 이동한다. 비로그인 공개 화면은 대화방·캘린더·마켓브리핑 3개이며, 4번째 자리에는 이야기 시리즈(learn/, 정책 대상 아님·항상 공개)를 둔다.
 - 시장지표 데이터 REST(/futures, /fx-rates 등)는 여전히 공개 응답이다. 화면 접근만 로그인 후이며 데이터 제한은 공급자 이용권한 확인 뒤 별도 결정한다.
-- 랜딩 네이버 버튼은 `/access-policy.naverConfigured`가 없으면(VM 미배포) `/auth/google/me.naverConfigured`로 확인한다. 랜딩 사진은 `img/landing-interlaken.jpg`가 있으면 SVG 장면 위에 덮인다.
+- 랜딩 네이버 버튼은 `/access-policy.naverConfigured`가 없으면(VM 미배포) `/auth/google/me.naverConfigured`로 확인한다. 랜딩 사진은 현재 `img/landing-ironman.webp`(작은 화면은 `landing-ironman-960.webp`)이며 `js/access-landing.js`가 표시한다(2026-11-22 예전 스위스 후보 사진 삭제).
 
 ## 변경 (2026-11-12 비회원 입장)
 
