@@ -30,6 +30,7 @@ from fastapi.responses import RedirectResponse, Response
 
 import access_policy
 import discussion_intro
+import guestbook_backup
 import autotrader_control
 import bond_yield
 import commodity_kis
@@ -1101,6 +1102,38 @@ async def discussion_intro_put(request: Request):
         raise HTTPException(status_code=500, detail='저장하지 못했습니다. 이전 문구를 유지합니다.') from None
 
 
+
+
+_GUESTBOOK_BACKUP_LOCK = threading.Lock()
+_GUESTBOOK_BACKUP_LAST = [0.0]
+
+
+@app.get('/guestbook-backup/status')
+def guestbook_backup_status(request: Request):
+    """관리자 전용: 마지막 방명록 백업 시각·건수만(글 내용은 내보내지 않는다)."""
+    _autotrader_admin(request)
+    _check_rate_limit('guestbook_backup_status', request, max_per_window=30)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(envelope(guestbook_backup.status()), headers={'Cache-Control': 'no-store'})
+
+
+@app.post('/guestbook-backup/run')
+def guestbook_backup_run(request: Request):
+    """관리자 전용 수동 백업. 주 1회 타이머와 같은 guestbook_backup.run을 쓴다(동시 실행·60초 간격 제한)."""
+    _autotrader_admin(request, write=True)
+    _check_rate_limit('guestbook_backup_run', request, max_per_window=10)
+    if time.time() - _GUESTBOOK_BACKUP_LAST[0] < 60:
+        raise HTTPException(status_code=429, detail='방금 백업했습니다. 1분 뒤에 다시 시도해 주세요.')
+    if not _GUESTBOOK_BACKUP_LOCK.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail='백업이 이미 진행 중입니다.')
+    try:
+        _GUESTBOOK_BACKUP_LAST[0] = time.time()
+        summary = guestbook_backup.run()
+        return envelope({'summary': summary, 'status': guestbook_backup.status()})
+    except Exception:
+        raise HTTPException(status_code=502, detail='백업하지 못했습니다. 기존 백업은 그대로입니다.') from None
+    finally:
+        _GUESTBOOK_BACKUP_LOCK.release()
 
 
 @app.get('/access-policy')
