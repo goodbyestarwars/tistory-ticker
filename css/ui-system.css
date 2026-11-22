@@ -379,6 +379,7 @@ html.dark {
   --ui-accent-soft: var(--dk-inner);
   --ui-accent-ink: var(--dk-text);
   --ui-focus: var(--dk-text);
+  --ui-table-head-surface: var(--dk-panel);
 }
 html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-hover); }
 
@@ -390,17 +391,35 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
     border-radius: var(--ui-radius-band) !important;
     border-image: none !important;
   }
+  html body table,
+  html body table > :is(thead, tbody, tfoot),
+  html body table > :is(thead, tbody, tfoot) > tr,
+  html body table > :is(thead, tbody, tfoot) > tr > :is(th, td) {
+    border-width: 0 !important;
+    border-image: none !important;
+    border-radius: 0 !important;
+  }
+  html body table { border-spacing: 0; }
   html body table > thead,
   html body table > thead > tr { background-color: transparent !important; }
-  html body table > thead > tr > :first-child {
+  html body table > :is(thead, tbody) > tr + tr > :is(th, td),
+  html body table > tbody + tbody > tr:first-child > :is(th, td),
+  html body table > tfoot > tr > :is(th, td) {
+    border-block-start: var(--ui-table-divider-width, 1px) solid var(--ui-rule, #ece8e1) !important;
+  }
+  /* Pasted tables sometimes use an all-TH first body row instead of THEAD. */
+  html body table :is(thead > tr:first-child, table:not(:has(> thead)) > tbody:first-of-type > tr:first-child:has(> th):not(:has(> td))) > :is(th, td) {
+    background: var(--ui-table-head-surface, var(--ui-glass-panel, #f8f7f4)) !important;
+  }
+  html body table :is(thead > tr:first-child, table:not(:has(> thead)) > tbody:first-of-type > tr:first-child:has(> th):not(:has(> td))) > :first-child {
     border-radius: var(--ui-radius-band) 0 0 var(--ui-radius-band) !important;
     clip-path: inset(0 round var(--ui-radius-band) 0 0 var(--ui-radius-band)) !important;
   }
-  html body table > thead > tr > :last-child {
+  html body table :is(thead > tr:first-child, table:not(:has(> thead)) > tbody:first-of-type > tr:first-child:has(> th):not(:has(> td))) > :last-child {
     border-radius: 0 var(--ui-radius-band) var(--ui-radius-band) 0 !important;
     clip-path: inset(0 round 0 var(--ui-radius-band) var(--ui-radius-band) 0) !important;
   }
-  html body table > thead > tr > :only-child {
+  html body table :is(thead > tr:first-child, table:not(:has(> thead)) > tbody:first-of-type > tr:first-child:has(> th):not(:has(> td))) > :only-child {
     border-radius: var(--ui-radius-band) !important;
     clip-path: inset(0 round var(--ui-radius-band)) !important;
   }
@@ -426,25 +445,9 @@ html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-h
   html body :is(.ui-heading-band, .hrt-head) {
     padding: calc(var(--ui-paragraph-gap, 14px) / 2) var(--ui-card-padding, 18px) !important;
   }
-  /* Stock board: no vertical rules; rows separated by hairline horizontals (2026-11-18 user).
-     The line sits on the row so every column shares one edge. */
-  html body .home-realtime-board .hrt-table-wrap :is(thead th, tbody td),
   html body .home-realtime-board .hrt-head {
     border-bottom: 0 !important;
     border-image: none !important;
-  }
-  html body .home-realtime-board .hrt-table-wrap tbody tr {
-    border-bottom: 1px solid var(--ui-rule) !important;
-  }
-  html body .home-realtime-board .hrt-table-wrap tbody tr:last-child {
-    border-bottom: 0 !important;
-  }
-  /* Header row reads as one soft rounded band over the columns (2026-11-18 user).
-     2026-11-20 user: every native table header uses the same band fill (light #FAF8F3 via soft-ui,
-     dark --dk-panel). Rounded ends come from the shared thead rule above. Text colour/weight stay
-     per table (non-important here) so semantic header colours keep working. */
-  html body table > thead > tr > :is(th, td) {
-    background-color: var(--ui-glass-panel, #f8f7f4) !important;
   }
   html body .home-realtime-board .hrt-table-wrap thead th {
     color: var(--ui-muted);

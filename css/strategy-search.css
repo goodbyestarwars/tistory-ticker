@@ -490,33 +490,15 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
   background: color-mix(in srgb, var(--ui-ink, #172033) 5%, var(--ui-surface, #fff));
 }
 
-@media (width > 640px) {
-  #strategy-search .ss-table-wrap {
-    border: 1px solid var(--ui-rule, #e5e7eb);
-    border-radius: var(--ui-radius-card, 16px);
-    background: var(--ui-surface, #fff);
+@layer np.np {
+  html body #strategy-search .ss-comparison-table > tbody > tr > td {
+    background: transparent !important;
   }
-  #strategy-search .ss-comparison-table {
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-  #strategy-search .ss-comparison-table th {
-    --ss-table-cell-bg: var(--ui-accent-soft, #f3f5f7);
-  }
-  html.dark #strategy-search .ss-comparison-table th {
-    --ss-table-cell-bg: var(--dk-panel, #202123);
-  }
-  @layer np.np {
-    html body #strategy-search .ss-comparison-table,
-    html body #strategy-search .ss-comparison-table :is(th, td) {
-      border: 0 !important;
+  @media (max-width: 640px) {
+    #strategy-search .ss-comparison-table { --ui-table-divider-width: 0px; }
+    html body #strategy-search .ss-comparison-table > tbody > tr + tr {
+      border-block-start: 1px solid var(--ui-rule, #e5e7eb) !important;
     }
-    html body #strategy-search .ss-comparison-table :is(th, td) {
-      background: var(--ss-table-cell-bg, transparent) !important;
-    }
-  }
-  #strategy-search .ss-comparison-table > tbody > tr + tr > td {
-    box-shadow: inset 0 1px var(--ui-rule, #e5e7eb);
   }
 }
 #strategy-search .ss-comparison-table th:nth-child(1),
@@ -965,12 +947,8 @@ html.dark:not(.font-gothic) body #strategy-search .ss-product-tab.active {
       "fund fund fund fund";
     column-gap: 5px;
     row-gap: 4px;
-    padding: 10px 12px 11px;
-    border: 1px solid var(--ui-rule, #e5e7eb);
-    border-radius: var(--ui-radius-card, 16px);
-    background: var(--ui-surface, #fff);
+    padding: 10px 0 11px;
   }
-  #strategy-search .ss-strategy-table tbody { gap: 8px; }
   #strategy-search .ss-strategy-table tr.ss-target-row {
     grid-template-areas:
       "watch rank product price"

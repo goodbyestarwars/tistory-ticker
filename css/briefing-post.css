@@ -28,27 +28,21 @@
   border: 0;
 }
 
-/* 표: 둥근 테두리 한 겹, 머리줄은 옅은 패널(공통 thead 규칙), 행 사이 연한 가로선만. */
+/* 표 모양은 공통 UI를 사용하고 본문 여백만 유지한다. */
 .contents_style.nine-briefing-post table {
   border-collapse: separate;
   border-spacing: 0;
-  border: 1px solid var(--ui-rule, #ECE8E1);
-  border-radius: 14px;
-  overflow: hidden;
   margin: 4px 0 18px;
 }
 .contents_style.nine-briefing-post th,
 .contents_style.nine-briefing-post td {
   /* 글 원래 여백(8px 10px)을 유지해야 고정 너비 표가 가로 스크롤 없이 들어간다. */
   padding: 8px 10px;
-  border: 0;
-  border-bottom: 1px solid var(--ui-rule, #ECE8E1);
 }
 .contents_style.nine-briefing-post th {
   font-weight: 700;
   color: var(--text-strong, #1c2827);
 }
-.contents_style.nine-briefing-post tr:last-child > td { border-bottom: 0; }
 
 /* 시간순 흐름 상자의 왼쪽 시각 칸(글에서 112px 고정 칸으로 쓰던 것). */
 .contents_style.nine-briefing-post .nbp-label {
