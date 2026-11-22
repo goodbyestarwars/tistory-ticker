@@ -893,7 +893,7 @@
   /* 금요일 애프터마켓이 끝나 주말 휴장이 시작되는 토요일 KST 시각(09:00 / 10:00). */
   function weekendStartKstMinutes(date) { return us(date).dst ? M(9) : M(10); }
 
-  /* 주말 휴장 창: 토요일 미국 애프터마켓 종료 ~ 월요일 국내 화면 시작(08:00, NXT 프리마켓). */
+  /* 주말 휴장 창: 토요일 미국 애프터마켓 종료 ~ 월요일 홈 국내 화면 시작(06:00). */
   function isWeekendClosed(date) {
     var k = kst(date);
     if (k.day === 6) return k.minutes >= weekendStartKstMinutes(date);
@@ -931,25 +931,22 @@
     return {closed: true, next: candidates.length ? candidates[0].next : null, market: candidates.length ? candidates[0].market : ''};
   }
 
-  /* 홈이 국내 화면에서 미국 화면으로 넘어가는 KST 시각.
-     KRX 애프터마켓·NXT가 끝나는 20:00부터 바로 미국 화면을 보여준다.
-     미국 세션 판정(us(), usPreOpenKstMinutes)은 그대로다. */
-  var HOME_US_SWITCH_KST_MINUTES = M(20);
-  /* 홈이 미국 화면에서 국내 화면으로 돌아오는 KST 시각.
-     2026-09-15 사용자 지적("08:00시 넘었는데 아직도 미국장 대시보드야"): 09:00(KOSPI 정규장)에
-     맞춰 넘어가 NXT 프리마켓(08:00~)이 열린 동안 미국 화면을 보여줬다. 08:00으로 되돌린다. */
-  var HOME_DOMESTIC_START_KST_MINUTES = M(8);
+  /* 홈 자동 전환 시각(KST). 2026-11-23 사용자 지정:
+     국내 화면은 월요일 06:00부터, 미국 화면은 21:00부터 표시한다.
+     표시 시장 선택과 실제 증권거래소 개장 여부는 별개다. */
+  var HOME_US_SWITCH_KST_MINUTES = M(21);
+  var HOME_DOMESTIC_START_KST_MINUTES = M(6);
 
   /* 홈이 어느 시장 화면을 보여줄지. 이 함수가 유일한 기준이다(VM main.py
      _economic_news_market()이 같은 시각을 쓴다). */
   function homeMarket(date) {
     if (isWeekendClosed(date)) return 'closed';
     var k = kst(date);
-    // 토요일 오전엔 국내장이 없고 미국 금요일 애프터마켓만 남는다 - 08:00 복귀를 적용하지 않고 예전처럼 09:00 전은 미국.
-    if (k.day === 6 && k.minutes < M(9)) return 'us';
-    var domesticWindow = k.minutes >= HOME_DOMESTIC_START_KST_MINUTES && k.minutes < HOME_US_SWITCH_KST_MINUTES;
+    // 토요일은 국내 화면으로 자동 전환하지 않는다. 미국 금요일 애프터마켓 종료 뒤에는 휴장.
+    var domesticWindow = k.day !== 6
+      && k.minutes >= HOME_DOMESTIC_START_KST_MINUTES && k.minutes < HOME_US_SWITCH_KST_MINUTES;
     // 한국 공휴일에는 국내 화면 대신 휴장 지면을 보여준다. 미국 세션은 별도로 유지한다.
-    if (domesticWindow && k.day !== 6 && isKrHoliday(date)) return 'closed';
+    if (domesticWindow && isKrHoliday(date)) return 'closed';
     return domesticWindow ? 'domestic' : 'us';
   }
 
