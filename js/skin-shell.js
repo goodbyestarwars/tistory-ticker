@@ -898,7 +898,7 @@
     var k = kst(date);
     if (k.day === 6) return k.minutes >= weekendStartKstMinutes(date);
     if (k.day === 0) return true;
-    if (k.day === 1) return k.minutes < HOME_DOMESTIC_START_KST_MINUTES;
+    if (k.day === 1) return k.minutes < HOME_MONDAY_START_KST_MINUTES;
     return false;
   }
 
@@ -932,10 +932,11 @@
   }
 
   /* 홈 자동 전환 시각(KST). 2026-11-23 사용자 지정:
-     국내 화면은 월요일 06:00부터, 미국 화면은 21:00부터 표시한다.
-     표시 시장 선택과 실제 증권거래소 개장 여부는 별개다. */
+     월요일 휴장→국내 화면은 06:00, 화~금 US→국내 화면은 기존 08:00,
+     국내→미국 화면은 21:00. 화면 선택 시각은 거래소 개장 시각과 다르다. */
   var HOME_US_SWITCH_KST_MINUTES = M(21);
-  var HOME_DOMESTIC_START_KST_MINUTES = M(6);
+  var HOME_DOMESTIC_START_KST_MINUTES = M(8);
+  var HOME_MONDAY_START_KST_MINUTES = M(6);
 
   /* 홈이 어느 시장 화면을 보여줄지. 이 함수가 유일한 기준이다(VM main.py
      _economic_news_market()이 같은 시각을 쓴다). */
@@ -943,8 +944,9 @@
     if (isWeekendClosed(date)) return 'closed';
     var k = kst(date);
     // 토요일은 국내 화면으로 자동 전환하지 않는다. 미국 금요일 애프터마켓 종료 뒤에는 휴장.
+    var domesticStart = k.day === 1 ? HOME_MONDAY_START_KST_MINUTES : HOME_DOMESTIC_START_KST_MINUTES;
     var domesticWindow = k.day !== 6
-      && k.minutes >= HOME_DOMESTIC_START_KST_MINUTES && k.minutes < HOME_US_SWITCH_KST_MINUTES;
+      && k.minutes >= domesticStart && k.minutes < HOME_US_SWITCH_KST_MINUTES;
     // 한국 공휴일에는 국내 화면 대신 휴장 지면을 보여준다. 미국 세션은 별도로 유지한다.
     if (domesticWindow && isKrHoliday(date)) return 'closed';
     return domesticWindow ? 'domestic' : 'us';
