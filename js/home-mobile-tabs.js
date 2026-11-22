@@ -120,7 +120,7 @@
   function limitedViewer() { return !(global.NineAccess && ['home','stocks','analysis','stock-search','market-temp','market-map'].some(function(key){return global.NineAccess.allowsScreen(key);})); }
   function limitedTab() {
     var key = global.NineAccess ? global.NineAccess.screenOf(location.pathname, location.search) : '';
-    if (key === 'briefing' || key === 'news' || key === 'indicators') return 'market';
+    if (key === 'briefing' || key === 'news' || key === 'indicators' || key === 'indicators-crypto') return 'market';
     return key === 'guestbook' || key === 'calendar' || key === 'home' ? key : '';
   }
   function barHtml() {
@@ -130,7 +130,9 @@
     function first(rows){return rows.filter(function(row){return allowed(row[0]);})[0];}
     function item(key,label,href,icon){return '<a class="mtab-bar-item" data-mtab="'+key+'" href="'+href+'">'+svg(icon)+'<span>'+label+'</span></a>';}
     var html=item('home','홈','/','home');
-    var market=first([['market-temp','/page/market-temp'],['market-map','/page/market-temp?view=map'],['indicators','/pages/kospi-futures'],['briefing','/category/마켓 브리핑'],['news','/pages/main-news']]);
+    var market=!allowed('indicators') && allowed('indicators-crypto')
+      ? ['indicators-crypto','/pages/kospi-futures?tab=crypto']
+      : first([['market-temp','/page/market-temp'],['market-map','/page/market-temp?view=map'],['indicators','/pages/kospi-futures'],['briefing','/category/마켓 브리핑'],['news','/pages/main-news']]);
     if(market)html+=item('market','시장',market[1],'market');
     if(limitedViewer()){
       if(allowed('calendar'))html+=item('calendar','캘린더','/page/stock-calendar','calendar');

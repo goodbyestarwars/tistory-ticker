@@ -26,6 +26,7 @@ SCREENS = {
     'news': ('주요 뉴스', 'public'),
     'stories': ('이야기 시리즈', 'public'),
     'indicators': ('시장지표', 'member'),
+    'indicators-crypto': ('시장지표 · 가상자산', 'public'),
     'home': ('홈 대시보드', 'member'),
     'stocks': ('국내 주요종목', 'member'),
     'analysis': ('종목분석', 'member'),

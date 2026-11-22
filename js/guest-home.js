@@ -2,8 +2,8 @@
  * 비회원 전용 홈 (2026-11-12, 2026-11-11 회원 화면과 같은 컴포넌트로 통일).
  *
  * 관리자가 아닌 입장(비회원 입장·로그인했지만 관리자 아닌 계정)의 `/`는 전체 대시보드 대신
- * 이번 주 주요뉴스 + 마켓브리핑 + 이야기 시리즈를 보여 준다. js/access-gate.js 가 NineAccess.run 으로 skin-main 의
- * 대시보드 코드를 막으므로 실시간 위젯·시세 요청은 시작되지 않는다(여기서도 시작하지 않는다).
+ * 가상자산·바이낸스 선물 카드, 이번 주 주요뉴스, 마켓브리핑과 이야기 시리즈를 보여 준다.
+ * NineAccess.run은 전체 대시보드를 시작하지 않으며, 이 페이지는 공개 시세 카드만 요청한다.
  *
  * 재사용(복제 금지) - 모양·글꼴·넘김 화살표는 회원 대시보드와 같은 컴포넌트가 그린다:
  *  - 마켓브리핑: skin-main 의 NineHomeBriefing(같은 마크업·SiteInteractions.carousel)과 대시보드 래퍼 클래스
@@ -68,11 +68,11 @@
      한국시간 월~일·시장별 최대50건을 공통 MainNews.loadWeek로 중복 제거·최신순 정렬한다.
      회원 휴장 뉴스와 같은 renderWeeklyNews·기사·건수·캐러셀을 사용한다. */
   function relatedStocks(item) { return global.NineNewsStocks ? global.NineNewsStocks.relatedStocks(item) : []; }
-  function loadNewsCards() {
+  function loadWeeklyReport() {
     if (global.HomeWeeklyReport) { global.HomeWeeklyReport.ensureStyle(); return Promise.resolve(); }
     return new Promise(function (resolve,reject) {
       var tag=doc.createElement('script');
-      tag.src='https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js';
+      tag.src='https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261123-public-crypto';
       tag.onload=function () { if (!global.HomeWeeklyReport) { reject(new Error('news-cards')); return; } global.HomeWeeklyReport.ensureStyle(); resolve(); };
       tag.onerror=reject; doc.head.appendChild(tag);
     });
@@ -89,7 +89,7 @@
 
   /* 홈 첫 그림을 막지 않도록 마운트 뒤에 따로 조회한다. 한쪽 시장이 실패해도 받은 쪽만으로 그린다. */
   function fillNews(body) {
-    loadNewsCards().then(function(){return global.HomeWeeklyReport.renderWeeklyNews(body);}).catch(function(){body.innerHTML='<p class="home-card-state">뉴스를 불러오지 못했습니다.</p>';});
+    return global.HomeWeeklyReport.renderWeeklyNews(body).catch(function(){body.innerHTML='<p class="home-card-state">뉴스를 불러오지 못했습니다.</p>';});
   }
 
   function mount() {
@@ -112,9 +112,19 @@
     page.className = 'home-dashboard home-editorial-page guest-home';
     page.setAttribute('aria-label', '비회원 홈');
     // 뉴스는 그리드 밖(위)에 둔다: 모바일 브리핑/이야기 스와이프(.home-widget-grid 직속 섹션 전환)에 끼어들지 않는다.
-    page.innerHTML = newsShellHtml() + '<div class="home-widget-grid"><div class="home-card-state">마켓브리핑을 불러오는 중입니다.</div></div>';
+    var showCrypto = global.NineAccess && global.NineAccess.allowsScreen('indicators-crypto');
+    page.innerHTML = (showCrypto ? '<section class="home-weekly-report weekend-dashboard home-widget home-widget--full" aria-label="가상자산·바이낸스 선물"><div class="wd-live-panel" data-hwr-live><p class="home-card-state">가상자산·바이낸스 선물 시세 확인 중</p></div></section>' : '')
+      + newsShellHtml() + '<div class="home-widget-grid"><div class="home-card-state">마켓브리핑을 불러오는 중입니다.</div></div>';
     feed.appendChild(page);
-    fillNews(page.querySelector('[data-guest-news]'));
+    var news = page.querySelector('[data-guest-news]');
+    loadWeeklyReport().then(function () {
+      if (showCrypto) global.HomeWeeklyReport.renderLiveMarkets(page);
+      return fillNews(news);
+    }).catch(function () {
+      news.innerHTML = '<p class="home-card-state">뉴스를 불러오지 못했습니다.</p>';
+      var live = page.querySelector('[data-hwr-live]');
+      if (live) live.innerHTML = '<p class="home-card-state">가상자산 시세를 불러오지 못했습니다.</p>';
+    });
 
     var grid = page.querySelector('.home-widget-grid');
     if (briefingCards.length >= 3) fillBriefing(grid, briefingCards, 40);

@@ -298,7 +298,7 @@
     if (global.CryptoMarket && global.CryptoMarket.fetchCoinQuotes && global.CryptoMarket.quoteContractVersion >= 1) return Promise.resolve(global.CryptoMarket);
     if (!coinModuleJob) coinModuleJob = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/crypto-market.js?v=20261115-crypto-live';
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/crypto-market.js?v=20261123-public-crypto';
       script.onload = function () {
         if (global.CryptoMarket && global.CryptoMarket.quoteContractVersion >= 1) resolve(global.CryptoMarket);
         else { coinModuleJob = null; reject(new Error('crypto module contract')); }
@@ -1267,5 +1267,5 @@
     });
     return root;
   }
-  global.HomeWeeklyReport = { init: init, syncContent: syncContent, newsCardHtml: newsCardHtml, ensureStyle: ensureStyle, renderWeeklyNews:renderWeeklyNews };
+  global.HomeWeeklyReport = { init: init, syncContent: syncContent, newsCardHtml: newsCardHtml, ensureStyle: ensureStyle, renderWeeklyNews:renderWeeklyNews, renderLiveMarkets:loadWeekendLive };
 })(window);

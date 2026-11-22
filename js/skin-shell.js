@@ -163,7 +163,7 @@
   if (global.NineAccess || global.document.getElementById('nine-access-gate-js')) return;
   var tag = global.document.createElement('script');
   tag.id = 'nine-access-gate-js';
-  tag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-gate.js?v=20261119-cream-dialog';
+  tag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-gate.js?v=20261123-public-crypto';
   global.document.head.appendChild(tag);
 })(typeof window !== 'undefined' ? window : globalThis);
 

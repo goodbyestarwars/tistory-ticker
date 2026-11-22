@@ -25,8 +25,8 @@ function boot(path, search, policyFn, session, local) {
 }
 const policy = (admin, off = [], authed = admin) => () => Promise.resolve({ ok: true, json: () => Promise.resolve({ data: {
   isAdmin: admin, authenticated: authed,
-  screens: Object.fromEntries(['guestbook','calendar','briefing','news','indicators','home','stories','analysis','stock-search','chart','watchlist','memo','market-map','stocks','scanner','strategy','tools','my','market-temp','autotrader','kis'].map(k => {
-    const pub = ['guestbook','calendar','briefing','news'].includes(k); const en = !off.includes(k);
+  screens: Object.fromEntries(['guestbook','calendar','briefing','news','indicators','indicators-crypto','home','stories','analysis','stock-search','chart','watchlist','memo','market-map','stocks','scanner','strategy','tools','my','market-temp','autotrader','kis'].map(k => {
+    const pub = ['guestbook','calendar','briefing','news','indicators-crypto'].includes(k); const en = !off.includes(k);
     return [k, { public: pub, enabled: en, allowed: en && (pub || (k === 'indicators' && authed) || admin) }]; })) } }) });
 const fail = () => Promise.reject(new TypeError('network'));
 const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
@@ -56,6 +56,17 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   table.forEach(([p, q, k]) => assert.strictEqual(s(p, q), k, p + q));
   assert.strictEqual(win.NineAccess.screenOfHref('https://goodbyestar.cloud/kis-tool/'), 'kis');
   assert.strictEqual(win.NineAccess.screenOfHref('#averaging-calculator'), 'tools');
+  assert.strictEqual(s('/pages/kospi-futures', '?tab=crypto'), 'indicators-crypto');
+  assert.strictEqual(s('/pages/overnight-market', '?tab=global&tab=crypto'), 'indicators');
+  const cryptoGuest = boot('/pages/kospi-futures', '?tab=crypto', policy(false));
+  let cryptoMounted = false;
+  cryptoGuest.win.NineAccess.run(() => { cryptoMounted = true; });
+  await wait();
+  assert(cryptoMounted);
+  assert(!cryptoGuest.win.NineAccess.allowsHref('/pages/kospi-futures?tab=global'));
+  const disabledCrypto = boot('/pages/kospi-futures', '?tab=crypto', policy(false, ['indicators-crypto']));
+  await wait();
+  assert.deepStrictEqual(disabledCrypto.calls.replace, ['/guestbook']);
 
   // 비로그인 '/' → /guestbook, 보호 화면 초기화 안 함, 로그인 후 복귀용 목적지 보관
   let b = boot('/', '', policy(false)); let ran = false;

@@ -23,7 +23,7 @@
         // 2026-09-06: '글로벌 시장지표'·'국내시장지표' 두 칸을 한 칸으로 합쳤다. 두 지면이
         // 코스피·코스닥을 각각 들고 있어 중복이었고, 이제 한 지면에서 버튼으로 오간다
         // (js/skin-main.js loadMarketIndicatorTabs). 옛 주소도 그대로 열린다.
-        { href: '/pages/kospi-futures', label: '시장지표' }
+        { href: '/pages/kospi-futures', publicHref: '/pages/kospi-futures?tab=crypto', label: '시장지표' }
       ]
     },
     // 2026-09-04: '종목검색'(차트검색·전략검색 2개)을 '종목'으로 합치고, 1차 메뉴를
@@ -89,7 +89,11 @@
     NAV_ITEMS = [];
     NAV_ALL.forEach(function (item) {
       if (!item.children) { if (menuAllows(item.href)) NAV_ITEMS.push(item); return; }
-      var kids = item.children.filter(function (child) { return menuAllows(child.href); });
+      var kids = item.children.map(function (child) {
+        if (menuAllows(child.href)) return child;
+        if (child.publicHref && menuAllows(child.publicHref)) return Object.assign({}, child, { href: child.publicHref });
+        return null;
+      }).filter(Boolean);
       if (kids.length) NAV_ITEMS.push(Object.assign({}, item, { children: kids }));
     });
   }
@@ -218,6 +222,7 @@
     var parts = item.href.split('?');
     if (currentPath() !== parts[0]) return false;
     var query = new URLSearchParams(location.search);
+    if (parts[1] === 'tab=crypto') return (query.get('tab') || '').toLowerCase() === 'crypto';
     if (!parts[1]) return query.get('view') !== 'stocks' && query.get('view') !== 'map';
     if (parts[1].indexOf('tool=independent-chart') === 0) return query.get('tool') === 'independent-chart';
     if (parts[1].indexOf('view=map') === 0) return query.get('view') === 'map';

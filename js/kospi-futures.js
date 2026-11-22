@@ -1181,6 +1181,9 @@
   };
   global.KospiFutures = KospiFutures;
 
+  // 이 URL에서는 스킨의 탭 선택을 기다린다. 페이지 본문에 고정된 스크립트도 포함한다.
+  if (global.location && (new URLSearchParams(global.location.search).get('tab') || '').toLowerCase() === 'crypto'
+      && !document.querySelector('.mi-panel[data-mi-panel="domestic"]:not([hidden])')) return;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

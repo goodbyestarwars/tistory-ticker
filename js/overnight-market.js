@@ -1127,6 +1127,8 @@
     setAverages: function (symbol, year, half) { benchmarks[symbol] = year; benchmarks6m[symbol] = half; }
   };
 
+  if (global.location && (new URLSearchParams(global.location.search).get('tab') || '').toLowerCase() === 'crypto'
+      && !document.querySelector('.mi-panel[data-mi-panel="global"]:not([hidden])')) return;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

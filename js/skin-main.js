@@ -76,7 +76,7 @@ function loadMobileTabs() {
   if (!window.matchMedia || !window.matchMedia('(max-width: 720px)').matches) return;
   if (document.querySelector('script[data-mobile-tabs]')) return;
   var ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
-  var version = '20261113-linked-futures';
+  var version = '20261123-public-crypto';
   var link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = ASSET_BASE + 'css/home-mobile-tabs.css?v=' + version;
@@ -501,7 +501,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20261025-tab-explainers',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20261123-public-crypto',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
@@ -515,7 +515,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
         mountIds: ['overnight-market'],
         globalName: 'OvernightMarket',
-        script: ASSET_BASE + 'js/overnight-market.js?v=20261110-no-summaries',
+        script: ASSET_BASE + 'js/overnight-market.js?v=20261123-public-crypto',
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
@@ -531,7 +531,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       {
         key: 'crypto', badge: '가상자산 시세', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
-        script: ASSET_BASE + 'js/crypto-market.js?v=20261115-crypto-live',
+        script: ASSET_BASE + 'js/crypto-market.js?v=20261123-public-crypto',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261110-market-badges',
           ASSET_BASE + 'css/crypto-market.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
@@ -547,9 +547,16 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
     if (!matched) return;
     var slug = matched[1].toLowerCase();
-    var initialKey = TABS.filter(function (tab) { return tab.slug === slug; })[0].key;
-    var wantedTab = /[?&]tab=([a-z-]+)/i.exec(location.search);
-    if (wantedTab && TABS.some(function (tab) { return tab.key === wantedTab[1].toLowerCase(); })) initialKey = wantedTab[1].toLowerCase();
+    var defaultKey = TABS.find(function (tab) { return tab.slug === slug; }).key;
+    var wantedTab = (new URLSearchParams(location.search).get('tab') || '').toLowerCase();
+    var access = window.NineAccess;
+    var allTabs = TABS;
+    TABS = allTabs.filter(function (tab) {
+      if (!access) return wantedTab !== 'crypto' || tab.key === 'crypto';
+      return access.allowsScreen(tab.key === 'crypto' ? 'indicators-crypto' : 'indicators');
+    });
+    if (!TABS.length) return;
+    var initialKey = tabByKey(wantedTab) ? wantedTab : tabByKey(defaultKey) ? defaultKey : TABS[0].key;
 
     /* 이미 같은 파일을 가리키는 <link>가 있으면(티스토리 페이지 본문에 박혀 있는 경우)
        중복으로 넣지 않는다. 파일명만 보고 판단한다 - ?v= 값은 서로 다를 수 있다. */
@@ -607,7 +614,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         if (key !== 'us-macro' || (window.OvernightMarket && window.OvernightMarket.cryptoTools)) return archive;
         return Promise.all([archive, new Promise(function (resolve) {
           var script = document.createElement('script');
-          script.src = ASSET_BASE + 'js/overnight-market.js?v=20261110-no-summaries';
+          script.src = ASSET_BASE + 'js/overnight-market.js?v=20261123-public-crypto';
           script.onload = script.onerror = resolve; document.head.appendChild(script);
         })]);
       });
@@ -628,6 +635,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     }
 
     function select(key) {
+      if (!tabByKey(key)) return;
       TABS.forEach(function (tab) {
         var on = tab.key === key;
         var panel = document.querySelector('.mi-panel[data-mi-panel="' + tab.key + '"]');
@@ -645,12 +653,18 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       if (document.querySelector('[data-mi-tabs]')) return;
       // 본문에 들어 있는 mount를 기준점으로 삼는다. 둘 다 없으면 이 지면이 아니다.
       var anchor = null;
-      for (var i = 0; i < TABS.length && !anchor; i++) {
-        for (var j = 0; j < TABS[i].mountIds.length && !anchor; j++) {
-          anchor = document.getElementById(TABS[i].mountIds[j]);
+      for (var i = 0; i < allTabs.length && !anchor; i++) {
+        for (var j = 0; j < allTabs[i].mountIds.length && !anchor; j++) {
+          anchor = document.getElementById(allTabs[i].mountIds[j]);
         }
       }
       if (!anchor || !anchor.parentNode) return;
+      allTabs.filter(function (tab) { return !tabByKey(tab.key); }).forEach(function (tab) {
+        tab.mountIds.forEach(function (id) {
+          var mount = document.getElementById(id);
+          if (mount) mount.hidden = true;
+        });
+      });
 
       ensureStyle(CSS_URL, 'tabs');
       // 두 탭의 CSS를 처음부터 같이 넣는다. 탭을 여는 순간 받으면 스타일 없는 화면이
@@ -753,7 +767,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     var HOME_INVESTOR_FLOW_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/investor-flow.js?v=20261120-home-liquidity2';
     var HOME_REALTIME_TABLE_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-economic-news.js?v=20261118-finance-filter-v2';
-  var HOME_WEEKLY_REPORT_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-weekly-report.js?v=20261027-block-subtitles';
+  var HOME_WEEKLY_REPORT_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-weekly-report.js?v=20261123-public-crypto';
 
     function isWeekendReportWindow() {
       // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과

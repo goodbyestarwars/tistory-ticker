@@ -10,8 +10,37 @@
   var cryptoLiveJob = null, liveUnsubscribe = null, cryptoLiveState = 'waiting';
   var COINS = [['BTC', '비트코인'], ['ETH', '이더리움'], ['USDT', '테더']];
   // The indicator page and closed home share the same source, units and request.
-  var coinQuoteMemo;
+  var coinQuoteMemo, publicCoinQuoteMemo;
+  function adminQuotes() { return !!(global.NineAccess && global.NineAccess.isAdmin()); }
+  function fetchPublicCoinQuotes() {
+    var live = global.NineCryptoLive;
+    var ticks = live && COINS.map(function (pair) { return live.latest(pair[0]); });
+    if (ticks && ticks.every(live.isFresh)) return Promise.resolve(ticks.map(function (tick) {
+      return Object.assign({}, tick, {updated_at:new Date(tick.at).toISOString()});
+    }));
+    if (publicCoinQuoteMemo && (publicCoinQuoteMemo.pending || Date.now() - publicCoinQuoteMemo.at < 30000)) return publicCoinQuoteMemo.promise;
+    var memo = { at: Date.now(), pending: true };
+    var markets = COINS.map(function (pair) { return 'KRW-' + pair[0]; });
+    memo.promise = global.NineHttp.json('https://api.upbit.com/v1/ticker?markets=' + markets.join(','), {timeoutMs:8000})
+      .then(function (rows) {
+        if (!Array.isArray(rows)) throw new Error('Upbit ticker payload');
+        return rows.filter(function (row) {
+          return row && markets.indexOf(row.market) !== -1 && Number(row.trade_price) > 0;
+        }).map(function (row) {
+          return {
+            symbol: row.market.slice(4), price: Number(row.trade_price),
+            change_rate: Number(row.signed_change_rate) * 100, change: Number(row.signed_change_price),
+            high: Number(row.high_price), low: Number(row.low_price),
+            updated_at: row.timestamp > 0 ? new Date(row.timestamp).toISOString() : null
+          };
+        });
+      }).catch(function (error) { if (publicCoinQuoteMemo === memo) publicCoinQuoteMemo = null; throw error; })
+      .finally(function () { memo.pending = false; });
+    publicCoinQuoteMemo = memo;
+    return memo.promise;
+  }
   function fetchCoinQuotes() {
+    if (!adminQuotes()) return fetchPublicCoinQuotes();
     if (coinQuoteMemo && (coinQuoteMemo.pending || Date.now() - coinQuoteMemo.at < 30000)) return coinQuoteMemo.promise;
     var memo = { at: Date.now(), pending: true };
     memo.promise = global.NineHttp.json(api + '/futures?days=365&symbols=BTC,ETH,USDT', {timeoutMs:8000})
@@ -74,7 +103,7 @@
     helperJob = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
       var timeout = setTimeout(function () { reject(new Error('crypto helper timeout')); },10000);
-      script.src = base + 'js/overnight-market.js?v=20261110-no-summaries';
+      script.src = base + 'js/overnight-market.js?v=20261123-public-crypto';
       script.onload = function () { clearTimeout(timeout); global.OvernightMarket && global.OvernightMarket.cryptoTools && global.OvernightMarket.cryptoTools.quoteContractVersion >= 1 ? resolve(global.OvernightMarket) : reject(new Error('crypto helper missing')); };
       script.onerror = function () { clearTimeout(timeout); reject(new Error('crypto helper load')); }; document.head.appendChild(script);
     }).catch(function (error) { helperJob = null; throw error; });
@@ -240,14 +269,16 @@
     return helpers(true).then(function (module) { return module.cryptoTools.fetchTokens({quotesOnly:true}); });
   }
   function tokens() {
-    return tools.fetchTokens().then(function(data){
+    var admin = adminQuotes();
+    return tools.fetchTokens(admin ? undefined : {quotesOnly:true}).then(function(data){
       if(data && Array.isArray(data.items) && data.items.length) return { data: data, fromServer: false };
+      if(!admin) return { data: data || {}, fromServer: false };
       return tools.get(api+'/binance-kr-equity').then(function(json){ return { data: json.data || {}, fromServer: true }; });
     }).then(function(result){
       var data = result.data, items = Array.isArray(data.items) ? data.items : [], index = 0;
       tokenSource = result.fromServer ? 'server' : 'direct';
       tokenFetchFailed = !items.length;
-      tokenPairs = tools.symbols;
+      tokenPairs = Array.isArray(data.symbols) ? data.symbols : tools.symbols;
       tokenItems = { __failed: !items.length };
       items.forEach(function(item){tokenItems[item.symbol]=item;});
       tokenQuoteAt = items.length ? tokenQuoteTime(data.updatedAt) : '';
@@ -292,7 +323,11 @@
         columns:COLUMNS,ranges:RANGES,defaultRange:'3m',prevLabel:'전일',countLabel:'일봉',
         caption:'가상자산 시세 표',emptyText:'시세를 불러오는 중입니다.',height:210}):null;
       root.querySelector('[data-news-refresh]').onclick=function(){news(true);};
-      busy=false;renderBoard();refresh();ensureCryptoLive();if(!timer)timer=setInterval(refresh,30000);
+      busy=false;renderBoard();refresh();
+      // Upbit REST와 WebSocket 초기 연결이 브라우저 Origin 호출 한도를 공유한다.
+      if (adminQuotes()) ensureCryptoLive();
+      else setTimeout(ensureCryptoLive, 11000);
+      if(!timer)timer=setInterval(refresh,30000);
     }).catch(function(){busy=false;root.textContent='가상자산 화면을 불러오지 못했습니다.';});
   }
   global.CryptoMarket={quoteContractVersion:1,init:init,dailyStats:dailyStats,fetchCoinQuotes:fetchCoinQuotes,fetchTokenQuotes:fetchTokenQuotes,coins:COINS};

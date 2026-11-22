@@ -18,9 +18,9 @@
   var FALLBACK = '/guestbook';
   var FROM_KEY = 'nine_access_from';
   var doc = global.document;
-  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news', 'stories']; // 비회원 공개. 시장지표(indicators)는 로그인 후(서버 level=member)
+  var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news', 'stories', 'indicators-crypto'];
   var GUEST_KEY = 'nine_guest'; // 비회원 입장 표시(탭 단위 sessionStorage). 인증 상태가 아니다.
-  var GUEST_HOME_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/guest-home.js?v=20261112-paper-v1';
+  var GUEST_HOME_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/guest-home.js?v=20261123-public-crypto';
 
   /* ───── 경로 → 화면 키. 알 수 없는 경로(일반 글·기타 페이지)는 '' = 정책 대상 아님 ───── */
   function norm(path) {
@@ -36,7 +36,9 @@
     if (/^\/guestbook(?:\/|$)/.test(p)) return 'guestbook';
     if (/^\/pages?\/stock-calendar$/.test(p)) return 'calendar';
     if (/^\/category\/마켓 ?브리핑(?:\/|$)/.test(p)) return 'briefing';
-    if (/^\/pages?\/(?:kospi-futures|overnight-market)$/.test(p)) return 'indicators';
+    if (/^\/pages?\/(?:kospi-futures|overnight-market)$/.test(p)) {
+      return (q.get('tab') || '').toLowerCase() === 'crypto' ? 'indicators-crypto' : 'indicators';
+    }
     if (/^\/pages?\/main-news$/.test(p)) return 'news';
     if (/^\/pages?\/market-temp$/.test(p)) return q.get('view') === 'stocks' ? 'stocks' : q.get('view') === 'map' ? 'market-map' : 'market-temp';
     if (/^\/pages?\/stock-search$/.test(p)) return q.get('tool') === 'independent-chart' ? 'chart' : 'stock-search';
@@ -104,7 +106,7 @@
   var readyResolve;
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
 
-  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'news', 'stories', 'analysis', 'stock-search', 'chart', 'watchlist', 'memo', 'market-map', 'indicators', 'home', 'stocks', 'scanner', 'strategy', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
+  var SCREEN_KEYS = ['guestbook', 'calendar', 'briefing', 'news', 'stories', 'analysis', 'stock-search', 'chart', 'watchlist', 'memo', 'market-map', 'indicators', 'indicators-crypto', 'home', 'stocks', 'scanner', 'strategy', 'tools', 'my', 'market-temp', 'autotrader', 'kis'];
   function legacyPolicy() {
     return global.fetch(API + '/auth/google/me', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('me ' + r.status); return r.json(); })
