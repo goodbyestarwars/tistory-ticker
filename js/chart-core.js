@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-11-06-axis-drag-1';
+  var VERSION = '2026-11-22-candle-style';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -724,6 +724,129 @@
       wickUpColor: CANDLE_UP, wickDownColor: CANDLE_DOWN,
       priceLineStyle: global.LightweightCharts.LineStyle.Solid,
       priceFormat: priceFormat
+    };
+  }
+
+  var CANDLE_STYLES = { candle: '캔들', pencil: '색연필', hollow: '투명캔들' };
+  var candleStyle = 'candle';
+  var candleStyleControls = new Set();
+  try {
+    var savedCandleStyle = global.localStorage.getItem('nine-chart-candle-style');
+    if (Object.keys(CANDLE_STYLES).includes(savedCandleStyle)) candleStyle = savedCandleStyle;
+  } catch (e) { /* 저장소가 차단돼도 현재 페이지에서 바꿀 수 있다. */ }
+
+  function pencilCandles(chart, series, colors) {
+    var timeScale = chart.timeScale();
+    var view = { renderer: function () { return { draw: draw }; } };
+
+    function draw(target) {
+      var visible = timeScale.getVisibleLogicalRange();
+      if (!visible) return;
+      var first = Math.floor(visible.from);
+      var spacing = timeScale.logicalToCoordinate(first + 1) - timeScale.logicalToCoordinate(first);
+      var width = Math.max(1, spacing * 0.8);
+      target.useMediaCoordinateSpace(function (scope) {
+        var ctx = scope.context;
+        var last = Math.ceil(visible.to);
+        for (var index = first; index <= last; index++) {
+          var bar = series.dataByIndex(index);
+          if (!bar || !Number.isFinite(bar.open)) continue;
+          var x = timeScale.logicalToCoordinate(index);
+          var open = series.priceToCoordinate(bar.open), close = series.priceToCoordinate(bar.close);
+          if (x == null || open == null || close == null) continue;
+          var y = Math.min(open, close);
+          var height = Math.max(1, Math.abs(close - open));
+          var top = Math.max(0, y), bottom = Math.min(scope.mediaSize.height, y + height);
+          if (bottom <= top) continue;
+          var left = x - width / 2;
+          var color = bar.close >= bar.open ? colors.up : colors.down;
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.globalAlpha = width < 3 || height < 2 ? 0.85 : 0.24;
+          ctx.fillRect(left, top, width, bottom - top);
+          if (width >= 3 && height >= 2) {
+            ctx.beginPath();
+            ctx.rect(left, top, width, bottom - top);
+            ctx.clip();
+            ctx.strokeStyle = color;
+            ctx.lineCap = 'round';
+            // 일정한 위치에서 겹쳐 칠한 두 겹의 연필선. 확대·이동 중에도 무늬가 깜빡이지 않는다.
+            for (var layer = 0; layer < 2; layer++) {
+              var step = layer === 0 ? 2.4 : 3.7;
+              ctx.globalAlpha = layer === 0 ? 0.85 : 0.42;
+              ctx.lineWidth = layer === 0 ? 0.9 : 0.65;
+              ctx.beginPath();
+              for (var stroke = Math.floor((top - y) / step); y + stroke * step < bottom + width * 1.4; stroke++) {
+                var variation = Math.sin(index * 12.99 + stroke * 4.27 + layer);
+                var start = y + stroke * step + variation * 0.8;
+                ctx.moveTo(left - 1, start);
+                ctx.lineTo(x, start - width * (0.43 + layer * 0.16) + variation);
+                ctx.lineTo(left + width + 1, start - width * (0.96 + layer * 0.26));
+              }
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
+        }
+      });
+    }
+    return { paneViews: function () { return [view]; } };
+  }
+
+  function installCandleStyle(chart, series, toolbar) {
+    if (!toolbar || typeof series.attachPrimitive !== 'function') return function () {};
+    var select = toolbar.ownerDocument.createElement('select');
+    select.className = 'nine-candle-style';
+    select.setAttribute('aria-label', '캔들 표시 방식');
+    Object.keys(CANDLE_STYLES).forEach(function (key) {
+      var option = select.ownerDocument.createElement('option');
+      option.value = key;
+      option.textContent = CANDLE_STYLES[key];
+      select.appendChild(option);
+    });
+    var original = series.options();
+    var colors = { up: original.wickUpColor, down: original.wickDownColor };
+    var pencil = null;
+    var applied = 'candle';
+    var hiddenFill = 'rgba(0,0,0,0)';
+    function updatePriceLine() {
+      if (original.priceLineColor || applied === 'candle') return;
+      var last = series.dataByIndex(Number.MAX_SAFE_INTEGER, global.LightweightCharts.MismatchDirection.NearestLeft);
+      if (last) series.applyOptions({ priceLineColor: last.close >= last.open ? original.upColor : original.downColor });
+    }
+    function applyMode(mode) {
+      select.value = mode;
+      if (mode === applied) return;
+      if (pencil) { series.detachPrimitive(pencil); pencil = null; }
+      applied = mode;
+      series.applyOptions({
+        upColor: mode === 'candle' ? original.upColor : hiddenFill,
+        downColor: mode === 'candle' ? original.downColor : hiddenFill,
+        borderVisible: mode === 'candle' ? original.borderVisible : mode === 'hollow',
+        borderUpColor: mode === 'candle' ? original.borderUpColor : colors.up,
+        borderDownColor: mode === 'candle' ? original.borderDownColor : colors.down
+      });
+      if (!original.priceLineColor && mode === 'candle') series.applyOptions({ priceLineColor: original.priceLineColor });
+      updatePriceLine();
+      if (mode === 'pencil') {
+        pencil = pencilCandles(chart, series, colors);
+        series.attachPrimitive(pencil);
+      }
+    }
+    select.addEventListener('change', function () {
+      candleStyle = select.value;
+      try { global.localStorage.setItem('nine-chart-candle-style', candleStyle); } catch (e) { /* 메모리에서 유지 */ }
+      candleStyleControls.forEach(function (apply) { apply(candleStyle); });
+    });
+    candleStyleControls.add(applyMode);
+    if (!original.priceLineColor) series.subscribeDataChanged(updatePriceLine);
+    applyMode(candleStyle);
+    toolbar.appendChild(select);
+    return function () {
+      candleStyleControls.delete(applyMode);
+      if (!original.priceLineColor) series.unsubscribeDataChanged(updatePriceLine);
+      applyMode('candle');
+      select.remove();
     };
   }
 
@@ -1710,7 +1833,8 @@
     onThemeChange: onThemeChange, observeResize: observeResize, createScope: createScope,
     registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars, installSmoothWheelZoom: installSmoothWheelZoom,
     movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,
-    candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
+    candleOptions: candleOptions, addCandles: addCandles, installCandleStyle: installCandleStyle,
+    addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
     volumeSpikeMultiples: volumeSpikeMultiples, accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, volumeMultiples: volumeMultiples, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION

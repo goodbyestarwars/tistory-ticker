@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261117-drawing-mouse-v2';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261122-candle-style';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -352,6 +352,7 @@
   var stockPanCleanup = null;
   var stockWheelCleanup = null;
   var stockChartRegistryOff = null;
+  var stockCandleStyleOff = null;
   var lwcRenderId = 0;
   var drawingCtl = null;     // chart-drawing 컨트롤러(차트 하나당 하나)
   var waveHandle = null;     // chart-wave-overlay 핸들
@@ -1318,6 +1319,7 @@
       series.setData(bars.map(function (bar) {
         return { time: bar.date, open: bar.open, high: bar.high, low: bar.low, close: bar.close };
       }));
+      indexExtraCleanup.push(core.installCandleStyle(indexChart, series, panel.querySelector('.ss-timeframe-tools')));
       indexOhlcTooltipCleanup = installStockOhlcTooltip(host, indexChart, series, false);
       var volumePane = null, volLegend = null, volByTime = {}, volumeBars = bars;
       var volumeProfile = null, traceHolder = null;
@@ -3305,6 +3307,7 @@
     if (stockPanCleanup) { stockPanCleanup(); stockPanCleanup = null; }
     if (stockWheelCleanup) { stockWheelCleanup(); stockWheelCleanup = null; }
     if (stockChartRegistryOff) { stockChartRegistryOff(); stockChartRegistryOff = null; }
+    if (stockCandleStyleOff) { stockCandleStyleOff(); stockCandleStyleOff = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones').forEach(function (el) { el.remove(); });
@@ -3346,6 +3349,7 @@
         minMove: priceMinMove,
         formatter: function (v) { return chartPriceText(v, isUsChart); }
       }, { top: 0.06, bottom: 0.08 });
+      stockCandleStyleOff = core.installCandleStyle(chart, candleSeries, container.parentElement.querySelector('.ss-timeframe-tools'));
       var tooltipVolume = { map: core.volumeMultiples(bars, 20), label: timeframe === 'day' ? '20일' : '직전 20봉' };
       lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart, tooltipVolume);
       lwcCandleSeries = candleSeries;

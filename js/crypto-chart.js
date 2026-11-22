@@ -16,6 +16,7 @@
     {key:'day',title:'일봉',path:'days',ms:86400000}
   ];
   var state = {symbol:'',period:'5',gen:0,chart:null,candles:null,volume:null,bars:[],liveOff:null,watchOff:null};
+  var candleStyleOff = null;
   var readyJob = null, restQueue = Promise.resolve(), restLastAt = 0;
   function getPeriod(key) { return PERIODS.filter(function (p) { return p.key === key; })[0] || PERIODS[1]; }
   function fmt(num, digits) {
@@ -23,6 +24,7 @@
   }
   function status(host,text) { var node=host.querySelector('[data-crypto-status]'); if(node)node.textContent=text; }
   function clear() {
+    if(candleStyleOff){candleStyleOff();candleStyleOff=null;}
     if(state.liveOff) {state.liveOff();state.liveOff=null;}
     if(state.watchOff){state.watchOff();state.watchOff=null;}
     if(state.chart){try{state.chart.remove();}catch(err){} state.chart=null;}
@@ -110,6 +112,7 @@
       opts.timeScale.secondsVisible=false;
       state.chart=LWC.createChart(mount,opts);
       state.candles=core.addCandles(state.chart,LWC,bars,{type:'price',precision:symbol==='USDT'?2:0,minMove:symbol==='USDT'?.01:1},{top:.08,bottom:.05});
+      candleStyleOff=core.installCandleStyle(state.chart,state.candles,host.querySelector('.nine-crypto-periods'));
       // The volume pane stays snapshot-based (not estimated from ticker updates).
       if(bars.length>5) {
         var v=core.addVolumePane(state.chart,LWC,bars,{multipleLabels:false,ma5:false});

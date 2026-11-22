@@ -516,7 +516,7 @@
 
   // 2026-10-16 사용자 요청: 그리기 도구를 공통 차트(js/chart-drawing.js)와 같게 - 끌어서 그리는 직선·동그라미·박스·가로선·연필.
   // 이 화면 전용 클릭-클릭 구현은 걷어 내고 공통 엔진(NineChartDrawing.attach)을 지연 로드해 붙인다. 저장 키·옛 저장값({lines, circles})은 그대로 읽는다.
-  var CHART_CORE_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/chart-core.js?v=20261117-drawing-mouse-v2';
+  var CHART_CORE_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/chart-core.js?v=20261122-candle-style';
 
   function loadChartDrawing() {
     var loads = global.__nineChartLoads = global.__nineChartLoads || {};
@@ -568,6 +568,8 @@
       // 다른 렌더가 같은 칸의 DOM을 이미 갈아엎어 이 차트가 화면에서 떨어졌다면(예: 스크립트가 두 번 실행된 모바일) 붙이지 않는다.
       var chartEl = chart.chartElement ? chart.chartElement() : null;
       if (chartEl && !element.contains(chartEl)) return;
+      var section = element.closest('.kf-section');
+      if (section) state.candleStyleOff = global.NineChartCore.installCandleStyle(chart, series, section.querySelector('.kf-draw-buttons'));
       state.ctl = Drawing.attach({
         core: global.NineChartCore, container: element, chart: chart, series: series, bars: drawingBars(state.points),
         key: key, timeframe: interval,
@@ -594,6 +596,7 @@
     var state = drawingStates[key];
     if (!state) return;
     state.detached = true;
+    if (state.candleStyleOff) state.candleStyleOff();
     if (state.ctl) state.ctl.detach();
     drawingStates[key] = null;
   }

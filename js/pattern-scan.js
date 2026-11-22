@@ -21,8 +21,8 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var PATTERN_SCRIPT_URL = document.currentScript && document.currentScript.src;
-  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261105-shape-selection', PATTERN_SCRIPT_URL).href
-    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261117-drawing-mouse-v2';
+  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261122-candle-style', PATTERN_SCRIPT_URL).href
+    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261122-candle-style';
   var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
   // 목록은 VM에서 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
@@ -2575,6 +2575,7 @@
   var lwcLoadPromise = null;
   var psLwcChart = null;         // 현재 렌더된 차트 인스턴스(재조회/닫기 시 정리용)
   var psChartRegistryOff = null;
+  var psCandleStyleOff = null;
   var psLwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
   var psRangePromise = null;
   function loadPatternRangeModule() {
@@ -2652,6 +2653,7 @@
     psChartGeneration++;
     clearPsVolume();psMaSeries={};
     if (psChartRegistryOff) { psChartRegistryOff(); psChartRegistryOff = null; }
+    if (psCandleStyleOff) { psCandleStyleOff(); psCandleStyleOff = null; }
     if (psPanCleanup) { psPanCleanup(); psPanCleanup = null; }
     if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
     if (psLwcThemeObserver) { psLwcThemeObserver.disconnect(); psLwcThemeObserver = null; }
@@ -2902,6 +2904,8 @@
       });
 
       var candleSeries = global.NineChartCore.addCandles(chart, LWC, daily);
+      psCandleStyleOff = global.NineChartCore.installCandleStyle(
+        chart, candleSeries, container.closest('.ps-detail').querySelector('.ps-chart-options'));
 
       // 패턴 종류와 관계없이 실시간 시세 차트와 같은 5·20·60·224일선을 항상 표시한다.
       var ma224Series = null;
