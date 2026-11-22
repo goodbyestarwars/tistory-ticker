@@ -480,6 +480,12 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
   color: #6b7280;
   font-size: 11px;
 }
+@layer np.np {
+  html body #strategy-search .ss-comparison-table > thead > tr > th {
+    border-radius: 0 !important;
+    clip-path: none !important;
+  }
+}
 #strategy-search .ss-comparison-table td {
   padding: 11px 8px;
   border-bottom: 1px solid #e5e7eb;

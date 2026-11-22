@@ -1875,6 +1875,14 @@ html.dark #foreign-flow .ff-industry-card.active,
 html.dark #foreign-flow .ff-flow-row:hover { background: var(--dk-hover); }
 html.dark #foreign-flow .ff-flow-empty { border-color: var(--dk-line); color: var(--dk-sub); }
 html.dark #foreign-flow .ff-flow-row { border-color: var(--dk-line); }
+html.dark #foreign-flow .ff-flow-card.tone-up { --ff-flow-direction: var(--dk-up); }
+html.dark #foreign-flow .ff-flow-card.tone-down { --ff-flow-direction: var(--dk-down); }
+html.dark #foreign-flow .ff-flow-card .ff-flow-card-copy :is(strong, b) {
+  color: var(--ff-flow-direction, var(--dk-text)) !important;
+}
+html.dark #foreign-flow .ff-flow-card .ff-flow-line path {
+  stroke: var(--ff-flow-direction, var(--dk-flat));
+}
 
 @media (max-width: 760px) {
   #foreign-flow .ff-flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

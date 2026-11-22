@@ -354,7 +354,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     if (!document.querySelector('link[data-foreign-flow-css]')) {
       var ffLink = document.createElement('link');
       ffLink.rel = 'stylesheet';
-      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20261115-vp-overlay';
+      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20261123-market-contrast';
       ffLink.setAttribute('data-foreign-flow-css', '1');
       document.head.appendChild(ffLink);
     }
@@ -437,7 +437,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
-    var version = '20261116-map-readable-v3';
+    var version = '20261123-market-contrast';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';

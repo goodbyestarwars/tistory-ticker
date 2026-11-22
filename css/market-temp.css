@@ -552,13 +552,21 @@ html.dark #market-temp .mt-heat-note { color:var(--dk-text); }
 #market-temp .mt-all-stock-head strong { color:#172033; font-size:15px; white-space:nowrap; }
 #market-temp .mt-all-stock-head span { color:#94a3b8; font-size:11px; }
 #market-temp .mt-all-stock-head > span { white-space:nowrap; }
-#market-temp .mt-all-stock-toolbar { display:flex; gap:8px; margin-bottom:12px; }
-#market-temp .mt-all-stock-toolbar label { flex:1; min-width:0; }
+#market-temp .mt-all-stock-toolbar { display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px; margin-bottom:12px; }
+#market-temp .mt-all-stock-toolbar label { flex:0 1 300px; max-width:300px; min-width:0; }
 #market-temp .mt-all-stock-search-label { display:block; margin:0 0 5px; color:#64748b; font-size:11px; font-weight:700; }
 #market-temp .mt-all-stock-toolbar input { width:100%; min-height:35px; box-sizing:border-box; border:1px solid #dbe4ef; border-radius:4px; padding:0 10px; background:#fff; color:#172033; font:inherit; font-size:12px; }
 #market-temp .mt-all-stock-toolbar button { border:1px solid #dbe4ef; border-radius:4px; background:#fff; color:#475569; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
 #market-temp .mt-all-stock-toolbar button { flex:0 0 auto; padding:0 11px; }
 #market-temp .mt-all-stock-toolbar button:hover { border-color:#1f2937; color:#1f2937; }
+@layer np {
+  html body #market-temp .mt-all-stock-toolbar [data-all-stock-refresh] {
+    min-height:32px !important;
+    padding:0 10px !important;
+    font-size:12px !important;
+    white-space:nowrap;
+  }
+}
 #market-temp .mt-all-stock-legend { margin:0 0 10px; color:#94a3b8; font-size:11px; line-height:1.45; }
 #market-temp .mt-legend-up { color:var(--num-up); }
 #market-temp .mt-legend-down { color:var(--num-down); }
@@ -576,7 +584,7 @@ html.dark #market-temp .mt-heat-note { color:var(--dk-text); }
 #market-temp .mt-all-stock-market.kospi { color:#9f3b32; background:#fff0ee; }
 #market-temp .mt-all-stock-market.kosdaq { color:#1761a8; background:#edf6ff; }
 #market-temp .mt-all-stock-row .sector-row-price { color:#334155; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
-#market-temp .mt-all-stock-row .sector-row-rate { display:inline-block; text-align:left; font-variant-numeric:tabular-nums; }
+#market-temp .mt-all-stock-row .sector-row-rate { display:inline-block; text-align:left; font-variant-numeric:tabular-nums; font-weight:750; white-space:nowrap; }
 #market-temp .mt-all-stock-row > span:last-child { display:flex; flex-direction:row; align-items:center; gap:5px; flex:0 0 auto; }
 #market-temp .mt-all-stock-row .sector-row-price { margin-right:0; }
 #market-temp .mt-all-stock-sector-grid .sector-card-title::before { display:none; }
@@ -1110,6 +1118,18 @@ html.dark #market-temp .sector-row { border-bottom-color: var(--dk-line); }
 html.dark #market-temp .sector-row-name { color: var(--dk-text); }
 html.dark #market-temp .sector-row-rate.sector-up { color: var(--dk-up); }
 html.dark #market-temp .sector-row-rate.sector-down { color: var(--dk-down); }
+html.dark #market-temp .mt-all-stock-row .sector-row-rate:is(.sector-up, .sector-down) {
+  padding:0 3px;
+  border-radius:4px;
+}
+html.dark #market-temp :is(.mt-all-stock-row .sector-row-rate.sector-up, .mt-all-stock-legend .mt-legend-up) {
+  color:var(--dk-up) !important;
+}
+html.dark #market-temp :is(.mt-all-stock-row .sector-row-rate.sector-down, .mt-all-stock-legend .mt-legend-down) {
+  color:var(--dk-down) !important;
+}
+html.dark #market-temp .mt-all-stock-row .sector-row-rate.sector-up { background:rgba(var(--dk-up-rgb), .12); }
+html.dark #market-temp .mt-all-stock-row .sector-row-rate.sector-down { background:rgba(var(--dk-down-rgb), .12); }
 html.dark #market-temp .sector-detail-head > div strong,
 html.dark #market-temp .sector-detail-section-head strong { color: var(--dk-text) !important; }
 html.dark #market-temp .sector-detail-section { border-color: var(--dk-line); background: var(--dk-card); }
@@ -1695,8 +1715,7 @@ html.dark #market-temp .mt-axis-risk-high { background: #ef7773 !important; }
 }
 @media (max-width: 430px) {
   #market-temp .mt-all-stock-head { align-items:flex-start; flex-direction:column; gap:4px; }
-  #market-temp .mt-all-stock-toolbar { flex-direction:column; }
-  #market-temp .mt-all-stock-toolbar button { min-height:36px; }
+  #market-temp .mt-all-stock-toolbar label { flex:1 1 150px; }
 }
 html.dark #market-temp .mt-summary-card,
 html.dark #market-temp .mt-history-tail.mt-card {
