@@ -1125,7 +1125,7 @@
     subFilterBar:
       '<div class="sub-filter-bar" id="subFilterBar" style="display:none;"></div>',
 
-    /* 사이트 하단 푸터의 링크 4종(이용약관/개인정보처리방침/오픈소스 라이선스/문의하기).
+    /* 사이트 하단 푸터의 안내 링크 6종(이용약관/개인정보처리방침/오픈소스 라이선스/문의하기/릴리스 노트/사이트 이용방법).
        이용약관·개인정보처리방침·오픈소스 라이선스는 티스토리 페이지가 아니라 이 저장소의
        legal/*.html 정적 페이지로 연결(2026-07-22 신설) - git push만으로 내용 수정 가능,
        티스토리 페이지 수동 생성 불필요. 문의하기는 mailto.
@@ -1133,7 +1133,7 @@
        태그가 섞여있어 그 부분만은 git으로 못 옮기고, 같은 줄에 두려면 래퍼를 공유해야 함) -
        이 mount는 그 안의 링크 nav 자리(id="shell-footerLinks")만 채운다. */
     footerLinks:
-      '<nav class="site-footer-links">' +
+      '<nav class="site-footer-links" aria-label="서비스 정책 및 사이트 안내">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/terms.html">서비스 이용약관</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
