@@ -6,9 +6,14 @@ async function verify() {
   const browser = await chromium.launch({ channel: 'msedge' });
   try {
     const page = await browser.newPage();
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
     const requests = [];
     await page.route('**/*', route => {
       const url = new URL(route.request().url());
+      if (url.hostname === 'goodbyestarwars.github.io' && url.pathname.endsWith('/data/krx_map.js')) {
+        return route.fulfill({ contentType: 'text/javascript; charset=utf-8', path: path.join(__dirname, '../data/krx_map.js') });
+      }
       if (url.hostname !== 'fixture.invalid') return route.abort();
       requests.push(url.pathname);
       return route.fulfill({ contentType: 'text/html; charset=utf-8', body: `
@@ -42,20 +47,35 @@ async function verify() {
             </li>
             <li data-discussion-entry class="guest_admin_secret"><p>주인 비밀 본문</p></li>
             <li data-discussion-entry class="guest_secret"><p>비밀 본문</p></li>
+            <li data-discussion-entry class="guest_general"><div class="discussion-item-head">
+              <span class="name">상장 종목 사용자</span><span class="date">2026.11.22 10:00</span></div>
+              <p class="discussion-item-body">[0147B0] 영문 포함 상장 코드</p>
+            </li>
+            <li data-discussion-entry class="guest_general"><div class="discussion-item-head">
+              <span class="name">이전 유령방 사용자</span><span class="date">2026.11.22 11:00</span></div>
+              <p class="discussion-item-body">[US:ZZZFAKE] 예전 미등록 방 글</p>
+            </li>
           </ol></div>
         </main>` });
     });
     async function open(query = '') {
       await page.goto('https://fixture.invalid/guestbook' + query);
       await page.addStyleTag({ path: path.join(__dirname, '../css/stock-discussion.css') });
+      await page.evaluate(() => {
+        window.NineUI = { escapeHtml: value => String(value).replaceAll('<', '&lt;') };
+        window.NineHttp = { json: () => Promise.resolve({ data: { content: null } }) };
+      });
+      await page.addScriptTag({ path: path.join(__dirname, '../js/stock-search-panel.js') });
       await page.addScriptTag({ path: path.join(__dirname, '../js/stock-discussion.js') });
     }
     await page.setViewportSize({ width: 360, height: 740 });
     await open();
     const terminal = page.locator('.discussion-terminal');
     const log = terminal.locator('ol');
+    assert.deepEqual(pageErrors, []);
     assert.equal(await terminal.locator('.discussion-terminal-status').count(), 0);
     assert.equal(await log.locator('li').count(), 3);
+    assert.doesNotMatch(await log.innerText(), /예전 미등록 방 글|영문 포함 상장 코드/);
     assert.match(await log.locator('li').first().innerText(), /블로그 주인 공개 글/);
     assert.match(await log.locator('li').nth(1).innerText(), /이전 글/);
     assert.match(await log.locator('li').last().innerText(), /일반방 글/);
@@ -116,6 +136,37 @@ async function verify() {
     await page.setViewportSize({ width: 1440, height: 900 });
     await open('?stock=000660');
     assert.match(await terminal.innerText(), /표시할 공개 의견이 없습니다/);
+    const stockInput = page.locator('#discussionStockInput');
+    const room = page.locator('[data-discussion-current]');
+    await stockInput.fill('ㅅㅌㄹㅇ');
+    await page.getByRole('option').filter({ hasText: /셀트리온068270/ }).waitFor();
+    await stockInput.fill('셀트리온');
+    assert.match(await page.getByRole('option').first().textContent(), /셀트리온068270/);
+    await page.getByRole('option').first().click();
+    assert.match(await room.innerText(), /셀트리온 · 068270/);
+    assert.match(page.url(), /stock=068270/);
+    for (const invalid of ['999999', 'ZZZFAKE', '대화방테스트', 'INDEX:KOSPI', 'CRYPTO:BTC']) {
+      await stockInput.fill(invalid);
+      await stockInput.press('Enter');
+      await page.waitForFunction(() => document.querySelector('#discussionStockInput').validity.customError);
+      assert.equal(await page.getByRole('option').count(), 0);
+      assert.match(page.url(), /stock=068270/);
+    }
+    await stockInput.fill('aapl');
+    await stockInput.press('Enter');
+    await page.waitForURL(/stock=US%3AAAPL/);
+    assert.match(await room.innerText(), /애플 · US:AAPL/);
+    await open('?stock=068270');
+    await room.filter({ hasText: /셀트리온 · 068270/ }).waitFor();
+    await open('?stock=0147b0');
+    await room.filter({ hasText: /래블업 · 0147B0/ }).waitFor();
+    assert.match(await log.innerText(), /영문 포함 상장 코드/);
+    for (const invalid of ['999999', 'US%3AZZZFAKE']) {
+      await open('?stock=' + invalid);
+      await page.waitForURL(url => !url.searchParams.has('stock'));
+      assert.equal(await room.innerText(), '일반방');
+      assert.doesNotMatch(await log.innerText(), /예전 미등록 방 글/);
+    }
     await open('?view=native');
     assert.equal(await terminal.count(), 1);
     await page.goto('https://fixture.invalid/guestbook');
