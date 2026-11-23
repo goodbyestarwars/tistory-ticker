@@ -9339,8 +9339,7 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
   html.dark body#tt-body-index .home-briefing-section {
     --note-paper-shading: linear-gradient(90deg,
       rgba(var(--np-ink),.025), transparent 6%,
-      transparent 44%, rgba(0,0,0,.24) 49.8%,
-      rgba(var(--np-ink),.11) 50.2%, rgba(var(--np-ink),.04) 51.5%, transparent 56%,
+      transparent 47%, rgba(var(--np-ink),.012) 50%, transparent 53%,
       transparent 95%, rgba(var(--np-ink),.02));
   }
   html body#tt-body-index .home-briefing-section .briefing-carousel-track { padding:10px 14px 24px!important; gap:28px!important; }
