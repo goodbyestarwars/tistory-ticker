@@ -933,7 +933,10 @@
             loadOptionsCard(symbol);
           }, OPTIONS_REFRESH_MS);
         }
-      }).catch(function () { mount.hidden = true; mount.innerHTML = ''; });
+      }).catch(function () {
+        if (state.symbol !== symbol || !mount.isConnected) return;
+        renderOptionsCard(mount, null);
+      });
     }, 300);
   }
 
@@ -1003,7 +1006,18 @@
   }
 
   function renderOptionsCard(mount, data) {
-    if (!data || !data.available) { mount.hidden = true; mount.innerHTML = ''; return; }
+    if (!data || !data.available) {
+      var messages = {
+        source_denied: 'Cboe가 자료 요청을 거부해 옵션 데이터를 불러올 수 없습니다.',
+        no_options: '이 종목에 제공되는 옵션 데이터가 없습니다.',
+        too_large: '제공된 옵션 체인이 커서 전체 데이터를 표시할 수 없습니다.'
+      };
+      var message = messages[data && data.reason] || '옵션 데이터를 불러오지 못했습니다.';
+      mount.hidden = false;
+      mount.innerHTML = '<div class="us-opt-status" role="status"><div class="us-opt-head"><b>옵션 종합</b></div>'
+        + '<p class="us-opt-sub">' + escapeOptHtml(message) + '</p></div>';
+      return;
+    }
     var overviewHtml = optOverviewHtml(data);
     var rows = (data.strikes || []).slice().sort(function (a, b) { return b.strike - a.strike; });
     var maxValue = 0;

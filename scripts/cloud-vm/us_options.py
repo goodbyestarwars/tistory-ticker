@@ -85,6 +85,10 @@ class _ChainLimit(Exception):
     pass
 
 
+class _ChainUnavailable(ValueError):
+    pass
+
+
 class _LimitedStream:
     """Bound both wire bytes and decompressed bytes without retaining a full body."""
     def __init__(self, source):
@@ -213,8 +217,10 @@ def _fetch_chain(symbol):
         raise us_stocks.UsStockUnavailable('옵션 체인 형식이 올바르지 않습니다.') from exc
     except urllib.error.HTTPError as exc:
         _log_fail(symbol, 'http_%s' % exc.code)
-        if exc.code in (403, 404):
-            raise ValueError('옵션 체인이 없는 종목입니다.')
+        if exc.code == 403:
+            raise _ChainUnavailable('source_denied') from exc
+        if exc.code == 404:
+            raise _ChainUnavailable('no_options') from exc
         raise us_stocks.UsStockUnavailable('옵션 체인을 불러오지 못했습니다.')
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         _log_fail(symbol, type(exc).__name__)
@@ -448,8 +454,8 @@ def get_summary(symbol):
         with _download:
             try:
                 chain = _fetch_chain(symbol)
-            except ValueError:
-                payload = {'available': False, 'reason': 'no_options', 'symbol': symbol}
+            except _ChainUnavailable as exc:
+                payload = {'available': False, 'reason': str(exc), 'symbol': symbol}
                 _cache[symbol] = (time.time() + TTL_NEGATIVE, payload)
                 _trim_cache()
                 return payload

@@ -22,6 +22,17 @@ def contract(side, strike, oi=100):
 
 
 class FullChainTests(unittest.TestCase):
+    def test_source_denial_is_distinct_from_missing_chain(self):
+        for status, reason in ((403, 'source_denied'), (404, 'no_options')):
+            with self.subTest(status=status), mock.patch.dict(options._cache, clear=True):
+                error = options.urllib.error.HTTPError('https://example.test', status, '', {}, None)
+                with mock.patch.object(options.urllib.request, 'urlopen', side_effect=error) as fetch:
+                    self.assertEqual(options.get_summary('SPY'), {
+                        'available': False, 'reason': reason, 'symbol': 'SPY',
+                    })
+                    self.assertEqual(options.get_summary('SPY')['reason'], reason)
+                    fetch.assert_called_once()
+
     def test_stream_large_gzip_and_strip_unused_fields(self):
         chain = {'timestamp': '2026-11-17 14:30:00', 'data': {'options': [
             dict(contract('C', 100), unused='x' * 2000) for _ in range(2500)], 'current_price': 100.5}}
