@@ -95,7 +95,7 @@ import sector_cards
 import swing_model
 import us_analysis
 import us_etf_holdings
-import us_options
+import alpaca_options
 import us_stocks
 import weekly_report
 import watchlist
@@ -165,6 +165,7 @@ def _start_futures_collectors():
     domestic_futures.start_background()
     btc_futures.start_background()
     bond_yield.start_background()
+    alpaca_options.start_background()
     # 한국수출입은행 일별 고시환율(KOREAEXIM_API_KEY가 있을 때만 수집, 요청 경로는 외부 호출 없음). docs/FX_KOREAEXIM.md
     fx_koreaexim.start_background()
 
@@ -2302,14 +2303,12 @@ def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_len
 
 @app.get('/us-options/{symbol}')
 def us_options_summary(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
-    """미국주식 당일 만기(0DTE) 옵션 감마 요약(Cboe 지연 시세, 결과만 캐시)."""
+    """사이트 소유자가 개인용 Alpaca NVDA 수집 결과를 읽는다."""
+    denied = _access_denied(request)
+    if denied is not None:
+        return denied
     _check_rate_limit('us_options', request, max_per_window=20)
-    try:
-        return envelope(us_options.get_summary(symbol))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except us_stocks.UsStockUnavailable as exc:
-        raise _upstream_http_exception('미국주식 옵션 정보를 불러오지 못했습니다.', exc) from exc
+    return envelope(alpaca_options.latest(symbol))
 
 
 @app.get('/us-chart/{symbol}')

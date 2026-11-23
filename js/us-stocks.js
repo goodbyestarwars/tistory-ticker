@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-remove-options';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-alpaca-options';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -504,6 +504,7 @@
 
   function refreshQuote() {
     if (!canRefresh()) return;
+    refreshOptions();
     var symbol = state.symbol;
     fetchQuoteWithRetry(symbol, 0)
       .then(function (quote) {
@@ -540,6 +541,7 @@
     state.detailLoadedSymbol = symbol;
     loadOrderbook();
     loadNativeChart();
+    refreshOptions();
     // 시세·호가·현재 보이는 일봉이 먼저 연결되게 하고, 화면 아래의 분석·뉴스는
     // 잠시 뒤 시작한다. 외부 뉴스와 차트가 동시에 느릴 때 VM 스레드풀이 포화되어
     // 현재가까지 늦어지던 경쟁을 피한다.
@@ -587,6 +589,7 @@
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
         + '</div>'
+        + optionsPanelHtml(quote.symbol, false)
         + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>';
     }
     updateQuoteFields(quote, detail);
@@ -632,6 +635,7 @@
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
       + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
+      + optionsPanelHtml(quote.symbol, true)
       + '<section class="ss-news-panel us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }
@@ -899,6 +903,52 @@
     var last = state.lastSil;
     if (last && last.mount && document.body.contains(last.mount)) drawUsSilhouette(last.mount, last.asks, last.bids);
   });
+
+  function optionsPanelHtml(symbol, embedded) {
+    if (symbol !== 'NVDA' || !global.NineAccess || !global.NineAccess.isAdmin()) return '';
+    return '<section id="usStocksOptions" class="us-stocks-panel us-alpaca-options'
+      + (embedded ? ' ss-options-panel' : '') + '">'
+      + '<h4>NVDA 당일 만기 옵션</h4><div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div></section>';
+  }
+
+  function refreshOptions() {
+    var mount = document.querySelector('[data-us-alpaca-options]');
+    if (!mount || state.symbol !== 'NVDA' || Date.now() < (mount.optionsCheckedUntil || 0)) return;
+    mount.optionsCheckedUntil = Date.now() + 300000;
+    fetchJson(API_BASE + '/us-options/NVDA', {credentials:'include', cache:'no-store'}).then(function (data) {
+      if (!mount.isConnected) return;
+      if (!data || !data.available) {
+        mount.textContent = data && data.status === 'no_expiry'
+          ? data.expiry + ' 미국 거래일 당일 만기 계약이 없습니다.'
+          : '저장된 당일 만기 옵션이 없습니다.';
+        return;
+      }
+      var time = new Date(data.collected_at * 1000).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'});
+      var quoteTime = data.quote_at && new Date(data.quote_at * 1000).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'});
+      var summary = data.gex
+        ? '추정 순감마 ' + data.gex.net.toFixed(1) + '백만 달러/주가 1% · 최대 콜 행사가 ' + formatPrice(data.gex.call_wall)
+          + ' · 최대 풋 행사가 ' + formatPrice(data.gex.put_wall)
+        : '감마 노출 미집계 · 감마 또는 미결제약정 누락';
+      var oiCount = data.contracts.filter(function (row) { return row.open_interest != null; }).length;
+      var cells = data.contracts.map(function (row) {
+        return '<tr><td>' + (row.side === 'C' ? '콜' : '풋') + '</td><td>' + formatPrice(row.strike)
+          + '</td><td>' + formatPrice(row.bid) + '</td><td>' + formatPrice(row.ask)
+          + '</td><td>' + (row.gamma == null ? '—' : row.gamma.toFixed(4))
+          + '</td><td>' + (row.open_interest == null ? '—' : row.open_interest.toLocaleString('en-US'))
+          + '</td><td>' + escapeHtml(row.open_interest_date || '—') + '</td></tr>';
+      }).join('');
+      mount.innerHTML = '<p>Alpaca 참고 호가 · 만기 ' + escapeHtml(data.expiry) + ' (미국 동부) · 수집 '
+        + escapeHtml(time) + ' KST' + (data.stale ? ' · 직전 저장 자료' : '')
+        + (quoteTime ? ' · 최근 옵션 호가 ' + escapeHtml(quoteTime) + ' KST' : '') + '</p>'
+        + '<p>스냅샷 ' + data.snapshot_count + '/' + data.contracts.length + '계약 · 미결제약정 수신 ' + oiCount
+        + '/' + data.contracts.length + '계약</p><p>' + summary
+        + '</p><div class="us-alpaca-options-table" tabindex="0" role="region" aria-label="행사가별 옵션">'
+        + '<table><thead><tr><th>구분</th><th>행사가</th><th>매수호가</th><th>매도호가</th>'
+        + '<th>감마</th><th>미결제약정</th><th>OI 기준일</th></tr></thead><tbody>' + cells + '</tbody></table></div>';
+    }).catch(function () {
+      if (mount.isConnected) mount.textContent = '저장된 옵션 자료를 불러오지 못했습니다.';
+    });
+  }
 
   function loadNativeChart() {
     if (!state.symbol) return;

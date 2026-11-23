@@ -366,7 +366,7 @@ def _overview(parsed, price, nearest, now, symbol, today):
     }
 
 
-def summarize(chain, today, symbol='', now=None):
+def summarize(chain, today, symbol='', now=None, *, include_overview=True):
     """체인에서 가장 가까운 만기의 행사가별 감마 노출(백만 달러/주가 1%)을 요약한다."""
     data = (chain or {}).get('data') or {}
     options = data.get('options') or []
@@ -426,7 +426,7 @@ def summarize(chain, today, symbol='', now=None):
                      'contract_count': sum(1 for expiry, _, _, _ in parsed if expiry == nearest),
                      'min_strike': near[0], 'max_strike': near[-1]},
         'net': round(sum(r['call'] - r['put'] for r in rows.values()), 1),
-        'overview': _overview(parsed, price, nearest, now or _ny_now(), symbol, today),
+        'overview': _overview(parsed, price, nearest, now or _ny_now(), symbol, today) if include_overview else None,
         'source': 'Cboe 지연 시세',
         'basis': '미결제약정 전일 기준 · 시장조성자 포지션 가정 추정',
     }

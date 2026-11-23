@@ -13,5 +13,9 @@ nav.stepHomeFutures(-1);assert.equal(nav.get(),2);nav.stepHomeFutures(-1);assert
 nav.stepHomeFutures(-1);assert.equal(nav.get(),0);assert.equal(updates,3);
 nav.stepHomeFutures(1);assert.equal(nav.get(),2);
 const us=fs.readFileSync('js/us-stocks.js','utf8');
-assert.doesNotMatch(us,/usStocksOptions|\/us-options\//);
-console.log('PASS actual observation navigation, clamped ends and removal of US chart options panel');
+const block=us.slice(us.indexOf('  function optionsPanelHtml'),us.indexOf('  function refreshOptions'));
+const optionsPanel=new Function('global',block+';return optionsPanelHtml;');
+assert.equal(optionsPanel({NineAccess:{isAdmin:()=>false}})('NVDA',true),'');
+assert.equal(optionsPanel({NineAccess:{isAdmin:()=>true}})('SPY',true),'');
+assert.match(optionsPanel({NineAccess:{isAdmin:()=>true}})('NVDA',true),/NVDA 당일 만기 옵션/);
+console.log('PASS actual observation navigation, clamped ends and owner-only NVDA options');

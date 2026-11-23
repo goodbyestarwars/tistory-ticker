@@ -357,6 +357,12 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 /* 옵션 패널(2026-11-03): 호가 옆 좁은 칸에서 차트 아래 전체 폭으로 옮기고 종합/0DTE를 좌우 두 단으로 나눈다 */
 .us-opt-card.us-stocks-panel { margin-top: 0; border-top-width: 1px; padding: 14px 18px 12px; }
 #stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
+.us-alpaca-options { margin-top: 12px; }
+.us-alpaca-options h4 { margin: 0 0 8px; }
+.us-alpaca-options p { margin: 0 0 8px; font-size: 12px; }
+.us-alpaca-options-table { max-height: 360px; overflow: auto; }
+.us-alpaca-options-table table { width: 100%; font-size: 12px; white-space: nowrap; }
+.us-alpaca-options-table :is(th,td) { padding: 5px 8px; text-align: right; }
 .us-opt-grid { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 8px 28px; align-items: start; }
 .us-opt-col { min-width: 0; }
 /* 좌우 두 단(861px~)에서는 호가 칸을 차트 높이만큼 늘리고, 호가 내용은 칸 안에서 가운데로 모아 위·아래 여백을 같게 한다 */
