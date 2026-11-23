@@ -358,8 +358,15 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 .us-opt-card.us-stocks-panel { margin-top: 0; border-top-width: 1px; padding: 14px 18px 12px; }
 #stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
 .us-alpaca-options { margin-top: 12px; }
-.us-alpaca-options h4 { margin: 0 0 8px; }
-.us-alpaca-options p { margin: 0 0 8px; font-size: 12px; }
+.us-alpaca-options-head { max-width: 1120px; margin-bottom: 10px; }
+.us-alpaca-options-head h4 { margin: 0; }
+.us-alpaca-options-meta { margin-top: 6px; color: var(--ui-muted, #64748b); font-size: 12px; line-height: 1.5; }
+.us-alpaca-options-meta p { margin: 0; }
+@media (min-width: 721px) {
+  .us-alpaca-options-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .us-alpaca-options-head h4 { flex: none; }
+  .us-alpaca-options-meta { min-width: 0; margin-top: 0; text-align: right; }
+}
 .us-alpaca-options-table { max-width: 1120px; max-height: min(560px, 70vh); overflow: auto; border: 1px solid var(--ui-rule, #eee); border-radius: 12px; }
 .us-alpaca-options-table table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .us-alpaca-options-table :is(th,td) { padding: 8px 12px; text-align: right; }

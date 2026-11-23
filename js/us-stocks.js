@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-spot';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-meta';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -909,7 +909,9 @@
     if (!/^[A-Z][A-Z0-9.-]{0,11}$/.test(symbol) || !global.NineAccess || !global.NineAccess.isAdmin()) return '';
     return '<section id="usStocksOptions" class="us-stocks-panel us-alpaca-options'
       + (embedded ? ' ss-options-panel' : '') + '">'
-      + '<h4>' + escapeHtml(symbol) + ' 당일 만기 옵션</h4><div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div></section>';
+      + '<div class="us-alpaca-options-head"><h4>' + escapeHtml(symbol) + ' 당일 만기 옵션</h4>'
+      + '<div class="us-alpaca-options-meta" data-us-alpaca-meta hidden></div></div>'
+      + '<div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div></section>';
   }
 
   function optionsGridHtml(contracts, storedPrice) {
@@ -979,6 +981,7 @@
   function refreshOptions() {
     var mount = document.querySelector('[data-us-alpaca-options]');
     if (!mount || !state.symbol || Date.now() < (mount.optionsCheckedUntil || 0)) return;
+    var meta = mount.parentNode.querySelector('[data-us-alpaca-meta]');
     mount.optionsCheckedUntil = Date.now() + 15000;
     fetchJson(API_BASE + '/us-options/' + encodeURIComponent(state.symbol), {credentials:'include', cache:'no-store'}).then(function (data) {
       if (!mount.isConnected) return;
@@ -987,6 +990,7 @@
         mount.optionsCheckedUntil = now + 300000 - now % 300000 + 5000;
       }
       if (!data || !data.available) {
+        meta.hidden = true;
         mount.textContent = data && data.status === 'no_expiry'
           ? data.expiry + ' 미국 거래일 당일 만기 계약이 없습니다.'
           : data && data.status === 'closed' ? '미국 정규장에 첫 데이터를 수집합니다.'
@@ -1003,15 +1007,20 @@
       var oiCount = data.contracts.filter(function (row) { return row.open_interest != null; }).length;
       var previousGrid = mount.querySelector('[data-option-stored-price]');
       var scrollTop = previousGrid && previousGrid.scrollTop;
-      mount.innerHTML = '<p>Alpaca 참고 호가 · 만기 ' + escapeHtml(data.expiry) + ' (미국 동부) · 수집 '
-        + escapeHtml(time) + ' KST' + (data.stale ? ' · 직전 저장 자료' : '')
-        + (quoteTime ? ' · 최근 옵션 호가 ' + escapeHtml(quoteTime) + ' KST' : '') + '</p>'
-        + '<p>미결제약정(OI) 수신 ' + oiCount + '/' + data.contracts.length + '계약 · ' + summary + '</p>'
-        + optionsGridHtml(data.contracts, data.underlying_price);
+      meta.innerHTML = '<p>Alpaca 참고 호가 · 만기 ' + escapeHtml(data.expiry) + ' (미국 동부)'
+        + (data.stale ? ' · 직전 저장 자료' : '') + '</p>'
+        + '<p>수집 ' + escapeHtml(time) + ' KST'
+        + (quoteTime ? ' · 최근 호가 ' + escapeHtml(quoteTime) + ' KST' : '') + '</p>'
+        + '<p>미결제약정(OI) 수신 ' + oiCount + '/' + data.contracts.length + '계약 · ' + summary + '</p>';
+      meta.hidden = false;
+      mount.innerHTML = optionsGridHtml(data.contracts, data.underlying_price);
       syncOptionsPrice(mount, state.lastQuote && state.lastQuote.price, !previousGrid);
       if (previousGrid) mount.querySelector('[data-option-stored-price]').scrollTop = scrollTop;
     }).catch(function () {
-      if (mount.isConnected) mount.textContent = '저장된 옵션 자료를 불러오지 못했습니다.';
+      if (mount.isConnected) {
+        meta.hidden = true;
+        mount.textContent = '저장된 옵션 자료를 불러오지 못했습니다.';
+      }
     });
   }
 
