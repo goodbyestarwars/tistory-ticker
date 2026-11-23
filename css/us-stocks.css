@@ -357,10 +357,10 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 /* 옵션 패널(2026-11-03): 호가 옆 좁은 칸에서 차트 아래 전체 폭으로 옮기고 종합/0DTE를 좌우 두 단으로 나눈다 */
 .us-opt-card.us-stocks-panel { margin-top: 0; border-top-width: 1px; padding: 14px 18px 12px; }
 #stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
-.us-alpaca-options { box-sizing: border-box; width: 100%; max-width: 1120px; margin: 12px auto 0; }
+.us-alpaca-options { margin-top: 12px; }
 .us-alpaca-options h4 { margin: 0 0 8px; }
 .us-alpaca-options p { margin: 0 0 8px; font-size: 12px; }
-.us-alpaca-options-table { max-height: min(560px, 70vh); overflow: auto; border: 1px solid var(--ui-rule, #eee); border-radius: 12px; }
+.us-alpaca-options-table { max-width: 1120px; max-height: min(560px, 70vh); overflow: auto; border: 1px solid var(--ui-rule, #eee); border-radius: 12px; }
 .us-alpaca-options-table table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .us-alpaca-options-table :is(th,td) { padding: 8px 12px; text-align: right; }
 .us-alpaca-options-table :is(.us-option-strike, .us-option-call-head, .us-option-put-head, .us-option-spot td) { text-align: center; }
