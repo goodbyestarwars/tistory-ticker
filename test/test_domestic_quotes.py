@@ -96,3 +96,26 @@ class DomesticQuotesTests(unittest.TestCase):
             self.assertEqual(client.get('/domestic-quotes?codes=badbad!').status_code, 400)
         with mock.patch.dict('os.environ', {'API_TOKEN': 'test-only-token'}):
             self.assertEqual(client.get('/quote?code=083650').status_code, 401)
+
+    def test_guest_atlas_batch_uses_public_quotes_and_separate_rate_limit(self):
+        from fastapi.testclient import TestClient
+        import main
+        client = TestClient(main.app)
+        codes = ['%06d' % i for i in range(300)]
+        with mock.patch.dict('os.environ', {
+                'API_TOKEN': 'test-only-token',
+                'GOOGLE_OAUTH_CLIENT_ID': 'test-only-id',
+                'GOOGLE_OAUTH_CLIENT_SECRET': 'test-only-secret',
+        }), \
+                mock.patch.object(main, '_check_rate_limit') as rate_limit, \
+                mock.patch.object(quotes, 'fetch_quotes', return_value=[]) as fetch:
+            response = client.get('/domestic-quotes', params={'scope': 'market-atlas', 'codes': ','.join(codes)})
+            self.assertEqual(response.status_code, 200)
+            fetch.assert_called_once_with(codes)
+            self.assertEqual(rate_limit.call_args.args[0], 'market_atlas_quotes')
+            self.assertEqual(rate_limit.call_args.kwargs['max_per_window'], 12)
+            self.assertEqual(client.get('/domestic-quotes', params={'codes': ','.join(codes)}).status_code, 422)
+            self.assertEqual(client.get('/sector-quotes', params={'codes': ','.join(codes)}).status_code, 401)
+            self.assertEqual(client.get('/domestic-quotes', params={
+                'scope': 'market-atlas', 'codes': ','.join(codes + ['000300']),
+            }).status_code, 422)

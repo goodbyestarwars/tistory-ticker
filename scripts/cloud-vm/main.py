@@ -2135,11 +2135,18 @@ def market_atlas_rs_endpoint(request: Request, codes: str = Query(..., min_lengt
 
 
 @app.get('/domestic-quotes')
-def domestic_quotes_endpoint(request: Request, codes: str = Query(..., min_length=6, max_length=209)):
-    """검색·호가용 공개 시세. 최대 30종목, 5초/300종목 캐시, 동시 다운로드 1건."""
-    _check_rate_limit('domestic_quotes', request, max_per_window=60)
+def domestic_quotes_endpoint(request: Request, codes: str = Query(..., min_length=6, max_length=2099),
+                             scope: str = ''):
+    """공개 시세. 일반 조회는 30종목, 마켓 대동여지도는 300종목까지."""
+    atlas = scope == 'market-atlas'
+    if not atlas and len(codes) > 209:
+        raise HTTPException(status_code=422, detail='일반 시세 조회는 최대 30종목입니다.')
+    if atlas:
+        _check_rate_limit('market_atlas_quotes', request, max_per_window=12)
+    else:
+        _check_rate_limit('domestic_quotes', request, max_per_window=60)
     try:
-        normalized = domestic_quotes.normalize_codes(codes)
+        normalized = domestic_quotes.normalize_codes(codes, max_codes=300 if atlas else domestic_quotes.MAX_CODES)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     try:

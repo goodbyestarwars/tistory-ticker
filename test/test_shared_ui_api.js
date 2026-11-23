@@ -39,6 +39,9 @@ assert.equal(api.gasUrl,existingGas,'canonical GAS URL must match the deployed w
  assert.equal(quotes[0].price,213500);assert.equal(quotes[0].changeRate,-.47);
  const batch=Array.from({length:31},(_,i)=>String(i).padStart(6,'0'));
  await api.domesticQuotes(batch,{request:async url=>{assert.match(url,/sector-quotes/);return [];}});
+ const atlasCalls=[];
+ await api.domesticQuotes(batch,{scope:'market-atlas',fallback:false,request:async url=>{atlasCalls.push(url);return [];}});
+ assert.deepEqual(atlasCalls,[api.vmUrl+'/domestic-quotes?scope=market-atlas&codes='+batch.join(',')]);
  const legacy=await api.domesticQuotes(['005930'],{request:async url=>{if(url.startsWith(api.vmUrl))throw Error('offline');return [{code:'005930',price:1,time:'2026-10-23 20:00'}];}});
  assert.equal(legacy[0].degraded,true);assert.equal(legacy[0].transportSource,'gas-proxy');assert.equal(legacy[0].dataDate,null);
  assert.throws(()=>api.domesticQuotes(['US:AAPL']),/국내 종목 코드/);

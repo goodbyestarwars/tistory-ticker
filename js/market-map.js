@@ -526,7 +526,7 @@
     if(!codes.length){state.quotes=[];state.rs=null;draw(state);return;}
     state.loading=true;state.error='';draw(state);
     var snapshot={quotes:[],rs:null,error:'',checkedAt:''};
-    api.domesticQuotes(codes,{fallback:false}).then(function(quotes){
+    api.domesticQuotes(codes,{scope:'market-atlas',fallback:false}).then(function(quotes){
       snapshot.quotes=Array.isArray(quotes)?quotes:[];
       snapshot.checkedAt=new Date().toLocaleTimeString('ko-KR',{hour12:false,timeZone:'Asia/Seoul'});
       var supported=codes.filter(function(code){return /^[0-9]{6}$/.test(code);});

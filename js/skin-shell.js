@@ -587,7 +587,11 @@
     var pending = Promise.resolve();
     for (var i = 0; i < sorted.length; i += 300) (function (batch) {
       pending = pending.then(function () {
-        var path = batch.length <= 30 ? '/domestic-quotes?codes=' : '/sector-quotes?codes=';
+        var path = '/domestic-quotes?codes=';
+        if (batch.length > 30) {
+          path = options.scope === 'market-atlas'
+            ? '/domestic-quotes?scope=market-atlas&codes=' : '/sector-quotes?codes=';
+        }
         function read(url) { return Promise.resolve().then(function () { return request(url); }).then(unwrap).then(function (body) {
           if (!Array.isArray(body)) throw new Error('국내 시세 형식이 올바르지 않습니다.');
           return body;

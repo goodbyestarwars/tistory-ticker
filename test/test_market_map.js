@@ -65,7 +65,7 @@ assert.ok(menu.includes('/page/market-temp?view=map'));
 assert.ok(!accessPolicy.includes("'/market-atlas-rs'"), '2026-11-22: 비회원 공개');
 assert.ok(!/def market_atlas_rs_endpoint[\s\S]*?require_google_admin/.test(main.split('@app.get(\'/domestic-quotes\')')[0].split('@app.get(\'/market-atlas-rs\')')[1]||''), '지도 RS 조회에 관리자 검사 없음');
 assert.ok(main.includes("market_atlas_rs.read_snapshot"));
-assert.ok(src.includes('{fallback:false}'));
+assert.ok(src.includes("{scope:'market-atlas',fallback:false}"));
 assert.ok(src.includes("credentials:'include'"));
 assert.ok(!src.includes('Math.random'));
 assert.ok(!src.includes('curated'));
