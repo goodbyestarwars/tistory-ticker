@@ -13,12 +13,5 @@ nav.stepHomeFutures(-1);assert.equal(nav.get(),2);nav.stepHomeFutures(-1);assert
 nav.stepHomeFutures(-1);assert.equal(nav.get(),0);assert.equal(updates,3);
 nav.stepHomeFutures(1);assert.equal(nav.get(),2);
 const us=fs.readFileSync('js/us-stocks.js','utf8');
-const block=us.slice(us.indexOf('  function optionsLinkHtml'),us.indexOf('  function loadNativeChart'));
-const optionsLink=new Function('escapeHtml',block+';return optionsLinkHtml;')(String);
-assert.match(optionsLink('NVDA',true),/https:\/\/public\.com\/stocks\/nvda\/options-chain/);
-assert.match(optionsLink('SPY',false),/https:\/\/public\.com\/stocks\/spy\/options-chain/);
-assert.match(optionsLink('BRK.B',true),/https:\/\/public\.com\/stocks\/brk\.b\/options-chain/);
-assert.match(optionsLink('^GSPC',true),/https:\/\/public\.com\/directory\/stocks-options-chain/);
-assert.match(optionsLink('NVDA',true),/target="_blank" rel="noopener noreferrer"/);
-assert.doesNotMatch(us,/\/us-options\//);
-console.log('PASS actual observation navigation, clamped ends and delayed options links');
+assert.doesNotMatch(us,/usStocksOptions|\/us-options\//);
+console.log('PASS actual observation navigation, clamped ends and removal of US chart options panel');

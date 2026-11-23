@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-public-options';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-remove-options';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -587,7 +587,6 @@
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
         + '</div>'
-        + optionsLinkHtml(quote.symbol, false)
         + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>';
     }
     updateQuoteFields(quote, detail);
@@ -633,7 +632,6 @@
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
       + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
-      + optionsLinkHtml(quote.symbol, true)
       + '<section class="ss-news-panel us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }
@@ -901,16 +899,6 @@
     var last = state.lastSil;
     if (last && last.mount && document.body.contains(last.mount)) drawUsSilhouette(last.mount, last.asks, last.bids);
   });
-
-  function optionsLinkHtml(symbol, embedded) {
-    var direct = /^[A-Z][A-Z0-9.-]{0,11}$/.test(symbol);
-    var href = direct ? 'https://public.com/stocks/' + encodeURIComponent(symbol.toLowerCase()) + '/options-chain'
-      : 'https://public.com/directory/stocks-options-chain';
-    var label = direct ? escapeHtml(symbol) + ' 옵션 체인 보기' : '옵션 종목 목록 보기';
-    return '<section id="usStocksOptions" class="' + (embedded ? 'ss-options-panel ' : '') + 'us-stocks-panel us-opt-card" aria-label="15분 지연 옵션">'
-      + '<div class="us-opt-status"><strong>15분 지연 옵션</strong>'
-      + '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + label + ' · Public.com (새 탭)</a></div></section>';
-  }
 
   function loadNativeChart() {
     if (!state.symbol) return;
