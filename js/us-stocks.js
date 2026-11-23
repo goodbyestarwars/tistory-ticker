@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-grid';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-spot';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -655,6 +655,7 @@
     var basisNode = card.querySelector('[data-us-basis]');
     if (basisNode) basisNode.textContent = basisLabel(quote);
     card.querySelector('[data-us-price]').textContent = formatPrice(quote.price);
+    syncOptionsPrice(detail, quote.price);
     var changeNode = card.querySelector('[data-us-change]');
     changeNode.textContent = formatPercent(rate);
     applyTone(changeNode, rate);
@@ -911,7 +912,7 @@
       + '<h4>' + escapeHtml(symbol) + ' 당일 만기 옵션</h4><div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div></section>';
   }
 
-  function optionsGridHtml(contracts) {
+  function optionsGridHtml(contracts, storedPrice) {
     var strikes = new Map();
     var maxOi = 0;
     contracts.forEach(function (contract) {
@@ -925,16 +926,54 @@
       var quote = (bid == null ? '—' : bid.toFixed(2)) + ' / ' + (ask == null ? '—' : ask.toFixed(2));
       var heat = oi > 0 ? ' class="us-option-oi us-option-oi-' + side + '" style="--us-oi-intensity:'
         + (8 + 32 * Math.sqrt(oi / maxOi)).toFixed(1) + '%"' : '';
-      return '<td>' + quote + '</td><td' + heat + '>' + (oi == null ? '—' : oi.toLocaleString('en-US')) + '</td>';
+      var quoteCell = '<td class="us-option-quote-' + side + '">' + quote + '</td>';
+      var oiCell = '<td' + heat + '>' + (oi == null ? '—' : oi.toLocaleString('en-US')) + '</td>';
+      return side === 'call' ? oiCell + quoteCell : quoteCell + oiCell;
     }
     var rows = Array.from(strikes.keys()).sort(function (a, b) { return a - b; }).map(function (strike) {
       var pair = strikes.get(strike);
-      return '<tr><th scope="row">' + strike.toFixed(2) + '</th>' + cells(pair.C, 'call') + cells(pair.P, 'put') + '</tr>';
+      return '<tr data-option-strike="' + strike + '">' + cells(pair.C, 'call')
+        + '<th scope="row" class="us-option-strike">' + strike.toFixed(2) + '</th>' + cells(pair.P, 'put') + '</tr>';
     }).join('');
-    return '<div class="us-alpaca-options-table" tabindex="0" role="region" aria-label="행사가별 콜·풋 호가와 미결제약정">'
-      + '<table><thead><tr><th scope="col">행사가 ($)</th><th scope="col">콜 매수/매도</th><th scope="col">콜 OI</th>'
-      + '<th scope="col">풋 매수/매도</th><th scope="col">풋 OI</th></tr></thead><tbody>' + rows
+    return '<div class="us-alpaca-options-table" data-option-stored-price="' + (Number(storedPrice) || '') + '"'
+      + ' tabindex="0" role="region" aria-label="현재가와 행사가별 콜·풋 호가 및 미결제약정">'
+      + '<table><colgroup span="2"></colgroup><colgroup span="1"></colgroup><colgroup span="2"></colgroup>'
+      + '<thead><tr><th scope="colgroup" colspan="2" class="us-option-call-head">콜</th>'
+      + '<th scope="col" rowspan="2" class="us-option-strike">행사가 ($)</th>'
+      + '<th scope="colgroup" colspan="2" class="us-option-put-head">풋</th></tr>'
+      + '<tr><th scope="col">OI</th><th scope="col">매수 / 매도</th>'
+      + '<th scope="col">매수 / 매도</th><th scope="col">OI</th></tr></thead><tbody>' + rows
+      + '<tr data-option-spot class="us-option-spot" hidden><td colspan="5"><span></span></td></tr>'
       + '</tbody></table></div>';
+  }
+
+  function syncOptionsPrice(root, quotePrice, center) {
+    var grid = root.querySelector('[data-option-stored-price]');
+    if (!grid) return;
+    var livePrice = Number(quotePrice);
+    var fromChart = Number.isFinite(livePrice) && livePrice > 0;
+    var price = fromChart ? livePrice : Number(grid.dataset.optionStoredPrice);
+    if (!Number.isFinite(price) || price <= 0) return;
+    var marker = grid.querySelector('[data-option-spot]');
+    var label = (fromChart ? '현재가 ' : '수집 시점 주가 ') + formatPrice(price);
+    var markerText = marker.querySelector('span');
+    if (Number(marker.dataset.price) !== price || markerText.textContent !== label) {
+      var next = null;
+      grid.querySelectorAll('[data-option-strike]').forEach(function (row) {
+        var strike = Number(row.dataset.optionStrike);
+        if (!next && strike >= price) next = row;
+        row.classList.toggle('is-call-itm', strike < price);
+        row.classList.toggle('is-put-itm', strike > price);
+      });
+      marker.dataset.price = price;
+      markerText.textContent = label;
+      if (marker.nextElementSibling !== next) marker.parentNode.insertBefore(marker, next);
+      marker.hidden = false;
+    }
+    if (center) {
+      grid.scrollTop += marker.getBoundingClientRect().top - grid.getBoundingClientRect().top
+        - (grid.clientHeight - marker.offsetHeight) / 2;
+    }
   }
 
   function refreshOptions() {
@@ -962,11 +1001,15 @@
           + ' · 최대 풋 행사가 ' + formatPrice(data.gex.put_wall)
         : '감마 노출 미집계 · 감마 또는 미결제약정 누락';
       var oiCount = data.contracts.filter(function (row) { return row.open_interest != null; }).length;
+      var previousGrid = mount.querySelector('[data-option-stored-price]');
+      var scrollTop = previousGrid && previousGrid.scrollTop;
       mount.innerHTML = '<p>Alpaca 참고 호가 · 만기 ' + escapeHtml(data.expiry) + ' (미국 동부) · 수집 '
         + escapeHtml(time) + ' KST' + (data.stale ? ' · 직전 저장 자료' : '')
         + (quoteTime ? ' · 최근 옵션 호가 ' + escapeHtml(quoteTime) + ' KST' : '') + '</p>'
         + '<p>미결제약정(OI) 수신 ' + oiCount + '/' + data.contracts.length + '계약 · ' + summary + '</p>'
-        + optionsGridHtml(data.contracts);
+        + optionsGridHtml(data.contracts, data.underlying_price);
+      syncOptionsPrice(mount, state.lastQuote && state.lastQuote.price, !previousGrid);
+      if (previousGrid) mount.querySelector('[data-option-stored-price]').scrollTop = scrollTop;
     }).catch(function () {
       if (mount.isConnected) mount.textContent = '저장된 옵션 자료를 불러오지 못했습니다.';
     });

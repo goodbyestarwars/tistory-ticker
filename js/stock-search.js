@@ -52,7 +52,7 @@
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var US_STOCKS_SCRIPT = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/us-stocks.js?v=20261124-option-grid';
+  var US_STOCKS_SCRIPT = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/us-stocks.js?v=20261124-option-spot';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var CRYPTO_NAMES = { BTC:'비트코인', ETH:'이더리움', USDT:'테더' };
   var cryptoModuleJob = null;
