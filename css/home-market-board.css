@@ -659,15 +659,15 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: color-mix(in srgb, var(--chart-fill-down) 55%, var(--hmb-down)); }
 
 /* KOSPI200 야간선물 카드 축소(2026-11-04): 가격·등락·고저는 왼쪽, 30분 차트는 오른쪽에 나란히 두고 차트 높이를 줄인다. 고가·저가가 위에 있어 차트 아래 '관측 고점/저점' 줄은 숨긴다. */
-body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content:not([hidden]) { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); column-gap: 20px; align-items: start; }
-body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content > .hmb-summary-head { grid-column: 1 / -1; margin-bottom: 6px; }
-body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content > :is(.ui-kpi-value-row, .hnc-range) { grid-column: 1; }
-body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content > .home-night-futures-chart { grid-column: 2; grid-row: 2 / span 3; margin: 0; }
-body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content > .ui-kpi-source { grid-column: 1 / -1; margin-top: 4px; }
-body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content .hmb-investor-spark-wrap { height: 64px; }
-body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content .hmb-investor-extrema { display: none; }
+body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content:not([hidden]) { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); column-gap: 20px; align-items: start; }
+body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content > .hmb-summary-head { grid-column: 1 / -1; margin-bottom: 6px; }
+body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content > :is(.ui-kpi-value-row, .hnc-range) { grid-column: 1; }
+body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content > .home-night-futures-chart { grid-column: 2; grid-row: 2 / span 3; margin: 0; }
+body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content > .ui-kpi-source { grid-column: 1 / -1; margin-top: 4px; }
+body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content .hmb-investor-spark-wrap { height: 64px; }
+body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content .hmb-investor-extrema { display: none; }
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page :is(#homeEconomicNews, .home-futures-pair) .home-night-content:not([hidden]) { display: block; }
+  body#tt-body-index .home-editorial-page :is(#homeEconomicNews, #homeMarketBoard, .home-futures-pair) .home-night-content:not([hidden]) { display: block; }
 }
 
 /* KOSPI200 whole-market futures flow: left column, same common card typography. */
