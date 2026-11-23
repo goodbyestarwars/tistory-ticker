@@ -35,22 +35,42 @@ def test_collects_only_confirmed_0dte_and_upserts_same_slot(tmp_path):
 
     store = tmp_path / 'options.db'
     with patch.object(options, 'DB_FILE', store), patch.object(options, '_get', side_effect=request), \
+            patch.object(options.time, 'time', return_value=now.timestamp()), \
             patch.dict('os.environ', {'APCA_API_KEY_ID': 'PK_TEST', 'APCA_API_SECRET_KEY': 'test'}):
-        payload = options.collect(now)
+        options._init_storage()
+        payload = options.collect('NVDA', now)
         assert [item['option'] for item in payload['contracts']] == [call, put]
         assert payload['snapshot_count'] == 1 and 'gex' not in payload
         assert payload['contracts'][1]['gamma'] is None
         assert options.latest('NVDA')['available']
         assert not options.latest('SPY')['available']
-        options.collect(now + timedelta(seconds=5))
-        options.collect(now + timedelta(minutes=5))
+        options.collect('NVDA', now + timedelta(seconds=5))
+        options.collect('NVDA', now + timedelta(minutes=5))
         with sqlite3.connect(store) as db:
-            assert db.execute('SELECT count(*) FROM options_0dte').fetchone() == (2,)
+            assert db.execute('SELECT count(*) FROM options_0dte_symbols').fetchone() == (2,)
 
 
 def test_paper_clock_prevents_holiday_collections(tmp_path):
     store = tmp_path / 'options.db'
     with patch.object(options, 'DB_FILE', store), patch.object(options, '_get', return_value={'is_open': False}) as get, \
             patch.dict('os.environ', {'APCA_API_KEY_ID': 'PK_TEST', 'APCA_API_SECRET_KEY': 'test'}):
-        assert options.collect(datetime(2026, 11, 26, 10, tzinfo=options.NY)) is None
+        assert options.collect('SPY', datetime(2026, 11, 26, 10, tzinfo=options.NY)) is None
         assert get.call_count == 1 and not store.exists()
+
+
+def test_migrates_nvda_and_separates_symbols_in_same_slot(tmp_path):
+    store = tmp_path / 'options.db'
+    now = datetime(2026, 11, 23, 10, 5, tzinfo=options.NY)
+    stamp = int(now.timestamp())
+    with sqlite3.connect(store) as db:
+        db.execute('CREATE TABLE options_0dte (slot INTEGER PRIMARY KEY, collected_at INTEGER, session TEXT, payload TEXT)')
+        db.execute('INSERT INTO options_0dte VALUES (?, ?, ?, ?)',
+                   (stamp // 300, stamp, '2026-11-23', '{"symbol":"NVDA","status":"ready","collected_at":%s}' % stamp))
+    with patch.object(options, 'DB_FILE', store), patch.object(options.time, 'time', return_value=stamp), \
+            patch.dict('os.environ', {'APCA_API_KEY_ID': 'PK_TEST', 'APCA_API_SECRET_KEY': 'test'}):
+        options._init_storage()
+        options._init_storage()
+        options._save(stamp, now.date(), {'symbol': 'SPY', 'status': 'no_expiry', 'collected_at': stamp})
+        assert options.latest('NVDA')['available']
+        assert options.latest('SPY')['symbol'] == 'SPY'
+        assert options.latest('SPY')['status'] == 'no_expiry'

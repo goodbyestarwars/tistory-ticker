@@ -2303,11 +2303,16 @@ def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_len
 
 @app.get('/us-options/{symbol}')
 def us_options_summary(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
-    """사이트 소유자가 개인용 Alpaca NVDA 수집 결과를 읽는다."""
+    """사이트 소유자가 요청한 미국 종목을 추적하고 저장된 옵션 결과를 읽는다."""
     denied = _access_denied(request)
     if denied is not None:
         return denied
     _check_rate_limit('us_options', request, max_per_window=20)
+    try:
+        symbol = alpaca_options.normalize_symbol(symbol)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from None
+    alpaca_options.watch(symbol)
     return envelope(alpaca_options.latest(symbol))
 
 

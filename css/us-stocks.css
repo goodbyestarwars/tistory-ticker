@@ -360,9 +360,15 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 .us-alpaca-options { margin-top: 12px; }
 .us-alpaca-options h4 { margin: 0 0 8px; }
 .us-alpaca-options p { margin: 0 0 8px; font-size: 12px; }
-.us-alpaca-options-table { max-height: 360px; overflow: auto; }
-.us-alpaca-options-table table { width: 100%; font-size: 12px; white-space: nowrap; }
-.us-alpaca-options-table :is(th,td) { padding: 5px 8px; text-align: right; }
+.us-alpaca-options-table { max-width: 760px; max-height: 360px; overflow: auto; border-radius: 10px; }
+.us-alpaca-options-table table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.us-alpaca-options-table :is(th,td) { padding: 5px 7px; text-align: right; }
+.us-alpaca-options-table th:first-child { text-align: left; }
+.us-alpaca-options-table thead { position: sticky; top: 0; background: var(--ui-table-head, #f7f6f1); }
+.us-alpaca-options-table tbody tr + tr { border-top: 1px solid var(--ui-rule, #eee); }
+.us-alpaca-options-table .us-option-oi-call { background: color-mix(in srgb, var(--chart-ohlc-fill-up, #e88d86) var(--us-oi-intensity), transparent); }
+.us-alpaca-options-table .us-option-oi-put { background: color-mix(in srgb, var(--chart-ohlc-fill-down, #79a7de) var(--us-oi-intensity), transparent); }
+html.dark .us-alpaca-options-table thead { background: var(--dk-card); }
 .us-opt-grid { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 8px 28px; align-items: start; }
 .us-opt-col { min-width: 0; }
 /* 좌우 두 단(861px~)에서는 호가 칸을 차트 높이만큼 늘리고, 호가 내용은 칸 안에서 가운데로 모아 위·아래 여백을 같게 한다 */

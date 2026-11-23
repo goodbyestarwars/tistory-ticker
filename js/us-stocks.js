@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-alpaca-options';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-grid';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -905,22 +905,54 @@
   });
 
   function optionsPanelHtml(symbol, embedded) {
-    if (symbol !== 'NVDA' || !global.NineAccess || !global.NineAccess.isAdmin()) return '';
+    if (!/^[A-Z][A-Z0-9.-]{0,11}$/.test(symbol) || !global.NineAccess || !global.NineAccess.isAdmin()) return '';
     return '<section id="usStocksOptions" class="us-stocks-panel us-alpaca-options'
       + (embedded ? ' ss-options-panel' : '') + '">'
-      + '<h4>NVDA 당일 만기 옵션</h4><div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div></section>';
+      + '<h4>' + escapeHtml(symbol) + ' 당일 만기 옵션</h4><div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div></section>';
+  }
+
+  function optionsGridHtml(contracts) {
+    var strikes = new Map();
+    var maxOi = 0;
+    contracts.forEach(function (contract) {
+      if (!strikes.has(contract.strike)) strikes.set(contract.strike, {});
+      strikes.get(contract.strike)[contract.side] = contract;
+      maxOi = Math.max(maxOi, contract.open_interest || 0);
+    });
+    function cells(contract, side) {
+      var oi = contract && contract.open_interest;
+      var bid = contract && contract.bid, ask = contract && contract.ask;
+      var quote = (bid == null ? '—' : bid.toFixed(2)) + ' / ' + (ask == null ? '—' : ask.toFixed(2));
+      var heat = oi > 0 ? ' class="us-option-oi us-option-oi-' + side + '" style="--us-oi-intensity:'
+        + (8 + 32 * Math.sqrt(oi / maxOi)).toFixed(1) + '%"' : '';
+      return '<td>' + quote + '</td><td' + heat + '>' + (oi == null ? '—' : oi.toLocaleString('en-US')) + '</td>';
+    }
+    var rows = Array.from(strikes.keys()).sort(function (a, b) { return a - b; }).map(function (strike) {
+      var pair = strikes.get(strike);
+      return '<tr><th scope="row">' + strike.toFixed(2) + '</th>' + cells(pair.C, 'call') + cells(pair.P, 'put') + '</tr>';
+    }).join('');
+    return '<div class="us-alpaca-options-table" tabindex="0" role="region" aria-label="행사가별 콜·풋 호가와 미결제약정">'
+      + '<table><thead><tr><th scope="col">행사가 ($)</th><th scope="col">콜 매수/매도</th><th scope="col">콜 OI</th>'
+      + '<th scope="col">풋 매수/매도</th><th scope="col">풋 OI</th></tr></thead><tbody>' + rows
+      + '</tbody></table></div>';
   }
 
   function refreshOptions() {
     var mount = document.querySelector('[data-us-alpaca-options]');
-    if (!mount || state.symbol !== 'NVDA' || Date.now() < (mount.optionsCheckedUntil || 0)) return;
-    mount.optionsCheckedUntil = Date.now() + 300000;
-    fetchJson(API_BASE + '/us-options/NVDA', {credentials:'include', cache:'no-store'}).then(function (data) {
+    if (!mount || !state.symbol || Date.now() < (mount.optionsCheckedUntil || 0)) return;
+    mount.optionsCheckedUntil = Date.now() + 15000;
+    fetchJson(API_BASE + '/us-options/' + encodeURIComponent(state.symbol), {credentials:'include', cache:'no-store'}).then(function (data) {
       if (!mount.isConnected) return;
+      var now = Date.now();
+      if (data && (data.market_closed || Math.floor(now / 300000) === Math.floor(data.collected_at / 300))) {
+        mount.optionsCheckedUntil = now + 300000 - now % 300000 + 5000;
+      }
       if (!data || !data.available) {
         mount.textContent = data && data.status === 'no_expiry'
           ? data.expiry + ' 미국 거래일 당일 만기 계약이 없습니다.'
-          : '저장된 당일 만기 옵션이 없습니다.';
+          : data && data.status === 'closed' ? '미국 정규장에 첫 데이터를 수집합니다.'
+            : data && data.status === 'waiting' ? '당일 만기 옵션을 조회하는 중입니다.'
+              : '저장된 당일 만기 옵션이 없습니다.';
         return;
       }
       var time = new Date(data.collected_at * 1000).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'});
@@ -930,21 +962,11 @@
           + ' · 최대 풋 행사가 ' + formatPrice(data.gex.put_wall)
         : '감마 노출 미집계 · 감마 또는 미결제약정 누락';
       var oiCount = data.contracts.filter(function (row) { return row.open_interest != null; }).length;
-      var cells = data.contracts.map(function (row) {
-        return '<tr><td>' + (row.side === 'C' ? '콜' : '풋') + '</td><td>' + formatPrice(row.strike)
-          + '</td><td>' + formatPrice(row.bid) + '</td><td>' + formatPrice(row.ask)
-          + '</td><td>' + (row.gamma == null ? '—' : row.gamma.toFixed(4))
-          + '</td><td>' + (row.open_interest == null ? '—' : row.open_interest.toLocaleString('en-US'))
-          + '</td><td>' + escapeHtml(row.open_interest_date || '—') + '</td></tr>';
-      }).join('');
       mount.innerHTML = '<p>Alpaca 참고 호가 · 만기 ' + escapeHtml(data.expiry) + ' (미국 동부) · 수집 '
         + escapeHtml(time) + ' KST' + (data.stale ? ' · 직전 저장 자료' : '')
         + (quoteTime ? ' · 최근 옵션 호가 ' + escapeHtml(quoteTime) + ' KST' : '') + '</p>'
-        + '<p>스냅샷 ' + data.snapshot_count + '/' + data.contracts.length + '계약 · 미결제약정 수신 ' + oiCount
-        + '/' + data.contracts.length + '계약</p><p>' + summary
-        + '</p><div class="us-alpaca-options-table" tabindex="0" role="region" aria-label="행사가별 옵션">'
-        + '<table><thead><tr><th>구분</th><th>행사가</th><th>매수호가</th><th>매도호가</th>'
-        + '<th>감마</th><th>미결제약정</th><th>OI 기준일</th></tr></thead><tbody>' + cells + '</tbody></table></div>';
+        + '<p>미결제약정(OI) 수신 ' + oiCount + '/' + data.contracts.length + '계약 · ' + summary + '</p>'
+        + optionsGridHtml(data.contracts);
     }).catch(function () {
       if (mount.isConnected) mount.textContent = '저장된 옵션 자료를 불러오지 못했습니다.';
     });
