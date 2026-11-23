@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261117-full-gamma';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-public-options';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -404,8 +404,6 @@
     state.orderbookGeneration += 1;
     if (state.orderbookTimer) clearTimeout(state.orderbookTimer);
     state.orderbookTimer = null;
-    if (state.optionsTimer) clearTimeout(state.optionsTimer);
-    state.optionsTimer = null;
     var request = state.orderbookRequest;
     state.orderbookRequest = null;
     if (request) {
@@ -542,7 +540,6 @@
     state.detailLoadedSymbol = symbol;
     loadOrderbook();
     loadNativeChart();
-    loadOptionsCard(symbol);
     // 시세·호가·현재 보이는 일봉이 먼저 연결되게 하고, 화면 아래의 분석·뉴스는
     // 잠시 뒤 시작한다. 외부 뉴스와 차트가 동시에 느릴 때 VM 스레드풀이 포화되어
     // 현재가까지 늦어지던 경쟁을 피한다.
@@ -590,7 +587,7 @@
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
         + '</div>'
-        + '<section id="usStocksOptions" class="us-stocks-panel us-opt-card" hidden></section>'
+        + optionsLinkHtml(quote.symbol, false)
         + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>';
     }
     updateQuoteFields(quote, detail);
@@ -636,7 +633,7 @@
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
       + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
-      + '<section id="usStocksOptions" class="ss-options-panel us-stocks-panel us-opt-card" hidden></section>'
+      + optionsLinkHtml(quote.symbol, true)
       + '<section class="ss-news-panel us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }
@@ -905,169 +902,15 @@
     if (last && last.mount && document.body.contains(last.mount)) drawUsSilhouette(last.mount, last.asks, last.bids);
   });
 
-  // ---- 당일 만기(0DTE) 옵션 감마 카드(2026-10-05 사용자 요청) ----
-  // 서버(/us-options)가 결과만 캐시해 주므로 종목당 한 번 받고, 이후는 5분마다 보이는 탭에서만 다시 받는다.
-  var OPTIONS_REFRESH_MS = 300000;
-
-  function loadOptionsCard(symbol) {
-    var mount = document.querySelector('#usStocksOptions');
-    if (!mount || state.symbol !== symbol) return;
-    if (state.optionsTimer) clearTimeout(state.optionsTimer);
-    state.optionsTimer = null;
-    // 처음 불러올 때는 자리를 먼저 잡아 두어, 데이터가 도착해도 아래 화면이 밀리지 않게 한다.
-    if (mount.hidden || !mount.innerHTML) {
-      mount.hidden = false;
-      mount.innerHTML = '<div class="us-opt-loading">옵션 데이터를 불러오는 중입니다.</div>';
-    }
-    // 서버가 결과를 캐시해 응답이 0.2~1초라, 시세·호가 요청과 겹치지 않을 만큼만(0.3초) 늦춘다.
-    state.optionsTimer = setTimeout(function () {
-      if (state.symbol !== symbol) return;
-      fetchJson(API_BASE + '/us-options/' + encodeURIComponent(symbol)).then(function (data) {
-        if (state.symbol !== symbol) return;
-        renderOptionsCard(mount, data);
-        if (data && data.available && data.is_0dte) {
-          // 숨은 탭이면 이번 회차는 건너뛰고 다음 주기에 다시 본다.
-          state.optionsTimer = setTimeout(function tickOptions() {
-            if (state.symbol !== symbol) return;
-            if (document.hidden) { state.optionsTimer = setTimeout(tickOptions, OPTIONS_REFRESH_MS); return; }
-            loadOptionsCard(symbol);
-          }, OPTIONS_REFRESH_MS);
-        }
-      }).catch(function () {
-        if (state.symbol !== symbol || !mount.isConnected) return;
-        renderOptionsCard(mount, null);
-      });
-    }, 300);
+  function optionsLinkHtml(symbol, embedded) {
+    var direct = /^[A-Z][A-Z0-9.-]{0,11}$/.test(symbol);
+    var href = direct ? 'https://public.com/stocks/' + encodeURIComponent(symbol.toLowerCase()) + '/options-chain'
+      : 'https://public.com/directory/stocks-options-chain';
+    var label = direct ? escapeHtml(symbol) + ' 옵션 체인 보기' : '옵션 종목 목록 보기';
+    return '<section id="usStocksOptions" class="' + (embedded ? 'ss-options-panel ' : '') + 'us-stocks-panel us-opt-card" aria-label="15분 지연 옵션">'
+      + '<div class="us-opt-status"><strong>15분 지연 옵션</strong>'
+      + '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + label + ' · Public.com (새 탭)</a></div></section>';
   }
-
-  function fmtOptCount(n) { return Number(n || 0).toLocaleString('en-US'); }
-
-  // Volume exceeding yesterday's OI indicates activity, not net opening positions.
-  function optCountHtml(oi, vol) {
-    var fresh = vol > oi && vol >= 300;
-    return '<span class="us-opt-n">OI ' + fmtOptCount(oi) + ' · 거래 ' + fmtOptCount(vol) + (fresh ? ' <em>OI 초과</em>' : '') + '</span>';
-  }
-
-  function optAsOfText(data) {
-    if (!data.as_of) return '약 15분 지연';
-    var stamp=new Date(data.as_of*1000),age=Math.max(0,Date.now()/1000-data.as_of);
-    var t = stamp.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month:'2-digit',day:'2-digit',hour12: false, hour: '2-digit', minute: '2-digit' });
-    return '기준 ' + t + ' KST · '+(age>1800?'자료 '+Math.floor(age/3600)+'시간 '+Math.floor(age%3600/60)+'분 경과':'약 15분 지연');
-  }
-
-  function optMoney(value) { return value == null ? '-' : '$' + Number(value).toFixed(2); }
-
-  function optShareRow(label, call) {
-    if (call == null) return '';
-    var put = Math.round((100 - call) * 10) / 10;
-    return '<div class="us-opt-share"><span>' + label + '</span>'
-      + '<div class="us-opt-share-bar"><i style="width:' + call + '%"></i></div>'
-      + '<em>콜 ' + Math.round(call) + ' · 풋 ' + Math.round(put) + '</em></div>';
-  }
-
-  // 전체 만기 종합 지표(맥스 페인·풋/콜·거래량 비중·감마 레벨). 서버가 같은 체인에서 함께 계산한다.
-  function optOverviewHtml(data) {
-    var o = data.overview;
-    if (!o) return '';
-    var avg = o.volume_vs_avg || {};
-    var avgTiles = ['3', '7', '30'].filter(function (k) { return avg[k] != null; }).map(function (k) {
-      return '<div><span>' + k + '일 평균 대비</span><b>' + Number(avg[k]).toFixed(1) + '%</b></div>';
-    }).join('');
-    var avgHtml = avgTiles
-      ? '<div class="us-opt-tiles">' + avgTiles + '</div>'
-      : '<p class="us-opt-note">평소 대비 거래량은 하루씩 기록을 쌓아 계산합니다(현재 ' + (o.volume_history_days || 0) + '일 기록).</p>';
-    return '<div class="us-opt-head"><b>옵션 종합</b><span>' + optAsOfText(data) + '</span></div>'
-      + '<dl class="us-opt-kv">'
-      + '<div><dt>현재가</dt><dd>' + optMoney(data.price) + '</dd></div>'
-      + '<div><dt>맥스 페인 (만기 ' + escapeOptHtml(String(data.expiry).slice(5)) + ')</dt><dd>' + optMoney(o.max_pain) + '</dd></div>'
-      + '<div><dt>풋/콜 비율 (거래량)</dt><dd>' + (o.pc_volume == null ? '-' : o.pc_volume.toFixed(2)) + '</dd></div>'
-      + '<div><dt>풋/콜 비율 (미결제약정)</dt><dd>' + (o.pc_oi == null ? '-' : o.pc_oi.toFixed(2)) + '</dd></div>'
-      + '</dl>'
-      + '<div class="us-opt-shares">'
-      + optShareRow('거래량', o.call_share && o.call_share.volume)
-      + optShareRow('미결제약정', o.call_share && o.call_share.oi)
-      + optShareRow('프리미엄(추정)', o.call_share && o.call_share.premium)
-      + '</div>'
-      + '<div class="us-opt-sub us-opt-sub-plain">오늘 옵션 거래량(전체 만기) <b>' + fmtOptCount(o.total_volume) + '</b></div>'
-      + avgHtml
-      + '<div class="us-opt-sub us-opt-sub-plain">감마 주요 레벨(전체 만기)</div>'
-      + '<div class="us-opt-tiles us-opt-tiles-4">'
-      + '<div><span>콜 월(위쪽)</span><b class="us-opt-call">' + optMoney(o.call_wall) + '</b></div>'
-      + '<div><span>풋 월(아래쪽)</span><b class="us-opt-put">' + optMoney(o.put_wall) + '</b></div>'
-      + '<div><span>감마 플립</span><b>' + optMoney(o.gamma_flip) + '</b></div>'
-      + '<div><span>Net GEX(백만$)</span><b>' + (o.net_gex > 0 ? '+' : '') + Number(o.net_gex).toFixed(0) + '</b></div>'
-      + '</div>'
-      + '<p class="us-opt-note">프리미엄 비중은 거래량×호가 중간가로 계산한 추정이며 실제 체결 금액이 아닙니다. 감마 플립은 주가가 ±15% 움직일 때 순감마가 0이 되는 지점의 추정입니다.</p>';
-  }
-
-  // 넓은 패널에서는 왼쪽 종합 지표, 오른쪽 0DTE 사다리로 나눈다(좁으면 위아래).
-  function optGridHtml(overviewHtml, ladderHtml) {
-    return '<div class="us-opt-grid"><div class="us-opt-col">' + overviewHtml + '</div><div class="us-opt-col">' + ladderHtml + '</div></div>';
-  }
-
-  function renderOptionsCard(mount, data) {
-    if (!data || !data.available) {
-      var messages = {
-        source_denied: 'Cboe가 자료 요청을 거부해 옵션 데이터를 불러올 수 없습니다.',
-        no_options: '이 종목에 제공되는 옵션 데이터가 없습니다.',
-        too_large: '제공된 옵션 체인이 커서 전체 데이터를 표시할 수 없습니다.'
-      };
-      var message = messages[data && data.reason] || '옵션 데이터를 불러오지 못했습니다.';
-      mount.hidden = false;
-      mount.innerHTML = '<div class="us-opt-status" role="status"><div class="us-opt-head"><b>옵션 종합</b></div>'
-        + '<p class="us-opt-sub">' + escapeOptHtml(message) + '</p></div>';
-      return;
-    }
-    var overviewHtml = optOverviewHtml(data);
-    var rows = (data.strikes || []).slice().sort(function (a, b) { return b.strike - a.strike; });
-    var maxValue = 0;
-    rows.forEach(function (r) { maxValue = Math.max(maxValue, r.call, r.put); });
-    maxValue = maxValue || 1;
-    var price = Number(data.price);
-    // 당일(0DTE) 만기가 없으면 빈 칸 대신 가장 가까운 만기의 같은 표를 보여 주고, 서비스 장애가 아니라는 안내를 붙인다.
-    var is0 = !!data.is_0dte;
-    if (!rows.length) {
-      mount.hidden = false;
-      mount.innerHTML = optGridHtml(overviewHtml, '<div class="us-opt-head"><b>옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
-        + '<div class="us-opt-sub">현재가 부근 행사가 데이터가 없습니다(장애가 아니라 해당 만기에 거래 가능한 행사가가 없는 경우입니다).</div>');
-      return;
-    }
-    var html = '<div class="us-opt-head us-opt-head-0dte"><b>' + (is0 ? '0DTE 옵션 감마' : '옵션 감마 · 만기 ' + escapeOptHtml(String(data.expiry).slice(5))) + '</b><span>' + optAsOfText(data) + '</span></div>'
-      + '<div class="us-opt-sub">' + (is0
-        ? '당일 만기 · 감마는 OI(전일) 기준 · 거래량만으로 신규 포지션을 판별할 수 없습니다'
-        : '오늘 만기 옵션이 없어 가장 가까운 만기(' + escapeOptHtml(data.expiry) + ') 기준으로 보여 드립니다 · 서비스 정상 · 감마는 OI(전일) 기준') + '</div>'
-      + '<div class="us-opt-tiles">'
-      + '<div><span>최대 콜 감마 · 행사가</span><b class="us-opt-call">' + optMoney(data.call_wall) + '</b><small>' + (data.max_call_gex==null?'금액 미제공':fmtOptCount(data.max_call_gex)+'백만$') + '</small></div>'
-      + '<div><span>최대 풋 감마 · 행사가</span><b class="us-opt-put">' + optMoney(data.put_wall) + '</b><small>' + (data.max_put_gex==null?'금액 미제공':fmtOptCount(data.max_put_gex)+'백만$') + '</small></div>'
-      + '<div><span>콜−풋 합계(백만$)</span><b>' + (data.net > 0 ? '+' : '') + Number(data.net).toFixed(1) + '</b></div>'
-      + '</div>'
-      + '<p class="us-opt-note">'+(data.coverage&&data.coverage.scope==='all_strikes_nearest_expiry'?'해당 만기 전체 '+rows.length+'개 행사가 · '+optMoney(data.coverage.min_strike)+'–'+optMoney(data.coverage.max_strike):'서버 제공 '+rows.length+'개 행사가 · 전체 범위 여부 미확인')+' · GEX 단위: 백만$/주가 1%</p>'
-      + '<div class="us-opt-jumps"><button type="button" data-opt-jump="spot">현재가</button><button type="button" data-opt-jump="call">최대 콜</button><button type="button" data-opt-jump="put">최대 풋</button></div>'
-      + '<div class="us-opt-cols"><span class="us-opt-put">풋 GEX · OI/거래</span><span>행사가</span><span class="us-opt-call">콜 GEX · OI/거래</span></div><div class="us-opt-ladder" tabindex="0" role="region" aria-label="전체 행사가 감마 · 위아래로 스크롤">';
-    var inserted = false;
-    rows.forEach(function (r, i) {
-      if (!inserted && r.strike < price) {
-        html += '<div class="us-opt-cur">현재가 $' + price.toFixed(2) + '</div>';
-        inserted = true;
-      }
-      var wall = r.strike === data.call_wall || r.strike === data.put_wall;
-      html += '<div data-opt-strike="'+r.strike+'" class="us-opt-row' + (wall ? ' is-wall' : '') + '">'
-        + '<span class="us-opt-l"><i class="us-opt-bar-put" style="width:' + (r.put / maxValue * 100).toFixed(2) + '%"></i><span class="us-opt-gex us-opt-put">'+fmtOptCount(r.put)+'</span>' + optCountHtml(r.put_oi, r.put_vol) + '</span>'
-        + '<b>' + r.strike.toFixed(2) + '</b>'
-        + '<span class="us-opt-r"><i class="us-opt-bar-call" style="width:' + (r.call / maxValue * 100).toFixed(2) + '%"></i><span class="us-opt-gex us-opt-call">'+fmtOptCount(r.call)+'</span>' + optCountHtml(r.call_oi, r.call_vol) + '</span>'
-        + '</div>';
-    });
-    if(!inserted)html+='<div class="us-opt-cur">현재가 $'+price.toFixed(2)+'</div>';
-    html += '</div><p class="us-opt-note">전체 행사가 중 최대 감마를 100%로 표시하며 금액 상한은 없습니다. 콜 양수·풋 음수라는 포지션 가정의 추정입니다. 실제 시장조성자 보유 내역이 아니며 Cboe가 제공하지 않는 계약은 포함되지 않습니다.</p>';
-    mount.hidden = false;
-    mount.innerHTML = optGridHtml(overviewHtml, html);
-    var ladder=mount.querySelector('.us-opt-ladder');
-    function jump(kind){var target=kind==='spot'?ladder.querySelector('.us-opt-cur'):ladder.querySelector('[data-opt-strike="'+Number(kind==='call'?data.call_wall:data.put_wall)+'"]');if(target)ladder.scrollTop+=target.getBoundingClientRect().top-ladder.getBoundingClientRect().top-ladder.clientHeight/2+target.clientHeight/2;}
-    mount.querySelectorAll('[data-opt-jump]').forEach(function(button){button.addEventListener('click',function(){jump(button.dataset.optJump);});});
-    jump('spot');
-  }
-
-  function escapeOptHtml(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   function loadNativeChart() {
     if (!state.symbol) return;
