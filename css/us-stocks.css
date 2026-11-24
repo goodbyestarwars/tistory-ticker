@@ -357,21 +357,26 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 /* 옵션 패널(2026-11-03): 호가 옆 좁은 칸에서 차트 아래 전체 폭으로 옮기고 종합/0DTE를 좌우 두 단으로 나눈다 */
 .us-opt-card.us-stocks-panel { margin-top: 0; border-top-width: 1px; padding: 14px 18px 12px; }
 #stock-search .ss-panels > .ss-options-panel { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
-.us-alpaca-options { box-sizing: border-box; margin-top: 12px; container: us-expiry-options / inline-size; }
-.us-alpaca-options-layout { display: grid; gap: 12px; align-items: start; }
+/* 차트 바로 아래: 그리드와 같은 폭, 표 전체 폭, 자료 안내는 하단의 한 흐름. */
+.us-alpaca-options { box-sizing: border-box; margin-top: var(--ui-section-gap, 20px); container: us-expiry-options / inline-size; }
+#stock-search .ss-panels > .us-alpaca-options { margin-top: 0; }
+.us-alpaca-options-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ui-paragraph-gap, 14px); align-items: start; }
 .us-alpaca-options-layout > [data-us-alpaca-options] { min-width: 0; }
-.us-alpaca-options-meta { min-width: 0; color: var(--ui-muted, #64748b); font-size: 12px; line-height: 1.5; word-break: keep-all; overflow-wrap: normal; }
-.us-alpaca-options-meta .us-alpaca-meta-group { white-space: nowrap; }
-.us-alpaca-options-meta p { margin: 0; }
-.us-alpaca-options-meta p + p { margin-top: 8px; }
+.us-alpaca-options-meta { min-width: 0; padding-block-start: var(--ui-paragraph-gap, 14px); border-block-start: 1px solid var(--ui-rule, #eee); color: var(--ui-muted, #64748b); font-size: 12px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+.us-alpaca-options-meta[hidden] { display: none; }
+.us-alpaca-options-meta .us-alpaca-meta-group { display: inline-block; max-width: 100%; white-space: normal; }
+.us-alpaca-options-meta p { min-width: 0; margin: 0; }
+.us-alpaca-options-meta p + p { margin-top: 6px; }
 @container us-expiry-options (min-width: 760px) {
-  .us-alpaca-options-layout:has(> .us-alpaca-options-meta:not([hidden])) {
-    grid-template-columns: minmax(0, 1fr) minmax(236px, 24%);
-    gap: var(--ui-section-gap, 16px);
+  .us-alpaca-options-meta:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.3fr);
+    gap: var(--ui-paragraph-gap, 14px);
+    align-items: start;
   }
-  .us-alpaca-options-meta { padding-inline-start: 14px; border-inline-start: 1px solid var(--ui-border); }
+  .us-alpaca-options-meta p + p { margin-top: 0; }
 }
-.us-alpaca-options-table { max-width: 1120px; max-height: min(560px, 70vh); overflow: auto; border: 1px solid var(--ui-rule, #eee); border-radius: 12px; }
+.us-alpaca-options-table { width: 100%; max-width: 100%; min-width: 0; max-height: min(560px, 70vh); overflow: auto; border: 1px solid var(--ui-rule, #eee); border-radius: 12px; }
 .us-alpaca-options-table table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .us-alpaca-options-table :is(th,td) { padding: 8px 12px; text-align: right; }
 .us-alpaca-options-table :is(.us-option-strike, .us-option-call-head, .us-option-put-head, .us-option-spot td) { text-align: center; }
