@@ -360,12 +360,13 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
 .us-alpaca-options { box-sizing: border-box; margin-top: 12px; container: us-expiry-options / inline-size; }
 .us-alpaca-options-layout { display: grid; gap: 12px; align-items: start; }
 .us-alpaca-options-layout > [data-us-alpaca-options] { min-width: 0; }
-.us-alpaca-options-meta { min-width: 0; color: var(--ui-muted, #64748b); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.us-alpaca-options-meta { min-width: 0; color: var(--ui-muted, #64748b); font-size: 12px; line-height: 1.5; word-break: keep-all; overflow-wrap: normal; }
+.us-alpaca-options-meta .us-alpaca-meta-group { white-space: nowrap; }
 .us-alpaca-options-meta p { margin: 0; }
 .us-alpaca-options-meta p + p { margin-top: 8px; }
 @container us-expiry-options (min-width: 760px) {
   .us-alpaca-options-layout:has(> .us-alpaca-options-meta:not([hidden])) {
-    grid-template-columns: minmax(0, 1fr) minmax(200px, 24%);
+    grid-template-columns: minmax(0, 1fr) minmax(236px, 24%);
     gap: var(--ui-section-gap, 16px);
   }
   .us-alpaca-options-meta { padding-inline-start: 14px; border-inline-start: 1px solid var(--ui-border); }

@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-card';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-meta-wrap';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -1007,11 +1007,11 @@
       var oiCount = data.contracts.filter(function (row) { return row.open_interest != null; }).length;
       var previousGrid = mount.querySelector('[data-option-stored-price]');
       var scrollTop = previousGrid && previousGrid.scrollTop;
-      meta.innerHTML = '<p>Alpaca 참고 호가 · 만기 ' + escapeHtml(data.expiry) + ' (미국 동부)'
+      meta.innerHTML = '<p>Alpaca 참고 호가 · <span class="us-alpaca-meta-group">만기 ' + escapeHtml(data.expiry) + ' (미국 동부)</span>'
         + (data.stale ? ' · 직전 저장 자료' : '') + '</p>'
-        + '<p>수집 ' + escapeHtml(time) + ' KST'
-        + (quoteTime ? ' · 최근 호가 ' + escapeHtml(quoteTime) + ' KST' : '') + '</p>'
-        + '<p>미결제약정(OI) 수신 ' + oiCount + '/' + data.contracts.length + '계약 · ' + summary + '</p>';
+        + '<p><span class="us-alpaca-meta-group">수집 ' + escapeHtml(time) + ' KST</span>'
+        + (quoteTime ? ' · <span class="us-alpaca-meta-group">최근 호가 ' + escapeHtml(quoteTime) + ' KST</span>' : '') + '</p>'
+        + '<p>미결제약정(OI) 수신 <span class="us-alpaca-meta-group">' + oiCount + '/' + data.contracts.length + '계약</span> · ' + summary + '</p>';
       meta.hidden = false;
       mount.innerHTML = optionsGridHtml(data.contracts, data.underlying_price);
       syncOptionsPrice(mount, state.lastQuote && state.lastQuote.price, !previousGrid);
