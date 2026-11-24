@@ -8,7 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var ORDER_BOOK_CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/order-book.css';
-  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-meta';
+  var CSS_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'css/us-stocks.css?v=20261124-option-card';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -907,11 +907,11 @@
 
   function optionsPanelHtml(symbol, embedded) {
     if (!/^[A-Z][A-Z0-9.-]{0,11}$/.test(symbol) || !global.NineAccess || !global.NineAccess.isAdmin()) return '';
-    return '<section id="usStocksOptions" class="us-stocks-panel us-alpaca-options'
+    return '<section id="usStocksOptions" class="us-stocks-panel ui-content-block us-alpaca-options'
       + (embedded ? ' ss-options-panel' : '') + '">'
-      + '<div class="us-alpaca-options-head"><h4>' + escapeHtml(symbol) + ' 당일 만기 옵션</h4>'
-      + '<div class="us-alpaca-options-meta" data-us-alpaca-meta hidden></div></div>'
-      + '<div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div></section>';
+      + '<div class="us-stocks-panel-head"><h4>' + escapeHtml(symbol) + ' 당일 만기 옵션</h4></div>'
+      + '<div class="us-alpaca-options-layout"><div data-us-alpaca-options>수집 내역을 확인하는 중입니다.</div>'
+      + '<aside class="us-alpaca-options-meta" data-us-alpaca-meta aria-label="옵션 자료 안내" hidden></aside></div></section>';
   }
 
   function optionsGridHtml(contracts, storedPrice) {
