@@ -998,20 +998,26 @@
               : '저장된 당일 만기 옵션이 없습니다.';
         return;
       }
-      var time = new Date(data.collected_at * 1000).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'});
-      var quoteTime = data.quote_at && new Date(data.quote_at * 1000).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'});
+      var timeFormat = new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23'});
+      var time = timeFormat.format(new Date(data.collected_at * 1000));
+      var quoteTime = data.quote_at && timeFormat.format(new Date(data.quote_at * 1000));
+      if (quoteTime && quoteTime.slice(0, 10) === time.slice(0, 10)) quoteTime = quoteTime.slice(11);
       var summary = data.gex
         ? '추정 순감마 ' + data.gex.net.toFixed(1) + '백만 달러/주가 1% · 최대 콜 행사가 ' + formatPrice(data.gex.call_wall)
           + ' · 최대 풋 행사가 ' + formatPrice(data.gex.put_wall)
-        : '감마 노출 미집계 · 감마 또는 미결제약정 누락';
+        : '감마 미집계(감마/OI 누락)';
       var oiCount = data.contracts.filter(function (row) { return row.open_interest != null; }).length;
       var previousGrid = mount.querySelector('[data-option-stored-price]');
       var scrollTop = previousGrid && previousGrid.scrollTop;
-      meta.innerHTML = '<p>Alpaca 참고 호가 · <span class="us-alpaca-meta-group">만기 ' + escapeHtml(data.expiry) + ' (미국 동부)</span>'
-        + (data.stale ? ' · 직전 저장 자료' : '') + '</p>'
-        + '<p><span class="us-alpaca-meta-group">수집 ' + escapeHtml(time) + ' KST</span>'
-        + (quoteTime ? ' · <span class="us-alpaca-meta-group">최근 호가 ' + escapeHtml(quoteTime) + ' KST</span>' : '') + '</p>'
-        + '<p>미결제약정(OI) 수신 <span class="us-alpaca-meta-group">' + oiCount + '/' + data.contracts.length + '계약</span> · ' + summary + '</p>';
+      var metaParts = ['Alpaca 참고 호가', '만기 ' + data.expiry + ' (미 동부)'];
+      if (data.stale) metaParts.push('직전 저장 자료');
+      metaParts.push('수집 ' + time + ' KST');
+      if (quoteTime) metaParts.push('최근 호가 ' + quoteTime + ' KST');
+      metaParts.push('OI ' + oiCount + '/' + data.contracts.length + '계약');
+      metaParts = metaParts.concat(summary.split(' · '));
+      meta.innerHTML = '<p>' + metaParts.map(function (part) {
+        return '<span class="us-alpaca-meta-group">' + escapeHtml(part) + '</span>';
+      }).join(' · ') + '</p>';
       meta.hidden = false;
       mount.innerHTML = optionsGridHtml(data.contracts, data.underlying_price);
       syncOptionsPrice(mount, state.lastQuote && state.lastQuote.price, !previousGrid);
