@@ -561,8 +561,10 @@
   }
   function chart(code, options) {
     code = encodeURIComponent(code);
-    return domain('/flow-chart/' + code, '?action=flowChart&code=' + code, function (body) {
-      return Array.isArray(body.daily) && body.daily.length > 0 && body.daily.every(function (bar) {
+    options = options || {};
+    var integrated = options.market === 'UN';
+    return domain('/flow-chart/' + code + (integrated ? '?market=UN' : ''), integrated ? null : '?action=flowChart&code=' + code, function (body) {
+      return (!integrated || body.marketScope === 'UN') && Array.isArray(body.daily) && body.daily.length > 0 && body.daily.every(function (bar) {
         return bar.date && ['open', 'high', 'low', 'close'].every(function (key) {
           return bar[key] != null && isFinite(Number(bar[key]));
         }) && Number(bar.high) >= Number(bar.low);

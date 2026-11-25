@@ -232,10 +232,10 @@ assert.strictEqual(Core.chartOptions(LWC, 'search', { timeframe: 'day' }).timeSc
   Data._flowChartCache.clear();             // 새 페이지(메모리 캐시 없음)
   const again = await Data.fetchFlowChart('SESS1', netFetcher);
   assert.strictEqual(net, 1, '새 페이지에서도 탭 저장소에서 읽는다'); assert.strictEqual(again.daily.length, 30);
-  const key = 'nine-chart:v1:' + Data.flowChartKey('SESS1'); const rec = JSON.parse(store[key]); rec.t -= 6 * 60 * 1000; store[key] = JSON.stringify(rec);
+  const key = 'nine-chart:v2:' + Data.flowChartKey('SESS1'); const rec = JSON.parse(store[key]); rec.t -= 6 * 60 * 1000; store[key] = JSON.stringify(rec);
   Data._flowChartCache.clear(); await Data.fetchFlowChart('SESS1', netFetcher); assert.strictEqual(net, 2, '5분이 지난 저장본은 쓰지 않는다');
   for (const code of ['S2', 'S3', 'S4', 'S5', 'S6']) await Data.fetchFlowChart(code, netFetcher);
-  assert(Object.keys(store).filter((k) => /^nine-chart:v1:flow-chart/.test(k)).length <= 4, '탭 저장소에는 최근 4종목까지만');
+  assert(Object.keys(store).filter((k) => /^nine-chart:v2:flow-chart/.test(k)).length <= 4, '탭 저장소에는 최근 4종목까지만');
   await Data.fetchFlowChart('TMP', async () => ({ daily: real.daily.slice(-5), source: 'flow-fallback' }));
   assert(!Object.keys(store).some((k) => /TMP/.test(k)), '임시 대체 자료는 저장하지 않는다');
   globalThis.sessionStorage = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); }, removeItem() {} };

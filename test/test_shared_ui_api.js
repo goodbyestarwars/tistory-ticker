@@ -29,6 +29,9 @@ assert.equal(api.gasUrl,existingGas,'canonical GAS URL must match the deployed w
  const row={date:'2026-10-23',open:100,high:105,low:95,close:102,volume:10};
  const chart=await api.flowChart('005930',{request:async()=>({success:true,data:{daily:[row]}})});
  assert.equal(chart.daily[0].close,102);
+ const un=await api.flowChart('005930',{market:'UN',request:async url=>{assert.match(url,/market=UN$/);return {marketScope:'UN',daily:[row]};}});
+ assert.equal(un.marketScope,'UN');
+ let unCalls=0;await assert.rejects(api.flowChart('005930',{market:'UN',request:async()=>{unCalls++;return {daily:[row]};}}));assert.equal(unCalls,1);
  await assert.rejects(api.flowChart('005930',{request:async()=>({daily:[{...row,close:null}]})}));
  const failed=await api.flowChart('005930',{request:async url=>{if(url.startsWith(api.vmUrl))throw Error('offline');return {daily:[row]};}});
  assert.equal(failed.source,'gas-vm-derived');assert.equal(failed.daily[0].date,row.date);

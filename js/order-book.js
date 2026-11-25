@@ -1254,7 +1254,7 @@
     var cached = chartResponses[code];
     if (cached && Date.now() - cached.t < 5 * 60 * 1000) return Promise.resolve(cached.data);
     if (chartRequests[code]) return chartRequests[code];
-    var request = global.NineAPI.flowChart(code, {request:requestChart})
+    var request = global.NineAPI.flowChart(code, {request:requestChart, market:'UN'})
       .then(function (data) {
         delete chartRequests[code];
         if (data && !data.error && Array.isArray(data.daily) && data.daily.length) {
@@ -1282,6 +1282,7 @@
         if (!latest) throw new Error('summary data unavailable');
         return {
           date: latest.date,
+          marketScope: data.marketScope || null,
           close: numericOrNull(latest.close),
           open: numericOrNull(latest.open),
           high: numericOrNull(latest.high),
@@ -1405,6 +1406,7 @@
       : null;
     return {
       date: summary.date || null,
+      marketScope: summary.marketScope || null,
       changeRate: numericOrNull(quote && quote.changeRate) != null ? numericOrNull(quote.changeRate) : numericOrNull(state.lastRealtimeQuote && state.lastRealtimeQuote.changeRate),
       current: numericOrNull(quote && quote.price) || numericOrNull(state.lastRealtimeQuote && state.lastRealtimeQuote.price) || numericOrNull(summary.close),
       open: numericOrNull(summary.open),

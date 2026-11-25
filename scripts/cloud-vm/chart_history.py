@@ -2,6 +2,7 @@
 import logging
 import threading
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import db_schema
 import kiwoom_market
@@ -11,6 +12,40 @@ MAX_ROWS = 1550
 _gate = threading.BoundedSemaphore(1)
 _locks = {}
 _locks_guard = threading.Lock()
+
+
+def _connect(market):
+    if market == 'KRX':
+        return db_schema.get_conn()
+    if market != 'UN':
+        raise ValueError('invalid chart market')
+    conn = db_schema.get_conn(str(Path(db_schema.DB_FILE).with_name('ohlc_chart_un.db')))
+    try:
+        conn.executescript(db_schema.CHART_HISTORY_SCHEMA)
+        return conn
+    except Exception:
+        conn.close()
+        raise
+
+
+def _un_recent(now, checked_at):
+    if not checked_at or checked_at > now:
+        return False
+    age = now - checked_at
+    start = now.replace(hour=8, minute=0, second=0, microsecond=0)
+    final = now.replace(hour=20, minute=10, second=0, microsecond=0)
+    if now.weekday() < 5 and start <= now < final:
+        return checked_at >= start and age < timedelta(minutes=5)
+    if now.weekday() < 5 and now >= final:
+        return checked_at >= final and age < timedelta(minutes=60)
+    return age < timedelta(minutes=60)
+
+
+def _fetch(token_getter, code, pages, market):
+    kwargs = {'max_days': None, 'max_pages': pages}
+    if market == 'UN':
+        kwargs['market'] = 'UN'
+    return kiwoom_market.fetch_daily_ohlc(token_getter(), code, **kwargs)
 
 
 def _lock(code):
@@ -49,14 +84,14 @@ def _save(conn, code, rows):
         conn.commit()
 
 
-def get_daily(code, extended=False, token_getter=None):
+def get_daily(code, extended=False, token_getter=None, *, market='KRX'):
     """Read SQLite first; one stock at a time may request missing Kiwoom pages."""
-    with _lock(code):
-        conn = db_schema.get_conn()
+    with _lock((market, code)):
+        conn = _connect(market)
         try:
             conn.execute('PRAGMA busy_timeout=5000')
             rows = _load(conn, code)
-            if not rows:
+            if not rows and market == 'KRX':
                 # The batch cache has identical Kiwoom adjusted-price policy.
                 rows = db_schema.load_daily_prices(conn, code)
                 _save(conn, code, rows)
@@ -72,15 +107,22 @@ def get_daily(code, extended=False, token_getter=None):
             recent_check = bool(checked_at and now - checked_at < timedelta(minutes=refresh_minutes))
             fresh = (last_date == now.date().isoformat() and recent_check) or (
                 now.hour < 9 and last_date == (now.date() - timedelta(days=1)).isoformat())
+            if market == 'UN':
+                recent_check = _un_recent(now, checked_at)
+                fresh = recent_check
             needs_history = extended and not (state and state[0])
             needs_latest = not fresh and not recent_check
             quota_ok = not needs_history or conn.execute(
                 'SELECT COUNT(*) FROM chart_history_fetches WHERE date=?',
                 (now.date().isoformat(),)).fetchone()[0] < 20
+            if market == 'UN' and not quota_ok:
+                needs_history = False
+                quota_ok = True
             if quota_ok and (needs_history or needs_latest or not rows) and _gate.acquire(blocking=False):
                 try:
-                    fetched = kiwoom_market.fetch_daily_ohlc(token_getter(), code, max_days=None,
-                                                               max_pages=3 if needs_history else 1)
+                    fetched = _fetch(token_getter, code, 3 if needs_history else 1, market)
+                    if market == 'UN' and (not fetched or not all(_valid(row) for row in fetched)):
+                        raise ValueError('invalid integrated daily response')
                     # A split can revise adjusted prices across the entire series. Do not
                     # combine pre-split old pages with newly adjusted recent pages.
                     if not needs_history and state and state[0] and fetched:
@@ -89,8 +131,9 @@ def get_daily(code, extended=False, token_getter=None):
                                       abs(float(r['close']) / float(stored[date]) - 1) > 0.01
                                       for r in fetched for date in [r['date']])
                         if revised:
-                            fetched = kiwoom_market.fetch_daily_ohlc(token_getter(), code,
-                                                                       max_days=None, max_pages=3)
+                            fetched = _fetch(token_getter, code, 3, market)
+                            if market == 'UN' and (not fetched or not all(_valid(row) for row in fetched)):
+                                raise ValueError('invalid integrated history response')
                     _save(conn, code, fetched)
                     conn.execute('INSERT INTO chart_history_state(code,earliest,extended,checked_at) '
                                  'VALUES (?,?,?,?) ON CONFLICT(code) DO UPDATE SET '
@@ -114,8 +157,8 @@ def get_daily(code, extended=False, token_getter=None):
             conn.close()
 
 
-def history_attempted(code):
-    conn = db_schema.get_conn()
+def history_attempted(code, *, market='KRX'):
+    conn = _connect(market)
     try:
         row = conn.execute('SELECT extended FROM chart_history_state WHERE code=?', (code,)).fetchone()
         return bool(row and row[0])

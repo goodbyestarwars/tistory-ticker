@@ -1388,7 +1388,7 @@
   // 다른 화면이 같은 종목 일봉을 이 탭 저장소(chart-data 가 쓰는 키)에 남겨 뒀을 수 있는지 동기로 확인한다.
   // 있으면 엔진을 기다려 캐시에서 읽고(요청 생략), 없으면 엔진을 기다리지 않고 바로 요청한다.
   function sharedFlowChartMayExist(code) {
-    try { return !!global.sessionStorage.getItem('nine-chart:v1:flow-chart|' + String(code || '').toUpperCase() + '|server'); } catch (e) { return false; }
+    try { return !!global.sessionStorage.getItem('nine-chart:v2:flow-chart|' + String(code || '').toUpperCase() + '|server'); } catch (e) { return false; }
   }
 
   function fetchFlowChart(code) {
@@ -1405,7 +1405,7 @@
   }
 
   function requestFlowChart(code) {
-    return global.NineAPI.flowChart(code, {request: function (url) {
+    return global.NineAPI.flowChart(code, {market:'UN', request: function (url) {
       return fetchJson(url, url.indexOf(KIWOOM_VM_URL) === 0 ? FLOW_CHART_VM_TIMEOUT_MS : FLOW_CHART_GAS_TIMEOUT_MS);
     }});
   }
@@ -4596,7 +4596,7 @@
         var market = rows && rows[0] && rows[0].market;
         var etf = market === 'KOSDAQ' ? { code: '229200', label: '코스닥(KODEX 코스닥150)' } : { code: '069500', label: '코스피(KODEX 200)' };
         if (market !== 'KOSDAQ' && market !== 'KOSPI') return null;      // 시장을 모르면 엉뚱한 지수와 비교하지 않는다
-        return global.NineAPI.flowChart(etf.code, {request:fetchJson}).then(function (env) {
+        return global.NineAPI.flowChart(etf.code, {request:fetchJson, market:'UN'}).then(function (env) {
           var data = env && env.data ? env.data : env;
           var etfDaily = (data && Array.isArray(data.daily) ? data.daily : []).filter(function (row) { return row && row.close; });
           if (etfDaily.length < 20) return null;

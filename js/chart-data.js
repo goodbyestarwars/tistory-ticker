@@ -9,7 +9,7 @@
   'use strict';
 
   var FLOW_CHART_TTL_MS = 5 * 60 * 1000;
-  var SESSION_PREFIX = 'nine-chart:v1:';
+  var SESSION_PREFIX = 'nine-chart:v2:';
   var SESSION_MAX_ITEMS = 4;           // 탭 저장소에는 최근 4종목까지만(종목당 약 100KB)
 
   // ---- 공통 캐시: 유효기간 + 개수 상한 + 진행 중 요청 공유 ----
@@ -255,7 +255,11 @@
         loadingRanges[code] = true;
         status.textContent = '과거 데이터 불러오는 중…';
         fetchFlowChart(code, function (c) {
-          return global.NineAPI.data('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(c) + '?history=5y', {timeoutMs:50000});
+          var un = getData() && getData().marketScope === 'UN';
+          return global.NineAPI.data('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(c) + '?history=5y' + (un ? '&market=UN' : ''), {timeoutMs:50000}).then(function (data) {
+            if (un && (!data || data.marketScope !== 'UN')) throw new Error('통합 일봉 미수신');
+            return data;
+          });
         }, { adjust: '5y', noSession: true, force: true }).then(function (data) {
           if (data && data.daily && data.daily.length) { data.extendedHistory = !!data.historyAttempted; onData(data); }
           var current = parent.querySelector('.nine-chart-range-status');

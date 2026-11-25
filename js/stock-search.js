@@ -2344,14 +2344,14 @@
   // 다른 화면이 같은 종목 일봉을 이 탭 저장소(chart-data 가 쓰는 키)에 남겨 뒀을 수 있는지 동기로 확인한다.
   // 있으면 엔진을 기다려 캐시에서 읽고(요청 생략), 없으면 엔진을 기다리지 않고 바로 요청한다.
   function sharedFlowChartMayExist(code) {
-    try { return !!global.sessionStorage.getItem('nine-chart:v1:flow-chart|' + String(code || '').toUpperCase() + '|server'); } catch (e) { return false; }
+    try { return !!global.sessionStorage.getItem('nine-chart:v2:flow-chart|' + String(code || '').toUpperCase() + '|server'); } catch (e) { return false; }
   }
 
   // 일봉(/flow-chart) 요청: 호가 요약(order-book.js)·차트가 같은 경로를 쓰고, 종목분석과 메모리·탭 저장소 캐시를 같이 쓴다(chart-data).
   function requestFlowChart(code) {
     return global.OrderBook && global.OrderBook.fetchChart
       ? global.OrderBook.fetchChart(code)
-      : global.NineAPI.flowChart(code, {request:fetchJson});
+      : global.NineAPI.flowChart(code, {request:fetchJson, market:'UN'});
   }
 
   function loadSharedFlowChart(code) {

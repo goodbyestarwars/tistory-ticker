@@ -45,6 +45,34 @@ class ChartHistoryTests(unittest.TestCase):
         with mock.patch.object(chart_history.kiwoom_market, 'fetch_daily_ohlc', side_effect=RuntimeError('down')):
             self.assertEqual(1300, len(chart_history.get_daily('005930', True, lambda: 'token')))
 
+    def test_integrated_cache_is_isolated_and_requests_un(self):
+        conn = db_schema.get_conn()
+        conn.execute('INSERT INTO daily_prices VALUES (?,?,?,?,?,?,?)',
+                     ('376900', self.today.isoformat(), 100, 110, 90, 100, 364240))
+        conn.commit()
+        conn.close()
+        with mock.patch.object(chart_history.kiwoom_market, 'fetch_daily_ohlc', side_effect=RuntimeError('down')):
+            self.assertEqual([], chart_history.get_daily('376900', token_getter=lambda: 'token', market='UN'))
+        rows = [dict(self.bars(40)[-1], date=self.today.isoformat(), volume=417576)]
+        with mock.patch.object(chart_history.kiwoom_market, 'fetch_daily_ohlc', return_value=rows) as fetch:
+            result = chart_history.get_daily('376900', token_getter=lambda: 'token', market='UN')
+            self.assertEqual(417576, result[-1]['volume'])
+            self.assertEqual('UN', fetch.call_args.kwargs['market'])
+        conn = db_schema.get_conn()
+        try:
+            self.assertEqual(364240, conn.execute('SELECT volume FROM daily_prices WHERE code=?', ('376900',)).fetchone()[0])
+        finally:
+            conn.close()
+
+    def test_un_session_boundaries(self):
+        day = datetime(2026, 11, 26, 8, 0, tzinfo=chart_history.KST)
+        self.assertFalse(chart_history._un_recent(day, day - timedelta(minutes=1)))
+        self.assertTrue(chart_history._un_recent(day + timedelta(minutes=4), day))
+        self.assertFalse(chart_history._un_recent(day + timedelta(minutes=5), day))
+        final = day.replace(hour=20, minute=10)
+        self.assertFalse(chart_history._un_recent(final, final - timedelta(minutes=1)))
+        self.assertTrue(chart_history._un_recent(final + timedelta(minutes=1), final))
+
     def test_bad_ohlc_is_rejected_and_short_listing_stays_short(self):
         rows = self.bars(80)
         rows.append(dict(rows[-1], date=self.today.isoformat(), low=200))

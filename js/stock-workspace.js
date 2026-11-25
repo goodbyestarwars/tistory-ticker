@@ -181,7 +181,8 @@
     // 왼쪽 거래량은 차트의 최근 일봉과 같은 값이다.
     var volume = num(s.volume);
     var date = /^\d{4}-\d{2}-\d{2}$/.test(s.date || '') ? s.date : '';
-    var volumeLabel = date ? date.slice(5).replace('-', '.') + ' 일봉 거래량' : '일봉 거래량';
+    var scopeLabel = s.marketScope === 'UN' ? '통합 거래량' : '일봉 거래량';
+    var volumeLabel = date ? date.slice(5).replace('-', '.') + ' ' + scopeLabel : scopeLabel;
     var change = num(q.change);
     box.innerHTML = '<div class="ss-session-values">'
       + '<div><span>전일 대비</span><b class="' + tone(change).trim() + '">' + (change == null ? '—' : signed(change) + '원') + '</b></div>'

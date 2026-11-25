@@ -78,7 +78,7 @@ class MissingDailyChartTest(unittest.TestCase):
         self.assertEqual(result['byName'], {'name': '브릴스', 'code': '468670'})
 
     def test_regular_daily_data_stays_on_daily_chart(self):
-        result = self.run_chart(payload={'daily': [{'date': '2026-09-30', 'open': 9900, 'high': 10100, 'low': 9800, 'close': 10000, 'volume': 1000}]})
+        result = self.run_chart(payload={'marketScope': 'UN', 'daily': [{'date': '2026-09-30', 'open': 9900, 'high': 10100, 'low': 9800, 'close': 10000, 'volume': 1000}]})
         self.assertEqual(result['renders'], ['day'])
         self.assertTrue(result['notice']['hidden'])
 

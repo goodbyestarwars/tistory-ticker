@@ -2458,7 +2458,8 @@ def _load_flow_chart_daily(code):
 
 @app.get('/flow-chart/{code}')
 def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=6),
-               history: str = Query('1y', pattern='^(1y|5y)$')):
+               history: str = Query('1y', pattern='^(1y|5y)$'),
+               market: str = Query('KRX', pattern='^(KRX|UN)$')):
     """종목분석 가격차트(일봉 + MA5/20/60/224 + 지지/저항).
 
     2026-09-03: gas의 ?action=flowChart를 그대로 옮겨온 것이다. GAS판은 자체 데이터가
@@ -2477,7 +2478,7 @@ def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=
     """
     _check_rate_limit('flow_chart', request)
     import chart_history
-    daily = chart_history.get_daily(code, extended=(history == '5y'), token_getter=get_kiwoom_token)
+    daily = chart_history.get_daily(code, extended=(history == '5y'), token_getter=get_kiwoom_token, market=market)
     if not daily or len(daily) < 30:
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
 
@@ -2501,7 +2502,8 @@ def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=
             'ma224': ma224[start:],
         },
         'levels': levels,
-        'historyAttempted': chart_history.history_attempted(code),
+        'historyAttempted': chart_history.history_attempted(code, market=market),
+        'marketScope': market,
     })
 
 
