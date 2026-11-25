@@ -651,7 +651,13 @@
     if (!isUs && global.UsStocks && typeof global.UsStocks.pause === 'function') global.UsStocks.pause();
     if (results) results.hidden = !!isUs;
     if (detail && isUs) detail.hidden = true;
-    if (isUs) { stockSearchRequestId += 1; hideIndex(container); }
+    if (isUs) {
+      // 작업화면의 국내 요약은 overview 밖에 있을 수 있다. 미국 화면에서 따로 숨긴다.
+      var summary = container.querySelector('#ssSummary');
+      if (summary) summary.hidden = true;
+      stockSearchRequestId += 1;
+      hideIndex(container);
+    }
   }
 
   function loadUsStocksModule(container) {
