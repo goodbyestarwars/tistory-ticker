@@ -6,6 +6,7 @@ gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 �
 
 import logging
 import math
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -49,14 +50,29 @@ def to_num(v):
         return 0.0
 
 
-def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS, max_pages=1):
+def chart_market_code(code, market=None):
+    """명시적 시장 조회용 코드. 기존 호출(None)은 원래 종목코드를 그대로 유지한다.
+
+    공식 ka10081/ka10080: KRX bare, NXT _NX, SOR _AL.
+    UN은 서비스 내부 통합시장 이름이다. 다른 시장으로 자동 폴백하지 않는다.
+    """
+    if market is None:
+        return code
+    suffix = {'KRX': '', 'NXT': '_NX', 'UN': '_AL'}.get(market)
+    if suffix is None or not re.fullmatch(r'[0-9A-Z]{6}', str(code)):
+        raise ValueError('invalid chart market or base stock code')
+    return code + suffix
+
+
+def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS, max_pages=1, *, market=None):
     """일봉 OHLC를 오름차순(과거->최신)으로 반환. gas의 fetchDailyOhlc_()와 동일한 행 형식
     ({date, open, high, low, close, volume})을 쓴다. 데이터가 max_days에 못 미치면
     (신규상장 등) 있는 만큼만 반환 - 호출부가 길이 체크로 스킵 여부를 판단한다.
     max_days=None이면 ka10081 한 번 호출로 나오는 만큼(종목마다 다르지만 보통 600영업일 안팎,
-    2년 반 정도) 전부 반환 - 종목분석 가격차트(getFlowChart)용."""
+    2년 반 정도) 전부 반환 - 종목분석 가격차트(getFlowChart)용.
+    market=UN은 통합시장 검증용 명시적 조회이며 기존 KRX 저장소에 혼합 금지."""
     body = {
-        'stk_cd': code,
+        'stk_cd': chart_market_code(code, market),
         'base_dt': datetime.now().strftime('%Y%m%d'),
         'upd_stkpc_tp': '1',
     }
@@ -90,16 +106,17 @@ def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS, max_pages=1):
 MINUTE_TIC_SCOPES = ('1', '3', '5', '10', '15', '30', '45', '60')
 
 
-def fetch_minute_ohlc(token, code, tic_scope='1', max_bars=None):
+def fetch_minute_ohlc(token, code, tic_scope='1', max_bars=None, *, market=None):
     """분봉 OHLC(ka10080)를 오름차순(과거->최신)으로 반환. fetch_daily_ohlc와 같은 행 형식에
     시각(time, 'HH:MM')만 추가. tic_scope는 분단위(1/3/5/10/15/30/45/60) 문자열.
     2026-08-04: 응답 필드(stk_min_pole_chart_qry, cntr_tm 등)를 실호출로 검증 완료
     (005930 1분봉 정상 수신). 한 번 호출에 최근 며칠치가 오며, 정규장 마감 후
     15:20~15:30 구간(종가 단일가)에는 거래량이 비정상적으로 크게 찍히니(누적치로 추정,
     이 필드 자체는 여전히 미검증) 프론트에서 그대로 캔들/거래량 축에 반영하지 않도록
-    주의(js/stock-search.js minuteRowsToBars 참고)."""
+    주의(js/stock-search.js minuteRowsToBars 참고).
+    market=UN은 통합시장 검증용 조회이며 기존 정규장 필터/캐시에 혼합 금지."""
     res = kiwoom_client.call_tr(token, 'ka10080', '/api/dostk/chart', {
-        'stk_cd': code,
+        'stk_cd': chart_market_code(code, market),
         'tic_scope': tic_scope,
         'upd_stkpc_tp': '1',
     })
