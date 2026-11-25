@@ -178,11 +178,14 @@
       anchor.parentNode.insertBefore(box, anchor.nextSibling);
     }
     var s = state.session || {}, q = state.quote && state.quote.code === state.code ? state.quote : {};
-    var volume = num(s.liveVolume != null ? s.liveVolume : s.volume);
+    // 왼쪽 거래량은 차트의 최근 일봉과 같은 값이다.
+    var volume = num(s.volume);
+    var date = /^\d{4}-\d{2}-\d{2}$/.test(s.date || '') ? s.date : '';
+    var volumeLabel = date ? date.slice(5).replace('-', '.') + ' 일봉 거래량' : '일봉 거래량';
     var change = num(q.change);
     box.innerHTML = '<div class="ss-session-values">'
       + '<div><span>전일 대비</span><b class="' + tone(change).trim() + '">' + (change == null ? '—' : signed(change) + '원') + '</b></div>'
-      + '<div><span>거래량</span><b>' + (volume > 0 ? fmt(volume) + '주' : '—') + '</b></div></div>'; // 0·미수신은 0으로 꾸미지 않는다
+      + '<div title="' + (date || '기준일 미확인') + ' 일봉 · 차트와 동일 기준"><span>' + volumeLabel + '</span><b>' + (volume > 0 ? fmt(volume) + '주' : '—') + '</b></div></div>'; // 0·미수신은 0으로 꾸미지 않는다
   }
 
   /* ───── 수급 탭: 기존 /foreign-flow/{code}(외국인·기관·개인 일별 순매수 수량, 서버 금액 추정 amount_estimate) ─────

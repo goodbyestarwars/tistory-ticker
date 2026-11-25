@@ -1392,12 +1392,16 @@
 
   function buildSummaryView(quote) {
     var summary = state.summary || {};
+    // 거래량과 직전 일봉 대비는 차트와 공유한 일봉 시계열만 사용한다.
+    // 시장·거래일이 다를 수 있는 REST/WS 누적량은 별도로 보존한다.
     var liveVolume = quote && Number(quote.volume) > 0
       ? Number(quote.volume)
-      : (Number(summary.liveVolume) > 0 ? Number(summary.liveVolume) : numericOrNull(summary.volume));
+      : (Number(summary.liveVolume) > 0 ? Number(summary.liveVolume) : null);
+    var dailyVolume = numericOrNull(summary.volume);
+    if (!(dailyVolume > 0)) dailyVolume = null;
     var previousVolume = numericOrNull(summary.previousVolume);
-    var volumeChangePct = previousVolume > 0 && liveVolume != null
-      ? (liveVolume - previousVolume) / previousVolume * 100
+    var volumeChangePct = previousVolume > 0 && dailyVolume != null
+      ? (dailyVolume - previousVolume) / previousVolume * 100
       : null;
     return {
       date: summary.date || null,
@@ -1406,7 +1410,8 @@
       open: numericOrNull(summary.open),
       high: numericOrNull(summary.high),
       low: numericOrNull(summary.low),
-      volume: liveVolume,
+      volume: dailyVolume,
+      liveVolume: liveVolume,
       volumeChangePct: volumeChangePct
     };
   }
@@ -1416,17 +1421,17 @@
       + summaryItemHtml('시가', summary.open, 'price')
       + summaryItemHtml('고가', summary.high, 'price', 'ob-summary-high')
       + summaryItemHtml('저가', summary.low, 'price', 'ob-summary-low')
-      + summaryItemHtml('거래량', summary.volume, 'quantity')
+      + summaryItemHtml('거래량', summary.volume, 'quantity', '', '일봉 거래량')
       + '<div class="ob-summary-item ob-summary-volume-change">'
-      + '<span>전일 거래량 대비</span>'
+      + '<span>직전 일봉 거래량 대비</span>'
       + '<b data-summary="volume-change" class="' + volumeChangeClass(summary.volumeChangePct) + '">' + formatVolumeChange(summary.volumeChangePct) + '</b>'
       + '</div>'
       + '</div>';
   }
 
-  function summaryItemHtml(label, value, type, valueClass) {
+  function summaryItemHtml(label, value, type, valueClass, displayLabel) {
     return '<div class="ob-summary-item">'
-      + '<span>' + label + '</span>'
+      + '<span>' + (displayLabel || label) + '</span>'
       + '<b data-summary="' + label + '" class="' + (valueClass || '') + '">' + (value == null ? '-' : (type === 'quantity' ? fmtQty(value) : fmtPrice(value))) + '</b>'
       + '</div>';
   }
