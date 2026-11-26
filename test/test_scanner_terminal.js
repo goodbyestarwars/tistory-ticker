@@ -65,8 +65,8 @@ assert.notStrictEqual(t.classify(row({ members: [{ key: 'shape:x' }] }), 'pullba
 // 4) 소스 계약: 로더·메뉴·접근 정책·CSS 규칙.
 const main = read('js/skin-main.js'), menu = read('js/skin-menu.js'), css = read('css/scanner-terminal.css'), js = read('js/scanner-terminal.js');
 assert.match(main, /loadScannerTerminal[\s\S]*scanner-terminal\.css[\s\S]*scanner-validation\.js[\s\S]*scanner-terminal\.js/);
-assert.match(menu, /href: '\/page\/pattern-scan', label: '일반검색기'/);
-assert.match(menu, /href: '\/page\/pattern-scan\?view=auto', label: '자동매매 검색기'/);
+assert.match(menu, /label: '검색기'/);
+assert.ok(!/label: '자동매매 검색기'/.test(menu), '메뉴는 하나');
 assert.match(menu, /view=auto/);
 assert.ok(!/!important/.test(css), '새 !important 금지');
 assert.match(css, /html\.dark #pattern-scan\.st-terminal/);
