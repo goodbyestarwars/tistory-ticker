@@ -366,6 +366,32 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
     document.body.appendChild(script);
   })();
 
+  /* 검색기 터미널(2026-11-27): /page/pattern-scan 은 기존 pattern-scan.js 위에 3열 터미널과
+     자동매매 검색기 보기를 얹는다. 페이지 본문이 pattern-scan.js 를 불러오는 구조는 그대로 두고,
+     검증 자료(data/scanner-validation.js)·CSS·터미널 JS 만 여기서 지연 로드한다. */
+  (function loadScannerTerminal() {
+    if (!/^\/(?:page|pages)\/pattern-scan\/?$/.test(location.pathname)) return;
+    if (document.querySelector('script[data-scanner-terminal]')) return;
+    var base = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
+    var v = '?v=20261127-scanner-terminal';
+    if (!document.querySelector('link[data-scanner-terminal-css]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = base + 'css/scanner-terminal.css' + v;
+      link.setAttribute('data-scanner-terminal-css', '1');
+      document.head.appendChild(link);
+    }
+    var data = document.createElement('script');
+    data.src = base + 'data/scanner-validation.js' + v;
+    data.async = false;
+    document.body.appendChild(data);
+    var script = document.createElement('script');
+    script.src = base + 'js/scanner-terminal.js' + v;
+    script.async = false;
+    script.setAttribute('data-scanner-terminal', '1');
+    document.body.appendChild(script);
+  })();
+
   /* 주요 뉴스(/pages/main-news): 한국·미국 뉴스를 한 줄기로 보여주는 전용 지면.
      티스토리 페이지 본문에 아무것도 없어도 되도록 mount까지 여기서 만든다 - 사용자는
      주소만 맞춰 빈 페이지를 하나 만들면 되고, 본문 HTML을 관리할 필요가 없다
