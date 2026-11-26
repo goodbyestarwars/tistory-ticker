@@ -3,8 +3,15 @@ name: Refresh official economic calendar
 on:
   workflow_dispatch:
   schedule:
-    # Twice daily, after the Korean morning releases and after US releases.
-    - cron: '18 4,21 * * *'
+    # KST: 06:18, 10:18, 11:18, 12:18, 13:18, 15:18, 18:18, 22:18.
+    # Poll after major Korean releases, with repeated chances for late source updates.
+    - cron: '18 1,2,3,4,6,9,13,21 * * *'
+  push:
+    branches: [master]
+    paths:
+      - 'scripts/build_official_economic_calendar.py'
+      - 'test/test_official_economic_calendar.py'
+      - '.github/workflows/official-economic-calendar.yml'
 
 permissions:
   contents: write
@@ -17,7 +24,7 @@ concurrency:
 jobs:
   calendar:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
