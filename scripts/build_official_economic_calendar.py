@@ -27,6 +27,7 @@ BOK = 'https://www.bok.or.kr'
 BOK_YEAR = BOK + '/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A&pYear={}'
 BOK_MONTH = BOK + '/portal/singl/mainEvent/listCldr.do?menuNo=200035&date={}'
 BOK_WEEK = BOK + '/portal/bbs/P0001726/view.do?menuNo=200039&nttId=11066842'
+BOK_RATE_HISTORY = BOK + '/portal/singl/baseRate/list.do?dataSecd=00001&menuNo=200643'
 BOK_STATS = BOK + '/portal/stats/statsPublictSchdul/listCldr.do?menuNo=200775&date={}-01'
 BOK_NOTICES = {2026: BOK + '/eng/bbs/E0000627/view.do?menuNo=400022&nttId=10094301',
                2027: BOK + '/eng/bbs/E0000634/view.do?menuNo=400069&nttId=11066076'}
@@ -96,6 +97,50 @@ def bok_notice_dates(url, year):
     return dates
 
 
+def bok_rate_changes(page):
+    """Only confirmed change dates; absence is never evidence of a hold."""
+    changes = {}
+    for row in page.select('tr'):
+        cells = [cell.get_text(' ', strip=True) for cell in row.find_all(['th', 'td'], recursive=False)]
+        if len(cells) != 3:
+            continue
+        year = re.fullmatch(r'\d{4}', cells[0])
+        day = re.fullmatch(r'(\d{1,2})월\s*(\d{1,2})일', cells[1])
+        rate = re.fullmatch(r'(\d{1,2}\.\d{2})\s*%?', cells[2])
+        if year and day and rate:
+            changes[date(int(year[0]), int(day[1]), int(day[2]))] = rate[1]
+    require(len(changes) >= 2, 'BOK rate history missing or layout changed')
+    return changes
+
+
+def bok_change_result(changes, day):
+    if day not in changes:
+        return None
+    earlier = [d for d in changes if d < day]
+    if not earlier:
+        return None
+    previous, current = changes[max(earlier)], changes[day]
+    delta = round(float(current) - float(previous), 2)
+    if delta == 0:
+        return None
+    direction = '인상' if delta > 0 else '인하'
+    return dict(state='ok', text=f'기준금리 {previous}% → {current}% {direction} ({delta:+.2f}%p)',
+                basis='한국은행 기준금리 추이 (변경일 확인)')
+
+
+def bok_decision_rate(body):
+    text = re.sub(r'\s+', '', body)
+    # Restrict matching to the first policy sentence; prefer the destination rate.
+    match = re.search(r'한국은행기준금리를([^。]{0,130}?)통화정책을운용', text)
+    clause = match[1] if match else text[:400]
+    target = re.search(r'(\d{1,2}\.\d{2})%\)?(?:수준)?(?:으로|로)(?:상향조정|하향조정|인상|인하|운용)', clause)
+    if not target:
+        target = re.search(r'(\d{1,2}\.\d{2})%\)?(?:수준)?에서유지', clause)
+    if target:
+        return dict(state='ok', text=f'공식 기준금리 {target[1]}%', basis='한국은행 통화정책방향 결정문')
+    return None
+
+
 def bok_annual(year, today):
     url = BOK_YEAR.format(year)
     page = html(url)
@@ -121,6 +166,12 @@ def bok_annual(year, today):
                            if '통화정책방향 회의' in entry.dt.get_text(' ', strip=True)}
             require(day.isoformat() in other_dates, f'BOK monthly calendar did not confirm {day}')
             cross[day] = evidence('한국은행 월간 행사', monthly, day)
+    changes = {}
+    if any(0 <= (today - day).days <= 7 for day in dates):
+        try:
+            changes = bok_rate_changes(html(BOK_RATE_HISTORY))
+        except (OSError, ValueError, AttributeError) as exc:
+            print(f'::warning title=BOK rate history::{exc}')
     events = []
     for day in sorted(dates):
         row = rows.get(day)
@@ -136,12 +187,16 @@ def bok_annual(year, today):
                 if (today - day).days <= 7:
                     try:
                         body = PdfReader(BytesIO(fetch(fields['resultUrl']))).pages[0].extract_text()
-                        text = re.sub(r'\s+', '', body)
-                        rate = re.search(r'한국은행기준금리를[^%]{0,60}?(\d\.\d{2})%[^.]*?(?:에서유지|수준에서유지|수준으로운용|로인상|로인하)', text)
-                        if rate:
-                            fields['result'] = dict(state='ok', text=f'공식 기준금리 {rate[1]}%', basis='한국은행 통화정책방향 결정문')
+                        result = bok_decision_rate(body)
+                        if result:
+                            fields['result'] = result
                     except (OSError, PdfReadError, ValueError, IndexError) as exc:
                         print(f'::warning title=BOK result {day}::{exc}; retaining official result link')
+        change = bok_change_result(changes, day)
+        if change:
+            fields.update(status='reported', result=change,
+                          resultUrl=fields.get('resultUrl', BOK_RATE_HISTORY))
+            links.append(evidence('한국은행 기준금리 추이', BOK_RATE_HISTORY, day))
         clock = None
         if day == date(2026, 11, 26):
             clock = '10:30'
@@ -366,7 +421,9 @@ def collect_group(previous, year, label, replace, collect, keep_before=None):
         for key, row in zip(keys, rows):
             prior = next((item for item in previous.get('events', [])
                           if (item['code'], item['localDate']) == key), {})
-            if prior.get('result') and not row.get('result'):
+            if prior.get('result') and (not row.get('result') or
+                    (row['code'] == 'BOK' and prior.get('resultUrl', '').find('/bbs/P0000559/view.do') >= 0
+                     and row.get('result', {}).get('basis') == '한국은행 기준금리 추이 (변경일 확인)')):
                 row.update(result=prior['result'], resultUrl=prior['resultUrl'], status='reported')
             merged[key] = row
         return dict(year=year, label=label, replace=replace, state='ok',
