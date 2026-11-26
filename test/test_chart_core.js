@@ -38,6 +38,68 @@ globalThis.window = globalThis;
 const Core = require('../js/chart-core.js');
 const Data = require('../js/chart-data.js');
 
+// A style change must repaint the volume bodies while keeping the actual series data.
+{
+  const time = { year: 2026, month: 11, day: 25 };
+  const chart = { timeScale: () => ({
+    getVisibleLogicalRange: () => ({ from: 0, to: 0 }),
+    logicalToCoordinate: index => 10 + index * 10
+  }) };
+  function series(options) {
+    return {
+      data: [], primitive: null, options: () => options,
+      setData(points) { this.data = points; },
+      dataByIndex(index) { return this.data[index]; },
+      priceToCoordinate: value => 70 - value,
+      applyOptions(next) { Object.assign(options, next); },
+      attachPrimitive(primitive) { this.primitive = primitive; },
+      detachPrimitive() { this.primitive = null; }
+    };
+  }
+  const candles = series({ wickUpColor: '#d24f45', wickDownColor: '#1261c4', priceLineColor: '#123456' });
+  const volume = series({});
+  const styled = Core.bindVolumeStyle(chart, volume);
+  const points = [{ time: '2026-11-25', value: 50, up: true, color: '#E88D86' }];
+  styled.setData(points);
+  const ownerDocument = { createElement() {
+    return { ownerDocument, setAttribute() {}, appendChild() {}, remove() {},
+      addEventListener(name, handler) { this[name] = handler; } };
+  }};
+  const toolbar = { ownerDocument, appendChild(select) { this.select = select; } };
+  const dispose = Core.installCandleStyle(chart, candles, toolbar);
+  const painted = { outlines: 0, hatches: 0 };
+  const context = { save() {}, restore() {}, fillRect() {}, beginPath() {}, rect() {}, clip() {},
+    moveTo() {}, lineTo() {}, strokeRect() { painted.outlines++; }, stroke() { painted.hatches++; } };
+  function change(mode) { toolbar.select.value = mode; toolbar.select.change(); }
+  function draw() {
+    volume.data[0].time = time; // LWC may supply a BusinessDay representation.
+    const target = { useMediaCoordinateSpace(render) { render({ context, mediaSize: { height: 75 } }); } };
+    volume.primitive.paneViews()[0].renderer().draw(target);
+  }
+  change('pencil');
+  assert.ok(candles.primitive);
+  assert.strictEqual(volume.data[0].value, 50);
+  draw();
+  assert.strictEqual(painted.hatches, 2);
+  change('hollow');
+  assert.strictEqual(candles.options().borderVisible, true);
+  const lateVolume = series({});
+  const lateStyle = Core.bindVolumeStyle(chart, lateVolume);
+  lateStyle.setData(points);
+  assert.ok(lateVolume.primitive, 'a volume pane created after the control inherits its current style');
+  styled.setData([{...points[0], value: 55}]);
+  draw();
+  assert.strictEqual(painted.outlines, 1);
+  assert.strictEqual(context.strokeStyle, '#d24f45');
+  assert.strictEqual(volume.data[0].value, 55);
+  change('candle');
+  assert.strictEqual(volume.primitive, null);
+  assert.strictEqual(volume.data[0].color, '#E88D86');
+  dispose();
+  styled.destroy();
+  lateStyle.destroy();
+}
+
 // ---------------------------------------------------------------- 1) 옵션 동일성
 function expectEqual(actual, expected, label) {
   assert.strictEqual(JSON.stringify(sortKeys(actual)), JSON.stringify(sortKeys(expected)), label);

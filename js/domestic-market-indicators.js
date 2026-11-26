@@ -279,7 +279,7 @@
 
   // 2026-10-16 사용자 요청: 그리기 도구를 공통 차트(js/chart-drawing.js)와 같게 - 끌어서 그리는 직선·동그라미·박스·가로선·연필.
   // 이 화면 전용 클릭-클릭 구현은 걷어 내고 공통 엔진(NineChartDrawing.attach)을 지연 로드해 붙인다. 저장 키·옛 저장값({lines, circles})은 그대로 읽는다.
-  var CHART_CORE_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/chart-core.js?v=20261122-candle-style';
+  var CHART_CORE_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/chart-core.js?v=20261126-volume-style';
 
   function loadChartDrawing() {
     var loads = global.__nineChartLoads = global.__nineChartLoads || {};
@@ -332,6 +332,11 @@
       var chartEl = chart.chartElement ? chart.chartElement() : null;
       if (chartEl && !element.contains(chartEl)) return;
       var panel = element.closest('.dmi-panel');
+      var current = chartInstances[key];
+      if (current && current.chart === chart && current.volSeries && global.NineChartCore.bindVolumeStyle) {
+        current.styledVolume = global.NineChartCore.bindVolumeStyle(chart, current.volSeries);
+        current.styledVolume.setData(volumeData(state.points));
+      }
       if (panel) state.candleStyleOff = global.NineChartCore.installCandleStyle(chart, series, panel.querySelector('.dmi-draw-buttons'));
       state.ctl = Drawing.attach({
         core: global.NineChartCore, container: element, chart: chart, series: series, bars: drawingBars(state.points),
@@ -541,7 +546,7 @@
   function volumeData(points) {
     var up = ohlcFill(true), down = ohlcFill(false);
     return points.filter(function (p) { return p.volume > 0; }).map(function (p) {
-      return { time: p.time, value: p.volume, color: p.close >= p.open ? up : down };
+      return { time: p.time, value: p.volume, color: p.close >= p.open ? up : down, up: p.close >= p.open };
     });
   }
 
@@ -583,7 +588,8 @@
         if (current.volSeries) {
           var nextVolRows = volumeData(points);
           if (nextVolRows.length) current.volSeries.applyOptions({ priceLineColor: volumeAxisColor(points) });
-          current.volSeries.setData(nextVolRows);
+          if (current.styledVolume) current.styledVolume.setData(nextVolRows);
+          else current.volSeries.setData(nextVolRows);
           current.points = points;
         }
         refreshDrawing(key, points);

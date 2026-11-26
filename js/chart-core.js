@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-11-22-candle-style';
+  var VERSION = '2026-11-26-volume-style';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -730,12 +730,14 @@
   var CANDLE_STYLES = { candle: '캔들', pencil: '색연필', hollow: '투명캔들' };
   var candleStyle = 'candle';
   var candleStyleControls = new Set();
+  var volumeStyles = new WeakMap();
+  var TRANSPARENT_BAR = 'rgba(0,0,0,0)';
   try {
     var savedCandleStyle = global.localStorage.getItem('nine-chart-candle-style');
     if (Object.keys(CANDLE_STYLES).includes(savedCandleStyle)) candleStyle = savedCandleStyle;
   } catch (e) { /* 저장소가 차단돼도 현재 페이지에서 바꿀 수 있다. */ }
 
-  function pencilCandles(chart, series, colors) {
+  function styledBodies(chart, series, mode, bodyFor) {
     var timeScale = chart.timeScale();
     var view = { renderer: function () { return { draw: draw }; } };
 
@@ -750,21 +752,31 @@
         var last = Math.ceil(visible.to);
         for (var index = first; index <= last; index++) {
           var bar = series.dataByIndex(index);
-          if (!bar || !Number.isFinite(bar.open)) continue;
+          var body = bar && bodyFor(bar);
+          if (!body) continue;
           var x = timeScale.logicalToCoordinate(index);
-          var open = series.priceToCoordinate(bar.open), close = series.priceToCoordinate(bar.close);
+          var open = series.priceToCoordinate(body.from), close = series.priceToCoordinate(body.to);
           if (x == null || open == null || close == null) continue;
           var y = Math.min(open, close);
           var height = Math.max(1, Math.abs(close - open));
           var top = Math.max(0, y), bottom = Math.min(scope.mediaSize.height, y + height);
           if (bottom <= top) continue;
           var left = x - width / 2;
-          var color = bar.close >= bar.open ? colors.up : colors.down;
+          var color = body.color;
+          var opacity = body.opacity == null ? 1 : body.opacity;
           ctx.save();
+          if (mode === 'hollow' && width >= 2 && height >= 2) {
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = opacity;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(left + 0.5, y + 0.5, width - 1, height - 1);
+            ctx.restore();
+            continue;
+          }
           ctx.fillStyle = color;
-          ctx.globalAlpha = width < 3 || height < 2 ? 0.85 : 0.24;
+          ctx.globalAlpha = opacity * (width < 3 || height < 2 ? 0.85 : 0.24);
           ctx.fillRect(left, top, width, bottom - top);
-          if (width >= 3 && height >= 2) {
+          if (mode === 'pencil' && width >= 3 && height >= 2) {
             ctx.beginPath();
             ctx.rect(left, top, width, bottom - top);
             ctx.clip();
@@ -773,7 +785,7 @@
             // 일정한 위치에서 겹쳐 칠한 두 겹의 연필선. 확대·이동 중에도 무늬가 깜빡이지 않는다.
             for (var layer = 0; layer < 2; layer++) {
               var step = layer === 0 ? 2.4 : 3.7;
-              ctx.globalAlpha = layer === 0 ? 0.85 : 0.42;
+              ctx.globalAlpha = opacity * (layer === 0 ? 0.85 : 0.42);
               ctx.lineWidth = layer === 0 ? 0.9 : 0.65;
               ctx.beginPath();
               for (var stroke = Math.floor((top - y) / step); y + stroke * step < bottom + width * 1.4; stroke++) {
@@ -793,6 +805,58 @@
     return { paneViews: function () { return [view]; } };
   }
 
+  function chartVolumeStyle(chart) {
+    if (!volumeStyles.has(chart)) volumeStyles.set(chart, { mode: 'candle', listeners: new Set() });
+    return volumeStyles.get(chart);
+  }
+
+  function bindVolumeStyle(chart, series) {
+    var style = chartVolumeStyle(chart);
+    var points = [], colors = new Map(), primitive = null, mode = 'candle';
+    var supported = typeof series.attachPrimitive === 'function';
+    function timeKey(time) {
+      return time && typeof time === 'object'
+        ? time.year + '-' + String(time.month).padStart(2, '0') + '-' + String(time.day).padStart(2, '0') : time;
+    }
+    function write() {
+      if (mode === 'candle') return series.setData(points);
+      // A transparent histogram keeps its actual values, autoscale, crosshair and markers.
+      series.setData(points.map(function (point) {
+        return { time: point.time, value: point.value, color: TRANSPARENT_BAR };
+      }));
+    }
+    function apply(next) {
+      if (!supported || next === mode) return;
+      if (primitive) { series.detachPrimitive(primitive); primitive = null; }
+      mode = next;
+      write();
+      if (mode === 'candle') return;
+      primitive = styledBodies(chart, series, mode, function (bar) {
+        var appearance = colors.get(timeKey(bar.time));
+        if (!(bar.value > 0) || !appearance) return null;
+        return { from: 0, to: bar.value, color: appearance.color, opacity: appearance.opacity };
+      });
+      series.attachPrimitive(primitive);
+    }
+    style.listeners.add(apply);
+    return {
+      setData: function (next) {
+        points = next.map(function (point) {
+          return { time: point.time, value: point.value, color: point.color };
+        });
+        colors = new Map(next.map(function (point) {
+          return [timeKey(point.time), { color: point.up ? CANDLE_UP : CANDLE_DOWN, opacity: point.opacity }];
+        }));
+        if (style.mode !== mode && supported) apply(style.mode);
+        else write();
+      },
+      destroy: function () {
+        style.listeners.delete(apply);
+        apply('candle');
+      }
+    };
+  }
+
   function installCandleStyle(chart, series, toolbar) {
     if (!toolbar || typeof series.attachPrimitive !== 'function') return function () {};
     var select = toolbar.ownerDocument.createElement('select');
@@ -808,7 +872,7 @@
     var colors = { up: original.wickUpColor, down: original.wickDownColor };
     var pencil = null;
     var applied = 'candle';
-    var hiddenFill = 'rgba(0,0,0,0)';
+    var volumeStyle = chartVolumeStyle(chart);
     function updatePriceLine() {
       if (original.priceLineColor || applied === 'candle') return;
       var last = series.dataByIndex(Number.MAX_SAFE_INTEGER, global.LightweightCharts.MismatchDirection.NearestLeft);
@@ -820,8 +884,8 @@
       if (pencil) { series.detachPrimitive(pencil); pencil = null; }
       applied = mode;
       series.applyOptions({
-        upColor: mode === 'candle' ? original.upColor : hiddenFill,
-        downColor: mode === 'candle' ? original.downColor : hiddenFill,
+        upColor: mode === 'candle' ? original.upColor : TRANSPARENT_BAR,
+        downColor: mode === 'candle' ? original.downColor : TRANSPARENT_BAR,
         borderVisible: mode === 'candle' ? original.borderVisible : mode === 'hollow',
         borderUpColor: mode === 'candle' ? original.borderUpColor : colors.up,
         borderDownColor: mode === 'candle' ? original.borderDownColor : colors.down
@@ -829,9 +893,14 @@
       if (!original.priceLineColor && mode === 'candle') series.applyOptions({ priceLineColor: original.priceLineColor });
       updatePriceLine();
       if (mode === 'pencil') {
-        pencil = pencilCandles(chart, series, colors);
+        pencil = styledBodies(chart, series, 'pencil', function (bar) {
+          return Number.isFinite(bar.open)
+            ? { from: bar.open, to: bar.close, color: bar.close >= bar.open ? colors.up : colors.down } : null;
+        });
         series.attachPrimitive(pencil);
       }
+      volumeStyle.mode = mode;
+      volumeStyle.listeners.forEach(function (apply) { apply(mode); });
     }
     select.addEventListener('change', function () {
       candleStyle = select.value;
@@ -949,6 +1018,7 @@
     var hist = { priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false };
     if (opts.scaleId) hist.priceScaleId = opts.scaleId;
     var volume = chart.addSeries(LWC.HistogramSeries, hist, pane);
+    var styledVolume = bindVolumeStyle(chart, volume);
     if (opts.scaleId && opts.scaleOptions) chart.priceScale(opts.scaleId).applyOptions(opts.scaleOptions);
     // 거래량 급증(2배/3배) 강도는 OHLC 팔레트의 불투명도로 구분한다.
     var multiples = volumeSpikeMultiples(bars);
@@ -961,10 +1031,10 @@
         var color = fill;
         if (alpha < 1) color = 'rgba(' + parseInt(fill.slice(1, 3), 16) + ',' + parseInt(fill.slice(3, 5), 16)
           + ',' + parseInt(fill.slice(5, 7), 16) + ',' + alpha + ')';
-        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: color };
+        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: color, up: d.close >= d.open, opacity: alpha };
       });
     }
-    volume.setData(volumeData());
+    styledVolume.setData(volumeData());
     var relabelFn = null;
     var refreshSpikes = null;
     var rangeSubscribed = false;
@@ -1017,14 +1087,14 @@
     // 차트를 다시 만들지 않고 체감 배수(진한 막대·라벨)만 켜고 끈다.
     function setMultiples(on) {
       multiplesOn = on === true;
-      volume.setData(volumeData());
+      styledVolume.setData(volumeData());
       if (relabelFn) relabelFn();
     }
     function updateData(nextBars) {
       var range = chart.timeScale().getVisibleLogicalRange();
       bars = nextBars;
       multiples = volumeSpikeMultiples(bars);
-      volume.setData(volumeData());
+      styledVolume.setData(volumeData());
       [ma20, ma5].forEach(function (ma, i) {
         if (!ma) return;
         ma.points = movingAveragePoints(bars, 'volume', i ? 5 : 20);
@@ -1035,6 +1105,7 @@
       if (relabelFn) relabelFn();
     }
     function destroy() {
+      styledVolume.destroy();
       if (rangeSubscribed && relabelFn) chart.timeScale().unsubscribeVisibleLogicalRangeChange(relabelFn);
       rangeSubscribed = false;
     }
@@ -1833,7 +1904,7 @@
     onThemeChange: onThemeChange, observeResize: observeResize, createScope: createScope,
     registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars, installSmoothWheelZoom: installSmoothWheelZoom,
     movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,
-    candleOptions: candleOptions, addCandles: addCandles, installCandleStyle: installCandleStyle,
+    candleOptions: candleOptions, addCandles: addCandles, installCandleStyle: installCandleStyle, bindVolumeStyle: bindVolumeStyle,
     addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,

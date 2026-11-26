@@ -21,8 +21,8 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var PATTERN_SCRIPT_URL = document.currentScript && document.currentScript.src;
-  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261122-candle-style', PATTERN_SCRIPT_URL).href
-    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261122-candle-style';
+  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261126-volume-style', PATTERN_SCRIPT_URL).href
+    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261126-volume-style';
   var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
   // 목록은 VM에서 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
