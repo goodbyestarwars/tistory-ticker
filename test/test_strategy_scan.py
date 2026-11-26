@@ -1044,6 +1044,18 @@ class DualFlowBuyTests(unittest.TestCase):
         match = self._scan()[0]['IT'][0]
         self.assertEqual(match['dualBuyStreak'], 2)  # 빈 날을 0이나 이어붙임으로 처리하지 않는다
 
+    def test_rising_flags_compare_with_previous_day(self):
+        self._insert('000001', [(-1, -1)] * 5 + [(100, 200), (300, 50)])
+        match = self._scan()[0]['IT'][0]
+        self.assertIs(match['foreignRising'], True)       # 100 -> 300
+        self.assertIs(match['institutionRising'], False)  # 200 -> 50
+
+    def test_rising_flag_unknown_when_previous_day_flow_missing(self):
+        self._insert('000001', [(100, 100)] * 3, skip_flow_dates=(self._dates()[-2],))
+        match = self._scan()[0]['IT'][0]
+        self.assertIsNone(match['foreignRising'])
+        self.assertIsNone(match['institutionRising'])
+
     def test_excludes_etf_illiquid_and_sectorless(self):
         flows = [(100, 100)] * 5
         self._insert('000001', flows)

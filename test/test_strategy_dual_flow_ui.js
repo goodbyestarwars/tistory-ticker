@@ -85,3 +85,22 @@ test('필터: 외국인·기관 연속 최소 일수와 종목명/코드 검색'
   assert.match(api.controls(3), /기관 연속/);
   assert.match(api.controls(3), /전체 3종목 중 3종목 표시/);
 });
+
+test('토스식 필터: 주가등락률 0% 이상, 외국인·기관 순매수 전일 대비 증가(값 없으면 제외)', () => {
+  api.setData({ categories: { dualFlowBuy: { sectors: { IT: { matches: [
+    item({ code: 'A', changeRate: 1, foreignRising: true, institutionRising: true }),
+    item({ code: 'B', changeRate: -1, foreignRising: true, institutionRising: true }),
+    item({ code: 'C', changeRate: 2, foreignRising: false, institutionRising: true }),
+    item({ code: 'D', changeRate: 2, foreignRising: undefined, institutionRising: undefined }),
+  ] } } } } });
+  const base = { foreign: 1, institution: 1 };
+  const codes = () => api.allMatches('dualFlowBuy').map((m) => m.code).sort().join(',');
+  api.setFilters(Object.assign({}, base, { priceUp: true }), '');
+  assert.equal(codes(), 'A,C,D');
+  api.setFilters(Object.assign({}, base, { foreignRising: true }), '');
+  assert.equal(codes(), 'A,B');
+  api.setFilters(Object.assign({}, base, { priceUp: true, foreignRising: true, institutionRising: true }), '');
+  assert.equal(codes(), 'A');
+  api.setFilters(base, '');
+  assert.match(api.controls(4), /전일보다 증가/);
+});

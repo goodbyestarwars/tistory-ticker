@@ -1548,7 +1548,16 @@ def dual_flow_signal(flow_rows, daily):
     if turnover <= 0:
         return None
     total = foreign_amount + institution_amount
+    # 전일 대비 순매수량 증가 여부(화면 필터용). 직전 거래일 수급이 없으면 None(미확인, 증가로 보지 않음).
+    rising = {'foreignRising': None, 'institutionRising': None}
+    if len(daily) >= 2:
+        today, before = by_date.get(daily[-1].get('date')), by_date.get(daily[-2].get('date'))
+        if today and before:
+            for key, field in (('foreignRising', 'foreign_net'), ('institutionRising', 'inst_net')):
+                if _finite_number(today.get(field)) and _finite_number(before.get(field)):
+                    rising[key] = today[field] > before[field]
     return {
+        **rising,
         'dualBuyStreak': len(dual_days),
         'foreignBuyStreak': len(foreign_days),
         'institutionBuyStreak': len(institution_days),
