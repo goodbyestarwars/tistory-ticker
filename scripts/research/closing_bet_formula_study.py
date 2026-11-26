@@ -79,6 +79,7 @@ def conditions(o, h, l, c, v):
     a, b, bp, cd, ne, f = nan(cond_a), nan(cond_b), nan(cond_bp), nan(cond_c | cond_d), ~nan(cond_e), nan(cond_f)
     base = gate & valid
     return {
+        'parts': {'A': a, 'B': b, 'CD': cd, 'nE': ne, 'F': f},
         'gate': base,
         'full': base & a & b & cd & ne & f,
         'dropA': base & b & cd & ne & f,
