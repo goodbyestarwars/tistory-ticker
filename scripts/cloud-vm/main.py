@@ -99,7 +99,7 @@ import alpaca_options
 import us_stocks
 import weekly_report
 import watchlist
-from google_auth import GoogleAuthError, GoogleAuthService, session_provider
+from google_auth import BrowserLoginBridge, GoogleAuthError, GoogleAuthService, session_provider
 from naver_auth import NaverAuthError, NaverAuthService
 
 import log_setup
@@ -713,6 +713,7 @@ def load_dotenv():
 load_dotenv()
 
 GOOGLE_AUTH = GoogleAuthService()
+GOOGLE_BROWSER_LOGIN = BrowserLoginBridge()
 NAVER_AUTH = NaverAuthService()
 
 
@@ -738,7 +739,7 @@ def require_api_key(x_api_key: str = Header(default=None)):
 def require_google_admin(request: Request):
     if not GOOGLE_AUTH.configured:
         raise HTTPException(status_code=503, detail='Google login is not configured on the server')
-    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    session = GOOGLE_AUTH.read_session(GOOGLE_AUTH.browser_cookie(request.cookies))
     if not GOOGLE_AUTH.is_admin(session):
         raise HTTPException(status_code=401, detail='Google admin login is required')
     return session
@@ -747,7 +748,7 @@ def require_google_admin(request: Request):
 def require_google_user(request: Request):
     if not GOOGLE_AUTH.configured:
         raise HTTPException(status_code=503, detail='Google login is not configured on the server')
-    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    session = GOOGLE_AUTH.read_session(GOOGLE_AUTH.browser_cookie(request.cookies))
     # 사이트 개인 기능은 Google 세션만 사용한다(read_session에서 구형 외부 공급자 거부).
     if not session or not session.get('sub'):
         raise HTTPException(status_code=401, detail='Google login is required')
@@ -763,15 +764,19 @@ def require_sector_cards_editor(request: Request, x_api_key: str):
     return None
 
 
-def _google_auth_error_redirect(reason):
-    separator = '&' if '?' in GOOGLE_AUTH.success_redirect else '?'
-    location = GOOGLE_AUTH.success_redirect + separator + 'google_auth_error=' + urllib.parse.quote(reason, safe='')
-    return RedirectResponse(location=location, status_code=303)
+def _google_auth_error_redirect(reason, return_to=None):
+    target = urllib.parse.urlsplit(_safe_google_return_url(return_to))
+    query = target.query + ('&' if target.query else '') + urllib.parse.urlencode({'google_auth_error': reason})
+    return RedirectResponse(target._replace(query=query).geturl(), status_code=303,
+                            headers={'Cache-Control': 'no-store'})
 
 
 def _safe_google_return_url(value):
     fallback = GOOGLE_AUTH.success_redirect
-    parsed = urllib.parse.urlparse(str(value or ''))
+    try:
+        parsed = urllib.parse.urlparse(str(value or ''))
+    except ValueError:
+        return fallback
     if parsed.scheme != 'https' or parsed.netloc != 'ghlee.tistory.com':
         return fallback
     return str(value)
@@ -895,7 +900,7 @@ def health_load(request: Request):
 
 
 @app.get('/auth/google/start')
-def google_auth_start(return_to: str = None):
+def google_auth_start(return_to: str = None, site_challenge: str = None):
     if not GOOGLE_AUTH.configured:
         raise HTTPException(status_code=503, detail='Google login is not configured on the server')
     state = secrets.token_urlsafe(32)
@@ -913,30 +918,43 @@ def google_auth_start(return_to: str = None):
         GOOGLE_AUTH.RETURN_COOKIE, _safe_google_return_url(return_to), max_age=600,
         httponly=True, secure=True, samesite='lax', path='/',
     )
+    if GOOGLE_BROWSER_LOGIN.valid_challenge(site_challenge):
+        response.set_cookie(GOOGLE_AUTH.CHALLENGE_COOKIE, site_challenge, max_age=600,
+                            httponly=True, secure=True, samesite='lax', path='/')
+    else:
+        response.delete_cookie(GOOGLE_AUTH.CHALLENGE_COOKIE, path='/')
     return response
 
 
 @app.get('/auth/google/callback')
 def google_auth_callback(request: Request, code: str = None, state: str = None, error: str = None):
+    return_to = _safe_google_return_url(request.cookies.get(GOOGLE_AUTH.RETURN_COOKIE))
     if error:
-        return _google_auth_error_redirect('google_' + error)
+        return _google_auth_error_redirect('google_error', return_to)
     saved_state = request.cookies.get(GOOGLE_AUTH.STATE_COOKIE)
     saved_nonce = request.cookies.get(GOOGLE_AUTH.NONCE_COOKIE)
     if not state or not saved_state or not hmac.compare_digest(state, saved_state):
-        return _google_auth_error_redirect('invalid_state')
+        return _google_auth_error_redirect('invalid_state', return_to)
     if not code or not saved_nonce:
-        return _google_auth_error_redirect('missing_code')
+        return _google_auth_error_redirect('missing_code', return_to)
     try:
         user = GOOGLE_AUTH.authenticate_code(code, saved_nonce)
     except GoogleAuthError:
         logging.getLogger('main').warning('Google OAuth callback verification failed')
         log_setup.event('login_fail', '-', p='google')
-        return _google_auth_error_redirect('login_failed')
+        return _google_auth_error_redirect('login_failed', return_to)
     log_setup.event('login', log_setup.user_ref(user.get('sub'), GOOGLE_AUTH.session_secret), p='google')
-    return_to = _safe_google_return_url(request.cookies.get(GOOGLE_AUTH.RETURN_COOKIE))
-    response = RedirectResponse(return_to, status_code=303)
+    session_cookie = GOOGLE_AUTH.make_session(user)
+    ticket = GOOGLE_BROWSER_LOGIN.issue(request.cookies.get(GOOGLE_AUTH.CHALLENGE_COOKIE), session_cookie)
+    if ticket:
+        target = urllib.parse.urlsplit(return_to)
+        fragment = target.fragment + ('&' if target.fragment else '') + '__nine_login=' + ticket
+        return_to = target._replace(fragment=fragment).geturl()
+    response = RedirectResponse(return_to, status_code=303, headers={
+        'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
+    })
     response.set_cookie(
-        GOOGLE_AUTH.SESSION_COOKIE, GOOGLE_AUTH.make_session(user),
+        GOOGLE_AUTH.SESSION_COOKIE, session_cookie,
         max_age=7 * 24 * 60 * 60, httponly=True, secure=True,
         # The Tistory page and goodbyestar.cloud are different sites, so the
         # authenticated fetch from the editor requires SameSite=None+Secure.
@@ -945,6 +963,47 @@ def google_auth_callback(request: Request, code: str = None, state: str = None, 
     response.delete_cookie(GOOGLE_AUTH.STATE_COOKIE, path='/')
     response.delete_cookie(GOOGLE_AUTH.NONCE_COOKIE, path='/')
     response.delete_cookie(GOOGLE_AUTH.RETURN_COOKIE, path='/')
+    response.delete_cookie(GOOGLE_AUTH.CHALLENGE_COOKIE, path='/')
+    return response
+
+
+def _google_site_cookie(response, value, max_age):
+    response.set_cookie(GOOGLE_AUTH.SITE_SESSION_COOKIE, value, max_age=max_age,
+                        httponly=True, secure=True, samesite='none', path='/')
+    # Oracle's Python version does not expose the Partitioned Set-Cookie attribute.
+    name, content = response.raw_headers[-1]
+    response.raw_headers[-1] = (name, content + b'; Partitioned')
+
+
+@app.post('/auth/google/site-session')
+async def google_site_session(request: Request):
+    from fastapi.responses import Response
+    if request.headers.get('origin') != 'https://ghlee.tistory.com':
+        raise HTTPException(status_code=403, detail='site origin required')
+    try:
+        raw = bytearray()
+        async for chunk in request.stream():
+            if len(raw) + len(chunk) > 1024:
+                raise ValueError()
+            raw.extend(chunk)
+        body = json.loads(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail='invalid login handoff') from None
+    session = GOOGLE_BROWSER_LOGIN.redeem(body.get('ticket'), body.get('verifier')) if isinstance(body, dict) else None
+    if not session:
+        raise HTTPException(status_code=401, detail='login handoff expired')
+    response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
+    _google_site_cookie(response, session, 7 * 24 * 60 * 60)
+    return response
+
+
+@app.post('/auth/google/site-logout')
+def google_site_logout(request: Request):
+    from fastapi.responses import Response
+    if request.headers.get('origin') != 'https://ghlee.tistory.com':
+        raise HTTPException(status_code=403, detail='site origin required')
+    response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
+    _google_site_cookie(response, '', 0)
     return response
 
 
@@ -965,7 +1024,7 @@ def naver_auth_callback(request: Request, code: str = None, state: str = None, e
 
 @app.get('/auth/google/me')
 def google_auth_me(request: Request):
-    data = GOOGLE_AUTH.status(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    data = GOOGLE_AUTH.status(GOOGLE_AUTH.browser_cookie(request.cookies))
     # 로그인 선택창이 네이버 버튼을 보일지 정한다(키 미설정이면 숨김).
     data['naverConfigured'] = False
     return envelope(data)
@@ -973,7 +1032,7 @@ def google_auth_me(request: Request):
 
 def _autotrader_admin(request: Request, write=False):
     """운영센터 제어는 서버가 확인한 Google 관리자 세션만 허용한다. 익명·비관리자·네이버 세션은 403."""
-    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
+    session = GOOGLE_AUTH.read_session(GOOGLE_AUTH.browser_cookie(request.cookies)) if GOOGLE_AUTH.configured else None
     if not (session and GOOGLE_AUTH.is_admin(session)):
         raise HTTPException(status_code=403, detail='관리자 Google 로그인이 필요합니다.')
     if write and request.headers.get('origin') not in ALLOWED_BROWSER_ORIGINS:
@@ -1068,7 +1127,7 @@ def _access_denied(request_like):
     from fastapi.responses import JSONResponse
     if not GOOGLE_AUTH.configured:
         return JSONResponse({'detail': 'login unavailable'}, status_code=503)
-    session = GOOGLE_AUTH.read_session(request_like.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    session = GOOGLE_AUTH.read_session(GOOGLE_AUTH.browser_cookie(request_like.cookies))
     if not session:
         return JSONResponse({'detail': 'login required'}, status_code=401)
     if not _site_admin(session):
@@ -1140,7 +1199,7 @@ def guestbook_backup_run(request: Request):
 @app.get('/access-policy')
 def access_policy_get(request: Request):
     from fastapi.responses import JSONResponse
-    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)) if GOOGLE_AUTH.configured else None
+    session = GOOGLE_AUTH.read_session(GOOGLE_AUTH.browser_cookie(request.cookies)) if GOOGLE_AUTH.configured else None
     data = access_policy.view(bool(session), _site_admin(session), access_policy.is_member(session))
     data['naverConfigured'] = False  # 로그인 랜딩의 네이버 버튼 표시용
     return JSONResponse(envelope(data), headers={'Cache-Control': 'no-store', 'Vary': 'Cookie'})

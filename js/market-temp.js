@@ -4904,8 +4904,11 @@
       var action = actionEl.getAttribute('data-editor-action');
       try {
         if (action === 'google-login') {
-          window.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + encodeURIComponent(window.location.href);
+          if (global.NineAccess && global.NineAccess.prepareGoogleLogin) {
+            global.NineAccess.prepareGoogleLogin().then(function (url) { window.location.href = url; });
+          } else window.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + encodeURIComponent(window.location.href);
         } else if (action === 'google-logout') {
+          if (global.NineAccess && global.NineAccess.googleLogout) return global.NineAccess.googleLogout(window.location.href);
           window.location.href = GOOGLE_AUTH_LOGOUT_URL + '?return_to=' + encodeURIComponent(window.location.href);
         } else if (action === 'toggle-category') {
           var categoryEl = actionEl.closest('.mt-sector-editor-category');

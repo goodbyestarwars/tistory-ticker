@@ -379,6 +379,7 @@
       : '<span>로그인 필요</span>';
     var logout = status.querySelector('.wl-logout-btn');
     if (logout) logout.addEventListener('click', function () {
+      if (global.NineAccess && global.NineAccess.googleLogout) return global.NineAccess.googleLogout(global.location.href);
       global.location.href = GOOGLE_AUTH_LOGOUT_URL + '?return_to=' + encodeURIComponent(global.location.href);
     });
   }

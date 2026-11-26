@@ -9,7 +9,9 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -18,6 +20,50 @@ import urllib.request
 
 class GoogleAuthError(RuntimeError):
     """Raised when the Google OAuth/OIDC response cannot be trusted."""
+
+
+class BrowserLoginBridge:
+    """Single-use handoffs bound to the tab that started an OAuth transaction."""
+
+    TTL = 120
+    LIMIT = 256
+
+    def __init__(self):
+        self._pending = {}
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def valid_challenge(value):
+        return isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value) is not None
+
+    def issue(self, challenge, session_cookie):
+        if not self.valid_challenge(challenge):
+            return None
+        with self._lock:
+            now = time.monotonic()
+            self._pending = {k: v for k, v in self._pending.items() if v[0] > now}
+            while len(self._pending) >= self.LIMIT:
+                del self._pending[next(iter(self._pending))]
+            ticket = secrets.token_urlsafe(32)
+            self._pending[ticket] = (now + self.TTL, challenge, session_cookie)
+            return ticket
+
+    def redeem(self, ticket, verifier):
+        if not all(isinstance(v, str) and re.fullmatch(r'[A-Za-z0-9_-]{43}', v) for v in (ticket, verifier)):
+            return None
+        challenge = hashlib.sha256(verifier.encode('ascii')).hexdigest()
+        with self._lock:
+            pending = self._pending.get(ticket)
+            if not pending:
+                return None
+            expires, expected, session = pending
+            if expires <= time.monotonic():
+                del self._pending[ticket]
+                return None
+            if not hmac.compare_digest(challenge, expected):
+                return None
+            del self._pending[ticket]
+            return session
 
 
 def _b64url_decode(value):
@@ -43,9 +89,14 @@ class GoogleAuthService:
     TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
     DISCOVERY_ENDPOINT = 'https://accounts.google.com/.well-known/openid-configuration'
     SESSION_COOKIE = 'google_admin_session'
+    SITE_SESSION_COOKIE = '__Host-ninepay_site_session'
     STATE_COOKIE = 'google_oauth_state'
     NONCE_COOKIE = 'google_oauth_nonce'
     RETURN_COOKIE = 'google_oauth_return'
+    CHALLENGE_COOKIE = 'google_oauth_site_challenge'
+
+    def browser_cookie(self, cookies):
+        return cookies.get(self.SITE_SESSION_COOKIE) or cookies.get(self.SESSION_COOKIE)
 
     def __init__(self):
         self._jwks = None

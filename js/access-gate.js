@@ -17,6 +17,8 @@
   var POLICY_URL = API + '/access-policy';
   var FALLBACK = '/guestbook';
   var FROM_KEY = 'nine_access_from';
+  var LOGIN_PROOF_KEY = 'nine_google_proof';
+  var LOGIN_ERROR_KEY = 'nine_google_error';
   var doc = global.document;
   var PUBLIC = ['guestbook', 'calendar', 'briefing', 'news', 'stories', 'indicators-crypto'];
   var GUEST_KEY = 'nine_guest'; // 비회원 입장 표시(탭 단위 sessionStorage). 인증 상태가 아니다.
@@ -164,12 +166,74 @@
       || new URL(global.location.pathname + global.location.search + (global.location.hash || ''), global.location.origin);
     return API + '/auth/google/start?return_to=' + encodeURIComponent(returnTo.href);
   }
+  function prepareGoogleLogin() {
+    var url = googleLoginUrl();
+    return Promise.resolve().then(function () {
+      var bytes = global.crypto.getRandomValues(new Uint8Array(32));
+      var verifier = global.btoa(String.fromCharCode.apply(null, bytes))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      global.sessionStorage.setItem(LOGIN_PROOF_KEY, verifier);
+      return global.crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    }).then(function (digest) {
+      var challenge = Array.from(new Uint8Array(digest), function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      return url + '&site_challenge=' + challenge;
+    }).catch(function () { return url; });
+  }
+
+  var loginError = '';
+  function restoreLoginSession() {
+    if (startScreen === 'guestbook') {
+      try {
+        loginError = global.sessionStorage.getItem(LOGIN_ERROR_KEY) || '';
+        global.sessionStorage.removeItem(LOGIN_ERROR_KEY);
+      } catch (e) { /* 저장소 차단 */ }
+    }
+    var url = new URL(global.location.pathname + global.location.search + (global.location.hash || ''), global.location.origin);
+    var fragment = url.hash.slice(1);
+    var match = /(?:^|&)__nine_login=([A-Za-z0-9_-]{43})$/.exec(fragment);
+    if (url.searchParams.has('google_auth_error')) {
+      loginError = 'Google 로그인 세션을 확인하지 못했습니다. 같은 Safari 탭에서 다시 로그인해 주세요.';
+      url.searchParams.delete('google_auth_error');
+    } else if (!match) return Promise.resolve(false);
+    if (match) url.hash = fragment.slice(0, match.index);
+    try { global.history.replaceState(global.history.state, '', url.pathname + url.search + url.hash); } catch (e) { /* 로그인 확인은 계속 */ }
+    var verifier;
+    try {
+      verifier = global.sessionStorage.getItem(LOGIN_PROOF_KEY);
+      global.sessionStorage.removeItem(LOGIN_PROOF_KEY);
+    } catch (e) { /* 원래 세션으로 로그인 확인 가능 */ }
+    if (!match) return Promise.resolve(false);
+    if (!verifier) return Promise.resolve(true);
+    var controller = typeof global.AbortController === 'function' ? new global.AbortController() : null;
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 6000);
+    return global.fetch(API + '/auth/google/site-session', {
+      method: 'POST', credentials: 'include', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller ? controller.signal : undefined,
+      body: JSON.stringify({ ticket: match[1], verifier: verifier })
+    }).catch(function () { /* 기존 쿠키·권한 판정은 아래에서 독립적으로 검사한다. */ })
+      .then(function () { clearTimeout(timer); return true; });
+  }
+
+  function googleLogout(returnTo) {
+    function finish() {
+      global.location.href = API + '/auth/google/logout?return_to=' + encodeURIComponent(returnTo);
+    }
+    // Logout must also clear the cookie partition belonging to the Tistory page.
+    return global.fetch(API + '/auth/google/site-logout', { method: 'POST', credentials: 'include', cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok && response.status !== 404 && response.status !== 405) throw new Error('site logout failed');
+      }).then(finish);
+  }
 
   function redirectFallback() {
     var here = norm(global.location.pathname);
     if (/^\/guestbook(?:\/|$)/.test(here)) { global.location.replace('/'); return; } // 반복 이동 방지
     if (!current || !current.authenticated) {
       remember(global.location.pathname + global.location.search + (global.location.hash || ''));
+      if (loginError) {
+        try { global.sessionStorage.setItem(LOGIN_ERROR_KEY, loginError); } catch (e) { /* 저장소 차단 */ }
+      }
     }
     global.location.replace(FALLBACK);
   }
@@ -238,7 +302,7 @@
     if (global.NineLanding) { fn(global.NineLanding); return; }
     if (!landingTag) {
       landingTag = doc.createElement('script');
-      landingTag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-landing.js?v=20261126-login-return';
+      landingTag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-landing.js?v=20261126-safari-session';
       (doc.head || doc.documentElement).appendChild(landingTag);
     }
     landingTag.addEventListener('load', function () { if (global.NineLanding) fn(global.NineLanding); });
@@ -289,7 +353,7 @@
     clearRemembered();
     setGuest(false);
     setHint(false);
-    try { global.sessionStorage.removeItem('nine_landing_seen'); global.sessionStorage.removeItem('wl_preview_v1'); global.localStorage.removeItem(CACHE_KEY); } catch (err) { /* 차단 */ }
+    try { global.sessionStorage.removeItem(LOGIN_PROOF_KEY); global.sessionStorage.removeItem(LOGIN_ERROR_KEY); global.sessionStorage.removeItem('nine_landing_seen'); global.sessionStorage.removeItem('wl_preview_v1'); global.localStorage.removeItem(CACHE_KEY); } catch (err) { /* 차단 */ }
   }
   if (global.self === global.top) {
     doc.addEventListener('click', function (e) {
@@ -299,11 +363,22 @@
       e.stopImmediatePropagation();
       clearEntry();
       try { global.sessionStorage.setItem(LOGOUT_KEY, 'site'); } catch (err) { /* 서버 로그아웃은 저장소 없이도 실행 */ }
-      global.location.href = API + '/auth/google/logout?return_to=' + encodeURIComponent(global.location.origin + '/');
+      googleLogout(global.location.origin + '/').catch(reportLogoutError);
     }, true);
   }
 
-  fetchPolicy().then(function (data) { current = data; failed = false; }, function () { current = null; failed = true; })
+  function reportLogoutError() { global.alert('로그아웃을 완료하지 못했습니다. 다시 시도해 주세요.'); }
+
+  restoreLoginSession().then(function (returnedFromLogin) {
+    return fetchPolicy().then(function (data) {
+      current = data; failed = false;
+      if (data.authenticated) loginError = '';
+      else if (returnedFromLogin) loginError = '이 Safari 탭에서 로그인 쿠키를 확인하지 못했습니다. Safari 26.2 이상에서 다시 로그인해 주세요.';
+    }, function () {
+      current = null; failed = true;
+      if (returnedFromLogin) loginError = '로그인 상태를 확인하는 서버에 연결하지 못했습니다. 다시 로그인해 주세요.';
+    });
+  })
     .then(function () {
       applyClasses();
       if (current) cacheWrite(current); else { try { global.localStorage.removeItem(CACHE_KEY); } catch (e) { /* 차단 */ } }
@@ -324,7 +399,11 @@
       }
       if (landingApplies) {
         if ((current && current.authenticated) || isGuest()) { if (global.NineLanding) global.NineLanding.close(); }
-        else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured));  });
+        else withLanding(function (L) {
+          if (L.seen() && !loginError) return;
+          if (L.isOpen()) L.settle(current || {});
+          else L.show(!!(current && current.naverConfigured));
+        });
       }
       if (startScreen === 'home' && !allowsScreen('home')) {
         // 관리자가 아니면 홈은 항상 비회원 전용 홈(공개 콘텐츠)이다. 입장 전 비로그인은 그 위에 로그인 창(랜딩)이 덮이고,
@@ -343,6 +422,9 @@
     allowsHref: function (href) { return allowsScreen(screenOfHref(href)); },
     menuAllowsHref: function (href) { return menuAllowsScreen(screenOfHref(href)); },
     googleLoginUrl: googleLoginUrl,
+    prepareGoogleLogin: prepareGoogleLogin,
+    googleLogout: function (returnTo) { return googleLogout(returnTo).catch(reportLogoutError); },
+    loginError: function () { return loginError; },
     isAdmin: isAdmin,
     isGuest: isGuest,
     /* 비회원 입장: 인증 없이 공개 화면만. 인증된 사용자로 취급하지 않는다. */

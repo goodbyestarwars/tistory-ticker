@@ -122,6 +122,7 @@
   function build(naverConfigured) {
     root.innerHTML = '<div class="nl-layout"><div class="nl-login-panel">' +
       '<p class="nl-sub">오늘의 시장 흐름을 차분히 읽고, 다양한 시선 속에서 나만의 투자 판단을 쌓아보세요.</p>' +
+      '<p class="nl-note" data-nl-error role="status" hidden></p>' +
       '<div class="nl-actions"><button type="button" class="nl-btn primary" data-nl-login="1">로그인</button>' +
       '<button type="button" class="nl-btn ghost" data-nl-guest="1">비회원으로 둘러보기</button></div></div>' +
       '<figure class="nl-visual" aria-hidden="true"><img class="nl-sketch" src="' + PHOTO + '" srcset="' + PHOTO_SM + ' 960w, ' + PHOTO + ' 1920w" sizes="(max-width:720px) 92vw, 760px" alt="" decoding="async" fetchpriority="high"></figure></div>' +
@@ -150,6 +151,11 @@
     root.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null;
       if (!t) return;
+      if (t.closest('.nl-google') && global.NineAccess && global.NineAccess.prepareGoogleLogin) {
+        e.preventDefault();
+        global.NineAccess.prepareGoogleLogin().then(function (url) { global.location.assign(url); });
+        return;
+      }
       if (t.closest('[data-nl-guestgo]')) { closeModal(); enterGuest(); return; }
       if (t.closest('[data-nl-guest]')) { openModal('guest'); return; }
       if (t.closest('[data-nl-login]')) {
@@ -160,6 +166,14 @@
       if (t.closest('[data-nl-back]') || t.classList.contains('nl-modal')) closeModal();
     });
     doc.addEventListener('keydown', onKey);
+    showLoginError();
+  }
+  function showLoginError() {
+    var note = root && root.querySelector('[data-nl-error]');
+    if (note) {
+      note.textContent = global.NineAccess && global.NineAccess.loginError ? global.NineAccess.loginError() : '';
+      note.hidden = !note.textContent;
+    }
   }
 
   function show(naverConfigured) {
@@ -190,6 +204,7 @@
     settle: function (data) {
       if (data && data.authenticated) { close(); return; }
       if (!root) return;
+      showLoginError();
 
     }
   };
