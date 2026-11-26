@@ -30,6 +30,7 @@
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   // 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 500 + 미국 경제지표 발표일정"): 발표일은 정적 데이터 파일이다.
   var ECON_DATA_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/us-econ-calendar.js?v=20261109-econ-v2';
+  var OFFICIAL_ECON_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'data/official-economic-calendar.js';
   var ECON_LINKS = { FOMC: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm' };
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'img/stock-icons/';
@@ -181,6 +182,19 @@
   }
 
   var econLoad = null;
+  var officialEconLoad = null;
+  function loadOfficialEconCalendar() {
+    if (!officialEconLoad) officialEconLoad = new Promise(function (resolve) {
+      if (global.OFFICIAL_ECON_CALENDAR) return resolve(global.OFFICIAL_ECON_CALENDAR);
+      var script = document.createElement('script');
+      script.src = OFFICIAL_ECON_URL;
+      script.async = true;
+      script.onload = function () { resolve(global.OFFICIAL_ECON_CALENDAR || null); };
+      script.onerror = function () { officialEconLoad = null; resolve(null); };
+      document.head.appendChild(script);
+    });
+    return officialEconLoad;
+  }
   function loadEconCalendar() {
     if (global.US_ECON_CALENDAR) return Promise.resolve(global.US_ECON_CALENDAR);
     if (econLoad) return econLoad;
@@ -216,11 +230,13 @@
   }
 
   function attachEconResults(events) {
-    if (!events.some(function (event) { return event.status === 'reported'; })) return Promise.resolve(events);
+    if (!events.some(function (event) { return event.usDate && event.status !== 'scheduled' && !event.result; })) return Promise.resolve(events);
     return loadMacroResults().then(function (macro) {
       if (!macro) return events;
       events.forEach(function (event) {
-        if (event.status === 'reported') event.result = macro.api.releaseResult(event.code, event.usDate, macro.items);
+        if (!event.usDate || event.status === 'scheduled' || event.result) return;
+        event.result = macro.api.releaseResult(event.code, event.usDate, macro.items);
+        if (event.result && event.result.state === 'ok') event.status = 'reported';
       });
       return events;
     });
@@ -228,23 +244,51 @@
 
   function fetchEconEvents(year, month) {
     var prefix = month == null ? String(year) : String(year) + '-' + String(month + 1).padStart(2, '0');
-    return loadEconCalendar().then(function (data) {
-      return ((data && data.events) || []).filter(function (item) {
-        return String(item.start || '').slice(0, prefix.length) === prefix;
+    return Promise.all([loadEconCalendar(), loadOfficialEconCalendar()]).then(function (feeds) {
+      var legacy = feeds[0], official = feeds[1];
+      var groups = official && official.groups || {};
+      sourceHealth.officialEconomy = official ? groups : null;
+      var replaced = {};
+      var items = [];
+      Object.keys(groups).forEach(function (key) {
+        var group = groups[key];
+        (group.replace || []).forEach(function (code) {
+          replaced[code + ':' + group.year] = true;
+        });
+        items = items.concat(group.events || []);
+      });
+      items = items.concat(((legacy && legacy.events) || []).filter(function (item) {
+        return !replaced[item.code + ':' + item.us_date.slice(0, 4)];
+      }));
+      return items.filter(function (item) {
+        return String(item.start || '').startsWith(prefix);
       }).map(function (item) {
-        // 국기로 시작하는 제목은 parseEvent()가 해외 지표로 읽는다. 시각은 KST(start)로 보여주려고 us_date는 넣지 않는다.
+        var localDate = item.localDate || item.us_date;
+        var region = item.region || 'US';
+        var flag = {US:'🇺🇸', KR:'🇰🇷', EU:'🇪🇺', JP:'🇯🇵'}[region] || '';
+        var status = item.status || 'scheduled';
+        var localDayEnded = kstDateKey(new Date()) > item.start.slice(0, 10);
+        if (status === 'scheduled' && (item.start.includes('T') ? Date.parse(item.start) <= Date.now() : localDayEnded)) {
+          status = item.eventType === 'market' ? 'elapsed' : 'pendingResult';
+        }
         return {
-          id: 'econ-' + item.code + '-' + item.us_date,
-          title: '🇺🇸 ' + item.title + (item.importance >= 3 ? ' | 주요' : ''),
+          id: 'econ-' + item.code + '-' + localDate,
+          title: flag + ' ' + item.title + (item.importance >= 3 ? ' | 주요' : ''),
           start: item.start,
-          link: ECON_LINKS[item.code] || 'https://fred.stlouisfed.org/releases/calendar',
+          link: item.sourceUrl || ECON_LINKS[item.code] || 'https://fred.stlouisfed.org/releases/calendar',
+          sourceUrl: item.sourceUrl,
+          sources: item.sources,
           source: 'econ',
-          market: 'us',
+          market: region === 'KR' ? 'domestic' : region === 'US' ? 'us' : region.toLowerCase(),
           code: item.code,
+          eventType: item.eventType,
+          releaseTimeNote: item.releaseTimeNote,
           importance: item.importance,
-          // 공식 발표 예정 시각이 지난 지표는 발표 완료 이력에도 보인다(수치는 경제지표 탭 소유).
-          status: Date.parse(item.start) <= Date.now() ? 'reported' : 'scheduled',
-          usDate: item.us_date
+          status: status,
+          verification: item.verification,
+          result: item.result,
+          resultUrl: item.resultUrl,
+          usDate: region === 'US' && item.eventType !== 'market' ? localDate : null
         };
       });
     }).then(attachEconResults).catch(function () { return []; });
@@ -334,9 +378,9 @@
   }
 
   function storedMonthEvents(year, month) {
-    var prefix = String(year) + '-' + String(month + 1).padStart(2, '0');
+    var prefix = month == null ? String(year) : String(year) + '-' + String(month + 1).padStart(2, '0');
     return loadStoredCalendarEvents().filter(function (event) {
-      return String(event.start || '').slice(0, 7) === prefix && isCalendarEvent(event);
+      return String(event.start || '').startsWith(prefix) && isCalendarEvent(event);
     });
   }
 
@@ -387,18 +431,30 @@
     if (hit && Date.now() - hit.at < 60000) return Promise.resolve(hit.events);
     if (monthFetchInflight[key]) return monthFetchInflight[key];
     var sources = [fetchGoogleEvents(year, month), fetchEarnings(year, month), fetchEconEvents(year, month)];
+    var economic = null;
+    function combineMonth() {
+      return mergeEvents(storedMonthEvents(year, month).filter(function (event) {
+        return economic === null || event.source !== 'econ';
+      }), economic || []);
+    }
     if (typeof onProgress === 'function' && month != null) {
-      sources.forEach(function (source) {
+      sources.forEach(function (source, index) {
         source.then(function (events) {
-          upsertStoredCalendarEvents(events || []);
-          onProgress(mergeEvents(storedMonthEvents(year, month), []));
+          if (index === 2) economic = events;
+          else upsertStoredCalendarEvents(events || []);
+          onProgress(combineMonth());
         }, function () { /* 각 공급자는 이미 빈 배열로 실패를 흡수한다 */ });
       });
     }
     var request = Promise.all(sources)
       .then(function (results) {
-        upsertStoredCalendarEvents((results[0] || []).concat(results[1] || [], results[2] || []));
-        var events = mergeEvents(storedMonthEvents(year, month), []);
+        var saved = upsertStoredCalendarEvents((results[0] || []).concat(results[1] || []));
+        economic = results[2];
+        var events = mergeEvents(combineMonth(), saved.filter(function (event) {
+          var date = String(event.start || '').slice(0, 7);
+          return event.source !== 'econ' && date.slice(0, 4) === String(year)
+            && (month == null || Number(date.slice(5)) === month + 1);
+        }));
         monthCache[key] = {at:Date.now(), events:events};
         return events;
       });
@@ -472,7 +528,7 @@
     var usLabel = usDateLabel(ev);
     if (usLabel) return usLabel;
     if (ev.conferenceCallAt) { var call = kstParts(ev.conferenceCallAt); return '콜 ' + call.hour + ':' + call.minute + ' KST'; }
-    if (ev.start.indexOf('T') === -1) return ev.eventType === 'earnings' ? '시각 미확인' : '종일';
+    if (ev.start.indexOf('T') === -1) return ev.eventType === 'earnings' || ev.eventType === 'decision' ? '시각 미확인' : '종일';
     var parts = kstParts(ev.start);
     return parts.hour + ':' + parts.minute;
   }
@@ -554,7 +610,7 @@
     var blockedExternalLink = isFinnhubLink(ev.link);
     var rowStart = '<div class="sc-ev-item" data-event-id="' + escapeHtml(calendarEventKey(ev)) + '" tabindex="-1">';
     var rowEnd = '</div>';
-    var status = {scheduled:'예정',reported:'발표 완료',changed:'변경',cancelled:'취소',announced:'공지 접수'}[ev.status] || '';
+    var status = {scheduled:'예정',reported:'발표 완료',pendingResult:'공식 결과 확인 대기',elapsed:'일정 경과',changed:'변경',cancelled:'취소',announced:'공지 접수'}[ev.status] || '';
     var proof = renderProvenance(ev, blockedExternalLink);
     return rowStart
       + '<span class="sc-ev-date">' + dateLabelOf(ev) + '</span>'
@@ -634,6 +690,13 @@
     var sourceNames = {dart:'DART 실적 공시', finnhub:'미국 실적', 'corporate-ir':'국내 공식 IR', 'corporate-hynix':'SK하이닉스 공식 IR', 'corporate-samsung':'삼성전자 공식 IR', 'dart-ir':'국내 IR 공시', 'official-STX':'시게이트 공식 IR', 'official-HOOD':'로빈후드 공식 IR'};
     var parts = Object.keys(sources).map(function (key) { return escapeHtml(sourceNames[key] || key) + ': ' + escapeHtml(labels[sources[key].state] || sources[key].state); });
     ['google','econ'].forEach(function (key) { if (sourceHealth[key]) parts.push(key + ': ' + (labels[sourceHealth[key].state] || '확인 필요')); });
+    if (sourceHealth.officialEconomy === null) parts.push('공식 경제 일정 파일 확인 필요');
+    Object.keys(sourceHealth.officialEconomy || {}).forEach(function (key) {
+      var group = sourceHealth.officialEconomy[key];
+      if (group.year === state.viewYear && group.state !== 'ok') {
+        parts.push(escapeHtml(group.label + ' · ' + (group.events.length ? '마지막 확인 일정 유지' : '공식 일정 미확인')));
+      }
+    });
     if (e.state === 'error') parts.unshift('실적 API 조회 실패 · 저장된 일정 유지');
     if (h.pending) parts.unshift('서버 일정 갱신 대기');
     if (!parts.length) parts.push('공급원 확인 대기 · 일정 0건은 전체 기업의 발표 없음과 다릅니다.');

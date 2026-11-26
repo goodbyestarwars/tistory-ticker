@@ -32,9 +32,19 @@ test('Central-time FRED releases convert across the 2026-11-01 DST change', () =
   assert.equal(find('ISM_MFG', '2026-11-02'), '2026-11-03T00:00:00+09:00');
 });
 
-test('calendar marks econ releases past their official time as reported', () => {
-  const src = fs.readFileSync('js/stock-calendar.js', 'utf8');
-  assert.match(src, /status: Date\.parse\(item\.start\) <= Date\.now\(\) \? 'reported' : 'scheduled'/);
+test('official Korean decision is unique and only marks a sourced result as reported', async () => {
+  const global = {US_ECON_CALENDAR: {events: []}, NineHttp: {json: async () => ({items: [], data: []})}};
+  const stores = new Map();
+  global.localStorage = {getItem: key => stores.get(key), setItem: (key, value) => stores.set(key, value)};
+  const context = {window: global, document: {addEventListener() {}}, Date, Promise, setTimeout, clearTimeout};
+  vm.runInNewContext(fs.readFileSync('data/official-economic-calendar.js', 'utf8'), context);
+  vm.runInNewContext(fs.readFileSync('js/stock-calendar.js', 'utf8'), context);
+  const events = (await global.StockCalendar.fetchEvents(2026, 10)).filter(row => row.code === 'BOK');
+  assert.equal(events.length, 1);
+  assert.equal(events[0].start, '2026-11-26T10:30:00+09:00');
+  assert.equal(events[0].market, 'domestic');
+  assert.ok(events[0].sources.length >= 2);
+  assert.equal(events[0].status === 'reported', !!events[0].resultUrl);
 });
 
 test('release results read the period each release covers, never a newer or older value', () => {

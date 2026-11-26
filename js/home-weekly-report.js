@@ -860,7 +860,7 @@
   // 2026-10-04 요청: "다음 주 핵심 스케줄은 캘린더랑 연동돼서 다 볼 수 있게". 서버 schedule(주요 일정 일부)만 쓰지 않고
   // /page/stock-calendar가 쓰는 같은 모듈(StockCalendar.fetchEvents: 구글 캘린더+DART+미국 실적)에서 다음 주 월~일 일정을 모두 가져와 보여준다.
   // 모듈이 없거나 일정이 하나도 없으면 서버 일정 목록을 그대로 둔다.
-  var CALENDAR_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/stock-calendar.js?v=20261004-econ-sp100-v1';
+  var CALENDAR_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/stock-calendar.js?v=20261126-official';
   var WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
   function loadCalendarModule() {
     if (window.StockCalendar && window.StockCalendar.fetchEvents) return Promise.resolve(window.StockCalendar);
