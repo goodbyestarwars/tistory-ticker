@@ -3803,7 +3803,11 @@ html.dark #market-temp .heatmap-tile.is-flat {
   justify-content: flex-end;
 }
 #market-temp .mt-close-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: min(900px, calc(100% - 24px));
+  height: fit-content;
   max-height: calc(100dvh - 24px);
   padding: var(--ui-card-padding, 14px);
   overflow: auto;

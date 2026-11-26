@@ -463,7 +463,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/');
-    var version = '20261127-close-history';
+    var version = '20261127-close-history-center';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
