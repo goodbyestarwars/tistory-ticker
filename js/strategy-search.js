@@ -64,7 +64,7 @@
   var npsSortByStreak = false;
   var NPS_RENDER_CAP = 300;
   // 2026-11-27 쌍끌이 매수 탭의 화면 필터(서버 응답은 그대로): 외국인·기관 연속 최소 일수와 종목명/코드 검색.
-  var dualFlowFilters = { foreign: 1, institution: 1 };
+  var dualFlowFilters = { foreign: 1, institution: 1, priceUp: false, foreignRising: false, institutionRising: false };
   var dualFlowQuery = '';
   var dualFlowTotal = 0;
   var DUAL_FLOW_DAY_OPTIONS = [1, 2, 3, 5, 10];
@@ -434,7 +434,8 @@
       var dualSelect = event.target.closest ? event.target.closest('.ss-dual-flow-select') : null;
       if (dualSelect) {
         var dualField = dualSelect.getAttribute('data-dual-filter');
-        if (Object.prototype.hasOwnProperty.call(dualFlowFilters, dualField)) dualFlowFilters[dualField] = Number(dualSelect.value) || 1;
+        if (typeof dualFlowFilters[dualField] === 'boolean') dualFlowFilters[dualField] = dualSelect.value === 'on';
+        else if (Object.prototype.hasOwnProperty.call(dualFlowFilters, dualField)) dualFlowFilters[dualField] = Number(dualSelect.value) || 1;
         renderCards(container);
         var again = container.querySelector('.ss-dual-flow-select[data-dual-filter="' + dualField + '"]');
         if (again) again.focus();
@@ -912,6 +913,11 @@
     return rows.filter(function (item) {
       if ((item.foreignBuyStreak || 0) < dualFlowFilters.foreign) return false;
       if ((item.institutionBuyStreak || 0) < dualFlowFilters.institution) return false;
+      // 토스식 필터: 값이 없는(구버전 응답·전일 수급 미확인) 종목은 켜진 필터를 통과시키지 않는다.
+      var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
+      if (dualFlowFilters.priceUp && !(Number(rate) >= 0)) return false;
+      if (dualFlowFilters.foreignRising && item.foreignRising !== true) return false;
+      if (dualFlowFilters.institutionRising && item.institutionRising !== true) return false;
       return !query || String(item.name || '').toLowerCase().indexOf(query) !== -1
         || String(item.code || '').toLowerCase().indexOf(query) !== -1;
     });
@@ -925,8 +931,15 @@
             + (days === 1 ? '전체' : days + '일 이상') + '</option>';
         }).join('') + '</select></label>';
     }
+    function toggle(field, label, onText) {
+      return '<label>' + label + ' <select class="ss-dual-flow-select" data-dual-filter="' + field + '">'
+        + '<option value="off">전체</option><option value="on"' + (dualFlowFilters[field] ? ' selected' : '') + '>' + onText + '</option></select></label>';
+    }
     return '<div class="ss-nps-filter ss-dual-flow-filter">'
       + select('foreign', '외국인 연속') + select('institution', '기관 연속')
+      + toggle('priceUp', '주가등락률', '0% 이상')
+      + toggle('foreignRising', '외국인 순매수', '전일보다 증가')
+      + toggle('institutionRising', '기관 순매수', '전일보다 증가')
       + '<input type="search" class="ss-dual-flow-search-input" placeholder="종목명 또는 코드 검색" value="' + escapeAttr(dualFlowQuery)
       + '" aria-label="쌍끌이 종목 검색">'
       + '<span class="ss-nps-filter-meta">전체 ' + fmt(dualFlowTotal) + '종목 중 ' + fmt(shownCount) + '종목 표시</span></div>';
