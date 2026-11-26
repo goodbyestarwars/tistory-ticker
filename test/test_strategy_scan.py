@@ -1062,18 +1062,18 @@ class DualFlowBuyTests(unittest.TestCase):
         self.assertEqual(sectors, {})
         self.assertEqual(stats['skippedGate'], 2)
 
-    def test_sorted_by_amount_then_streak_and_capped(self):
-        # B가 가장 많이 샀다. A와 C는 금액이 같고 C가 연속일이 더 길다 -> B, C, A.
+    def test_sorted_by_streak_then_amount_and_capped(self):
+        # C가 쌍끌이가 가장 오래 이어졌다(2일). A와 B는 1일이라 금액이 큰 B가 먼저 -> C, B, A.
         self._insert('000001', [(-1, -1)] * 5 + [(300, 300)], price=100000.0)  # A: 1일 합계 600주
         self._insert('000002', [(-1, -1)] * 5 + [(2000, 2000)], price=100000.0)  # B: 1일 합계 4000주
         self._insert('000003', [(-1, -1)] * 4 + [(150, 150), (150, 150)], price=100000.0)  # C: 2일 합계 600주
         universe = [{'code': c, 'name': c} for c in ('000001', '000002', '000003')]
         wics = {c: {'name': c, 'sector': 'IT', 'industry': 'IT'} for c in ('000001', '000002', '000003')}
         sectors, _stats = strategy_scan.scan_dual_flow(universe, wics, self.conn)
-        self.assertEqual([m['code'] for m in sectors['IT']], ['000002', '000003', '000001'])
+        self.assertEqual([m['code'] for m in sectors['IT']], ['000003', '000002', '000001'])
         with patch.object(strategy_scan, 'DUAL_FLOW_TOP_N', 2):
             capped, stats = strategy_scan.scan_dual_flow(universe, wics, self.conn)
-        self.assertEqual([m['code'] for m in capped['IT']], ['000002', '000003'])
+        self.assertEqual([m['code'] for m in capped['IT']], ['000003', '000002'])
         self.assertEqual(stats['matched'], 2)
         category = strategy_scan.build_dual_flow_category(sectors)
         self.assertEqual(category['name'], strategy_scan.DUAL_FLOW_CATEGORY_NAME)

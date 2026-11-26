@@ -63,6 +63,11 @@
   var activeNpsRangeIndex = 2; // 기본값: 5% ~ 8%(예전 기본값 "5% 이상"과 가장 근접한 구간)
   var npsSortByStreak = false;
   var NPS_RENDER_CAP = 300;
+  // 2026-11-27 쌍끌이 매수 탭의 화면 필터(서버 응답은 그대로): 외국인·기관 연속 최소 일수와 종목명/코드 검색.
+  var dualFlowFilters = { foreign: 1, institution: 1 };
+  var dualFlowQuery = '';
+  var dualFlowTotal = 0;
+  var DUAL_FLOW_DAY_OPTIONS = [1, 2, 3, 5, 10];
   function stockIconHtml(code, cls) {
     if (!code) return '';
     var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
@@ -332,6 +337,19 @@
     // 글자가 씹히는 문제가 있었다(2026-08-14 사용자 재제보 - "한글 조합은 되는데
     // 중간에 글자를 먹네").
     container.addEventListener('input', function (event) {
+      var dualInput = event.target.closest ? event.target.closest('.ss-dual-flow-search-input') : null;
+      if (dualInput) {
+        if (event.isComposing) return;
+        dualFlowQuery = dualInput.value;
+        var dualCursor = dualInput.selectionStart;
+        renderCards(container);
+        var nextDual = container.querySelector('.ss-dual-flow-search-input');
+        if (nextDual) {
+          nextDual.focus();
+          try { nextDual.setSelectionRange(dualCursor, dualCursor); } catch (e) { /* 일부 입력 타입은 미지원 */ }
+        }
+        return;
+      }
       var searchInput = event.target.closest ? event.target.closest('.ss-etf-search-input') : null;
       if (!searchInput || event.isComposing) return;
       applyEtfSearch(searchInput);
@@ -413,6 +431,15 @@
         renderCards(container);
         return;
       }
+      var dualSelect = event.target.closest ? event.target.closest('.ss-dual-flow-select') : null;
+      if (dualSelect) {
+        var dualField = dualSelect.getAttribute('data-dual-filter');
+        if (Object.prototype.hasOwnProperty.call(dualFlowFilters, dualField)) dualFlowFilters[dualField] = Number(dualSelect.value) || 1;
+        renderCards(container);
+        var again = container.querySelector('.ss-dual-flow-select[data-dual-filter="' + dualField + '"]');
+        if (again) again.focus();
+        return;
+      }
       if (event.target.matches('.ss-nps-sort-select')) {
         npsSortByStreak = event.target.value === 'streak';
         renderCards(container);
@@ -453,7 +480,7 @@
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
     // 2026-08-20: "연 1회 공시 스냅샷" 안내는 요약 줄에서 빼고 아래 라벨 줄에만 남겼다.
     if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다.';
-    if (key === 'dualFlowBuy') return '가장 최근 거래일에 외국인과 기관이 함께 순매수한 종목을 많이 산 순으로 표시합니다.';
+    if (key === 'dualFlowBuy') return '가장 최근 거래일에 외국인과 기관이 함께 순매수한 종목을 오래 이어서 사들인 순으로 표시합니다.';
     // 2026-09-04: 요약은 "이 화면이 무엇인지" 한 문장까지만 한다. 35%·70%·60%·30종목을
     // 요약과 본문이 둘 다 말하고 있어서 같은 숫자를 두 번 읽어야 했다 - 숫자는 아래
     // 라벨 줄이 전부 들고 있으므로 여기서는 뺀다.
@@ -659,7 +686,15 @@
       wrap.innerHTML = renderDividendTable();
       return;
     }
-    if (activeKey === 'undervalued' || activeKey === 'targetPriceGap' || activeKey === 'earningsGrowth' || activeKey === 'dualFlowBuy') {
+    if (activeKey === 'dualFlowBuy') {
+      var dualShown = allMatches('dualFlowBuy').length;
+      wrap.innerHTML = dualFlowControlsHtml(dualShown)
+        + (!dualShown && dualFlowTotal
+          ? '<div class="ss-hint">조건에 맞는 종목이 없어요. 연속 일수 기준을 낮추거나 검색어를 지워보세요.</div>'
+          : renderStrategyTable(activeKey));
+      return;
+    }
+    if (activeKey === 'undervalued' || activeKey === 'targetPriceGap' || activeKey === 'earningsGrowth') {
       var activeCategory = scanData.categories[activeKey];
       var categoryHasMatches = Object.keys((activeCategory && activeCategory.sectors) || {}).some(function (sector) {
         return ((activeCategory.sectors[sector] || {}).matches || []).length > 0;
@@ -872,6 +907,31 @@
     return (n > 0 ? '+' : '') + n.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '억';
   }
 
+  function dualFlowFilter(rows) {
+    var query = dualFlowQuery.trim().toLowerCase();
+    return rows.filter(function (item) {
+      if ((item.foreignBuyStreak || 0) < dualFlowFilters.foreign) return false;
+      if ((item.institutionBuyStreak || 0) < dualFlowFilters.institution) return false;
+      return !query || String(item.name || '').toLowerCase().indexOf(query) !== -1
+        || String(item.code || '').toLowerCase().indexOf(query) !== -1;
+    });
+  }
+
+  function dualFlowControlsHtml(shownCount) {
+    function select(field, label) {
+      return '<label>' + label + ' <select class="ss-dual-flow-select" data-dual-filter="' + field + '">'
+        + DUAL_FLOW_DAY_OPTIONS.map(function (days) {
+          return '<option value="' + days + '"' + (dualFlowFilters[field] === days ? ' selected' : '') + '>'
+            + (days === 1 ? '전체' : days + '일 이상') + '</option>';
+        }).join('') + '</select></label>';
+    }
+    return '<div class="ss-nps-filter ss-dual-flow-filter">'
+      + select('foreign', '외국인 연속') + select('institution', '기관 연속')
+      + '<input type="search" class="ss-dual-flow-search-input" placeholder="종목명 또는 코드 검색" value="' + escapeAttr(dualFlowQuery)
+      + '" aria-label="쌍끌이 종목 검색">'
+      + '<span class="ss-nps-filter-meta">전체 ' + fmt(dualFlowTotal) + '종목 중 ' + fmt(shownCount) + '종목 표시</span></div>';
+  }
+
   function dualFlowSignalHtml(item) {
     var asOf = item.flowAsOf ? ' <small>(' + escapeHtml(item.flowAsOf) + ' 기준)</small>' : '';
     return '<strong>쌍끌이 연속 ' + fmt(item.dualBuyStreak) + '일 · ' + signedEok(item.totalNetEok) + '</strong>' + asOf
@@ -953,12 +1013,14 @@
       }));
     }, []);
     if (key === 'dualFlowBuy') {
-      return rows.sort(function (a, b) {
-        return (b.totalNetEok || 0) - (a.totalNetEok || 0)
-          || (b.dualBuyStreak || 0) - (a.dualBuyStreak || 0)
+      rows.sort(function (a, b) {
+        return (b.dualBuyStreak || 0) - (a.dualBuyStreak || 0)
+          || (b.totalNetEok || 0) - (a.totalNetEok || 0)
           || (b.turnoverSharePct || 0) - (a.turnoverSharePct || 0)
           || String(a.code).localeCompare(String(b.code));
       });
+      dualFlowTotal = rows.length;
+      return dualFlowFilter(rows);
     }
     if (key === 'earningsGrowth') {
       return rows.sort(function (a, b) {

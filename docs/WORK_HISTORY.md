@@ -1,3 +1,9 @@
+## 2026-11-27 쌍끌이 매수: 오래 이어진 순 정렬 + 연속일 필터·검색
+- 목적: 사용자 지시. "외국인 4일 기관 1일" 같은 조합을 확인하기 불편하니 검색·필터를 넣고, TOP은 오래 이어진 종목이 1위가 되도록 정렬 변경.
+- 변경: 서버 정렬을 쌍끌이 연속일 → 순매수금액 → 거래대금 비중 → 코드로 변경(`strategy_scan.py`, 상위 300개 응답 유지). 화면(`js/strategy-search.js`, `css/strategy-search.css`)에 외국인 연속·기관 연속 최소 일수(전체/2/3/5/10일 이상) 셀렉트와 종목명·코드 검색을 추가했다. 필터는 화면 처리이며 TOP3·순위도 필터 결과를 따른다. 서버 응답·수집은 변경 없음.
+- 검증: `DualFlowBuyTests` 7건, `test_strategy_dual_flow_ui.js` 6건(정렬·필터·검색·컨트롤), 방법론 형식·UTF-8 가드 통과. 기존 실패(변경 전부터): `NpsHoldingsTests` 3건, `test_ui_ia` 국민연금 1건. 브라우저 화면 확인은 첫 데이터 생성 뒤.
+- 배포: master 병합(Pages+VM). 서버 정렬 변경은 다음 20:30 KST `etfstrategyscan` 실행부터 적용. 미완료: 운영 화면 확인.
+
 ## 2026-11-27 전략검색 '외국인·기관 쌍끌이 매수' 카테고리 추가
 - 목적: 사용자 요청. 종목 > 전략검색에 외국인·기관이 함께 순매수한 종목 탭 추가. 후속 지시: 다른 탭과 같은 양식, TOP3·순위는 많이 산 순(같으면 좋은 종목부터), 외국인 1일·기관 1일부터 나열.
 - 변경: `strategy_scan.py`에 `scan_dual_flow`·`dual_flow_signal`·`build_dual_flow_category`(저장된 `investor_flow_daily` 확정 수급+`daily_prices`만 읽음, 새 외부 호출·타이머 없음), `etf_strategy_scan.py` 일일 타이머가 같은 함수로 `dualFlowBuy`를 매일 갱신(주 1회 본체도 포함), `js/strategy-search.js`는 기존 전략 표·TOP3 경로를 재사용하고 '전략 지표' 칸에 쌍끌이 연속·외국인/기관 연속 일수·금액을 나열.

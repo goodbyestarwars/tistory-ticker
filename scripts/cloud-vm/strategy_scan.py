@@ -1486,15 +1486,15 @@ def scan_nps_holdings(universe, wics_map, conn, daily_cache=None):
 # 2026-11-27 사용자 요청: 종목 > 전략검색에 '외국인·기관 쌍끌이 매수'. 새 호출 없이 daily_scan이 이미 저장한
 # 확정 일별 수급(investor_flow_daily: 외국인/기관 순매수 주수)과 일봉만 읽는다.
 # 같은 날 둘 다 순매수가 가장 최근 거래일까지 1일 이상 이어진 종목을 모두 나열하고(사용자 지시 "외국인 1일 기관 1일까지"),
-# 많이 산 순(쌍끌이 구간 순매수 금액 합계), 같으면 쌍끌이 연속일이 긴 종목부터 정렬한다.
+# 쌍끌이가 오래 이어진 순(연속 일수), 같으면 많이 산 순(쌍끌이 구간 순매수 금액 합계)으로 정렬한다.
 # 수급 행이 비는 날에서 연속을 멈추며 0으로 채우지 않는다. 화면 렌더 보호용 상한만 둔다.
 DUAL_FLOW_LOOKBACK = 25   # 저장된 수급 조회 창(연속일수 계산 상한, 기존 SCAN_FLOW_DAYS와 동일)
-DUAL_FLOW_TOP_N = 300     # 많이 산 순 상위 N개만 응답(국민연금 표의 렌더 상한과 같은 규모)
+DUAL_FLOW_TOP_N = 300     # 정렬 상위 N개만 응답(국민연금 표의 렌더 상한과 같은 규모)
 DUAL_FLOW_CATEGORY_NAME = '외국인·기관 쌍끌이 매수'
 DUAL_FLOW_METHODOLOGY_NOTE = methodology(
     ('계산', '가장 최근 거래일에 외국인과 기관이 함께 순매수했고, 같은 날 둘 다 순매수한 날이 '
              '연속 1일 이상인 종목입니다. 외국인·기관 각각의 연속 순매수 일수도 함께 표시합니다.'),
-    ('정렬', '쌍끌이 연속 구간의 외국인+기관 순매수금액 합계가 큰 순. 같으면 쌍끌이 연속 일수가 긴 종목, '
+    ('정렬', '쌍끌이 연속 일수가 긴 순. 같으면 그 구간의 외국인+기관 순매수금액 합계가 큰 종목, '
              '그다음 거래대금 대비 비중이 큰 종목부터입니다. 상위 300종목까지 표시합니다.'),
     ('표시', '금액은 일별 순매수 주수 × 종가의 합으로 추정한 값(억원)입니다. '
              '거래대금 대비 비중은 같은 쌍끌이 구간의 거래대금 합계로 나눈 값입니다.'),
@@ -1574,8 +1574,8 @@ def build_dual_flow_match(stock, daily, sector, signal):
 
 
 def _dual_flow_sort_key(match):
-    # 많이 산 순 → 같으면 쌍끌이 연속일이 긴 종목 → 거래대금 대비 비중 → 종목코드(결정적 순서)
-    return (-match['totalNetEok'], -match['dualBuyStreak'], -(match.get('turnoverSharePct') or 0), match['code'])
+    # 쌍끌이 연속일이 긴 순 → 같으면 많이 산 순 → 거래대금 대비 비중 → 종목코드(결정적 순서)
+    return (-match['dualBuyStreak'], -match['totalNetEok'], -(match.get('turnoverSharePct') or 0), match['code'])
 
 
 def scan_dual_flow(universe, wics_map, conn, daily_cache=None):

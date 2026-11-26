@@ -1412,3 +1412,28 @@ html.dark #strategy-search .ss-top-rank.is-bronze { background: rgba(196, 140, 1
 html.dark #strategy-search .ss-col-code { color: var(--dk-mute) !important; }
 html.dark #strategy-search .ss-comparison-table .ss-table-row:is(:hover, :focus-within) { background: var(--dk-hover); }
 html.dark #strategy-search .ss-watch-toggle:hover { background: var(--dk-hover) !important; }
+
+/* 2026-11-27 쌍끌이 매수 탭: 외국인·기관 연속 일수 필터와 종목 검색(국민연금 필터와 같은 모양, 클래스만 분리) */
+#strategy-search .ss-dual-flow-select,
+#strategy-search .ss-dual-flow-search-input {
+  box-sizing: border-box;
+  min-height: 40px;
+  border: 1px solid #cfd5dc;
+  border-radius: 5px;
+  background: rgb(255, 254, 252);
+  color: #1f2933;
+  font: inherit;
+  font-size: 13px;
+}
+#strategy-search .ss-dual-flow-select { min-width: 110px; padding: 0 30px 0 11px; }
+#strategy-search .ss-dual-flow-search-input { min-width: 230px; padding: 0 13px; }
+#strategy-search .ss-dual-flow-search-input::placeholder { color: #9ca3af; }
+#strategy-search .ss-dual-flow-search-input:focus { outline: none; border-color: #111827; }
+@media (max-width: 640px) {
+  #strategy-search .ss-dual-flow-select,
+  #strategy-search .ss-dual-flow-search-input { min-width: 0; width: 100%; }
+}
+html.dark #strategy-search .ss-dual-flow-select,
+html.dark #strategy-search .ss-dual-flow-search-input { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); }
+html.dark #strategy-search .ss-dual-flow-search-input::placeholder { color: var(--dk-mute); }
+html.dark #strategy-search .ss-dual-flow-search-input:focus { border-color: var(--dk-mute); }

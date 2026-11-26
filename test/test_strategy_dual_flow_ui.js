@@ -12,7 +12,7 @@ const source = fs.readFileSync('js/strategy-search.js', 'utf8').replace(/\r\n/g,
 const marker = '  global.StrategySearch = {';
 assert.ok(source.includes(marker));
 const exposed = source.replace(marker,
-  '  global.__dual = { strategyTableRow, dualFlowSignalHtml, topKpis, allMatches, setData: function (d) { scanData = d; } };\n' + marker);
+  '  global.__dual = { strategyTableRow, dualFlowSignalHtml, topKpis, allMatches, controls: dualFlowControlsHtml, setFilters: function (f, q) { dualFlowFilters = f; dualFlowQuery = q; }, setData: function (d) { scanData = d; } };\n' + marker);
 const window = {};
 vm.runInNewContext(exposed, {
   window,
@@ -62,11 +62,26 @@ test('TOP3 지표는 쌍끌이 순매수와 연속 일수', () => {
   assert.match(model.sub, /외국인 5일 연속/);
 });
 
-test('정렬: 많이 산 순, 같으면 쌍끌이 연속일이 긴 종목부터', () => {
+test('정렬: 쌍끌이 연속일이 오래된 순, 같으면 많이 산 순', () => {
   api.setData({ categories: { dualFlowBuy: { sectors: { IT: { matches: [
-    item({ code: 'A', totalNetEok: 10, dualBuyStreak: 1 }),
-    item({ code: 'B', totalNetEok: 30, dualBuyStreak: 1 }),
-    item({ code: 'C', totalNetEok: 10, dualBuyStreak: 4 }),
+    item({ code: 'A', totalNetEok: 10, dualBuyStreak: 1, foreignBuyStreak: 1, institutionBuyStreak: 1 }),
+    item({ code: 'B', totalNetEok: 30, dualBuyStreak: 1, foreignBuyStreak: 4, institutionBuyStreak: 1 }),
+    item({ code: 'C', totalNetEok: 10, dualBuyStreak: 4, foreignBuyStreak: 5, institutionBuyStreak: 4, name: '씨앤씨' }),
   ] } } } } });
-  assert.equal(api.allMatches('dualFlowBuy').map((m) => m.code).join(','), 'B,C,A');
+  assert.equal(api.allMatches('dualFlowBuy').map((m) => m.code).join(','), 'C,B,A');
+});
+
+test('필터: 외국인·기관 연속 최소 일수와 종목명/코드 검색', () => {
+  api.setFilters({ foreign: 4, institution: 1 }, '');
+  assert.equal(api.allMatches('dualFlowBuy').map((m) => m.code).join(','), 'C,B');
+  api.setFilters({ foreign: 4, institution: 3 }, '');
+  assert.equal(api.allMatches('dualFlowBuy').map((m) => m.code).join(','), 'C');
+  api.setFilters({ foreign: 1, institution: 1 }, '씨앤');
+  assert.equal(api.allMatches('dualFlowBuy').map((m) => m.code).join(','), 'C');
+  api.setFilters({ foreign: 1, institution: 1 }, 'b');
+  assert.equal(api.allMatches('dualFlowBuy').map((m) => m.code).join(','), 'B');
+  api.setFilters({ foreign: 1, institution: 1 }, '');
+  assert.match(api.controls(3), /외국인 연속/);
+  assert.match(api.controls(3), /기관 연속/);
+  assert.match(api.controls(3), /전체 3종목 중 3종목 표시/);
 });
