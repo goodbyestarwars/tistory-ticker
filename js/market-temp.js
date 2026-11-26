@@ -5212,7 +5212,7 @@
     if(!sectorHeatmapScriptJob_) {
       sectorHeatmapScriptJob_=new Promise(function(resolve,reject){
         var script=document.createElement('script');
-        script.src=root+'js/us-market-heatmap.js?v=20261115-market-split-v1';
+        script.src=root+'js/us-market-heatmap.js?v=20261126-table-scroll';
         script.onload=function() {
           if(global.NineUsHeatmap)resolve();else reject(new Error('sector map module missing'));
         };

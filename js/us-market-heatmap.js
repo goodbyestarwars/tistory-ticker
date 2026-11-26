@@ -97,7 +97,7 @@
     if(!active||!active.panel)return;
     var root=active.panel,chart=root.querySelector('[data-uh-tiles]'),tbody=root.querySelector('[data-uh-rows]');
     if(!chart||!tbody)return;
-    chart.replaceChildren();tbody.replaceChildren();
+    chart.replaceChildren();
     var w=Math.max(300,Math.round(chart.clientWidth||root.clientWidth||720)),h=w<580?680:780;
     chart.style.height=h+'px';
     var groups={},rows=active.rows;
@@ -145,20 +145,35 @@
       });
       chart.appendChild(space);
     });
-    rows.forEach(function(row){
-      var tr=document.createElement('tr');
-      [row.symbol||row.code,row.name,row.sector,currency(active.market,row.cap),price(active.market,row.price),pct(row.change_rate),
-        isCurrent(row)?'WS 수신':row.lastSeen?'마지막 WS':'조회값'].forEach(function(value,i){
-        var td=document.createElement('td');
-        if(i===0){var a=document.createElement('a');a.href='/page/stock-search?code='+encodeURIComponent(row.code);a.textContent=value;td.appendChild(a);}
-        else td.textContent=value;
-        if(i===5)td.className=number(row.change_rate)>0?'is-up':number(row.change_rate)<0?'is-down':'';
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
+    drawTable(tbody, rows, active.market);
     var count=root.querySelector('[data-uh-count]');
     if(count)count.textContent=label(active.market)+' '+rows.length+'종목 · '+areas.length+'개 섹터';
+  }
+  function drawTable(tbody, rows, market) {
+    // Rows are cleared only when the market changes. Quotes update the existing
+    // cells so the scroll position and focused stock link survive each redraw.
+    rows.forEach(function (row, index) {
+      var tr = tbody.rows[index];
+      if (!tr) {
+        tr = tbody.insertRow();
+        var link = document.createElement('a');
+        link.href = '/page/stock-search?code=' + encodeURIComponent(row.code);
+        link.textContent = row.symbol || row.code;
+        tr.insertCell().appendChild(link);
+        [row.name, row.sector, currency(market, row.cap)].forEach(function (value) {
+          tr.insertCell().textContent = value;
+        });
+        for (var i = 0; i < 3; i++) tr.insertCell();
+      }
+      var rate = number(row.change_rate);
+      var values = [price(market, row.price), pct(rate), isCurrent(row) ? 'WS 수신' : row.lastSeen ? '마지막 WS' : '조회값'];
+      values.forEach(function (value, offset) {
+        var cell = tr.cells[4 + offset];
+        if (cell.textContent !== value) cell.textContent = value;
+      });
+      var rateClass = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : '';
+      if (tr.cells[5].className !== rateClass) tr.cells[5].className = rateClass;
+    });
   }
   function load(market){
     disconnect();
@@ -234,7 +249,7 @@
       +'<p class="uh-source" data-uh-source></p>'
       +'<p class="uh-disclaimer" data-uh-disclaimer></p>'
       +'<details class="uh-details"><summary>시가총액·섹터·수신상태 표 보기</summary>'
-      +'<div class="uh-table-scroller"><table class="uh-table"><thead><tr><th>코드</th><th>회사</th><th>섹터</th><th>시가총액</th><th>가격</th><th>등락률</th><th>상태</th></tr></thead>'
+      +'<div class="uh-table-scroller" tabindex="0" role="region" aria-label="시가총액·섹터·수신상태 표"><table class="uh-table"><thead><tr><th>코드</th><th>회사</th><th>섹터</th><th>시가총액</th><th>가격</th><th>등락률</th><th>상태</th></tr></thead>'
       +'<tbody data-uh-rows></tbody></table></div></details></section>';
     if(domestic)panel.querySelector('[data-uh-select]').addEventListener('click',function(e){
       var b=e.target.closest('[data-mkt]');if(b&&visible())load(b.getAttribute('data-mkt'));
