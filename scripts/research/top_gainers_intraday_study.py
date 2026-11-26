@@ -353,8 +353,101 @@ def analyze_sq(manp, dcache, mcache, split, outp):
         print(json.dumps(r, ensure_ascii=False))
 
 
+def angle_feats(px, ix, bars, d, T):
+    i = ix.get(d)
+    if not i or i < 62 or not bars:
+        return None
+    pc = px[i - 1][4]
+    base = float(np.mean([r[5] for r in px[i - 20:i]]))
+    early = [b for b in bars if b[0] < T + '00']
+    if not early or base <= 0 or pc <= 0:
+        return None
+    tmin = int(T[:2]) * 60 + int(T[2:]) - 5
+    t5 = '%02d%02d' % (tmin // 60, tmin % 60)
+    ref_bars = [b for b in bars if b[0] < t5 + '00']
+    ref = ref_bars[-1][4] if ref_bars else bars[0][1]
+    return {'a5': early[-1][4] / ref - 1, 'cv': sum(b[5] for b in early) / base, 'ret': early[-1][4] / pc - 1,
+            'cvDay': sum(b[5] for b in bars if b[0] < '093000') / base}
+
+
+def analyze_angle(manp, dcache, mcache, split, outp):
+    man = json.load(open(manp))
+    data = load_daily(dcache)
+    days = sorted({m['d'] for m in man})
+    kq = set(json.load(open(split))['KOSDAQ'])
+    thr = {}
+    for d in days:
+        vals = []
+        for code in kq:
+            if code in data:
+                px, ix = data[code]
+                i = ix.get(d)
+                if i and px[i][4] * px[i][5] >= MIN_AMT:
+                    v = squeeze_ratio(px, i)
+                    if v is not None:
+                        vals.append(v)
+        if len(vals) > 100:
+            thr[d] = float(np.percentile(vals, 30))
+    base_rows = []
+    for m in man:
+        path = os.path.join(mcache, '%s_%s.json' % (m['code'], m['d']))
+        if not os.path.exists(path) or m['code'] not in data or m['d'] not in thr:
+            continue
+        px, ix = data[m['code']]
+        sq = squeeze_ratio(px, ix.get(m['d'], 0))
+        bars = [tuple(b) for b in json.load(open(path))['bars']]
+        if sq is not None:
+            base_rows.append((m, px, ix, bars, sq <= thr[m['d']]))
+    mid = days[len(days) // 2]
+    res = {'rules': []}
+    for T in ('0905', '0910'):
+        feats_rows = []
+        for m, px, ix, bars, contract in base_rows:
+            f = angle_feats(px, ix, bars, m['d'], T)
+            if f:
+                f.update({'d': m['d'], 'g': m['g'], 'w': m['w'], 'bars': bars, 'contract': contract})
+                feats_rows.append(f)
+        for tag in ('any', 'contract'):
+            for a5 in (0.02, 0.04):
+                for cvmax in (0.1, 0.2):
+                    sel = [r for r in feats_rows if (tag == 'any' or r['contract']) and r['a5'] >= a5 and r['cv'] < cvmax and 0.02 <= r['ret'] < 0.27]
+                    if len(sel) < 15:
+                        res['rules'].append({'tag': tag, 'T': T, 'a5': a5, 'cvMax': cvmax, 'n': len(sel)})
+                        continue
+                    w0 = np.array([r['w'] for r in sel])
+                    came = round(float(sum(wi for wi, r in zip(w0, sel) if r['cvDay'] >= 1.0) / w0.sum()) * 100, 1)
+                    istop = round(float(sum(wi for wi, r in zip(w0, sel) if r['g'] == 'top') / w0.sum()) * 100, 1)
+                    for tp in TP_LIST:
+                        for sl in (None, 0.03):
+                            sims = [(r, simulate_exit(r['bars'], T, tp, sl)) for r in sel]
+                            sims = [(r, s) for r, s in sims if s]
+                            if not sims:
+                                continue
+                            w = np.array([r['w'] for r, _ in sims])
+                            ret = np.array([s[1] - COST for _, s in sims])
+                            kind = [s[0] for _, s in sims]
+
+                            def half(f):
+                                sub = [(r, s) for r, s in sims if f(r['d'])]
+                                return round(float(np.average([s[1] - COST for _, s in sub], weights=[r['w'] for r, _ in sub])) * 100, 2) if sub else None
+                            res['rules'].append({
+                                'tag': tag, 'T': T, 'a5': a5, 'cvMax': cvmax, 'tp': tp, 'sl': sl,
+                                'nTop': sum(1 for r, _ in sims if r['g'] == 'top'), 'nCtrl': sum(1 for r, _ in sims if r['g'] == 'ctrl'),
+                                'volCameInPct': came, 'endTop30Pct': istop,
+                                'tpPct': round(float(sum(wi for wi, kd in zip(w, kind) if kd == 'tp') / w.sum()) * 100, 1),
+                                'slPct': round(float(sum(wi for wi, kd in zip(w, kind) if kd == 'sl') / w.sum()) * 100, 1),
+                                'mean': round(float(np.average(ret, weights=w)) * 100, 2), 'p5': pct5(ret, w),
+                                'half1': half(lambda d: d < mid), 'half2': half(lambda d: d >= mid)})
+    json.dump(res, open(outp, 'w'), ensure_ascii=False, indent=1)
+    for r in res['rules']:
+        print(json.dumps(r, ensure_ascii=False))
+
+
 if __name__ == '__main__':
     cmd = sys.argv[1]
+    if cmd == 'analyze_angle':
+        analyze_angle(*sys.argv[2:7])
+        sys.exit(0)
     if cmd == 'analyze_sq':
         analyze_sq(*sys.argv[2:7])
         sys.exit(0)
