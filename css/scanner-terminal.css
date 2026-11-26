@@ -129,3 +129,5 @@ html.dark #pattern-scan.st-terminal .st-table th, html.dark #pattern-scan.st-ter
 html.dark #pattern-scan.st-terminal .st-table .is-up { color: var(--dk-up, #e8a39e); }
 html.dark #pattern-scan.st-terminal .st-table .is-down { color: var(--dk-down, #86aee1); }
 html.dark #pattern-scan.st-terminal .st-list .ps-state-row.ps-pick.is-selected { border-color: var(--dk-text, #f5f5f4); box-shadow: none; }
+#pattern-scan.st-terminal .st-mode-badge { display: inline-block; padding: 8px 16px; border-radius: 999px; font: 800 14px/1 var(--font-body, inherit); background: var(--ui-glass-panel, #f4f0e8); color: var(--soft-accent, #075759); }
+html.dark #pattern-scan.st-terminal .st-mode-badge { background: var(--dk-inner, #232426); color: var(--dk-text, #f5f5f4); }
