@@ -1206,8 +1206,8 @@
       '<section class="site-footer-company" aria-label="회사 정보">' +
         '<img class="footer-falcon-logo" src="https://goodbyestarwars.github.io/tistory-ticker/img/falcon-logo-source.webp" alt="송골매 로고" width="80" height="80" loading="lazy">' +
         '<div class="footer-company-copy"><strong>(주)팔콘 컴퍼니</strong><small><b>© 2026 팔콘 Co., Ltd.</b></small>' +
-        '<p class="site-footer-notice" role="note">본 사이트의 시세·수급·검색기 후보·AI 해설은 참고용 정보이며 투자 권유나 투자 자문이 아닙니다. '
-        + 'AI가 생성한 문구는 오류가 있을 수 있고, 투자 판단과 그 결과의 책임은 이용자 본인에게 있습니다. <a href="' + (typeof NineAsset !== 'undefined' ? NineAsset.base : 'https://goodbyestarwars.github.io/tistory-ticker/') + 'legal/terms.html">이용약관</a></p>' + '</div>' +
+        '<p class="site-footer-notice" role="note">본 사이트의 시세·수급·검색기 후보는 참고용 정보이며 투자 권유나 투자 자문이 아닙니다. '
+        + '투자 판단과 그 결과의 책임은 이용자 본인에게 있습니다. <a href="' + (typeof NineAsset !== 'undefined' ? NineAsset.base : 'https://goodbyestarwars.github.io/tistory-ticker/') + 'legal/terms.html">이용약관</a></p>' + '</div>' +
       '</section>'
   };
 
