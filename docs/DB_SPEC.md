@@ -14,6 +14,8 @@
 
 `scripts/cloud-vm/gap_shadow.db`(`gap_shadow.py`, 저장소 제외 `*.db`)의 `gap_shadow_signal`은 `(trading_date, code)`당 첫 신호 1행이다. `volume_surge_live`가 30초마다 받는 KIS 순위 행만 재사용하며(추가 외부 호출 없음) 주문·계좌·토큰은 저장하지 않는다. 기존 `openingGap` 검색기와 추적 통계는 건드리지 않는다.
 
+`scripts/cloud-vm/support_breakout_shadow.db`(`support_breakout_shadow.py`, 저장소 제외 `*.db`)는 2026-11-26 연구 전용 기록이다. `sbs_day`(날짜별 후보 생성 상태)·`sbs_candidate`(장 시작 전 확정한 지지·거래량·전일 고가 돌파 후보와 판정 근거, 사후 D0~D3 일봉)·`sbs_obs`(`(trading_date, slot, code)`당 5분 관측: 시가·고가·저가·현재가·누적 거래량/대금, armed 종목은 KIS 체결강도·10호가 잔량). 결측은 NULL이며 0으로 채우지 않는다. 주문·계좌·토큰은 저장하지 않고 기존 검색기·`gap_shadow`와 섞지 않는다. 설계·사전 판정 기준은 `docs/SUPPORT_BREAKOUT_SHADOW_2026-11-26.md`.
+
 - 규칙(사전 고정): 시초 관측가=09:00~09:03 첫 관측(누적 거래량>0), 갭 +1~+8%, 시초 범위=09:00~09:05 관측가 고저, 신호=09:05~14:00 첫 폴링에서 현재가>범위 고가·현재가≥시초 관측가·누적 거래량/전일 거래량≥5%, 가상 진입=신호 **다음** 폴링 관측가, 손절 후보=범위 저가, 손절폭>4%이면 `risk_ok=0`.
 - 저장: `signal_at`/`entry_at`(UTC ISO), `signal_price`/`entry_price`, `prev_close`, `open_obs_price`, `or_high`/`or_low`, `gap_pct`, `signal_cum_volume`·`signal_cum_ratio`, `stop_price`·`stop_pct`·`risk_ok`, 진입 뒤 장중 관측 `intraday_max/min/last`·`stop_hit_intraday`, `daily_json`(D0~D5 일봉)·`outcome_days`. 진입이 없으면 `entry_*`는 NULL(순위권에서 사라진 경우 - 평가에서 제외하되 `signals` 개수에는 남음).
 - 일봉은 장 밖 대기 루프(`maybe_update_outcomes`, 30분에 한 번)가 `daily_prices`와 대조해 채운다. D0 일봉 고저는 진입 전 구간을 포함하므로 손절 판정에 쓰지 않고 장중 관측 경로만 쓴다. D1+는 시가 ≤ 손절가면 시가 청산, 저가 ≤ 손절가면 손절가 청산(자료가 일봉뿐이라 같은 날 순서는 보수적으로 손절 우선).

@@ -645,6 +645,12 @@ def refresh_once(appkey, appsecret, now_kst=None, fetcher=None):
         # 2026-10-16 Issue #697: 같은 순위 행으로 아침 라이브 갭상승 그림자 기록(주문 없음, 실패해도 위 감지에 영향 없음).
         import gap_shadow
         gap_shadow.observe(rows, now_kst, conn)
+        # 2026-11-26 지지 방어·거래량 재폭발·전일 고가 돌파 후보의 5분 장중 기록(연구 전용, 주문 없음). 외부 호출은 자체 스레드에서만 한다.
+        try:
+            import support_breakout_shadow
+            support_breakout_shadow.observe(now_kst, appkey, appsecret)
+        except Exception:
+            logger.exception('지지 돌파 그림자 기록 호출 실패(거래량 감지에는 영향 없음)')
     finally:
         conn.close()
     with _lock:
@@ -667,6 +673,11 @@ def _loop(appkey, appsecret):
         else:
             import gap_shadow
             gap_shadow.maybe_update_outcomes()  # 장 밖: 일봉이 들어온 그림자 신호의 D0~D5 성과 채우기(SQLite만)
+            try:
+                import support_breakout_shadow
+                support_breakout_shadow.maybe_update_outcomes()  # 2026-11-26 지지 돌파 그림자 후보일 D0~D3 일봉 채우기(SQLite만)
+            except Exception:
+                logger.exception('지지 돌파 그림자 사후 성과 호출 실패')
             time.sleep(IDLE_CHECK_SEC)
 
 
