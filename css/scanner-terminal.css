@@ -84,7 +84,6 @@
 #pattern-scan.st-terminal .st-conds dd { margin: 2px 0 0; font-size: 13.5px; line-height: 1.6; }
 #pattern-scan.st-terminal .st-promo { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 10px; background: var(--ui-glass-panel, #f4f0e8); font-size: 13px; line-height: 1.55; }
 #pattern-scan.st-terminal .st-promo small { color: var(--ui-muted, #64748b); }
-#pattern-scan.st-terminal .st-promo--adopted, #pattern-scan.st-terminal .st-promo--review { box-shadow: inset 3px 0 0 var(--soft-accent, #075759); }
 #pattern-scan.st-terminal .st-result { margin-top: 14px; }
 #pattern-scan.st-terminal .st-result h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
 #pattern-scan.st-terminal .st-table-wrap { overflow-x: auto; }
@@ -129,5 +128,4 @@ html.dark #pattern-scan.st-terminal .st-tri--bad b { color: var(--dk-up, #e8a39e
 html.dark #pattern-scan.st-terminal .st-table th, html.dark #pattern-scan.st-terminal .st-table td { border-bottom-color: var(--dk-line, #2f3134); }
 html.dark #pattern-scan.st-terminal .st-table .is-up { color: var(--dk-up, #e8a39e); }
 html.dark #pattern-scan.st-terminal .st-table .is-down { color: var(--dk-down, #86aee1); }
-html.dark #pattern-scan.st-terminal .st-promo--adopted, html.dark #pattern-scan.st-terminal .st-promo--review { box-shadow: inset 3px 0 0 var(--dk-text, #f5f5f4); }
 html.dark #pattern-scan.st-terminal .st-list .ps-state-row.ps-pick.is-selected { border-color: var(--dk-text, #f5f5f4); box-shadow: none; }
