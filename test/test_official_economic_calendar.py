@@ -14,6 +14,22 @@ spec.loader.exec_module(mod)
 
 
 class OfficialCalendarTest(unittest.TestCase):
+    def test_bok_rate_changes_fallback_on_exact_date(self):
+        page = BeautifulSoup(
+            '<table><tr><td>2026</td><td>11월 26일</td><td>3.25</td></tr>'
+            '<tr><td>2026</td><td>08월 27일</td><td>3.00</td></tr>'
+            '<tr><td>2026</td><td>07월 16일</td><td>2.75</td></tr></table>', 'html.parser')
+        changes = mod.bok_rate_changes(page)
+        self.assertEqual(mod.bok_change_result(changes, date(2026, 11, 26))['text'],
+                         '기준금리 3.00% → 3.25% 인상 (+0.25%p)')
+        self.assertIsNone(mod.bok_change_result(changes, date(2026, 10, 22)))
+
+    def test_bok_decision_reads_target_not_previous(self):
+        body = '금융통화위원회는 한국은행 기준금리를 현재의 3.00% 수준에서 3.25%로 상향 조정하여 통화정책을 운용하기로 하였다.'
+        self.assertEqual(mod.bok_decision_rate(body)['text'], '공식 기준금리 3.25%')
+        hold = '금융통화위원회는 한국은행 기준금리를 현 수준(2.50%)에서 유지하여 통화정책을 운용하기로 하였다.'
+        self.assertEqual(mod.bok_decision_rate(hold)['text'], '공식 기준금리 2.50%')
+
     def test_timezone_rollover_and_day_precision(self):
         for day, expected in ((date(2026, 10, 28), '2026-10-29T03:00:00+09:00'),
                               (date(2026, 12, 9), '2026-12-10T04:00:00+09:00')):
