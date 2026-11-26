@@ -449,6 +449,11 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory, scan_loader=Non
                 except Exception:
                     LOGGER.exception('검색기 포착 현황 집계 실패')
             result['closeOverview'] = extras
+            try:
+                market_temp_extras.ensure_history_schema(conn)
+                market_temp_extras.save_history(conn, basis.isoformat(), extras)
+            except Exception:
+                LOGGER.exception('증시온도 마감 집계 이력 저장 실패')
         finally:
             conn.close()
         computed_at = time.time()

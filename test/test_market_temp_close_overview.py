@@ -21,7 +21,7 @@ def test_exact_basis_returns_and_independent_ma_samples(monkeypatch):
     days = [day.isoformat() for day in sessions if day.weekday() < 5][:224]
     basis, previous = days[:2]
     monkeypatch.setattr(extras.index_daily_history, 'peek', lambda market: {
-        'rows': [{'date': day, 'confirmed': True} for day in days[1:]]
+        'rows': [{'date': day, 'confirmed': True, 'close': 100} for day in days[1:]]
     })
     monkeypatch.setattr(extras.db_schema, 'load_future_chart', lambda conn, symbol, limit_days: [
         {'date': previous.replace('-', ''), 'close': 100},
@@ -78,7 +78,21 @@ def test_track_comparison_reuses_only_comparable_rows():
     assert extras.scanner_summary(conn, payload, previous, now) is None
     summary = extras.scanner_summary(conn, payload, basis, now)
     assert summary['previousTrackDate'] == previous
-    assert summary['groups']['trendBreakout'] == {'candidates': 1, 'trackDelta': 1}
-    assert summary['groups']['bottomFormation'] == {'candidates': 0, 'trackDelta': None}
+    assert summary['groups']['trendBreakout'] == {'candidates': 1, 'tracked': 2, 'trackDelta': 1}
+    assert summary['groups']['bottomFormation'] == {'candidates': 0, 'tracked': 1, 'trackDelta': None}
     assert '111111' not in repr(summary) and 'price' not in repr(summary)
     assert extras.scanner_summary(conn, payload, basis, now + timedelta(days=2)) is None
+
+
+def test_history_upsert_preserves_last_verified_section(monkeypatch, tmp_path):
+    db = tmp_path / 'overview.db'
+    conn = sqlite3.connect(db)
+    extras.ensure_history_schema(conn)
+    market = {'asOf': '2026-11-26', 'markets': {}}
+    scanner = {'asOf': '2026-11-26', 'groups': {}}
+    extras.save_history(conn, '2026-11-26', {'market': market, 'scanners': None})
+    extras.save_history(conn, '2026-11-26', {'market': None, 'scanners': scanner})
+    conn.close()
+    monkeypatch.setattr(extras.db_schema, 'get_conn', lambda read_only: sqlite3.connect(db))
+    assert extras.historical_overview(date(2026, 11, 26)) == {'market': market, 'scanners': scanner}
+    assert extras.historical_overview(date(2026, 11, 28)) == {'market': None, 'scanners': None}

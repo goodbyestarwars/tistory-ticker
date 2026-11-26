@@ -1767,6 +1767,7 @@
       if (!page.indicators) {
         container.innerHTML = buildCard(data);
         container.querySelector('[data-mt-close-overview]').__mtData = data.closeOverview;
+        wireCloseHistory_(container, function () { return page.data && page.data.closeOverview; });
         wireAnimations(container, data);
         page.indicators = loadMarketIndicators_(container, data);
         scrollToHash_(container);
@@ -5344,7 +5345,7 @@
       + '</section>';
   }
 
-  function buildCloseOverview_(overview) {
+  function buildCloseOverview_(overview, historical) {
     overview = overview || {};
     var market = overview.market || {}, markets = market.markets || {};
     var scanners = overview.scanners || {}, groups = scanners.groups || {};
@@ -5402,8 +5403,10 @@
     var scanTitle = '검색기 포착 현황';
     var scanRows = scanMenus.map(function (menu) {
       var g = groups[menu[0]] || {};
-      return row(menu[1], [indicatorNumber_(g.candidates) == null ? '미집계' : global.NineUI.number(g.candidates) + '건',
-        signed(g.trackDelta, '건', 0)]);
+      var candidates = indicatorNumber_(g.candidates) == null ? '미집계' : global.NineUI.number(g.candidates) + '건';
+      var delta = signed(g.trackDelta, '건', 0);
+      var tracked = indicatorNumber_(g.tracked) == null ? '미집계' : global.NineUI.number(g.tracked) + '건';
+      return row(menu[1], historical ? [candidates, tracked, delta] : [candidates, delta]);
     });
     var marketDate = market.asOf && market.asOf + ' 마감';
     return card(gapTitle, marketDate, table(gapTitle, ['시장', '지수', '종목 중앙값', '격차'], gapRows),
@@ -5411,9 +5414,57 @@
       + card(strengthTitle, marketDate, table(strengthTitle, ['이동평균', '전체', '코스피', '코스닥'], strengthRows),
         '이동평균선 위 종목 수 / 해당 기간 일봉을 모두 확인한 종목 수')
       + card(scanTitle, scanners.asOf && scanners.asOf + ' 일봉',
-        table(scanTitle, ['검색기', '포착', '신규 추적 증감'], scanRows),
+        table(scanTitle, historical ? ['검색기', '포착', '신규 추적', '추적 증감'] : ['검색기', '포착', '신규 추적 증감'], scanRows),
         (scanners.previousTrackDate ? escapeHtml(scanners.previousTrackDate) + ' 기록 대비. ' : '')
         + '포착은 검색기 후보 수입니다. 신규 추적 증감은 두 날짜 모두 추적 등록 기록이 있는 검색기에 표시합니다.');
+  }
+
+  function wireCloseHistory_(container, getCurrent) {
+    var button = container.querySelector('[data-mt-history-open]');
+    var dialog = container.querySelector('[data-mt-history-dialog]');
+    var form = dialog.querySelector('form');
+    var input = form.querySelector('input');
+    var status = dialog.querySelector('[data-mt-history-status]');
+    var cards = dialog.querySelector('[data-mt-history-cards]');
+    var requestId = 0;
+
+    button.addEventListener('click', function () {
+      var current = getCurrent() || {};
+      input.max = kstDateKey_();
+      if (!input.value) input.value = (current.market || current.scanners || {}).asOf || '';
+      dialog.showModal();
+      input.focus();
+    });
+    dialog.querySelector('[data-mt-history-close]').addEventListener('click', function () { dialog.close(); });
+    dialog.addEventListener('close', function () {
+      requestId++;
+      if (cards.getAttribute('aria-busy') === 'true') status.textContent = '';
+      cards.removeAttribute('aria-busy');
+      button.focus();
+    });
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var date = input.value;
+      if (!date) return;
+      var id = ++requestId;
+      cards.innerHTML = '';
+      cards.setAttribute('aria-busy', 'true');
+      status.textContent = date + ' 마감 자료를 불러오는 중입니다.';
+      global.NineAPI.data(MARKET_TEMP_URL + '?date=' + encodeURIComponent(date), {
+        private: true, timeoutMs: FETCH_TIMEOUT_MS, fetchOptions: { credentials: 'include', cache: 'no-store' }
+      }).then(function (data) {
+        if (id !== requestId || !dialog.open) return;
+        if (!data || data.asOf !== date || !data.closeOverview) throw new Error('날짜 응답 불일치');
+        var overview = data.closeOverview;
+        status.textContent = overview.market || overview.scanners
+          ? date + ' 마감 집계' : date + '에 집계된 자료가 없습니다.';
+        cards.innerHTML = buildCloseOverview_(overview, true);
+      }).catch(function () {
+        if (id === requestId && dialog.open) status.textContent = date + ' 자료를 가져오지 못했습니다. 다시 조회해 주세요.';
+      }).finally(function () {
+        if (id === requestId) cards.removeAttribute('aria-busy');
+      });
+    });
   }
 
   function buildCard(data) {
@@ -5435,7 +5486,15 @@
       // 아래 '오늘의 증시' 이하는 장중 주기로 갱신되는 실시간 영역이다. 페이지 날짜·갱신 안내는 각 영역 제목 옆 한 줄로만 둔다(중복 제거).
       '<div class="mt-front-tools mt-dawn"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading><span class="mt-brief-title">시장 브리핑</span></h3>' + buildTomorrowCard_() + '</section></div>',
       '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + '<div class="mt-card mt-extras-col" data-market-extras></div></div>',
+      '<div class="mt-close-toolbar"><button type="button" class="ui-btn" data-mt-history-open>과거 날짜 보기</button></div>',
       '<div class="mt-close-overview" data-mt-close-overview>' + buildCloseOverview_(data.closeOverview) + '</div>',
+      '<dialog class="mt-close-dialog" data-mt-history-dialog aria-labelledby="mt-close-history-title">'
+        + '<div class="mt-close-dialog-head"><h2 id="mt-close-history-title">증시온도 과거 집계</h2>'
+        + '<button type="button" class="ui-btn" data-mt-history-close>닫기</button></div>'
+        + '<form class="mt-close-history-form"><label for="mt-close-history-date">기준일</label>'
+        + '<input type="date" id="mt-close-history-date" required><button class="ui-btn" type="submit">조회</button></form>'
+        + '<p class="mt-close-history-status" data-mt-history-status role="status"></p>'
+        + '<div class="mt-close-overview" data-mt-history-cards></div></dialog>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
       buildTemperatureActions(data),

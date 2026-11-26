@@ -3797,3 +3797,55 @@ html.dark #market-temp .heatmap-tile.is-flat {
     padding: 12px;
   }
 }
+
+#market-temp .mt-close-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+#market-temp .mt-close-dialog {
+  width: min(900px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: var(--ui-card-padding, 14px);
+  overflow: auto;
+  background: var(--ui-card-surface, #fff);
+  border: 1px solid var(--ui-border, #ddd);
+  border-radius: var(--ui-radius-card, 12px);
+  color: var(--text-main, #273332);
+}
+html.dark #market-temp .mt-close-dialog {
+  color-scheme: dark;
+  background: var(--dk-card);
+  color: var(--dk-text);
+}
+#market-temp .mt-close-dialog::backdrop {
+  background: rgb(0 0 0 / 48%);
+}
+#market-temp :is(.mt-close-dialog-head, .mt-close-history-form) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+#market-temp .mt-close-dialog-head {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+#market-temp .mt-close-dialog-head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+#market-temp .mt-close-history-form input {
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--ui-border, #ddd);
+  border-radius: 8px;
+  background: var(--ui-card-surface, #fff);
+  color: inherit;
+  font: inherit;
+}
+#market-temp .mt-close-history-status {
+  margin-block: 10px;
+}
+#market-temp .mt-close-history-status:empty {
+  display: none;
+}
