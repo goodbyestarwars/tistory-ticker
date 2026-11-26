@@ -2849,10 +2849,10 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         etf = self.read("scripts/cloud-vm/etf_strategy_scan.py")
         for token in (
             "activeKey === 'dualFlowBuy'",
-            "renderDualFlowTable",
+            "dualFlowSignalHtml",
             "dualFlowScannedAt",
-            "ss-dual-flow-sort-select",
-            "dualBuyStreak",
+            "foreignBuyStreak",
+            "institutionBuyStreak",
             "totalNetEok",
         ):
             self.assertIn(token, source)

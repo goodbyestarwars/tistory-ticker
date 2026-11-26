@@ -1,9 +1,9 @@
 ## 2026-11-27 전략검색 '외국인·기관 쌍끌이 매수' 카테고리 추가
-- 목적: 사용자 요청. 종목 > 전략검색에 외국인·기관이 같은 날 함께 순매수한 종목 탭 추가.
-- 변경: `strategy_scan.py`에 `scan_dual_flow`·`dual_flow_signal`·`build_dual_flow_category`(저장된 `investor_flow_daily` 확정 수급+`daily_prices`만 읽음, 새 외부 호출·타이머 없음), `etf_strategy_scan.py` 일일 타이머가 같은 함수로 `dualFlowBuy`를 매일 갱신(주 1회 본체도 포함), `js/strategy-search.js` 표·TOP3·정렬(5일 순매수 합계/연속 일수)·기준일 표시, 테스트 7건·방법론 형식 검증·UI IA 토큰 검증.
-- 기준: 최근 5거래일 일봉 날짜마다 수급이 있고(하나라도 비면 미확인 제외) 같은 날 둘 다 순매수 3일 이상, 5일 누적도 외국인·기관 모두 양수. ETF·스팩·우선주·거래정지·1,000원 미만·20일 평균 거래대금 10억 미만 제외. 금액은 순매수 주수×종가 합산 추정(억원). 임계값(5일/3일)은 검증된 수익 조건이 아니며 포워드 추적은 기존 `strategy:dualFlowBuy`로 자동 기록된다.
-- 검증: 신규 `DualFlowBuyTests` 7건 통과, 방법론 형식·UTF-8 가드·JS 구문 통과. NPS 기존 테스트 3건(`test_strategy_scan.py`)·`test_ui_ia` 국민연금 1건은 변경 전부터 실패(기준선). 실데이터 화면 확인은 VM 배포 후.
-- 배포: master 병합 시 Pages(JS)·VM(스크립트) 자동 배포. 첫 데이터는 다음 20:30 KST `etfstrategyscan` 실행 후 표시(그 전에는 탭 없음). 미완료: 운영 응답·화면 확인, 임계값 성과 관측.
+- 목적: 사용자 요청. 종목 > 전략검색에 외국인·기관이 함께 순매수한 종목 탭 추가. 후속 지시: 다른 탭과 같은 양식, TOP3·순위는 많이 산 순(같으면 좋은 종목부터), 외국인 1일·기관 1일부터 나열.
+- 변경: `strategy_scan.py`에 `scan_dual_flow`·`dual_flow_signal`·`build_dual_flow_category`(저장된 `investor_flow_daily` 확정 수급+`daily_prices`만 읽음, 새 외부 호출·타이머 없음), `etf_strategy_scan.py` 일일 타이머가 같은 함수로 `dualFlowBuy`를 매일 갱신(주 1회 본체도 포함), `js/strategy-search.js`는 기존 전략 표·TOP3 경로를 재사용하고 '전략 지표' 칸에 쌍끌이 연속·외국인/기관 연속 일수·금액을 나열.
+- 기준: 가장 최근 일봉 날짜의 수급이 있고 같은 날 둘 다 순매수가 연속 1일 이상인 종목을 모두 나열(수급이 빈 날에서 연속을 멈춤, 0으로 채우지 않음). 정렬은 쌍끌이 구간 순매수 합계 큰 순 → 쌍끌이 연속일 → 거래대금 비중 → 코드, 상위 300개 응답. 외국인·기관 각자의 연속 일수·금액은 별도 표시. ETF·스팩·우선주·거래정지·1,000원 미만·20일 평균 거래대금 10억 미만 제외. 금액은 순매수 주수×종가 추정(억원). '좋은 종목'은 연속일·거래대금 비중으로 해석(재무 점수는 쓰지 않음). 포워드 추적은 기존 `strategy:dualFlowBuy`로 자동 기록.
+- 검증: `DualFlowBuyTests` 7건, `test_strategy_dual_flow_ui.js` 5건(표 행·정렬·TOP3), 방법론 형식·UTF-8 가드 통과. 기존 실패(변경 전부터): `NpsHoldingsTests` 3건, `test_ui_ia` 국민연금 1건. 실데이터 화면은 VM 배포 후 확인.
+- 배포: 사용자 지시로 master 병합. 첫 데이터는 다음 20:30 KST `etfstrategyscan` 실행 후 표시(그 전에는 탭 없음). 미완료: 운영 응답·화면 확인.
 
 ## 2026-11-27 KIS 기본 전략 v2: 시장 필터·청산 비교·분봉 선터치 (연구 전용)
 - 목적: v1 전부 음수의 원인(선별·청산·진입)을 분리. 기준은 결과 전 `docs/KIS_DEFAULT_STRATEGIES_V2_STUDY_2026-11-27.md`에 고정.
