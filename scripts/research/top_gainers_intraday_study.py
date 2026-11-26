@@ -277,8 +277,87 @@ def analyze_kq(manp, dcache, mcache, outp):
         print(json.dumps(r, ensure_ascii=False))
 
 
+def squeeze_ratio(px, i):
+    """t-1까지 최근 10일 일중 변동폭 평균 / 최근 60일 평균. 자료 부족이면 None."""
+    if i < 62:
+        return None
+    seg = px[i - 60:i]
+    rng = [(r[2] - r[3]) / r[4] for r in seg]
+    base = float(np.mean(rng))
+    return float(np.mean(rng[-10:])) / base if base > 0 else None
+
+
+def analyze_sq(manp, dcache, mcache, split, outp):
+    kq = set(json.load(open(split))['KOSDAQ'])
+    man = json.load(open(manp))
+    data = load_daily(dcache)
+    days = sorted({m['d'] for m in man})
+    thr = {}
+    for d in days:
+        vals = []
+        for code in kq:
+            if code in data:
+                px, ix = data[code]
+                i = ix.get(d)
+                if i and px[i][4] * px[i][5] >= MIN_AMT:
+                    v = squeeze_ratio(px, i)
+                    if v is not None:
+                        vals.append(v)
+        if len(vals) > 100:
+            thr[d] = (float(np.percentile(vals, 30)), float(np.percentile(vals, 70)))
+    rows = []
+    for m in man:
+        path = os.path.join(mcache, '%s_%s.json' % (m['code'], m['d']))
+        if not os.path.exists(path) or m['code'] not in data or m['d'] not in thr:
+            continue
+        px, ix = data[m['code']]
+        sq = squeeze_ratio(px, ix.get(m['d'], 0))
+        bars = [tuple(b) for b in json.load(open(path))['bars']]
+        f = feats(px, ix, bars, m['d'])
+        if f and sq is not None:
+            lo, hi = thr[m['d']]
+            f.update({'d': m['d'], 'g': m['g'], 'w': m['w'], 'bars': bars, 'sqTag': 'expand' if sq >= hi else ('contract' if sq <= lo else 'mid')})
+            rows.append(f)
+    mid = days[len(days) // 2]
+    res = {'rows': len(rows), 'rules': []}
+    for tag in ('any', 'expand', 'contract'):
+        for T in ('0910', '0930'):
+            for cvm in (0.5, 1.0):
+                for rtm in (0.03, 0.06):
+                    sel = [r for r in rows if (tag == 'any' or r['sqTag'] == tag) and r['cv' + T] >= cvm and rtm <= r['ret' + T] < 0.27]
+                    if len(sel) < 20:
+                        continue
+                    for tp in TP_LIST:
+                        for sl in (None, 0.03):
+                            sims = [(r, simulate_exit(r['bars'], T, tp, sl)) for r in sel]
+                            sims = [(r, s) for r, s in sims if s]
+                            if not sims:
+                                continue
+                            w = np.array([r['w'] for r, _ in sims])
+                            ret = np.array([s[1] - COST for _, s in sims])
+                            kind = [s[0] for _, s in sims]
+
+                            def half(f):
+                                sub = [(r, s) for r, s in sims if f(r['d'])]
+                                return round(float(np.average([s[1] - COST for _, s in sub], weights=[r['w'] for r, _ in sub])) * 100, 2) if sub else None
+                            res['rules'].append({
+                                'sq': tag, 'T': T, 'cv': cvm, 'ret': rtm, 'tp': tp, 'sl': sl,
+                                'nTop': sum(1 for r, _ in sims if r['g'] == 'top'), 'nCtrl': sum(1 for r, _ in sims if r['g'] == 'ctrl'),
+                                'tpPct': round(float(sum(wi for wi, kd in zip(w, kind) if kd == 'tp') / w.sum()) * 100, 1),
+                                'slPct': round(float(sum(wi for wi, kd in zip(w, kind) if kd == 'sl') / w.sum()) * 100, 1),
+                                'mean': round(float(np.average(ret, weights=w)) * 100, 2), 'p5': pct5(ret, w),
+                                'half1': half(lambda d: d < mid), 'half2': half(lambda d: d >= mid)})
+    json.dump(res, open(outp, 'w'), ensure_ascii=False, indent=1)
+    print('rows', res['rows'], {t: sum(1 for r in rows if r['sqTag'] == t) for t in ('expand', 'contract', 'mid')})
+    for r in res['rules']:
+        print(json.dumps(r, ensure_ascii=False))
+
+
 if __name__ == '__main__':
     cmd = sys.argv[1]
+    if cmd == 'analyze_sq':
+        analyze_sq(*sys.argv[2:7])
+        sys.exit(0)
     if cmd == 'select':
         select(sys.argv[2], sys.argv[3])
     elif cmd == 'select_kq':
