@@ -2,13 +2,13 @@
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const src = fs.readFileSync(__dirname + '/../js/access-gate.js', 'utf8');
 
-function boot(path, search, policyFn, session, local) {
+function boot(path, search, policyFn, session, local, hash) {
   const calls = { replace: [], fetches: [], events: [], scripts: [] };
   const store = Object.assign({}, session || {});
   const localStore = Object.assign({}, local || {});
   const classes = new Set();
   const win = {
-    location: { pathname: path, search: search || '', origin: 'https://ghlee.tistory.com', replace: (u) => calls.replace.push(u) },
+    location: { pathname: path, search: search || '', hash: hash || '', origin: 'https://ghlee.tistory.com', replace: (u) => calls.replace.push(u) },
     document: {
       documentElement: { classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c), toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) } },
       head: { appendChild: (el) => { if (el && el.src) calls.scripts.push(el.src); } }, addEventListener() {}, getElementById: () => null, createElement: () => ({ addEventListener() {} }),
@@ -138,6 +138,37 @@ const wait = (ms = 20) => new Promise((r) => setTimeout(r, ms));
   assert.deepStrictEqual(b.calls.replace, ['/page/foreign-flow?code=005930']); assert(!('nine_access_from' in b.store));
   b = boot('/guestbook', '', policy(false), { nine_access_from: '/page/foreign-flow' }); await wait();
   assert.deepStrictEqual(b.calls.replace, []);
+  assert.equal(b.store.nine_access_from, '/page/foreign-flow', 'waiting for Google login must keep the destination');
+
+  const requested = '/page/stock-search?code=376900&tool=independent-chart#ssChart';
+  const restricted = boot('/page/stock-search', '?code=376900&tool=independent-chart', policy(false), {}, {}, '#ssChart');
+  await wait();
+  assert.deepStrictEqual(restricted.calls.replace, ['/guestbook']);
+  assert.equal(restricted.store.nine_access_from, requested);
+  const loginLanding = boot('/guestbook', '', policy(false), restricted.store);
+  await wait();
+  const oauth = new URL(loginLanding.win.NineAccess.googleLoginUrl());
+  assert.equal(oauth.searchParams.get('return_to'), 'https://ghlee.tistory.com' + requested);
+  const returned = boot('/page/stock-search', '?code=376900&tool=independent-chart', policy(true), loginLanding.store);
+  await wait();
+  assert.deepStrictEqual(returned.calls.replace, []);
+  assert(!('nine_access_from' in returned.store));
+  for (const state of [policy(false), fail]) {
+    const interrupted = boot('/', '', state, loginLanding.store);
+    await wait();
+    assert.equal(interrupted.store.nine_access_from, requested);
+  }
+  const legacyHome = boot('/', '', policy(true), loginLanding.store);
+  await wait();
+  assert.deepStrictEqual(legacyHome.calls.replace, [requested]);
+  const denied = boot('/guestbook', '', policy(false, [], true), loginLanding.store);
+  await wait();
+  assert.deepStrictEqual(denied.calls.replace, []);
+  const malicious = boot('/guestbook', '', policy(false), { nine_access_from: '//example.org/page/stock-search' });
+  await wait();
+  assert.equal(new URL(malicious.win.NineAccess.googleLoginUrl()).searchParams.get('return_to'), 'https://ghlee.tistory.com/guestbook');
+  loginLanding.win.NineAccess.enterGuest();
+  assert(!('nine_access_from' in loginLanding.store));
 
   // 세션 쿠키 전송: goodbyestar.cloud 요청에 credentials include 자동 부여, 명시값 보존
   b = boot('/guestbook', '', policy(false)); await wait();

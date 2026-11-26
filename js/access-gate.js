@@ -143,18 +143,34 @@
   function remember(target) {
     try { global.sessionStorage.setItem(FROM_KEY, target); } catch (e) { /* 저장소 차단 */ }
   }
-  function takeRemembered() {
+  function clearRemembered() {
+    try { global.sessionStorage.removeItem(FROM_KEY); } catch (e) { /* 저장소 차단 */ }
+  }
+  function rememberedDestination() {
     try {
-      var v = global.sessionStorage.getItem(FROM_KEY);
-      global.sessionStorage.removeItem(FROM_KEY);
-      return v;
+      var target = global.sessionStorage.getItem(FROM_KEY);
+      if (!target) return null;
+      var url = new URL(target, global.location.origin);
+      var screen = screenOf(url.pathname, url.search);
+      if (url.origin !== global.location.origin || !screen || screen === 'guestbook' || screen === 'home') return null;
+      return url;
     } catch (e) { return null; }
+  }
+  function loginEntryPage() {
+    return startScreen === 'guestbook' || startScreen === 'home';
+  }
+  function googleLoginUrl() {
+    var returnTo = (loginEntryPage() && rememberedDestination())
+      || new URL(global.location.pathname + global.location.search + (global.location.hash || ''), global.location.origin);
+    return API + '/auth/google/start?return_to=' + encodeURIComponent(returnTo.href);
   }
 
   function redirectFallback() {
     var here = norm(global.location.pathname);
     if (/^\/guestbook(?:\/|$)/.test(here)) { global.location.replace('/'); return; } // 반복 이동 방지
-    remember(global.location.pathname + global.location.search);
+    if (!current || !current.authenticated) {
+      remember(global.location.pathname + global.location.search + (global.location.hash || ''));
+    }
     global.location.replace(FALLBACK);
   }
 
@@ -222,7 +238,7 @@
     if (global.NineLanding) { fn(global.NineLanding); return; }
     if (!landingTag) {
       landingTag = doc.createElement('script');
-      landingTag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-landing.js?v=20261119-sketch-wide';
+      landingTag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-landing.js?v=20261126-login-return';
       (doc.head || doc.documentElement).appendChild(landingTag);
     }
     landingTag.addEventListener('load', function () { if (global.NineLanding) fn(global.NineLanding); });
@@ -270,6 +286,7 @@
      별도 인증 영역인 티스토리의 외부 로그아웃 페이지로 강제 이동하지 않는다. */
   var LOGOUT_KEY = 'nine_logout_step';
   function clearEntry() {
+    clearRemembered();
     setGuest(false);
     setHint(false);
     try { global.sessionStorage.removeItem('nine_landing_seen'); global.sessionStorage.removeItem('wl_preview_v1'); global.localStorage.removeItem(CACHE_KEY); } catch (err) { /* 차단 */ }
@@ -296,6 +313,15 @@
         try { global.sessionStorage.removeItem('nine_landing_seen'); } catch (e) { /* 차단 */ }
       }
       setHint(!!(current && current.authenticated));
+      if (current && current.authenticated) {
+        var target = loginEntryPage() && rememberedDestination();
+        clearRemembered();
+        if (target && allowsScreen(screenOf(target.pathname, target.search))) {
+          global.location.replace(target.pathname + target.search + target.hash);
+          readyResolve(current);
+          return;
+        }
+      }
       if (landingApplies) {
         if ((current && current.authenticated) || isGuest()) { if (global.NineLanding) global.NineLanding.close(); }
         else withLanding(function (L) { if (L.seen()) return; if (L.isOpen()) L.settle(current || {}); else L.show(!!(current && current.naverConfigured));  });
@@ -305,16 +331,6 @@
         // [비회원 로그인]을 누르면 대화방을 거치지 않고 그 자리에서 랜딩만 닫힌다.
         mountGuestHome();
       } else if (!allowsScreen(startScreen)) { redirectFallback(); return; }
-      // 로그인 후 원래 가려던 화면으로 복귀(한 번만). 대화방에서 시작한 경우에만.
-      var target = takeRemembered();
-      if (target && /^\/guestbook(?:\/|$)/.test(norm(global.location.pathname))) {
-        var u = new URL(target, global.location.origin);
-        if (u.origin === global.location.origin && allowsScreen(screenOf(u.pathname, u.search))
-            && screenOf(u.pathname, u.search) !== 'guestbook') {
-          global.location.replace(u.pathname + u.search);
-          return;
-        }
-      }
       try { global.dispatchEvent(new CustomEvent('nineaccess:ready', { detail: { admin: isAdmin() } })); } catch (e) { /* 구형 */ }
     })
     .then(function () { readyResolve(current); });
@@ -326,10 +342,11 @@
     allowsScreen: allowsScreen,
     allowsHref: function (href) { return allowsScreen(screenOfHref(href)); },
     menuAllowsHref: function (href) { return menuAllowsScreen(screenOfHref(href)); },
+    googleLoginUrl: googleLoginUrl,
     isAdmin: isAdmin,
     isGuest: isGuest,
     /* 비회원 입장: 인증 없이 공개 화면만. 인증된 사용자로 취급하지 않는다. */
-    enterGuest: function () { setGuest(true); },
+    enterGuest: function () { clearRemembered(); setGuest(true); },
     isLimited: function () { return !allowsScreen('home'); },
     whenMember: function (fn, key) { ready.then(function () { if ((Array.isArray(key) ? key : [key || 'my']).some(allowsScreen)) fn(); }); },
     failed: function () { return failed; },

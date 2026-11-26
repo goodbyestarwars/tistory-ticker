@@ -163,7 +163,7 @@
   if (global.NineAccess || global.document.getElementById('nine-access-gate-js')) return;
   var tag = global.document.createElement('script');
   tag.id = 'nine-access-gate-js';
-  tag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-gate.js?v=20261123-public-crypto';
+  tag.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/access-gate.js?v=20261126-login-return';
   global.document.head.appendChild(tag);
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -1482,7 +1482,9 @@
         closeModal();
       } else if (action === 'google') {
         event.preventDefault();
-        window.location.href = googleStartUrl + '?return_to=' + encodeURIComponent(window.location.href);
+        window.location.href = window.NineAccess && window.NineAccess.googleLoginUrl
+          ? window.NineAccess.googleLoginUrl()
+          : googleStartUrl + '?return_to=' + encodeURIComponent(window.location.href);
 
       }
     });

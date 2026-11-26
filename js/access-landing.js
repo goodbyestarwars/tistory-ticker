@@ -53,7 +53,11 @@
   function markSeen() { try { global.sessionStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* 저장소 차단 */ } }
   function seen() { try { return global.sessionStorage.getItem(SEEN_KEY) === '1'; } catch (e) { return false; } }
 
-  function ret() { return encodeURIComponent(global.location.href); }
+  function googleLoginUrl() {
+    return global.NineAccess && global.NineAccess.googleLoginUrl
+      ? global.NineAccess.googleLoginUrl()
+      : API + '/auth/google/start?return_to=' + encodeURIComponent(global.location.href);
+  }
 
   function close() {
     if (!root) return;
@@ -82,7 +86,8 @@
   /* 비회원 입장: 인증 없이 공개 화면(비회원 홈)으로. 인증된 사용자가 아니다. */
   function enterGuest() {
     markSeen();
-    try { global.sessionStorage.setItem('nine_guest', '1'); } catch (e) { /* 저장소 차단 */ }
+    if (global.NineAccess && global.NineAccess.enterGuest) global.NineAccess.enterGuest();
+    else { try { global.sessionStorage.setItem('nine_guest', '1'); } catch (e) { /* 저장소 차단 */ } }
     // 다른 화면(예: /guestbook)에서는 이동이 끝날 때까지 랜딩을 유지한다.
     // 먼저 닫으면 네트워크가 느릴 때 이전 화면이 잠깐 드러난다.
     if (global.location.pathname !== '/' && global.location.pathname !== '') {
@@ -123,7 +128,7 @@
       '<div class="nl-modal" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlLoginTitle">' +
       '<button type="button" class="nl-x" data-nl-back="1" aria-label="닫기">×</button>' +
       '<h2 id="nlLoginTitle">로그인</h2><p>Google 계정으로 로그인하세요. 회원·관리자 권한은 등록된 계정에 따라 적용됩니다.</p>' +
-      '<a class="nl-pv nl-google" href="' + API + '/auth/google/start?return_to=' + ret() + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
+      '<a class="nl-pv nl-google" href="' + esc(googleLoginUrl()) + '"><i>G</i><span>Google로 계속하기<small>관리자 계정이면 전체 서비스</small></span></a>' +
       '<p class="nl-note">티스토리 글·댓글 관리는 별도 블로그 관리에서 이용합니다.</p>' +
       '</section></div>' +
       '<div class="nl-modal" data-nl-guestmodal="1" hidden><section class="nl-card" role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="nlGuestTitle">' +
@@ -147,7 +152,11 @@
       if (!t) return;
       if (t.closest('[data-nl-guestgo]')) { closeModal(); enterGuest(); return; }
       if (t.closest('[data-nl-guest]')) { openModal('guest'); return; }
-      if (t.closest('[data-nl-login]')) { openModal(); return; }
+      if (t.closest('[data-nl-login]')) {
+        root.querySelector('.nl-google').href = googleLoginUrl();
+        openModal();
+        return;
+      }
       if (t.closest('[data-nl-back]') || t.classList.contains('nl-modal')) closeModal();
     });
     doc.addEventListener('keydown', onKey);
