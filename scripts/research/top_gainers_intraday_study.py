@@ -166,11 +166,126 @@ def analyze(manp, dcache, mcache, outp):
         print(r)
 
 
+TP_LIST = (0.03, 0.05)
+SL_LIST = (None, 0.03, 0.05)
+
+
+def select_kq(cache, oldman, split, outp):
+    """코스닥만: 코스닥 안 TOP30 + 기존 무작위 비교군 중 코스닥·비TOP30. 가중은 코스닥 모집단 기준."""
+    kq = set(json.load(open(split))['KOSDAQ'])
+    data = load_daily(cache)
+    old = json.load(open(oldman))
+    ctrl_by_day = {}
+    for m in old:
+        if m['g'] == 'ctrl' and m['code'] in kq:
+            ctrl_by_day.setdefault(m['d'], []).append(m['code'])
+    days = sorted({m['d'] for m in old})
+    man = []
+    for d in days:
+        rows = []
+        for code, (px, ix) in data.items():
+            i = ix.get(d)
+            if code not in kq or not i or i < 25:
+                continue
+            c, pc = px[i][4], px[i - 1][4]
+            if c * px[i][5] >= MIN_AMT:
+                rows.append((c / pc - 1, code))
+        if len(rows) < 100:
+            continue
+        rows.sort(reverse=True)
+        top = [c for _, c in rows[:N_TOP]]
+        ctrl = [c for c in ctrl_by_day.get(d, []) if c not in set(top)]
+        if not ctrl:
+            continue
+        w = (len(rows) - N_TOP) / len(ctrl)
+        man += [{'d': d, 'code': c, 'g': 'top', 'w': 1.0, 'nu': len(rows)} for c in top]
+        man += [{'d': d, 'code': c, 'g': 'ctrl', 'w': round(w, 3), 'nu': len(rows)} for c in ctrl]
+    json.dump(man, open(outp, 'w'), ensure_ascii=False)
+    missing = sum(1 for m in man if not os.path.exists(os.path.join('/home/ubuntu/study_side/minute/cache', '%s_%s.json' % (m['code'], m['d']))))
+    print('days', len(days), 'stock-days', len(man), 'missing', missing)
+
+
+def simulate_exit(bars, T, tp, sl):
+    """T 직전 분봉 종가 진입 → 이후 분봉에서 익절/손절 선터치(같은 분봉이면 손절 우선). 15:20까지 못 닿으면 마지막 가격 평가."""
+    early = [b for b in bars if b[0] < T + '00']
+    later = [b for b in bars if T + '00' <= b[0] <= '152000']
+    if not early or not later:
+        return None
+    p = early[-1][4]
+    for b in later:
+        if sl is not None and b[3] <= p * (1 - sl):
+            return 'sl', -sl
+        if b[2] >= p * (1 + tp):
+            return 'tp', tp
+    return 'none', later[-1][4] / p - 1
+
+
+def pct5(vals, w):
+    order = np.argsort(vals)
+    v, ww = np.array(vals)[order], np.array(w)[order]
+    cum = np.cumsum(ww) / ww.sum()
+    return round(float(v[np.searchsorted(cum, 0.05)]) * 100, 2)
+
+
+def analyze_kq(manp, dcache, mcache, outp):
+    man = json.load(open(manp))
+    data = load_daily(dcache)
+    rows = []
+    for m in man:
+        path = os.path.join(mcache, '%s_%s.json' % (m['code'], m['d']))
+        if not os.path.exists(path) or m['code'] not in data:
+            continue
+        bars = [tuple(b) for b in json.load(open(path))['bars']]
+        f = feats(data[m['code']][0], data[m['code']][1], bars, m['d'])
+        if f:
+            f.update({'d': m['d'], 'g': m['g'], 'w': m['w'], 'code': m['code'], 'bars': bars})
+            rows.append(f)
+    days = sorted({r['d'] for r in rows})
+    mid = days[len(days) // 2] if days else ''
+    res = {'rows': len(rows), 'top': sum(1 for r in rows if r['g'] == 'top'), 'rules': []}
+    rule_sets = [('ALL', 0.0, -9.0)] + [(None, cv, rt) for cv in (0.2, 0.5, 1.0) for rt in (0.03, 0.06, 0.10)]
+    for T in ('0910', '0930'):
+        for _, cvm, rtm in rule_sets:
+            sel = [r for r in rows if r['cv' + T] >= cvm and rtm <= r['ret' + T] < 0.27]
+            if len(sel) < 20:
+                continue
+            for tp in TP_LIST:
+                for sl in SL_LIST:
+                    sims = [(r, simulate_exit(r['bars'], T, tp, sl)) for r in sel]
+                    sims = [(r, s) for r, s in sims if s]
+                    if not sims:
+                        continue
+                    w = np.array([r['w'] for r, _ in sims])
+                    ret = np.array([s[1] - COST for _, s in sims])
+                    kind = [s[0] for _, s in sims]
+                    share = lambda k: round(float(sum(wi for wi, kd in zip(w, kind) if kd == k) / w.sum()) * 100, 1)  # noqa: E731
+
+                    def half(f):
+                        sub = [(r, s) for r, s in sims if f(r['d'])]
+                        if not sub:
+                            return None
+                        return round(float(np.average([s[1] - COST for _, s in sub], weights=[r['w'] for r, _ in sub])) * 100, 2)
+                    res['rules'].append({
+                        'T': T, 'cv': cvm, 'ret': None if rtm < -1 else rtm, 'tp': tp, 'sl': sl,
+                        'nTop': sum(1 for r, _ in sims if r['g'] == 'top'), 'nCtrl': sum(1 for r, _ in sims if r['g'] == 'ctrl'),
+                        'tpPct': share('tp'), 'slPct': share('sl'), 'nonePct': share('none'),
+                        'mean': round(float(np.average(ret, weights=w)) * 100, 2), 'p5': pct5(ret, w),
+                        'half1': half(lambda d: d < mid), 'half2': half(lambda d: d >= mid)})
+    json.dump(res, open(outp, 'w'), ensure_ascii=False, indent=1)
+    print('rows', res['rows'], 'top', res['top'])
+    for r in res['rules']:
+        print(json.dumps(r, ensure_ascii=False))
+
+
 if __name__ == '__main__':
     cmd = sys.argv[1]
     if cmd == 'select':
         select(sys.argv[2], sys.argv[3])
+    elif cmd == 'select_kq':
+        select_kq(*sys.argv[2:6])
     elif cmd == 'fetch':
         fetch(sys.argv[2], sys.argv[3])
+    elif cmd == 'analyze_kq':
+        analyze_kq(*sys.argv[2:6])
     else:
         analyze(*sys.argv[2:6])
