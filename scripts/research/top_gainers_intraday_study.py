@@ -1,0 +1,176 @@
+# -*- coding: utf-8 -*-
+"""상승률 TOP30의 장 초반 상대 거래량 연구 (연구 전용, 읽기 전용 조회 - 2026-11-27).
+
+기준은 `docs/TOP_GAINERS_COMMON_STUDY_2026-11-27.md` '추가' 절에 결과 확인 전 고정했다.
+  select  <일봉 cache> <manifest.json>                 (키 불필요)
+  fetch   <manifest.json> <분봉 cache>                 (KIS 키 환경변수 필요, 분봉 조회만)
+  analyze <manifest.json> <일봉 cache> <분봉 cache> <out.json>
+"""
+import json
+import os
+import random
+import sys
+
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import daytrade_support_breakout_minute_study as B  # noqa: E402
+
+DAYS = 60
+MIN_AMT = 3e8
+N_TOP = 30
+N_CTRL = 90
+TIMES = ('0905', '0910', '0920', '0930', '1000')
+COST = 0.004
+
+
+def load_daily(cache):
+    out = {}
+    for f in os.listdir(cache):
+        if not f.endswith('.json'):
+            continue
+        try:
+            px = json.load(open(os.path.join(cache, f), encoding='utf-8'))['px']
+        except (OSError, ValueError, KeyError):
+            continue
+        px = [r for r in px if r[1] and r[2] and r[3] and r[4] and r[2] >= r[3]]
+        if len(px) >= 140:
+            out[f[:-5]] = (px, {r[0]: i for i, r in enumerate(px)})
+    return out
+
+
+def select(cache, outp):
+    data = load_daily(cache)
+    days = sorted({d for px, ix in data.values() for d in ix})[-DAYS:]
+    rng = random.Random(20261127)
+    man = []
+    for d in days:
+        rows = []
+        for code, (px, ix) in data.items():
+            i = ix.get(d)
+            if not i or i < 25:
+                continue
+            c, pc = px[i][4], px[i - 1][4]
+            if c * px[i][5] >= MIN_AMT:
+                rows.append((c / pc - 1, code))
+        if len(rows) < 300:
+            continue
+        rows.sort(reverse=True)
+        top = [c for _, c in rows[:N_TOP]]
+        rest = sorted(c for _, c in rows[N_TOP:])
+        ctrl = rng.sample(rest, N_CTRL)
+        w = (len(rows) - N_TOP) / N_CTRL
+        man += [{'d': d, 'code': c, 'g': 'top', 'w': 1.0, 'nu': len(rows)} for c in top]
+        man += [{'d': d, 'code': c, 'g': 'ctrl', 'w': round(w, 3), 'nu': len(rows)} for c in ctrl]
+    json.dump(man, open(outp, 'w'), ensure_ascii=False)
+    print('days', len(days), 'stock-days', len(man))
+
+
+def fetch(manp, cache):
+    man = json.load(open(manp))
+    call = B.make_kis_call(os.environ['KIS_APPKEY'], os.environ['KIS_APPSECRET'])
+    os.makedirs(cache, exist_ok=True)
+    got = reused = failed = 0
+    for j, m in enumerate(man):
+        path = os.path.join(cache, '%s_%s.json' % (m['code'], m['d']))
+        if os.path.exists(path):
+            reused += 1
+            continue
+        try:
+            bars = B.fetch_day(call, m['code'], m['d'])
+        except Exception as exc:  # noqa: BLE001 - 개별 실패는 건너뛰고 계속
+            failed += 1
+            print('fail', m['code'], m['d'], str(exc)[:80], flush=True)
+            continue
+        json.dump({'code': m['code'], 'date': m['d'], 'bars': bars}, open(path + '.tmp', 'w'))
+        os.replace(path + '.tmp', path)
+        got += 1
+        if j % 200 == 0:
+            print('progress', j, len(man), 'fetched', got, 'failed', failed, flush=True)
+    print('fetched', got, 'failed', failed, 'reused', reused)
+
+
+def feats(px, ix, bars, d):
+    i = ix.get(d)
+    if not i or i < 25 or not bars:
+        return None
+    pc = px[i - 1][4]
+    base = float(np.mean([r[5] for r in px[i - 20:i]]))
+    if base <= 0 or pc <= 0:
+        return None
+    out = {'gap': bars[0][1] / pc - 1, 'close': bars[-1][4]}
+    for T in TIMES:
+        early = [b for b in bars if b[0] < T + '00']
+        if not early:
+            return None
+        out['cv' + T] = sum(b[5] for b in early) / base
+        out['ret' + T] = early[-1][4] / pc - 1
+        out['p' + T] = early[-1][4]
+    return out
+
+
+def auc(pos, neg):
+    pos, neg = np.array(pos), np.array(neg)
+    if len(pos) == 0 or len(neg) == 0:
+        return None
+    allv = np.concatenate([pos, neg])
+    order = allv.argsort().argsort() + 1
+    u = order[:len(pos)].sum() - len(pos) * (len(pos) + 1) / 2
+    return round(float(u / (len(pos) * len(neg))), 3)
+
+
+def wmean(sel, T):
+    if not sel:
+        return None
+    return round(float(np.average([r['close'] / r['p' + T] - 1 - COST for r in sel], weights=[r['w'] for r in sel])) * 100, 2)
+
+
+def analyze(manp, dcache, mcache, outp):
+    man = json.load(open(manp))
+    data = load_daily(dcache)
+    rows = []
+    for m in man:
+        path = os.path.join(mcache, '%s_%s.json' % (m['code'], m['d']))
+        if not os.path.exists(path) or m['code'] not in data:
+            continue
+        bars = [tuple(b) for b in json.load(open(path))['bars']]
+        f = feats(data[m['code']][0], data[m['code']][1], bars, m['d'])
+        if f:
+            f.update({'d': m['d'], 'g': m['g'], 'w': m['w'], 'code': m['code']})
+            rows.append(f)
+    res = {'rows': len(rows), 'top': sum(1 for r in rows if r['g'] == 'top'), 'auc': {}, 'rules': []}
+    for T in TIMES:
+        res['auc'][T] = {'cv': auc([r['cv' + T] for r in rows if r['g'] == 'top'], [r['cv' + T] for r in rows if r['g'] == 'ctrl']),
+                         'ret': auc([r['ret' + T] for r in rows if r['g'] == 'top'], [r['ret' + T] for r in rows if r['g'] == 'ctrl'])}
+    days = sorted({r['d'] for r in rows})
+    mid = days[len(days) // 2] if days else ''
+    base_pct = round(N_TOP / np.mean([m['nu'] for m in man]) * 100, 2)
+    for T in ('0910', '0930'):
+        for cvm in (0.2, 0.5, 1.0):
+            for rtm in (0.03, 0.06, 0.10):
+                sel = [r for r in rows if r['cv' + T] >= cvm and rtm <= r['ret' + T] < 0.27]
+                if not sel:
+                    res['rules'].append({'T': T, 'cv': cvm, 'ret': rtm, 'n': 0})
+                    continue
+                w = np.array([r['w'] for r in sel])
+                istop = np.array([1.0 if r['g'] == 'top' else 0.0 for r in sel])
+                res['rules'].append({
+                    'T': T, 'cv': cvm, 'ret': rtm, 'nTop': int(istop.sum()), 'nCtrl': int(len(sel) - istop.sum()),
+                    'precisionPct': round(float((w * istop).sum() / w.sum()) * 100, 2), 'basePct': base_pct,
+                    'meanToClosePct': wmean(sel, T),
+                    'half1': wmean([r for r in sel if r['d'] < mid], T), 'half2': wmean([r for r in sel if r['d'] >= mid], T)})
+    json.dump(res, open(outp, 'w'), ensure_ascii=False, indent=1)
+    print('rows', res['rows'], 'top', res['top'])
+    print('AUC', json.dumps(res['auc']))
+    for r in res['rules']:
+        print(r)
+
+
+if __name__ == '__main__':
+    cmd = sys.argv[1]
+    if cmd == 'select':
+        select(sys.argv[2], sys.argv[3])
+    elif cmd == 'fetch':
+        fetch(sys.argv[2], sys.argv[3])
+    else:
+        analyze(*sys.argv[2:6])
