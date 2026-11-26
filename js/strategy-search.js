@@ -436,8 +436,10 @@
       return;
     }
     var scanAt = activeKey === 'etfReturn' && scanData.etfScannedAt
-      ? scanData.etfScannedAt : scanData.scannedAt;
-    var cadence = activeKey === 'etfReturn' ? 'ETF 매일 갱신' : '전략 주 1회 갱신';
+      ? scanData.etfScannedAt
+      : (activeKey === 'dualFlowBuy' && scanData.dualFlowScannedAt ? scanData.dualFlowScannedAt : scanData.scannedAt);
+    var cadence = activeKey === 'etfReturn' ? 'ETF 매일 갱신'
+      : activeKey === 'dualFlowBuy' ? '수급 매일 갱신(확정치)' : '전략 주 1회 갱신';
     var text = ((window.NineTime && window.NineTime.updated(scanAt)) || ('스캔 기준시각 ' + scanAt)) + ' · ' + cadence + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
     if (scanData.skippedIlliquid != null) text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
     if (scanData.degraded) text += ' · 대체 경로의 저장 결과';
@@ -451,6 +453,7 @@
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
     // 2026-08-20: "연 1회 공시 스냅샷" 안내는 요약 줄에서 빼고 아래 라벨 줄에만 남겼다.
     if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다.';
+    if (key === 'dualFlowBuy') return '가장 최근 거래일에 외국인과 기관이 함께 순매수한 종목을 많이 산 순으로 표시합니다.';
     // 2026-09-04: 요약은 "이 화면이 무엇인지" 한 문장까지만 한다. 35%·70%·60%·30종목을
     // 요약과 본문이 둘 다 말하고 있어서 같은 숫자를 두 번 읽어야 했다 - 숫자는 아래
     // 라벨 줄이 전부 들고 있으므로 여기서는 뺀다.
@@ -481,7 +484,7 @@
     var cat = scanData.categories[activeKey];
     var full = (cat && cat.methodology) || '상세 조건 정보가 없습니다.';
     if (activeKey === 'undervalued') full = '';
-    var guide = {"undervalued":"의미\t‘장기’는 120거래일 평균가(약 6개월)를 비교 기준으로 쓴다는 뜻입니다. 120일 연속 하락·눌림을 요구하지 않습니다.\n판정\t종가 ÷ 최근 120거래일 종가 평균 × 100 ≤ 90. 예: 평균가 10,000원이면 종가 9,000원 이하입니다. DART ROE·부채비율로 계산한 재무점수(ROE 60%·부채비율 40%) 60점 이상을 동시에 충족해야 합니다.\n제외\t일봉 120개 미만, 주가 1,000원 미만, 최근 20거래일 평균 거래대금 10억원 미만, 서비스 테마 분류는 제외합니다.\n선정\t전체 통과자가 20개 이하면 그대로 둡니다. 20개 초과 시 점수≥70 → 점수≥80·이격도≤85 → 점수≥90·이격도≤80 → 점수≥90·이격도≤75 → 점수100·이격도≤75 순으로 강화하며, 20개 이하가 되는 단계에서 멈춥니다. 마지막 단계에도 20개를 넘으면 모두 유지합니다. 섹터 안에서는 재무점수 높은 순, 동점이면 이격도 낮은 순입니다. 섹터당 5개 고정 제한은 현재 적용하지 않습니다. 조건 근접은 통과 후보와 별도입니다.\n해석\t이 전략은 PER·PBR을 선정 조건으로 쓰지 않습니다. 기업 가치보다 싼지를 판정하는 ‘저평가’가 아니라 평균가 대비 가격 하락을 찾습니다. 기준값은 수익성 검증이 끝난 공식이 아닙니다.\n재무점수\tROE가 15% 이상/10% 이상/5% 이상/0% 이상/0% 미만이면 100/80/60/40/20점, 부채비율이 50% 이하/100% 이하/150% 이하/200% 이하/200% 초과면 100/80/60/40/20점입니다. ROE점수×0.6+부채점수×0.4를 반올림합니다. 한 항목만 결측이면 그 항목은 50점, 둘 다 없으면 제외합니다.","dividend":"읽는 법\t배당수익률 = 공시된 주당 현금배당금 ÷ 가격 × 100. 예: 1,000원 배당·가격 20,000원이면 5%입니다. 과거 결산 배당이며 다음 배당의 확정 수익률이 아닙니다.\n선정 범위\t현금배당이 확인된 보통주의 비교 목록입니다. 높은 배당률·배당성향 하한·3년 이익 증가를 필수 조건으로 요구하지 않습니다. 결산연도와 가격 기준시점을 함께 보세요.","targetPriceGap":"읽는 법\t목표가 여력 = (참고 목표가 ÷ 가격 − 1) × 100. 예: 가격 10,000원·목표가 12,000원이면 20%입니다. PER은 이익 대비, PBR은 자본 대비 가격 배수입니다.\n비교 방식\t같은 WICS 섹터의 유효 표본 5개 이상에서 PER·PBR 중앙값을 사용합니다. 현재 배수와 중앙값의 차이 중 35%만 반영한 부분 수렴 목표가이며 전부 수렴한다고 가정하지 않습니다.\n보정·선정\t자체 목표가가 KIS 애널리스트 목표가보다 높으면 그 목표가까지 거리의 70%로 낮춰 참고합니다. 최종 여력 20~60% 범위, 큰 순 최대 30개입니다. 실제 기업가치 확정값이나 도달 보장이 아닙니다.","nationalPension":"읽는 법\t보유 지분율은 해당 회사 전체 주식 중 국민연금 몫입니다. 펀드 내 비중과 다른 수치입니다. 공개된 연말 보유자료를 쓰므로 현재 실시간 보유량이 아닙니다.\n수급 비교\t연속 순매수는 ‘연기금 등’ 집계의 연속 거래일 수입니다. 국민연금 단독 매매가 아니며 연말 보유율이 증가했다는 뜻도 아닙니다. 보유 기준일과 수급 기준일을 따로 확인하고 결측은 미확인으로 봅니다.","earningsGrowth":"읽는 법\t연간 매출과 영업이익 각각 3개 결산연도 값이 모두 양수이며 해마다 커져야 합니다(예: 100→120→150). 최신 단독 3개월도 전년 같은 분기보다 두 항목 모두 증가해야 합니다. 누적 실적과 섞지 않습니다.\n재무 조건\t최근 연간 부채총계 ÷ 자본총계 × 100이 0~100%여야 합니다. 금융업은 부채 구조가 달라 제외합니다. 최신 보고서 결측·반영 대기를 임의 추정해 통과시키지 않습니다.\n해석\t과거 실적 증가를 확인하는 조건입니다. 향후 성장이나 주가 상승을 예측하는 점수가 아닙니다."};
+    var guide = {"undervalued":"의미\t‘장기’는 120거래일 평균가(약 6개월)를 비교 기준으로 쓴다는 뜻입니다. 120일 연속 하락·눌림을 요구하지 않습니다.\n판정\t종가 ÷ 최근 120거래일 종가 평균 × 100 ≤ 90. 예: 평균가 10,000원이면 종가 9,000원 이하입니다. DART ROE·부채비율로 계산한 재무점수(ROE 60%·부채비율 40%) 60점 이상을 동시에 충족해야 합니다.\n제외\t일봉 120개 미만, 주가 1,000원 미만, 최근 20거래일 평균 거래대금 10억원 미만, 서비스 테마 분류는 제외합니다.\n선정\t전체 통과자가 20개 이하면 그대로 둡니다. 20개 초과 시 점수≥70 → 점수≥80·이격도≤85 → 점수≥90·이격도≤80 → 점수≥90·이격도≤75 → 점수100·이격도≤75 순으로 강화하며, 20개 이하가 되는 단계에서 멈춥니다. 마지막 단계에도 20개를 넘으면 모두 유지합니다. 섹터 안에서는 재무점수 높은 순, 동점이면 이격도 낮은 순입니다. 섹터당 5개 고정 제한은 현재 적용하지 않습니다. 조건 근접은 통과 후보와 별도입니다.\n해석\t이 전략은 PER·PBR을 선정 조건으로 쓰지 않습니다. 기업 가치보다 싼지를 판정하는 ‘저평가’가 아니라 평균가 대비 가격 하락을 찾습니다. 기준값은 수익성 검증이 끝난 공식이 아닙니다.\n재무점수\tROE가 15% 이상/10% 이상/5% 이상/0% 이상/0% 미만이면 100/80/60/40/20점, 부채비율이 50% 이하/100% 이하/150% 이하/200% 이하/200% 초과면 100/80/60/40/20점입니다. ROE점수×0.6+부채점수×0.4를 반올림합니다. 한 항목만 결측이면 그 항목은 50점, 둘 다 없으면 제외합니다.","dividend":"읽는 법\t배당수익률 = 공시된 주당 현금배당금 ÷ 가격 × 100. 예: 1,000원 배당·가격 20,000원이면 5%입니다. 과거 결산 배당이며 다음 배당의 확정 수익률이 아닙니다.\n선정 범위\t현금배당이 확인된 보통주의 비교 목록입니다. 높은 배당률·배당성향 하한·3년 이익 증가를 필수 조건으로 요구하지 않습니다. 결산연도와 가격 기준시점을 함께 보세요.","targetPriceGap":"읽는 법\t목표가 여력 = (참고 목표가 ÷ 가격 − 1) × 100. 예: 가격 10,000원·목표가 12,000원이면 20%입니다. PER은 이익 대비, PBR은 자본 대비 가격 배수입니다.\n비교 방식\t같은 WICS 섹터의 유효 표본 5개 이상에서 PER·PBR 중앙값을 사용합니다. 현재 배수와 중앙값의 차이 중 35%만 반영한 부분 수렴 목표가이며 전부 수렴한다고 가정하지 않습니다.\n보정·선정\t자체 목표가가 KIS 애널리스트 목표가보다 높으면 그 목표가까지 거리의 70%로 낮춰 참고합니다. 최종 여력 20~60% 범위, 큰 순 최대 30개입니다. 실제 기업가치 확정값이나 도달 보장이 아닙니다.","dualFlowBuy":"읽는 법\t쌍끌이 연속은 가장 최근 거래일부터 같은 날 외국인과 기관이 모두 순매수한 날이 이어진 일수입니다. 외국인·기관 연속은 각 주체 혼자 순매수가 이어진 일수이며 쌍끌이보다 길 수 있습니다. 금액은 일별 순매수 주수 × 종가의 합으로 추정한 값입니다.\n해석\t같은 방향의 수급을 확인하는 목록이며 상승을 예측하거나 매수를 권하는 조건이 아닙니다. 확정 수급 기준이라 당일 장중 값과 다를 수 있습니다.","nationalPension":"읽는 법\t보유 지분율은 해당 회사 전체 주식 중 국민연금 몫입니다. 펀드 내 비중과 다른 수치입니다. 공개된 연말 보유자료를 쓰므로 현재 실시간 보유량이 아닙니다.\n수급 비교\t연속 순매수는 ‘연기금 등’ 집계의 연속 거래일 수입니다. 국민연금 단독 매매가 아니며 연말 보유율이 증가했다는 뜻도 아닙니다. 보유 기준일과 수급 기준일을 따로 확인하고 결측은 미확인으로 봅니다.","earningsGrowth":"읽는 법\t연간 매출과 영업이익 각각 3개 결산연도 값이 모두 양수이며 해마다 커져야 합니다(예: 100→120→150). 최신 단독 3개월도 전년 같은 분기보다 두 항목 모두 증가해야 합니다. 누적 실적과 섞지 않습니다.\n재무 조건\t최근 연간 부채총계 ÷ 자본총계 × 100이 0~100%여야 합니다. 금융업은 부채 구조가 달라 제외합니다. 최신 보고서 결측·반영 대기를 임의 추정해 통과시키지 않습니다.\n해석\t과거 실적 증가를 확인하는 조건입니다. 향후 성장이나 주가 상승을 예측하는 점수가 아닙니다."};
     if (guide[activeKey]) full += (full ? '\n' : '') + guide[activeKey];
     box.innerHTML = '<p class="ss-methodology-summary">' + escapeHtml(methodologySummary(activeKey)) + '</p>'
       + '<div class="ss-methodology-full">' + methodologyRowsHtml(full) + '</div>';
@@ -502,7 +505,7 @@
   // 클릭)는 그대로고, 카드는 표가 쓰는 같은 데이터·같은 순서의 앞 3개를 재사용한다(새 데이터 소스·순위 로직 없음).
   // 현재가·등락률은 표와 같은 실시간 갱신(patchLivePrices)을 받고, 순위·전략 KPI는 스캔 시점 값이다.
   function topCandidates(key) {
-    if (key === 'undervalued' || key === 'targetPriceGap' || key === 'earningsGrowth') return allMatches(key);
+    if (key === 'undervalued' || key === 'targetPriceGap' || key === 'earningsGrowth' || key === 'dualFlowBuy') return allMatches(key);
     if (key === 'etfReturn') return sortEtfMatches(etfFilteredMatches(key));
     if (key === 'dividend') return sortedDividendMatches();
     if (key === 'nationalPension') {
@@ -562,6 +565,13 @@
       sub.push(etfType(item));
       return { kpis: [kpi('3개월 수익률', pctSigned(item.returnRate3mPct), item.returnRate3mPct == null ? '' : chgClass(item.returnRate3mPct)),
         kpi('1년 수익률', pctSigned(item.returnRate12mPct), item.returnRate12mPct == null ? '' : chgClass(item.returnRate12mPct))], sub: sub.join(' · ') };
+    }
+    if (key === 'dualFlowBuy') {
+      if (item.flowAsOf) sub.push((window.NineTime && window.NineTime.asOf(item.flowAsOf)) || (item.flowAsOf + ' 기준'));
+      sub.push('외국인 ' + fmt(item.foreignBuyStreak) + '일 연속 ' + signedEok(item.foreignStreakNetEok)
+        + ' · 기관 ' + fmt(item.institutionBuyStreak) + '일 연속 ' + signedEok(item.institutionStreakNetEok));
+      return { kpis: [kpi('쌍끌이 순매수', signedEok(item.totalNetEok), chgClass(item.totalNetEok)),
+        kpi('쌍끌이 연속', fmt(item.dualBuyStreak) + '일')], sub: sub.join(' · ') };
     }
     if (key === 'nationalPension') {
       if (item.asOf) sub.push((window.NineTime && window.NineTime.asOf(item.asOf)) || (item.asOf + ' 기준'));
@@ -649,7 +659,7 @@
       wrap.innerHTML = renderDividendTable();
       return;
     }
-    if (activeKey === 'undervalued' || activeKey === 'targetPriceGap' || activeKey === 'earningsGrowth') {
+    if (activeKey === 'undervalued' || activeKey === 'targetPriceGap' || activeKey === 'earningsGrowth' || activeKey === 'dualFlowBuy') {
       var activeCategory = scanData.categories[activeKey];
       var categoryHasMatches = Object.keys((activeCategory && activeCategory.sectors) || {}).some(function (sector) {
         return ((activeCategory.sectors[sector] || {}).matches || []).length > 0;
@@ -781,6 +791,8 @@
       middleHtml = '<td class="ss-col-gap ' + (gapPct != null ? chgClass(gapPct) : '') + '" data-label="괴리율">' + escapeHtml(gapText) + '</td>'
         + '<td class="ss-col-target-price" data-label="참고 목표주가">' + targetPriceCellHtml(item) + '</td>'
         + '<td class="ss-col-analyst-target" data-label="애널 목표가">' + escapeHtml(analystTargetCellText(item)) + '</td>';
+    } else if (item.strategy === 'dualFlowBuy') {
+      middleHtml = '<td class="ss-col-signal" data-label="전략 지표">' + dualFlowSignalHtml(item) + '</td>';
     } else {
       middleHtml = '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item))
         + (analystTargetPriceText(item) ? '<br><small>' + escapeHtml(analystTargetPriceText(item)) + '</small>' : '') + '</td>';
@@ -800,6 +812,7 @@
 
   function renderStrategyTable(key) {
     var matches = allMatches(key || 'undervalued');
+    if (!matches.length && key === 'dualFlowBuy') return '<div class="ss-hint">지금은 외국인·기관이 함께 순매수한 종목이 없거나, 최근 거래일 확정 수급을 확인하지 못했어요.</div>';
     if (!matches.length) return '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요. 재무 보고서가 미수집·미확정인 종목은 포함되지 않습니다.</div>';
     var showFundamentals = matches.some(function (item) { return item.roe != null || item.debtRatio != null; });
     var splitTargetColumns = key === 'targetPriceGap';
@@ -848,6 +861,23 @@
       + '<td class="ss-col-pension-streak" data-label="연기금 등 연속 순매수">' + streak + '</td>'
       + '<td class="ss-col-fundamentals" data-label="평가액">' + (item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원') + '</td>'
       + '</tr>';
+  }
+
+  // ---- 외국인·기관 쌍끌이 매수 (2026-11-27) ----
+  // 서버(strategy_scan.scan_dual_flow)가 저장된 확정 수급으로 판정한 목록이다. 다른 전략 탭과 같은 표
+  // (renderStrategyTable)·TOP3를 쓰고 '전략 지표' 칸에만 연속 일수·금액을 나열한다. 새 요청·폴링 없음.
+  function signedEok(value) {
+    if (value == null || isNaN(Number(value))) return '—';
+    var n = Number(value);
+    return (n > 0 ? '+' : '') + n.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '억';
+  }
+
+  function dualFlowSignalHtml(item) {
+    var asOf = item.flowAsOf ? ' <small>(' + escapeHtml(item.flowAsOf) + ' 기준)</small>' : '';
+    return '<strong>쌍끌이 연속 ' + fmt(item.dualBuyStreak) + '일 · ' + signedEok(item.totalNetEok) + '</strong>' + asOf
+      + '<br><small>외국인 ' + fmt(item.foreignBuyStreak) + '일 연속 ' + signedEok(item.foreignStreakNetEok)
+      + ' · 기관 ' + fmt(item.institutionBuyStreak) + '일 연속 ' + signedEok(item.institutionStreakNetEok) + '</small>'
+      + (item.turnoverSharePct == null ? '' : '<br><small>쌍끌이 구간 거래대금의 ' + fmtPctExact(item.turnoverSharePct) + '</small>');
   }
 
   function npsFilterSelectHtml(metaText) {
@@ -922,6 +952,14 @@
         return copy;
       }));
     }, []);
+    if (key === 'dualFlowBuy') {
+      return rows.sort(function (a, b) {
+        return (b.totalNetEok || 0) - (a.totalNetEok || 0)
+          || (b.dualBuyStreak || 0) - (a.dualBuyStreak || 0)
+          || (b.turnoverSharePct || 0) - (a.turnoverSharePct || 0)
+          || String(a.code).localeCompare(String(b.code));
+      });
+    }
     if (key === 'earningsGrowth') {
       return rows.sort(function (a, b) {
         return Number(b.latestQuarterOperatingIncomeYoYPct) - Number(a.latestQuarterOperatingIncomeYoYPct)

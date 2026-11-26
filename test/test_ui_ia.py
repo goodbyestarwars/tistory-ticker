@@ -2842,6 +2842,29 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         ):
             self.assertIn(token, public_data)
 
+    def test_strategy_search_dual_flow_buy_category(self):
+        """2026-11-27: 외국인·기관 쌍끌이 매수 - 저장된 확정 수급만 읽는 전략검색 카테고리."""
+        source = self.read("js/strategy-search.js")
+        scan = self.read("scripts/cloud-vm/strategy_scan.py")
+        etf = self.read("scripts/cloud-vm/etf_strategy_scan.py")
+        for token in (
+            "activeKey === 'dualFlowBuy'",
+            "dualFlowSignalHtml",
+            "dualFlowScannedAt",
+            "foreignBuyStreak",
+            "institutionBuyStreak",
+            "totalNetEok",
+        ):
+            self.assertIn(token, source)
+        for token in (
+            "def scan_dual_flow(universe, wics_map, conn, daily_cache=None)",
+            "def dual_flow_signal(flow_rows, daily)",
+            "'dualFlowBuy'",
+            "DUAL_FLOW_METHODOLOGY_NOTE",
+        ):
+            self.assertIn(token, scan)
+        self.assertIn("scan_dual_flow", etf)
+
     def test_strategy_search_tabs_match_chart_search_control_size(self):
         style = self.read("css/strategy-search.css")
         self.assertIn("#strategy-search .ss-tabs", style)

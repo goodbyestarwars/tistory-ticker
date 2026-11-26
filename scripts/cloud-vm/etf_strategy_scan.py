@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""전략검색의 ETF 수익률 카테고리만 매일 갱신한다.
+"""전략검색의 ETF 수익률·외국인기관 쌍끌이 카테고리를 매일 갱신한다.
 
 나머지 전략(저평가·배당·국민연금·목표주가)은 주 1회 strategy_scan.py가 갱신한다.
+쌍끌이(dualFlowBuy)는 저장된 확정 수급만 읽어 계산하므로 새 외부 호출·타이머 없이 같은 일일 실행에 얹는다.
 같은 JSON 캐시를 원자적으로 교체하지 않고 기존 카테고리와 합쳐 저장해, 두 주기가 서로의
 결과를 지우지 않게 한다.
 """
@@ -34,6 +35,18 @@ def main():
     try:
         daily_cache = strategy_scan.preload_daily_prices(conn, universe)
         sectors, scanned = strategy_scan.scan_etf_returns(universe, conn, daily_cache=daily_cache)
+        # 2026-11-27 외국인·기관 쌍끌이: 같은 DB 연결로 저장된 수급·일봉만 읽는다. 실패해도 ETF 갱신은 계속한다.
+        dual_category, dual_stats = None, None
+        try:
+            wics_map = strategy_scan.load_wics_map()
+            if wics_map:
+                dual_sectors, dual_stats = strategy_scan.scan_dual_flow(
+                    [s for s in full_universe if not s.get('is_etf')], wics_map, conn)
+                dual_category = strategy_scan.build_dual_flow_category(dual_sectors)
+            else:
+                strategy_scan.log('WICS 섹터 맵을 못 불러와 쌍끌이 갱신을 건너뜁니다(직전 결과 유지).')
+        except Exception as exc:
+            strategy_scan.log('쌍끌이 스캔 실패(직전 결과 유지): %s' % type(exc).__name__)
     finally:
         conn.close()
 
@@ -57,6 +70,10 @@ def main():
         'sectors': {sector: {'name': sector, 'matches': matches} for sector, matches in sectors.items() if matches},
     }
     now = datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z')
+    if dual_category is not None:
+        categories['dualFlowBuy'] = dual_category
+        existing['dualFlowScanned'] = dual_stats['scanned']
+        existing['dualFlowScannedAt'] = now
     existing['categories'] = categories
     existing['etfScanned'] = scanned
     existing['etfScannedAt'] = now
@@ -73,7 +90,8 @@ def main():
         try:
             recorded = scan_forward.record_grouped_hits(
                 hits_conn, scan_forward.today_kst(), 'strategy',
-                {'etfReturn': categories['etfReturn']},
+                {key: categories[key] for key in ('etfReturn', 'dualFlowBuy') if key in categories
+                 and (key == 'etfReturn' or dual_category is not None)},
             )
             if recorded:
                 strategy_scan.log('ETF 포워드 추적 기록: %s' % ', '.join('%s %d' % item for item in sorted(recorded.items())))
