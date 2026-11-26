@@ -11,6 +11,7 @@
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
   var CHART_HEIGHT = 230;
+  var FUNDS_REFRESH_MS = 10 * 60 * 1000;
   var chartInstances = {};
   var drawingStates = {};
   var lwcPromise = null;
@@ -1129,15 +1130,30 @@
       + '</div>';
     var marketStatusNode = root.querySelector('[data-dmi-market-status]');
     if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();
-    fetchJson().then(function (data) {
-      root._dmiData = data;
-      renderCharts(root, data.indices || {});
-      renderSpotQuotes(root, data.indices || {});
-      var fundsReady = renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
-      renderInvestorFlow(root, data.funds || {});
-      connectSocket();
-      if (openFunds) return fundsReady;
-    }).catch(function () {
+    var dashboardRequest = null;
+    var displayedFunds = null;
+    function refreshDashboard(updateSpot) {
+      if (dashboardRequest) return dashboardRequest;
+      dashboardRequest = fetchJson().then(function (data) {
+        if (updateSpot || !root._dmiData) {
+          root._dmiData = data;
+          renderCharts(root, data.indices || {});
+          renderSpotQuotes(root, data.indices || {});
+          connectSocket();
+        }
+
+        var error = root.querySelector('.dmi-error');
+        if (error) error.remove();
+        var availableFunds = data.funds && data.funds.available && data.funds.series && data.funds.series.length;
+        if (availableFunds) displayedFunds = data.funds;
+        var funds = displayedFunds || data.funds || {};
+        if (availableFunds || !displayedFunds) renderInvestorFlow(root, funds);
+        return renderFunds(root, funds, data.programTrading || {}, data.leverageDetail || {});
+      }).finally(function () { dashboardRequest = null; });
+      return dashboardRequest;
+    }
+
+    refreshDashboard(true).catch(function () {
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
     }).then(function () {
       if (openFunds) {
@@ -1150,10 +1166,17 @@
       if (document.hidden) closeSocket(false);
       else {
         if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();
-        connectSocket(); fetchJson().then(function (data) { root._dmiData = data; renderCharts(root, data.indices || {}); renderSpotQuotes(root, data.indices || {}); }).catch(function () {});
+        connectSocket();
+        if (!root.closest('[hidden]')) refreshDashboard(true).catch(function () {});
       }
     });
-    global.addEventListener('beforeunload', function () { closeSocket(false); });
+    var fundsTimer = global.setInterval(function () {
+      if (!document.hidden && !root.closest('[hidden]')) refreshDashboard(false).catch(function () {});
+    }, FUNDS_REFRESH_MS);
+    global.addEventListener('beforeunload', function () {
+      global.clearInterval(fundsTimer);
+      closeSocket(false);
+    });
     root.addEventListener('click', function (event) {
       var spotCollapseButton = event.target.closest ? event.target.closest('.dmi-spot-collapse') : null;
       if (spotCollapseButton) {
