@@ -24,6 +24,7 @@ RET_PCT = 0.70
 NAMES = ['goldenCross', 'momentum', 'high52w', 'consecutive', 'disparity', 'breakoutFail', 'strongClose', 'volatility', 'meanReversion']
 FILTERS = ['F0', 'F1', 'F2', 'F3']
 EXITS = ['X0', 'X1', 'X2', 'X3']
+MTM = False                                              # True면 끝나지 않은 포지션을 마지막 종가로 평가(최근 구간 분석용)
 EXIT_PARAM = {'X1': (0.05, 0.03, 5), 'X2': (0.10, 0.05, 20)}   # 익절, 손절, 최대 거래일
 
 
@@ -45,7 +46,7 @@ def exit_tp_sl(o, h, l, c, e, tp_pct, sl_pct, hold):
     if i_tp >= 0:
         k = e + i_tp
         return k, (o[k] if (k > e and o[k] >= tp) else tp)
-    if e + hold > n:
+    if e + hold > n and not MTM:
         return None
     return end - 1, c[end - 1]
 
@@ -61,7 +62,7 @@ def exit_trail(o, h, l, c, e, hold=30, init=0.03, trail=0.05):
     if i >= 0:
         k = e + i
         return k, (o[k] if (k > e and o[k] <= stop[i]) else stop[i])
-    if e + hold > n:
+    if e + hold > n and not MTM:
         return None
     return end - 1, c[end - 1]
 
@@ -88,7 +89,7 @@ def run_trades(o, h, l, c, mask, exit_kind, sell=None):
                     r = (k + 1, o[k + 1]); break
             if r is None:
                 k = min(n - 1, e + K.MAX_HOLD - 1)
-                if k == n - 1 and k - e + 1 < K.MAX_HOLD:
+                if k == n - 1 and k - e + 1 < K.MAX_HOLD and not MTM:
                     break
                 r = (k, c[k])
         elif exit_kind == 'X3':
