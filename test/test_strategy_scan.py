@@ -969,3 +969,109 @@ class NearMissTest(unittest.TestCase):
         self.assertEqual([n['code'] for n in near], ['000108', '000107'])
         self.assertAlmostEqual(near[0]['missGapRatio'], 0.4, places=2)
         self.assertAlmostEqual(near[1]['missGapRatio'], 0.9, places=1)
+
+
+class DualFlowBuyTests(unittest.TestCase):
+    """2026-11-27 외국인·기관 쌍끌이 매수 - 저장된 확정 수급과 일봉만으로 판정한다."""
+
+    N = 125
+
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        self.conn = db_schema.get_conn(os.path.join(self.tmp_dir, 'dual.db'))
+        db_schema.create_schema(self.conn)
+
+    def tearDown(self):
+        self.conn.close()
+
+    def _dates(self):
+        start = date(2026, 5, 1)
+        return [(start + timedelta(days=i)).isoformat() for i in range(self.N)]
+
+    def _insert(self, code, flows, volume=200000, price=10000.0, skip_flow_dates=()):
+        """flows: 최근 N거래일 (외국인, 기관) 순매수 주수 목록(오래된 날 → 최신, 길이는 임의)."""
+        dates = self._dates()
+        self.conn.executemany(
+            'INSERT INTO daily_prices (code, date, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [(code, d, price, price, price, price, volume) for d in dates])
+        recent = dates[-len(flows):]
+        db_schema.upsert_investor_flow_daily(self.conn, code, [
+            {'date': d, 'close': price, 'change_pct': 0.0, 'ind_net': 0.0, 'foreign_net': f, 'inst_net': i}
+            for d, (f, i) in zip(recent, flows) if d not in skip_flow_dates])
+        self.conn.commit()
+
+    def _scan(self, code='000001', name='쌍끌이종목'):
+        return strategy_scan.scan_dual_flow(
+            [{'code': code, 'name': name}], {code: {'name': name, 'sector': 'IT', 'industry': 'IT'}}, self.conn)
+
+    def test_matches_when_both_buy_three_of_five_days_and_totals_positive(self):
+        # 최근 5일: 쌍매수 4일(연속 3일)이고 5일 합계도 둘 다 양수. 마지막 앞날은 둘 다 순매도.
+        flows = [(100, 100)] * 20 + [(500, 300), (-50, -50), (400, 200), (300, 100), (200, 100)]
+        self._insert('000001', flows)
+        sectors, stats = self._scan()
+        match = sectors['IT'][0]
+        self.assertEqual(match['strategy'], 'dualFlowBuy')
+        self.assertEqual(match['dualBuyDays'], 4)
+        self.assertEqual(match['dualBuyStreak'], 3)
+        self.assertEqual(match['foreignNetShares'], 1350)
+        self.assertEqual(match['institutionNetShares'], 650)
+        # 주수 × 종가(1만원) → 억원: (1350+650)*10000 = 2천만원 = 0.2억
+        self.assertAlmostEqual(match['totalNetEok'], 0.2)
+        self.assertEqual(match['flowAsOf'], self._dates()[-1])
+        self.assertEqual(stats['matched'], 1)
+
+    def test_requires_both_sides_positive_in_total(self):
+        flows = [(100, 100)] * 20 + [(500, 300), (-1900, 100), (400, 200), (300, 100), (200, 100)]
+        self._insert('000001', flows)
+        sectors, _stats = self._scan()
+        self.assertEqual(sectors, {})  # 외국인 5일 합계 < 0
+
+    def test_requires_three_same_day_double_buys(self):
+        flows = [(100, 100)] * 20 + [(500, -10), (500, -10), (400, -10), (300, 100), (200, 100)]
+        self._insert('000001', flows)
+        sectors, _stats = self._scan()
+        self.assertEqual(sectors, {})  # 쌍매수 2일뿐
+
+    def test_missing_flow_day_is_unknown_not_zero(self):
+        flows = [(100, 100)] * 20 + [(500, 300)] * 5
+        missing = self._dates()[-2]
+        self._insert('000001', flows, skip_flow_dates=(missing,))
+        sectors, stats = self._scan()
+        self.assertEqual(sectors, {})
+        self.assertEqual(stats['matched'], 0)
+
+    def test_stale_flow_does_not_match(self):
+        # 수급은 최신 일봉보다 하루 늦게 끝난다 → 같은 거래일 5개가 아니므로 판정하지 않는다.
+        flows = [(100, 100)] * 25
+        self._insert('000001', flows, skip_flow_dates=(self._dates()[-1],))
+        sectors, _stats = self._scan()
+        self.assertEqual(sectors, {})
+
+    def test_excludes_etf_illiquid_and_sectorless(self):
+        flows = [(100, 100)] * 25
+        self._insert('000001', flows)
+        self._insert('000002', flows, volume=10)  # 거래대금 미달
+        self._insert('000003', flows)
+        universe = [
+            {'code': '000001', 'name': 'KODEX 테스트', 'is_etf': True},
+            {'code': '000002', 'name': '저유동성'},
+            {'code': '000003', 'name': '섹터없음'},
+        ]
+        wics_map = {
+            '000001': {'name': 'KODEX 테스트', 'sector': 'IT', 'industry': 'IT'},
+            '000002': {'name': '저유동성', 'sector': 'IT', 'industry': 'IT'},
+        }
+        sectors, stats = strategy_scan.scan_dual_flow(universe, wics_map, self.conn)
+        self.assertEqual(sectors, {})
+        self.assertEqual(stats['skippedGate'], 2)
+
+    def test_sorted_by_total_amount_and_category_shape(self):
+        self._insert('000001', [(100, 100)] * 25, price=10000.0)
+        self._insert('000002', [(1000, 1000)] * 25, price=10000.0)
+        universe = [{'code': '000001', 'name': 'A'}, {'code': '000002', 'name': 'B'}]
+        wics = {c: {'name': c, 'sector': 'IT', 'industry': 'IT'} for c in ('000001', '000002')}
+        sectors, _stats = strategy_scan.scan_dual_flow(universe, wics, self.conn)
+        self.assertEqual([m['code'] for m in sectors['IT']], ['000002', '000001'])
+        category = strategy_scan.build_dual_flow_category(sectors)
+        self.assertEqual(category['name'], strategy_scan.DUAL_FLOW_CATEGORY_NAME)
+        self.assertEqual(len(category['sectors']['IT']['matches']), 2)

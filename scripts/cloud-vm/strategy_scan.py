@@ -1483,6 +1483,148 @@ def scan_nps_holdings(universe, wics_map, conn, daily_cache=None):
     return sectors, len(holdings)
 
 
+# 2026-11-27 사용자 요청: 종목 > 전략검색에 '외국인·기관 쌍끌이 매수'. 새 호출 없이 daily_scan이 이미 저장한
+# 확정 일별 수급(investor_flow_daily: 외국인/기관 순매수 주수)과 일봉만 읽는다. 최근 5거래일 모두 같은 거래일의
+# 일봉·수급이 있어야 판정하고, 하나라도 비면 0으로 채우지 않고 '미확인'으로 건너뛴다.
+DUAL_FLOW_WINDOW = 5      # 판정 구간(거래일)
+DUAL_FLOW_MIN_DAYS = 3    # 구간 안에서 같은 날 둘 다 순매수한 최소 일수
+DUAL_FLOW_LOOKBACK = 25   # 저장된 수급 조회 창(연속일수 계산 상한, 기존 SCAN_FLOW_DAYS와 동일)
+DUAL_FLOW_CATEGORY_NAME = '외국인·기관 쌍끌이 매수'
+DUAL_FLOW_METHODOLOGY_NOTE = methodology(
+    ('계산', '최근 5거래일 중 외국인과 기관이 같은 날 함께 순매수한 날이 3일 이상이고, '
+             '5일 누적 순매수도 두 주체 모두 양수인 종목입니다.'),
+    ('정렬', '두 주체의 5일 누적 순매수금액 합계가 큰 순. 화면에서 연속 쌍끌이 일수순으로 바꿀 수 있습니다.'),
+    ('표시', '금액은 일별 순매수 주수 × 종가를 5일 합산한 추정값(억원)입니다. '
+             '거래대금 대비 비중은 같은 5일 거래대금 합계로 나눈 값입니다.'),
+    ('제외', 'ETF·ETN·스팩·우선주·거래정지·동전주(1,000원 미만)·20일 평균 거래대금 10억원 미만. '
+             '5거래일 수급이 하나라도 빠진 종목은 미확인으로 뺍니다.'),
+    ('성격', '확정 수급을 기준으로 매일 갱신하는 과거 사실의 목록입니다. 매수 의견이나 상승 보장이 아니며 '
+             '검증된 수익 조건이 아닙니다.'),
+)
+
+
+def _finite_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def dual_flow_signal(flow_rows, daily):
+    """외국인·기관 쌍끌이 판정. flow_rows는 최신일 우선(load_investor_flow_daily), daily는 오름차순 일봉.
+
+    마지막 5거래일의 일봉 날짜마다 수급 행이 있고 외국인·기관 값이 유한한 숫자일 때만 판정한다.
+    통과하지 못하면 None(데이터 부족/지연/조건 미달은 같은 '해당 없음'으로 목록에서만 빠진다)."""
+    if len(daily) < DUAL_FLOW_WINDOW or not flow_rows:
+        return None
+    by_date = {row.get('date'): row for row in flow_rows}
+    window = daily[-DUAL_FLOW_WINDOW:]
+    both_days = 0
+    foreign_shares = institution_shares = 0.0
+    foreign_amount = institution_amount = turnover = 0.0
+    for bar in window:
+        row = by_date.get(bar.get('date'))
+        if not row:
+            return None
+        foreign, institution = row.get('foreign_net'), row.get('inst_net')
+        close, volume = bar.get('close'), bar.get('volume')
+        if not (_finite_number(foreign) and _finite_number(institution)
+                and _finite_number(close) and close > 0 and _finite_number(volume)):
+            return None
+        if foreign > 0 and institution > 0:
+            both_days += 1
+        foreign_shares += foreign
+        institution_shares += institution
+        foreign_amount += foreign * close
+        institution_amount += institution * close
+        turnover += volume * close
+    if both_days < DUAL_FLOW_MIN_DAYS or foreign_shares <= 0 or institution_shares <= 0 or turnover <= 0:
+        return None
+    # 연속 쌍끌이 일수: 가장 최근 거래일부터 거꾸로, 같은 날 둘 다 순매수가 이어지는 날 수(수급이 비는 날에서 멈춘다).
+    streak = 0
+    for bar in reversed(daily[-DUAL_FLOW_LOOKBACK:]):
+        row = by_date.get(bar.get('date'))
+        if not row or not (_finite_number(row.get('foreign_net')) and _finite_number(row.get('inst_net'))):
+            break
+        if row['foreign_net'] > 0 and row['inst_net'] > 0:
+            streak += 1
+        else:
+            break
+    total = foreign_amount + institution_amount
+    return {
+        'windowDays': DUAL_FLOW_WINDOW,
+        'dualBuyDays': both_days,
+        'dualBuyStreak': streak,
+        'foreignNetEok': round(foreign_amount / 1e8, 1),
+        'institutionNetEok': round(institution_amount / 1e8, 1),
+        'totalNetEok': round(total / 1e8, 1),
+        'foreignNetShares': int(round(foreign_shares)),
+        'institutionNetShares': int(round(institution_shares)),
+        'turnoverSharePct': round(total / turnover * 100, 2),
+        'flowAsOf': window[-1].get('date'),
+    }
+
+
+def build_dual_flow_match(stock, daily, sector, signal):
+    match = build_nps_match(stock, daily, sector, {})
+    for key in ('holdingPct', 'weightPct', 'evaluationAmountEok', 'asOf', 'source'):
+        match.pop(key, None)
+    match['strategy'] = 'dualFlowBuy'
+    match.update(signal)
+    return match
+
+
+def scan_dual_flow(universe, wics_map, conn, daily_cache=None):
+    """저장된 확정 수급만 읽는 쌍끌이 스캔. 전종목 일봉을 미리 올리지 않고, 수급 조건을 먼저 통과한
+    종목에만 일봉을 읽는다(daily_cache가 있으면 그것을 재사용). 반환: (sectors, 통계)."""
+    sectors = {}
+    stats = {'scanned': 0, 'skippedNoFlow': 0, 'skippedGate': 0, 'matched': 0}
+    for stock in universe:
+        if stock.get('is_etf'):
+            continue
+        code = stock['code']
+        flow_rows = db_schema.load_investor_flow_daily(conn, code, limit=DUAL_FLOW_LOOKBACK)
+        if len(flow_rows) < DUAL_FLOW_WINDOW:
+            stats['skippedNoFlow'] += 1
+            continue
+        # 싼 사전 검사: 최근 5개 수급 행의 합이 두 주체 모두 양수가 아니면 일봉을 읽지 않는다.
+        recent = flow_rows[:DUAL_FLOW_WINDOW]
+        if not all(_finite_number(r.get('foreign_net')) and _finite_number(r.get('inst_net')) for r in recent):
+            stats['skippedNoFlow'] += 1
+            continue
+        stats['scanned'] += 1
+        if sum(r['foreign_net'] for r in recent) <= 0 or sum(r['inst_net'] for r in recent) <= 0:
+            continue
+        daily = _load_daily(conn, code, daily_cache)
+        if len(daily) < MIN_BARS:
+            stats['skippedNoFlow'] += 1
+            continue
+        signal = dual_flow_signal(flow_rows, daily)
+        if signal is None:
+            continue
+        if pattern_detect.is_excluded_stock(stock, daily) or daily[-1]['close'] < MIN_PRICE:
+            stats['skippedGate'] += 1
+            continue
+        vol_multiple = pattern_detect.compute_volume_multiple(daily)
+        if not vol_multiple or vol_multiple['avg20'] < MIN_AVG_TURNOVER:
+            stats['skippedGate'] += 1
+            continue
+        wics = wics_map.get(code)
+        if not wics or not wics.get('sector'):
+            stats['skippedGate'] += 1
+            continue
+        sectors.setdefault(wics['sector'], []).append(build_dual_flow_match(stock, daily, wics['sector'], signal))
+        stats['matched'] += 1
+    for matches in sectors.values():
+        matches.sort(key=lambda m: (-m['totalNetEok'], m['code']))
+    return sectors, stats
+
+
+def build_dual_flow_category(sectors):
+    return {
+        'name': DUAL_FLOW_CATEGORY_NAME,
+        'methodology': DUAL_FLOW_METHODOLOGY_NOTE,
+        'sectors': {sector: {'name': sector, 'matches': matches} for sector, matches in sectors.items() if matches},
+    }
+
+
 def main():
     # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
     # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
@@ -1552,6 +1694,7 @@ def main():
     etf_return_sectors, etf_scanned = ({}, 0) if non_etf_weekly else scan_etf_returns(
         universe, conn, daily_cache=daily_cache)
     nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, daily_cache=daily_cache)
+    dual_flow_sectors, dual_flow_stats = scan_dual_flow(universe, wics_map, conn, daily_cache=daily_cache)
     report_progress(3, 6, '목표주가 전략 계산', '단계')
     target_price_sectors, target_price_scanned = scan_target_price_gap(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
@@ -1653,6 +1796,11 @@ def main():
         },
     }
     output['npsScanned'] = nps_scanned
+
+    # 쌍끌이 수급은 매일 갱신해야 하므로 ETF 전략 일일 타이머(etf_strategy_scan.py)도 같은 함수로 다시 쓴다.
+    output['categories']['dualFlowBuy'] = build_dual_flow_category(dual_flow_sectors)
+    output['dualFlowScanned'] = dual_flow_stats['scanned']
+    output['dualFlowScannedAt'] = output['scannedAt']
 
     output['categories']['targetPriceGap'] = {
         'name': '목표주가 괴리 저평가주',

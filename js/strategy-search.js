@@ -63,6 +63,9 @@
   var activeNpsRangeIndex = 2; // 기본값: 5% ~ 8%(예전 기본값 "5% 이상"과 가장 근접한 구간)
   var npsSortByStreak = false;
   var NPS_RENDER_CAP = 300;
+  // 2026-11-27 외국인·기관 쌍끌이 매수: 기본 정렬은 5일 누적 순매수금액 합계, 선택하면 연속 쌍끌이 일수순.
+  var dualFlowSortByStreak = false;
+  var DUAL_FLOW_RENDER_CAP = 300;
   function stockIconHtml(code, cls) {
     if (!code) return '';
     var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
@@ -413,6 +416,12 @@
         renderCards(container);
         return;
       }
+      if (event.target.matches('.ss-dual-flow-sort-select')) {
+        dualFlowSortByStreak = event.target.value === 'streak';
+        renderCards(container);
+        container.querySelector('.ss-dual-flow-sort-select').focus();
+        return;
+      }
       if (event.target.matches('.ss-nps-sort-select')) {
         npsSortByStreak = event.target.value === 'streak';
         renderCards(container);
@@ -436,8 +445,10 @@
       return;
     }
     var scanAt = activeKey === 'etfReturn' && scanData.etfScannedAt
-      ? scanData.etfScannedAt : scanData.scannedAt;
-    var cadence = activeKey === 'etfReturn' ? 'ETF 매일 갱신' : '전략 주 1회 갱신';
+      ? scanData.etfScannedAt
+      : (activeKey === 'dualFlowBuy' && scanData.dualFlowScannedAt ? scanData.dualFlowScannedAt : scanData.scannedAt);
+    var cadence = activeKey === 'etfReturn' ? 'ETF 매일 갱신'
+      : activeKey === 'dualFlowBuy' ? '수급 매일 갱신(확정치)' : '전략 주 1회 갱신';
     var text = ((window.NineTime && window.NineTime.updated(scanAt)) || ('스캔 기준시각 ' + scanAt)) + ' · ' + cadence + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
     if (scanData.skippedIlliquid != null) text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
     if (scanData.degraded) text += ' · 대체 경로의 저장 결과';
@@ -451,6 +462,7 @@
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
     // 2026-08-20: "연 1회 공시 스냅샷" 안내는 요약 줄에서 빼고 아래 라벨 줄에만 남겼다.
     if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다.';
+    if (key === 'dualFlowBuy') return '최근 5거래일 동안 외국인과 기관이 같은 날 함께 사들인 종목을 표시합니다.';
     // 2026-09-04: 요약은 "이 화면이 무엇인지" 한 문장까지만 한다. 35%·70%·60%·30종목을
     // 요약과 본문이 둘 다 말하고 있어서 같은 숫자를 두 번 읽어야 했다 - 숫자는 아래
     // 라벨 줄이 전부 들고 있으므로 여기서는 뺀다.
@@ -481,7 +493,7 @@
     var cat = scanData.categories[activeKey];
     var full = (cat && cat.methodology) || '상세 조건 정보가 없습니다.';
     if (activeKey === 'undervalued') full = '';
-    var guide = {"undervalued":"의미\t‘장기’는 120거래일 평균가(약 6개월)를 비교 기준으로 쓴다는 뜻입니다. 120일 연속 하락·눌림을 요구하지 않습니다.\n판정\t종가 ÷ 최근 120거래일 종가 평균 × 100 ≤ 90. 예: 평균가 10,000원이면 종가 9,000원 이하입니다. DART ROE·부채비율로 계산한 재무점수(ROE 60%·부채비율 40%) 60점 이상을 동시에 충족해야 합니다.\n제외\t일봉 120개 미만, 주가 1,000원 미만, 최근 20거래일 평균 거래대금 10억원 미만, 서비스 테마 분류는 제외합니다.\n선정\t전체 통과자가 20개 이하면 그대로 둡니다. 20개 초과 시 점수≥70 → 점수≥80·이격도≤85 → 점수≥90·이격도≤80 → 점수≥90·이격도≤75 → 점수100·이격도≤75 순으로 강화하며, 20개 이하가 되는 단계에서 멈춥니다. 마지막 단계에도 20개를 넘으면 모두 유지합니다. 섹터 안에서는 재무점수 높은 순, 동점이면 이격도 낮은 순입니다. 섹터당 5개 고정 제한은 현재 적용하지 않습니다. 조건 근접은 통과 후보와 별도입니다.\n해석\t이 전략은 PER·PBR을 선정 조건으로 쓰지 않습니다. 기업 가치보다 싼지를 판정하는 ‘저평가’가 아니라 평균가 대비 가격 하락을 찾습니다. 기준값은 수익성 검증이 끝난 공식이 아닙니다.\n재무점수\tROE가 15% 이상/10% 이상/5% 이상/0% 이상/0% 미만이면 100/80/60/40/20점, 부채비율이 50% 이하/100% 이하/150% 이하/200% 이하/200% 초과면 100/80/60/40/20점입니다. ROE점수×0.6+부채점수×0.4를 반올림합니다. 한 항목만 결측이면 그 항목은 50점, 둘 다 없으면 제외합니다.","dividend":"읽는 법\t배당수익률 = 공시된 주당 현금배당금 ÷ 가격 × 100. 예: 1,000원 배당·가격 20,000원이면 5%입니다. 과거 결산 배당이며 다음 배당의 확정 수익률이 아닙니다.\n선정 범위\t현금배당이 확인된 보통주의 비교 목록입니다. 높은 배당률·배당성향 하한·3년 이익 증가를 필수 조건으로 요구하지 않습니다. 결산연도와 가격 기준시점을 함께 보세요.","targetPriceGap":"읽는 법\t목표가 여력 = (참고 목표가 ÷ 가격 − 1) × 100. 예: 가격 10,000원·목표가 12,000원이면 20%입니다. PER은 이익 대비, PBR은 자본 대비 가격 배수입니다.\n비교 방식\t같은 WICS 섹터의 유효 표본 5개 이상에서 PER·PBR 중앙값을 사용합니다. 현재 배수와 중앙값의 차이 중 35%만 반영한 부분 수렴 목표가이며 전부 수렴한다고 가정하지 않습니다.\n보정·선정\t자체 목표가가 KIS 애널리스트 목표가보다 높으면 그 목표가까지 거리의 70%로 낮춰 참고합니다. 최종 여력 20~60% 범위, 큰 순 최대 30개입니다. 실제 기업가치 확정값이나 도달 보장이 아닙니다.","nationalPension":"읽는 법\t보유 지분율은 해당 회사 전체 주식 중 국민연금 몫입니다. 펀드 내 비중과 다른 수치입니다. 공개된 연말 보유자료를 쓰므로 현재 실시간 보유량이 아닙니다.\n수급 비교\t연속 순매수는 ‘연기금 등’ 집계의 연속 거래일 수입니다. 국민연금 단독 매매가 아니며 연말 보유율이 증가했다는 뜻도 아닙니다. 보유 기준일과 수급 기준일을 따로 확인하고 결측은 미확인으로 봅니다.","earningsGrowth":"읽는 법\t연간 매출과 영업이익 각각 3개 결산연도 값이 모두 양수이며 해마다 커져야 합니다(예: 100→120→150). 최신 단독 3개월도 전년 같은 분기보다 두 항목 모두 증가해야 합니다. 누적 실적과 섞지 않습니다.\n재무 조건\t최근 연간 부채총계 ÷ 자본총계 × 100이 0~100%여야 합니다. 금융업은 부채 구조가 달라 제외합니다. 최신 보고서 결측·반영 대기를 임의 추정해 통과시키지 않습니다.\n해석\t과거 실적 증가를 확인하는 조건입니다. 향후 성장이나 주가 상승을 예측하는 점수가 아닙니다."};
+    var guide = {"undervalued":"의미\t‘장기’는 120거래일 평균가(약 6개월)를 비교 기준으로 쓴다는 뜻입니다. 120일 연속 하락·눌림을 요구하지 않습니다.\n판정\t종가 ÷ 최근 120거래일 종가 평균 × 100 ≤ 90. 예: 평균가 10,000원이면 종가 9,000원 이하입니다. DART ROE·부채비율로 계산한 재무점수(ROE 60%·부채비율 40%) 60점 이상을 동시에 충족해야 합니다.\n제외\t일봉 120개 미만, 주가 1,000원 미만, 최근 20거래일 평균 거래대금 10억원 미만, 서비스 테마 분류는 제외합니다.\n선정\t전체 통과자가 20개 이하면 그대로 둡니다. 20개 초과 시 점수≥70 → 점수≥80·이격도≤85 → 점수≥90·이격도≤80 → 점수≥90·이격도≤75 → 점수100·이격도≤75 순으로 강화하며, 20개 이하가 되는 단계에서 멈춥니다. 마지막 단계에도 20개를 넘으면 모두 유지합니다. 섹터 안에서는 재무점수 높은 순, 동점이면 이격도 낮은 순입니다. 섹터당 5개 고정 제한은 현재 적용하지 않습니다. 조건 근접은 통과 후보와 별도입니다.\n해석\t이 전략은 PER·PBR을 선정 조건으로 쓰지 않습니다. 기업 가치보다 싼지를 판정하는 ‘저평가’가 아니라 평균가 대비 가격 하락을 찾습니다. 기준값은 수익성 검증이 끝난 공식이 아닙니다.\n재무점수\tROE가 15% 이상/10% 이상/5% 이상/0% 이상/0% 미만이면 100/80/60/40/20점, 부채비율이 50% 이하/100% 이하/150% 이하/200% 이하/200% 초과면 100/80/60/40/20점입니다. ROE점수×0.6+부채점수×0.4를 반올림합니다. 한 항목만 결측이면 그 항목은 50점, 둘 다 없으면 제외합니다.","dividend":"읽는 법\t배당수익률 = 공시된 주당 현금배당금 ÷ 가격 × 100. 예: 1,000원 배당·가격 20,000원이면 5%입니다. 과거 결산 배당이며 다음 배당의 확정 수익률이 아닙니다.\n선정 범위\t현금배당이 확인된 보통주의 비교 목록입니다. 높은 배당률·배당성향 하한·3년 이익 증가를 필수 조건으로 요구하지 않습니다. 결산연도와 가격 기준시점을 함께 보세요.","targetPriceGap":"읽는 법\t목표가 여력 = (참고 목표가 ÷ 가격 − 1) × 100. 예: 가격 10,000원·목표가 12,000원이면 20%입니다. PER은 이익 대비, PBR은 자본 대비 가격 배수입니다.\n비교 방식\t같은 WICS 섹터의 유효 표본 5개 이상에서 PER·PBR 중앙값을 사용합니다. 현재 배수와 중앙값의 차이 중 35%만 반영한 부분 수렴 목표가이며 전부 수렴한다고 가정하지 않습니다.\n보정·선정\t자체 목표가가 KIS 애널리스트 목표가보다 높으면 그 목표가까지 거리의 70%로 낮춰 참고합니다. 최종 여력 20~60% 범위, 큰 순 최대 30개입니다. 실제 기업가치 확정값이나 도달 보장이 아닙니다.","dualFlowBuy":"읽는 법\t쌍끌이 일수는 최근 5거래일 중 외국인과 기관이 같은 날 모두 순매수한 날 수, 연속은 가장 최근 거래일부터 이어진 날 수입니다. 금액은 일별 순매수 주수 × 종가의 5일 합으로 추정한 값입니다.\n해석\t같은 방향의 수급을 확인하는 목록이며 상승을 예측하거나 매수를 권하는 조건이 아닙니다. 확정 수급 기준이라 당일 장중 값과 다를 수 있습니다.","nationalPension":"읽는 법\t보유 지분율은 해당 회사 전체 주식 중 국민연금 몫입니다. 펀드 내 비중과 다른 수치입니다. 공개된 연말 보유자료를 쓰므로 현재 실시간 보유량이 아닙니다.\n수급 비교\t연속 순매수는 ‘연기금 등’ 집계의 연속 거래일 수입니다. 국민연금 단독 매매가 아니며 연말 보유율이 증가했다는 뜻도 아닙니다. 보유 기준일과 수급 기준일을 따로 확인하고 결측은 미확인으로 봅니다.","earningsGrowth":"읽는 법\t연간 매출과 영업이익 각각 3개 결산연도 값이 모두 양수이며 해마다 커져야 합니다(예: 100→120→150). 최신 단독 3개월도 전년 같은 분기보다 두 항목 모두 증가해야 합니다. 누적 실적과 섞지 않습니다.\n재무 조건\t최근 연간 부채총계 ÷ 자본총계 × 100이 0~100%여야 합니다. 금융업은 부채 구조가 달라 제외합니다. 최신 보고서 결측·반영 대기를 임의 추정해 통과시키지 않습니다.\n해석\t과거 실적 증가를 확인하는 조건입니다. 향후 성장이나 주가 상승을 예측하는 점수가 아닙니다."};
     if (guide[activeKey]) full += (full ? '\n' : '') + guide[activeKey];
     box.innerHTML = '<p class="ss-methodology-summary">' + escapeHtml(methodologySummary(activeKey)) + '</p>'
       + '<div class="ss-methodology-full">' + methodologyRowsHtml(full) + '</div>';
@@ -505,6 +517,7 @@
     if (key === 'undervalued' || key === 'targetPriceGap' || key === 'earningsGrowth') return allMatches(key);
     if (key === 'etfReturn') return sortEtfMatches(etfFilteredMatches(key));
     if (key === 'dividend') return sortedDividendMatches();
+    if (key === 'dualFlowBuy') return sortedDualFlowMatches();
     if (key === 'nationalPension') {
       var range = NPS_RANGE_OPTIONS[activeNpsRangeIndex];
       return allMatches('nationalPension').sort(function (a, b) { return (b.holdingPct || 0) - (a.holdingPct || 0); })
@@ -562,6 +575,12 @@
       sub.push(etfType(item));
       return { kpis: [kpi('3개월 수익률', pctSigned(item.returnRate3mPct), item.returnRate3mPct == null ? '' : chgClass(item.returnRate3mPct)),
         kpi('1년 수익률', pctSigned(item.returnRate12mPct), item.returnRate12mPct == null ? '' : chgClass(item.returnRate12mPct))], sub: sub.join(' · ') };
+    }
+    if (key === 'dualFlowBuy') {
+      if (item.flowAsOf) sub.push((window.NineTime && window.NineTime.asOf(item.flowAsOf)) || (item.flowAsOf + ' 기준'));
+      sub.push('외국인 ' + signedEok(item.foreignNetEok) + ' · 기관 ' + signedEok(item.institutionNetEok));
+      return { kpis: [kpi('쌍끌이 일수', fmt(item.dualBuyDays) + '/' + fmt(item.windowDays) + '일'),
+        kpi('5일 순매수 합계', signedEok(item.totalNetEok), chgClass(item.totalNetEok))], sub: sub.join(' · ') };
     }
     if (key === 'nationalPension') {
       if (item.asOf) sub.push((window.NineTime && window.NineTime.asOf(item.asOf)) || (item.asOf + ' 기준'));
@@ -661,6 +680,10 @@
     }
     if (activeKey === 'nationalPension') {
       wrap.innerHTML = renderNpsTable();
+      return;
+    }
+    if (activeKey === 'dualFlowBuy') {
+      wrap.innerHTML = renderDualFlowTable();
       return;
     }
     var cat = scanData.categories[activeKey];
@@ -848,6 +871,66 @@
       + '<td class="ss-col-pension-streak" data-label="연기금 등 연속 순매수">' + streak + '</td>'
       + '<td class="ss-col-fundamentals" data-label="평가액">' + (item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원') + '</td>'
       + '</tr>';
+  }
+
+  // ---- 외국인·기관 쌍끌이 매수 (2026-11-27) ----
+  // 서버(strategy_scan.scan_dual_flow)가 저장된 확정 수급으로 판정한 목록을 표로 그린다. 새 요청·폴링 없음.
+  function signedEok(value) {
+    if (value == null || isNaN(Number(value))) return '—';
+    var n = Number(value);
+    return (n > 0 ? '+' : '') + n.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '억';
+  }
+
+  function sortedDualFlowMatches() {
+    return allMatches('dualFlowBuy').sort(function (a, b) {
+      if (dualFlowSortByStreak) {
+        var streak = (b.dualBuyStreak || 0) - (a.dualBuyStreak || 0);
+        if (streak) return streak;
+      }
+      return (b.totalNetEok || 0) - (a.totalNetEok || 0) || String(a.code).localeCompare(String(b.code));
+    });
+  }
+
+  function dualFlowTableRow(item, index) {
+    var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
+    return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
+      + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
+      + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
+      + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong></td>'
+      + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
+      + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector)) + '</td>'
+      + priceCellHtml(item)
+      + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
+      + '<td class="ss-col-signal" data-label="쌍끌이 일수">' + fmt(item.dualBuyDays) + '/' + fmt(item.windowDays) + '일 · 연속 ' + fmt(item.dualBuyStreak) + '일</td>'
+      + '<td class="ss-col-fundamentals" data-label="5일 순매수(추정)">외국인 ' + signedEok(item.foreignNetEok) + ' · 기관 ' + signedEok(item.institutionNetEok) + '</td>'
+      + '<td class="ss-col-signal" data-label="합계">' + signedEok(item.totalNetEok)
+      + (item.turnoverSharePct == null ? '' : ' · 거래대금의 ' + fmtPctExact(item.turnoverSharePct)) + '</td>'
+      + '</tr>';
+  }
+
+  function renderDualFlowTable() {
+    var all = sortedDualFlowMatches();
+    var asOf = all.reduce(function (latest, item) { return item.flowAsOf && item.flowAsOf > latest ? item.flowAsOf : latest; }, '');
+    var controls = '<div class="ss-nps-filter"><label>정렬 <select class="ss-dual-flow-sort-select">'
+      + '<option value="amount">5일 순매수 합계순</option>'
+      + '<option value="streak"' + (dualFlowSortByStreak ? ' selected' : '') + '>연속 쌍끌이 일수순</option></select></label>'
+      + '<span class="ss-nps-filter-meta">' + (all.length ? '전체 ' + all.length + '종목' + (asOf ? ' · 수급 기준일 ' + escapeHtml(asOf) : '') : '') + '</span></div>';
+    if (!all.length) {
+      return controls + '<div class="ss-hint">지금은 조건에 맞는 쌍끌이 종목이 없거나, 최근 5거래일 확정 수급을 확인하지 못했어요.</div>';
+    }
+    var shown = all.length > DUAL_FLOW_RENDER_CAP ? all.slice(0, DUAL_FLOW_RENDER_CAP) : all;
+    var headers = [
+      {label: '관심', cls: 'ss-col-watch'}, {label: '순위', cls: 'ss-col-rank'},
+      {label: '종목명', cls: 'ss-col-product'}, {label: '종목코드', cls: 'ss-col-code'},
+      {label: '업종', cls: 'ss-col-sector'}, {label: '현재가', cls: 'ss-col-price'},
+      {label: '등락률', cls: 'ss-col-change'}, {label: '쌍끌이 일수', cls: 'ss-col-signal'},
+      {label: '5일 순매수(추정)', cls: 'ss-col-fundamentals'}, {label: '합계', cls: 'ss-col-signal'},
+    ];
+    return controls
+      + '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
+      + headers.map(function (h) { return '<th class="' + h.cls + '">' + h.label + '</th>'; }).join('')
+      + '</tr></thead><tbody>' + shown.map(dualFlowTableRow).join('')
+      + '</tbody></table></div>';
   }
 
   function npsFilterSelectHtml(metaText) {

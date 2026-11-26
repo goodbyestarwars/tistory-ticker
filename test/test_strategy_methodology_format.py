@@ -23,6 +23,7 @@ NOTES = {
     'undervalued': strategy_scan.METHODOLOGY_NOTE,
     'dividend': strategy_scan.DIVIDEND_METHODOLOGY_NOTE,
     'nationalPension': strategy_scan.NPS_METHODOLOGY_NOTE,
+    'dualFlowBuy': strategy_scan.DUAL_FLOW_METHODOLOGY_NOTE,
 }
 # 라벨은 몇 개 안 되는 고정 어휘여야 화면에서 세로로 훑을 수 있다.
 ALLOWED_LABELS = {'계산', '정렬', '제외', '보정', '표시', '출처', '성격'}
