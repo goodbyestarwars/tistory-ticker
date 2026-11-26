@@ -1,3 +1,9 @@
+## 2026-11-27 KIS 기본 전략 v2: 시장 필터·청산 비교·분봉 선터치 (연구 전용)
+- 목적: v1 전부 음수의 원인(선별·청산·진입)을 분리. 기준은 결과 전 `docs/KIS_DEFAULT_STRATEGIES_V2_STUDY_2026-11-27.md`에 고정.
+- 변경: `kis_default_strategies_v2_study.py`, `kis_minute_firsttouch_study.py`(신규), 연구 문서.
+- 결과: 일봉 144조합 신호 있음 0개(최고 consecutive F2 넓은청산 +0.81%, 이전 구간 −0.01%). 필터는 일부 신호에서 크게 개선, 익절5/손절3은 전부 악화. 분봉 선터치는 전부 비용 수준 음수. 검증: Oracle 실행(캐시만).
+- 배포: 해당 없음. 미완료: 약세장 구간·선택 편향 없는 분봉 표본.
+
 ## 2026-11-27 KIS 기본 전략 9종 일봉 백테스트 (연구 전용)
 - 목적: KIS Strategy Builder 기본 전략을 Oracle 5년 일봉으로 검증. 기준은 결과 확인 전 `docs/KIS_DEFAULT_STRATEGIES_STUDY_2026-11-27.md`에 고정.
 - 변경: `scripts/research/kis_default_strategies_study.py`(신규), 연구 문서.
