@@ -1766,6 +1766,7 @@
       page.data = data;
       if (!page.indicators) {
         container.innerHTML = buildCard(data);
+        container.querySelector('[data-mt-close-overview]').__mtData = data.closeOverview;
         wireAnimations(container, data);
         page.indicators = loadMarketIndicators_(container, data);
         scrollToHash_(container);
@@ -1773,6 +1774,11 @@
         if (page.briefing) paintBriefing_(container, page.briefing);
       } else {
         replaceMarketNode_(container.querySelector('.mt-market-intro'), buildMarketIntro_(data));
+        var closeOverview = container.querySelector('[data-mt-close-overview]');
+        if (closeOverview && JSON.stringify(closeOverview.__mtData) !== JSON.stringify(data.closeOverview)) {
+          closeOverview.innerHTML = buildCloseOverview_(data.closeOverview);
+          closeOverview.__mtData = data.closeOverview;
+        }
         replaceMarketNode_(container.querySelector('.mt-breadth-visual'), buildBreadthVisual_(frontPageStory_(data)));
         page.indicators.setSnapshot(data);
       }
@@ -5338,6 +5344,78 @@
       + '</section>';
   }
 
+  function buildCloseOverview_(overview) {
+    overview = overview || {};
+    var market = overview.market || {}, markets = market.markets || {};
+    var scanners = overview.scanners || {}, groups = scanners.groups || {};
+    var exchanges = [['KOSPI', '코스피'], ['KOSDAQ', '코스닥']];
+    var scanMenus = [
+      ['liveFlow', '거래량·가격 회복'], ['trendBreakout', '추세 돌파'],
+      ['bottomFormation', '바닥 형성'], ['pullbackRebreak', '눌림·재돌파'],
+      ['leaderPullback', '주도주 조용한 눌림'], ['longTermQuality', '224일선·구름대 + 재무']
+    ];
+
+    function signed(value, unit, digits) {
+      var n = indicatorNumber_(value);
+      if (n == null) return '미집계';
+      var text = Math.abs(n).toFixed(digits);
+      var sign = Number(text) === 0 ? '' : n > 0 ? '+' : '−';
+      return '<span class="mt-close-value' + (sign ? (n > 0 ? ' is-up' : ' is-down') : '') + '">' + sign + text + unit + '</span>';
+    }
+    function card(title, date, table, note) {
+      return '<section class="mt-card mt-close-card"><div class="mt-close-heading"><h3>' + title + '</h3>'
+        + '<small>' + escapeHtml(date || '미집계') + '</small></div>' + table
+        + '<p class="mt-close-note">' + note + '</p></section>';
+    }
+    function table(label, columns, rows) {
+      return '<table class="mt-close-table" aria-label="' + label + '"><thead><tr>'
+        + columns.map(function (col) { return '<th scope="col">' + col + '</th>'; }).join('')
+        + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    }
+    function row(label, cells) {
+      return '<tr><th scope="row">' + label + '</th>'
+        + cells.map(function (cell) { return '<td>' + cell + '</td>'; }).join('') + '</tr>';
+    }
+
+    var gapTitle = '지수와 체감 증시의 괴리';
+    var gapRows = exchanges.map(function (exchange) {
+      var m = markets[exchange[0]] || {};
+      return row(exchange[1], [signed(m.indexChangePct, '%', 2), signed(m.medianChangePct, '%', 2), signed(m.gapPp, '%p', 2)]);
+    });
+    var breadthNote = exchanges.map(function (exchange) {
+      var m = markets[exchange[0]];
+      if (!m || !m.sample) return '';
+      return exchange[1] + ' 상승 ' + (100 * m.up / m.sample).toFixed(1) + '% · 하락 '
+        + (100 * m.down / m.sample).toFixed(1) + '% · 보합 ' + (100 * m.flat / m.sample).toFixed(1)
+        + '% (' + global.NineUI.number(m.sample) + '종목)';
+    }).filter(Boolean).join('<br>');
+    var strengthTitle = '시장 체력';
+    var strengthRows = [5, 20, 60, 224].map(function (days) {
+      return row(days + '일선', [['all', '전체']].concat(exchanges).map(function (exchange) {
+        var m = markets[exchange[0]] || {}, v = (m.aboveMA || {})[days];
+        return v && indicatorNumber_(v.pct) != null
+          ? '<span class="mt-close-value">' + v.pct.toFixed(1) + '%</span><small class="mt-close-sample">'
+            + global.NineUI.number(v.above) + ' / ' + global.NineUI.number(v.sample) + '</small>'
+          : '미집계';
+      }));
+    });
+    var scanTitle = '검색기 포착 현황';
+    var scanRows = scanMenus.map(function (menu) {
+      var g = groups[menu[0]] || {};
+      return row(menu[1], [indicatorNumber_(g.candidates) == null ? '미집계' : global.NineUI.number(g.candidates) + '건',
+        signed(g.trackDelta, '건', 0)]);
+    });
+    var marketDate = market.asOf && market.asOf + ' 마감';
+    return card(gapTitle, marketDate, table(gapTitle, ['시장', '지수', '종목 중앙값', '격차'], gapRows),
+        (breadthNote ? breadthNote + '<br>' : '') + '두 거래일 종가가 있는 종목 기준 · ETF·스팩·우선주 등 제외')
+      + card(strengthTitle, marketDate, table(strengthTitle, ['이동평균', '전체', '코스피', '코스닥'], strengthRows),
+        '이동평균선 위 종목 수 / 해당 기간 일봉을 모두 확인한 종목 수')
+      + card(scanTitle, scanners.asOf && scanners.asOf + ' 일봉',
+        table(scanTitle, ['검색기', '포착', '신규 추적 증감'], scanRows),
+        (scanners.previousTrackDate ? escapeHtml(scanners.previousTrackDate) + ' 기록 대비. ' : '')
+        + '포착은 검색기 후보 수입니다. 신규 추적 증감은 두 날짜 모두 추적 등록 기록이 있는 검색기에 표시합니다.');
+  }
+
   function buildCard(data) {
     // 서버(GAS gradeForTemp_)가 내려주는 grade에는 color가 없다(색상 스펙은 클라이언트
     // GRADE_BANDS/GRADE_BY_TONE에만 있음) - data.grade 자체에 색을 주입해서 buildHero(data)/
@@ -5357,6 +5435,7 @@
       // 아래 '오늘의 증시' 이하는 장중 주기로 갱신되는 실시간 영역이다. 페이지 날짜·갱신 안내는 각 영역 제목 옆 한 줄로만 둔다(중복 제거).
       '<div class="mt-front-tools mt-dawn"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading><span class="mt-brief-title">시장 브리핑</span></h3>' + buildTomorrowCard_() + '</section></div>',
       '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + '<div class="mt-card mt-extras-col" data-market-extras></div></div>',
+      '<div class="mt-close-overview" data-mt-close-overview>' + buildCloseOverview_(data.closeOverview) + '</div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
       buildTemperatureActions(data),

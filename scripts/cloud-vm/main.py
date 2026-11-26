@@ -187,7 +187,8 @@ def _start_futures_collectors():
     # 증시온도는 방문자마다 달라지지 않는 시장 전체 지표라 요청 경로에서 계산하지 않는다.
     # 백그라운드로 미리 계산해 두고 /market-temp는 읽기만 한다.
     market_temp.start_background(db_schema.get_conn, WEEK52_CACHE_FILE,
-                                 lambda: public_data.fetch_kofia_market(30))
+                                 lambda: public_data.fetch_kofia_market(30),
+                                 scan_loader=load_daily_scan_cache_cached)
 
     # 시장 브리핑(국내 거래일 07:00 확정 스냅샷). 별도 타이머 없이 이 프로세스의 가벼운 스레드가 점검한다.
     morning_briefing.start_background(db_schema.get_conn)
@@ -4308,7 +4309,7 @@ def market_temp_endpoint(request: Request):
     넘기기 전에 막아야 했다 - `market_temp.load_cache()`가 마지막 결과를 디스크에서
     복원하므로 이제 재시작 직후에도 (몇 분 지난) 값이 나간다. 503은 캐시 파일조차 없는
     최초 기동에만 남는다.
-    /investor-flow와 동일하게 공개(인증 없음) + CORS 제한 + 레이트리밋.
+    기존 관리자·서버 인증 미들웨어와 레이트리밋을 적용한다.
     """
     _check_rate_limit('market_temp', request, max_per_window=30)
     cached = market_temp.get_cached()
