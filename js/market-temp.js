@@ -5363,60 +5363,59 @@
       var sign = Number(text) === 0 ? '' : n > 0 ? '+' : '−';
       return '<span class="mt-close-value' + (sign ? (n > 0 ? ' is-up' : ' is-down') : '') + '">' + sign + text + unit + '</span>';
     }
-    function card(title, date, table, note) {
+    function card(title, date, tiles, note, type) {
       return '<section class="mt-card mt-close-card"><div class="mt-close-heading"><h3>' + title + '</h3>'
-        + '<small>' + escapeHtml(date || '미집계') + '</small></div>' + table
+        + '<small>' + escapeHtml(date || '미집계') + '</small></div>'
+        + '<div class="mt-close-grid mt-close-grid--' + type + '">' + tiles.join('') + '</div>'
         + '<p class="mt-close-note">' + note + '</p></section>';
     }
-    function table(label, columns, rows) {
-      return '<table class="mt-close-table" aria-label="' + label + '"><thead><tr>'
-        + columns.map(function (col) { return '<th scope="col">' + col + '</th>'; }).join('')
-        + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    function metric(label, reading) {
+      return '<div><dt>' + label + '</dt><dd>' + reading + '</dd></div>';
     }
-    function row(label, cells) {
-      return '<tr><th scope="row">' + label + '</th>'
-        + cells.map(function (cell) { return '<td>' + cell + '</td>'; }).join('') + '</tr>';
+    function tile(title, metrics, note) {
+      return '<div class="mt-close-tile"><h4>' + title + '</h4><dl>' + metrics.join('') + '</dl>'
+        + (note ? '<small class="mt-close-sample">' + note + '</small>' : '') + '</div>';
+    }
+    function count(value) {
+      return indicatorNumber_(value) == null ? '미집계' : global.NineUI.number(value) + '건';
     }
 
-    var gapTitle = '지수와 체감 증시의 괴리';
-    var gapRows = exchanges.map(function (exchange) {
+    var gapTiles = exchanges.map(function (exchange) {
       var m = markets[exchange[0]] || {};
-      return row(exchange[1], [signed(m.indexChangePct, '%', 2), signed(m.medianChangePct, '%', 2), signed(m.gapPp, '%p', 2)]);
+      var breadth = m.sample
+        ? '상승 ' + (100 * m.up / m.sample).toFixed(1) + '% · 하락 ' + (100 * m.down / m.sample).toFixed(1)
+          + '% · 보합 ' + (100 * m.flat / m.sample).toFixed(1) + '% (' + global.NineUI.number(m.sample) + '종목)'
+        : '';
+      return tile(exchange[1], [
+        metric('지수', signed(m.indexChangePct, '%', 2)),
+        metric('종목 중앙값', signed(m.medianChangePct, '%', 2)),
+        metric('격차', signed(m.gapPp, '%p', 2))
+      ], breadth);
     });
-    var breadthNote = exchanges.map(function (exchange) {
-      var m = markets[exchange[0]];
-      if (!m || !m.sample) return '';
-      return exchange[1] + ' 상승 ' + (100 * m.up / m.sample).toFixed(1) + '% · 하락 '
-        + (100 * m.down / m.sample).toFixed(1) + '% · 보합 ' + (100 * m.flat / m.sample).toFixed(1)
-        + '% (' + global.NineUI.number(m.sample) + '종목)';
-    }).filter(Boolean).join('<br>');
-    var strengthTitle = '시장 체력';
-    var strengthRows = [5, 20, 60, 224].map(function (days) {
-      return row(days + '일선', [['all', '전체']].concat(exchanges).map(function (exchange) {
+    var strengthTiles = [5, 20, 60, 224].map(function (days) {
+      return tile(days + '일선', [['all', '전체']].concat(exchanges).map(function (exchange) {
         var m = markets[exchange[0]] || {}, v = (m.aboveMA || {})[days];
-        return v && indicatorNumber_(v.pct) != null
+        var reading = v && indicatorNumber_(v.pct) != null
           ? '<span class="mt-close-value">' + v.pct.toFixed(1) + '%</span><small class="mt-close-sample">'
             + global.NineUI.number(v.above) + ' / ' + global.NineUI.number(v.sample) + '</small>'
           : '미집계';
+        return metric(exchange[1], reading);
       }));
     });
-    var scanTitle = '검색기 포착 현황';
-    var scanRows = scanMenus.map(function (menu) {
+    var scanTiles = scanMenus.map(function (menu) {
       var g = groups[menu[0]] || {};
-      var candidates = indicatorNumber_(g.candidates) == null ? '미집계' : global.NineUI.number(g.candidates) + '건';
-      var delta = signed(g.trackDelta, '건', 0);
-      var tracked = indicatorNumber_(g.tracked) == null ? '미집계' : global.NineUI.number(g.tracked) + '건';
-      return row(menu[1], historical ? [candidates, tracked, delta] : [candidates, delta]);
+      var metrics = [metric('포착', count(g.candidates)), metric('증감', signed(g.trackDelta, '건', 0))];
+      if (historical) metrics.splice(1, 0, metric('신규 추적', count(g.tracked)));
+      return tile(menu[1], metrics);
     });
     var marketDate = market.asOf && market.asOf + ' 마감';
-    return card(gapTitle, marketDate, table(gapTitle, ['시장', '지수', '종목 중앙값', '격차'], gapRows),
-        (breadthNote ? breadthNote + '<br>' : '') + '두 거래일 종가가 있는 종목 기준 · ETF·스팩·우선주 등 제외')
-      + card(strengthTitle, marketDate, table(strengthTitle, ['이동평균', '전체', '코스피', '코스닥'], strengthRows),
-        '이동평균선 위 종목 수 / 해당 기간 일봉을 모두 확인한 종목 수')
-      + card(scanTitle, scanners.asOf && scanners.asOf + ' 일봉',
-        table(scanTitle, historical ? ['검색기', '포착', '신규 추적', '추적 증감'] : ['검색기', '포착', '신규 추적 증감'], scanRows),
-        (scanners.previousTrackDate ? escapeHtml(scanners.previousTrackDate) + ' 기록 대비. ' : '')
-        + '포착은 검색기 후보 수입니다. 신규 추적 증감은 두 날짜 모두 추적 등록 기록이 있는 검색기에 표시합니다.');
+    return card('지수와 체감 증시의 괴리', marketDate, gapTiles,
+        '두 거래일 종가가 있는 종목 기준 · ETF·스팩·우선주 등 제외', 'gap')
+      + card('시장 체력', marketDate, strengthTiles,
+        '이동평균선 위 종목 수 / 해당 기간 일봉을 모두 확인한 종목 수', 'strength')
+      + card('검색기 포착 현황', scanners.asOf && scanners.asOf + ' 일봉', scanTiles,
+        (scanners.previousTrackDate ? '추적 증감은 ' + escapeHtml(scanners.previousTrackDate) + ' 기록 대비입니다. ' : '')
+        + '포착은 후보 수이며, 추적 증감에는 두 날짜의 등록 기록이 필요합니다.', 'scan');
   }
 
   function wireCloseHistory_(container, getCurrent) {

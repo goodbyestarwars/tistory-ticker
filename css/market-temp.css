@@ -3754,24 +3754,59 @@ html.dark #market-temp .heatmap-tile.is-flat {
   font-family: var(--font-title);
   font-size: 16px;
 }
-#market-temp .mt-close-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
+#market-temp .mt-close-grid {
+  display: grid;
+  gap: 8px;
 }
-#market-temp .mt-close-table :is(th, td) {
-  padding: 7px 3px;
-  border-bottom: 1px solid var(--rule);
-  text-align: right;
+#market-temp .mt-close-grid--strength {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-#market-temp .mt-close-table th:first-child {
-  text-align: left;
-  overflow-wrap: anywhere;
+#market-temp .mt-close-grid--scan {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+#market-temp .mt-close-tile {
+  background: var(--mt2-soft);
+  border-radius: 9px;
+  padding: 7px 9px;
+  min-width: 0;
+}
+#market-temp .mt-close-tile h4 {
+  margin: 0 0 4px;
+  font: 600 12px/1.4 var(--font-ui);
+}
+#market-temp .mt-close-tile dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+}
+#market-temp .mt-close-tile dl > div {
+  flex: 1 0 auto;
+  min-width: 0;
+}
+#market-temp :is(.mt-close-grid--gap, .mt-close-grid--strength) dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 5px;
+}
+#market-temp .mt-close-grid--scan dl {
+  column-gap: 8px;
+}
+#market-temp .mt-close-grid--scan dl > div {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: baseline;
+  gap: 4px;
+}
+#market-temp .mt-close-tile dt,
 #market-temp :is(.mt-close-note, .mt-close-heading small, .mt-close-sample) {
-  color: var(--ui-muted, var(--text-main, inherit));
-  font-size: 12px;
+  color: var(--ui-muted, var(--mt2-sub));
+  font-size: 11px;
+}
+#market-temp .mt-close-tile dd {
+  margin: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 #market-temp .mt-close-note {
   margin: 8px 0 0;
@@ -3795,6 +3830,20 @@ html.dark #market-temp .heatmap-tile.is-flat {
   }
   #market-temp .mt-close-card {
     padding: 12px;
+  }
+  #market-temp .mt-close-grid--scan {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 360px) {
+  #market-temp [data-mt-close-overview] .mt-close-grid--scan dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 4px;
+  }
+  #market-temp [data-mt-close-overview] .mt-close-grid--scan dl > div {
+    display: block;
   }
 }
 
