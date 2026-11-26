@@ -501,14 +501,14 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20261123-public-crypto',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20261126-funds-detail',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
         key: 'investor', badge: '수급 집계', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
         mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
-        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261110-no-summaries',
+        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261126-funds-detail',
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
@@ -764,7 +764,7 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261118-domestic-news-height-2')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261118-domestic-news-height-2';
     var HOME_CHART_HOVER_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-chart-hover.js?v=20261018-hover';
-    var HOME_INVESTOR_FLOW_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/investor-flow.js?v=20261120-home-liquidity2';
+    var HOME_INVESTOR_FLOW_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/investor-flow.js?v=20261126-funds-detail';
     var HOME_REALTIME_TABLE_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-economic-news.js?v=20261118-finance-filter-v2';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = ((typeof NineAsset !== 'undefined' && NineAsset.base) || 'https://goodbyestarwars.github.io/tistory-ticker/') + 'js/home-weekly-report.js?v=20261123-public-crypto';
@@ -2918,7 +2918,10 @@ else document.addEventListener('nine:guest-home', loadMobileTabs, { once: true }
         fetchHomeJson('https://goodbyestar.cloud/domestic-market-indicators', 20000)]).then(function (results) {
         var env = results[1];
         if (!env || !env.data || typeof window.InvestorFlow.homeLiquidity !== 'function') throw new Error('수급 추이 자료 없음');
-        host.innerHTML = window.InvestorFlow.homeLiquidity(env.data);
+        var detailOptions = window.NineAccess && !window.NineAccess.allowsScreen('indicators')
+          ? { detailUrl: 'https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&serviceId=STATSCU0100000060' }
+          : undefined;
+        host.innerHTML = window.InvestorFlow.homeLiquidity(env.data, detailOptions);
       }).catch(function (error) {
         console.warn('증시 수급 추이 불러오기 실패', error);
         if (host.querySelector('.hlq-balances')) return;

@@ -691,11 +691,14 @@
         + '<div class="hlq-change"><span class="' + tone(st.pct20) + '">20거래일 ' + pct(st.pct20) + '</span><span class="' + tone(st.pct5) + '">5거래일 ' + pct(st.pct5) + '</span></div>'
         + liquiditySpark(pts, st.avg20) + '</div>';
     }
-    var sentence = summarizeBalances(dep, crd).sentences.join(' ');
+    var sameDate = dep.lastDate && dep.lastDate === crd.lastDate;
+    var dateLabel = sameDate ? '예탁금·신용 기준일 ' + dep.lastDate
+      : '예탁금 기준일 ' + (dep.lastDate || '미확인') + ' · 신용 기준일 ' + (crd.lastDate || '미확인');
+    var sentence = sameDate ? summarizeBalances(dep, crd).sentences.join(' ') : '';
     return '<div class="hlq-balances">' + balance('고객예탁금', '주식 살 대기자금', dep, depPts) + balance('신용잔고', '빚내서 산 금액', crd, crdPts) + '</div>'
       + (sentence ? '<p class="hlq-sentence">' + esc(sentence) + '</p>' : '')
-      + '<small class="ui-kpi-source">예탁금·신용 기준일 ' + esc(dep.lastDate || '-') + ' · 점선은 20거래일 평균 · '
-      + '<a href="' + esc(opts.detailUrl || '/pages/domestic-market-indicators') + '">자세히</a></small>';
+      + '<small class="ui-kpi-source">' + esc(dateLabel) + ' · 점선은 20거래일 평균 · '
+      + '<a href="' + esc(opts.detailUrl || '/pages/kospi-futures?tab=domestic&section=funds') + '">자세히</a></small>';
   }
 
   global.InvestorFlow = {

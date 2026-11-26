@@ -976,7 +976,7 @@
   }
 
   function renderFunds(root, funds, programTrading, leverageDetail) {
-    ensureFundBoard().then(function () {
+    return ensureFundBoard().then(function () {
       if (!global.IndicatorBoard) { renderFundCards(root, funds, programTrading, leverageDetail); return; }
       var host = root.querySelector('.dmi-fund-grid') || root.querySelector('.dmi-fund-board');
       if (!host) return;
@@ -1102,7 +1102,8 @@
     dmiRoot = root;
     installStyle();
     var spotCollapsed = loadCollapsed('spot');
-    var fundsCollapsed = loadCollapsed('funds');
+    var openFunds = new URLSearchParams(global.location.search).get('section') === 'funds';
+    var fundsCollapsed = !openFunds && loadCollapsed('funds');
     function blockHead(no, name, extra, buttonHtml) {
       return '<div class="mi-block-head dmi-subheading"><h3 class="mi-block-title"><span class="mi-block-no">' + no + '</span><span class="mi-block-name">' + name + (extra || '') + '</span></h3>' + (buttonHtml || '') + '</div>';
     }
@@ -1132,11 +1133,18 @@
       root._dmiData = data;
       renderCharts(root, data.indices || {});
       renderSpotQuotes(root, data.indices || {});
-      renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
+      var fundsReady = renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
       renderInvestorFlow(root, data.funds || {});
       connectSocket();
+      if (openFunds) return fundsReady;
     }).catch(function () {
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
+    }).then(function () {
+      if (openFunds) {
+        global.requestAnimationFrame(function () {
+          root.querySelector('.dmi-funds-section').scrollIntoView();
+        });
+      }
     });
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) closeSocket(false);
