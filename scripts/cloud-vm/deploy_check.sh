@@ -355,7 +355,7 @@ POST_CHECK=skipped
 #   GitHub Pages URL로 받아 재시작과 무관하지만, 앞으로 로컬로 읽는 파일이 생겨도 빠지지
 #   않게 디렉터리째 본다(data/ 변경은 드물다).
 # 회사 소개·종목 스토리 정적 자료는 브라우저 전용이다. 격주 데이터 갱신으로 VM을 재시작하거나 스캔하지 않는다.
-VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js :(exclude)data/chart-history/ :(exclude)data/stock-stories.js :(exclude)data/stories/"
+VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js :(exclude)data/chart-history/ :(exclude)data/stock-stories.js :(exclude)data/stories/ :(exclude)data/official-economic-calendar.js"
 
 api_deploy_window_protected() {
   local kst_dow kst_hm

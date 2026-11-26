@@ -2141,7 +2141,8 @@
           lwcLiveBars.push(last);
         }
       }
-    } else if (last.date !== kstToday()) {
+    } else if (last.date !== kstToday() || (state.chartCache[code] && state.chartCache[code].data
+        && state.chartCache[code].data.integratedUnavailable)) {
       return;
     }
     last.close = price;
@@ -2351,7 +2352,7 @@
   function requestFlowChart(code) {
     return global.OrderBook && global.OrderBook.fetchChart
       ? global.OrderBook.fetchChart(code)
-      : global.NineAPI.flowChart(code, {request:fetchJson, market:'UN'});
+      : global.NineAPI.flowChart(code, {request:fetchJson, market:'UN', allowKrxFallback:true});
   }
 
   function loadSharedFlowChart(code) {
@@ -2370,9 +2371,11 @@
   function loadChart(container, code) {
     var chartEl = activeStockChartElement(container);
     if (!chartEl) return;
+    clearTimeout(state.integratedRetryTimer);
     var cached = state.chartCache[code];
     if (cached && Date.now() - cached.t < 5 * 60 * 1000) {
       if (cached.noDaily) { showMinuteForMissingDaily(container, code); return; }
+      showChartScope(container, code, cached.data);
       renderChartForCode(container, code);
       return;
     }
@@ -2388,13 +2391,43 @@
         }
         if (!data || data.error || !data.daily || !data.daily.length) throw new Error('NO_DATA');
         state.chartCache[code] = { t: Date.now(), data: data };
-        if (state.selectedCode === code) renderChartForCode(container, code);
+        if (state.selectedCode === code) {
+          showChartScope(container, code, data);
+          renderChartForCode(container, code);
+        }
       })
       .catch(function () {
         if (state.selectedCode === code) {
           chartEl.innerHTML = '<div class="ss-hint ss-error">차트 데이터를 불러오지 못했어요.</div>';
         }
       });
+  }
+
+  function showChartScope(container, code, data) {
+    var notice = container.querySelector('#ssChartNotice');
+    var fallback = !!data.integratedUnavailable;
+    if (notice) {
+      notice.hidden = !fallback;
+      notice.textContent = fallback ? '통합 일봉 조회 실패 · KRX 차트와 거래량을 임시 표시합니다.' : '';
+    }
+    clearTimeout(state.integratedRetryTimer);
+    if (!fallback) return;
+    function scheduleRetry() {
+      state.integratedRetryTimer = setTimeout(function () {
+        if (state.selectedCode !== code || !container.isConnected) return;
+        if (document.hidden) { scheduleRetry(); return; }
+        loadSharedFlowChart(code).then(function (latest) {
+          if (state.selectedCode !== code || !container.isConnected) return;
+          if (!latest || latest.marketScope !== 'UN') { scheduleRetry(); return; }
+          state.chartCache[code] = {t:Date.now(), data:latest};
+          var ladder = container.querySelector('#order-book');
+          if (ladder && global.OrderBook && global.OrderBook.refreshSummary) global.OrderBook.refreshSummary(ladder, code, latest);
+          showChartScope(container, code, latest);
+          if (state.timeframe !== 'minute') renderChartForCode(container, code);
+        }).catch(function () { if (state.selectedCode === code) scheduleRetry(); });
+      }, 65000);
+    }
+    scheduleRetry();
   }
 
   function stockRsi(bars) {
@@ -2646,6 +2679,10 @@
       var chartEl = activeStockChartElement(container);
       if (chartEl) {
         global.NineChartData.installRangeButtons(chartEl, code, function () { return state.chartCache[code].data; }, function (data) {
+          var prior = state.chartCache[code].data;
+          if (prior.integratedUnavailable && data.marketScope !== 'UN') {
+            data = Object.assign({}, data, {marketScope:'KRX', integratedUnavailable:true, source:'krx-fallback'});
+          }
           state.chartCache[code] = { t: Date.now(), data: data };
           renderChartForCode(container, code);
         });

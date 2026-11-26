@@ -73,6 +73,12 @@ class ChartHistoryTests(unittest.TestCase):
         self.assertFalse(chart_history._un_recent(final, final - timedelta(minutes=1)))
         self.assertTrue(chart_history._un_recent(final + timedelta(minutes=1), final))
 
+    def test_cold_un_contention_is_not_a_missing_stock(self):
+        with mock.patch.object(chart_history._gate, 'acquire', return_value=False) as gate:
+            with self.assertRaises(chart_history.ChartHistoryBusy):
+                chart_history.get_daily('376900', token_getter=lambda: 'token', market='UN')
+        gate.assert_called_once_with(timeout=3)
+
     def test_bad_ohlc_is_rejected_and_short_listing_stays_short(self):
         rows = self.bars(80)
         rows.append(dict(rows[-1], date=self.today.isoformat(), low=200))

@@ -181,11 +181,12 @@
         }
         return data;
       });
-    }, usable);
+    }, function (data) { return usable(data) && !data.integratedUnavailable; });
   }
 
   // 엔진이 아직 없을 때 화면이 바로 받아 둔 응답을 엔진이 올라온 뒤 캐시에 넣어 준다(같은 종목 재조회에서 다시 받지 않게).
   function primeFlowChart(code, data, adjust) {
+    if (data && data.integratedUnavailable) return;
     if (!usable(data)) return data;
     var key = flowChartKey(code, adjust), t = Date.now();
     data.daily = normalizeBars(data.daily);

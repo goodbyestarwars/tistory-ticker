@@ -32,6 +32,18 @@ assert.equal(api.gasUrl,existingGas,'canonical GAS URL must match the deployed w
  const un=await api.flowChart('005930',{market:'UN',request:async url=>{assert.match(url,/market=UN$/);return {marketScope:'UN',daily:[row]};}});
  assert.equal(un.marketScope,'UN');
  let unCalls=0;await assert.rejects(api.flowChart('005930',{market:'UN',request:async()=>{unCalls++;return {daily:[row]};}}));assert.equal(unCalls,1);
+ const incidentCalls=[];
+ const emergency=await api.flowChart('376900',{market:'UN',allowKrxFallback:true,request:async url=>{
+   incidentCalls.push(url.split('?')[1]);
+   return {success:true,data:{daily:[row]}};
+ }});
+ assert.deepEqual(incidentCalls,['market=UN','market=KRX']);
+ assert.equal(emergency.marketScope,'KRX');assert.equal(emergency.integratedUnavailable,true);
+ let denied=0;
+ await assert.rejects(api.flowChart('376900',{market:'UN',allowKrxFallback:true,request:async()=>{
+   denied++;throw Object.assign(Error('login required'),{status:401});
+ }}));
+ assert.equal(denied,1);
  await assert.rejects(api.flowChart('005930',{request:async()=>({daily:[{...row,close:null}]})}));
  const failed=await api.flowChart('005930',{request:async url=>{if(url.startsWith(api.vmUrl))throw Error('offline');return {daily:[row]};}});
  assert.equal(failed.source,'gas-vm-derived');assert.equal(failed.daily[0].date,row.date);

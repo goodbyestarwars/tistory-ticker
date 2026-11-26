@@ -2478,7 +2478,10 @@ def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=
     """
     _check_rate_limit('flow_chart', request)
     import chart_history
-    daily = chart_history.get_daily(code, extended=(history == '5y'), token_getter=get_kiwoom_token, market=market)
+    try:
+        daily = chart_history.get_daily(code, extended=(history == '5y'), token_getter=get_kiwoom_token, market=market)
+    except chart_history.ChartHistoryBusy:
+        raise HTTPException(status_code=503, detail='통합 일봉 조회 대기 중', headers={'Retry-After': '3'})
     if not daily or len(daily) < 30:
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
 

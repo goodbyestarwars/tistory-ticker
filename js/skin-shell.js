@@ -563,13 +563,24 @@
     code = encodeURIComponent(code);
     options = options || {};
     var integrated = options.market === 'UN';
-    return domain('/flow-chart/' + code + (integrated ? '?market=UN' : ''), integrated ? null : '?action=flowChart&code=' + code, function (body) {
-      return (!integrated || body.marketScope === 'UN') && Array.isArray(body.daily) && body.daily.length > 0 && body.daily.every(function (bar) {
+    function validChart(body) {
+      return Array.isArray(body.daily) && body.daily.length > 0 && body.daily.every(function (bar) {
         return bar.date && ['open', 'high', 'low', 'close'].every(function (key) {
           return bar[key] != null && isFinite(Number(bar[key]));
         }) && Number(bar.high) >= Number(bar.low);
       });
-    }, options);
+    }
+    var path = '/flow-chart/' + code;
+    return domain(path + (integrated ? '?market=UN' : ''), integrated ? null : '?action=flowChart&code=' + code, function (body) {
+      return (!integrated || body.marketScope === 'UN') && validChart(body);
+    }, options).catch(function (error) {
+      if (!integrated || !options.allowKrxFallback || error.status === 401 || error.status === 403 || error.name === 'AbortError') throw error;
+      return domain(path + '?market=KRX', null, function (body) {
+        return (!body.marketScope || body.marketScope === 'KRX') && validChart(body);
+      }, options).then(function (body) {
+        return Object.assign({}, body, {marketScope:'KRX', integratedUnavailable:true, source:'krx-fallback'});
+      });
+    });
   }
   function strategy(options) {
     return domain('/strategy-scan', '?strategyScan=1', function (body) {

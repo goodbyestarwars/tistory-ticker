@@ -14,6 +14,10 @@ _locks = {}
 _locks_guard = threading.Lock()
 
 
+class ChartHistoryBusy(Exception):
+    """Cold integrated history could not acquire the existing upstream slot."""
+
+
 def _connect(market):
     if market == 'KRX':
         return db_schema.get_conn()
@@ -118,7 +122,12 @@ def get_daily(code, extended=False, token_getter=None, *, market='KRX'):
             if market == 'UN' and not quota_ok:
                 needs_history = False
                 quota_ok = True
-            if quota_ok and (needs_history or needs_latest or not rows) and _gate.acquire(blocking=False):
+            needs_fetch = quota_ok and (needs_history or needs_latest or not rows)
+            cold_integrated = market == 'UN' and not rows
+            acquired = needs_fetch and (_gate.acquire(timeout=3) if cold_integrated else _gate.acquire(blocking=False))
+            if needs_fetch and cold_integrated and not acquired:
+                raise ChartHistoryBusy()
+            if acquired:
                 try:
                     fetched = _fetch(token_getter, code, 3 if needs_history else 1, market)
                     if market == 'UN' and (not fetched or not all(_valid(row) for row in fetched)):

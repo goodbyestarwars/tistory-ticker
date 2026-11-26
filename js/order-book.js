@@ -326,10 +326,14 @@
     }
     startRealtimeQuote(container, code);
 
-    // OHLC summary is loaded once per selected stock; quote polling remains lightweight.
     if (state.quoteOnly) return;
+    refreshSummary(container, code);
+  }
+
+  function refreshSummary(container, code, chartData) {
+    if (state.code !== code || state.quoteOnly) return;
     var summaryGeneration = state.summaryGeneration;
-    fetchSummary(code).then(function (summary) {
+    fetchSummary(code, chartData).then(function (summary) {
       if (state.code !== code || state.summaryGeneration !== summaryGeneration) return;
       state.summary = summary;
       updateSummary(container.querySelector('#obBoard'));
@@ -1252,9 +1256,9 @@
 
   function fetchChart(code) {
     var cached = chartResponses[code];
-    if (cached && Date.now() - cached.t < 5 * 60 * 1000) return Promise.resolve(cached.data);
+    if (cached && Date.now() - cached.t < (cached.data.integratedUnavailable ? 60000 : 5 * 60 * 1000)) return Promise.resolve(cached.data);
     if (chartRequests[code]) return chartRequests[code];
-    var request = global.NineAPI.flowChart(code, {request:requestChart, market:'UN'})
+    var request = global.NineAPI.flowChart(code, {request:requestChart, market:'UN', allowKrxFallback:true})
       .then(function (data) {
         delete chartRequests[code];
         if (data && !data.error && Array.isArray(data.daily) && data.daily.length) {
@@ -1273,9 +1277,9 @@
     return global.NineHttp.json(url, {timeoutMs:FETCH_TIMEOUT_MS});
   }
 
-  function fetchSummary(code) {
+  function fetchSummary(code, chartData) {
     // 차트를 같이 그리는 화면(js/stock-search.js)은 같은 일봉을 공용 캐시(chart-data)로 받으려고 공급 함수를 바꿔 끼운다.
-    return (OrderBook.flowChartProvider || fetchChart)(code).then(function (data) {
+    return (chartData ? Promise.resolve(chartData) : (OrderBook.flowChartProvider || fetchChart)(code)).then(function (data) {
         var daily = data && Array.isArray(data.daily) ? data.daily : [];
         var latest = daily.length ? daily[daily.length - 1] : null;
         var previous = daily.length > 1 ? daily[daily.length - 2] : null;
@@ -1283,6 +1287,7 @@
         return {
           date: latest.date,
           marketScope: data.marketScope || null,
+          integratedUnavailable: !!data.integratedUnavailable,
           close: numericOrNull(latest.close),
           open: numericOrNull(latest.open),
           high: numericOrNull(latest.high),
@@ -1407,6 +1412,7 @@
     return {
       date: summary.date || null,
       marketScope: summary.marketScope || null,
+      integratedUnavailable: !!summary.integratedUnavailable,
       changeRate: numericOrNull(quote && quote.changeRate) != null ? numericOrNull(quote.changeRate) : numericOrNull(state.lastRealtimeQuote && state.lastRealtimeQuote.changeRate),
       current: numericOrNull(quote && quote.price) || numericOrNull(state.lastRealtimeQuote && state.lastRealtimeQuote.price) || numericOrNull(summary.close),
       open: numericOrNull(summary.open),
@@ -1593,7 +1599,7 @@
   function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, fetchChart: fetchChart, select: selectStock, drawSilhouette: drawSilhouette };
+  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, fetchChart: fetchChart, select: selectStock, refreshSummary: refreshSummary, drawSilhouette: drawSilhouette };
   global.OrderBook = OrderBook;
 
   // init(selector)에 selector 인자가 추가된 뒤로 addEventListener가 콜백에 넘기는
