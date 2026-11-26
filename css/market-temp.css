@@ -3722,3 +3722,130 @@ html.dark #market-temp .heatmap-tile.is-down {
 html.dark #market-temp .heatmap-tile.is-flat {
   background:var(--dk-card,#151b24) !important;
 }
+
+/* 일봉 마감 집계는 기존 카드와 분리해 장중 카드 배치와 갱신을 유지한다. */
+#market-temp .mt-close-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-section-gap, 14px);
+}
+#market-temp .mt-close-card {
+  min-width: 0;
+  padding: var(--ui-card-padding, 16px);
+  color: var(--pulse-ink, var(--text-main));
+  border: 1px solid var(--pulse-line, var(--rule));
+  border-radius: var(--ui-radius-card, 12px);
+  background: var(--ui-glass-surface, var(--pulse-surface, #fff));
+  box-shadow: var(--soft-raised-sm, none);
+}
+#market-temp .mt-close-card:last-child {
+  grid-column: 1 / -1;
+}
+#market-temp .mt-close-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+#market-temp .mt-close-heading h3 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 16px;
+}
+#market-temp .mt-close-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+#market-temp .mt-close-table :is(th, td) {
+  padding: 7px 3px;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+}
+#market-temp .mt-close-table th:first-child {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+#market-temp :is(.mt-close-note, .mt-close-heading small, .mt-close-sample) {
+  color: var(--ui-muted, var(--text-main, inherit));
+  font-size: 12px;
+}
+#market-temp .mt-close-note {
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+#market-temp .mt-close-sample {
+  display: block;
+}
+#market-temp .mt-close-value {
+  font-weight: 650;
+}
+#market-temp .mt-close-value.is-up {
+  color: var(--num-up);
+}
+#market-temp .mt-close-value.is-down {
+  color: var(--num-down);
+}
+@media (max-width: 720px) {
+  #market-temp .mt-close-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #market-temp .mt-close-card {
+    padding: 12px;
+  }
+}
+
+#market-temp .mt-close-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+#market-temp .mt-close-dialog {
+  width: min(900px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: var(--ui-card-padding, 14px);
+  overflow: auto;
+  background: var(--ui-card-surface, #fff);
+  border: 1px solid var(--ui-border, #ddd);
+  border-radius: var(--ui-radius-card, 12px);
+  color: var(--text-main, #273332);
+}
+html.dark #market-temp .mt-close-dialog {
+  color-scheme: dark;
+  background: var(--dk-card);
+  color: var(--dk-text);
+}
+#market-temp .mt-close-dialog::backdrop {
+  background: rgb(0 0 0 / 48%);
+}
+#market-temp :is(.mt-close-dialog-head, .mt-close-history-form) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+#market-temp .mt-close-dialog-head {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+#market-temp .mt-close-dialog-head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+#market-temp .mt-close-history-form input {
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--ui-border, #ddd);
+  border-radius: 8px;
+  background: var(--ui-card-surface, #fff);
+  color: inherit;
+  font: inherit;
+}
+#market-temp .mt-close-history-status {
+  margin-block: 10px;
+}
+#market-temp .mt-close-history-status:empty {
+  display: none;
+}

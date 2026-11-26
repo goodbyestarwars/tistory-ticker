@@ -24,6 +24,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import market_temp_data as data
+import market_temp_extras
 import market_temp_score as score
 
 LOGGER = logging.getLogger('market_temp')
@@ -424,7 +425,7 @@ def get_cached():
         return dict(_state)
 
 
-def refresh_once(conn_factory, week52_cache_file, kofia_factory):
+def refresh_once(conn_factory, week52_cache_file, kofia_factory, scan_loader=None):
     try:
         conn = conn_factory()
         try:
@@ -433,7 +434,26 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory):
                 kofia = kofia_factory()
             except Exception:
                 LOGGER.debug('kofia fetch failed - creditRisk 없이 계산', exc_info=True)
-            result = build(conn, week52_cache_file, kofia)
+            now_kst = datetime.now(KST)
+            result = build(conn, week52_cache_file, kofia, now_kst)
+            basis = market_temp_extras.close_basis(now_kst)
+            extras = {'market': None, 'scanners': None}
+            try:
+                extras['market'] = market_temp_extras.cached_market_summary(conn, basis)
+            except Exception:
+                LOGGER.exception('마감 시장 체력 집계 실패')
+            if scan_loader is not None:
+                try:
+                    extras['scanners'] = market_temp_extras.scanner_summary(
+                        conn, scan_loader(), basis.isoformat(), now_kst)
+                except Exception:
+                    LOGGER.exception('검색기 포착 현황 집계 실패')
+            result['closeOverview'] = extras
+            try:
+                market_temp_extras.ensure_history_schema(conn)
+                market_temp_extras.save_history(conn, basis.isoformat(), extras)
+            except Exception:
+                LOGGER.exception('증시온도 마감 집계 이력 저장 실패')
         finally:
             conn.close()
         computed_at = time.time()
@@ -451,7 +471,7 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory):
 
 
 def start_background(conn_factory, week52_cache_file, kofia_factory,
-                     interval=REFRESH_INTERVAL_SEC):
+                     interval=REFRESH_INTERVAL_SEC, scan_loader=None):
     """주기 계산 스레드. 다른 폴러(foreign_futures 등)와 같은 패턴이다.
 
     방문자 요청이 계산을 유발하지 않으므로 캐시 워머가 필요 없다.
@@ -466,7 +486,7 @@ def start_background(conn_factory, week52_cache_file, kofia_factory,
     def loop():
         import market_clock
         while True:
-            refresh_once(conn_factory, week52_cache_file, kofia_factory)
+            refresh_once(conn_factory, week52_cache_file, kofia_factory, scan_loader=scan_loader)
             # 2026-09-15 부하 절감: 국내 장이 닫힌 시간에는 15분마다만 다시 계산한다
             # (238종목 시세 조회 + DB 계산이라 이 프로세스에서 무거운 축에 든다).
             time.sleep(market_clock.sleep_seconds(market_clock.kr_market_active(), interval))

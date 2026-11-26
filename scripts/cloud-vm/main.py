@@ -21,12 +21,12 @@ import urllib.parse
 import urllib.request
 from collections import OrderedDict, deque
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Path, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 import access_policy
 import discussion_intro
@@ -49,6 +49,7 @@ import foreign_flow_compute
 import foreign_futures
 import home_session_chart
 import market_temp
+import market_temp_extras
 import morning_briefing
 import ai_comments
 import naver_news
@@ -187,7 +188,8 @@ def _start_futures_collectors():
     # 증시온도는 방문자마다 달라지지 않는 시장 전체 지표라 요청 경로에서 계산하지 않는다.
     # 백그라운드로 미리 계산해 두고 /market-temp는 읽기만 한다.
     market_temp.start_background(db_schema.get_conn, WEEK52_CACHE_FILE,
-                                 lambda: public_data.fetch_kofia_market(30))
+                                 lambda: public_data.fetch_kofia_market(30),
+                                 scan_loader=load_daily_scan_cache_cached)
 
     # 시장 브리핑(국내 거래일 07:00 확정 스냅샷). 별도 타이머 없이 이 프로세스의 가벼운 스레드가 점검한다.
     morning_briefing.start_background(db_schema.get_conn)
@@ -4292,7 +4294,7 @@ def morning_briefing_revise(date: str = Query(..., pattern=r'^\d{4}-\d{2}-\d{2}$
 
 
 @app.get('/market-temp')
-def market_temp_endpoint(request: Request):
+def market_temp_endpoint(request: Request, day: date | None = Query(default=None, alias='date')):
     """오늘의 증시온도. GAS `?marketTemp=1`을 대체한다(docs/BACKEND_CONSOLIDATION.md 1단계).
 
     GAS는 요청을 받고 나서 전종목을 긁어 캐시 미스면 방문자가 7초를 물었다(2026-08-31
@@ -4308,9 +4310,19 @@ def market_temp_endpoint(request: Request):
     넘기기 전에 막아야 했다 - `market_temp.load_cache()`가 마지막 결과를 디스크에서
     복원하므로 이제 재시작 직후에도 (몇 분 지난) 값이 나간다. 503은 캐시 파일조차 없는
     최초 기동에만 남는다.
-    /investor-flow와 동일하게 공개(인증 없음) + CORS 제한 + 레이트리밋.
+    ?date=YYYY-MM-DD 분기는 저장한 마감 집계를 읽고, 이력이 없으면 원천 공급자 호출 없이
+    읽기 전용 DB에서 해당 일자만 집계한다. 두 분기에 기존 관리자·서버 인증과 빈도 제한을 적용한다.
     """
     _check_rate_limit('market_temp', request, max_per_window=30)
+    if day is not None:
+        if day > market_temp_extras.close_basis(datetime.now(market_temp.KST)):
+            raise HTTPException(status_code=422, detail='마감 데이터의 기준일을 선택해 주세요.')
+        try:
+            overview = market_temp_extras.historical_overview(day)
+        except market_temp_extras.HistoryBusy:
+            raise HTTPException(status_code=503, detail='다른 날짜를 집계 중입니다. 다시 조회해 주세요.') from None
+        return JSONResponse(envelope({'asOf': day.isoformat(), 'closeOverview': overview}),
+                            headers={'Cache-Control': 'no-store'})
     cached = market_temp.get_cached()
     if cached.get('result') is None:
         raise HTTPException(
