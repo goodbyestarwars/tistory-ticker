@@ -270,6 +270,27 @@
       + '.svg" alt="" loading="lazy" onerror="window.StockIconFallback ? window.StockIconFallback(this) : (window.__stockIconFallback ? window.__stockIconFallback(this) : this.style.display=\'none\')">';
   }
 
+  // 2026-11-27 검색기 터미널(js/scanner-terminal.js): data-terminal 속성이 있을 때만 상세를 오른쪽 칸에 두고 이벤트로 알린다. 속성이 없으면 기존 동작 그대로다.
+  function isTerminal(container) { return !!(container && container.hasAttribute && container.hasAttribute('data-terminal')); }
+  function emitTerminal(name, detail) {
+    if (!isTerminal(rootContainer) || typeof global.CustomEvent !== 'function') return;
+    document.dispatchEvent(new global.CustomEvent(name, { detail: detail }));
+  }
+  function terminalRows() {
+    return (detailNavItems || []).map(function (r) {
+      var first = r && r.classified && r.classified[0] && r.classified[0].member, it = first ? first.item : r, d = detailFor(it) || {};
+      return { code: String(r.code), name: r.name || it.name || '', price: r.price == null ? null : Number(r.price), changeRate: r.changeRate == null ? null : Number(r.changeRate),
+        date: it.date || '', scannedAt: it.scannedAt || it.sampleAt || it.at || d.scanned_at || '', status: r.publicStatus ? r.publicStatus.key : '',
+        keys: (r.members || []).map(function (m) { return m.key; }), members: (r.members || []).map(function (m) { var i = m.item || {}; return { key: m.key, stale: !!i._observationStale, at: i.sampleAt || i.at || i.lastObservedAt || null }; }), support: d.support == null ? null : Number(d.support), resistance: d.resistance == null ? null : Number(d.resistance),
+        invalidation: (it.signalReview || {}).invalidationPrice == null ? null : Number((it.signalReview || {}).invalidationPrice),
+        lines: plainLines(it), reasons: (it.reasons || d.reasons || []).slice(0, 6), manual: !!(r.publicStatus && r.publicStatus.key === 'research') };
+    });
+  }
+  function terminalLive() {
+    return { ninepay: { running: !!(ninepayData && ninepayData.running), active: !!(ninepayData && ninepayData.active), rule: ninepayData && ninepayData.ruleVersion || '', error: ninepayError },
+      surge: { active: !!(liveSurgeInfo && liveSurgeInfo.active), error: liveSurgeError } };
+  }
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
@@ -1626,7 +1647,7 @@
       var r=visible.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
       var m=r.classified[0].member;
       var detail=document.getElementById('psDetail');
-      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){closeDetail(container);return;}
+      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){if(!isTerminal(container))closeDetail(container);return;}
       openDetail(container,Object.assign({},m.item,{_sourceKey:m.key,_publicMembers:r.classified,_publicMemberIndex:0}));
     });});
   }
@@ -1749,10 +1770,11 @@
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){
       var r=detailNavItems.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
       var m=r.classified[0].member,detail=document.getElementById('psDetail');
-      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){closeDetail(container);return;}
+      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){if(!isTerminal(container))closeDetail(container);return;}
       openDetail(container,Object.assign({},m.item,{_sourceKey:m.key,_publicMembers:r.classified,_publicMemberIndex:0}));
     });});
     if(total)patchLivePrices(container);
+    emitTerminal('nine-scanner-list', { tab: activeTab, group: activeGroup, total: total });
   }
   function renderLegacyUnifiedList(container) {
     var list=container.querySelector('#psList');
@@ -1800,7 +1822,7 @@
     var detail=document.getElementById('psDetail');
     var placeholder=container.querySelector('#psList .de-chart-placeholder');
     if(placeholder)container.appendChild(placeholder);
-    if(detail && detail.parentNode!==container && container.contains(detail) && !detail.closest('.de-chart-overlay'))container.appendChild(detail);
+    if(detail && detail.parentNode!==container && container.contains(detail) && !detail.closest('.de-chart-overlay') && !isTerminal(container))container.appendChild(detail);
     renderListContent(container);
     if(placeholder && currentDetailItem){var row=inlineDetailRow(container,currentDetailItem);if(row)row.insertAdjacentElement('afterend',placeholder);}
     if(currentDetailItem && detail && !detail.hidden && !detail.closest('.de-chart-overlay')){
@@ -2172,6 +2194,7 @@
           if (seq !== liveQuoteSeq) return;   // 그사이 탭이 바뀌었다 - 늦은 응답은 버린다
           applyLiveQuotes(container, container.querySelectorAll('.ps-item[data-code], .ps-pick[data-code]'), byCode);
           markPriceBasis(container, true);
+          emitTerminal('nine-scanner-quotes', { codes: Object.keys(byCode) });
         })
         .catch(function () {
           if (seq !== liveQuoteSeq) return;
@@ -2197,6 +2220,7 @@
       button.textContent=on?'차트·근거 닫기':'차트·근거 보기';
     });
     if(!row)return false;
+    if(isTerminal(container))return true;
     row.insertAdjacentElement('afterend',detail);
     detail.dataset.inlineCode=String(item.code);
     return true;
@@ -2212,6 +2236,7 @@
     currentDetailItem = item;
     destroyPsChart();
     psIchimokuEnabled = false;
+    emitTerminal('nine-scanner-select', { code: item.code, name: item.name, item: item, sourceKey: requestPattern, tab: activeTab, group: activeGroup });
     detail.hidden = false;
     detail.innerHTML = global.NineUI.state('loading', item.name + ' 차트를 불러오는 중...', 'ps-loading', {spinner:false});
     placeInlineDetail(container,item);
@@ -3249,7 +3274,7 @@
     }, { _sourceKey:snapshot.source.replace(/^pattern:/, '') }));
   }
 
-  global.PatternScan = { shapeSelectionItems:shapeSelectionItems, scannerShape: scannerShape, shapeOrder: shapeOrder, shapeHtml: shapeHtml, init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, referenceChange: referenceChange, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
+  global.PatternScan = { shapeSelectionItems:shapeSelectionItems, scannerShape: scannerShape, shapeOrder: shapeOrder, shapeHtml: shapeHtml, init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, referenceChange: referenceChange, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore, terminal: { rows: terminalRows, live: terminalLive, quote: function (code) { var h = liveQuoteCache[code]; return h ? { data: h.data, at: h.at } : null; }, refreshQuotes: function () { if (rootContainer && rootContainer.isConnected) { Object.keys(liveQuoteCache).forEach(function (k) { liveQuoteCache[k].at = 0; }); patchLivePrices(rootContainer); } }, state: function () { return { tab: activeTab, group: activeGroup, scanData: scanData, scanSettled: scanSettled, scanError: scanError }; } } };
 
   global.addEventListener && global.addEventListener('tistory-chart-resize',function(){
     var detail=document.getElementById('psDetail');

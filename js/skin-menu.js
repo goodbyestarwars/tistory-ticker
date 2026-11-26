@@ -37,7 +37,8 @@
       children: [
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/page/foreign-flow', label: '종목분석' },
-        { href: '/page/pattern-scan', label: '검색기' },
+        { href: '/page/pattern-scan', label: '일반검색기' },
+        { href: '/page/pattern-scan?view=auto', label: '자동매매 검색기' },
         { href: '/page/strategy-search', label: '전략검색' }
       ]
     },
@@ -223,7 +224,8 @@
     if (currentPath() !== parts[0]) return false;
     var query = new URLSearchParams(location.search);
     if (parts[1] === 'tab=crypto') return (query.get('tab') || '').toLowerCase() === 'crypto';
-    if (!parts[1]) return query.get('view') !== 'stocks' && query.get('view') !== 'map';
+    if (parts[1].indexOf('view=auto') === 0) return query.get('view') === 'auto';
+    if (!parts[1]) return query.get('view') !== 'stocks' && query.get('view') !== 'map' && query.get('view') !== 'auto';
     if (parts[1].indexOf('tool=independent-chart') === 0) return query.get('tool') === 'independent-chart';
     if (parts[1].indexOf('view=map') === 0) return query.get('view') === 'map';
     if (parts[1].indexOf('view=stocks') === 0) {
