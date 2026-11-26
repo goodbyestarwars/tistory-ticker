@@ -58,7 +58,7 @@
     head.className = 'st-head';
     head.innerHTML = '<div class="st-kind" role="tablist" aria-label="검색기 종류">'
       + '<button type="button" role="tab" data-st-view="general">일반검색기</button><button type="button" role="tab" data-st-view="auto">자동매매 검색기</button></div>'
-      + '<div class="st-mode" role="tablist" aria-label="검색 시점"><button type="button" role="tab" data-st-mode="pre">사전 스캔</button><button type="button" role="tab" data-st-mode="intraday">장중 스캔</button></div>'
+      + '<span class="st-mode-badge" id="stModeBadge"></span>'
       + '<p class="st-mode-note" id="stModeNote" role="status"></p>';
     host.insertBefore(head, host.firstChild);
 
@@ -101,12 +101,9 @@
     if (host.__stWired) return;                             // 셸을 다시 그려도 같은 노드에는 리스너를 한 번만 단다.
     host.__stWired = true;
     host.addEventListener('click', function (event) {
-      var viewBtn = event.target.closest('[data-st-view]'), modeBtn = event.target.closest('[data-st-mode]'), paneBtn = event.target.closest('[data-st-pane-btn]');
-      var autoBtn = event.target.closest('[data-st-auto-tab]');
+      var viewBtn = event.target.closest('[data-st-view]'), paneBtn = event.target.closest('[data-st-pane-btn]');
       if (viewBtn) setView(viewBtn.getAttribute('data-st-view'));
-      else if (modeBtn) setMode(modeBtn.getAttribute('data-st-mode'));
       else if (paneBtn) setPane(paneBtn.getAttribute('data-st-pane-btn'));
-      else if (autoBtn) { state.autoTab = autoBtn.getAttribute('data-st-auto-tab'); renderAuto(); }
       else rowClick(event);
     });
     host.addEventListener('keydown', function (event) {
@@ -144,7 +141,7 @@
     host.querySelector('.ps-control-card').hidden = state.view === 'auto';
     host.querySelector('.st-grid').hidden = state.view === 'auto';
     host.querySelector('#stAuto').hidden = state.view !== 'auto';
-    host.querySelector('.st-mode').hidden = state.view === 'auto';
+    host.querySelector('#stModeBadge').hidden = state.view === 'auto';
     host.querySelector('#stModeNote').hidden = state.view === 'auto';
     host.querySelectorAll('[data-st-view]').forEach(function (b) { var on = b.getAttribute('data-st-view') === state.view; b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on)); });
     if (!silent && global.history && global.history.replaceState) {
@@ -157,7 +154,9 @@
   }
   function setMode(mode, silent) {
     state.mode = mode === 'intraday' ? 'intraday' : 'pre';
-    state.host.querySelectorAll('[data-st-mode]').forEach(function (b) { var on = b.getAttribute('data-st-mode') === state.mode; b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on)); });
+    var badge = state.host.querySelector('#stModeBadge');
+    badge.textContent = state.mode === 'intraday' ? '장중 스캔' : '사전 스캔';
+    badge.className = 'st-mode-badge st-mode-badge--' + state.mode;
     syncTimer();
     if (!silent || state.view === 'general') annotate();
   }
@@ -204,6 +203,8 @@
   function annotate() {
     if (!state.host || state.view !== 'general' || !T()) return;
     var st = T().state(), tab = st.tab, rows = T().rows(), live = T().live(), sel = selection();
+    var wantMode = LIVE_TABS[tab] ? 'intraday' : 'pre';                    // 사전/장중은 검색기가 정한다: 장중 재판정이 있는 검색기만 장중 스캔, 나머지는 사전(일봉 확정) 스캔.
+    if (wantMode !== state.mode) { setMode(wantMode, true); }
     var supported = !!LIVE_TABS[tab], intradayUnsupported = state.mode === 'intraday' && !supported;
     var list = state.host.querySelector('#psList'), notice = state.host.querySelector('#stNotice'), summary = state.host.querySelector('#stSummary');
     list.classList.toggle('st-hidden-list', intradayUnsupported);
@@ -380,7 +381,7 @@
     return '<article class="st-strategy" data-strategy="' + esc(s.key) + '"><header><h3>' + esc(s.label) + '</h3><span class="st-chip st-chip--' + (s.adopted ? 'met' : 'wait') + '">' + (s.adopted ? '채택' : '검증 중') + '</span><small>' + ({ short: '단타', swing: '스윙', long: '중장기' }[s.horizon] || '') + '</small></header>'
       + '<div class="st-tri-row">' + badge(s.adopted ? 'ok' : 'wait', '채택 상태', s.adopted ? '채택 전략' : '승격 대기(검증 중)') + badge(svc.cls, '서비스 실행 상태', svc.text) + badge(ord.cls, '실계좌 주문 허용 상태', ord.text) + '</div>'
       + '<dl class="st-conds"><div><dt>매수 조건</dt><dd>' + esc(s.buy) + '</dd></div><div><dt>매도 조건</dt><dd>' + esc(s.sell) + '</dd></div></dl>'
-      + '<div class="st-promo st-promo--' + p.key + '"><b>자동매매 승격 판단</b><span>' + esc(p.text) + '</span><small>' + esc(p.basis) + '</small></div></article>';
+      + '</article>';
   }
   function metricRow(label, r) {
     return '<tr><th scope="row">' + esc(label) + '</th><td>' + fmtInt(r.n) + '</td><td class="' + tone(r.avg) + '">' + fmtPct(r.avg, 2, true) + '</td><td>' + (r.win == null ? '미집계' : fmtPct(r.win, 1)) + '</td><td>' + (r.pf == null ? '미집계' : esc(r.pf)) + '</td><td>' + (r.mdd == null ? '미집계' : esc(r.mdd) + '%p') + '</td>'
@@ -401,21 +402,17 @@
     } else paper = block('일봉 모의매매 (서버 포착 추적)', '', missing('추적 기록을 수신하지 못했거나 아직 쌓이지 않음'));
     var intraday = s.intraday ? block('장중 모의매매 (실시간 신호 분봉 전진 검증)', esc(s.intraday.exitRule) + ' · 비용 ' + esc(s.intraday.cost) + ' · ' + esc(s.intraday.source), resultTable(s.intraday.rows, false) + '<p class="st-note">' + esc(s.intraday.note) + '</p>')
       : block('장중 모의매매', '', missing('이 전략은 장중 신호가 없거나 아직 검증 전'));
-    return '<article class="st-strategy st-perf" data-strategy="' + esc(s.key) + '"><header><h3>' + esc(s.label) + '</h3><span class="st-chip st-chip--' + (s.adopted ? 'met' : 'wait') + '">' + (s.adopted ? '채택' : '검증 중') + '</span></header>'
+    return '<article class="st-strategy st-perf" data-strategy="' + esc(s.key) + '"><header><h3>검증 성과</h3></header>'
       + block('백테스트 (과거 5년 일봉 재현)', esc(b.exitRule) + ' · 비용 ' + esc(b.cost) + ' · ' + esc(b.source), resultTable(b.rows, b.rows[0].excess !== undefined) + '<p class="st-note">' + esc(b.note) + '</p>')
       + paper + intraday + block('실계좌 매매 결과', '', missing(s.real.note)) + '</article>';
   }
   function renderAuto() {
     var box = state.host && state.host.querySelector('#stAuto');
     if (!box || state.view !== 'auto') return;
-    var list = strategies(), adopted = list.filter(function (s) { return s.adopted; }), pending = list.filter(function (s) { return !s.adopted; });
-    if (!list.length) { box.innerHTML = '<p class="st-missing"><b>검증 자료 미수신</b> · data/scanner-validation.js를 불러오지 못했습니다.</p>'; return; }
-    var tabs = [['adopted', '채택 전략 ' + adopted.length], ['pending', '승격 대기 전략 ' + pending.length], ['perf', '전략별 검증 성과']];
-    var body = state.autoTab === 'perf' ? list.map(performanceCard).join('') : (state.autoTab === 'pending' ? pending : adopted).map(strategyCard).join('');
-    box.innerHTML = '<div class="st-auto-head"><div class="st-count"><span>전체 <b>' + list.length + '</b></span><span>채택 <b>' + adopted.length + '</b></span><span>검증 중 <b>' + pending.length + '</b></span></div>'
-      + '<p class="st-note">채택 상태 · 서비스 실행 상태 · 실계좌 주문 허용 상태는 서로 다른 값입니다. 서로 다른 검증 결과(백테스트·일봉 모의·장중 모의·실계좌)는 섞지 않고, 없는 값은 미집계로 표시합니다. 승격은 사용자 승인 없이 진행하지 않으며 이 화면에는 승격·주문 기능이 없습니다. 기준일 ' + esc(global.SCANNER_VALIDATION.asOf) + '.</p></div>'
-      + '<div class="st-auto-tabs" role="tablist">' + tabs.map(function (t) { var on = t[0] === state.autoTab; return '<button type="button" role="tab" aria-selected="' + on + '" class="' + (on ? 'active' : '') + '" data-st-auto-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>'
-      + '<div class="st-strategies">' + body + '</div>';
+    var adopted = strategies().filter(function (s) { return s.adopted; });
+    if (!adopted.length) { box.innerHTML = '<p class="st-missing"><b>채택 전략 없음</b> · 검증 자료를 불러오지 못했거나 채택된 전략이 없습니다.</p>'; return; }
+    box.innerHTML = '<div class="st-auto-head"><p class="st-note">자동매매에 쓰는 전략만 보여 줍니다. 나머지 검색기는 일반검색기에서 확인하세요. 채택 상태 · 서비스 실행 상태 · 실계좌 주문 허용 상태는 서로 다른 값이며, 백테스트·일봉 모의·장중 모의·실계좌 결과는 섞지 않고 없는 값은 미집계로 표시합니다. 이 화면에는 승격·주문 기능이 없습니다. 기준일 ' + esc(global.SCANNER_VALIDATION.asOf) + '.</p></div>'
+      + '<div class="st-strategies">' + adopted.map(function (s) { return strategyCard(s) + performanceCard(s); }).join('') + '</div>';
   }
 
   global.ScannerTerminal = { start: start, classify: classify, promotion: promotion, _state: state };
