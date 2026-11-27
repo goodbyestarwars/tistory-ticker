@@ -226,6 +226,9 @@ html.dark :is(#order-book, #usStocksOrderbook) .ob-book-provenance { color: #b9c
 :is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-ask { background: rgba(18, 97, 196, 0.12); color: var(--num-down); }
 :is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-bid { background: rgba(210, 79, 69, 0.12); color: var(--num-up); }
 /* 현재가에서 크게 떨어진 벽(허수호가 의심, 2026-09-21(2차)) - 색을 강하게 채워 일반 벽 배지와 구분 */
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-big { font-weight: 700; }
+:is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-ctx { background: rgba(7, 87, 89, 0.12); color: var(--soft-accent, #075759); }
+html.dark :is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-ctx { background: var(--dk-inner); color: var(--dk-text); }
 :is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-thin { outline: 1px dashed currentColor; outline-offset: -2px; }
 :is(#order-book, #usStocksOrderbook) .ob-abnormal-badge-suspect { background: #b5720f; color: #fff; }
 

@@ -46,7 +46,8 @@
   // 기존 trackedWall(매도벽 하나만 추적하는 돌파 판정 상태머신)과는 별개로, 매 틱마다
   // 스냅샷만 보고 판정하는 가벼운 배지 두 종류를 추가한다 - 상태를 들고 있지 않아 종목을
   // 바꿔도 별도 리셋이 필요 없다.
-  var IMBALANCE_RATIO = 3; // 매수/매도 총잔량 비율이 이 배수 이상이면 "쏠림"으로 표시
+  var IMBALANCE_RATIO = 2; // 매수/매도 총잔량 비율이 이 배수 이상이면 호가 역상(우위)으로 표시(2026-11-27 사용자 기준 3→2)
+  var BIG_LEVEL_QTY = 100000; // 한 호가에 이 수량 이상이면 대량 물량 셋팅(사용자 기준 10만~20만주)
   var ABNORMAL_WALL_RATIO = 1.8; // 특정 호가 잔량이 같은 편 나머지 평균의 이 배수 이상이면 "벽"
   // 2026-09-21(2차) 사용자 질문: "말도 안되는 가격에 잔량이 엄청 많은 경우는?" - 벽이 현재가에서
   // 이 비율(%) 이상 떨어져 있으면 상한가·하한가(±30%) 근처에 쌓인 허수호가로 의심해 문구를
@@ -855,11 +856,16 @@
     var currentPrice = (quote && typeof quote.price === 'number') ? quote.price : null;
     var totalAsk = asks.reduce(function (s, r) { return s + r.qty; }, 0);
     var totalBid = bids.reduce(function (s, r) { return s + r.qty; }, 0);
+    var signalSide = null;   // 호가 역상 또는 대량 물량이 잡힌 쪽 - 일봉 신뢰도 줄을 붙일지 정한다
     if (totalBid > 0 && totalAsk > 0) {
+      // 2026-11-27 사용자 요청(호가 역상): 매도잔량이 많으면 오르고 매수잔량이 많으면 내린다 - 호가를 움직이는 건
+      // 대량 주문을 넣을 수 있는 쪽이라는 관점. 합산 2배 이상 차이면 표시한다(검증 전 참고 신호이며 주문과 연결하지 않는다).
       if (totalBid >= totalAsk * IMBALANCE_RATIO) {
-        badges.push({ cls: 'bid', text: '⚠️ 매수잔량 쏠림 · 매도 대비 ' + (totalBid / totalAsk).toFixed(1) + '배' });
+        badges.push({ cls: 'bid', text: '매수잔량 우위 · 매도의 ' + (totalBid / totalAsk).toFixed(1) + '배\n호가 역상 · 하락 쪽 경계' });
+        signalSide = 'bid';
       } else if (totalAsk >= totalBid * IMBALANCE_RATIO) {
-        badges.push({ cls: 'ask', text: '⚠️ 매도잔량 쏠림 · 매수 대비 ' + (totalAsk / totalBid).toFixed(1) + '배' });
+        badges.push({ cls: 'ask', text: '매도잔량 우위 · 매수의 ' + (totalAsk / totalBid).toFixed(1) + '배\n호가 역상 · 상승 쪽 참고' });
+        signalSide = 'ask';
       }
     } else if (totalBid > 0 && totalAsk === 0) {
       badges.push({ cls: 'bid', text: '⚠️ 매도호가 전멸 · 매수잔량만 존재' });
@@ -889,7 +895,41 @@
         });
       }
     });
+    var qtyText = function (q) { return q >= 10000 ? (q / 10000).toFixed(q % 10000 ? 1 : 0).replace(/\.0$/, '') + '만주' : q.toLocaleString('ko-KR') + '주'; };
+    [{ side: 'ask', rows: asks, label: '매도' }, { side: 'bid', rows: bids, label: '매수' }].forEach(function (g) {
+      var big = g.rows.reduce(function (best, r) { return r.qty >= BIG_LEVEL_QTY && (!best || r.qty > best.qty) ? r : best; }, null);
+      if (!big) return;
+      var dist = currentPrice ? (big.price - currentPrice) / currentPrice * 100 : null;
+      badges.push({ cls: g.side + ' big', text: '대량 물량 · ' + g.label + ' ' + Math.round(big.price).toLocaleString('ko-KR') + '원 ' + qtyText(big.qty)
+        + (dist === null ? '' : '\n현가 ' + (dist >= 0 ? '+' : '') + dist.toFixed(1) + '%') });
+      if (!signalSide) signalSide = g.side;
+    });
+    var ctx = signalSide ? dailyContext(currentPrice) : null;
+    if (ctx && (ctx.highBreak || ctx.accumulation)) {
+      var both = ctx.highBreak && ctx.accumulation;
+      badges.push({ cls: 'ctx', text: '일봉 신뢰도 ' + (both ? '높음' : '↑') + '\n' + [ctx.highBreak ? '전고 돌파' : '', ctx.accumulation ? '매집봉 있음' : ''].filter(Boolean).join(' · ') });
+    }
     return badges.concat(thinBookBadges(book, !(opts && opts.krw === false)));
+  }
+
+  // 일봉 맥락(2026-11-27 사용자 요청): 호가 신호가 잡혔을 때 전고를 이미 뚫었는지, 최근에 매집봉이 있었는지를 덧붙인다.
+  // 전고 = 오늘 봉을 뺀 최근 120거래일 고가. 매집봉은 차트와 같은 NineChartCore.accumulationBars(최근 20봉 안)를 재사용한다.
+  // 일봉은 호가 요약이 이미 받은 시계열이라 추가 요청이 없고, 정적인 값(전고·매집봉)은 요약 객체에 한 번만 계산해 둔다.
+  function dailyContext(price) {
+    var sm = state.summary, bars = sm && sm.daily;
+    if (!bars || bars.length < 30) return null;
+    if (!sm.ctxCache) {
+      var past = bars.slice(0, -1), win = past.slice(-120), high = -Infinity;
+      win.forEach(function (b) { var h = Number(b.high); if (h > high) high = h; });
+      var accumulation = false;
+      try {
+        var core = global.NineChartCore, first = bars.length - 20;
+        accumulation = !!(core && core.accumulationBars && core.accumulationBars(bars).some(function (hit) { return hit.index >= first; }));
+      } catch (e) { accumulation = false; }
+      sm.ctxCache = { priorHigh: isFinite(high) ? high : null, accumulation: accumulation };
+    }
+    var p = Number(price);
+    return { highBreak: sm.ctxCache.priorHigh != null && p > sm.ctxCache.priorHigh, accumulation: sm.ctxCache.accumulation, priorHigh: sm.ctxCache.priorHigh };
   }
 
   function renderAbnormalBadges(container, book, quote) {
@@ -1317,6 +1357,7 @@
         if (!latest) throw new Error('summary data unavailable');
         return {
           date: latest.date,
+          daily: daily,       // 호가 신호의 일봉 맥락(전고·매집봉)용. 이미 받은 시계열이라 추가 요청 없음
           marketScope: data.marketScope || null,
           integratedUnavailable: !!data.integratedUnavailable,
           close: numericOrNull(latest.close),
