@@ -31,6 +31,16 @@ def _num(v):
         return 0.0
 
 
+def _opt_qty(v):
+    """시간외 잔량처럼 '없음'과 '0'을 구분해야 하는 수량. 빈 값·숫자가 아닌 값은 None."""
+    if v is None or v == '':
+        return None
+    try:
+        return abs(float(v))
+    except (TypeError, ValueError):
+        return None
+
+
 def _field(row, *names):
     """KIS 응답의 대소문자·필드명 차이를 흡수한다."""
     if not isinstance(row, dict):
@@ -85,6 +95,9 @@ def _parse_kis_order_book(row, code):
         'totalAskQty': sum(item['qty'] for item in asks),
         'totalBidQty': sum(item['qty'] for item in bids),
         'stexTp': _field(row, 'stex_tp', 'stck_deal_cls_code'),
+        # 2026-11-27: HTS 호가창 맨 아래 시간외 잔량(왼쪽=매도, 오른쪽=매수). 응답에 없으면 None(0으로 바꾸지 않는다).
+        'overtimeAskQty': _opt_qty(_field(row, 'ovtm_total_askp_rsqn')),
+        'overtimeBidQty': _opt_qty(_field(row, 'ovtm_total_bidp_rsqn')),
         'source': '한국투자증권 Open API',
     }
 
@@ -174,6 +187,9 @@ def fetch_order_book(token, code):
         'totalAskQty': sum(a['qty'] for a in asks),
         'totalBidQty': sum(b['qty'] for b in bids),
         'stexTp': res.get('stex_tp'),  # 거래소구분 - _AL 접미사가 실제로 통합됐는지 확인용
+        # 2026-11-27: ka10004 시간외 매도/매수 잔량(HTS 호가창 맨 아래 줄 왼쪽/오른쪽). 없으면 None.
+        'overtimeAskQty': _opt_qty(res.get('ovt_sel_req')),
+        'overtimeBidQty': _opt_qty(res.get('ovt_buy_req')),
         'source': '키움증권 REST API',
     }
 
