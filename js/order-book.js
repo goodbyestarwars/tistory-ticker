@@ -54,14 +54,10 @@
   // (미검증 필드를 확정값처럼 쓰지 않는다는 규칙) 정확한 한도가를 계산하지 않고, 대신 "많이
   // 떨어진 거리" 자체를 신호로 쓴다 - 상한가/하한가 근처 물량은 자연히 이 거리를 넘는다.
   var DISTANT_WALL_PCT = 20;
-  // 2026-11-27 사용자 요청: "호가 잔량이 몇백 개라 거래량으로 금방 뚫리는 호가". 매도·매수 모두,
-  // 현재가에 가까운 5호가 합계가 (1) 최근 체결 속도로 1분이면 소화되는 양이거나 (2) 금액이 너무 작으면 '얇음'.
-  // 절대 수량이 아니라 체결 속도·금액으로 보는 이유: 같은 500주도 종목 가격에 따라 25만원~1억원이다.
-  var THIN_LEVELS = 5;
-  var THIN_MIN_KRW = 10000000;      // 5호가 합계 금액 하한(원화 종목만). 장 초반처럼 체결 속도를 못 잴 때의 보조 기준
-  var THIN_RATE_MIN_TRADES = 5;     // 체결 속도 계산에 필요한 최소 실시간 체결 수
-  var THIN_RATE_MIN_SPAN_SEC = 5;   // 체결이 몰려도 속도 환산 구간은 이보다 짧게 잡지 않는다
-  var THIN_RATE_STALE_SEC = 180;    // 마지막 체결이 이보다 오래됐으면 '최근' 속도가 아니므로 쓰지 않는다
+  // 2026-11-27 사용자 기준(영상 '호가창이 탄탄한 종목 찾는 법'): 5천만원으로 시장가 주문을 냈을 때
+  // 1호가 이상 움직이면 호가가 얇다. 호가에 걸린 금액 = 가격 × 잔량이며 최우선호가 한 줄이 5천만원보다 작으면 얇다.
+  // 매도는 5천만원 매수, 매수는 5천만원 매도로 같은 기준을 적용한다(원화 종목만 - 미국은 통화가 달라 제외).
+  var THIN_ORDER_KRW = 50000000;
   var MILESTONE_MAX = 8;
   var TOAST_MS = 3500;
   var TRADE_LIST_MAX = 20; // 최근 체결 리스트 표시 개수(KIS FHKST01010300 또는 키움 폴백 스냅샷 누적)
@@ -826,36 +822,29 @@
   // findWallCandidate와 같은 "나머지 평균 대비 배수" 판정을 매도/매수 양쪽에 재사용하고,
   // 총잔량 쏠림까지 더해 매 틱 스냅샷만으로 배지 문구를 만든다. 상태를 갖지 않는 순수 계산이라
   // trackedWall(단일 매도벽 돌파 상태머신)과 달리 종목을 바꿔도 별도 리셋이 필요 없다.
-  // 실시간 개별 체결(KIS WS)만으로 분당 체결량을 환산한다. REST 2초 표본은 전체 체결이 아니라 쓰지 않는다.
-  function recentTradePerMinute() {
-    var list = state.liveTrades || [];
-    if (list.length < THIN_RATE_MIN_TRADES) return null;
-    var toSec = function (t) { var m = /^(\d{2})(\d{2})(\d{2})$/.exec(String(t.time || '')); return m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : null; };
-    var newest = toSec(list[0]), oldest = toSec(list[list.length - 1]);
-    if (newest == null || oldest == null || newest < oldest) return null;
-    var kst = new Date(Date.now() + 9 * 3600000), nowSec = kst.getUTCHours() * 3600 + kst.getUTCMinutes() * 60 + kst.getUTCSeconds();
-    if (nowSec >= newest && nowSec - newest > THIN_RATE_STALE_SEC) return null;
-    var qty = list.reduce(function (s, t) { return s + (t.qty || 0); }, 0);
-    return qty > 0 ? qty / Math.max(THIN_RATE_MIN_SPAN_SEC, newest - oldest) * 60 : null;
+  // 보이는 호가 단계(최대 10)에서 THIN_ORDER_KRW를 시장가로 소화할 때 몇 호가를 넘어가는지 센다.
+  // moved = 최우선호가를 전부 소진한 뒤 넘어가는 호가 수(0이면 1호가 안에서 끝남). full=false면 보이는 호가를 다 써도 남음.
+  function sweepOrderAmount(rows, asc) {
+    var lv = rows.filter(function (r) { return r.price > 0 && r.qty > 0; })
+      .sort(function (a, b) { return asc ? a.price - b.price : b.price - a.price; });
+    if (!lv.length) return null;
+    var left = THIN_ORDER_KRW, moved = 0;
+    for (var i = 0; i < lv.length; i++) {
+      var amount = lv[i].price * lv[i].qty;
+      if (left <= amount) return { moved: moved, full: true, first: lv[0].price * lv[0].qty, levels: lv.length };
+      left -= amount; moved += 1;
+    }
+    return { moved: moved, full: false, first: lv[0].price * lv[0].qty, levels: lv.length };
   }
 
   function thinBookBadges(book, krw) {
-    var perMin = recentTradePerMinute();
     var out = [];
-    var near = function (rows, asc) {
-      return rows.filter(function (r) { return r.price > 0 && r.qty > 0; })
-        .sort(function (a, b) { return asc ? a.price - b.price : b.price - a.price; }).slice(0, THIN_LEVELS);
-    };
-    [{ side: 'ask', label: '매도', rows: near(book.asks || [], true) }, { side: 'bid', label: '매수', rows: near(book.bids || [], false) }].forEach(function (g) {
-      if (g.rows.length < 3) return;
-      var qty = g.rows.reduce(function (s, r) { return s + r.qty; }, 0);
-      var amount = g.rows.reduce(function (s, r) { return s + r.price * r.qty; }, 0);
-      var byRate = perMin != null && qty <= perMin;
-      var byAmount = krw && amount < THIN_MIN_KRW;
-      if (!byRate && !byAmount) return;
-      var line2 = byRate ? '1분 체결량(약 ' + Math.round(perMin).toLocaleString('ko-KR') + '주) 이하'
-        : '합계 약 ' + Math.round(amount / 10000).toLocaleString('ko-KR') + '만원';
-      out.push({ cls: g.side + ' thin', text: g.label + ' 얇음 · ' + g.rows.length + '호가 ' + qty.toLocaleString('ko-KR') + '주\n' + line2 });
+    if (!krw) return out;
+    [{ side: 'ask', label: '매도', rows: book.asks || [], asc: true }, { side: 'bid', label: '매수', rows: book.bids || [], asc: false }].forEach(function (g) {
+      var r = sweepOrderAmount(g.rows, g.asc);
+      if (!r || r.moved < 1) return;
+      var man = function (v) { return v < 10000 ? '1만원 미만' : Math.round(v / 10000).toLocaleString('ko-KR') + '만원'; };
+      out.push({ cls: g.side + ' thin', text: g.label + ' 얇음 · 5천만원이면 ' + r.moved + (r.full ? '' : '+') + '호가 이동\n1호가 ' + man(r.first) });
     });
     return out;
   }
