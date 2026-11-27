@@ -26,8 +26,11 @@ AUDIT_MAX_BYTES = 1024 * 1024
 
 TARGET_ACTIONS = ('target-add', 'target-cancel')
 # 2026-11-19 보유 종목 수동 매도·PENDING 장부 정리. 에이전트가 capability를 올리기 전에는 접수하지 않는다(비활성).
-POSITION_ACTIONS = ('sell', 'position-drop')
-POSITION_CAPABILITY = {'sell': 'manual-sell-v1', 'position-drop': 'position-drop-v1'}
+# 2026-11-27 웹 주문: 지정가 매수(buy)·미체결 취소(cancel) 추가. 수동 주문 시간은 평일 09:00~15:00(자동매매 14:00 규칙과 별개).
+POSITION_ACTIONS = ('sell', 'position-drop', 'buy', 'cancel')
+POSITION_CAPABILITY = {'sell': 'manual-sell-v1', 'position-drop': 'position-drop-v1',
+                       'buy': 'manual-buy-v1', 'cancel': 'manual-cancel-v1'}
+MANUAL_CUTOFF_HOUR = 15
 # 2026-11-20 주도주 조용한 눌림 전용 칸 켜기/끄기·금액·종목 수(에이전트가 설정 파일만 원자 저장, 주문 경로 아님).
 LEADER_ACTION = 'leader-config'
 LEADER_CAPABILITY = 'leader-pullback-v1'
@@ -219,6 +222,11 @@ def public_status(now=None):
                            if isinstance(state.get('last'), dict) else state.get('last')}
 
 
+def _manual_time_gate(now):
+    if not (now.year in KNOWN_CALENDAR_YEARS and market_calendar.is_kr_trading_day(now) and 9 <= now.hour < MANUAL_CUTOFF_HOUR):
+        raise ControlError(409, '수동 주문은 평일 09:00~15:00에만 가능합니다.')
+
+
 def queue_command(action, account, now=None, params=None):
     now = now or _now()
     if action not in ACTIONS:
@@ -263,7 +271,31 @@ def queue_command(action, account, now=None, params=None):
                 if type(price) is not int or type(qty) is not int or not 1 <= price <= 10_000_000 or not 1 <= qty <= 100_000:
                     raise ControlError(400, '가격과 수량은 양의 정수여야 합니다.')
                 command.update(price=price, qty=qty)
-        if action in POSITION_ACTIONS:
+        if action in ('buy', 'cancel'):
+            # 2026-11-27 웹 주문: 증권사 기준 계좌 조회(account)가 최근 값일 때만 접수한다. 한도는 주문가능금액이다.
+            snapshot = state.get('snapshot') or {}
+            age = _fresh(snapshot, now)
+            if age is None or age > STALE_AFTER_SEC or POSITION_CAPABILITY[action] not in (snapshot.get('capabilities') or []):
+                raise ControlError(409, '에이전트가 이 기능을 지원하지 않거나 상태가 지연됐습니다.')
+            _manual_time_gate(now)
+            acct = sanitize_account(snapshot.get('account'), now)
+            if not acct or acct['stale']:
+                raise ControlError(409, '증권사 계좌 조회가 최근 값이 아닙니다(장 시간 중 엔진이 갱신).')
+            params = params or {}
+            code = params.get('code')
+            if not isinstance(code, str) or not re.fullmatch(r'[0-9]{6}', code):
+                raise ControlError(400, '종목코드는 숫자 6자리여야 합니다.')
+            command.update(code=code, day=now.date().isoformat())
+            if action == 'buy':
+                price, qty = params.get('price'), params.get('qty')
+                if type(price) is not int or type(qty) is not int or not 1 <= price <= 10_000_000 or not 1 <= qty <= 100_000:
+                    raise ControlError(400, '가격과 수량은 양의 정수여야 합니다(지정가 매수만 가능).')
+                if acct['orderable'] is None or price * qty > acct['orderable']:
+                    raise ControlError(409, '주문가능금액을 초과하거나 확인되지 않았습니다.')
+                command.update(price=price, qty=qty)
+            elif not any(o.get('code') == code for o in acct['pending']):
+                raise ControlError(409, '이 종목의 미체결 주문이 없습니다.')
+        if action in ('sell', 'position-drop'):
             snapshot = state.get('snapshot') or {}
             age = _fresh(snapshot, now)
             if age is None or age > STALE_AFTER_SEC or POSITION_CAPABILITY[action] not in (snapshot.get('capabilities') or []):
@@ -273,22 +305,33 @@ def queue_command(action, account, now=None, params=None):
             if not isinstance(code, str) or not re.fullmatch(r'[0-9]{6}', code):
                 raise ControlError(400, '종목코드는 숫자 6자리여야 합니다.')
             held = [p for p in ((state.get('activity') or {}).get('positions') or []) if p.get('code') == code]
-            if not held:
-                raise ControlError(409, '장부에 없는 종목입니다.')
-            command.update(code=code, day=now.date().isoformat())
-            if action == 'sell':
-                if held[0].get('state') != 'OPEN':
-                    raise ControlError(409, '체결이 확인된 보유(OPEN)만 매도할 수 있습니다.')
+            if not held and action == 'sell':
+                # 장부 밖(사용자가 직접 산) 증권사 보유 종목: 증권사 기준 잔고의 매도가능 수량 이내만 접수한다.
+                _manual_time_gate(now)
+                acct = sanitize_account(snapshot.get('account'), now)
+                broker = [h for h in ((acct or {}).get('holdings') or []) if h.get('code') == code]
+                if not acct or acct['stale'] or not broker:
+                    raise ControlError(409, '증권사 잔고에서 확인되지 않는 종목입니다.')
                 qty = params.get('qty')
-                if type(qty) is not int or not 1 <= qty <= (held[0].get('qty') or 0):
-                    raise ControlError(400, '매도 수량은 보유 수량 이내의 양의 정수여야 합니다.')
-                if not (market_calendar.is_kr_trading_day(now) and 9 <= now.hour < 14):
-                    raise ControlError(409, '주문 게이트가 열린 평일 09:00~14:00에만 매도할 수 있습니다.')
-                if qty != held[0].get('qty'):
-                    raise ControlError(400, '엔진 장부 종목은 전량만 매도할 수 있습니다.')
-                command.update(qty=qty)
-            elif held[0].get('state') != 'PENDING':
-                raise ControlError(409, 'PENDING 기록만 정리할 수 있습니다.')
+                if type(qty) is not int or not 1 <= qty <= (broker[0].get('sellable') or 0):
+                    raise ControlError(400, '매도 수량은 매도가능 수량 이내의 양의 정수여야 합니다.')
+                command.update(code=code, day=now.date().isoformat(), qty=qty)
+            elif not held:
+                raise ControlError(409, '장부에 없는 종목입니다.')
+            else:
+                command.update(code=code, day=now.date().isoformat())
+                if action == 'sell':
+                    if held[0].get('state') != 'OPEN':
+                        raise ControlError(409, '체결이 확인된 보유(OPEN)만 매도할 수 있습니다.')
+                    qty = params.get('qty')
+                    if type(qty) is not int or not 1 <= qty <= (held[0].get('qty') or 0):
+                        raise ControlError(400, '매도 수량은 보유 수량 이내의 양의 정수여야 합니다.')
+                    _manual_time_gate(now)
+                    if qty != held[0].get('qty'):
+                        raise ControlError(400, '엔진 장부 종목은 전량만 매도할 수 있습니다.')
+                    command.update(qty=qty)
+                elif held[0].get('state') != 'PENDING':
+                    raise ControlError(409, 'PENDING 기록만 정리할 수 있습니다.')
         if action == LEADER_ACTION:
             snapshot = state.get('snapshot') or {}
             age = _fresh(snapshot, now)

@@ -138,3 +138,25 @@ class SourceSafetyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class WebOrderUiTests(unittest.TestCase):
+    """웹 수동 주문(2026-11-27) 화면 계약: 확인 모달(코드 재입력)·서버 허용 목록과 같은 동작 이름·capability 게이트."""
+
+    def setUp(self):
+        with open(SOURCE, encoding='utf-8') as stream:
+            self.src = stream.read()
+
+    def test_orders_use_confirm_modal_with_code_retype_and_capability_gate(self):
+        self.assertIn('data-modal-code', self.src)
+        self.assertIn("ok.disabled = input.value.trim() !== spec.code", self.src)
+        for cap in ('manual-buy-v1', 'manual-sell-v1', 'manual-cancel-v1'):
+            self.assertIn(cap, self.src)
+
+    def test_only_limit_buy_sell_cancel_actions_are_sent(self):
+        for body in ("action: 'buy'", "action: 'sell'", "action: 'cancel'"):
+            self.assertIn(body, self.src)
+        self.assertNotIn("action: 'market-buy'", self.src)
+
+    def test_buy_form_blocks_over_orderable_cash_client_side(self):
+        self.assertIn('p * q > ac.orderable', self.src)

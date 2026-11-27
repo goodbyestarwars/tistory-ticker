@@ -364,6 +364,63 @@ if __name__ == '__main__':
     unittest.main()
 
 
+class WebOrderQueueTests(ControlTest):
+    """웹 주문(2026-11-27): 증권사 기준 계좌 조회가 최근일 때만, 주문가능금액·수동 15:00 이내로 접수한다."""
+
+    def acct(self, now, **kw):
+        base = {'asOf': now.strftime('%Y-%m-%d %H:%M:%S'), 'orderable': 500000,
+                'holdings': [{'code': '005930', 'name': 'x', 'qty': 10, 'sellable': 8, 'avg': 1, 'price': 1}],
+                'pending': [{'code': '000660', 'qty': 3, 'remain': 3, 'price': 100}]}
+        base.update(kw)
+        return base
+
+    def seed_(self, now, caps=('manual-buy-v1', 'manual-cancel-v1', 'manual-sell-v1'), **kw):
+        ac._save({'snapshot': good(now, capabilities=list(caps), account=self.acct(now, **kw)), 'activity': {'positions': []}})
+
+    def test_buy_limited_by_orderable_cash_and_manual_window(self):
+        now = MON.replace(hour=14, minute=30)
+        self.seed_(now)
+        for bad in ({'code': '005930', 'price': 100000, 'qty': 6}, {'code': '005930', 'price': 0, 'qty': 1},
+                    {'code': '005930', 'price': 1000, 'qty': True}, {'code': 'abc', 'price': 1, 'qty': 1}):
+            with self.assertRaises(ac.ControlError):
+                ac.queue_command('buy', 'admin', now, params=bad)
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('buy', 'admin', now.replace(hour=15, minute=0), params={'code': '005930', 'price': 1000, 'qty': 1})
+        ac.queue_command('buy', 'admin', now, params={'code': '005930', 'price': 100000, 'qty': 5})
+        self.assertEqual(ac._load()['pending']['price'], 100000)
+
+    def test_buy_needs_capability_and_fresh_account_and_known_cash(self):
+        now = MON.replace(hour=10)
+        self.seed_(now, caps=())
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('buy', 'admin', now, params={'code': '005930', 'price': 1000, 'qty': 1})
+        self.seed_(now, asOf='2020-01-01 00:00:00')
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('buy', 'admin', now, params={'code': '005930', 'price': 1000, 'qty': 1})
+        self.seed_(now, orderable=None)
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('buy', 'admin', now, params={'code': '005930', 'price': 1000, 'qty': 1})
+
+    def test_cancel_only_for_code_with_pending_order(self):
+        now = MON.replace(hour=10)
+        self.seed_(now)
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('cancel', 'admin', now, params={'code': '005930'})
+        ac.queue_command('cancel', 'admin', now, params={'code': '000660'})
+        self.assertEqual(ac._load()['pending']['code'], '000660')
+
+    def test_sell_of_broker_holding_outside_ledger_within_sellable(self):
+        now = MON.replace(hour=10)
+        self.seed_(now)
+        for qty in (9, 0, True):
+            with self.assertRaises(ac.ControlError):
+                ac.queue_command('sell', 'admin', now, params={'code': '005930', 'qty': qty})
+        with self.assertRaises(ac.ControlError):
+            ac.queue_command('sell', 'admin', now, params={'code': '111111', 'qty': 1})
+        ac.queue_command('sell', 'admin', now, params={'code': '005930', 'qty': 8})
+        self.assertEqual(ac._load()['pending']['qty'], 8)
+
+
 class AccountSanitizeTests(unittest.TestCase):
     def test_keeps_only_allowed_fields_and_marks_stale(self):
         now = ac._now()
