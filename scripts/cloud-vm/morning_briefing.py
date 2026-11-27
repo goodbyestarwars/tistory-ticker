@@ -162,10 +162,16 @@ def compute(conn, target, now_kst, night_grace=True):
     charts['KOSPI200_DAY'] = db_schema.load_future_chart(conn, 'KOSPI200_DAY', limit_days=120)
     charts['KOSPI200_NIGHT'] = db_schema.load_future_chart(conn, 'KOSPI200_NIGHT', limit_days=120)
 
+    # A provider can publish an index bar on a US cash-market holiday. Ignore it
+    # both as the latest close and as the previous close for the next open session.
+    us_holidays = {day.replace('-', '') for day in market_clock.US_HOLIDAYS_2026}
     returns, names, problems = {}, {}, []
     for key, name, sym in INPUTS:
         names[key] = name
-        returns[key] = last_return_before(charts[sym], ymd)
+        chart = charts[sym]
+        if key in US_KEYS:
+            chart = [bar for bar in chart if str(bar['date']) not in us_holidays]
+        returns[key] = last_return_before(chart, ymd)
         if returns[key] is None:
             problems.append('%s 일봉 없음' % name)
     holiday_assumed = None
