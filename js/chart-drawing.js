@@ -310,7 +310,7 @@
       pending: null, preview: null, activePath: null, mode: null, enabled: false, dragHline: null, hlinePreview: null, hlineDraft: null, measure: null
     };
     var detached = false, frame = 0, lastSig = '', layers = [], bounds = { w: 0, h: 0 };
-    var rightDrag = null, suppressMenuUntil = 0;
+    var drawingDrag = null;
     var buttons = opts.buttons || {};
 
     var overlay = document.createElement('canvas');
@@ -539,7 +539,7 @@
     }
 
     function setMode(mode) {
-      finishRightDrag(true);
+      finishDrawingDrag(true);
       mode = tools.indexOf(mode) > -1 ? mode : null;
       if (d.dragHline) d.dragHline.hl.price = d.dragHline.originalPrice;
       overlay.style.cursor = '';
@@ -548,7 +548,7 @@
       if (overlay.classList) { overlay.classList.toggle('is-active', !!mode); overlay.classList.toggle('is-pencil', mode === 'pencil'); }
       paintButtons(mode);
       var titles = Object.assign({},DEFAULT_TITLES,opts.titles||{});
-      overlay.title = mode ? (titles[mode] || '') + ' 그린 선은 오른쪽 버튼으로 끌어 옮깁니다.' : (opts.title || '');
+      overlay.title = mode ? (titles[mode] || '') + ' 그린 선은 왼쪽 버튼으로 끌어 옮깁니다.' : (opts.title || '');
       redraw();
       if (opts.onModeChange) opts.onModeChange(mode);
     }
@@ -572,7 +572,7 @@
     }
 
     function clearAll() {
-      finishRightDrag(true);
+      finishDrawingDrag(true);
       d.lines = []; d.paths = []; d.circles = []; d.hlines = []; d.boxes = []; d.measure = null;
       d.pending = null; d.preview = null; d.activePath = null; d.hlinePreview = null; d.hlineDraft = null;
       persist();
@@ -601,41 +601,43 @@
     var minLen = opts.minLengthPx || 0;
     var strict = !!opts.clampToCanvas;
 
-    // Right-click on a stroke still erases it. Wait for release so that right-drag
-    // moves it instead, even in browsers that fire contextmenu on button press.
+    // Capture a left press on a stroke before the overlay can begin a new drawing.
     function hitValue(hit) {
       return hit.kind === 'measure' ? d.measure : d[hit.kind][hit.index];
     }
     function drawingPreview(value) {
-      return rightDrag && value === rightDrag.original && rightDrag.preview ? rightDrag.preview : value;
+      return drawingDrag && value === drawingDrag.original && drawingDrag.preview ? drawingDrag.preview : value;
     }
-    function suppressRightEvent(event) {
+    function consumeDrawingEvent(event) {
       event.preventDefault();
       event.stopPropagation();
     }
-    function startRightDrag(event) {
-      if (event.button !== 2 || detached || rightDrag) return;
-      suppressMenuUntil = 0;
+    function startDrawingDrag(event) {
+      if (event.button !== 0 || event.pointerType === 'touch' || detached || drawingDrag) return;
       if (d.dragHline || d.hlineDraft != null || d.pending || d.activePath) return;
       var rect = overlay.getBoundingClientRect();
       var x = event.clientX - rect.left, y = event.clientY - rect.top;
-      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
-      var hit = shapeAt(d, coord, x, y, rect.width);
+      var scale = chart.timeScale();
+      var plotWidth = scale.width ? Math.min(rect.width, scale.width()) : rect.width;
+      if (x < 0 || y < 0 || x > plotWidth || y > rect.height) return;
+      // In horizontal-line mode the existing handler also supports direct price entry.
+      if (d.mode === 'hline' && hlineAt(x, y)) return;
+      var hit = shapeAt(d, coord, x, y, plotWidth);
       if (!hit) return;
       var original = hitValue(hit);
       var points = hit.kind === 'hlines' ? null
         : (hit.kind === 'paths' ? original : [original.start, original.end]).map(coord);
-      rightDrag = { hit: hit, original: original, points: points, id: event.pointerId,
+      drawingDrag = { hit: hit, original: original, points: points, id: event.pointerId,
         x: x, y: y, moved: false, preview: null,
         lineY: hit.kind === 'hlines' ? series.priceToCoordinate(original.price) : null,
         cursor: container.style && container.style.cursor, overlayCursor: overlay.style.cursor };
-      suppressRightEvent(event);
+      consumeDrawingEvent(event);
       if (container.setPointerCapture) container.setPointerCapture(event.pointerId);
     }
-    function moveRightDrag(event) {
-      var drag = rightDrag;
+    function moveDrawingDrag(event, releasing) {
+      var drag = drawingDrag;
       if (!drag || event.pointerId !== drag.id) return;
-      suppressRightEvent(event);
+      if (!releasing) consumeDrawingEvent(event);
       var rect = overlay.getBoundingClientRect();
       var dx = event.clientX - rect.left - drag.x, dy = event.clientY - rect.top - drag.y;
       if (!drag.moved && Math.hypot(dx, dy) < MOVE_THRESHOLD_PX) return;
@@ -655,30 +657,27 @@
       }
       redraw();
     }
-    function finishRightDrag(cancelled) {
-      var drag = rightDrag;
+    function finishDrawingDrag(cancelled) {
+      var drag = drawingDrag;
       if (!drag) return;
-      rightDrag = null;
-      suppressMenuUntil = Date.now() + 750;
+      drawingDrag = null;
       if (container.style) container.style.cursor = drag.cursor;
       overlay.style.cursor = drag.overlayCursor;
       if (container.hasPointerCapture && container.hasPointerCapture(drag.id)) container.releasePointerCapture(drag.id);
-      if (!cancelled && hitValue(drag.hit) === drag.original) {
+      if (!cancelled && drag.preview && hitValue(drag.hit) === drag.original) {
         var kind = drag.hit.kind;
-        if (kind === 'measure') {
-          d.measure = drag.moved ? drag.preview || drag.original : null;
-        } else if (!drag.moved || drag.preview) {
-          if (drag.moved) d[kind][drag.hit.index] = drag.preview;
-          else d[kind].splice(drag.hit.index, 1);
+        if (kind === 'measure') d.measure = drag.preview;
+        else {
+          d[kind][drag.hit.index] = drag.preview;
           persist();
         }
       }
       redraw();
     }
-    function endRightDrag(event, cancelled) {
-      if (!rightDrag || event.pointerId !== rightDrag.id || (!cancelled && event.button !== 2)) return;
-      if (!cancelled) moveRightDrag(event);
-      finishRightDrag(cancelled);
+    function endDrawingDrag(event, cancelled) {
+      if (!drawingDrag || event.pointerId !== drawingDrag.id || (!cancelled && event.button !== 0)) return;
+      if (!cancelled) moveDrawingDrag(event, true);
+      finishDrawingDrag(cancelled);
     }
 
     function onPointerDown(event) {
@@ -839,18 +838,27 @@
       redraw();
     });
     scope.on(container, 'contextmenu', function(event) {
-      if(detached)return;
-      if (rightDrag || Date.now() < suppressMenuUntil) { suppressRightEvent(event); return; }
-      var rect=overlay.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
-      if(x<0||y<0||x>rect.width||y>rect.height)return;
-      var hit=shapeAt(d,coord,x,y,rect.width);
-      if (hit || d.enabled) suppressRightEvent(event);
+      if (detached) return;
+      if (drawingDrag) { consumeDrawingEvent(event); return; }
+      var rect = overlay.getBoundingClientRect(), x = event.clientX - rect.left, y = event.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+      var hit = shapeAt(d, coord, x, y, rect.width);
+      if (!hit) {
+        if (d.enabled) event.preventDefault();
+        return;
+      }
+      consumeDrawingEvent(event);
+      if (d.dragHline) d.dragHline.hl.price = d.dragHline.originalPrice;
+      d.dragHline = null; d.pending = null; d.preview = null; d.activePath = null; d.hlineDraft = null; d.hlinePreview = null;
+      if (hit.kind === 'measure') d.measure = null;
+      else { d[hit.kind].splice(hit.index, 1); persist(); }
+      redraw();
     },true);
-    scope.on(container, 'pointerdown', startRightDrag, true);
-    scope.on(container, 'pointermove', moveRightDrag, true);
-    scope.on(container, 'pointerup', function (event) { endRightDrag(event, false); }, true);
-    scope.on(container, 'pointercancel', function (event) { endRightDrag(event, true); }, true);
-    scope.on(container, 'lostpointercapture', function (event) { endRightDrag(event, true); }, true);
+    scope.on(container, 'pointerdown', startDrawingDrag, true);
+    scope.on(container, 'pointermove', moveDrawingDrag, true);
+    scope.on(container, 'pointerup', function (event) { endDrawingDrag(event, false); }, true);
+    scope.on(container, 'pointercancel', function (event) { endDrawingDrag(event, true); }, true);
+    scope.on(container, 'lostpointercapture', function (event) { endDrawingDrag(event, true); }, true);
     scope.on(overlay, 'mouseleave', function () {
       if (d.mode === 'pencil' && d.activePath) return;
       d.preview = null; d.hlinePreview = null;
@@ -891,7 +899,7 @@
 
     function detach() {
       if (detached) return;
-      finishRightDrag(true);
+      finishDrawingDrag(true);
       detached = true;
       if(clearDialog)clearDialog.close();
       if (frame) { global.cancelAnimationFrame(frame); frame = 0; }

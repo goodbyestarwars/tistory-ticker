@@ -40,7 +40,7 @@
   var ROOT = (SELF_SRC.match(/^(.*\/)js\/chart-core\.js/) || [])[1] || 'https://goodbyestarwars.github.io/tistory-ticker/';
   var MODULES = {
     data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261022-order1' },
-    drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261127-drawing-right-drag' },
+    drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261127-drawing-left-drag' },
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261105-shape-selection', needs: ['data', 'autowave'] },
     divergence: { file: 'js/chart-divergence.js', global: 'NineChartDivergence', v: '20261022-div1', needs: ['wave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261105-shape-selection' },
