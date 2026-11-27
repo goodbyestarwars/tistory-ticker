@@ -159,6 +159,28 @@ class ComputeTests(unittest.TestCase):
         self.assertEqual(res['snapshot']['usSessionDate'], '20260904')
         self.assertEqual(res['snapshot']['usHoliday'][0]['date'], '2026-09-07')
 
+    def test_thanksgiving_vix_bar_is_not_used_for_either_close(self):
+        conn = make_conn()
+        seed(conn, us_date='20261125', prev='20261124', day_date='20261126',
+             fx_date='20261126', fx_prev='20261125')
+        put(conn, 'VIX', [('20261126', 300.0)])
+        res = mb.compute(conn, date(2026, 11, 27), kst(2026, 11, 27, 7, 0))
+        self.assertTrue(res['ok'], res)
+        snap = res['snapshot']
+        self.assertEqual(snap['usSessionDate'], '20261125')
+        self.assertEqual(snap['usHoliday'], [{'date': '2026-11-26', 'name': '추수감사절'}])
+        self.assertEqual(snap['inputs']['vix']['date'], '20261125')
+        self.assertEqual(snap['inputs']['fx']['date'], '20261126')
+
+        seed(conn, us_date='20261127', prev='20261125', day_date='20261127',
+             fx_date='20261127', fx_prev='20261126')
+        res = mb.compute(conn, date(2026, 11, 30), kst(2026, 11, 30, 7, 0))
+        self.assertTrue(res['ok'], res)
+        vix = res['snapshot']['inputs']['vix']
+        self.assertEqual(vix['date'], '20261127')
+        self.assertEqual(vix['prevClose'], 100.0)
+        self.assertAlmostEqual(vix['pct'], 10.0)
+
     def test_unlisted_us_holiday_assumed_only_after_0830(self):
         conn = make_conn()
         seed(conn, us_date='20261022', prev='20261021', fx_date='20261023', fx_prev='20261022')    # 10/23 미국 정규장이 열려야 하지만 봉이 없다(표에 없는 휴장 가정)
