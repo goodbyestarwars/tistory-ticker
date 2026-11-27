@@ -1,3 +1,10 @@
+## 2026-11-27 계좌 현황 연동 1단계-B: 잔고·예수금·미체결 (읽기 전용)
+- 목적: 사용자 지시("직접 해"). 화면 ⇄ 서버 ⇄ 에이전트 ⇄ 증권사 조회 연동으로 계좌 현황 탭을 실제 값으로 채움(주문 없음).
+- 변경: 서버 `autotrader_control.sanitize_account`(허용 필드만, 계좌·주문번호 폐기, 600초 넘으면 stale, 모르는 값 None)과 `public_status.account`. 화면 잔고(증권사 기준)·예수금(주문가능금액만)·미체결·체결내역(엔진 장부 FILLED만) 탭. 에이전트(비공개 `autotrader-private`, 브랜치 feat/account-view): `account_view.py`가 엔진 `trade_once`가 이미 조회한 잔고·미체결·주문가능금액을 `ACCOUNT_VIEW.json`에 원자 저장(새 증권사 호출 없음, 실패해도 매매 무영향), 제어 에이전트가 읽어 `snapshot.account`로 전송.
+- 한계: 총 예수금·D+2·출금가능, 증권사 체결내역(직접 주문 포함)은 조회하지 않아 미표시. 거래 시간 밖에는 파일이 갱신되지 않아 stale 표시.
+- 검증: 서버 `test_autotrader_control.py` 신규 2건, 에이전트 `test_account_view.py` 3건. 기존 실패(변경 전부터): `test_order_boundary_20261104` 1건(Windows 임시폴더 잠금).
+- 배포: 서버·화면은 master 병합(VM 자동 배포, 새 필드 없으면 기존 동작). 에이전트는 병합 뒤 Google VM 자동 pull, 장외 배포·재시작 필요 — 미완료.
+
 ## 2026-11-27 자동매매 화면 → 계좌 현황 탭(1단계, 조회 전용)
 - 목적: 사용자 지시. HTS 없이 웹에서 잔고를 보도록 `/page/auto-trader`를 탭(잔고/예수금/미체결/체결내역/자동매매)으로 재구성.
 - 변경: `js/auto-trader.js`에 탭 셸 추가. 잔고=기존 장부 보유 종목+사이트 시세(`positionsHtml` 재사용), 자동매매 탭=기존 운영센터 그대로. 예수금·미체결·체결내역은 서버 스냅샷에 자료가 없어 '준비 중'(0 아님). `css/auto-trader.css` 탭 스타일.

@@ -362,3 +362,27 @@ class ControlTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AccountSanitizeTests(unittest.TestCase):
+    def test_keeps_only_allowed_fields_and_marks_stale(self):
+        now = ac._now()
+        raw = {'asOf': now.strftime('%Y-%m-%d %H:%M:%S'), 'orderable': '1500000', 'acntNo': '123',
+               'holdings': [{'code': '005930', 'name': '삼성전자', 'qty': 3, 'avg': 70000, 'price': 71000, 'acnt_no': 'X'}],
+               'pending': [{'code': '000660', 'qty': 10, 'remain': 4, 'ord_no': '0001'}]}
+        out = ac.sanitize_account(raw, now)
+        self.assertEqual(out['orderable'], 1500000)
+        self.assertFalse(out['stale'])
+        self.assertNotIn('acnt_no', out['holdings'][0])
+        self.assertNotIn('ord_no', out['pending'][0])
+        self.assertNotIn('123', str(out))
+        old = dict(raw, asOf='2020-01-01 00:00:00')
+        self.assertTrue(ac.sanitize_account(old, now)['stale'])
+
+    def test_missing_account_is_none_and_unknown_not_zero(self):
+        now = ac._now()
+        self.assertIsNone(ac.sanitize_account(None, now))
+        out = ac.sanitize_account({'asOf': 'bad', 'pending': [{'code': '005930'}]}, now)
+        self.assertIsNone(out['orderable'])
+        self.assertIsNone(out['pending'][0]['qty'])
+        self.assertTrue(out['stale'])

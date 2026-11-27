@@ -209,6 +209,7 @@ def public_status(now=None):
             'checkedAt': now.isoformat(timespec='seconds'), 'tradingDay': (market_calendar.is_kr_trading_day(now)
                                                                            if now.year in KNOWN_CALENDAR_YEARS else None),
             'activity': state.get('activity') if received else None,
+            'account': sanitize_account(snapshot.get('account'), now) if received else None,
             'vm': view, 'startBlockers': blockers, 'canStart': not blockers and not pending,
             'pending': dict({'id': pending['id'], 'action': pending['action']},
                             **({'code': pending['code']} if pending['action'] in POSITION_ACTIONS and pending.get('code') else {}))
@@ -376,6 +377,36 @@ def _safe_decision(raw):
         if score:
             out['score'] = score
     return out
+
+
+ACCOUNT_STALE_SEC = 600
+ACCOUNT_ROWS = 100
+
+
+def sanitize_account(raw, now):
+    """에이전트의 ACCOUNT_VIEW(잔고·미체결·주문가능금액)를 허용 필드만 남겨 화면용으로 만든다. 읽기 전용.
+    계좌번호·주문번호·원문은 받아도 버린다. 모르는 값은 None(0 아님). asOf가 오래되면 stale."""
+    if not isinstance(raw, dict):
+        return None
+    as_of = _text(raw.get('asOf'), 19)
+    age = None
+    try:
+        parsed = datetime.strptime(as_of, '%Y-%m-%d %H:%M:%S').replace(tzinfo=now.tzinfo)
+        age = max(0, int((now - parsed).total_seconds()))
+    except ValueError:
+        pass
+    def rows(key, fields):
+        out = []
+        for item in (raw.get(key) or [])[:ACCOUNT_ROWS]:
+            if isinstance(item, dict):
+                out.append({name: (_int(item.get(name)) if kind == 'i' else _text(item.get(name), 40) or None)
+                            for name, kind in fields})
+        return out
+    return {'asOf': as_of or None, 'ageSec': age, 'stale': age is None or age > ACCOUNT_STALE_SEC,
+            'orderable': _int(raw.get('orderable')),
+            'holdings': rows('holdings', (('code', 's'), ('name', 's'), ('qty', 'i'), ('sellable', 'i'), ('avg', 'i'), ('price', 'i'))),
+            'pending': rows('pending', (('code', 's'), ('name', 's'), ('side', 's'), ('qty', 'i'), ('remain', 'i'), ('price', 'i'),
+                                        ('status', 's'), ('time', 's')))}
 
 
 def sanitize_activity(raw):
