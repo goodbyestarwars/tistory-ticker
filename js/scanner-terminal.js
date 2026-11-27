@@ -235,11 +235,17 @@
       counts[cls.key] += 1;
       card.setAttribute('data-st-state', cls.key);
       var when = kst(r.scannedAt || r.date);
+      var baseDay = (sel && sel.dataDate) || String(r.date || '').slice(0, 10) || '미확인';
       var box = document.createElement('div');
       box.className = 'st-state';
+      // 2026-11-27 가독성: 목록 카드는 한 줄 요약(월/일 시:분)으로 줄이고 전체 시각은 title에 둔다.
+      var shortDate = function (s) { return String(s).replace(/\b20\d{2}-(\d{2})-(\d{2})/g, function (m, a, b) { return Number(a) + '/' + Number(b); }).replace(/\s*KST/, ''); };
+      var fullStamp = '포착 ' + (when || '시각 미확인') + ' · 기준일 ' + baseDay;
       box.innerHTML = '<span class="st-chip st-chip--' + cls.key + '" title="' + esc(cls.detail) + '">' + esc(cls.label) + '</span>'
-        + '<span class="st-stamp">포착 ' + esc(when || '시각 미확인') + ' · 기준일 ' + esc((sel && sel.dataDate) || String(r.date || '').slice(0, 10) || '미확인') + '</span>';
+        + '<span class="st-stamp" title="' + esc(fullStamp) + '">포착 ' + esc(shortDate(when || '시각 미확인')) + ' · 기준 ' + esc(shortDate(baseDay)) + '</span>';
       var head = card.querySelector('.ps-pick-head');
+      var oldBadge = head && head.querySelector('.ps-state-badge');                       // '수동 점검 필요' 등은 상태 줄로 복제해 이름 줄을 짧게 둔다(원본은 CSS로만 숨김).
+      if (oldBadge) { var copy = oldBadge.cloneNode(true); copy.classList.add('st-badge-copy'); box.insertBefore(copy, box.children[1] || null); }
       if (head) head.insertAdjacentElement('afterend', box);
       parent = card.parentNode;
     });
