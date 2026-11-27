@@ -1228,13 +1228,44 @@
     });
   }
 
+  // 계좌 현황 탭(2026-11-27). 잔고는 기존 장부 보유 종목+사이트 시세를 재사용하고, 서버가 아직 받지 않는 자료(예수금·미체결·체결내역)는 0이 아니라 '준비 중'으로 표시한다. 주문 기능은 없다.
+  var ACCT_TABS = [['balance', '잔고'], ['deposit', '예수금'], ['pending', '미체결'], ['fills', '체결내역'], ['auto', '자동매매']];
+  var acctTab = 'balance';
+  function pendingPanelHtml(title, what) {
+    return '<section class="at-card at-act"><div class="at-hd at-subhead"><h3>' + esc(title) + '</h3><span class="at-sub">준비 중</span></div>'
+      + '<p class="at-empty">' + esc(what) + ' 자료를 아직 서버가 받지 못해 표시하지 않습니다(— 는 0이 아니라 미수신). 에이전트 연동이 추가되면 이 탭에 나타납니다.</p></section>';
+  }
+  function balancePanelHtml(a) {
+    var positions = (a && a.positions) || [];
+    if (!global.KRX_MAP && positions.some(function (r) { return r && r.code && !r.name; })) loadKrxMap();
+    if (positions.length) loadPositionQuotes(positions);
+    return '<section class="at-card at-act"><div class="at-hd at-subhead"><h3>보유 잔고</h3><span class="at-sub">장부의 열린 포지션 · 현재가는 사이트 시세 · 조회 전용</span></div>'
+      + (positions.length ? positionsHtml(positions, posQuotes.map) : '<p class="at-empty">열린 보유 종목이 없거나 에이전트가 아직 내역을 올리지 않았습니다.</p>')
+      + '<p class="at-note">매입가는 장부 추정값이며 증권사 HTS 잔고와 다를 수 있습니다. 예수금·평가손익 정확값은 준비 중입니다.</p></section>';
+  }
+  function acctTabsHtml() {
+    return '<div class="at-tabs" role="tablist">' + ACCT_TABS.map(function (t) {
+      return '<button type="button" role="tab" class="at-tab' + (acctTab === t[0] ? ' is-on' : '') + '" aria-selected="' + (acctTab === t[0]) + '" data-acct-tab="' + t[0] + '">' + t[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function acctBodyHtml(c) {
+    if (acctTab === 'balance') return balancePanelHtml(c.activity);
+    if (acctTab === 'deposit') return pendingPanelHtml('예수금', '예수금·주문가능금액');
+    if (acctTab === 'pending') return pendingPanelHtml('미체결', '미체결 주문');
+    if (acctTab === 'fills') return pendingPanelHtml('체결내역', '증권사 체결내역');
+    return controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
+  }
+
   function renderControl(c) {
     lastControl = c;
     var scroll = global.pageYOffset;
     lastActivity = c.activity;
     // 2026-11-20 사용자 지시("사용자 측면에서 불편, 없어도 된다"): 주도주 조용한 눌림 칸 카드는 화면에서 뺀다. 칸은 내부 설정으로 켜져 자동 매수·매도한다.
     // leaderHtml·leader-config 명령 경로는 보존(다시 표시하거나 설정을 바꿀 때 재사용).
-    root.innerHTML = controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
+    root.innerHTML = acctTabsHtml() + acctBodyHtml(c);
+    root.querySelectorAll('[data-acct-tab]').forEach(function (b) {
+      b.addEventListener('click', function () { acctTab = b.getAttribute('data-acct-tab'); renderControl(lastControl); });
+    });
     var targetForm = root.querySelector('[data-target-form]');
     if (targetForm) {
       bindTargetSymbolSearch(targetForm);

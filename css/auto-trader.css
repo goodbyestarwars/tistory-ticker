@@ -359,3 +359,8 @@ html.dark #auto-trader .at-month-table th { background: var(--dk-panel); }
 .at-modal .at-ctl-btn { padding: 6px 16px; border: 1px solid #86AEE1; border-radius: 8px; background: #86AEE1; color: #fff; cursor: pointer; font-size: 12.5px; font-weight: 700; }
 .at-modal .at-ctl-btn:disabled { opacity: .45; cursor: not-allowed; }
 .at-modal .at-warn-text { color: #C0392B; }
+
+/* 계좌 현황 탭 (2026-11-27) */
+#auto-trader .at-tabs { display: flex; gap: 4px; margin: 0 0 12px; border-bottom: 1px solid var(--at-line); overflow-x: auto; }
+#auto-trader .at-tab { padding: 9px 16px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-weight: 600; color: var(--at-mute); cursor: pointer; white-space: nowrap; }
+#auto-trader .at-tab.is-on { color: var(--at-text, inherit); border-bottom-color: currentColor; }
