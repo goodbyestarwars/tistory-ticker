@@ -174,6 +174,7 @@
       + '<div id="obBookProvenance" class="ob-book-provenance" role="status">호가 출처·수신 시각 확인 중</div>'
       + '<div id="obBreakoutNote" class="ob-breakout-note"></div>'
       + '<div id="obAbnormalBadges" class="ob-abnormal-badges"></div>'
+      + '<div id="obDepth" class="ob-depth"></div>'
       + '</div>'
       + '<div id="obToast" class="ob-toast"></div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
@@ -942,7 +943,79 @@
     return { highBreak: sm.ctxCache.priorHigh != null && p > sm.ctxCache.priorHigh, accumulation: sm.ctxCache.accumulation, priorHigh: sm.ctxCache.priorHigh };
   }
 
+  // ---- 호가 두께(2026-11-27 사용자 제안: 「주가를 1% 움직이는 데 얼마가 필요한가」) ----
+  // 상단 1% 매도잔량 금액 / 최근 1분 매수주도 체결대금 = 매도호가 깊이비율(하단 매수는 반대로 매도주도 체결대금).
+  // 연구용 가설이며 실데이터 검증 전이다. 매수 신호·주문과 연결하지 않고, 같은 시간대 과거 호가 깊이와의 비교도 아직 없다.
+  var DEPTH_PCT = 1;            // 현재가 위·아래 이 %까지의 호가잔량 금액
+  var DEPTH_WINDOW_SEC = 60;    // 체결대금 집계 구간
+  var DEPTH_STALE_SEC = 180;    // 마지막 체결이 이보다 오래되면 최근 1분이 아니므로 비율을 만들지 않는다
+  function depthVerdict(ratio) {
+    return ratio < 0.5 ? '매우 얇음' : ratio < 1 ? '얇음' : ratio < 3 ? '보통' : '두꺼움';
+  }
+  function moneyText(v) {
+    if (!(v > 0)) return '0원';
+    if (v >= 1e8) return (v / 1e8).toFixed(v >= 1e9 ? 1 : 2).replace(/\.?0+$/, '') + '억원';
+    return Math.max(1, Math.round(v / 1e4)).toLocaleString('ko-KR') + '만원';
+  }
+  // 실시간 개별 체결(KIS WS)에서 방향별 최근 1분 체결대금. 20건 목록이 1분을 못 채우면 그 구간만으로 1분치로 환산한다.
+  function recentDrivenValue(direction) {
+    var list = state.liveTrades || [];
+    var toSec = function (t) { var m = /^(\d{2})(\d{2})(\d{2})$/.exec(String(t.time || '')); return m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : null; };
+    if (list.length < 3) return null;
+    var newest = toSec(list[0]), oldest = toSec(list[list.length - 1]);
+    if (newest == null || oldest == null || newest < oldest) return null;
+    var kst = new Date(Date.now() + 9 * 3600000), nowSec = kst.getUTCHours() * 3600 + kst.getUTCMinutes() * 60 + kst.getUTCSeconds();
+    if (nowSec >= newest && nowSec - newest > DEPTH_STALE_SEC) return null;
+    var known = list.filter(function (t) { return t.direction === 'buy' || t.direction === 'sell'; });
+    if (!known.length) return { unknown: true };
+    var truncated = list.length >= TRADE_LIST_MAX && newest - oldest < DEPTH_WINDOW_SEC;
+    var span = truncated ? Math.max(5, newest - oldest) : DEPTH_WINDOW_SEC;
+    var value = 0;
+    list.forEach(function (t) {
+      var ts = toSec(t);
+      if (t.direction === direction && ts != null && newest - ts <= span) value += t.price * t.qty;
+    });
+    return { value: truncated ? value * DEPTH_WINDOW_SEC / span : value, scaled: truncated, spanSec: span };
+  }
+  function renderDepthBox(container, book, quote) {
+    var box = container.querySelector('#obDepth');
+    if (!box) return;
+    if (container.id === 'usStocksOrderbook') { box.innerHTML = ''; return; }
+    var asks = (book && book.asks || []).filter(function (r) { return r.price > 0 && r.qty > 0; });
+    var bids = (book && book.bids || []).filter(function (r) { return r.price > 0 && r.qty > 0; });
+    var price = quote && typeof quote.price === 'number' && quote.price > 0 ? quote.price : null;
+    if (price == null && asks.length && bids.length) {
+      price = (Math.min.apply(null, asks.map(function (r) { return r.price; })) + Math.max.apply(null, bids.map(function (r) { return r.price; }))) / 2;
+    }
+    if (!price || (!asks.length && !bids.length)) { box.innerHTML = ''; return; }
+    var up = price * (1 + DEPTH_PCT / 100), down = price * (1 - DEPTH_PCT / 100);
+    var side = function (rows, inRange, driven, label, driver) {
+      var amount = rows.filter(inRange).reduce(function (s, r) { return s + r.price * r.qty; }, 0);
+      // 보이는 10호가가 1% 경계 밖까지 닿지 않으면 실제 1% 금액은 더 클 수 있다(표시: +)
+      var partial = rows.length > 0 && rows.every(inRange);
+      var d = recentDrivenValue(driven), ratio = d && d.value > 0 ? amount / d.value : null;
+      var note = !d ? '체결 없음' : d.unknown ? '체결 방향 미확인' : d.value > 0 ? (d.scaled ? '최근 ' + d.spanSec + '초 체결 1분 환산' : '최근 1분') : '최근 ' + (driven === 'buy' ? '매수' : '매도') + '주도 체결 없음';
+      return { label: label, amount: amount, partial: partial, ratio: ratio, note: note, driver: driver, d: d };
+    };
+    var a = side(asks, function (r) { return r.price <= up; }, 'buy', '상단 ' + DEPTH_PCT + '% 매도잔량', '매수주도');
+    var b = side(bids, function (r) { return r.price >= down; }, 'sell', '하단 ' + DEPTH_PCT + '% 매수잔량', '매도주도');
+    var cell = function (x, cls) {
+      var verdict = x.ratio == null ? '' : depthVerdict(x.ratio);
+      return '<div class="ob-depth-cell ' + cls + '"><span class="ob-depth-k">' + x.label + '</span><b>' + moneyText(x.amount) + (x.partial ? '<small>+</small>' : '') + '</b>'
+        + '<span class="ob-depth-r">' + (x.ratio == null ? '깊이비율 -' : '깊이비율 ' + x.ratio.toFixed(2) + '배 · ' + verdict) + '</span>'
+        + '<span class="ob-depth-n">' + escapeHtml(x.d && x.d.value > 0 ? x.driver + ' 체결대금 ' + moneyText(x.d.value) + ' · ' + x.note : x.note) + '</span></div>';
+    };
+    var thin = function (x) { return x.ratio != null && x.ratio < 1; };
+    var kind = a.ratio == null || b.ratio == null ? '' : thin(a) && thin(b) ? '양쪽 모두 얇음 · 급등락이 쉬운 상태'
+      : thin(a) ? '매도만 얇음 · 상승 방향 저항이 작음' : thin(b) ? '매수만 얇음 · 하락 방향 저항이 작음' : '';
+    box.innerHTML = '<div class="ob-depth-head"><b>호가 두께</b><small>주가를 1% 움직이는 데 필요한 금액 · 연구용 가설(검증 전)</small></div>'
+      + '<div class="ob-depth-grid">' + cell(a, 'ob-depth-ask') + cell(b, 'ob-depth-bid') + '</div>'
+      + (kind ? '<div class="ob-depth-kind">' + kind + '</div>' : '')
+      + '<div class="ob-depth-foot">깊이비율 = 1% 호가잔량 금액 ÷ 최근 1분 체결대금. 0.5배 미만 매우 얇음 · 1배 미만 얇음 · 3배 이상 두꺼움. 방향 예측이 아니라 가격이 움직이기 쉬운 정도이며 같은 시간대 과거와의 비교는 아직 없습니다.</div>';
+  }
+
   function renderAbnormalBadges(container, book, quote) {
+    renderDepthBox(container, book, quote);
     var box = container.querySelector('#obAbnormalBadges');
     if (!box) return;
     var badges = computeAbnormalSignals(book, quote, { krw: container.id !== 'usStocksOrderbook' });
@@ -1070,6 +1143,8 @@
     if (note) note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
     var breakoutNote = container.querySelector('#obBreakoutNote');
     if (breakoutNote) breakoutNote.textContent = '';
+    var depthBox = container.querySelector('#obDepth');
+    if (depthBox) depthBox.innerHTML = '';
     var abnormalBox = container.querySelector('#obAbnormalBadges');
     if (abnormalBox) abnormalBox.innerHTML = '';
     var meta = container.querySelector('#obBookProvenance');
