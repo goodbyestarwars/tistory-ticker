@@ -1235,7 +1235,41 @@
     return '<section class="at-card at-act"><div class="at-hd at-subhead"><h3>' + esc(title) + '</h3><span class="at-sub">준비 중</span></div>'
       + '<p class="at-empty">' + esc(what) + ' 자료를 아직 서버가 받지 못해 표시하지 않습니다(— 는 0이 아니라 미수신). 에이전트 연동이 추가되면 이 탭에 나타납니다.</p></section>';
   }
-  function balancePanelHtml(a) {
+  function acctAsOf(ac) {
+    return ac ? '증권사 조회 ' + esc(String(ac.asOf || '').slice(11, 19) || '-') + (ac.stale ? ' · 오래됨(장 시작 전·중지 중일 수 있음)' : '') : '';
+  }
+  function brokerBalanceHtml(ac) {
+    var rows = ac.holdings || [], buy = 0, val = 0;
+    var body = rows.map(function (h) {
+      var ok = h.qty > 0 && h.avg > 0 && h.price > 0, v = h.qty > 0 && h.price > 0 ? h.qty * h.price : null;
+      var pnl = ok ? (h.price - h.avg) * h.qty : null, rate = ok ? (h.price / h.avg - 1) * 100 : null;
+      if (ok) { buy += h.avg * h.qty; val += v; }
+      return '<tr><td>' + actName(h) + '</td><td class="n">' + (h.qty == null ? '-' : fmtWon(h.qty)) + '</td><td class="n">' + (h.sellable == null ? '-' : fmtWon(h.sellable)) + '</td>'
+        + '<td class="n">' + fmtPrice(h.avg) + '</td><td class="n">' + fmtPrice(h.price) + '</td><td class="n">' + (v == null ? '-' : fmtWon(v)) + '</td>'
+        + '<td class="n ' + tone(pnl) + '">' + signed(pnl) + '</td><td class="n ' + tone(rate) + '">' + pct(rate) + '</td></tr>';
+    }).join('');
+    return '<div class="at-table-wrap"><table class="at-table at-pos"><thead><tr><th>종목</th><th class="n">보유</th><th class="n">매도가능</th><th class="n">매입가</th><th class="n">현재가</th><th class="n">평가금액</th><th class="n">평가손익</th><th class="n">수익률</th></tr></thead><tbody>'
+      + (body || '<tr><td colspan="8" class="at-empty">보유 종목이 없습니다.</td></tr>') + '</tbody></table></div>'
+      + (buy > 0 ? '<p class="at-note">합계 평가 ' + fmtWon(val) + '원 · 손익 ' + signed(val - buy) + '원 (' + pct((val / buy - 1) * 100) + ')</p>' : '');
+  }
+  function pendingTableHtml(ac) {
+    var rows = ac.pending || [];
+    if (!rows.length) return '<p class="at-empty">미체결 주문이 없습니다.</p>';
+    return '<div class="at-table-wrap"><table class="at-table at-pos"><thead><tr><th>종목</th><th>구분</th><th class="n">주문가</th><th class="n">주문수량</th><th class="n">미체결</th><th>상태</th><th>시각</th></tr></thead><tbody>'
+      + rows.map(function (o) {
+        return '<tr><td>' + actName(o) + '</td><td>' + esc(o.side || '-') + '</td><td class="n">' + fmtPrice(o.price) + '</td><td class="n">' + (o.qty == null ? '-' : fmtWon(o.qty)) + '</td><td class="n">' + (o.remain == null ? '-' : fmtWon(o.remain)) + '</td><td>' + esc(o.status || '-') + '</td><td>' + esc(o.time || '-') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function fillsPanelHtml(c) {
+    var a = c.activity || {}, rows = (a.orders || []).filter(function (o) { return o.status === 'FILLED'; });
+    return '<section class="at-card at-act"><div class="at-hd at-subhead"><h3>체결내역</h3><span class="at-sub">엔진 장부에서 체결 확인된 주문 · 사용자가 증권사에서 직접 낸 주문은 포함되지 않습니다</span></div>'
+      + (rows.length ? orderTable(rows.slice(0, 50)) : '<p class="at-empty">체결 확인된 주문 기록이 없거나 아직 수신되지 않았습니다.</p>') + '</section>';
+  }
+  function balancePanelHtml(a, ac) {
+    if (ac) {
+      return '<section class="at-card at-act"><div class="at-hd at-subhead"><h3>보유 잔고</h3><span class="at-sub">' + acctAsOf(ac) + ' · 조회 전용</span></div>' + brokerBalanceHtml(ac)
+        + '<p class="at-note">증권사 기준 잔고입니다(엔진이 이미 조회한 값, 추가 호출 없음). 매입가·현재가는 증권사 응답 그대로입니다.</p></section>';
+    }
     var positions = (a && a.positions) || [];
     if (!global.KRX_MAP && positions.some(function (r) { return r && r.code && !r.name; })) loadKrxMap();
     if (positions.length) loadPositionQuotes(positions);
@@ -1249,10 +1283,19 @@
     }).join('') + '</div>';
   }
   function acctBodyHtml(c) {
-    if (acctTab === 'balance') return balancePanelHtml(c.activity);
-    if (acctTab === 'deposit') return pendingPanelHtml('예수금', '예수금·주문가능금액');
-    if (acctTab === 'pending') return pendingPanelHtml('미체결', '미체결 주문');
-    if (acctTab === 'fills') return pendingPanelHtml('체결내역', '증권사 체결내역');
+    var ac = c.account;
+    if (acctTab === 'balance') return balancePanelHtml(c.activity, ac);
+    if (acctTab === 'deposit') {
+      if (!ac) return pendingPanelHtml('예수금', '예수금·주문가능금액');
+      return '<section class="at-card at-act"><div class="at-hd at-subhead"><h3>예수금</h3><span class="at-sub">' + acctAsOf(ac) + '</span></div>'
+        + '<p class="at-kpi"><small>주문가능금액(100% 증거금)</small> <b>' + (ac.orderable == null ? '—' : fmtWon(ac.orderable) + '원') + '</b></p>'
+        + '<p class="at-note">엔진 매수 판단에 쓰는 주문가능금액입니다. 총 예수금·D+2 예수금·출금가능액은 아직 조회하지 않아 표시하지 않습니다.</p></section>';
+    }
+    if (acctTab === 'pending') {
+      if (!ac) return pendingPanelHtml('미체결', '미체결 주문');
+      return '<section class="at-card at-act"><div class="at-hd at-subhead"><h3>미체결</h3><span class="at-sub">' + acctAsOf(ac) + '</span></div>' + pendingTableHtml(ac) + '</section>';
+    }
+    if (acctTab === 'fills') return fillsPanelHtml(c);
     return controlHtml(c) + activityHtml(c.activity) + targetBuyHtml(c);
   }
 
