@@ -1,6 +1,6 @@
 const assert = require('assert');
 const Drawing = require('../js/chart-drawing.js');
-const listeners = {}, writes = [];
+const listeners = {}, captured = {}, writes = [];
 const ctx = new Proxy({ measureText: t => ({ width: t.length * 6 }) }, { get: (o, k) => k in o ? o[k] : () => {} });
 const canvas = {
   style: {}, classList: { toggle() {} }, clientWidth: 600, clientHeight: 400,
@@ -10,15 +10,24 @@ const canvas = {
 };
 global.document = { createElement: () => canvas };
 global.localStorage = { getItem: () => null, setItem: (k, v) => writes.push(JSON.parse(v)) };
-const scale = { width: () => 600, coordinateToTime: () => null, coordinateToLogical: () => null };
+const scale = {
+  width: () => 600, coordinateToTime: x => x >= 0 && x <= 600 ? x : null,
+  timeToCoordinate: t => t, coordinateToLogical: () => null
+};
+const container = { appendChild() {}, style: {}, setPointerCapture() {}, hasPointerCapture: () => false };
 const controller = Drawing.attach({
-  core: { createScope: () => ({ on: (el, name, fn) => { listeners[name] = fn; }, add() {}, resize() {} }) },
-  container: { appendChild() {} }, chart: { timeScale: () => scale },
+  core: { createScope: () => ({ on: (el, name, fn) => { (el === container ? captured : listeners)[name] = fn; }, add() {}, resize() {} }) },
+  container, chart: { timeScale: () => scale },
   series: { priceToCoordinate: p => 400 - p, coordinateToPrice: y => 400 - y },
   point: 'timePrice', key: 'TEST', timeframe: 'day', store: { key: () => 'test' }
 });
 const event = (y, extra = {}) => ({ clientX: 100, clientY: y + 20, button: 0, pointerId: 1, preventDefault() {}, ...extra });
-const fire = (name, y, extra) => listeners[name](event(y, extra));
+const fire = (name, y, extra) => {
+  let stopped = false;
+  const e = event(y, { stopPropagation() { stopped = true; }, ...extra });
+  if (captured[name]) captured[name](e);
+  if (!stopped && listeners[name]) listeners[name](e);
+};
 controller.setMode('hline');
 fire('pointermove', 150);
 assert.equal(controller.shapes.hlinePreview, 250);
@@ -51,23 +60,46 @@ assert.equal(controller.shapes.hlines[0].price, 325, 'price-label editing remain
 controller.setMode(null);
 assert.equal(controller.shapes.hlinePreview, null);
 assert.equal(canvas.ncDrawingHit(600, 210), false, 'outside hline mode the axis keeps its drag');
-for (const mode of ['line', 'circle', 'box', 'pencil', 'hline', 'measure']) {
-  controller.setMode(mode);
-  if (mode === 'hline') {
-    fire('pointerdown', 50);
-    assert.notEqual(controller.shapes.hlineDraft, null);
-  }
-  const saved = JSON.stringify(writes.at(-1));
-  let prevented = false;
-  fire('contextmenu', 75, { button: 2, preventDefault() { prevented = true; } });
-  assert(prevented, 'drawing right click suppresses the browser menu');
-  assert.equal(controller.mode(), null, mode + ' returns to the default cursor');
-  assert.equal(controller.shapes.enabled, false);
-  assert.equal(controller.shapes.hlineDraft, null);
-  assert.equal(JSON.stringify(writes.at(-1)), saved, 'right click preserves saved drawings');
-}
+const right = { button: 2 };
+let n = writes.length;
+fire('pointerdown', 75, right);
+let earlyMenu = false;
+fire('contextmenu', 75, { ...right, preventDefault() { earlyMenu = true; } });
+assert(earlyMenu, 'context menu before release does not delete a possible drag');
+fire('pointermove', 95, right);
+assert.equal(controller.shapes.hlines[0].price, 325, 'preview never changes the saved model');
+assert.equal(writes.length, n, 'preview does not persist');
+fire('pointerup', 105, right);
+fire('contextmenu', 105, right);
+assert.equal(controller.shapes.hlines[0].price, 295);
+assert.equal(writes.length, ++n, 'drop persists once');
+fire('pointerdown', 105, right); fire('pointermove', 130, right); fire('pointercancel', 130, right);
+assert.equal(controller.shapes.hlines[0].price, 295);
+assert.equal(writes.length, n);
+
+controller.setMode('line');
+fire('pointerdown', 200);
+fire('pointerup', 235, { clientX: 170 });
+assert.equal(writes.length, ++n);
+fire('pointerdown', 200, right); fire('pointermove', 215, { ...right, clientX: 120 });
+fire('pointerup', 215, { ...right, clientX: 120 });
+assert.deepEqual(controller.shapes.lines[0], {start:{time:110,price:185},end:{time:180,price:150}});
+assert.equal(controller.mode(), 'line', 'drag preserves the active drawing tool');
+assert.equal(writes.length, ++n);
+
+controller.shapes.boxes.push({start:{time:240,price:200},end:{time:300,price:140},label:'keep'});
+fire('pointerdown', 200, { ...right, clientX: 270 });
+fire('pointerup', 220, { ...right, clientX: 280 });
+assert.deepEqual(controller.shapes.boxes[0], {start:{time:250,price:180},end:{time:310,price:120},label:'keep'});
+assert.equal(writes.length, ++n);
+fire('pointerdown', 105, right); fire('pointerup', 105, right);
+assert.equal(controller.shapes.hlines.length, 0, 'short right click still erases one drawing');
+assert.equal(controller.shapes.lines.length, 1);
+assert.equal(writes.length, ++n);
+controller.setMode(null);
 let prevented = false;
-fire('contextmenu', 75, { button: 2, preventDefault() { prevented = true; } });
+fire('pointerdown', 75, right);
+fire('contextmenu', 75, { ...right, preventDefault() { prevented = true; } });
 assert.equal(prevented, false, 'default cursor keeps the normal context menu');
-console.log('horizontal-line preview, commit, drag, cancel and label editing ok');
+console.log('horizontal-line editing, right-button move, cancellation and single-click deletion ok');
 

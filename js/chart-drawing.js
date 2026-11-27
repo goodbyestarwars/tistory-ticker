@@ -16,6 +16,7 @@
   var DRAWING_AUTH_URL = 'https://goodbyestar.cloud/auth/google/me';
   var DRAWING_PUSH_DELAY_MS = 1500;
   var DRAWING_MAX_PATH_POINTS = 120;
+  var MOVE_THRESHOLD_PX = 4;
   var ALL_KINDS = ['lines', 'paths', 'circles', 'hlines', 'boxes'];
   var MODES = ['line', 'pencil', 'circle', 'box', 'hline', 'measure'];
 
@@ -204,7 +205,7 @@
     var t=len?Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/len)):0;
     return Math.hypot(x-a.x-t*dx,y-a.y-t*dy);
   }
-  // Hit only user-drawn strokes, in reverse painting order; empty space never erases.
+  // Hit only user-drawn strokes, in reverse painting order.
   function shapeAt(d, coord, x, y, width, tolerance) {
     var tol=tolerance||7,hit=null;
     function scan(kind, test) {
@@ -309,6 +310,7 @@
       pending: null, preview: null, activePath: null, mode: null, enabled: false, dragHline: null, hlinePreview: null, hlineDraft: null, measure: null
     };
     var detached = false, frame = 0, lastSig = '', layers = [], bounds = { w: 0, h: 0 };
+    var rightDrag = null, suppressMenuUntil = 0;
     var buttons = opts.buttons || {};
 
     var overlay = document.createElement('canvas');
@@ -408,8 +410,12 @@
 
     function drawShapes(ctx, width) {
       var stroke = style.stroke;
-      d.paths.forEach(function (path) { if (Array.isArray(path) && path.length >= 2) strokePath(ctx, path, stroke, 2); });
+      d.paths.forEach(function (path) {
+        path = drawingPreview(path);
+        if (Array.isArray(path) && path.length >= 2) strokePath(ctx, path, stroke, 2);
+      });
       d.lines.forEach(function (line) {
+        line = drawingPreview(line);
         var start = coord(line.start), end = coord(line.end);
         if (!start || !end) return;
         ctx.beginPath(); ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
@@ -421,6 +427,7 @@
       });
       // 동그라미는 두 점으로 정한 사각 영역에 내접하는 타원을 화면 좌표로 그린다 - 시간축·가격축 축척이 달라도 항상 매끈한 원/타원으로 보인다.
       d.circles.forEach(function (circle) {
+        circle = drawingPreview(circle);
         var start = coord(circle.start), end = coord(circle.end);
         if (!start || !end) return;
         var rx = Math.abs(end.x - start.x) / 2, ry = Math.abs(end.y - start.y) / 2;
@@ -430,6 +437,7 @@
         ctx.stroke();
       });
       d.boxes.forEach(function (box) {
+        box = drawingPreview(box);
         var a = coord(box.start), b = coord(box.end);
         if (!a || !b) return;
         var bx = Math.min(a.x, b.x), by = Math.min(a.y, b.y), bw = Math.abs(b.x - a.x), bh = Math.abs(b.y - a.y);
@@ -444,10 +452,11 @@
       });
       // 가로선: 클릭한 가격에 차트 전체 폭으로 긋고 오른쪽 끝에 금액 표시.
       d.hlines.forEach(function (hl) {
-        var y = series.priceToCoordinate(hl.price);
+        var price = drawingPreview(hl).price;
+        var y = series.priceToCoordinate(price);
         if (y == null) return;
         ctx.beginPath(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-        var txt = hl.price >= 1000 ? Math.round(hl.price).toLocaleString('ko-KR') : String(Math.round(hl.price * 100) / 100);
+        var txt = price >= 1000 ? Math.round(price).toLocaleString('ko-KR') : String(Math.round(price * 100) / 100);
         ctx.font = '700 11px sans-serif';
         var tw = ctx.measureText(txt).width + 10;
         hl._y = y;
@@ -468,7 +477,7 @@
         }
       }
       // 측정: 끝난 측정과 끄는 중인 미리보기. 시작점에서 가로 점선, 끝점 x 에 세로 자(눈금 양끝 표시), 오른쪽(가장자리면 왼쪽)에 % 라벨.
-      var measureShown = d.measure, measureLive = false;
+      var measureShown = drawingPreview(d.measure), measureLive = false;
       if (d.mode === 'measure' && d.pending && d.preview && d.previewPoint) { measureShown = { start: d.pending, end: d.previewPoint }; measureLive = true; }
       if (measureShown) {
         var ma = coord(measureShown.start), mb = coord(measureShown.end);
@@ -530,6 +539,7 @@
     }
 
     function setMode(mode) {
+      finishRightDrag(true);
       mode = tools.indexOf(mode) > -1 ? mode : null;
       if (d.dragHline) d.dragHline.hl.price = d.dragHline.originalPrice;
       overlay.style.cursor = '';
@@ -538,7 +548,7 @@
       if (overlay.classList) { overlay.classList.toggle('is-active', !!mode); overlay.classList.toggle('is-pencil', mode === 'pencil'); }
       paintButtons(mode);
       var titles = Object.assign({},DEFAULT_TITLES,opts.titles||{});
-      overlay.title = mode ? (titles[mode] || '') : (opts.title || '');
+      overlay.title = mode ? (titles[mode] || '') + ' 그린 선은 오른쪽 버튼으로 끌어 옮깁니다.' : (opts.title || '');
       redraw();
       if (opts.onModeChange) opts.onModeChange(mode);
     }
@@ -562,6 +572,7 @@
     }
 
     function clearAll() {
+      finishRightDrag(true);
       d.lines = []; d.paths = []; d.circles = []; d.hlines = []; d.boxes = []; d.measure = null;
       d.pending = null; d.preview = null; d.activePath = null; d.hlinePreview = null; d.hlineDraft = null;
       persist();
@@ -589,9 +600,90 @@
     };
     var minLen = opts.minLengthPx || 0;
     var strict = !!opts.clampToCanvas;
+
+    // Right-click on a stroke still erases it. Wait for release so that right-drag
+    // moves it instead, even in browsers that fire contextmenu on button press.
+    function hitValue(hit) {
+      return hit.kind === 'measure' ? d.measure : d[hit.kind][hit.index];
+    }
+    function drawingPreview(value) {
+      return rightDrag && value === rightDrag.original && rightDrag.preview ? rightDrag.preview : value;
+    }
+    function suppressRightEvent(event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    function startRightDrag(event) {
+      if (event.button !== 2 || detached || rightDrag) return;
+      suppressMenuUntil = 0;
+      if (d.dragHline || d.hlineDraft != null || d.pending || d.activePath) return;
+      var rect = overlay.getBoundingClientRect();
+      var x = event.clientX - rect.left, y = event.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+      var hit = shapeAt(d, coord, x, y, rect.width);
+      if (!hit) return;
+      var original = hitValue(hit);
+      var points = hit.kind === 'hlines' ? null
+        : (hit.kind === 'paths' ? original : [original.start, original.end]).map(coord);
+      rightDrag = { hit: hit, original: original, points: points, id: event.pointerId,
+        x: x, y: y, moved: false, preview: null,
+        lineY: hit.kind === 'hlines' ? series.priceToCoordinate(original.price) : null,
+        cursor: container.style && container.style.cursor, overlayCursor: overlay.style.cursor };
+      suppressRightEvent(event);
+      if (container.setPointerCapture) container.setPointerCapture(event.pointerId);
+    }
+    function moveRightDrag(event) {
+      var drag = rightDrag;
+      if (!drag || event.pointerId !== drag.id) return;
+      suppressRightEvent(event);
+      var rect = overlay.getBoundingClientRect();
+      var dx = event.clientX - rect.left - drag.x, dy = event.clientY - rect.top - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < MOVE_THRESHOLD_PX) return;
+      drag.moved = true;
+      var cursor = drag.points ? 'move' : 'ns-resize';
+      if (container.style) container.style.cursor = cursor;
+      overlay.style.cursor = cursor;
+      if (drag.points) {
+        var translated = drag.points.map(function (p) { return p && fromXY(d, p.x + dx, p.y + dy); });
+        if (!translated.every(Boolean)) return;
+        drag.preview = drag.hit.kind === 'paths' ? translated
+          : Object.assign({}, drag.original, { start: translated[0], end: translated[1] });
+      } else {
+        var price = drag.lineY == null ? null : series.coordinateToPrice(drag.lineY + dy);
+        if (price == null || !isFinite(price) || !(price > 0)) return;
+        drag.preview = { price: Number(price) };
+      }
+      redraw();
+    }
+    function finishRightDrag(cancelled) {
+      var drag = rightDrag;
+      if (!drag) return;
+      rightDrag = null;
+      suppressMenuUntil = Date.now() + 750;
+      if (container.style) container.style.cursor = drag.cursor;
+      overlay.style.cursor = drag.overlayCursor;
+      if (container.hasPointerCapture && container.hasPointerCapture(drag.id)) container.releasePointerCapture(drag.id);
+      if (!cancelled && hitValue(drag.hit) === drag.original) {
+        var kind = drag.hit.kind;
+        if (kind === 'measure') {
+          d.measure = drag.moved ? drag.preview || drag.original : null;
+        } else if (!drag.moved || drag.preview) {
+          if (drag.moved) d[kind][drag.hit.index] = drag.preview;
+          else d[kind].splice(drag.hit.index, 1);
+          persist();
+        }
+      }
+      redraw();
+    }
+    function endRightDrag(event, cancelled) {
+      if (!rightDrag || event.pointerId !== rightDrag.id || (!cancelled && event.button !== 2)) return;
+      if (!cancelled) moveRightDrag(event);
+      finishRightDrag(cancelled);
+    }
+
     function onPointerDown(event) {
       if (!d.enabled) return;
-      // 그리기(가로선·박스·직선·동그라미·연필)는 마우스 왼쪽 버튼으로만. 오른쪽·휠 클릭은 무시한다(2026-10-10 요청).
+      // 새 도형은 마우스 왼쪽 버튼으로만 만든다.
       if (event.button != null && event.button !== 0) return;
       var rect = overlay.getBoundingClientRect();
       var point = d.mode === 'hline' ? { price: Number(series.coordinateToPrice(event.clientY - rect.top)) } : pointFromEvent(event, strict);
@@ -748,16 +840,17 @@
     });
     scope.on(container, 'contextmenu', function(event) {
       if(detached)return;
+      if (rightDrag || Date.now() < suppressMenuUntil) { suppressRightEvent(event); return; }
       var rect=overlay.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
       if(x<0||y<0||x>rect.width||y>rect.height)return;
       var hit=shapeAt(d,coord,x,y,rect.width);
-      if(!hit){if(d.enabled)event.preventDefault();return;}
-      event.preventDefault();event.stopPropagation();
-      if(d.dragHline)d.dragHline.hl.price=d.dragHline.originalPrice;
-      d.dragHline=null;d.pending=null;d.preview=null;d.activePath=null;d.hlineDraft=null;d.hlinePreview=null;
-      if(hit.kind==='measure')d.measure=null;else d[hit.kind].splice(hit.index,1);
-      persist();redraw();
+      if (hit || d.enabled) suppressRightEvent(event);
     },true);
+    scope.on(container, 'pointerdown', startRightDrag, true);
+    scope.on(container, 'pointermove', moveRightDrag, true);
+    scope.on(container, 'pointerup', function (event) { endRightDrag(event, false); }, true);
+    scope.on(container, 'pointercancel', function (event) { endRightDrag(event, true); }, true);
+    scope.on(container, 'lostpointercapture', function (event) { endRightDrag(event, true); }, true);
     scope.on(overlay, 'mouseleave', function () {
       if (d.mode === 'pencil' && d.activePath) return;
       d.preview = null; d.hlinePreview = null;
@@ -798,6 +891,7 @@
 
     function detach() {
       if (detached) return;
+      finishRightDrag(true);
       detached = true;
       if(clearDialog)clearDialog.close();
       if (frame) { global.cancelAnimationFrame(frame); frame = 0; }
