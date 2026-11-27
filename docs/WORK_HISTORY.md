@@ -1,3 +1,7 @@
+## 2026-11-27 웹 주문(2단계) 설계서
+- 목적: 사용자 지시("바로 다음단계"). 실주문 경로라 코드 전에 설계·결정 항목 정리. `docs/WEB_ORDER_DESIGN_2026-11-27.md`.
+- 핵심 발견: 봇 클라이언트(`kiwoom.KiwoomClient`)에 `buy_limit`·`cancel_order`가 없음, 수동 매수의 장부(intents) 처리 방식 결정 필요. 코드·배포 없음. 에이전트 PR #15는 병합됨(runner 재시작 전까지 `trade_once` 저장은 미적용, 제어 에이전트 경로는 즉시 적용).
+
 ## 2026-11-27 계좌 현황 연동 1단계-B: 잔고·예수금·미체결 (읽기 전용)
 - 목적: 사용자 지시("직접 해"). 화면 ⇄ 서버 ⇄ 에이전트 ⇄ 증권사 조회 연동으로 계좌 현황 탭을 실제 값으로 채움(주문 없음).
 - 변경: 서버 `autotrader_control.sanitize_account`(허용 필드만, 계좌·주문번호 폐기, 600초 넘으면 stale, 모르는 값 None)과 `public_status.account`. 화면 잔고(증권사 기준)·예수금(주문가능금액만)·미체결·체결내역(엔진 장부 FILLED만) 탭. 에이전트(비공개 `autotrader-private`, 브랜치 feat/account-view): `account_view.py`가 엔진 `trade_once`가 이미 조회한 잔고·미체결·주문가능금액을 `ACCOUNT_VIEW.json`에 원자 저장(새 증권사 호출 없음, 실패해도 매매 무영향), 제어 에이전트가 읽어 `snapshot.account`로 전송.
