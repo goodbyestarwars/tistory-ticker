@@ -951,7 +951,7 @@ html.dark #market-temp .mt-bar-flow,
 html.dark #market-temp .mt-bar-fx { background: var(--chart-fill-down) !important; }
 html.dark #market-temp .mt-bar-vol { background: #f2c35d !important; }
 html.dark #market-temp .mt-val-pos { color: var(--dk-up) !important; }
-html.dark #market-temp .mt-val-neg { color: var(--dk-down); }
+html.dark #market-temp .mt-val-neg { color: var(--dk-down) !important; }
 html.dark #market-temp .mt-hero-breadth { color: var(--dk-mute) !important; }
 html.dark #market-temp .mt-breadth-up { color: var(--dk-up) !important; }
 html.dark #market-temp .mt-breadth-down { color: var(--dk-down) !important; }
@@ -1017,7 +1017,7 @@ html.dark #market-temp .mt-guide-stars-empty { color: var(--dk-mute) !important;
 html.dark #market-temp .mt-updated { color: var(--dk-mute) !important; }
 
 html.dark #market-temp .mt-view-btn { background: var(--dk-inner); color: var(--dk-mute); border-color: var(--dk-line); }
-html.dark #market-temp .mt-view-btn.active { background: var(--dk-text); color: var(--dk-bg); border-color: var(--dk-text); }
+html.dark #market-temp .mt-view-btn.active { background: var(--dk-text); color: var(--dk-bg) !important; border-color: var(--dk-text); }
 html.dark #market-temp .mt-all-stock-head strong,
 html.dark #market-temp .mt-all-stock-head span,
 html.dark #market-temp .mt-all-stock-legend,
@@ -1116,8 +1116,8 @@ html.dark #market-temp .sector-card { background: var(--dk-card); border-color: 
 html.dark #market-temp .sector-card-title { color: var(--dk-text); }
 html.dark #market-temp .sector-row { border-bottom-color: var(--dk-line); }
 html.dark #market-temp .sector-row-name { color: var(--dk-text); }
-html.dark #market-temp .sector-row-rate.sector-up { color: var(--dk-up); }
-html.dark #market-temp .sector-row-rate.sector-down { color: var(--dk-down); }
+html.dark #market-temp .sector-row-rate.sector-up { color: var(--dk-up) !important; }
+html.dark #market-temp .sector-row-rate.sector-down { color: var(--dk-down) !important; }
 html.dark #market-temp .mt-all-stock-row .sector-row-rate:is(.sector-up, .sector-down) {
   padding:0 3px;
   border-radius:4px;
@@ -1192,7 +1192,7 @@ html.dark #market-temp .mt-industry-flow-stock small,
 html.dark #market-temp .mt-industry-flow-detail-empty { color: var(--dk-mute); }
 html.dark #market-temp .mt-industry-flow-stock,
 html.dark #market-temp .mt-industry-flow-detail-empty { border-top-color: var(--dk-line); }
-html.dark #market-temp .mt-industry-flow-stock:hover { color: var(--dk-down); }
+html.dark #market-temp .mt-industry-flow-stock:hover { color: var(--dk-down) !important; }
 html.dark #market-temp .mt-industry-flow-stock .is-up { color: var(--num-up); }
 html.dark #market-temp .mt-industry-flow-stock .is-down { color: var(--num-down); }
 html.dark #market-temp .mt-if-bump { border-color: var(--dk-line); background: rgba(242,195,93,.08); }
@@ -2669,7 +2669,7 @@ html.dark #market-temp .mt-heat-day .mt-heat-bar { background:var(--dk-hover); }
 #market-temp .mt-heat-delta.is-up { color:var(--num-up); }
 #market-temp .mt-heat-delta.is-down { color:#2f6fd0; }
 html.dark #market-temp .mt-heat-delta.is-up { color:var(--num-up); }
-html.dark #market-temp .mt-heat-delta.is-down { color:var(--dk-down); }
+html.dark #market-temp .mt-heat-delta.is-down { color:var(--dk-down) !important; }
 #market-temp .mt-heat-stats { font-size:12px; color:#52606c; margin:2px 0 4px; }
 html.dark #market-temp .mt-heat-stats { color:var(--dk-text); }
 #market-temp .mt-risk-list { list-style:none; margin:0; padding:0; }
@@ -2962,7 +2962,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-cp-next ol { margin: 0 !important; padding: 0 !important; list-style: none; counter-reset: checkpoint; }
   html body #market-temp .mt-cp-next li { position: relative; counter-increment: checkpoint; margin: 0 !important; padding: 0 0 14px 30px !important; font-size: 12px; color: var(--cp-ink) !important; }
   html body #market-temp .mt-cp-next li::before { content: counter(checkpoint); position: absolute; left: 0; top: 1px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #2566d4; background: rgba(37,102,212,.1); font-size: 11px; font-weight: 600; }
-  html.dark body #market-temp .mt-cp-next li::before { color: var(--dk-down); background: rgba(var(--dk-down-rgb),0.12); }
+  html.dark body #market-temp .mt-cp-next li::before { color: var(--dk-down) !important; background: rgba(var(--dk-down-rgb),0.12); }
   html body #market-temp .mt-cp-next :is(.mt-cp-evidence, .mt-cp-check) { margin: 5px 0 0 !important; font-size: 12px; line-height: 1.75; word-break: keep-all; }
   html body #market-temp .mt-cp-next .mt-cp-evidence { color: var(--cp-sub) !important; }
   /* 체크포인트 시장별 수급: 두 시장을 합산하지 않고 각 집계일·투자자별 금액을 표시 */
@@ -3041,7 +3041,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-checkpoint-facts .mt-cp-avoid ol { margin: 0 !important; padding: 0 !important; list-style: none; counter-reset: checkpoint; }
   html body #market-temp .mt-checkpoint-facts .mt-cp-avoid li { position: relative; counter-increment: checkpoint; margin: 0 !important; padding: 0 0 14px 30px !important; font-size: 12px; line-height: 1.75; color: var(--cp-ink) !important; }
   html body #market-temp .mt-checkpoint-facts .mt-cp-avoid li::before { content: counter(checkpoint); position: absolute; left: 0; top: 1px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #2566d4; background: rgba(37,102,212,.1); font-size: 11px; font-weight: 600; }
-  html.dark body #market-temp .mt-checkpoint-facts .mt-cp-avoid li::before { color: var(--dk-down); background: rgba(var(--dk-down-rgb),0.12); }
+  html.dark body #market-temp .mt-checkpoint-facts .mt-cp-avoid li::before { color: var(--dk-down) !important; background: rgba(var(--dk-down-rgb),0.12); }
   html body #market-temp .mt-checkpoint-facts .mt-cp-avoid .mt-cp-check { margin: 0 !important; color: var(--cp-ink) !important; }
   html body #market-temp .mt-checkpoint-facts .mt-cp-fx { font-weight: 800; }
   @media (max-width: 760px) {

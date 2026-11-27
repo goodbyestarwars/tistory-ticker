@@ -928,7 +928,7 @@ html.dark #stock-search .ss-index-result { border-color: var(--dk-line); color: 
 .ss-index-tools button.active, .ss-index-tools button.is-active { background: #1a1a1a; color: #fff; }
 .ss-index-tools button:disabled { opacity: .45; cursor: not-allowed; }
 html.dark #stock-search .ss-index-tools button {  }
-html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .ss-index-tools button.is-active { background: var(--dk-text); color: var(--dk-bg); }
+html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .ss-index-tools button.is-active { background: var(--dk-text); color: var(--dk-bg) !important; }
 
 /* Compact HTS-style index controls: two tidy rows, not oversized floating buttons. */
 #stock-search .ss-index-controls {

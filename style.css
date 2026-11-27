@@ -5073,6 +5073,10 @@ html.dark .post-single-body *:not(:where(.news-keyword-cloud, .news-keyword-clou
 /* 반전(밝은 채움) 활성 버튼은 위 일괄 글자색을 이기고 어두운 글자를 쓴다. */
 html.dark .post-single-body .mm-tab.is-active,
 html.dark .post-single-body .mm-invbtn.is-active { color: var(--dk-bg) !important; }
+/* 2026-11-27: 검색기 터미널(scanner-terminal.css는 !important 금지)의 반전 활성 탭과 표 등락색도 일괄 크림색에서 예외로 둔다. */
+html.dark .post-single-body #pattern-scan.st-terminal :is(.st-head, .st-auto-tabs, .st-pane-tabs) button.active { color: #111 !important; }
+html.dark .post-single-body #pattern-scan.st-terminal .st-table .is-up { color: var(--dk-up) !important; }
+html.dark .post-single-body #pattern-scan.st-terminal .st-table .is-down { color: var(--dk-down) !important; }
 html.dark .post-single-body [style*="d24f45" i],
 html.dark .post-single-body [style*="ff0000" i],
 html.dark .post-single-body [style*="#f00" i],
@@ -8326,7 +8330,8 @@ html body .hwr-outcome-stat { border-radius: var(--ui-radius-inner) !important; 
 html:not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule) { background-color: #fff !important; }
 
 @media (max-width: 720px) {
-  html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 56px 16px 14px !important; }
+  /* 2026-11-27: 이동·메뉴 버튼(.home-widget-actions)이 실제로 있는 카드만 버튼 줄 여백을 둔다. 버튼이 없는 실시간 종목판은 위 공통 카드 여백을 쓴다(모바일 빈 띠 제거). */
+  html body :where(.home-widget, .home-realtime-board, .home-economic-news):has(> .home-widget-actions) { padding: 56px 16px 14px !important; }
   html body .home-widget-actions { top: 8px !important; right: 10px !important; }
   /* 2026-10-22 사용자 신고(모바일): 시장판 머리글의 오른쪽 글자(나스닥 종합 · S&P500 현물)가 이동·메뉴 버튼 두 개와 겹침.
      버튼 줄(약 40px)만큼 머리글을 아래로 내려 겹치지 않게 한다. PC는 겹치지 않아 그대로 둔다. */

@@ -17,7 +17,7 @@
 #pattern-scan .np-stock:focus-visible { outline: 2px solid #1261c4; outline-offset: 3px; }
 html.dark #pattern-scan .np-note, html.dark #pattern-scan .np-table th { color: var(--dk-text); }
 html.dark #pattern-scan .np-table td, html.dark #pattern-scan .np-state { border-color: var(--dk-line); }
-html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); color: var(--dk-bg); }
+html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); color: var(--dk-bg) !important; }
 @media (max-width: 767px) {
   #pattern-scan .np-table, #pattern-scan .np-table tbody { display: block; width: 100%; }
   #pattern-scan .np-table thead { display: none; }

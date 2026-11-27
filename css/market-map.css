@@ -120,7 +120,7 @@
 #market-temp .mtm :is(button,input,a):focus-visible {outline:2px solid var(--mtm-down);outline-offset:2px;}
 html.dark #market-temp .mtm {--mtm-line:var(--dk-line);--mtm-paper:var(--dk-card);--mtm-ink:var(--dk-text);--mtm-muted:var(--dk-mute);}
 html.dark #market-temp .mtm .mtm-segments {background:var(--dk-inner);}
-html.dark #market-temp .mtm .mtm-detail-open {background:var(--dk-text);color:var(--dk-card);}
+html.dark #market-temp .mtm .mtm-detail-open {background:var(--dk-text);color:var(--dk-card) !important;}
 @media (max-width:1050px) {
   #market-temp .mtm-layout {grid-template-columns:minmax(0,1fr) 270px;gap:10px;}
   #market-temp .mtm-chart-card {padding:10px;}
