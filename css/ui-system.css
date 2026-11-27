@@ -123,7 +123,7 @@
   .nine-ma-line input[type="color"] { width: 36px; }
 }
 html.dark .nine-chart-options-trigger { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-text); }
-html.dark .nine-chart-options-icon { background: var(--dk-text); color: var(--dk-card); }
+html.dark .nine-chart-options-icon { background: var(--dk-text); color: var(--dk-card) !important; }
 html.dark .nine-chart-options-trigger:hover, html.dark .nine-chart-options.is-open .nine-chart-options-trigger,
 html.dark .nine-studies-items label:hover, html.dark .nine-ma-remove:hover, html.dark .nine-ma-add:hover, html.dark .nine-ma-reset:hover { background: var(--dk-inner); }
 html.dark .nine-studies-pop { background: var(--dk-card); background: color-mix(in srgb, var(--dk-card) 78%, transparent); border-color: var(--dk-line); color: var(--dk-text); box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }

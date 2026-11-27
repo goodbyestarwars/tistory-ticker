@@ -473,6 +473,10 @@ body#tt-body-index .home-editorial-page :is(.home-night-content, [data-home-glob
   --hmb-chart-up: #e7aaa5; --hmb-chart-line: #b0bbc8; --hmb-chart-down: #9dbbe0; --hmb-chart-up-text: #ad706b; --hmb-chart-down-text: #44709f; --hmb-flat: rgba(var(--np-ink, 26, 26, 26), .22);
   min-width: 0; margin-top: var(--ui-section-gap);
 }
+/* 2026-11-27 모바일: 시장판(#homeMarketBoard.hmb2)은 flex gap이 카드 간격을 소유한다. 직속 카드의 위 여백을 겹쳐 간격이 두 배(32px)가 되지 않게 한다. */
+@media (max-width: 720px) {
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > :is(.home-night-content, [data-home-global-panel], #homeMarketAux, .home-futures-flow) { margin-top: 0; }
+}
 html.dark body#tt-body-index .home-editorial-page :is(.home-night-content, [data-home-global-panel], #homeMarketAux, .home-futures-flow) {
   --hmb-ink: var(--dk-text); --hmb-mute: var(--dk-sub); --hmb-faint: var(--dk-mute); --hmb-line: var(--dk-line);
   --hmb-chart-up: var(--dk-up); --hmb-chart-line: var(--dk-sub); --hmb-chart-down: var(--dk-down); --hmb-chart-up-text: var(--dk-up); --hmb-chart-down-text: var(--dk-down); --hmb-flat: var(--dk-mute);
@@ -633,7 +637,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-note, .vol-src { display: block; margin: 6px 0 0; color: var(--hmb-mute, #64748b); font-size: 11px; line-height: 1.5; }
 @media (max-width: 720px) { .vol-monitor { flex-direction: column; flex-basis: 100%; max-width: none; margin-left: 0; } .vol-alert { flex: none; width: 100%; } .vol-alert.is-vi { width: auto; align-self: flex-end; margin-left: 0; } .vol-panel { left: 0; right: auto; } }
 html.dark .vol-panel { background: var(--dk-card); border-color: var(--dk-line); }
-html.dark .vol-seg-btn.is-on { background: var(--dk-text); color: #1e1e1e; }
+html.dark .vol-seg-btn.is-on { background: var(--dk-text); color: #1e1e1e !important; }
 html.dark .vol-list li.is-active .vol-state { color: #fbbf24; }
 html.dark .vol-alert.is-cb { background: rgba(210, 79, 69, .16); border-color: rgba(var(--dk-up-rgb),0.45); color: #f4a39b; }
 html.dark .vol-alert.is-side { background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .4); color: #fbbf24; }

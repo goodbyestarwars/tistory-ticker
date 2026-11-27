@@ -116,8 +116,8 @@ html.ssw-page .post-single:has(#stock-search.ss-workspace) .post-single-header {
 #stock-search.ss-workspace .ss-panel-left > .ssw-session-extra .ss-session-values div:last-child { grid-column: span 2; }
 #stock-search.ss-workspace .ssw-session-extra b.up { color: var(--num-up, #d92d20); }
 #stock-search.ss-workspace .ssw-session-extra b.down { color: var(--num-down, #1d5fd1); }
-html.dark #stock-search.ss-workspace .ssw-session-extra b.up { color: var(--dk-up); }
-html.dark #stock-search.ss-workspace .ssw-session-extra b.down { color: var(--dk-down); }
+html.dark #stock-search.ss-workspace .ssw-session-extra b.up { color: var(--dk-up) !important; }
+html.dark #stock-search.ss-workspace .ssw-session-extra b.down { color: var(--dk-down) !important; }
 #stock-search.ss-workspace .ssw-info {
   box-sizing: border-box;
   min-width: 0;
@@ -231,8 +231,8 @@ html.dark #stock-search.ss-workspace .ssw-tabs button[aria-selected="true"] { bo
 html.dark #stock-search.ss-workspace :is(.ssw-tabs button, .ssw-drawer h4, .ssw-drawer li small, .ssw-head-meta, .ssw-state, .ssw-note, .ssw-facts dt, .ssw-table thead th, .ssw-table caption, .ssw-info-close) { color: var(--dk-mute); }
 html.dark #stock-search.ss-workspace :is(.ssw-info-head, .ssw-facts > div, .ssw-table th, .ssw-table td, .ssw-head-market) { border-color: var(--dk-line); }
 html.dark #stock-search.ss-workspace :is(.ssw-drawer-btn, .ssw-info-toggle, .ssw-info-close, .ssw-tabs button, .ssw-mtabs button, .ssw-drawer button):focus-visible { outline-color: var(--dk-text); }
-html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).up { color: var(--dk-up); }
-html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).down { color: var(--dk-down); }
+html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).up { color: var(--dk-up) !important; }
+html.dark #stock-search.ss-workspace :is(.ssw-facts dd, .ssw-facts small, .ssw-table td, .ssw-streaks span, .ssw-flow-name small, .ssw-flow-val b).down { color: var(--dk-down) !important; }
 html.dark #stock-search.ss-workspace .ssw-seg { background: var(--dk-inner); }
 html.dark #stock-search.ss-workspace .ssw-seg button { color: var(--dk-mute); }
 html.dark #stock-search.ss-workspace .ssw-seg button[aria-pressed="true"] { background: var(--dk-card); color: var(--dk-text); }
@@ -251,7 +251,7 @@ html.dark #stock-search.ss-workspace :is(.ssw-sub, .ssw-more, .ssw-co-industry) 
 @media (min-width: 861px) {
   #stock-search.ss-workspace .ssw-info-toggle { display: inline-flex; align-items: center; }
   #stock-search.ss-workspace .ssw-info-toggle[aria-expanded="true"] { border-color: var(--ui-ink); background: var(--ui-ink); color: var(--ui-surface); }
-  html.dark #stock-search.ss-workspace .ssw-info-toggle[aria-expanded="true"] { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-card); }
+  html.dark #stock-search.ss-workspace .ssw-info-toggle[aria-expanded="true"] { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-card) !important; }
   #stock-search.ss-workspace .ssw-info-close { display: block; }
   #stock-search.ss-workspace .ssw-info { display: none; }
   /* 탭 머리는 고정하고 내용(탭 패널)만 스크롤한다. 공시·뉴스는 뉴스 목록 자체가 남은 높이를 채우는 스크롤 상자다(2026-11-13). */
@@ -320,8 +320,8 @@ html.dark #stock-search.ss-workspace :is(.ssw-sub, .ssw-more, .ssw-co-industry) 
     cursor: pointer;
   }
   #stock-search.ss-workspace .ssw-mtabs button[aria-selected="true"] { border-color: var(--ui-ink); background: var(--ui-ink); color: var(--ui-surface); }
-  html.dark #stock-search.ss-workspace .ssw-mtabs button { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-mute); }
-  html.dark #stock-search.ss-workspace .ssw-mtabs button[aria-selected="true"] { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-card); }
+  html.dark #stock-search.ss-workspace .ssw-mtabs button { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-mute) !important; }
+  html.dark #stock-search.ss-workspace .ssw-mtabs button[aria-selected="true"] { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-card) !important; }
   #stock-search.ss-workspace .ss-panels { grid-template-columns: minmax(0, 1fr); }
   #stock-search.ss-workspace .ssw-info {
     position: static;

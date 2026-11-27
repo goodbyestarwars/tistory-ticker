@@ -9,7 +9,7 @@ const style = fs.readFileSync('style.css', 'utf8');
 const shell = fs.readFileSync('js/skin-shell.js', 'utf8');
 assert.match(js, /mount\.className\s*=\s*'home-story-section'/);
 assert.doesNotMatch(js, /mount\.className\s*=\s*'[^']*\bhome-widget\b/);
-assert.match(style, /:where\(\.home-widget, \.home-realtime-board, \.home-economic-news\)\s*\{\s*padding:\s*56px/);
+assert.match(style, /:where\(\.home-widget, \.home-realtime-board, \.home-economic-news\)(?::has\(> \.home-widget-actions\))?\s*\{\s*padding:\s*56px/);
 assert.match(shell, /<nav class="site-footer-links site-footer-learn"/);
 assert.match(css, /body\.m-tabs #homeStorySeries > nav\.site-footer-learn\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);[^}]*padding:\s*var\(--ui-card-padding\);/);
 assert.match(js, /mount\.appendChild\(node\)/);

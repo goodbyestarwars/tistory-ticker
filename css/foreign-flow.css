@@ -784,7 +784,7 @@ html.dark #foreign-flow .ff-draw-tools span { color:var(--dk-sub); }
 #foreign-flow .ff-wave-btn.active { border-color: #222; background: #222; color: #fff; }
 html.dark #foreign-flow .ff-wave-btn { border-color: var(--dk-line); background: transparent; color: var(--dk-sub) !important; }
 html.dark #foreign-flow .ff-wave-btn.active { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-bg) !important; }
-html.dark #foreign-flow .ff-draw-tools .is-active { background:var(--dk-text); border-color:var(--dk-text); color:var(--dk-bg); }
+html.dark #foreign-flow .ff-draw-tools .is-active { background:var(--dk-text); border-color:var(--dk-text); color:var(--dk-bg) !important; }
 #foreign-flow .ff-ichimoku-toggle {
   display: flex;
   align-items: center;
@@ -1863,7 +1863,7 @@ html.dark #foreign-flow .ff-explore-tabs,
 html.dark #foreign-flow .ff-flow-table-head,
 html.dark #foreign-flow .ff-flow-rows { border-color: var(--dk-line); }
 html.dark #foreign-flow .ff-explore-tab { color: var(--dk-sub); }
-html.dark #foreign-flow .ff-explore-tab.active { color: var(--dk-down); border-color: var(--dk-down); }
+html.dark #foreign-flow .ff-explore-tab.active { color: var(--dk-down) !important; border-color: var(--dk-down); }
 html.dark #foreign-flow .ff-flow-card,
 html.dark #foreign-flow .ff-industry-card,
 html.dark #foreign-flow .ff-flow-more,
@@ -2410,9 +2410,9 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: var(--dk-sub) !importa
   #foreign-flow .ff-swing-facts { gap: 7px 14px; }
 }
 html.dark #foreign-flow .ff-swing-regime { border-color: var(--dk-line); }
-html.dark #foreign-flow .ff-swing-regime strong { color: var(--dk-down); }
+html.dark #foreign-flow .ff-swing-regime strong { color: var(--dk-down) !important; }
 html.dark #foreign-flow .ff-swing-flow-track, html.dark #foreign-flow .ff-swing-step + .ff-swing-step, html.dark #foreign-flow .ff-swing-diagnosis, html.dark #foreign-flow .ff-swing-actions, html.dark #foreign-flow .ff-swing-action + .ff-swing-action { border-color: var(--dk-line); }
-html.dark #foreign-flow .ff-swing-step strong, html.dark #foreign-flow .ff-swing-diagnosis strong { color: var(--dk-down); }
+html.dark #foreign-flow .ff-swing-step strong, html.dark #foreign-flow .ff-swing-diagnosis strong { color: var(--dk-down) !important; }
 html.dark #foreign-flow .ff-swing-action strong, html.dark #foreign-flow .ff-swing-fact b, html.dark #foreign-flow .ff-swing-reasons, html.dark #foreign-flow .ff-swing-invalidation { color: var(--dk-text); }
 html.dark #foreign-flow .ff-sig-banner-chip {
   background: var(--dk-inner) !important;
@@ -2835,8 +2835,8 @@ html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary { border-colo
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary > span,
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary > strong { color: #dec8fa; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small { color: #c5b0df; }
-html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.up { color: var(--dk-up); }
-html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.down { color: var(--dk-down); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.up { color: var(--dk-up) !important; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.down { color: var(--dk-down) !important; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-position { border-color: #594673; background: #2c2337; color: #dec8fa; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary strong,
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head strong,
@@ -2845,13 +2845,13 @@ html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary .ff-apt-persona
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple { border-color: var(--dk-line) !important; background: var(--dk-card) !important; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track { background: repeating-linear-gradient(135deg, #454d55 0 1px, #262b30 1px 5px); }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading { border-top-color: var(--dk-line); color: var(--dk-sub); }
-html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.above strong { color: var(--dk-down); }
-html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.below strong { color: var(--dk-up); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.above strong { color: var(--dk-down) !important; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.below strong { color: var(--dk-up) !important; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.current strong { color: #69bfa9; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .basis { color: var(--dk-sub); background: transparent; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .open { color: var(--dk-text); background: var(--dk-hover); }
-html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .lower { color: var(--dk-down); background: rgba(18,97,196,.2); }
-html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .upper { color: var(--dk-up); background: rgba(210,79,69,.2); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .lower { color: var(--dk-down) !important; background: rgba(18,97,196,.2); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .upper { color: var(--dk-up) !important; background: rgba(210,79,69,.2); }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current { background: rgba(39,138,116,.17); }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-mine { background: #2c2337; box-shadow: inset 0 0 0 1px #8b6bb1; }
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current.is-mine { background: #263837; }
@@ -3423,7 +3423,7 @@ html.dark #foreign-flow .ff-wide-table th { background: #1c2b44; color: var(--dk
 #foreign-flow .ff-down-squeeze .ff-down-flip.is-on { background: #fdeceb; border-color: #f2c3bf; color: var(--num-up); }
 html.dark #foreign-flow .ff-down-step, html.dark #foreign-flow .ff-down-flip, html.dark #foreign-flow .ff-down-squeeze { border-color: var(--dk-line); }
 html.dark #foreign-flow .ff-wide .ff-down-squeeze > p { color: var(--dk-text); }
-html.dark #foreign-flow .ff-down-squeeze .ff-down-flip.is-on { background: rgba(var(--dk-up-rgb), .16); border-color: rgba(var(--dk-up-rgb), .4); color: var(--dk-up); }
+html.dark #foreign-flow .ff-down-squeeze .ff-down-flip.is-on { background: rgba(var(--dk-up-rgb), .16); border-color: rgba(var(--dk-up-rgb), .4); color: var(--dk-up) !important; }
 html.dark #foreign-flow .ff-sq-level { border-color: var(--dk-line); color: var(--dk-sub); opacity: .7; }
 html.dark #foreign-flow .ff-sq-level.is-on { opacity: 1; color: var(--dk-text); }
 html.dark #foreign-flow .ff-sq-level.is-on.is-risk { background: rgba(217, 115, 31, .2); color: #f0a868; }
@@ -3474,13 +3474,13 @@ html.dark #foreign-flow .ff-wide { background: var(--dk-card); border-color: var
 html.dark #foreign-flow .ff-wide .ff-chart-headline { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide .ff-chart-reading > p { color: var(--dk-text); }
 html.dark #foreign-flow .ff-chart-metric > b { color: var(--dk-text); }
-html.dark #foreign-flow .ff-chart-metric > b.is-up { color: var(--dk-up); }
-html.dark #foreign-flow .ff-chart-metric > b.is-down { color: var(--dk-down); }
+html.dark #foreign-flow .ff-chart-metric > b.is-up { color: var(--dk-up) !important; }
+html.dark #foreign-flow .ff-chart-metric > b.is-down { color: var(--dk-down) !important; }
 html.dark #foreign-flow .ff-wide-close { stroke: var(--dk-text); }
 html.dark #foreign-flow .ff-wide :is(.ff-wide-lead, .ff-wide-row, .ff-wide-row > div + div, .ff-wide-foot, .ff-wide-tiles, .ff-wide-tiles > div + div) { border-color: rgba(255, 255, 255, .09); }
 html.dark #foreign-flow .ff-wide strong, html.dark #foreign-flow .ff-wide strong.is-big, html.dark #foreign-flow .ff-wide strong.is-num, html.dark #foreign-flow .ff-wide-facts b, html.dark #foreign-flow .ff-wide-foot b { color: var(--dk-text); }
-html.dark #foreign-flow .ff-wide strong.is-up { color: var(--dk-up); }
-html.dark #foreign-flow .ff-wide strong.is-dn { color: var(--dk-down); }
+html.dark #foreign-flow .ff-wide strong.is-up { color: var(--dk-up) !important; }
+html.dark #foreign-flow .ff-wide strong.is-dn { color: var(--dk-down) !important; }
 html.dark #foreign-flow .ff-wide-lead p { color: var(--dk-text); }
 html.dark #foreign-flow .ff-wide :is(.ff-wide-lead > small, small, .ff-wide-lead em, .ff-wide-foot p) { color: var(--dk-sub); }
 html.dark #foreign-flow .ff-wide-legend .is-close { color: var(--dk-text); }

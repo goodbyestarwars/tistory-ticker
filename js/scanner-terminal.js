@@ -65,7 +65,7 @@
     var grid = document.createElement('div');
     grid.className = 'st-grid';
     grid.setAttribute('data-st-pane', 'list');
-    grid.innerHTML = '<nav class="st-pane-tabs" aria-label="화면 전환"><button type="button" data-st-pane-btn="list">목록</button><button type="button" data-st-pane-btn="book">호가</button><button type="button" data-st-pane-btn="chart">차트</button></nav>'
+    grid.innerHTML = '<nav class="st-pane-tabs" aria-label="화면 전환"><button type="button" data-st-pane-btn="list" class="active" aria-pressed="true">목록</button><button type="button" data-st-pane-btn="book" aria-pressed="false">호가</button><button type="button" data-st-pane-btn="chart" aria-pressed="false">차트</button></nav>'
       + '<section class="st-col st-left" aria-label="검색 결과"><div class="st-intraday-notice" id="stNotice" hidden></div><div class="st-summary" id="stSummary"></div></section>'
       + '<section class="st-col st-mid" aria-label="실시간 호가와 최근 체결"><div class="st-col-title">호가 · 최근 체결</div><div class="st-book-empty" id="stBookEmpty">목록에서 종목을 선택하면 호가창과 최근 체결이 표시됩니다.</div><div id="order-book" class="st-book" hidden></div></section>'
       + '<section class="st-col st-right" aria-label="차트와 포착 근거"><div class="st-col-title">차트 · 포착 근거</div><div class="st-evidence" id="stEvidence"></div><div class="st-detail-empty" id="stDetailEmpty">종목을 선택하면 일봉 차트와 검색기 포착 근거가 표시됩니다.</div></section>';

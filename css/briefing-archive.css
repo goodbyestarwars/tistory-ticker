@@ -34,6 +34,8 @@
 #briefing-search-app .ba-empty { color: var(--ui-text-muted, #777); padding: 40px 0; font: 400 14px Pretendard, sans-serif; }
 #briefing-search-app .ba-footnote { font: 400 12px/1.7 Pretendard, sans-serif; color: var(--ui-text-muted, #777); margin: 22px 0 0; }
 #briefing-search-app.ba-fallback .ba-query { margin-bottom: 10px; }
+/* 2026-11-27 다크모드: 검색 버튼이 어두운 면+어두운 글자로 보이지 않았다. 사이트 다크 공통 반전(흰 알약+검정 글자)을 쓴다. */
+html.dark #briefing-search-app .ba-submit { background: var(--dk-text); color: var(--dk-bg); }
 @media (max-width:720px) {
   #briefing-search-app .ba-search-row { display: block; }
   #briefing-search-app .ba-query { width: 100%; max-width: none; }
