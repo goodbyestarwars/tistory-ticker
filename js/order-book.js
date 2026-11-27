@@ -308,6 +308,7 @@
     state.volFlow = [];
     state.volSince = 0;
     state.summary = null;
+    state.overtime = null;
     state.summaryGeneration += 1;
     state.trackedWall = null;
     state.milestones = [];
@@ -718,6 +719,8 @@
             ? { source: 'KIS WebSocket', ws: true, at: state.lastWsBookAt, market: 'KRX+NXT 통합' }
             : { source: book.source || '미확인', ws: false, at: Date.now(), checkedAt: book.checkedAt || null, market: '시장 구분 미확인', stexTp: book.stexTp || null };
           recordSnapshot(book, quote);
+          // 시간외 잔량(HTS 호가창 맨 아래 줄)은 REST 호가에만 있다. WS 호가가 이어서 분석해도 쓰도록 마지막 값을 둔다.
+          if (book.overtimeAskQty != null || book.overtimeBidQty != null) state.overtime = { ask: book.overtimeAskQty, bid: book.overtimeBidQty };
           // 강도 계산은 checkWallBreakthrough가 trackedWall을 초기화(돌파 시 null)하기 전에
           // 먼저 계산해야 "돌파 직전 100에 가까운 강도"가 자연스럽게 찍힌다.
           var strength = computeExecutionStrength();
@@ -904,6 +907,13 @@
         + (dist === null ? '' : '\n현가 ' + (dist >= 0 ? '+' : '') + dist.toFixed(1) + '%') });
       if (!signalSide) signalSide = g.side;
     });
+    // 시간외 잔량 판별(2026-11-27 사용자 기준, 키움 HTS): 시간외 물량이 왼쪽(매도)에 있으면 허매수, 오른쪽(매수)에 있으면 진매수.
+    var ot = state.overtime;
+    if (ot && (ot.ask || 0) + (ot.bid || 0) > 0) {
+      var oa = ot.ask || 0, ob = ot.bid || 0, fmtQ = function (q) { return Math.round(q).toLocaleString('ko-KR'); };
+      if (ob >= oa * IMBALANCE_RATIO) badges.push({ cls: 'bid ot', text: '시간외 진매수 · 오른쪽(매수) 우위\n매수 ' + fmtQ(ob) + ' · 매도 ' + fmtQ(oa) });
+      else if (oa >= ob * IMBALANCE_RATIO) badges.push({ cls: 'ask ot', text: '시간외 허매수 의심 · 왼쪽(매도) 우위\n매도 ' + fmtQ(oa) + ' · 매수 ' + fmtQ(ob) });
+    }
     var ctx = signalSide ? dailyContext(currentPrice) : null;
     if (ctx && (ctx.highBreak || ctx.accumulation)) {
       var both = ctx.highBreak && ctx.accumulation;

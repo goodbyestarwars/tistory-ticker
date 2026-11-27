@@ -20,6 +20,16 @@ class OrderBookTests(unittest.TestCase):
         self.assertEqual(data['asks'][0], {'price': 70200.0, 'qty': 20.0})
         self.assertEqual(data['bids'][0], {'price': 70000.0, 'qty': 30.0})
 
+    def test_overtime_remaining_quantities_keep_missing_distinct_from_zero(self):
+        row = {'askp1': '70100', 'askp_rsqn1': '10', 'bidp1': '70000', 'bidp_rsqn1': '30',
+               'ovtm_total_askp_rsqn': '0', 'ovtm_total_bidp_rsqn': '27624'}
+        data = order_book._parse_kis_order_book(row, '005930')
+        self.assertEqual(data['overtimeAskQty'], 0.0)
+        self.assertEqual(data['overtimeBidQty'], 27624.0)
+        missing = order_book._parse_kis_order_book({'askp1': '70100', 'askp_rsqn1': '10'}, '005930')
+        self.assertIsNone(missing['overtimeAskQty'])
+        self.assertIsNone(missing['overtimeBidQty'])
+
     def test_kis_is_primary_and_kiwoom_is_not_called_when_kis_succeeds(self):
         kis_book = {
             'code': '005930', 'asks': [{'price':70100,'qty':10}], 'bids': [{'price':70000,'qty':20}],
