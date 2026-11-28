@@ -17,13 +17,14 @@ function renderAt(iso) {
   vm.runInNewContext(source+';startCountdown(root);',{...context,root});
   return {banner,clock,opening,label,delays};
 }
+// 2026-11-23 사용자 지정: 월요일 휴장→국내 화면 전환은 06:00 KST(skin-shell HOME_MONDAY_START_KST_MINUTES). 주말 카운트다운도 그때 끝난다.
 for(const iso of ['2026-10-27T00:30:00+09:00','2026-10-30T23:00:00+09:00',
   '2026-10-31T08:59:59+09:00','2026-11-07T09:59:59+09:00',
-  '2026-11-02T08:00:00+09:00','2027-01-02T12:00:00+09:00']) {
+  '2026-11-02T06:00:00+09:00','2026-11-02T08:00:00+09:00','2027-01-02T12:00:00+09:00']) {
   const r=renderAt(iso);assert.equal(r.banner.hidden,false,iso);assert.equal(r.clock.hidden,true,iso);assert.equal(r.clock.label,'',iso);assert.match(r.label.textContent,/주말 미국장 종료 후/);
 }
 for(const iso of ['2026-10-31T09:00:00+09:00','2026-11-01T12:00:00+09:00',
-  '2026-11-02T07:59:59+09:00','2026-11-07T10:00:00+09:00']) {
+  '2026-11-02T05:59:59+09:00','2026-11-07T10:00:00+09:00']) {
   const r=renderAt(iso);assert.equal(r.banner.hidden,false,iso);assert.equal(r.clock.hidden,false,iso);assert.match(r.clock.label,/남음/);assert.match(r.opening.textContent,/08:00 KST · 국내 프리마켓/);
 }
 assert.match(renderAt('2026-10-31T09:00:00+09:00').clock.label,/1일 23시간 0분 0초/);

@@ -5077,6 +5077,15 @@ html.dark .post-single-body .mm-invbtn.is-active { color: var(--dk-bg) !importan
 html.dark .post-single-body #pattern-scan.st-terminal :is(.st-head, .st-auto-tabs, .st-pane-tabs) button.active { color: #111 !important; }
 html.dark .post-single-body #pattern-scan.st-terminal .st-table .is-up { color: var(--dk-up) !important; }
 html.dark .post-single-body #pattern-scan.st-terminal .st-table .is-down { color: var(--dk-down) !important; }
+/* 2026-11-28 코드 리뷰: 아래 화면의 다크 등락색도 위 일괄 크림색에 덮여 흰색으로 보였다(각 파일 규칙은 그대로 두고 예외만 여기 모은다). */
+html.dark .post-single-body #market-temp :is(.sector-chart-bubble.sector-up, .mt-industry-flow-row.is-up .mt-if-rate, .mt-if-move.is-rank-up,
+  .mt-sf-row.is-up :is(.mt-sf-rate, .mt-sf-pct), .mt-sf-stock-val .is-up, .mt-money-badge),
+html.dark .post-single-body #foreign-flow .ff-members-buy b,
+html.dark .post-single-body #pattern-scan.st-terminal .st-tri--bad b,
+html.dark .post-single-body #stock-search .ss-ohlc-tooltip .ss-ohlc-close em { color: var(--dk-up) !important; }
+html.dark .post-single-body #market-temp :is(.sector-chart-bubble.sector-down, .mt-industry-flow-row.is-down .mt-if-rate, .mt-if-move.is-rank-down,
+  .mt-sf-row.is-down :is(.mt-sf-rate, .mt-sf-pct), .mt-sf-stock-val .is-down),
+html.dark .post-single-body #foreign-flow .ff-members-sell b { color: var(--dk-down) !important; }
 html.dark .post-single-body [style*="d24f45" i],
 html.dark .post-single-body [style*="ff0000" i],
 html.dark .post-single-body [style*="#f00" i],
