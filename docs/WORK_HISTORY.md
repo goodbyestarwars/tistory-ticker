@@ -1,3 +1,9 @@
+## 2026-11-28 호가창 '호가 두께' 상자 겹침 수정
+- 목적: 사용자 요청(호가 두께 상자가 호가표 위로 겹침).
+- 원인: 2026-11-27 추가한 상자 `#obDepth`의 클래스 `.ob-depth`가 호가 행 잔량 칸(`.ob-depth`, height 24px·flex)과 같아 상자가 24px로 눌려 내용이 호가표 위로 넘쳤고, 반대로 상자용 `#order-book .ob-depth:not(:empty)`(점선·여백)가 모든 행 잔량 칸에 붙어 행마다 점선이 생기고 행이 길어졌다.
+- 변경: `js/order-book.js` 상자 클래스를 `.ob-depth-box`로, `css/order-book.css` 상자 규칙 2개도 `.ob-depth-box`로. 행 잔량 칸 규칙은 그대로. 주식 이야기 호가창 그림(`img/learn-orderbook-real*.webp`)도 수정 화면으로 다시 찍고 크기 속성 갱신.
+- 검증: 같은 예시 데이터로 사이트 실제 order-book.js 렌더 전후 비교(겹침·행 점선 사라짐). order_book 관련 테스트 중 depth_visibility·test_order_book.py·us_orderbook·learn 통과, wall-evidence·trade_direction·stock_search_orderbook_layout 3건은 변경 전 master에서도 같은 실패(기존 문제). 운영 장중 화면은 미확인.
+
 ## 2026-11-28 주식 이야기 '호가창 이야기, 기본부터 깊게' 추가
 - 목적: 사용자 요청(주식 이야기 안 적절한 곳에 호가창을 그림으로 기본부터 심화까지 직접 작성). 본편은 차례+7장 유지 규칙(test_learn_plain_style)에 따라 2장의 이어 읽기 독립 페이지로 둔다.
 - 변경: `learn/orderbook.html` 신규(호가창 해부·상대 호가를 먹는 가격 이동·체결과 취소·5천만원 두께와 1% 깊이비율·잔량 쏠림의 단순/역상 해석·매물벽과 허수·동시호가와 시간외 잔량·다섯 가지 질문·사이트 배지 대응표·퀴즈 4·심화 연구실(OFI, 카일 람다, 대기열, 회복력, 검증 설계)), SVG 그림 7장(예시 숫자). `learn/order.html` 1절 끝 이어 읽기 문단과 하단 탐색 링크, `learn/index.html` 2장 소개에 이어 읽기 링크, `data/learn-search.js` 재생성. 홈 푸터 이야기 카드(21개 고정 테스트)는 변경하지 않음.
