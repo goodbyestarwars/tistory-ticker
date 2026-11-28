@@ -671,7 +671,8 @@ html.dark :is(#order-book, #usStocksOrderbook) .ob-spread { background: #29313b;
 }
 
 /* 호가 두께(2026-11-27): 1% 호가잔량 금액과 깊이비율. 색은 매도=파랑·매수=빨강 의미색만 쓴다. */
-#order-book .ob-depth:not(:empty) { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--ui-rule, #eee); font-size: 12px; }
+/* 호가 두께 상자(#obDepth). 2026-11-28: 예전 이름 .ob-depth가 호가 행의 잔량 칸과 같아 상자가 24px로 눌려 호가표 위에 겹치고, 행마다 점선이 생겼다 → .ob-depth-box로 분리. */
+#order-book .ob-depth-box:not(:empty) { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--ui-rule, #eee); font-size: 12px; }
 #order-book .ob-depth-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-bottom: 6px; }
 #order-book .ob-depth-head small, #order-book .ob-depth-n, #order-book .ob-depth-foot { color: var(--ui-muted, #64748b); font-size: 11px; line-height: 1.5; }
 #order-book .ob-depth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -685,5 +686,5 @@ html.dark :is(#order-book, #usStocksOrderbook) .ob-spread { background: #29313b;
 #order-book .ob-depth-kind { margin-top: 6px; font-weight: 700; }
 #order-book .ob-depth-foot { margin-top: 4px; }
 html.dark #order-book .ob-depth-cell { background: var(--dk-inner); }
-html.dark #order-book .ob-depth:not(:empty) { border-top-color: var(--dk-line); }
+html.dark #order-book .ob-depth-box:not(:empty) { border-top-color: var(--dk-line); }
 @media (max-width: 720px) { #order-book .ob-depth-grid { grid-template-columns: 1fr; } }

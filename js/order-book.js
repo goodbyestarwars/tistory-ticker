@@ -174,7 +174,7 @@
       + '<div id="obBookProvenance" class="ob-book-provenance" role="status">호가 출처·수신 시각 확인 중</div>'
       + '<div id="obBreakoutNote" class="ob-breakout-note"></div>'
       + '<div id="obAbnormalBadges" class="ob-abnormal-badges"></div>'
-      + '<div id="obDepth" class="ob-depth"></div>'
+      + '<div id="obDepth" class="ob-depth-box"></div>' // 호가 사다리의 행별 .ob-depth(잔량 칸)와 이름이 겹치지 않게 분리(2026-11-28)
       + '</div>'
       + '<div id="obToast" class="ob-toast"></div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
