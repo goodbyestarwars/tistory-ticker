@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>호가창 이야기 · 그림으로 배우는 주식 이야기</title>
+<meta name="description" content="호가창 한 장을 칸마다 해부하고, 가격이 호가를 먹으며 움직이는 과정, 체결과 취소 구분, 호가 두께와 얇음, 잔량 쏠림, 매물벽과 허수, 동시호가·시간외까지 기본부터 심화까지 그림으로 설명한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+/* First paint: preserve reading width and theme before the shared CSS/font completes. */
+html { background: #FEFDFA; }
+body.learn-page { margin: 0; padding: 48px 20px 80px; background: #FEFDFA; color: #374151; font-family: var(--font-serif); font-size: 15px; line-height: 1.8; }
+body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
+@media (max-width: 480px) { body.learn-page { padding: 32px 16px 60px; } }
+@media (prefers-color-scheme: dark) { html, body.learn-page { background: #0f1420; color: #d3dbe8; } }
+</style>
+<link rel="stylesheet" href="../css/legal.css?v=20261031-story-unify-1" />
+<link rel="stylesheet" href="../css/learn-cards.css?v=20261121-cards-1" />
+<script>try{if(localStorage.getItem('lc_mode')!=='scroll')document.documentElement.classList.add('lc-pre')}catch(e){document.documentElement.classList.add('lc-pre')}</script>
+</head>
+<body class="learn-page">
+<div class="legal-wrap story-page">
+  <div class="legal-backs">
+    <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+    <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/order.html">← 2장 주문과 체결</a>
+  </div>
+  <div class="learn-search" id="learn-search"></div>
+
+  <h1>호가창 이야기, 기본부터 깊게</h1>
+  <p class="legal-effective-date">2장 주문과 체결의 이어 읽기 · 호가창 해부, 가격이 움직이는 원리, 체결과 취소, 호가 두께, 잔량 쏠림, 매물벽과 허수, 동시호가와 시간외</p>
+
+  <section class="learn-sec learn-sec--intro">
+  <p>2장에서 호가창을 <b>중고 거래 게시판</b>에 비유했다. 팔겠다는 글과 사겠다는 글이 가격순으로 줄 서 있는 표다. 이 이야기는 그 표를 한 칸씩 뜯어보고, 숫자가 바뀔 때 실제로 무슨 일이 벌어지는지까지 따라간다.</p>
+  <p>처음 절반은 칸의 이름과 가격이 움직이는 원리다. 뒤쪽 절반은 같은 호가창을 보고도 사람마다 해석이 갈리는 부분(두께, 쏠림, 벽, 허수)이다. 마지막 심화 연구실은 학계에서 호가를 어떻게 숫자로 다루는지 소개한다.</p>
+  <div class="in-facts">
+    <div class="in-fact"><span>가격이 오르는 방법</span><strong>매도호가를 먹는다</strong></div>
+    <div class="in-fact"><span>잔량보다 중요한 것</span><strong>잔량의 움직임</strong></div>
+    <div class="in-fact"><span>호가창이 말하지 않는 것</span><strong>내일의 방향</strong></div>
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-1">호가창 한 장을 칸마다 해부하기</h2>
+  <p>실제 화면은 위아래로 10칸씩 보여 주지만, 그림은 5칸씩만 그렸다. 위쪽 파란 칸은 <b>팔겠다는 주문(매도호가)</b>, 아래쪽 빨간 칸은 <b>사겠다는 주문(매수호가)</b>이다. 가격 옆 숫자는 그 가격에 걸려 있는 주식 수, 곧 <b>잔량</b>이다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 372" role="img" aria-label="호가창 해부도. 매도호가 다섯 칸(10,010원부터 10,050원)과 매수호가 다섯 칸(10,000원부터 9,960원), 매도1호가와 매수1호가 사이의 스프레드 10원, 매도 총잔량 10,700주와 매수 총잔량 15,100주">
+      <text class="fig-sub" x="0" y="14">팔겠다는 주문 · 매도호가</text>
+      <text class="fig-sub" x="270" y="14">잔량(주)</text>
+      <rect class="fig-soft" x="0" y="22" width="260" height="24" />
+      <text class="fig-down" x="10" y="39" font-size="13">10,050원</text>
+      <rect class="fig-down" x="110" y="27" width="80" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="39">4,200</text>
+      <rect class="fig-soft" x="0" y="50" width="260" height="24" />
+      <text class="fig-down" x="10" y="67" font-size="13">10,040원</text>
+      <rect class="fig-down" x="110" y="55" width="50" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="67">2,600</text>
+      <rect class="fig-soft" x="0" y="78" width="260" height="24" />
+      <text class="fig-down" x="10" y="95" font-size="13">10,030원</text>
+      <rect class="fig-down" x="110" y="83" width="36" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="95">1,900</text>
+      <rect class="fig-soft" x="0" y="106" width="260" height="24" />
+      <text class="fig-down" x="10" y="123" font-size="13">10,020원</text>
+      <rect class="fig-down" x="110" y="111" width="15" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="123">800</text>
+      <rect class="fig-soft2" x="0" y="134" width="260" height="24" />
+      <text class="fig-down" x="10" y="151" font-size="13">10,010원</text>
+      <rect class="fig-down" x="110" y="139" width="23" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="151">1,200</text>
+      <text class="fig-ink" x="324" y="151" font-size="12">← 매도1호가</text>
+
+      <rect class="fig-white" x="0" y="164" width="260" height="30" />
+      <text class="fig-ink" x="10" y="184">현재가 10,000원</text>
+      <text class="fig-sub" x="160" y="184">마지막으로 체결된 값</text>
+      <path class="fig-ink-line" d="M316 146 L316 166 M316 192 L316 212" />
+      <text class="fig-ink" x="324" y="184" font-size="12">스프레드 10원</text>
+
+      <rect class="fig-soft2" x="0" y="200" width="260" height="24" />
+      <text class="fig-up" x="10" y="217" font-size="13">10,000원</text>
+      <rect class="fig-up" x="110" y="205" width="29" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="217">1,500</text>
+      <text class="fig-ink" x="324" y="217" font-size="12">← 매수1호가</text>
+      <rect class="fig-soft" x="0" y="228" width="260" height="24" />
+      <text class="fig-up" x="10" y="245" font-size="13">9,990원</text>
+      <rect class="fig-up" x="110" y="233" width="63" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="245">3,300</text>
+      <rect class="fig-soft" x="0" y="256" width="260" height="24" />
+      <text class="fig-up" x="10" y="273" font-size="13">9,980원</text>
+      <rect class="fig-up" x="110" y="261" width="40" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="273">2,100</text>
+      <rect class="fig-soft" x="0" y="284" width="260" height="24" />
+      <text class="fig-up" x="10" y="301" font-size="13">9,970원</text>
+      <rect class="fig-up" x="110" y="289" width="110" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="301">5,800</text>
+      <rect class="fig-soft" x="0" y="312" width="260" height="24" />
+      <text class="fig-up" x="10" y="329" font-size="13">9,960원</text>
+      <rect class="fig-up" x="110" y="317" width="46" height="14" opacity="0.45" />
+      <text class="fig-sub" x="270" y="329">2,400</text>
+      <text class="fig-sub" x="0" y="358">사겠다는 주문 · 매수호가</text>
+      <text class="fig-sub" x="200" y="358">총잔량 매도 10,700 · 매수 15,100</text>
+    </svg>
+    <figcaption>예시 숫자로 그린 호가창이다. 실제 시세가 아니다. 막대 길이는 잔량에 비례한다.</figcaption>
+  </figure>
+
+  <table class="learn-table">
+    <thead><tr><th>칸 이름</th><th>그림에서</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td>매도1호가</td><td>10,010원 · 1,200주</td><td>지금 당장 살 수 있는 가장 싼 값과 그 값에 남은 수량</td></tr>
+      <tr><td>매수1호가</td><td>10,000원 · 1,500주</td><td>지금 당장 팔 수 있는 가장 비싼 값과 그 값에 남은 수량</td></tr>
+      <tr><td>스프레드</td><td>10원(0.1%)</td><td>두 1호가의 차이. 바로 사서 바로 팔면 이만큼 잃는다</td></tr>
+      <tr><td>호가단위</td><td>10원</td><td>가격이 움직이는 계단 한 칸. 주가 구간마다 다르다(1장)</td></tr>
+      <tr><td>잔량</td><td>각 칸 오른쪽 숫자</td><td>그 가격에서 아직 체결되지 않고 기다리는 주식 수</td></tr>
+      <tr><td>총잔량</td><td>10,700 / 15,100</td><td>화면에 보이는 칸의 잔량 합계. 화면 밖 호가는 빠져 있다</td></tr>
+      <tr><td>현재가</td><td>10,000원</td><td>마지막으로 거래가 성사된 값. 다음 체결이 일어날 값은 아니다</td></tr>
+    </tbody>
+  </table>
+  <div class="learn-note">
+    <b>현재가는 과거다</b> 현재가는 "방금 거래된 값"이다. 지금 사려면 매도1호가(10,010원), 지금 팔려면 매수1호가(10,000원)를 봐야 한다. 거래가 드문 종목은 현재가와 1호가가 몇 칸씩 떨어져 있기도 하다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-2">가격은 상대 호가를 먹으면서 움직인다</h2>
+  <p>가격이 오른다는 건 누군가 <b>매도호가를 사 버려서</b> 그 칸을 비웠다는 뜻이다. 매수 주문이 많이 "쌓여" 있다고 오르는 게 아니다. 쌓인 주문은 기다리는 중이고, 가격을 옮기는 건 <b>기다리지 않고 상대 호가를 치는 주문</b>(시장가, 또는 상대 호가 가격에 낸 지정가)이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 250" role="img" aria-label="시장가 매수 3,000주가 매도호가 10,010원 1,200주, 10,020원 800주를 모두 사고 10,030원에서 1,000주를 사서 현재가가 10,030원으로 올라가는 과정. 평균 체결가 약 10,019원">
+      <text class="fig-ink" x="0" y="16">시장가로 3,000주를 사면</text>
+      <text class="fig-sub" x="0" y="40">매수 전</text>
+      <rect class="fig-soft" x="0" y="50" width="200" height="26" />
+      <text class="fig-down" x="8" y="68" font-size="12.5">10,030원 1,900</text>
+      <rect class="fig-soft" x="0" y="80" width="200" height="26" />
+      <text class="fig-down" x="8" y="98" font-size="12.5">10,020원 800</text>
+      <rect class="fig-soft2" x="0" y="110" width="200" height="26" />
+      <text class="fig-down" x="8" y="128" font-size="12.5">10,010원 1,200</text>
+      <rect class="fig-white" x="0" y="140" width="200" height="26" />
+      <text class="fig-ink" x="8" y="158" font-size="12.5">현재가 10,000원</text>
+
+      <path class="fig-acc-line" d="M212 108 L246 108" />
+      <path class="fig-acc-line" d="M240 102 L248 108 L240 114" />
+
+      <text class="fig-sub" x="260" y="40">매수 후</text>
+      <rect class="fig-soft2" x="260" y="50" width="200" height="26" />
+      <text class="fig-down" x="268" y="68" font-size="12.5">10,030원 900</text>
+      <rect class="fig-soft" x="260" y="80" width="200" height="26" opacity="0.5" />
+      <text class="fig-sub" x="268" y="98">10,020원 비었음</text>
+      <rect class="fig-soft" x="260" y="110" width="200" height="26" opacity="0.5" />
+      <text class="fig-sub" x="268" y="128">10,010원 비었음</text>
+      <rect class="fig-white" x="260" y="140" width="200" height="26" />
+      <text class="fig-ink" x="268" y="158" font-size="12.5">현재가 10,030원</text>
+
+      <text class="fig-sub" x="0" y="196">체결: 10,010원 1,200주 + 10,020원 800주 + 10,030원 1,000주</text>
+      <text class="fig-ink" x="0" y="222" font-size="13">평균 체결가 약 10,019원 · 가격 +0.3% · 약 3,006만원</text>
+      <text class="fig-sub" x="0" y="244">빈 칸이 생긴 만큼 가격이 위로 밀려 올라간다.</text>
+    </svg>
+    <figcaption>위 해부도와 같은 예시 호가다. 3,000주를 한 번에 사면 세 칸을 먹고 현재가가 세 칸 올라간다.</figcaption>
+  </figure>
+  <p class="learn-math">평균 체결가 = (1,200 × 10,010 + 800 × 10,020 + 1,000 × 10,030) ÷ 3,000 = 30,058,000 ÷ 3,000 ≈ 10,019원</p>
+  <p>떨어질 때도 같다. 누군가 시장가로 팔면 <b>매수호가를 위에서부터 먹으며</b> 가격이 내려간다. 그래서 호가창을 볼 때 가장 먼저 물을 질문은 "어느 쪽이 많이 쌓였나"가 아니라 <b>"지금 어느 쪽이 상대 호가를 치고 있나"</b>다.</p>
+  <ul>
+    <li><b>매수 체결(빨강)</b> 매도호가 가격에 체결됐다. 사는 쪽이 급해서 파는 쪽 값을 받아들였다.</li>
+    <li><b>매도 체결(파랑)</b> 매수호가 가격에 체결됐다. 파는 쪽이 급해서 사는 쪽 값을 받아들였다.</li>
+    <li><b>체결강도</b> 일정 시간 동안 매수 체결량을 매도 체결량으로 나눠 100을 곱한 값이다. 100보다 크면 사는 쪽이 더 급했다는 뜻이지만, 몇 건 안 되는 큰 체결 하나로도 크게 흔들린다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-3">잔량이 줄었다고 다 체결은 아니다</h2>
+  <p>매도1호가 잔량이 1,200주에서 200주로 줄었다. 사는 쪽이 1,000주를 먹은 걸까? 꼭 그렇지는 않다. 주문을 낸 사람이 <b>취소</b>해도 숫자는 똑같이 줄어든다. 둘을 가르는 방법은 하나다. 같은 시간에 <b>체결 목록</b>에 그 가격으로 거래가 찍혔는지 본다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 210" role="img" aria-label="같은 매도1호가 잔량 감소(1,200주에서 200주)라도 체결 목록에 10,010원 매수 1,000주가 찍히면 체결, 아무 체결이 없으면 취소. 체결은 사는 힘, 취소는 파는 사람의 마음 변화">
+      <text class="fig-ink" x="0" y="16">매도1호가 10,010원 · 1,200주 → 200주</text>
+      <rect class="fig-soft" x="0" y="32" width="220" height="150" />
+      <text class="fig-ink" x="12" y="56">경우 A · 체결</text>
+      <text class="fig-sub" x="12" y="80">체결 목록</text>
+      <rect class="fig-up" x="12" y="88" width="196" height="22" opacity="0.2" />
+      <text class="fig-up" x="20" y="104" font-size="12.5">10,010원 매수 1,000주</text>
+      <text class="fig-sub" x="12" y="136">누군가 실제로 사 갔다</text>
+      <text class="fig-sub" x="12" y="158">= 사려는 힘이 호가를 먹는 중</text>
+
+      <rect class="fig-soft" x="240" y="32" width="220" height="150" />
+      <text class="fig-ink" x="252" y="56">경우 B · 취소</text>
+      <text class="fig-sub" x="252" y="80">체결 목록</text>
+      <rect class="fig-white" x="252" y="88" width="196" height="22" />
+      <text class="fig-sub" x="260" y="104">그 시간에 체결 없음</text>
+      <text class="fig-sub" x="252" y="136">파는 사람이 주문을 거뒀다</text>
+      <text class="fig-sub" x="252" y="158">= 힘이 아니라 마음이 바뀐 것</text>
+      <text class="fig-sub" x="0" y="202">호가 숫자만 보면 A와 B는 똑같이 보인다.</text>
+    </svg>
+    <figcaption>호가 잔량과 체결 목록은 늘 짝으로 본다.</figcaption>
+  </figure>
+  <p>경우 B가 나쁜 신호라는 뜻도 아니다. 파는 사람이 "이 값엔 안 판다" 하고 주문을 더 위로 옮겼을 수도 있다. 반대로 아래쪽 매수 잔량이 늘어도 실제로 사 간 사람은 없을 수 있다. 호가창 숫자는 <b>지금 이 순간의 마음</b>이고, 체결은 <b>이미 일어난 행동</b>이다. 행동 쪽에 무게를 더 둔다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-4">호가의 두께 · 얼마를 사야 가격이 움직이나</h2>
+  <p>같은 1,000만원어치를 사도 어떤 종목은 가격이 꿈쩍 않고 어떤 종목은 몇 칸씩 뛴다. 차이는 1호가 근처에 쌓인 <b>금액</b>이다. 이걸 호가의 <b>두께</b>(깊이)라고 부른다. 주식 수가 아니라 금액으로 봐야 한다. 1,000원짜리 1만주와 10만원짜리 1만주는 무게가 100배 다르다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 260" role="img" aria-label="5천만원을 시장가로 살 때 얇은 호가(1호가 300만원, 다섯 칸 합계 약 2,610만원)는 다섯 칸을 다 먹고도 모자라고, 두꺼운 호가(1호가 약 7억 2천만원)는 1호가 안에서 끝난다">
+      <text class="fig-ink" x="0" y="16">5천만원을 시장가로 산다면</text>
+      <text class="fig-sub" x="0" y="42">얇은 호가 · 주가 1만원대</text>
+      <rect class="fig-soft" x="0" y="52" width="460" height="22" />
+      <rect class="fig-down" x="0" y="52" width="28" height="22" opacity="0.55" />
+      <rect class="fig-down" x="30" y="52" width="46" height="22" opacity="0.45" />
+      <rect class="fig-down" x="78" y="52" width="37" height="22" opacity="0.55" />
+      <rect class="fig-down" x="117" y="52" width="55" height="22" opacity="0.45" />
+      <rect class="fig-down" x="174" y="52" width="74" height="22" opacity="0.55" />
+      <path class="fig-dash" d="M460 46 L460 80" />
+      <text class="fig-sub" x="252" y="68">← 다섯 칸 합계 약 2,610만원</text>
+      <text class="fig-sub" x="0" y="96">1호가 300만원 · 500만원 · 400만원 · 600만원 · 800만원</text>
+      <text class="fig-ink" x="0" y="120" font-size="13">다섯 칸을 다 먹고도 2,390만원이 남는다 → 5호가 넘게 이동</text>
+
+      <text class="fig-sub" x="0" y="160">두꺼운 호가 · 주가 6만원대</text>
+      <rect class="fig-soft" x="0" y="170" width="460" height="22" />
+      <rect class="fig-down" x="0" y="170" width="460" height="22" opacity="0.45" />
+      <rect class="fig-acc" x="0" y="170" width="32" height="22" />
+      <text class="fig-on-accent" x="40" y="186" font-size="12">5천만원은 1호가의 7%</text>
+      <text class="fig-sub" x="0" y="214">1호가 60,100원 · 12,000주 = 약 7억 2,120만원</text>
+      <text class="fig-ink" x="0" y="238" font-size="13">1호가 안에서 끝난다 → 가격 그대로</text>
+    </svg>
+    <figcaption>예시 숫자다. 같은 금액이 얇은 종목에서는 가격을 여러 칸 밀어 올리고, 두꺼운 종목에서는 흔적도 남기지 않는다.</figcaption>
+  </figure>
+  <p>얇은 호가는 양쪽으로 다 위험하다. 조금만 사도 뛰지만, 조금만 팔아도 무너진다. 내가 팔 때도 내 주문이 내 가격을 끌어내린다. 그래서 얇은 종목일수록 시장가 대신 지정가로 나눠서 내는 게 기본이다.</p>
+
+  <h3 id="depth-ratio">두께를 체결 속도와 비교하기 · 깊이비율</h3>
+  <p>금액만으로는 부족하다. 1억원어치 호가도 1분에 10억원씩 거래되는 종목에선 순식간에 사라지고, 하루 거래대금이 5억원인 종목에선 한참 버틴다. 그래서 두께를 <b>최근 체결 속도</b>로 나눠 본다.</p>
+  <p class="learn-math">깊이비율 = 현재가에서 1% 안의 호가 잔량 금액 ÷ 최근 1분 체결대금(그 호가를 먹는 방향만)</p>
+  <table class="learn-table">
+    <thead><tr><th>해부도 예시</th><th>1% 안 잔량 금액</th><th>최근 1분 체결대금</th><th>깊이비율</th></tr></thead>
+    <tbody>
+      <tr><td>위쪽 매도호가(10,100원까지)</td><td>약 1억 740만원</td><td>매수 체결 2억원</td><td><b>0.54배 · 얇음</b></td></tr>
+      <tr><td>아래쪽 매수호가(9,900원까지)</td><td>약 1억 5,066만원</td><td>매도 체결 4천만원</td><td><b>3.77배 · 두꺼움</b></td></tr>
+    </tbody>
+  </table>
+  <p>읽는 법은 이렇다. 위쪽 매도호가는 지금 들어오는 매수 체결 속도로 30초 남짓이면 다 먹힐 양이다. 아래쪽 매수호가는 지금 매도 속도로 4분 가까이 버틴다. 그러니 <b>지금 이 순간에는 위로 움직이기가 아래로 움직이기보다 쉽다.</b></p>
+  <div class="learn-note">
+    <b>쉽다는 것이지 간다는 것은 아니다</b> 깊이비율은 방향을 맞히는 숫자가 아니다. "가격이 얼마나 쉽게 밀리는 상태인가"를 잴 뿐이다. 1분 뒤 매도 체결이 몰려오면 비율은 그 즉시 뒤집힌다. 위 표에서 화면 밖(10칸 너머) 호가는 빠져 있어서, 실제 1% 금액은 이보다 클 수 있다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-5">잔량 쏠림 · 같은 그림, 두 가지 해석</h2>
+  <p>매수 총잔량이 매도 총잔량보다 훨씬 많으면 어떻게 읽어야 할까. 여기서 해석이 둘로 갈린다. 둘 다 시장에서 흔히 쓰이는 말이고, 어느 쪽도 늘 맞지는 않는다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 220" role="img" aria-label="매수 잔량이 매도의 2배 이상 쌓였을 때 단순 해석은 받쳐 주니 오른다, 역상 해석은 큰손이 아래에서 받는 척하며 위로 물량을 넘기는 중일 수 있으니 하락을 경계한다. 매도 잔량이 많은데 가격이 버티면 역상 해석은 누군가 그 물량을 받아 가고 있다고 본다">
+      <text class="fig-ink" x="0" y="16">매수 잔량이 매도의 2배 넘게 쌓였다</text>
+      <rect class="fig-soft" x="0" y="30" width="220" height="150" />
+      <text class="fig-ink" x="12" y="54">단순 해석</text>
+      <text class="fig-sub" x="12" y="80">"사려는 사람이 많다</text>
+      <text class="fig-sub" x="12" y="100">아래에서 받쳐 준다"</text>
+      <text class="fig-up" x="12" y="132" font-size="13">→ 오를 쪽</text>
+      <text class="fig-sub" x="12" y="160">잔량을 그대로 믿는다</text>
+
+      <rect class="fig-soft2" x="240" y="30" width="220" height="150" />
+      <text class="fig-ink" x="252" y="54">역상 해석</text>
+      <text class="fig-sub" x="252" y="80">"큰 주문을 낼 수 있는 쪽이</text>
+      <text class="fig-sub" x="252" y="100">아래에 깔아 안심시키는 중"</text>
+      <text class="fig-down" x="252" y="132" font-size="13">→ 내릴 쪽 경계</text>
+      <text class="fig-sub" x="252" y="160">잔량을 의도로 읽는다</text>
+      <text class="fig-sub" x="0" y="204">어느 쪽이 맞는지는 잔량이 아니라 이어지는 체결이 알려 준다.</text>
+    </svg>
+    <figcaption>호가 역상은 시장에서 쓰이는 경험칙이다. 통계로 검증된 법칙이 아니다.</figcaption>
+  </figure>
+  <p><b>역상 해석</b>의 논리는 이렇다. 큰 물량을 사 모으려는 쪽은 자기 매수 주문을 드러내면 값이 먼저 올라 불리하다. 그래서 위쪽 매도 잔량이 두텁게 보이는 동안 그 물량을 조용히 받아 간다. 반대로 많이 팔아야 하는 쪽은 아래에 매수 잔량을 두텁게 깔아 "받쳐 준다"는 인상을 주고 위에서 물량을 넘긴다. 그러니 <b>매도 잔량이 많은데 가격이 안 빠지면</b> 누군가 받아 가는 중이고, <b>매수 잔량이 많은데 가격이 안 오르면</b> 누군가 넘기는 중일 수 있다는 것이다.</p>
+  <p>두 해석을 가르는 열쇠는 앞 장과 같다. <b>잔량이 아니라 체결</b>이다. 매도 잔량이 두꺼운데 매수 체결이 계속 그 잔량을 먹어 들어가면 역상 쪽, 아무도 안 먹고 잔량만 쌓여 있으면 단순히 팔려는 사람이 많은 것이다.</p>
+  <div class="learn-note">
+    <b>쏠림의 함정 세 가지</b> ① 화면에 보이는 10칸만 더한 숫자다. 11칸째부터는 모른다. ② 한 칸에 걸린 큰 주문 하나가 합계 전체를 뒤집는다. ③ 순식간에 넣고 뺄 수 있다. 쏠림은 <b>몇 분 동안 유지되는지</b> 같이 본다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-6">매물벽과 허수 · 가까이 가면 사라지는 주문</h2>
+  <p>한 칸에 유독 큰 주문이 걸려 있으면 <b>벽</b>이라고 부른다. 위에 있으면 매도벽(저항), 아래에 있으면 매수벽(지지)으로 읽는다. 하지만 벽은 약속이 아니다. 실제로 그 값까지 가면 사라지는 일이 흔하다. 가격이 다가갈 때 빠지는 주문을 <b>허수(스푸핑)</b>라 부르며, 체결할 뜻 없이 시세에 영향을 주려고 주문을 넣고 빼는 행위는 시세조종으로 처벌 대상이다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 230" role="img" aria-label="매수벽 9,970원 5,800주. 현재가가 10,000원일 때는 그대로, 9,980원으로 내려오면 그대로, 9,970원 바로 위까지 오면 300주만 남고 사라진다">
+      <text class="fig-ink" x="0" y="16">매수벽 9,970원 · 5,800주를 지켜본다</text>
+      <text class="fig-sub" x="0" y="44">① 현재가 10,000원</text>
+      <rect class="fig-soft" x="0" y="52" width="140" height="22" />
+      <rect class="fig-up" x="0" y="52" width="110" height="22" opacity="0.5" />
+      <text class="fig-ink" x="6" y="68" font-size="12">5,800주</text>
+      <text class="fig-sub" x="160" y="44">② 현재가 9,980원</text>
+      <rect class="fig-soft" x="160" y="52" width="140" height="22" />
+      <rect class="fig-up" x="160" y="52" width="110" height="22" opacity="0.5" />
+      <text class="fig-ink" x="166" y="68" font-size="12">5,800주</text>
+      <text class="fig-sub" x="320" y="44">③ 9,970원 코앞</text>
+      <rect class="fig-soft" x="320" y="52" width="140" height="22" />
+      <rect class="fig-up" x="320" y="52" width="6" height="22" opacity="0.5" />
+      <text class="fig-ink" x="332" y="68" font-size="12">300주</text>
+
+      <text class="fig-sub" x="0" y="110">거리 3칸 · 0.3%</text>
+      <text class="fig-sub" x="160" y="110">거리 1칸 · 0.1%</text>
+      <text class="fig-sub" x="320" y="110">체결 없이 5,500주 증발</text>
+      <path class="fig-dash" d="M0 128 L460 128" />
+      <text class="fig-ink" x="0" y="156" font-size="13">벽을 볼 때 묻는 세 가지</text>
+      <text class="fig-sub" x="0" y="180">1. 현재가에서 얼마나 먼가 · 멀수록 허수일 가능성이 크다</text>
+      <text class="fig-sub" x="0" y="200">2. 가격이 다가갈 때 남아 있나 · 남아서 체결되면 진짜 벽</text>
+      <text class="fig-sub" x="0" y="220">3. 사라질 때 체결이 찍혔나 · 없으면 취소, 있으면 소화</text>
+    </svg>
+    <figcaption>예시 그림이다. 벽이 체결로 소화되는 것과 취소로 사라지는 것은 뜻이 정반대다.</figcaption>
+  </figure>
+  <p>벽이 <b>체결로 소화</b>되면(매도벽을 매수 체결이 다 먹으면) 그 위로는 막힌 곳이 줄어든다. 흔히 말하는 "벽 돌파"다. 같은 벽이 <b>가격이 급히 빠져서 화면 밖으로 밀려나</b> 안 보이게 될 수도 있다. 이건 돌파가 아니라 그 반대다. 벽이 없어진 순간 캔들이 양봉인지 음봉인지 함께 본다.</p>
+  <p>현재가에서 20% 넘게 떨어진 곳, 예를 들어 상한가나 하한가 근처에 갑자기 큰 주문이 생기면 실제로 거기서 거래할 뜻보다 "이쪽으로 간다"는 인상을 주려는 경우가 많다. 그런 물량은 쏠림 계산에서 빼고 생각한다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-7">시간대마다 호가창은 다르게 움직인다</h2>
+  <p>정규장(09:00~15:30) 대부분은 주문이 들어오는 즉시 맞는 상대가 있으면 체결된다. 이걸 <b>접속매매</b>라 한다. 하지만 하루에 몇 번은 주문을 모아 두었다가 한 가격에 한꺼번에 체결한다. 이걸 <b>단일가매매</b>(동시호가)라 부르고, 이 시간의 호가창은 읽는 법이 다르다.</p>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 460 150" role="img" aria-label="하루 시간표. 08:30부터 09:00 장 시작 동시호가, 09:00부터 15:20 접속매매, 15:20부터 15:30 장 마감 동시호가, 16:00부터 18:00 시간외 단일가">
+      <text class="fig-ink" x="0" y="16">한국거래소 정규시장 기준 하루</text>
+      <rect class="fig-acc" x="0" y="36" width="40" height="30" />
+      <rect class="fig-soft2" x="42" y="36" width="270" height="30" />
+      <rect class="fig-acc" x="314" y="36" width="26" height="30" />
+      <rect class="fig-soft" x="346" y="36" width="114" height="30" />
+      <text class="fig-sub" x="0" y="86">08:30</text>
+      <text class="fig-sub" x="38" y="86">09:00</text>
+      <text class="fig-sub" x="290" y="86">15:20</text>
+      <text class="fig-sub" x="346" y="86">16:00~18:00</text>
+      <text class="fig-ink" x="120" y="56" font-size="12.5">접속매매 · 바로바로 체결</text>
+      <text class="fig-sub" x="352" y="56">시간외 단일가</text>
+      <text class="fig-sub" x="0" y="114">진한 칸 = 동시호가(주문을 모아 한 가격에 체결) · 시간외 단일가는 10분마다 체결</text>
+      <text class="fig-sub" x="0" y="138">VI가 발동돼도 2분 동안 단일가로 바뀐다(1장)</text>
+    </svg>
+    <figcaption>대체거래소(NXT)의 프리·애프터마켓은 거래 시간과 방식이 따로 있다. 1장의 하루 시간표를 함께 본다.</figcaption>
+  </figure>
+  <ul>
+    <li><b>예상체결가</b> 동시호가 중에는 "지금 마감하면 이 값에 체결된다"는 예상 가격과 수량이 보인다. 마감 직전까지 주문을 넣고 뺄 수 있어서 예상가가 막판에 크게 바뀌기도 한다. 08:59에 갑자기 예상가가 뛰는 건 흔한 일이다.</li>
+    <li><b>장 마감 동시호가</b> 종가가 정해지는 시간이다. ETF·지수 편입 같은 이유로 큰 주문이 몰려 마지막 10분에 가격이 튈 수 있다.</li>
+    <li><b>시간외 잔량</b> 장 뒤 시간외 시장의 매도·매수 잔량이 호가창 맨 아래에 따로 보인다. 시간외 매수 잔량이 훨씬 많으면 "다음 날도 사겠다는 사람이 남아 있다(진매수)", 매도 잔량만 많으면 "정규장의 매수 잔량은 보여 주기용이었나(허매수)"라고 읽는 경험칙이 있다. 다만 장중에는 이 숫자가 0이거나 지난 세션 값일 수 있으니 시각을 꼭 확인한다.</li>
+  </ul>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-8">한 장을 보는 순서 · 다섯 가지 질문</h2>
+  <p>호가창은 숫자가 쉴 새 없이 깜빡여서 어디부터 봐야 할지 헷갈린다. 아래 순서대로 물으면 한 번에 하나씩만 보게 된다.</p>
+  <ol>
+    <li><b>스프레드는 몇 칸인가</b> 1칸이면 거래가 활발하다. 여러 칸 벌어져 있으면 바로 사고팔기만 해도 손해가 크다.</li>
+    <li><b>내 주문 금액 대비 1호가 금액은</b> 내가 살 금액이 1호가 금액보다 크면 내 주문이 가격을 민다. 나눠서 낸다.</li>
+    <li><b>지금 누가 치고 있나</b> 체결 목록이 빨강(매수 체결)으로 차는지 파랑(매도 체결)으로 차는지 본다.</li>
+    <li><b>잔량의 변화는 체결인가 취소인가</b> 줄어든 잔량과 같은 시각의 체결을 맞춰 본다.</li>
+    <li><b>일봉에서 지금 어디인가</b> 전고점 바로 밑인지, 이미 크게 오른 뒤인지에 따라 같은 호가창도 뜻이 달라진다(3장).</li>
+  </ol>
+  <div class="learn-note">
+    <b>호가창은 현미경이다</b> 몇 초, 몇 분 단위를 크게 보여 준다. 그래서 큰 그림(추세, 실적, 시장 전체)을 대신하지 못한다. 호가창 하나만 보고 매수를 결정하는 건 현미경으로 산의 높이를 재는 일이다.
+  </div>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-9">이 사이트에서 확인하기</h2>
+  <p><a href="https://ghlee.tistory.com/page/stock-search">종목 검색</a>에서 종목을 열면 호가 패널 위에 이 이야기에서 다룬 내용이 배지와 표로 붙는다. 모두 <b>참고용 표시</b>이며 주문·자동매매와 연결되지 않는다.</p>
+  <table class="learn-table">
+    <thead><tr><th>화면 표시</th><th>이 이야기의 어디</th><th>판정 기준</th></tr></thead>
+    <tbody>
+      <tr><td>호가 두께</td><td>4절 깊이비율</td><td>1% 안 잔량 금액 ÷ 최근 1분 방향별 체결대금. 0.5배 미만 매우 얇음, 1배 미만 얇음, 3배 이상 두꺼움</td></tr>
+      <tr><td>매도 얇음 · 매수 얇음</td><td>4절 5천만원 예시</td><td>5천만원 시장가 주문이 1호가를 넘겨 다음 칸까지 먹으면 표시(원화 종목만)</td></tr>
+      <tr><td>매수·매도 잔량 우위 · 호가 역상</td><td>5절 쏠림</td><td>총잔량이 한쪽으로 2배 이상</td></tr>
+      <tr><td>매도벽 · 매수벽 · 허수 의심</td><td>6절 벽</td><td>한 칸이 다른 칸 평균보다 크게 쌓임, 현재가에서 20% 넘게 멀면 허수 의심</td></tr>
+      <tr><td>대량 물량</td><td>6절 벽</td><td>한 칸에 10만주 이상</td></tr>
+      <tr><td>시간외 진매수 · 허매수 의심</td><td>7절 시간외 잔량</td><td>시간외 잔량이 한쪽으로 2배 이상</td></tr>
+      <tr><td>일봉 신뢰도</td><td>8절 다섯째 질문</td><td>위 신호가 있을 때 최근 120거래일 고점 돌파·최근 20봉 안 매집봉 여부</td></tr>
+    </tbody>
+  </table>
+  <p>기준 숫자(2배, 5천만원, 10만주 등)는 실데이터로 검증하기 전의 출발점이다. 종목 크기에 따라 맞지 않을 수 있다. 예를 들어 10만주는 대형주에서는 흔하고 고가 소형주에서는 드물다.</p>
+  </section>
+
+  <section class="learn-sec">
+  <h2 id="sec-quiz">직접 풀어 보기</h2>
+  <details class="in-quiz"><summary>1. 해부도 호가에서 지금 당장 100주를 사면 얼마에 사고, 바로 되팔면 얼마에 팔까?</summary><p>매도1호가 10,010원에 사고, 매수1호가 10,000원에 판다. 주당 10원, 100주면 1,000원을 스프레드로 잃는다(수수료·세금 별도).</p></details>
+  <details class="in-quiz"><summary>2. 매도1호가 잔량이 갑자기 0이 됐는데 체결 목록에는 아무것도 없다. 무슨 일일까?</summary><p>누가 사 간 게 아니라 판매 주문이 취소된 것이다. 사는 힘이 들어왔다고 읽으면 안 된다.</p></details>
+  <details class="in-quiz"><summary>3. 1% 안 매도 잔량이 3억원, 최근 1분 매수 체결대금이 1억원이면 깊이비율은? 얇은가?</summary><p>3억 ÷ 1억 = 3배다. 지금 매수 속도로 3분은 버틸 양이라 두꺼운 편이다. 위로 밀어 올리기 쉽지 않은 상태다.</p></details>
+  <details class="in-quiz"><summary>4. 하한가 근처에 50만주 매수 주문이 생겼다. 현재가 근처의 쏠림 계산에 넣어야 할까?</summary><p>빼고 본다. 현재가에서 아주 먼 큰 주문은 실제 거래보다 인상을 주려는 허수일 가능성이 크다. 가격이 다가가도 남아 있는지 지켜본다.</p></details>
+  </section>
+
+<section class="learn-deep" aria-labelledby="advanced-orderbook">
+  <h2 id="advanced-orderbook">심화 연구실 · 호가를 숫자로 다루는 법</h2>
+  <p>시장미시구조 연구는 호가창을 사진이 아니라 <b>사건의 흐름</b>으로 본다. 주문 추가, 취소, 체결이라는 세 사건이 1호가 잔량을 바꾸고, 그 순변화가 다음 가격 변화를 얼마나 설명하는지 잰다.</p>
+
+  <div class="learn-lab">
+    <h3>주문흐름 불균형(OFI) · 1호가에서 일어난 일의 합계</h3>
+    <p>짧은 구간 동안 <b>매수1호가 쪽에서 늘어난 수요</b>에서 <b>매도1호가 쪽에서 늘어난 공급</b>을 뺀 값이다. 1호가 가격이 그대로면 잔량 변화를 그대로 쓰고, 1호가 가격이 바뀌면 새 칸의 잔량 전체(또는 사라진 칸의 잔량 전체)를 더하거나 뺀다.</p>
+    <table class="learn-table"><thead><tr><th>10초 동안</th><th>매수1호가 10,000원</th><th>매도1호가 10,010원</th></tr></thead><tbody>
+      <tr><td>처음</td><td>1,500주</td><td>1,200주</td></tr>
+      <tr><td>끝</td><td>2,300주(+800)</td><td>500주(−700)</td></tr>
+      <tr><td><b>OFI</b></td><td colspan="2"><b>(+800) − (−700) = +1,500주</b></td></tr>
+    </tbody></table>
+    <p>양수면 사는 쪽 압력이 컸다는 뜻이다. Cont·Kukanov·Stoikov(2014)는 미국 주식에서 짧은 구간 가격 변화가 대체로 <b>OFI ÷ 1호가 깊이</b>에 비례한다는 관계를 보였다. 같은 압력이라도 호가가 얇을수록 가격이 더 움직인다. 4절의 두께 이야기를 식으로 쓴 셈이다.</p>
+  </div>
+
+  <div class="learn-grid">
+    <div><h3>가격 충격 계수(카일의 람다)</h3><p>Kyle(1985)의 모형에서 가격 변화는 <b>λ × 순매수 주문량</b>이다. λ가 작으면 많이 사도 가격이 덜 움직인다. 시장이 깊다는 뜻이다. 실증에서는 5분 수익률을 같은 구간의 순매수 금액에 회귀해 λ를 추정한다.</p></div>
+    <div><h3>대기열 위치</h3><p>같은 가격이면 먼저 낸 주문이 먼저 체결된다(2장). 그래서 지정가 주문의 체결 확률은 가격뿐 아니라 <b>내 앞에 선 잔량</b>에 달렸다. 내 앞 잔량이 클수록 체결은 늦고, 늦게 체결될수록 불리한 체결(가격이 나를 지나 반대로 갈 때만 체결)이 섞이기 쉽다.</p></div>
+    <div><h3>회복력</h3><p>큰 시장가 주문이 호가를 먹은 뒤 빈 칸이 얼마나 빨리 다시 채워지는지다. 금방 채워지면 유동성이 진짜로 두꺼운 것이고, 한참 비어 있으면 화면의 두께가 얇은 유동성을 가리고 있던 것이다. 측정하려면 호가 이력을 초 단위로 저장해야 한다.</p></div>
+    <div><h3>보이는 것과 숨은 것</h3><p>호가창에 안 보이는 주문도 있다. 쪼개서 조금씩 내는 알고리즘 주문, 가격이 오면 그제야 들어오는 주문은 잔량에 미리 나타나지 않는다. 그래서 잔량 합계만으로 만든 신호는 실제 힘을 과소·과대평가할 수 있다.</p></div>
+  </div>
+
+  <div class="learn-lab"><h3>연구 설계 · 호가 신호를 검증하려면</h3><p>① 신호가 뜬 <b>그 순간까지의 정보만</b> 쓴다. 신호 뒤에 확정된 일봉으로 과거 신호를 고치면 성과가 부풀려진다. ② 신호 뒤 5분·30분·종가 수익률을 <b>같은 시간대에 신호가 없던 표본</b>과 비교한다. 장 초반은 원래 변동이 크다. ③ 스프레드와 수수료·세금을 뺀다. 몇 틱짜리 우위는 비용에서 사라진다. ④ 강세장 하루치 표본은 거의 모든 신호를 좋아 보이게 한다. 상승장·하락장·횡보장을 나눠 기록한다.</p></div>
+
+  <div class="learn-sources"><strong>원문 확인과 추가 독서</strong><ul>
+    <li><a href="https://doi.org/10.1093/jjfinec/nbt003" target="_blank" rel="noopener noreferrer">Cont, Kukanov, Stoikov (2014) · The Price Impact of Order Book Events, Journal of Financial Econometrics</a></li>
+    <li><a href="https://doi.org/10.2307/1913210" target="_blank" rel="noopener noreferrer">Kyle (1985) · Continuous Auctions and Insider Trading, Econometrica</a></li>
+    <li><a href="https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins-14" target="_blank" rel="noopener noreferrer">미국 SEC · 시장가와 지정가 주문의 차이</a></li>
+  </ul></div>
+</section>
+
+  <section class="learn-sec">
+  <h2 id="sec-10">한 줄 정리</h2>
+  <p>호가창의 잔량은 <b>지금의 마음</b>이고 체결은 <b>이미 한 행동</b>이다. 가격은 상대 호가를 먹으며 움직이고, 얼마나 쉽게 움직이는지는 <b>두께</b>가 정한다. 쏠림·벽·허수는 체결과 시간을 함께 볼 때만 뜻이 생긴다.</p>
+  </section>
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/order.html">← 2장 주문과 체결</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart.html">3장 차트 읽기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+<script defer src="../js/learn-cards.js?v=20261121-cards-1"></script>
+<script defer src="../js/learn-search.js"></script>
+</body>
+</html>
