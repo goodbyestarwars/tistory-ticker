@@ -2410,9 +2410,9 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: var(--dk-sub) !importa
   #foreign-flow .ff-swing-facts { gap: 7px 14px; }
 }
 html.dark #foreign-flow .ff-swing-regime { border-color: var(--dk-line); }
-html.dark #foreign-flow .ff-swing-regime strong { color: var(--dk-down) !important; }
+html.dark #foreign-flow .ff-swing-regime strong { color: var(--dk-down); }
 html.dark #foreign-flow .ff-swing-flow-track, html.dark #foreign-flow .ff-swing-step + .ff-swing-step, html.dark #foreign-flow .ff-swing-diagnosis, html.dark #foreign-flow .ff-swing-actions, html.dark #foreign-flow .ff-swing-action + .ff-swing-action { border-color: var(--dk-line); }
-html.dark #foreign-flow .ff-swing-step strong, html.dark #foreign-flow .ff-swing-diagnosis strong { color: var(--dk-down) !important; }
+html.dark #foreign-flow .ff-swing-step strong, html.dark #foreign-flow .ff-swing-diagnosis strong { color: var(--dk-down); }
 html.dark #foreign-flow .ff-swing-action strong, html.dark #foreign-flow .ff-swing-fact b, html.dark #foreign-flow .ff-swing-reasons, html.dark #foreign-flow .ff-swing-invalidation { color: var(--dk-text); }
 html.dark #foreign-flow .ff-sig-banner-chip {
   background: var(--dk-inner) !important;
